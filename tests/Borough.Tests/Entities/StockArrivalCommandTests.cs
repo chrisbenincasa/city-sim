@@ -14,19 +14,8 @@ namespace Borough.Tests.Entities;
 /// instead of inventing them.
 /// </summary>
 /// <remarks>
-/// <para>
-/// <b>The verb used to be a generator.</b> It was handed a Life Stage and a head count and made a
-/// family on the spot, so a runner could type a city into existence out of an Outside that held
-/// nobody. Where a Ruleset states <c>[immigration]</c> the command now selects among the families
-/// standing behind that edge and puts them through the comparison, the quota and the queue the edge's
-/// own occasions use (<c>plans/0073</c> D8).
-/// </para>
-/// <para>
-/// ⚠ <b>Two silences mean different things and both are here.</b> A composition nobody declares is a
-/// refusal, because the command is asking for people who could not exist; a composition that exists
-/// and is spent admits nobody and is refused by nothing, because a depleted edge is the mechanism
-/// working.
-/// </para>
+/// Explicit commands request matching stock; repeated requests must preserve quota and reservation
+/// limits.
 /// </remarks>
 public sealed class StockArrivalCommandTests
 {
@@ -47,10 +36,6 @@ public sealed class StockArrivalCommandTests
     private static Ruleset Shipped() => Parsed(Text("attracted.toml"), "attracted.toml");
 
     /// <summary>The shipped file with three Households behind west and nobody anywhere else.</summary>
-    /// <remarks>
-    /// <b>Small enough to exhaust, which is what makes a request countable.</b> Six hundred families
-    /// behind an edge cannot be asked for often enough in one test to show a bound.
-    /// </remarks>
     private static Ruleset Thin()
     {
         string text = Text("attracted.toml");
@@ -164,11 +149,6 @@ public sealed class StockArrivalCommandTests
     }
 
     /// <summary>A declared composition standing at nobody admits nobody, and is refused by nothing.</summary>
-    /// <remarks>
-    /// <b>The distinction the refusal exists to draw.</b> An authored group with no Households in it
-    /// is somebody the Outside supplies and has none of today, which is depletion rather than a
-    /// command asking for people who cannot exist.
-    /// </remarks>
     [Fact]
     public void A_declared_composition_that_is_spent_is_a_no_op()
     {
@@ -217,11 +197,6 @@ public sealed class StockArrivalCommandTests
     }
 
     /// <summary>Households already promised to a gate are not offered to a command as well.</summary>
-    /// <remarks>
-    /// <b>Both draws come out of the same three Households</b> (D5). A reservation is the whole of
-    /// what stops a family being admitted once by the queue it is standing in and once by a runner
-    /// asking for somebody of its shape.
-    /// </remarks>
     [Fact]
     public void A_request_cannot_draw_stock_that_is_already_promised()
     {
@@ -296,11 +271,6 @@ public sealed class StockArrivalCommandTests
     }
 
     /// <summary>A world stating no Outside stock keeps the verb it always had.</summary>
-    /// <remarks>
-    /// <b>The old path is the fixture path</b>, and every Ruleset but <c>attracted.toml</c> is on it.
-    /// A command there still invents the family it names, because there is no stock for it to come
-    /// out of and no account that would notice.
-    /// </remarks>
     [Fact]
     public void A_world_with_no_stock_still_invents_the_family_it_is_asked_for()
     {

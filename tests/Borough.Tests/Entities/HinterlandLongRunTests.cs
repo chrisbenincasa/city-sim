@@ -13,23 +13,9 @@ namespace Borough.Tests.Entities;
 /// running at the end of them.
 /// </summary>
 /// <remarks>
-/// <para>
-/// 🔴 <b><c>attracted.toml</c> cannot carry this run, and the reason is the whole design of this
-/// class.</b> Nothing in that file retires a dwelling, so the city fills and then no occasion can
-/// find a home to compare against — measured over 64 Days at 1,000 Citizens, every one of its 1,759
-/// fresh occasions on the last Day came out as <em>no sample</em>, with zero willing on all four
-/// edges, while 3,519 Households still stood outside. ***Every assertion below would pass in that
-/// world against an immigration engine that had been deleted***, because from Day 58 it does nothing
-/// at all. <see cref="SteadyOutsideLongRun"/> uses <c>attracted-declining.toml</c>, which is the same
-/// file plus the two decline keys, so dwellings retire, the Zone Rule rebuilds and somebody always
-/// has something to compare.
-/// </para>
-/// <para>
-/// ⚠ <b>The growing city is still run, and it is run for its accounts alone.</b> The plan asks for a
-/// second scenario that verifies the books <em>without</em> asserting its population is flat, and a
-/// saturating city is exactly that world — <see cref="The_books_balance_in_a_city_that_is_still_changing"/>
-/// asserts the residual and the money and deliberately asserts nothing about the level.
-/// </para>
+/// The declining fixture keeps housing and immigration active after the opening transient.
+/// The attracted fixture eventually fills, so its long run checks accounts without asserting
+/// continued flow. Measurement conditions and results are recorded in plans/0073.
 /// </remarks>
 public sealed class HinterlandLongRunTests
     : IClassFixture<SteadyOutsideLongRun>, IClassFixture<GrowingOutsideLongRun>
@@ -43,21 +29,16 @@ public sealed class HinterlandLongRunTests
         _growing = growing;
     }
 
-    /// <summary>Readings discarded as the transient, while the generated city is still settling.</summary>
-    private const int SettleDays = 8;
-
-    private OutsideLongRun.Sample[] Tail => _steady.Samples[SettleDays..];
+    // Allow one authored recovery period before comparing tail means. An eight-Day warmup
+    // measures initial stock adjustment when recovery itself takes thirty-two Days.
+    private OutsideLongRun.Sample[] Tail => _steady.Samples[_steady.RecoveryDays..];
 
     /// <summary>
     /// 🔴 <b>The circuit was still running on the last Day, so the rest of this class is about a
     /// mechanism rather than about a stopped one.</b>
     /// </summary>
     /// <remarks>
-    /// <b>Three counters and not one, because a dead circuit reads as a healthy one on any of them
-    /// alone.</b> Admissions climbing says people crossed; a willing occasion says somebody weighed
-    /// the city and wanted it, which is the half <c>adr/0128</c> exists for; and the four fresh
-    /// outcomes summing says the accounting of those comparisons is intact rather than that some of
-    /// them went uncounted.
+    /// Require actual admissions and willing occasions so an idle circuit cannot satisfy the bounds.
     /// </remarks>
     [Fact]
     public void The_circuit_was_still_running_at_the_end()
@@ -95,12 +76,6 @@ public sealed class HinterlandLongRunTests
     /// <summary>
     /// <b>No edge ever held a negative stock, or promised more Households than it had.</b>
     /// </summary>
-    /// <remarks>
-    /// ⚠ <b>The reserved half is the one a bug reaches first.</b> A stock is debited when somebody
-    /// crosses and reserved when somebody waits, and the two are written by different passes — so a
-    /// reservation that outlived its queue row would show up here long before the count went below
-    /// zero.
-    /// </remarks>
     [Fact]
     public void Stock_never_goes_negative_and_never_promises_more_than_it_holds()
     {
@@ -124,17 +99,7 @@ public sealed class HinterlandLongRunTests
     /// <b>Nobody waited outside a full door for longer than the Ruleset allows.</b>
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// <c>adr/0006</c> for the queue rather than for the Pool: a wait whose expiry stopped firing
-    /// grows without bound and nothing else in the run would notice, because a reserved Household
-    /// costs nothing to keep.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>The queue only fills while the city is still filling.</b> Measured at seed 11, the longest
-    /// wait reaches 1,855 Ticks on Day 2 against an authored bound of 4,096 and is zero from Day 8 on,
-    /// because after that the doors stop being the constraint. So this assertion earns its keep in the
-    /// opening Days, and a world that never queued at all would pass it vacuously.
-    /// </para>
+    /// Assert that the fixture actually queues; a permanently empty queue would pass vacuously.
     /// </remarks>
     [Fact]
     public void Nobody_waits_longer_than_the_authored_wait()
@@ -158,20 +123,7 @@ public sealed class HinterlandLongRunTests
     /// 🔴 <b>Emigration opened groups the file never authored, and the Outside retired them again.</b>
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// <b>The pair is the claim and neither half stands alone.</b> A return credits the composition it
-    /// matches and creates that group when no file declared one, so a run with no unauthored group in
-    /// it never exercised the creating path. But a group that is only ever created is a leak: its
-    /// target is zero, it decays to nothing, and the row has to go back for reuse.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>Retirement is asserted as the live count coming down</b>, not as a named row vanishing. A
-    /// slot is recycled, so naming one would assert the allocator's choice rather than the retirement.
-    /// </para>
-    /// <para>
-    /// Measured on this world at seed 11: the 12 authored groups are joined by 34 opened by returns,
-    /// and the live count falls on three separate Days of the run.
-    /// </para>
+    /// Require both return-created groups and a later decrease in live groups; slots may be reused.
     /// </remarks>
     [Fact]
     public void A_returned_group_is_opened_and_later_retired()
@@ -208,19 +160,8 @@ public sealed class HinterlandLongRunTests
     /// <b>The rows the Outside occupies stay bounded while returns keep opening new ones.</b>
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// ⚠ <b>A drift over the tail rather than a ceiling</b>, on
-    /// <see cref="ArrivalLongRunTests"/>' discipline: a ceiling is a number somebody would have to
-    /// choose, and the mechanism's property is that the count settles rather than that it settles
-    /// anywhere in particular.
-    /// </para>
-    /// <para>
-    /// 🔴 <b>The count is still creeping at Day 50 and this bound does not claim otherwise.</b>
-    /// Measured at seed 11: 12 groups become 39 within eight Days and then only 46 across the next
-    /// forty-two, a tail drift of about 8.5% against the 12.5% tripwire here. The shape decelerates,
-    /// which is what a settling count looks like — but ***fifty Days does not prove a plateau***, and
-    /// a run that eventually climbed past this bound would be a finding rather than a flaky test.
-    /// </para>
+    /// Tail drift is a regression tripwire, not proof of a plateau. The 50-Day fixture still
+    /// showed growth at the reviewed revision; see plans/0073 for its measurement conditions.
     /// </remarks>
     [Fact]
     public void The_groups_the_Outside_occupies_stay_bounded()
@@ -242,13 +183,6 @@ public sealed class HinterlandLongRunTests
     /// <summary>
     /// 🔴 <b>Fifty Days on, the people and the Money still add up exactly.</b>
     /// </summary>
-    /// <remarks>
-    /// <b>The invariants are the assertion and the run is what makes them mean anything.</b>
-    /// <c>CityPopulationIsAccounted</c>, <c>AHinterlandGroupIsAccounted</c>,
-    /// <c>TheQueueMatchesItsReservations</c> and <c>TheCityAndItsOutsideBalance</c> all hold at Tick
-    /// zero in any world; what this run buys is a hundred thousand Ticks of admissions, returns,
-    /// expiries, replenishment and turnover for them to hold across.
-    /// </remarks>
     [Fact]
     public void The_people_and_the_Money_still_add_up_after_a_hundred_thousand_ticks()
     {
@@ -264,10 +198,7 @@ public sealed class HinterlandLongRunTests
     /// <b>The saturating city keeps its books, and nothing here says its population stood still.</b>
     /// </summary>
     /// <remarks>
-    /// <b>The second scenario the plan asks for.</b> <c>attracted.toml</c> fills up and its circuit
-    /// falls quiet, which is a legitimate world and a bad place to assert a flow. So this asserts the
-    /// accounting only — and asserts that the population did move, so that the books are not being
-    /// checked against a world where nothing ever happened.
+    /// The growing fixture checks accounting even when its immigration circuit later becomes idle.
     /// </remarks>
     [Fact]
     public void The_books_balance_in_a_city_that_is_still_changing()
@@ -321,8 +252,7 @@ public sealed class GrowingOutsideLongRun : OutsideLongRun
 
 /// <summary>One long run of a counted Outside, sampled once a Day.</summary>
 /// <remarks>
-/// <b>A class fixture because the run is the expensive part</b>, on <c>ArrivalLongRun</c>'s shape:
-/// six tests each building an identical world cost five times what one shared build costs.
+/// Share the expensive run across assertions.
 /// </remarks>
 public abstract class OutsideLongRun
 {
@@ -349,6 +279,7 @@ public abstract class OutsideLongRun
         SyntheticCity.PopulateInto(_world, key, Ticks.Zero);
 
         QueueWaitTicks = _world.Rules.Immigration.QueueWaitTicks;
+        RecoveryDays = _world.Rules.Immigration.RecoveryDays;
         AuthoredGroups = _world.Rules.HinterlandPopulations.Length;
         SupplyAtStart = _world.MoneySupply.Issued[MoneySupplyTable.Slot].Raw;
         PeopleAtStart = _world.Citizens.Rows.LiveCount;
@@ -361,6 +292,8 @@ public abstract class OutsideLongRun
     public Sample[] Samples { get; }
 
     public int QueueWaitTicks { get; }
+
+    public int RecoveryDays { get; }
 
     public int AuthoredGroups { get; }
 

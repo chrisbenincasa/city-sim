@@ -115,9 +115,7 @@ internal static class ArrivalDump
         var series = new List<Reading>();
         long issuedAtStart = world.MoneySupply.Issued[MoneySupplyTable.Slot].Raw;
 
-        // The Ruleset decides which of the two pictures this is, and no flag does. A file stating
-        // [immigration] has its own reason for anybody to cross, so a runner knocking on its doors
-        // would be adding a caller to a mechanism whose whole point is not having one.
+        // Stock-enabled worlds generate their own occasions; legacy fixtures use explicit Arrive commands.
         bool stock = rules.Immigration.Stated;
 
         Run(
@@ -186,9 +184,7 @@ internal static class ArrivalDump
 
         for (ulong tick = 0; tick < ticks; tick++)
         {
-            // adr/0015's iteration loop, on the Tick the command line named. The hash rides every
-            // input rather than a flag, so the transition reaches Simulation.Reload by the same door
-            // a recorded session's does and resolves out of the catalogue built above.
+            // Reload through recorded input and the Ruleset catalogue at the requested Tick.
             if (next < reloadTicks.Count && tick == reloadTicks[next])
             {
                 inForce = transitions[next];
@@ -237,9 +233,7 @@ internal static class ArrivalDump
         output.WriteLine();
         output.WriteLine(F($"  ruleset        {options.RulesetPath}"));
 
-        // A run that transitioned and named only the file it opened with would report the treatment
-        // as the control. The Tick is here because the panels below are a reading at the end of the
-        // run, and which Rules produced them is the difference between the pair and one world.
+        // Report both Rulesets and the transition Tick so the final reading names the applied treatment.
         for (int i = 0; i < options.ReloadTicks.Count; i++)
         {
             output.WriteLine(F(
@@ -768,9 +762,7 @@ internal static class ArrivalDump
     /// The Rulesets this run may put in force, and the hash each <c>--reload-at</c> transitions to.
     /// </summary>
     /// <remarks>
-    /// <b>Core cannot turn a hash into Rules</b>, so every file a transition can name is loaded here
-    /// and handed over as a catalogue. The opening entry is the one the World was created with, and
-    /// <see cref="RulesetCatalogue.Of"/> refuses two files under one hash rather than picking either.
+    /// Load every transition file into the catalogue; Core resolves hashes through that catalogue.
     /// </remarks>
     private static bool TryCatalogue(
         Options options,

@@ -11,24 +11,9 @@ using Borough.Core.Tables;
 /// Tick phase 6, ahead of placement: the Outside deciding, on its own, that somebody wants to come.
 /// </summary>
 /// <remarks>
-/// <para>
-/// <b>Until this existed, every immigrant was invented by whoever called <c>Arrive</c></b>
-/// (<c>plans/0073</c>). A city could persuade a family and could admit one, and the family itself
-/// came from the runner — so growth was a property of the script rather than of the city. What this
-/// pass adds is the occasion: a finite stock behind each edge, reconsidering at an authored rate,
-/// comparing this city with home, and queueing at a full door.
-/// </para>
-/// <para>
-/// <b>The order inside the pass is the decision.</b> Recovery runs first so the Day's occasions are
-/// drawn from the stock as it now stands; the free counts are then captured, so a Household released
-/// by an expiry later in the same pass cannot be asked again on behalf of the population that just
-/// let it go. Expiry precedes review, review precedes admission, and fresh occasions come last —
-/// which is what puts a new family behind everybody already waiting.
-/// </para>
-/// <para>
-/// <b>It does nothing at all in a world with no <c>[immigration]</c> table.</b> Those worlds keep the
-/// explicit command and the anonymous prospect they have always had.
-/// </para>
+/// Phase 6 order: recovery, free-stock snapshot, expiry, connection loss, review, admission,
+/// then fresh occasions. Cancelled reservations are available to fresh occasions next Tick.
+/// No work runs without an immigration Ruleset.
 /// </remarks>
 public sealed class HinterlandEngine
 {
@@ -40,10 +25,7 @@ public sealed class HinterlandEngine
     /// How many Households each group may be asked for this pass, captured after recovery.
     /// </summary>
     /// <remarks>
-    /// <b>A snapshot and not a live read</b> (D3). A reservation cancelled during this pass frees its
-    /// Household for the account immediately, and asking on its behalf again in the same pass would
-    /// let one family's change of mind buy the group an extra occasion. It is offered again next
-    /// Tick, through the ordinary accrual.
+    /// Captured after recovery. Same-Tick cancellations must not earn fresh reconsideration credit.
     /// </remarks>
     private int[] _allowance = [];
 
@@ -81,7 +63,7 @@ public sealed class HinterlandEngine
             Review(edge, which, immigration, now);
             AdmitWaiting(edge, which, now);
             Present(edge, which, immigration, now);
-            RetireEmptyGroups(edge);
+            _world.RetireEmptyHinterlandGroups(which);
         }
     }
 
@@ -140,9 +122,7 @@ public sealed class HinterlandEngine
                 continue;
             }
 
-            // Only what nobody is waiting on. A reservation the excess cannot reach is not a debt to
-            // destroy a Household later -- the excess is recomputed next Tick, against whatever the
-            // queue has done by then.
+            // Only unreserved stock can turn over; blocked removals accrue no debt for a later Tick.
             long excess = -off;
             long free = groups.Free(slot);
             long wanted = whole < excess ? whole : excess;
@@ -181,9 +161,7 @@ public sealed class HinterlandEngine
 
     /// <summary>Sends home the families that have waited the whole of the authored wait.</summary>
     /// <remarks>
-    /// <b>From the head, because the admission list is in join order</b> — the same current duration
-    /// applies to every row, so a shortened wait takes effect on the next Tick after a reload without
-    /// the order needing repair.
+    /// FIFO join order and a shared current duration let expiry stop at the first unexpired row.
     /// </remarks>
     private void Expire(int edge, MapEdge which, in ImmigrationRuleset immigration, Ticks now)
     {
@@ -208,10 +186,8 @@ public sealed class HinterlandEngine
 
     /// <summary>Sends home everybody waiting at an edge that has lost every door.</summary>
     /// <remarks>
-    /// <b>Rather than leaving them waiting on a gate that can never resolve</b> (D5). Their
-    /// reservations come back, the stock is untouched, and a gate placed later starts ordinary
-    /// occasions again — it does not resurrect this queue, because none of these families is standing
-    /// there any more.
+    /// Release every reservation when the edge loses its last gate. Restoring a gate starts fresh
+    /// occasions.
     /// </remarks>
     private void DropDisconnected(int edge, MapEdge which)
     {
@@ -257,8 +233,8 @@ public sealed class HinterlandEngine
             queue.Reviewed[slot] = now;
             _world.Hinterlands.ReviewedToday[edge]++;
 
-            // A review never touches SinceTick, so reviewing cannot extend the wait it is inside.
-            if (Decides(which, slot, now) == ProspectOutcome.StayedOutside)
+            // Only a willing comparison retains the reservation. Review never extends Since.
+            if (Decides(which, slot, now) != ProspectOutcome.Willing)
             {
                 Cancel(edge, which, slot);
                 _world.Hinterlands.ChangedMindToday[edge]++;
@@ -282,9 +258,7 @@ public sealed class HinterlandEngine
         {
             int slot = admissions.PeekFront(edge);
 
-            // Room first, and the order is the mechanism (D5). A family is reconsidered when a door
-            // can take it or when its review falls due, so a queue at a shut door keeps the answer it
-            // gave rather than re-drawing willingness on every Tick of its wait.
+            // Check quota first so a full gate does not trigger a housing comparison each Tick.
             if (slot == Rows.NoSlot || !HasRoom(edge, now))
             {
                 return;
@@ -293,7 +267,7 @@ public sealed class HinterlandEngine
             // One comparison per Tick. A family reviewed a moment ago keeps that answer rather than
             // drawing a second one because a door happened to open on the same Tick.
             if (queue.Compared[slot].Raw != now.Raw
-                && Decides(which, slot, now) == ProspectOutcome.StayedOutside)
+                && Decides(which, slot, now) != ProspectOutcome.Willing)
             {
                 Cancel(edge, which, slot);
                 _world.Hinterlands.ChangedMindToday[edge]++;
@@ -460,11 +434,7 @@ public sealed class HinterlandEngine
     /// Whether an <c>Arrive</c> command could ever be asking for somebody who exists.
     /// </summary>
     /// <remarks>
-    /// <b>Declared or live, and the difference between them is the whole of the check</b>
-    /// (<c>plans/0073</c> D8). A composition an edge authored is somebody the Outside supplies, even
-    /// when its stock is spent today; a composition returns created is somebody standing there now.
-    /// Anything else is a family the command would have to invent, which is what the stock-holding
-    /// world exists to stop.
+    /// Accept either an authored composition or a matching live group; exhaustion is not a mismatch.
     /// </remarks>
     /// <param name="which">The edge the named gate stands on.</param>
     /// <param name="stage">The Life Stage the payload asks for.</param>
@@ -506,18 +476,8 @@ public sealed class HinterlandEngine
     /// Presents the families an <c>Arrive</c> command asked for, out of the stock behind its edge.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// <b>An extra reconsideration and not a second mechanism</b> (<c>plans/0073</c> D8). Each
-    /// requested Household is drawn from the groups that match the payload, weighted by how many are
-    /// unpromised, and then goes through the comparison, the quota and the queue the edge's own
-    /// occasions go through. The command decides who is <em>asked</em>; the city and the Outside
-    /// still decide who crosses.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>Exhausted stock stops the loop rather than refusing.</b> A request for ten where four
-    /// stand available presents four, which is the depletion being observable — the same reading
-    /// <c>[[building]] arrivals_per_day</c> has when a gate runs out of Day.
-    /// </para>
+    /// Extra reconsideration occasions use the same stock, comparison and quota as autonomous
+    /// arrivals. Exhaustion stops the request without inventing people or refusing the command.
     /// </remarks>
     /// <param name="which">The edge the named gate stands on.</param>
     /// <param name="stage">The Life Stage the payload asks for.</param>
@@ -550,10 +510,7 @@ public sealed class HinterlandEngine
 
     /// <summary>Picks one matching group, weighted by how many of its Households are unpromised.</summary>
     /// <remarks>
-    /// <b>Weighted rather than first-fit</b>, so a request against an edge holding two matching
-    /// compositions draws from the larger one more often instead of emptying whichever was declared
-    /// first. The draw is keyed on the edge's saved sequence, which the presentation then advances,
-    /// so two requests on one Tick pick independently.
+    /// Weight by unreserved stock. Each presentation advances the saved sequence for the next draw.
     /// </remarks>
     private int Draw(int edge, byte stage, int members, Ticks now)
     {
@@ -600,33 +557,12 @@ public sealed class HinterlandEngine
 
     /// <summary>Whether a group holds the family a payload names.</summary>
     /// <remarks>
-    /// ⚠ <b>A group of nothing but children is ineligible here for the reason it is ineligible to an
-    /// occasion</b>: nobody in it can hold a job or a purse, so it declines every time it is asked.
+    /// Child-only return groups are counted but cannot present an adult-led Household.
     /// </remarks>
     private static bool Matches(HinterlandPopulationTable groups, int slot, byte stage, int members) =>
         groups.Stage[slot] == stage
         && groups.Members(slot) == members
         && groups.AdultsTier1[slot] + groups.AdultsTier2[slot] + groups.AdultsTier3[slot] > 0;
-
-    /// <summary>Frees the groups the city invented that nobody stands in any more.</summary>
-    private void RetireEmptyGroups(int edge)
-    {
-        HinterlandPopulationTable groups = _world.HinterlandPopulation;
-
-        // The successor is read before the row can be freed, because freeing it clears the link.
-        int encoded = _world.Hinterlands.GroupHead[edge];
-
-        while (encoded != 0)
-        {
-            int slot = encoded - 1;
-            encoded = groups.GroupNext[slot];
-
-            if (groups.Authored[slot] == 0 && groups.Stock[slot] == 0 && groups.Reserved[slot] == 0)
-            {
-                _world.RetireHinterlandGroup(slot);
-            }
-        }
-    }
 
     /// <summary>Whether any door on this edge can still admit somebody today.</summary>
     private bool HasRoom(int edge, Ticks now)
@@ -644,10 +580,7 @@ public sealed class HinterlandEngine
 
     /// <summary>Offers a family to each of an edge's doors in turn, starting after the last one used.</summary>
     /// <remarks>
-    /// <b>Compared by monotonic id and not by slot</b> (D6): a demolished gate's slot goes to the
-    /// next Building the city raises anywhere, and a cursor holding slots would resume from whatever
-    /// took the place of the door it meant. A full door refuses without writing anything, so the walk
-    /// costs at most one attempt per live gate.
+    /// Resume after the last monotonic gate id, wrapping once. Recycled slots do not define priority.
     /// </remarks>
     private bool TryAdmit(int edge, in ArrivalProspect prospect, bool reserved, Ticks now)
     {

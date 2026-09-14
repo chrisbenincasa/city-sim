@@ -68,11 +68,7 @@ public static class WorldInvariants
         invariants.Register(InvariantTier.EndOfRun, DistrictMembershipNamesLiveDistrictsAndBuiltGround);
         invariants.Register(InvariantTier.EndOfRun, DistrictPoolsAreOneLiveBinPerGood);
 
-        // Registered after the two population accounts and never before them, on the ordering rule
-        // MoneyIsConserved states: RunEndOfRun walks in order and Require throws on the first
-        // violation, so a world whose people do not add up has to report as unaccounted rather than as
-        // a broken index -- a missing group row is also a lookup that fails, and the account is the
-        // diagnosis that names the bug.
+        // Check population accounts before their supporting indexes to report missing people first.
         invariants.Register(InvariantTier.EndOfRun, CityPopulationIsAccounted);
         invariants.Register(InvariantTier.EndOfRun, CityHouseholdsAreAccounted);
         invariants.Register(InvariantTier.EndOfRun, HinterlandGroupsAreAccounted);
@@ -1875,12 +1871,6 @@ public static class WorldInvariants
     /// <c>plans/0073</c> D10's city-side account: the live Citizens are the opening figure plus every
     /// classified flow.
     /// </summary>
-    /// <remarks>
-    /// <b><see cref="MoneyIsConserved"/>'s shape, and it has content from the day it is written.</b>
-    /// Every door that creates or retires a Citizen records why, and the reasons are disjoint, so the
-    /// equality is exact rather than a bound. The argument for each half is on
-    /// <see cref="Invariant.CityPopulationIsAccounted"/>.
-    /// </remarks>
     internal static void CityPopulationIsAccounted(World world, InvariantRegistry report)
     {
         ArgumentNullException.ThrowIfNull(world);
@@ -1915,29 +1905,8 @@ public static class WorldInvariants
     /// every flow that crossed the world's outer boundary.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// <b>Migration cancels, and that is what this says that the per-group check cannot.</b>
-    /// <see cref="Invariant.AHinterlandGroupIsAccounted"/> asks each group whether its own counters
-    /// add up, so an admission that spent stock and created nobody satisfies it twice over. Here an
-    /// arrival leaves one side and joins the other, so a transfer written on one side only is an
-    /// imbalance.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>Only in a world that states <c>[immigration]</c>.</b> Elsewhere an arrival comes from
-    /// nowhere by design — that is the mode every other shipped Ruleset runs in — and there is no
-    /// opening Outside figure for it to have come out of.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>A Departure is subtracted and a return added, because the two need not be the same
-    /// number.</b> A family leaving a city that has no edge to send it to leaves the world. An arrival
-    /// has no such pair on purpose, so a gate that produced a Household without spending stock is an
-    /// imbalance rather than a cancelled transfer.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>Replenishment and turnover are on the EDGE rows rather than summed off the groups.</b> A
-    /// group the city returned into and then drained is retired, and its counters go with it; the
-    /// edge keeps the history, which is the only reason the equality survives a retirement.
-    /// </para>
+    /// Edge lifetime counters survive group retirement. Admissions transfer between city and
+    /// Outside and therefore have no net term; departures and returns are counted separately.
     /// </remarks>
     internal static void TheCityAndItsOutsideBalance(World world, InvariantRegistry report)
     {
@@ -2102,13 +2071,6 @@ public static class WorldInvariants
     /// <summary>
     /// The composition index and the per-edge lists name every live group exactly once.
     /// </summary>
-    /// <remarks>
-    /// <b>Both halves of one claim.</b> The index is asked to find each live row by its own
-    /// composition, which fails if an entry is missing or points elsewhere; the lists are walked and
-    /// counted, which fails if a row was opened without being threaded or retired without being
-    /// unlinked. A rebuild reproducing neither structure is
-    /// <c>DerivedRebuildAuditTests</c>'s failure rather than this one's.
-    /// </remarks>
     internal static void TheCompositionIndexNamesEveryGroup(World world, InvariantRegistry report)
     {
         ArgumentNullException.ThrowIfNull(world);

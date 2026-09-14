@@ -13,21 +13,6 @@ namespace Borough.Tests.Invariants;
 /// <summary>
 /// <c>plans/0045</c> row 31 task 2: the city's population account, and the doors it is written at.
 /// </summary>
-/// <remarks>
-/// <para>
-/// <b>The claim is about doors, so the tests are about doors</b> —
-/// <see cref="MoneyConservationTests"/>'s sentence, about people instead of money. Freeing a Citizen
-/// row is one implementation with six callers that mean different things, and nothing downstream can
-/// recover which it was: a birth, a gate, an untreated illness, an emigration, a dissolution, a
-/// fixture. What each test below asserts is that the reason was recorded where the decision was made.
-/// </para>
-/// <para>
-/// <b>The two failures are a missing half and a doubled one, and neither is an illegal write.</b>
-/// Every defect written here goes through a public door and then undoes the door's record, which is
-/// exactly the shape of a caller that forgot — and it is the failure no per-Tick check can see,
-/// because each write is individually correct.
-/// </para>
-/// </remarks>
 public sealed class PopulationLedgerTests
 {
     private static readonly WorldKey Key = WorldKey.FromSeed(31);
@@ -70,11 +55,6 @@ public sealed class PopulationLedgerTests
     /// <summary>
     /// A world that has been built and never stepped holds its setup as explicit instructions.
     /// </summary>
-    /// <remarks>
-    /// <b>The state every guard is written against.</b> Nothing has folded yet, so the opening figure
-    /// is zero and the people are all scenario additions — and the account still holds, because the
-    /// equation is over the same terms either way.
-    /// </remarks>
     [Fact]
     public void A_world_that_has_not_stepped_holds_its_setup_as_scenario_creation()
     {
@@ -114,11 +94,6 @@ public sealed class PopulationLedgerTests
     }
 
     /// <summary>A birth is a birth and not an addition somebody made.</summary>
-    /// <remarks>
-    /// <b>The one growth channel that survives the late game</b> (<c>adr/0023</c>), so it is the one
-    /// counter a player reads against immigration. Folded into scenario creation it would be
-    /// unreadable, and folded into admissions it would claim a Hinterland had lost somebody.
-    /// </remarks>
     [Fact]
     public void A_birth_is_neither_a_scenario_addition_nor_an_admission()
     {
@@ -137,12 +112,6 @@ public sealed class PopulationLedgerTests
     }
 
     /// <summary>An admission is one Household and the people who crossed with it.</summary>
-    /// <remarks>
-    /// <b>Counted at the gate rather than per member.</b> <c>World.TryArrive</c> creates its adults
-    /// through the unaccounted door precisely so that this reads as one admission of two people — the
-    /// alternative spelling, through <c>CreateCitizen</c>, would file an immigrant family as something
-    /// a scenario added.
-    /// </remarks>
     [Fact]
     public void An_admission_counts_one_household_and_everybody_in_it()
     {
@@ -183,11 +152,6 @@ public sealed class PopulationLedgerTests
     }
 
     /// <summary>An illness death is a death, and no fixture removed anybody.</summary>
-    /// <remarks>
-    /// <b>The care engine has been freeing Citizen rows since milestone 26</b> and the account could
-    /// not tell those from a bulldozed row until this door existed. What the distinction is worth is
-    /// the answer to <em>why did the population fall</em>.
-    /// </remarks>
     [Fact]
     public void An_illness_death_is_not_a_scenario_removal()
     {
@@ -264,11 +228,6 @@ public sealed class PopulationLedgerTests
     /// <summary>
     /// A door that creates somebody and forgets to say so is caught, and the discrepancy says which way.
     /// </summary>
-    /// <remarks>
-    /// <b>The failure the account exists for.</b> The Citizen was created through the ordinary public
-    /// door, so nothing at the write site can fire — what is wrong is a relation between a table and
-    /// an anchor, which is what the whole-world tier is for.
-    /// </remarks>
     [Fact]
     public void A_door_that_forgets_to_record_a_person_is_caught()
     {
@@ -300,10 +259,6 @@ public sealed class PopulationLedgerTests
     /// <summary>
     /// A Household the account never heard about is caught by its own equation, not by the people one.
     /// </summary>
-    /// <remarks>
-    /// <b>Which is why there are two.</b> This world has the right number of people in it and one
-    /// unrecorded Household, and no count of people can say so.
-    /// </remarks>
     [Fact]
     public void A_household_the_account_never_heard_about_is_caught()
     {

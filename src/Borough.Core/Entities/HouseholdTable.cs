@@ -71,9 +71,7 @@ public sealed class HouseholdTable
         University = _rows.SavedHandle(
             "university", buildings.Rows, reference: Reference.Severable);
 
-        // Where this family came from, and who it is. Saved rather than derived because there is
-        // nothing left to derive them from: the gate it crossed can be demolished, and the taste it
-        // was drawn with belongs to an identity no live row would otherwise hold.
+        // Save origin and choice identity: the gate may disappear, and no city row owns the prospect identity.
         Arrived = _rows.Saved<byte>("arrived", Touch.Cold);
         ArrivalEdge = _rows.Saved<byte>("arrival_edge", Touch.Cold);
         ChoiceIdentity = _rows.Saved<ulong>("choice_identity", Touch.Cold);
@@ -99,11 +97,7 @@ public sealed class HouseholdTable
     /// Whether this Household crossed a gate from a counted Outside.
     /// </summary>
     /// <remarks>
-    /// <b>A flag rather than a sentinel in either column beside it, and both need one.</b> Zero is
-    /// <see cref="Space.MapEdge.North"/> and zero is a choice identity a draw can legitimately
-    /// produce, so ***a valid value would have to be reinterpreted as an absence*** (<c>plans/0073</c>
-    /// D4). A Household founded here, formed by children leaving home, or built by a fixture carries
-    /// zero here and has no Outside to be credited to.
+    /// Also marks the presence of ChoiceIdentity: zero is a valid prospect identity.
     /// </remarks>
     public Column<byte> Arrived { get; }
 
@@ -111,9 +105,7 @@ public sealed class HouseholdTable
     /// Which edge this Household came in through, where <see cref="Arrived"/> says it did.
     /// </summary>
     /// <remarks>
-    /// <b>The edge and never the gate.</b> A gate is a Building somebody can demolish, and the family
-    /// that walked through it did not stop being from that Hinterland when it fell — which is why
-    /// <see cref="UnplacedTable.GateAt"/>'s handle cannot do this job (<c>plans/0073</c> D9).
+    /// Retained if the origin gate is removed; it does not dictate the eventual departure destination.
     /// </remarks>
     public Column<byte> ArrivalEdge { get; }
 
@@ -121,10 +113,7 @@ public sealed class HouseholdTable
     /// The coordinate this Household's preferences are drawn on, where it arrived with one.
     /// </summary>
     /// <remarks>
-    /// <b>What makes the family that compared the city equal the family that arrived.</b> A prospect
-    /// has no Household id to be drawn on, so its taste and its purse come off this instead, and the
-    /// Household keeps it — so a Life Stage transition recomputes the same family's preferences
-    /// rather than a stranger's who happens to live at the same address.
+    /// Retained through admission and stage changes so housing tastes belong to the same family.
     /// </remarks>
     public Column<ulong> ChoiceIdentity { get; }
 
@@ -132,9 +121,7 @@ public sealed class HouseholdTable
     /// Whose preferences to draw for the Household in <paramref name="slot"/>.
     /// </summary>
     /// <remarks>
-    /// <b>The arrival's identity where there is one and the row's own id otherwise</b>, so every
-    /// caller of the choice model asks one question and no caller has to know whether the family
-    /// walked in or was born here.
+    /// The Arrived flag distinguishes a valid zero prospect identity from a locally formed Household.
     /// </remarks>
     public ulong TasteIdentity(int slot) =>
         Arrived[slot] != 0 ? ChoiceIdentity[slot] : _rows.IdAt(slot);

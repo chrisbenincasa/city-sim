@@ -46,9 +46,7 @@ public sealed class BuildingTable
 
         CellNext = _rows.Derived<int>("cell_next");
 
-        // The gates standing on one map edge, threaded per edge with the heads on HinterlandTable.
-        // Derived for CarPark's reason: which Buildings are Outside Connections on which edge is a
-        // function of Kind and the Lot's position, both saved, so a second copy could disagree.
+        // Derived per-edge gate lists depend on saved Building kinds and Lot positions.
         GateNext = _rows.Derived<int>("gate_next");
 
         // The gate's daily throughput meter. Saved rather than derived, because how many crossed

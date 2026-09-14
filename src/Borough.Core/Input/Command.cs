@@ -334,24 +334,8 @@ public enum CommandKind : ushort
     /// like <see cref="Demolish"/> — a verb a player really has.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// <b><see cref="Connect"/> edits Streets and <see cref="Service"/> requires a <c>serves</c> key,
-    /// so neither of them can place the shipped <c>port</c>.</b> Every gate standing in a shipped
-    /// world was raised by the generator, which makes a door the one piece of a city the player may
-    /// not site. ***A city can be made attractive and cannot be given somewhere to arrive.***
-    /// </para>
-    /// <para>
-    /// <b>Payload: the gate's Building kind in <see cref="Command.Zone"/>, and ZERO MEANS REMOVE.</b>
-    /// The format version does not move — <c>InputLogCodec.Version</c>'s rule is that a <em>sixth
-    /// field</em> bumps it, and this adds none. <see cref="Command.East"/> and
-    /// <see cref="Command.North"/> name the Lot origin and are matched exactly, on
-    /// <see cref="Demolish"/>'s reasoning rather than by analogy with it.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>A kind id wider than a byte is refused before it is narrowed.</b> Narrowing 256 gives
-    /// zero and zero is the removal, so a log naming an out-of-range kind would take a gate away
-    /// instead of failing to place one.
-    /// </para>
+    /// A nonzero payload places a declared gate kind; zero removes a gate. The Tile names an
+    /// exact Lot origin. Placement requires frontage and exactly one declared Hinterland edge.
     /// </remarks>
     Gate = 14,
 }
@@ -497,9 +481,7 @@ public readonly struct Command
     /// when <paramref name="kind"/> is zero.
     /// </summary>
     /// <remarks>
-    /// <b>Zero is an instruction here rather than a missing argument</b>, so this factory does not
-    /// take <see cref="Service"/>'s zero check. The parameter is a byte, which is the whole width a
-    /// kind id has — a wider number cannot reach this door and is refused at the codec instead.
+    /// Kind zero requests removal; nonzero selects the declared gate kind.
     /// </remarks>
     public static Command Gate(Tiles east, Tiles north, byte kind) =>
         new(CommandKind.Gate, east, north, kind);

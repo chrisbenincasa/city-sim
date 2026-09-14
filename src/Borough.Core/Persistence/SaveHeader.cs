@@ -67,23 +67,8 @@ public readonly struct SaveHeader : IEquatable<SaveHeader>
     /// new table exists is short by a table and needs a migration; the hash it was written at was never
     /// wrong.
     /// </remarks>
-    // 2: plans/0045 row 31 task 2 -- the Hinterland stock, the composition groups and the population
-    // ledger join the declaration set. A save written at version 1 is short by three tables, so it is
-    // refused rather than migrated: nothing carries a save yet, and a partial read would restore a
-    // world whose opening population figure was never written.
-    //
-    // 3: task 3 -- household gains arrived, arrival_edge and choice_identity. Where a family came
-    // from and whose preferences it holds cannot be derived from anything else in the file: the gate
-    // it crossed is demolishable and the identity it was drawn on belongs to nothing that is still a
-    // row. A version 2 save is short by those three columns and is refused for version 1's reason.
-    //
-    // 4: task 4 -- the outside queue joins the declaration set, and the edge rows gain the sequence,
-    // the cursors, the queue heads and the Day flow counters the engine writes. A version 3 save is
-    // short by a table and by those columns, and it is refused for version 1's reason.
-    //
-    // 6: task 7 -- the population ledger gains the Day it counts and a two-Day snapshot of each of
-    // its thirteen flow counters, which is what an inspection reads a Day's figures out of. A
-    // version 5 save is short by those columns and is refused for version 1's reason.
+    // Version 6 includes Outside stock, queued prospects, household provenance and Day flow snapshots.
+    // Older declaration sets are refused before their body is read.
     public const int Current = 6;
 
     private const ulong ByteOrderSentinel = 0x0102_0304_0506_0708UL;

@@ -4,9 +4,7 @@ using Borough.Core.Entities;
 
 /// <summary>Everyone who joined or left the city over a single Day, by the door they used.</summary>
 /// <remarks>
-/// <b>Households and people are counted separately because neither derives from the other.</b> A
-/// child leaving home creates a Household and adds nobody; an admission creates one Household and
-/// several people; a dissolution removes one Household and everybody in it.
+/// Disjoint population flows over one interval, counted at creation and retirement.
 /// </remarks>
 /// <param name="Births">People born here.</param>
 /// <param name="Admissions">People admitted through a gate.</param>
@@ -48,18 +46,8 @@ public readonly record struct PopulationFlows(
 /// The city's population account, with the Day in progress and the last complete Day beside it.
 /// </summary>
 /// <remarks>
-/// <para>
-/// <b><see cref="Residual"/> is an account check and never an explanation.</b> A zero says the live
-/// rows and the classified flows agree about how many people are here; it says nothing whatever about
-/// whether the city is thriving. A non-zero says a door wrote no entry, which is a defect rather than
-/// a finding about the city.
-/// </para>
-/// <para>
-/// <b>The Pool figures are people the city has already let in.</b> Somebody in the Unplaced Pool is
-/// admitted and looking for a home, which is a different state from waiting outside a full door —
-/// that one is <see cref="HinterlandReading.QueueHouseholds"/>. A reader that labels both
-/// <em>unplaced</em> has lost the distinction the two counts exist for.
-/// </para>
+/// Reconciles live people and Households against the saved baseline and classified flows.
+/// Reading it changes neither the account nor simulation state.
 /// </remarks>
 /// <param name="Day">The Day <paramref name="Today"/> counts.</param>
 /// <param name="People">People the account says are here.</param>

@@ -8,19 +8,8 @@ using Borough.Core.Tables;
 /// Who one Household behind an edge is made of. <b>A storage key, never a domain actor.</b>
 /// </summary>
 /// <remarks>
-/// <para>
-/// <b>The ordinary word for <em>who this family is</em></b> — a Life Stage, so many adults at each
-/// Skill Tier, so many children, and which third of the Hinterland's purse range they carry.
-/// <c>CONTEXT.md</c> → <i>Terms we deliberately do not use</i> bans Cohort by name and this is not
-/// one: nothing keyed by a composition decides anything together, and a group is split the moment one
-/// of its Households leaves.
-/// </para>
-/// <para>
-/// <b>It is the runtime key and <see cref="HinterlandPopulationDefinition"/> is the authored
-/// entry.</b> The two carry the same six fields and are deliberately different types: a definition
-/// also states a count and whether a file declared it, and neither of those belongs in a key that
-/// two Households have to compare equal on.
-/// </para>
+/// Exact adult Skill Tier counts, children, Life Stage and purse band form the key.
+/// Returns can include child-only families that are ineligible for admission.
 /// </remarks>
 public readonly record struct HinterlandComposition(
     byte Stage,
@@ -38,9 +27,7 @@ public readonly record struct HinterlandComposition(
 
     /// <summary>How many of this Household's adults hold <paramref name="tier"/>.</summary>
     /// <remarks>
-    /// <b>So admission can create them in tier order</b> without three near-identical loops, which
-    /// is what makes the creation order a stated property rather than an accident of how the three
-    /// fields happen to be written out.
+    /// Only Skill Tiers 1 through 3 are represented; children are stored separately.
     /// </remarks>
     public int AdultsAt(byte tier) => tier switch
     {
@@ -65,34 +52,8 @@ public readonly record struct HinterlandComposition(
 /// The Households standing behind each edge, one row per exact composition.
 /// </summary>
 /// <remarks>
-/// <para>
-/// <b>Aggregate rows, because the Outside is a count and not a population of individuals.</b>
-/// <c>CONTEXT.md</c> → Hinterland calls it <em>a stock the city spends</em>: it is never Ticked and
-/// never rendered, and nobody out there has a name, a Trip or a history. A row says
-/// <em>this many Households, each made of exactly this</em>, and <see cref="Stock"/> times
-/// <see cref="Members"/> is how many people that is. The first individual in the story is the
-/// prospect that presents itself at a gate.
-/// </para>
-/// <para>
-/// <b>A group is never rounded, split or substituted.</b> A Household returning from the city joins
-/// the row whose composition it exactly matches, and creates one if there is none — so a Tier 3 adult
-/// does not become a Tier 1 adult and a third child is not dropped to fit a template
-/// (<c>plans/0073</c> D1). That is why the composition is the key rather than an authored list of
-/// permitted family shapes.
-/// </para>
-/// <para>
-/// <b><see cref="Authored"/> is the only thing separating an authored empty group from a returned
-/// one</b>, and both exist. An authored count of zero is a decision — a composition the Outside keeps
-/// none of but will hold returns in — so its row persists; a row returns created is freed once
-/// nothing stands in it, or the table would grow with elapsed time in exactly the way
-/// <c>adr/0006</c> forbids.
-/// </para>
-/// <para>
-/// ⚠ <b>The per-edge list is <c>(derived AND rebuilt)</c> and the per-edge lifetime flows are
-/// not.</b> A retired group takes its own counters with it, which is why
-/// <see cref="HinterlandTable"/> accumulates the same flows beside it: the account has to survive the
-/// rows it was made of.
-/// </para>
+/// Authored rows persist at zero stock. Return-only rows have target zero and retire once
+/// stock and reservations are empty. Edge counters retain flows after those rows retire.
 /// </remarks>
 [Table]
 public sealed class HinterlandPopulationTable
@@ -164,19 +125,13 @@ public sealed class HinterlandPopulationTable
     /// The Household count this group rests at.
     /// </summary>
     /// <remarks>
-    /// <b>The opening count doing a second job, which is <c>plans/0073</c> D2's decision.</b>
-    /// Recovery works on the difference between what stands here and this, in both directions — so a
-    /// composition returns created rests at zero and drains away again, and no code ever overwrites
-    /// the stock with its target.
+    /// Recovery approaches this count from either direction; return-only compositions have target zero.
     /// </remarks>
     public Column<int> Target { get; }
 
     /// <summary>What stood here when the group was created. The account's anchor.</summary>
     /// <remarks>
-    /// <b>Separate from <see cref="Target"/> because a returned group's two differ</b>, and separate
-    /// from <see cref="Stock"/> for <see cref="MoneySupplyTable.Issued"/>'s reason: an invariant that
-    /// recomputed the anchor from the live count would check that a write happened and never what was
-    /// written.
+    /// Immutable baseline for the per-group population account, distinct from the recovery target.
     /// </remarks>
     public Column<int> Opening { get; }
 
@@ -187,10 +142,7 @@ public sealed class HinterlandPopulationTable
     /// How many of them are already promised to a gate, waiting to be admitted.
     /// </summary>
     /// <remarks>
-    /// <b>Counted in <see cref="Stock"/> and not beside it.</b> A family queueing outside a full gate
-    /// has not left the Outside — it is still standing there, and it is still one of the people the
-    /// edge holds — so double-counting it is what the account would do if this were a second total.
-    /// What it cannot be is drawn twice, which is the whole of what this column bounds.
+    /// Reservations are included in Stock. Always maintain 0 &lt;= Reserved &lt;= Stock.
     /// </remarks>
     public Column<int> Reserved { get; }
 
@@ -210,22 +162,13 @@ public sealed class HinterlandPopulationTable
     /// Progress towards this group's next reconsideration occasion, in Household-Ticks.
     /// </summary>
     /// <remarks>
-    /// <b>Occasions are accrued and never scheduled</b> (<c>plans/0073</c> D3). Each Tick the free
-    /// Household count is added here and whole occasions are taken out at
-    /// <c>reconsider_days × Ticks.PerDay</c> apiece, so a group of one presents roughly once every
-    /// authored interval and a group of six hundred presents six hundred times as often. The
-    /// remainder is carried, which is what keeps a small group from being rounded out of existence.
-    /// ⚠ <b>It is cleared when the free stock reaches zero</b>: time spent empty is not credit earned
-    /// by whoever returns later.
+    /// Carries the remainder modulo ReconsiderTicks. Clear it when unreserved stock is empty.
     /// </remarks>
     public Column<long> ReconsiderNumerator { get; }
 
     /// <summary>Progress towards this group's next replenished or dropped Household.</summary>
     /// <remarks>
-    /// <b>One numerator for both directions, with <see cref="RecoveryDirection"/> saying which</b>
-    /// (D2). A group that crosses its resting count clears the numerator before accruing the other
-    /// way, because a fraction of a Household on its way in must not become a fraction of one on its
-    /// way out.
+    /// Carries the remainder modulo RecoveryTicks. Reset on a direction change or disabled recovery.
     /// </remarks>
     public Column<long> RecoveryNumerator { get; }
 
@@ -263,9 +206,7 @@ public sealed class HinterlandPopulationTable
     /// Opens a group behind an edge, threading it into that edge's list in slot order.
     /// </summary>
     /// <remarks>
-    /// ⚠ <b>The caller indexes it.</b> The lookup index is a structure outside this table
-    /// (<c>BOR0901</c>), so the two are kept in step by <c>World</c> rather than by this method — the
-    /// same division <see cref="CarParkTable"/> and <see cref="Parking.CarParkResidency"/> have.
+    /// The caller updates the composition index after opening the row.
     /// </remarks>
     /// <returns>The row's slot.</returns>
     public int Open(
@@ -305,7 +246,7 @@ public sealed class HinterlandPopulationTable
     /// Frees a group nothing stands in, unlinking it from its edge first.
     /// </summary>
     /// <remarks>
-    /// ⚠ <b>The caller re-indexes.</b> <see cref="Open"/>'s division, for its reason.
+    /// Only retire unauthored rows with zero stock and zero reservations.
     /// </remarks>
     public void Retire(HinterlandTable hinterlands, int slot)
     {
@@ -326,10 +267,7 @@ public sealed class HinterlandPopulationTable
 
     /// <summary>Rebuilds every per-edge list from the live rows.</summary>
     /// <remarks>
-    /// <b>Wholesale, and the ordered insert is what makes the claim checkable</b> —
-    /// <see cref="Parking.CarParkResidency.Rebuild"/>'s reasoning: a list accumulated across a run and
-    /// one rebuilt from the same rows have to agree, and the cheap guarantee is for the rebuild to be
-    /// the definition.
+    /// Insertion order must match normal maintenance so save/reload preserves traversal order.
     /// </remarks>
     public void RebuildIndexes(HinterlandTable hinterlands)
     {

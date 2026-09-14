@@ -274,11 +274,6 @@ public class IntegerMathTests
     /// <summary>
     /// The product exceeds 64 bits long before either operand does, which is the whole point.
     /// </summary>
-    /// <remarks>
-    /// <b>A duration rescaled against a retuned denominator is the caller.</b> Both operands are
-    /// quantities a Ruleset may state, and <c>value * numerator</c> wraps for values well inside
-    /// what either key admits — so the widening is the behaviour rather than a precaution.
-    /// </remarks>
     [Theory]
     [InlineData(0, 5, 3, 0)]
     [InlineData(10, 1, 3, 3)]
@@ -332,11 +327,6 @@ public class IntegerMathTests
     /// <summary>
     /// Negative operands and a zero denominator are refused rather than answered.
     /// </summary>
-    /// <remarks>
-    /// <b>There is no negative caller and a wrong sign would be silent.</b> Flooring a negative
-    /// product is a decision nobody has had to make here, so the helper refuses it rather than
-    /// picking one and letting a later caller inherit it.
-    /// </remarks>
     [Theory]
     [InlineData(-1, 1, 1)]
     [InlineData(1, -1, 1)]

@@ -12,20 +12,6 @@ namespace Borough.Tests.Entities;
 /// <c>plans/0045</c> row 31 task 2: what stands behind an edge, and what happens to it when somebody
 /// crosses back.
 /// </summary>
-/// <remarks>
-/// <para>
-/// <b>A Hinterland was an economy with no inhabitants.</b> It stated a rent, a centrality and a purse
-/// range, and every Household that ever crossed one of its gates was invented by the caller of an
-/// <c>Arrive</c> command. These tests are about the stock: that the opening count is exactly what the
-/// file declared, that a returning family joins the row it actually matches, and that neither number
-/// can move without the account saying why.
-/// </para>
-/// <para>
-/// ⚠ <b>Nothing here draws the stock down</b>, because nothing does yet — a prospect presenting
-/// itself is task 3 and the engine that generates the occasion is task 4. What is under test is the
-/// ownership: the rows, their index, and the two equations over them.
-/// </para>
-/// </remarks>
 public sealed class HinterlandStockTests
 {
     private static Ruleset Shipped(string file)
@@ -49,11 +35,6 @@ public sealed class HinterlandStockTests
             () => world.Invariants.RunEndOfRun(world)).Violation;
 
     /// <summary>Every authored entry is a row, with the count and the composition the file stated.</summary>
-    /// <remarks>
-    /// <b>At construction and not on the first observation</b> (<c>plans/0073</c> D11). A stock filled
-    /// in by whoever looked first would be a population that depended on being watched, and a reload
-    /// would either double it or lose it.
-    /// </remarks>
     [Fact]
     public void The_opening_stock_is_exactly_what_the_file_declared()
     {
@@ -101,11 +82,6 @@ public sealed class HinterlandStockTests
     }
 
     /// <summary>A world whose file says nothing about population has four empty edges.</summary>
-    /// <remarks>
-    /// <b>Absence is the mode this build already had.</b> Every shipped file but one states no
-    /// <c>[[hinterland.population]]</c>, so the rows exist, the account opens at zero, and nothing
-    /// about the arrival path changes.
-    /// </remarks>
     [Fact]
     public void A_file_declaring_no_population_leaves_the_edges_empty()
     {
@@ -146,12 +122,6 @@ public sealed class HinterlandStockTests
     /// <summary>
     /// A composition nobody authored opens its own row, resting at zero.
     /// </summary>
-    /// <remarks>
-    /// <b>Not rounded into the nearest authored template</b> (<c>plans/0073</c> D1). A city that loses
-    /// a family of eight sends a family of eight back, and the alternative — filing them as the closest
-    /// thing the file declared — would quietly edit who left. ⚠ <b>It rests at zero</b>, so the row
-    /// drains away again rather than becoming a resting population the designer never authored.
-    /// </remarks>
     [Fact]
     public void A_composition_nobody_authored_opens_a_group_that_rests_at_zero()
     {
@@ -174,11 +144,6 @@ public sealed class HinterlandStockTests
     /// <summary>
     /// A composition differing only by a Skill Tier is a different composition.
     /// </summary>
-    /// <remarks>
-    /// <b>The substitution D1 forbids by name.</b> A Tier 3 adult is not a Tier 1 adult, and the two
-    /// groups are drawn on separately — so an index that matched on family shape alone would let the
-    /// city drain credentials it never housed.
-    /// </remarks>
     [Fact]
     public void A_tier_three_adult_does_not_join_a_tier_one_group()
     {
@@ -205,11 +170,6 @@ public sealed class HinterlandStockTests
     }
 
     /// <summary>The same composition behind a different edge is a different group.</summary>
-    /// <remarks>
-    /// <b>Four Hinterlands drift independently</b> (<c>CONTEXT.md</c> → Hinterland), so the edge is
-    /// part of the key. Sharing a row would make a city draining one edge look like a city draining
-    /// all four.
-    /// </remarks>
     [Fact]
     public void The_same_composition_behind_two_edges_is_two_groups()
     {
@@ -256,12 +216,6 @@ public sealed class HinterlandStockTests
     /// <summary>
     /// Rebuilding the derived structures reproduces the index and the per-edge lists exactly.
     /// </summary>
-    /// <remarks>
-    /// <b>What makes the two structures derived rather than merely undeclared.</b> The returned group
-    /// below takes a slot in the middle of the table, which is the case an appending rebuild gets
-    /// wrong: the live list would be in arrival order and the rebuilt one in slot order, and nothing
-    /// but this would notice.
-    /// </remarks>
     [Fact]
     public void A_rebuild_reproduces_the_index_and_the_lists()
     {
@@ -295,10 +249,6 @@ public sealed class HinterlandStockTests
     }
 
     /// <summary>A retired group leaves the index and the list with it.</summary>
-    /// <remarks>
-    /// <b>The <c>adr/0006</c> half of the index.</b> An entry that outlived its row would be a key the
-    /// structure kept for ever, and the next lookup of that composition would resolve to a freed slot.
-    /// </remarks>
     [Fact]
     public void A_retired_group_leaves_the_index_and_its_edge()
     {
@@ -328,14 +278,58 @@ public sealed class HinterlandStockTests
         world.Invariants.RunEndOfRun(world);
     }
 
+    [Fact]
+    public void Batched_retirement_preserves_other_groups_and_reuses_freed_slots()
+    {
+        World world = Attracted();
+        HinterlandPopulationTable groups = world.HinterlandPopulation;
+        MapEdge edge = MapEdge.West;
+        HinterlandComposition composition = Unauthored();
+        int occupied = world.ReturnToHinterland(edge, composition);
+
+        int authored = groups.Open(world.Hinterlands, edge,
+            composition with { Children = 6 }, stock: 0, target: 0, authored: true);
+        world.HinterlandCompositions.Add(groups, authored);
+
+        int otherEdge = groups.Open(world.Hinterlands, MapEdge.East,
+            composition, stock: 0, target: 0, authored: false);
+        world.HinterlandCompositions.Add(groups, otherEdge);
+
+        int first = groups.Rows.SlotCount;
+        for (int children = 10; children < 42; children++)
+        {
+            int empty = groups.Open(world.Hinterlands, edge,
+                composition with { Children = children }, stock: 0, target: 0, authored: false);
+            world.HinterlandCompositions.Add(groups, empty);
+        }
+
+        int slots = groups.Rows.SlotCount;
+        world.RetireEmptyHinterlandGroups(edge);
+
+        Assert.True(groups.Rows.IsLive(occupied));
+        Assert.True(groups.Rows.IsLive(authored));
+        Assert.True(groups.Rows.IsLive(otherEdge));
+        Assert.Equal(groups.Rows.LiveCount, world.HinterlandCompositions.Count);
+
+        for (int children = 10; children < 42; children++)
+        {
+            Assert.False(world.HinterlandCompositions.TryFind(
+                groups, edge, composition with { Children = children }, out _));
+        }
+
+        int reused = world.ReturnToHinterland(edge, composition with { Children = 10 });
+        Assert.InRange(reused, first, slots - 1);
+        Assert.Equal(slots, groups.Rows.SlotCount);
+        world.RebuildDerived();
+        Assert.True(world.HinterlandCompositions.TryFind(
+            groups, edge, composition with { Children = 10 }, out int found));
+        Assert.Equal(reused, found);
+        world.Invariants.RunEndOfRun(world);
+    }
+
     /// <summary>
     /// A Household's composition is counted off its actual members, tier by tier.
     /// </summary>
-    /// <remarks>
-    /// <b>Not off the Life Stage's authored template.</b> A family that lost an adult to illness is a
-    /// composition no file contains, and it still has to map to a row exactly — so what is counted is
-    /// who is in the member list, with age zero being the only marker of childhood there is.
-    /// </remarks>
     [Fact]
     public void A_households_composition_is_counted_off_its_members()
     {
@@ -367,10 +361,7 @@ public sealed class HinterlandStockTests
     /// The purse band belongs to the destination, and a balance outside its range maps to the nearest.
     /// </summary>
     /// <remarks>
-    /// <b>A band is a third of one Hinterland's authored range</b>, so the same balance files
-    /// differently behind different edges. ⚠ <b>Clamping changes where the family is filed and never
-    /// what it carries out of the city</b>: the Money leaves through <c>World.Depart</c>'s supply
-    /// decrement, which this does not touch.
+    /// Classify the actual balance against the destination range, clamping at its endpoints.
     /// </remarks>
     [Fact]
     public void The_purse_band_is_the_destinations_and_clamps_to_it()
@@ -401,11 +392,6 @@ public sealed class HinterlandStockTests
     /// <summary>
     /// A Skill Tier outside <c>adr/0104</c>'s three is reported, and the adult is still counted.
     /// </summary>
-    /// <remarks>
-    /// <b>Counted at the floor rather than dropped.</b> A composition whose size disagreed with the
-    /// Household that produced it would be the worse failure, and a silent one: the account would
-    /// balance and the Outside would hold a family missing a member.
-    /// </remarks>
     [Fact]
     public void An_undeclared_skill_tier_is_reported_and_still_counted()
     {

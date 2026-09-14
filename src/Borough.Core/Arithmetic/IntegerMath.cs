@@ -252,11 +252,7 @@ public static class IntegerMath
     /// product to 64 bits.
     /// </summary>
     /// <remarks>
-    /// <b>Stated for rescaling a progress fraction when its denominator is retuned.</b> A fraction
-    /// counted against one duration has to keep its meaning against another, and the obvious
-    /// <c>value * numerator</c> overflows for values a Ruleset may legitimately state. The
-    /// intermediate is widened to <see cref="Int128"/> rather than bounded, because the bound that
-    /// would make a <c>long</c> product safe is not a quantity any document states.
+    /// Uses an Int128 intermediate so a representable quotient can have a product wider than long.
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException">An operand is negative, or the denominator is zero.</exception>
     /// <exception cref="OverflowException">The result exceeds <see cref="long"/>.</exception>

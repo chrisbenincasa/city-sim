@@ -97,7 +97,8 @@ stock row; record its removal as a Household event only.
 Matching uses a flat derived hash index with lookup and insertion only, rebuilt by walking rows in
 slot order. Never enumerate a `Dictionary` or `HashSet`. Prefer the repository's existing flat
 index style; a new index must delete/rebuild entries on row retirement and cannot retain every key
-that ever appeared. Non-authored rows with zero stock and no queue reservations are freed,
+that ever appeared. Retire empty groups in their existing per-edge order and rebuild the lookup
+once after each batch, with no lookup or insertion while the index is stale. Non-authored rows with zero stock and no queue reservations are freed,
 including their fractions. An explicit saved `Authored` flag distinguishes an authored zero target
 from a return-only group; authored target rows persist when empty. Anonymous returned composition
 is retained; departed Household/Citizen ids, names, experience, attendance and Trip history are not.
@@ -240,7 +241,9 @@ children and creates no births. Maximum residence is the authored duration, not 
 
 After expiry, process every review-list head whose elapsed time since its last scheduled review
 is at least `queue_reconsider_days × Ticks.PerDay`, even when all gates are full. Re-run the choice
-with retained purse/identity and current conditions. A decline cancels its reservation; willingness
+with retained purse/identity and current conditions. A decline or a sample with no feasible city
+alternative cancels its reservation and counts as a changed mind. Neither spends stock or gate quota;
+the released stock earns fresh reconsideration credit from the next Tick. Willingness
 keeps its place in the admission FIFO and appends it to the review-list tail with the scheduled
 review Tick updated. A scheduled review never resets `SinceTick`, so it cannot make the waiting
 bound infinite. A fresh enqueue starts both clocks on its enqueue Tick. An admission or any
@@ -249,7 +252,8 @@ changing that interval on reload preserves review-list ordering.
 
 When an edge has capacity, process its admission FIFO in order. Re-evaluate each old queue member against
 current housing and Outside conditions, using its retained purse and identity, a new Tick draw and
-current preferences. A decline cancels its reservation; a willing result tries admission. Stop when
+current preferences. A decline or an empty feasible sample cancels its reservation; only a willing
+result tries admission. Stop when
 no gate on that edge has quota left. A prospect generated on this Tick already made its comparison:
 try it once without a second draw, enqueueing it if the edge's quota is exhausted. Honour
 `LastComparedTick` for prospects queued by phase-0 commands too: a gate placed by a later command
@@ -1144,36 +1148,39 @@ exactly — supply 1,755,996, walked 1,755,996, no flow term — with 1,659,090 
 
 ### Long run
 
-`HinterlandLongRunTests`, 7 assertion tests over two fixtures, 102,400 Ticks each at seed 11.
-Steady world `attracted-declining.toml`, growing world `attracted.toml`.
+`HinterlandLongRunTests` exercises two fixtures for 102,400 Ticks each at seed 11 and 1,000
+founding Citizens: `attracted-declining.toml` for continuing flow and `attracted.toml` for a city
+that fills. The corrected queue comparison changes which families reach the city and return.
 
-| | Measured |
+The storage check discards one authored recovery period before comparing tail halves, rather
+than a fixed eight Days. Recovery takes 32 Days in this fixture; the earlier window measured
+initial adjustment as well as later growth. A Release run of the corrected engine measured:
+
+| Reading | Result |
 |---|---|
-| groups | 12 authored → 46; unauthored 0 → 34 |
-| retirement | fires on Days 24, 37, 39 |
-| storage drift, tail halves | ~8.5% against a 12.5% tripwire, still creeping — the test says so rather than implying a plateau |
-| longest wait | 1,855 Ticks on Day 2 against a 4,096 bound; 0 from Day 8 |
-| admissions | 785 by Day 8 → 2,447 by Day 50, with 81 willing on the last Day |
-| people | steady 1,000→754; growing 1,000→1,510 |
+| groups, opening to Day 50 | 12 → 47 |
+| old Day-8 tail means | 36 → 43, 19.4% drift |
+| Day-32 tail means | 42 → 45, 7.1% drift against the unchanged 12.5% tripwire |
 
-⚠ `IClassFixture` construction time is not attributed to any test method, so this class reports
-milliseconds while the two runs take about 2m30s. A green duration here is not evidence the work
-happened; log mtimes are.
+This is a finite-run regression check, not proof of a plateau. The fixture must still exercise
+admissions, willing occasions, queueing and retirement, and both worlds must reconcile population
+and Money. Fixture construction time is shared by the assertions and is not a per-Tick timing.
+The original demonstration measurements remain in Git at `35c20dd`.
 
 ### Persistence, determinism and tests run
 
-Full working lane green: **3,582 tests, 0 failed, 4m46s**. The persistence, replay and
-worker-equivalence classes are inside that lane. **No Release milestone suite and no instrument tier
-were run, and no performance figure is claimed** — `adr/0106` governs, and a loaded machine cannot
-establish a timing.
+Full working lane green after review fixes: **3,593 tests, 0 failed, 5m09s**
+(`scripts/test.sh -- --no-restore`). This includes persistence, replay, worker equivalence and
+both 50-Day fixtures. Regression cases cover queue cancellation with no feasible housing,
+composition overflow and batched retirement with slot reuse. Queue fixtures now establish a
+currently willing prospect where admission is required. `scripts/format.sh --check` and the Godot
+build passed. No instrument tier was run and no performance figure is claimed.
 
-One test is load-sensitive and it turned the lane red once. `RouteWorkerTests.Completion_order_does_not_change_paths_and_stale_requests_are_refused`
-holds a hard `TimeSpan.FromSeconds(15)` deadline inside an assertion at line 95, where worker 0 waits
-for worker 7 to prove completion order does not change paths. Under memory pressure the wait expired
-and the assertion failed at exactly 15 s; the class passes 7 of 7 in 35 s alone, and the path
-equality assertions were never reached. That is a wall-clock budget inside an assertion-tier test,
-which `adr/0106` says needs a named machine class, and it belongs to the routing row rather than to
-this one.
+The review smoke used the compatibility renderer, `attracted.toml`, 1,000 founding Citizens and
+Tick 128. The four-edge panel opened, seven people had arrived, and both population residuals
+were zero. Forward+ hit an instance resource limit; the full socket-driven panel check did not
+complete. This smoke verifies the overview only. Shell edits in this review are comments only;
+a C# token comparison confirmed that the comment cleanup did not change executable shell code.
 
 ### Defects this work found
 

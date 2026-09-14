@@ -1140,20 +1140,8 @@ public enum Invariant
     /// The live Citizens are exactly the people the account says arrived, minus the ones it says left.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// <b><see cref="MoneyIsConserved"/>'s claim about people</b>, and it holds for the same reason
-    /// that one does: the two sides are arrived at differently. The left side counts the live rows; the
-    /// right side is an opening figure plus one counter per named door, each written where the decision
-    /// was made. A check that summed the tables to produce its own anchor would pass a world that had
-    /// lost somebody and a world that had counted them twice.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>The doors are reasons and not row operations.</b> Freeing a Citizen row is one
-    /// implementation with several callers — a fertility birth, a gate, an untreated illness, an
-    /// emigration, a dissolution, a fixture — and nothing afterwards can tell which it was. So the
-    /// failure this catches is a <em>missing or wrong classification</em> at the write site, which no
-    /// per-Tick check can see because every individual write is legal.
-    /// </para>
+    /// Live Citizens equal founding population plus births, admissions and scenario additions,
+    /// minus illness deaths, dissolutions, departures and scenario removals.
     /// </remarks>
     CityPopulationIsAccounted = 58,
 
@@ -1161,11 +1149,8 @@ public enum Invariant
     /// The live Households are exactly the ones the account says were created, minus the ones it lost.
     /// </summary>
     /// <remarks>
-    /// <b>A second equation rather than a restatement, because neither side derives the other.</b> A
-    /// child leaving home creates a Household and adds nobody to the city; an arrival creates one
-    /// Household and several people; a dissolution takes one Household and everybody in it. A single
-    /// counter could state neither, and a world that formed a Household without recording it would
-    /// satisfy <see cref="CityPopulationIsAccounted"/> exactly.
+    /// Local Household formation moves existing people; Household and Citizen totals need separate
+    /// accounts.
     /// </remarks>
     CityHouseholdsAreAccounted = 59,
 
@@ -1173,12 +1158,8 @@ public enum Invariant
     /// What stands behind an edge is what the group opened with, plus every crossing since.
     /// </summary>
     /// <remarks>
-    /// <b>Per group, because a group is where a crossing lands.</b> Stock moves for four reasons —
-    /// the Outside replenishing towards its resting count, a Household returning from the city, one
-    /// being admitted into it, and turnover dropping what stands above the resting count — and the
-    /// opening figure is saved rather than recomputed for <see cref="MoneyIsConserved"/>'s reason.
-    /// ⚠ <b>It also bounds the reservations</b>: a queue may promise no more Households than are
-    /// standing there, and negative stock is the failure a debit without a check would produce.
+    /// Stock equals opening plus replenishment and returns minus admissions and turnover.
+    /// Reservations must remain between zero and stock.
     /// </remarks>
     AHinterlandGroupIsAccounted = 60,
 
@@ -1186,12 +1167,7 @@ public enum Invariant
     /// The composition index names every live group, once, and nothing else.
     /// </summary>
     /// <remarks>
-    /// <b>What pays for the index being <c>(derived AND rebuilt)</c>.</b> A lookup that missed a live
-    /// row would open a second group for a composition that already has one — two rows the account
-    /// sums correctly and no reader can tell apart — and an entry outliving its row is the
-    /// <c>adr/0006</c> leak the rebuild-on-retirement rule exists to prevent. ⚠ <b>It checks the
-    /// per-edge list with it</b>, because both structures are rebuilt from the same rows and a
-    /// disagreement between them is the same defect seen from the other side.
+    /// Each live composition must resolve to its own row, and the index must retain no retired keys.
     /// </remarks>
     TheCompositionIndexNamesEveryGroup = 61,
 
@@ -1199,12 +1175,7 @@ public enum Invariant
     /// An adult holds one of <c>adr/0104</c>'s three Skill Tiers.
     /// </summary>
     /// <remarks>
-    /// <b>Asked where a composition is counted, because that is the first reader that cannot cope.</b>
-    /// A tier outside the three has been harmless while nothing keyed on it — the wage table clamps and
-    /// the credential filters compare — and a Hinterland group is keyed by <em>how many adults at each
-    /// tier</em>, so an unknown tier has nowhere to go. The member is counted at the floor anyway: a
-    /// composition whose size disagreed with the Household that produced it would be a worse failure,
-    /// and a silent one.
+    /// Adult Skill Tiers must be 1 through 3; malformed credentials cannot silently lose a person.
     /// </remarks>
     AnAdultHoldsADeclaredSkillTier = 62,
 
@@ -1213,12 +1184,7 @@ public enum Invariant
     /// of its edge's lists.
     /// </summary>
     /// <remarks>
-    /// <b>The reservation is a count and the queue is rows, so the two can disagree silently.</b> A
-    /// count left behind by a cancelled row promises a Household nobody is waiting for and takes it
-    /// out of circulation for good; a row whose count was never raised lets a fresh occasion draw the
-    /// family already standing at the door, which is the double draw the reservation exists to stop.
-    /// ⚠ <b>It walks the review list as well as the admission list</b>, because a row threaded into
-    /// one and not the other waits for a service that never comes.
+    /// Every queued Household reserves exactly one unit of its live composition stock.
     /// </remarks>
     TheQueueMatchesItsReservations = 63,
 
@@ -1227,13 +1193,7 @@ public enum Invariant
     /// flow that crossed the world's outer boundary.
     /// </summary>
     /// <remarks>
-    /// <b>Migration cancels, which is what this catches that the per-group account cannot.</b> An
-    /// admission moves somebody from an edge into the city and a Departure moves them back, so
-    /// neither appears here — a half-written transfer therefore shows up as an imbalance rather than
-    /// as two counters that happen to agree. ⚠ <b>It reads the edge lifetime totals rather than
-    /// summing the groups still standing</b> (<c>plans/0073</c> D10), because a returned group that
-    /// drained away and was retired took its own counters with it and its history is only on the
-    /// edge.
+    /// Reconciles city and Outside people against founding baselines and classified external flows.
     /// </remarks>
     TheCityAndItsOutsideBalance = 64,
 }

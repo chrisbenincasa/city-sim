@@ -176,16 +176,8 @@ public static class Transcendental
     /// <param name="utility">The candidate's utility in Q16.16.</param>
     /// <param name="best">The best utility in the same comparison, in Q16.16.</param>
     /// <remarks>
-    /// <para>
-    /// <b>The difference is taken widened, because both operands span the whole of
-    /// <c>int</c>.</b> Utilities reach <see cref="Fixed.MinValue"/> and <see cref="Fixed.MaxValue"/>
-    /// by clamping rather than by accident, so a narrow subtraction wraps a candidate past the
-    /// horizon into a positive argument and gives the worst candidate the largest weight.
-    /// </para>
-    /// <para>
-    /// <b>The result exceeds <c>int</c> and is meant to.</b> A caller compares it against
-    /// <see cref="ExpUnderflowsBelow"/> first; only a value above that horizon narrows.
-    /// </para>
+    /// Widen before subtracting: utilities can span all of int. Compare the result with
+    /// ExpUnderflowsBelow before narrowing it for Exp.
     /// </remarks>
     public static long ScaleForExp(int mu, int utility, int best) =>
         IntegerMath.ShiftRight((long)mu * ((long)utility - best), Fixed.FractionalBits);

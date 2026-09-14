@@ -769,10 +769,7 @@ public static class RulesetLoader
                         _hinterlandTables.Add(table);
                         break;
 
-                    // The only nested array-of-table in the Ruleset, and it is nested because the
-                    // stock belongs to one edge rather than to the world. Tomlyn hands the dotted
-                    // name through whole, so the owner is the [[hinterland]] most recently seen --
-                    // which is why one stated before any [[hinterland]] has nothing to attach to.
+                    // Tomlyn preserves the dotted name; population belongs to the most recent Hinterland table.
                     case "hinterland.population":
                         if (_hinterlandTables.Count == 0)
                         {
@@ -787,9 +784,6 @@ public static class RulesetLoader
                         break;
 
                     case "immigration":
-                        // Singular and optional, on [water]'s reasoning. There is one set of
-                        // durations for the whole circuit, so two tables of them is ambiguous
-                        // rather than additive.
                         if (_immigrationTable is not null)
                         {
                             Refuse(LineOf(table), null,
@@ -3286,11 +3280,7 @@ public static class RulesetLoader
                         + "or narrow the width.");
                 }
 
-                // Optional where the centrality pair is optional and REQUIRED where the file has
-                // made it load-bearing. A stock world's arrivals are chosen by weighing a rent
-                // against everything else a stage wants, so a file that opts into autonomous
-                // immigration and leaves the weight unstated has declined to answer the question
-                // its own arrivals turn on.
+                // Stock-enabled worlds must explicitly state each stage rent weight.
                 int rentWeight = Borough.Core.Rules.Ruleset.RentNeutralPercent;
                 bool stock = _immigrationTable is not null;
 
@@ -6321,11 +6311,8 @@ public static class RulesetLoader
         /// Refuses a choice model whose friction puts an equal alternative past adr/0038's horizon.
         /// </summary>
         /// <remarks>
-        /// <b>Each of the three keys is in range and the combination is not.</b> The horizon moves
-        /// with mu and the gap moves with the rent scale, so no per-key bound can catch this — and
-        /// the city it produces looks like a working choice model in which nobody ever moves.
-        /// <see cref="PlacementRuleset.EqualAlternativeSurvives"/> owns the arithmetic; repeating
-        /// the constant here would be a second copy of adr/0038's horizon.
+        /// Validate the combined friction, rent scale and mu through the same arithmetic used by
+        /// Choice.
         /// </remarks>
         private void RefuseImpossibleMove(PlacementRuleset placement)
         {
@@ -7987,11 +7974,6 @@ public static class RulesetLoader
         /// <summary>
         /// Reads every <c>[[hinterland.population]]</c> attached to one <c>[[hinterland]]</c>.
         /// </summary>
-        /// <remarks>
-        /// <b>Stock is refused outright by a file that states no <c>[immigration]</c>.</b> The
-        /// durations are what turn a counted population into a flow; without them the entries would
-        /// load, be saved, be hashed, and be read by nothing at all.
-        /// </remarks>
         private void ReadPopulation(
             int index,
             HinterlandDefinition hinterland,
@@ -8038,10 +8020,10 @@ public static class RulesetLoader
                     Authored = true,
                 };
 
-                if (!RefuseHollowComposition(table, composition)
+                if (!RefusePopulationOverflow(table, composition)
+                    || !RefuseHollowComposition(table, composition)
                     || !RefuseChildrenWithNoSchooling(table, composition, stages)
-                    || !RefuseDuplicateComposition(table, composition, into, first)
-                    || !RefusePopulationOverflow(table, composition))
+                    || !RefuseDuplicateComposition(table, composition, into, first))
                 {
                     continue;
                 }
@@ -8077,9 +8059,7 @@ public static class RulesetLoader
         /// <c>adults_by_tier</c> — exactly three counts, one per Skill Tier.
         /// </summary>
         /// <remarks>
-        /// ⚠ <b>Three entries and never a shorter list meaning the rest are zero.</b> The Tiers are
-        /// a closed set, so a two-entry array is an author who has forgotten one rather than an
-        /// author who meant none -- and the difference is a Tier 3 adult silently becoming nobody.
+        /// Require exactly three explicit counts, one per supported Skill Tier.
         /// </remarks>
         private bool TryAdultsByTier(
             TableSyntaxBase table, out int tier1, out int tier2, out int tier3)
@@ -8167,12 +8147,6 @@ public static class RulesetLoader
         /// <summary>
         /// <c>money_band</c> — which third of this Hinterland's purse range the group carries.
         /// </summary>
-        /// <remarks>
-        /// ⚠ <b>A narrow purse range leaves the upper bands empty and stock authored into one is
-        /// refused.</b> The bands are thirds of <c>emigrant_balance_min..max</c>, so a range of one
-        /// amount has only band 0 -- and a group in band 2 there would be counted, recovered and
-        /// never drawable, which is a population that exists in the account and nowhere else.
-        /// </remarks>
         private bool TryMoneyBand(
             TableSyntaxBase table, HinterlandDefinition hinterland, out int band)
         {
@@ -8213,10 +8187,7 @@ public static class RulesetLoader
         /// A composition with nobody in it, or with children and no adult.
         /// </summary>
         /// <remarks>
-        /// ⚠ <b>A child-only opening is refused and a child-only RETURN is not, and the asymmetry
-        /// is the decision.</b> The city can produce a Household of children through a death, and
-        /// that family has to be able to go somewhere -- but authoring one at world creation states
-        /// an Outside that was never a city, with nobody who could ever have been its parent.
+        /// Child-only return stock is permitted, but cannot be authored as opening population.
         /// </remarks>
         private bool RefuseHollowComposition(
             TableSyntaxBase table, HinterlandPopulationDefinition composition)
@@ -8249,12 +8220,6 @@ public static class RulesetLoader
         /// <summary>
         /// Children stated on a stage that has no school to send them to.
         /// </summary>
-        /// <remarks>
-        /// <b>The level is a property of the stage rather than of the child</b>, which is
-        /// <c>[[life_stage]] school_level</c>'s own decision: Family attends primary and Mature
-        /// Family secondary, and a stage naming neither is a stage whose Households have no
-        /// children. Importing children into one gives the city a child nothing will ever school.
-        /// </remarks>
         private bool RefuseChildrenWithNoSchooling(
             TableSyntaxBase table,
             HinterlandPopulationDefinition composition,
@@ -8283,12 +8248,6 @@ public static class RulesetLoader
         /// <summary>
         /// The same composition declared twice behind one edge.
         /// </summary>
-        /// <remarks>
-        /// <b>Canonicalised rather than summed, because a composition is a KEY.</b> Two entries
-        /// naming the same stage, tiers, children and band are one group written twice, and adding
-        /// them silently would make the file's own arithmetic unreadable: an author checking the
-        /// Outside's opening size would count the rows.
-        /// </remarks>
         private bool RefuseDuplicateComposition(
             TableSyntaxBase table,
             HinterlandPopulationDefinition composition,
@@ -8325,15 +8284,19 @@ public static class RulesetLoader
         private bool RefusePopulationOverflow(
             TableSyntaxBase table, HinterlandPopulationDefinition composition)
         {
-            if (composition.People <= int.MaxValue)
+            // Validate the member sum before reading the int-valued Adults/Members properties,
+            // including zero-stock compositions that can receive returns later.
+            long members = (long)composition.AdultsTier1 + composition.AdultsTier2
+                + composition.AdultsTier3 + composition.Children;
+
+            if (members <= int.MaxValue && members * composition.Households <= int.MaxValue)
             {
                 return true;
             }
 
             Refuse(LineOf(table), null,
-                $"this composition holds {composition.Households} Households of "
-                + $"{composition.Members} people, which is more people than the population account "
-                + "counts.");
+                $"this composition holds {composition.Households} Households of {members} people. "
+                + "The member count or group total holds more people than an int can represent.");
 
             return false;
         }
@@ -8342,9 +8305,7 @@ public static class RulesetLoader
         /// A stock world in which nobody lives anywhere.
         /// </summary>
         /// <remarks>
-        /// ⚠ <b>The requirement is one positive group across the WORLD and not one per edge.</b> An
-        /// edge behind which nobody lives is the depletion demonstration; four of them is a file
-        /// that has opted into autonomous arrivals and left nobody to arrive.
+        /// At least one positive opening is required across the world; individual edges may be empty.
         /// </remarks>
         private void RefuseEmptyWorld(HinterlandPopulationDefinition[] populations)
         {
@@ -8371,24 +8332,6 @@ public static class RulesetLoader
         /// <summary>
         /// What a world must already have before its people can choose to come to it.
         /// </summary>
-        /// <remarks>
-        /// <para>
-        /// <b>Each of these exists for its own reasons and <c>[immigration]</c> makes it
-        /// load-bearing.</b> The stock is drawn on by families weighing the city against where they
-        /// already are, which is <c>[placement] mu_percent</c>'s comparison; the ones who lose that
-        /// comparison have to be able to give up, which is <c>gives_up_after_days</c>; and they
-        /// arrive as people of an age carrying money, which the Life Stages and the Money family
-        /// supply. ***A prerequisite absent is not a smaller mechanism, it is the mechanism
-        /// silently doing nothing.***
-        /// </para>
-        /// <para>
-        /// ⚠ <b>Four Hinterlands and not at least one.</b> A Household leaving the city has to have
-        /// somewhere to go whichever edge it leaves by, and a gate can stand on any of the four --
-        /// so an edge with no Hinterland behind it is a departure with nowhere to be credited, and
-        /// the population account stops adding up. An edge with no PEOPLE behind it is a different
-        /// thing entirely and is permitted.
-        /// </para>
-        /// </remarks>
         private void RefuseIncompleteStockWorld(
             ImmigrationRuleset immigration,
             PlacementRuleset placement,
@@ -8476,10 +8419,7 @@ public static class RulesetLoader
         /// Reads <c>[immigration]</c>, or answers that every arrival comes from a caller.
         /// </summary>
         /// <remarks>
-        /// <b>The four durations stand or fall together</b>, on <c>[disasters]</c>'s reasoning
-        /// exactly: they describe one circuit, and a file stating three of them has left the fourth
-        /// to a default nobody chose. The reads below are joined with a non-shortcutting <c>|</c> so
-        /// an author missing two keys is told about both in one run.
+        /// Use non-short-circuit reads to report all missing durations in one parse.
         /// </remarks>
         private ImmigrationRuleset ReadImmigration()
         {
@@ -8545,11 +8485,7 @@ public static class RulesetLoader
         /// Whether a duration in Days survives the multiplication into Ticks.
         /// </summary>
         /// <remarks>
-        /// <b>The conversion is checked rather than saturated, because these durations are
-        /// divisors.</b> <c>InTicks</c> clamps a decline threshold to <see cref="int.MaxValue"/>,
-        /// which is a threshold nothing reaches and is the right answer there. A recovery period
-        /// clamped the same way becomes the denominator of a fraction, and a silently shortened one
-        /// refills the Outside at a rate no file states.
+        /// Durations are divisors. Reject overflow rather than clamping and silently changing the rate.
         /// </remarks>
         private bool FitsInTicks(long days, string key)
         {

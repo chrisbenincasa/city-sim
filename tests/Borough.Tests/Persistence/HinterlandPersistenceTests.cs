@@ -17,21 +17,8 @@ namespace Borough.Tests.Persistence;
 /// the same city on the far side of the load.
 /// </summary>
 /// <remarks>
-/// <para>
-/// <b>The generic machinery already carries these tables and that is exactly why this file exists.</b>
-/// <c>SaveFile</c> and <c>SaveHash</c> walk <c>World.Tables</c> and each table's saved columns, so the
-/// four tables row 31 added went into the file the moment they were appended to the world. What no
-/// generic walk can say is whether the world they come back as behaves like the one that was saved —
-/// <c>FactorioTests</c> runs that comparison on <c>minimal</c> and <c>congested</c>, and neither states
-/// <c>[immigration]</c>, so no world with anybody standing behind its edges had ever been resumed.
-/// </para>
-/// <para>
-/// ⚠ <b>The state under test is deliberately awkward, and the fixture asserts that it is.</b> A save
-/// taken over an idle Outside would round-trip whatever it was given: empty queues, whole fractions and
-/// unspent quotas all restore correctly by holding still. Every element below is checked to be present
-/// before the file is written, so a fixture that stops reaching one fails here rather than passing on
-/// nothing.
-/// </para>
+/// Assert nonempty queues, partial fractions, spent quota and reusable slots before saving.
+/// Compare continued runs, not just serialized values.
 /// </remarks>
 public sealed class HinterlandPersistenceTests(ITestOutputHelper output)
 {
@@ -55,24 +42,21 @@ public sealed class HinterlandPersistenceTests(ITestOutputHelper output)
 
     /// <summary>The shipped stock world, recovering fast enough to empty a group inside one run.</summary>
     /// <remarks>
-    /// <b>A returned group that drains is what frees a row</b>, and a freed row is half of what this
-    /// file is for — the shipped thirty-two Days would leave every slot this world ever allocated still
-    /// live, and a reload cannot disagree about an allocator nothing has used.
+    /// Short recovery frees return-only slots; narrow gates retain a queue at the save checkpoints.
     /// </remarks>
     private static Ruleset Quick() =>
         Parsed(
             Text("attracted.toml")
-                .Replace("recovery_days         = 32", "recovery_days         = 1", StringComparison.Ordinal),
+                .Replace("recovery_days         = 32", "recovery_days         = 1", StringComparison.Ordinal)
+                .Replace("arrivals_per_day = 96", "arrivals_per_day = 24", StringComparison.Ordinal),
             "quick.toml");
 
     /// <summary>
     /// A world holding every piece of Outside state a save has to carry.
     /// </summary>
     /// <remarks>
-    /// <b>Nothing here stages the awkwardness by writing a meter.</b> The doors are left alone and the
-    /// authored quota does the work: four gates take ninety-six families a Day between them against an
-    /// Outside that reconsiders every second Day, so the quota runs out, the queue fills, the stock
-    /// falls below its resting count and recovery starts accruing against it.
+    /// Reach queues and spent quota through ordinary simulation flow rather than staging their
+    /// counters.
     /// </remarks>
     private static (World World, Simulation Simulation, HinterlandComposition Drained) Awkward(
         Ruleset rules, int ticks)
@@ -99,12 +83,6 @@ public sealed class HinterlandPersistenceTests(ITestOutputHelper output)
     }
 
     /// <summary>What the fixture promises the file is being written over.</summary>
-    /// <remarks>
-    /// ⚠ <b>The drained group is identified by its composition and not by its slot.</b> Its row is
-    /// freed and handed straight back out to the next return, so the slot is live again and holding
-    /// somebody else — which is the reuse this file wants in the save, and would read as a group that
-    /// never drained.
-    /// </remarks>
     private void AssertAwkward(World world, in HinterlandComposition drained)
     {
         long sequence = 0;
@@ -214,24 +192,8 @@ public sealed class HinterlandPersistenceTests(ITestOutputHelper output)
 
     /// <summary>A stock world saved mid-Day runs on exactly as the world that never stopped.</summary>
     /// <remarks>
-    /// <para>
-    /// <b>The Factorio property, on the one kind of world it had never been asked of</b>
-    /// (<c>plans/0073</c> D11). The hash is compared on every Tick of the resumed run rather than at the
-    /// end, because a derived structure rebuilt wrongly can be overwritten by the next pass before any
-    /// closing comparison sees it.
-    /// </para>
-    /// <para>
-    /// <b>The second save sits six Ticks before a Day rolls</b>, so the resumed world is the one that
-    /// performs the rollover — the flow counters move on in a world that was loaded rather than run
-    /// into that Day.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>Both save points are inside the window where the doors are the constraint, and that window
-    /// closes.</b> While the quota binds, willing families queue behind it; once the city is full
-    /// enough that housing is the limit instead, prospects stay outside and the queue stands empty. A
-    /// save taken later would be a save over an idle Outside, which is what <c>AssertAwkward</c> is
-    /// there to refuse.
-    /// </para>
+    /// Keep the built-in MixedPattern ranking: an artificial pattern can change when floor units
+    /// are derived after construction and confound the save/reload comparison.
     /// </remarks>
     [Theory]
     [InlineData(4_000, 96)]
@@ -277,10 +239,7 @@ public sealed class HinterlandPersistenceTests(ITestOutputHelper output)
 
     /// <summary>A reloaded queue serves the families in the order it joined them.</summary>
     /// <remarks>
-    /// 🔴 <b>The one piece of Outside state a rebuild could not have recovered</b> (D11). Join order
-    /// lives in the admission list and nowhere else, so a load that reconstructed the queue from live
-    /// rows would come back in slot order and admit a different family — a defect a State Hash
-    /// comparison would notice only once the two worlds had served somebody different.
+    /// Join order must survive slot reuse; rebuilding the queue in slot order changes admission order.
     /// </remarks>
     [Fact]
     public void A_reloaded_queue_holds_the_order_it_was_saved_in()
@@ -307,11 +266,6 @@ public sealed class HinterlandPersistenceTests(ITestOutputHelper output)
     }
 
     /// <summary>The Outside's fractions, sequences and returned groups come back as they went in.</summary>
-    /// <remarks>
-    /// <b>Column by column rather than by hash alone.</b> A hash says two worlds differ and never which
-    /// figure moved, and these are the columns whose loss would be invisible for many Ticks — a cleared
-    /// fraction only delays an occasion, and a reset sequence only repeats an identity.
-    /// </remarks>
     [Fact]
     public void The_Outside_comes_back_at_the_figures_it_was_saved_at()
     {
@@ -377,11 +331,6 @@ public sealed class HinterlandPersistenceTests(ITestOutputHelper output)
     }
 
     /// <summary>A resumed stock world is the same city at one routing worker and at eight.</summary>
-    /// <remarks>
-    /// <b>Admitted families are what makes this worth asking</b> (D11). An arrival joins the Unplaced
-    /// Pool at its gate and is housed by Placement, which is what puts move-in Trips through the router
-    /// — so a stock world exercises the parallel path with journeys no other fixture here generates.
-    /// </remarks>
     [Fact]
     public void A_resumed_stock_world_agrees_across_worker_counts()
     {
@@ -428,9 +377,7 @@ public sealed class HinterlandPersistenceTests(ITestOutputHelper output)
 
     /// <summary>A session whose whole content is the verb that lays a city down.</summary>
     /// <remarks>
-    /// <b>A hand-built log cannot name a gate.</b> Gate Tiles exist only once the subdivider has run,
-    /// so a log of <c>Arrive</c> commands would have to guess coordinates the generator decides —
-    /// which is why <c>Populate</c> is the verb every replayed city in this project is built by.
+    /// Use normal Populate input so replay owns the founding state.
     /// </remarks>
     private static InputLog Populated()
     {
@@ -465,23 +412,7 @@ public sealed class HinterlandPersistenceTests(ITestOutputHelper output)
 
     /// <summary>A session replayed into a counted Outside reproduces itself Tick for Tick.</summary>
     /// <remarks>
-    /// <para>
-    /// <b>Replay equivalence had never been asked of a world anybody emigrates to</b>
-    /// (<c>plans/0073</c> D11). <c>ReplayTests</c> runs under <c>Ruleset.Empty</c>, so every prior
-    /// demonstration that a log reproduces its session was taken over a city with no Outside behind
-    /// its edges.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>The two runs share nothing, which is what separates this from a reload.</b> Each builds
-    /// its own World from the log's seed and capacity, so an admission decided from anything outside
-    /// the counter hash — a slot number, an allocation order, a stale index — sends a different family
-    /// through a door and the two traces part.
-    /// </para>
-    /// <para>
-    /// The window crosses a Day boundary, so the doors refill and the Outside takes a reconsider
-    /// occasion inside the Ticks being compared. <see cref="Admitted"/> is asserted nonzero because a
-    /// trace over a stock engine that never ran would agree with itself perfectly.
-    /// </para>
+    /// Use the same synthetic/world seed for replay. Mismatched keys compare different worlds.
     /// </remarks>
     [Fact]
     public void A_replayed_session_builds_the_same_stock_world_twice()

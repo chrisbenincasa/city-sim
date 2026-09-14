@@ -217,11 +217,7 @@ public enum Refusal : ushort
     /// behind it holds or has ever held.
     /// </summary>
     /// <remarks>
-    /// <b>A composition nobody declares is a mismatch; an exhausted one is an outcome</b>
-    /// (<c>plans/0073</c> D8). A request the stock could satisfy tomorrow admits nobody today and is
-    /// not refused, because a depleted edge is the mechanism working. A request naming four people
-    /// where every group behind the edge holds one names nobody the Outside could ever supply, and
-    /// the old verb would have invented them.
+    /// An exhausted matching composition is a valid request that presents nobody.
     /// </remarks>
     ArriveNoSuchFamilyOutside = 30,
 
@@ -230,9 +226,7 @@ public enum Refusal : ushort
     /// narrowed.
     /// </summary>
     /// <remarks>
-    /// ⚠ <b>Narrowing is not a safe way to fail here.</b> A kind id is a byte and the payload word is
-    /// sixteen bits, so 256 narrows to zero — and zero is this verb's removal instruction. A log
-    /// naming a kind out of range would take a standing gate away rather than refuse to place one.
+    /// Validate before narrowing: 256 would otherwise become the removal payload zero.
     /// </remarks>
     GateKindIsWiderThanAKindId = 31,
 
@@ -243,11 +237,6 @@ public enum Refusal : ushort
     /// <c>Gate</c> names a declared kind stating no <c>arrivals_per_day</c>, so it is an ordinary
     /// Building rather than a door.
     /// </summary>
-    /// <remarks>
-    /// <see cref="ServiceKindServesNothing"/>'s shape, and taken for its reason. A verb that placed
-    /// any kind at all would be a general construction tool, which <c>01 §5</c> keeps the design
-    /// out of.
-    /// </remarks>
     GateKindIsNotAnOutsideConnection = 33,
 
     /// <summary><c>Gate</c> names a Tile holding no vacant Lot — a shell is not vacant.</summary>
@@ -261,27 +250,18 @@ public enum Refusal : ushort
 
     /// <summary><c>Gate</c> names a Lot in a corner of the map, which touches two edges.</summary>
     /// <remarks>
-    /// <b>Distinct from <see cref="GateLotIsNotOnAnEdge"/> because the geometry can tell them
-    /// apart</b>, and the player's mistake is a different one. An interior Lot is nowhere near an
-    /// edge; a corner Lot is on two, and which Outside stands behind it has no answer. A gate is
-    /// listed against exactly one edge's Hinterland, so a corner would have to pick one silently.
+    /// A gate must resolve to exactly one edge; corner Lots do not select a Hinterland.
     /// </remarks>
     GateLotIsOnTwoEdges = 36,
 
     /// <summary>
     /// <c>Gate</c> names a Lot on an edge this Ruleset declares no <c>[[hinterland]]</c> behind.
     /// </summary>
-    /// <remarks>
-    /// A door onto an unstated Outside admits nobody and has no market to compare against, so it
-    /// would stand as a Building that reads like a mechanism and is not one.
-    /// </remarks>
     GateEdgeHasNoHinterland = 37,
 
     /// <summary><c>Gate</c> names an edge Lot with no usable frontage, which nobody could reach.</summary>
     /// <remarks>
-    /// An admitted Household walks from the gate to its home, and a Lot with no Street face has no
-    /// Address to start that Trip from (<c>adr/0079</c>). The player supplies the ground first, with
-    /// the Street and zoning tools.
+    /// Move-in Trips need a usable Street address at the gate.
     /// </remarks>
     GateLotHasNoFrontage = 38,
 
@@ -290,19 +270,13 @@ public enum Refusal : ushort
 
     /// <summary><c>Gate</c> asks to remove a gate a Household or a Business is still in.</summary>
     /// <remarks>
-    /// <b>A mixed-use gate is refused rather than evicted.</b> <see cref="DemolishBuildingIsOccupied"/>
-    /// keeps compulsory purchase off that verb on <c>adr/0091</c>'s terms, and adding it quietly to
-    /// this one would put the priced mechanism behind the cheapest click in the shell. ⚠ An outside
-    /// <em>queue</em> is not a tenant: the people waiting to come in are cancelled by the engine on
-    /// its next pass, which is <c>plans/0073</c> D5 and not a reason to refuse.
+    /// Outside queue membership is not a tenancy and does not prevent removal.
     /// </remarks>
     GateRemoveGateIsOccupied = 40,
 
     /// <summary><c>Gate</c> names a kind whose <c>placement_cost</c> is more than the city holds.</summary>
     /// <remarks>
-    /// A door is built and paid for like any other Building. This is the only gate refusal that turns
-    /// on a level rather than on a shape, so it is asked last and a city short of the price is told
-    /// so rather than being told the plot is wrong.
+    /// Uses the same treasury placement charge as other placed Buildings.
     /// </remarks>
     GateTreasuryCannotPay = 41,
 }

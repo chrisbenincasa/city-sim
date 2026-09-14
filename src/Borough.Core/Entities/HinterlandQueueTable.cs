@@ -8,26 +8,9 @@ using Borough.Core.Tables;
 /// The families waiting outside the gates, one row each.
 /// </summary>
 /// <remarks>
-/// <para>
-/// <b>A row here reserves a Household inside its group's stock and transfers nobody</b>
-/// (<c>plans/0073</c> D5). The people are still behind the edge and still counted there; what the
-/// reservation buys is that the same family cannot be drawn twice, once by the queue it is standing
-/// in and once by a fresh occasion. Admission spends the reservation and the stock together;
-/// cancelling spends neither.
-/// </para>
-/// <para>
-/// <b>Two lists, both saved, both doubly linked.</b> The admission order is the order the gates
-/// serve, and the review order is the order the timed reconsiderations fall due — a family sits in
-/// both at once and leaves both together, which is <see cref="LinkedIndexList"/>'s reason for
-/// existing. Saved rather than derived because arrival order is recoverable from nothing else: a
-/// rebuild would put the queue in slot order and serve a different family after a reload.
-/// </para>
-/// <para>
-/// <b>The composition is read through <see cref="Group"/> and never copied here.</b> Two records of
-/// who a family is made of can disagree, and the one on the group row is the one the stock is keyed
-/// by. What the row does hold is what a later Tick cannot recompute — the purse this family drew and
-/// the identity its preferences come from — so a review is the same family facing a changed city.
-/// </para>
+/// Each row reserves one Household in its composition without moving people or Money.
+/// Admission and review lists are saved separately: slot order cannot reconstruct join order.
+/// The caller releases the reservation when the row leaves either list.
 /// </remarks>
 [Table]
 public sealed class HinterlandQueueTable
@@ -42,9 +25,7 @@ public sealed class HinterlandQueueTable
 
         _rows = new Rows<Waiting>("waiting", capacity, Buffering.OneCopy);
 
-        // Required rather than Severable: a group holding a reservation is a group with stock
-        // standing in it, and retirement refuses both. A dangling handle here would be a family
-        // waiting on an Outside that has forgotten it.
+        // A queued reservation requires its composition row to stay live.
         Group = _rows.SavedHandle("group", groups.Rows, Touch.Cold);
 
         Purse = _rows.Saved<Money>("purse", Touch.Cold);
@@ -70,9 +51,7 @@ public sealed class HinterlandQueueTable
 
     /// <summary>What it drew to compare with, and what it will arrive holding.</summary>
     /// <remarks>
-    /// <b>Drawn once, at the occasion, and carried unchanged through every review.</b> A purse
-    /// redrawn on reconsideration would make waiting a lottery over wealth, and the affordability
-    /// filter would then be testing somebody else.
+    /// Retained unchanged through every review and admission.
     /// </remarks>
     public Column<Money> Purse { get; }
 
@@ -89,9 +68,7 @@ public sealed class HinterlandQueueTable
     /// The last Tick on which it compared the city with home.
     /// </summary>
     /// <remarks>
-    /// <b>One comparison per Tick, whichever path asks for it.</b> A family whose review falls due on
-    /// the Tick a gate opens is considered by both, and drawing twice would give it two chances at a
-    /// choice the model says it makes once.
+    /// At most one comparison per Tick, whether triggered by a scheduled review or an open gate.
     /// </remarks>
     public Column<Ticks> Compared { get; }
 
@@ -127,9 +104,7 @@ public sealed class HinterlandQueueTable
 
     /// <summary>Puts a willing family at the back of both of its edge's lists.</summary>
     /// <remarks>
-    /// ⚠ <b>The caller reserves the stock.</b> The reservation is a count on the group row and this
-    /// table does not own it — the same division <see cref="HinterlandPopulationTable.Open"/> has
-    /// with the composition index.
+    /// The caller reserves one Household in the composition before joining.
     /// </remarks>
     /// <returns>The row's slot.</returns>
     public int Join(
@@ -160,8 +135,7 @@ public sealed class HinterlandQueueTable
 
     /// <summary>Takes a family out of both lists and frees its row.</summary>
     /// <remarks>
-    /// ⚠ <b>The caller releases the reservation</b>, for <see cref="Join"/>'s reason. Whether the
-    /// Household it was holding was admitted or handed back is exactly what this table cannot see.
+    /// The caller must spend or release the reservation before removing the queue row.
     /// </remarks>
     public void Leave(HinterlandTable hinterlands, MapEdge edge, int slot)
     {

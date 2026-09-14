@@ -11,20 +11,6 @@ namespace Borough.Tests.Entities;
 /// <summary>
 /// <c>plans/0045</c> row 31 task 3: the prospect, and the door that admits exactly it.
 /// </summary>
-/// <remarks>
-/// <para>
-/// <b>What is under test is a seam that used to exist.</b> The old path drew a purse to ask whether
-/// somebody could afford to come, then created a Household that drew its own — so the family that
-/// could afford to come was not the family that came, and every preference an arrival had appeared
-/// for the first time <em>after</em> it had already chosen. Here the family exists before the
-/// comparison and <c>World.TryAdmitProspect</c> admits that one (<c>plans/0073</c> D4, D7).
-/// </para>
-/// <para>
-/// ⚠ <b>Nothing here generates an occasion.</b> Who presents themselves, how often, and what happens
-/// to somebody a full gate turns away are task 4's. These tests hand the door a prospect and assert
-/// what it does with it — including, at length, what it does <em>not</em> do when it refuses.
-/// </para>
-/// </remarks>
 public sealed class ProspectAdmissionTests
 {
     private static readonly WorldKey Key = WorldKey.FromSeed(7);
@@ -116,11 +102,6 @@ public sealed class ProspectAdmissionTests
     }
 
     /// <summary>The purse that was compared is the purse that arrives.</summary>
-    /// <remarks>
-    /// 🔴 <b>The seam this row closed.</b> <c>PlacementEngine.ProspectCrosses</c>'s old overload drew
-    /// on the gate's id and an ordinal; <c>World.TryArrive</c> then drew again on the new Household's.
-    /// A family could pass the affordability filter and arrive unable to afford anything it was shown.
-    /// </remarks>
     [Fact]
     public void The_family_that_compared_the_city_is_the_family_that_arrives()
     {
@@ -146,11 +127,6 @@ public sealed class ProspectAdmissionTests
     /// <summary>
     /// A purse is drawn inside the band its group is keyed by, whoever the family is.
     /// </summary>
-    /// <remarks>
-    /// <b>The band is the storage key, so a draw outside it would file a family in a row it does not
-    /// belong to</b> — and a Departure computing the band back from the balance would then land
-    /// somewhere else again.
-    /// </remarks>
     [Fact]
     public void Every_prospect_carries_what_its_band_says_it_carries()
     {
@@ -177,17 +153,8 @@ public sealed class ProspectAdmissionTests
     /// A family arrives with the children it has and the credentials its adults hold.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// <b><c>World.AddMember</c> started everybody at the floor tier and stage alone created no
-    /// children</b>, so the old door could only ever admit <em>n</em> identical adults. A
-    /// <c>[[hinterland.population]]</c> states who a family is, and this is the door taking it
-    /// literally (<c>plans/0073</c> D7).
-    /// </para>
-    /// <para>
-    /// ⚠ <b>An imported child is not a birth.</b> Recording one would credit the city with a
-    /// fertility it did not have, and <c>adr/0023</c>'s finite stock is the claim that would be
-    /// measured against.
-    /// </para>
+    /// Imported children are admissions, not births; imported adults retain credentials without
+    /// inventing experience or observed school attendance.
     /// </remarks>
     [Fact]
     public void A_family_arrives_with_real_children_and_real_credentials()
@@ -309,11 +276,6 @@ public sealed class ProspectAdmissionTests
     }
 
     /// <summary>A full gate turns a family away and the Outside still has it.</summary>
-    /// <remarks>
-    /// <b>The ceiling is a rate and this is the shape that makes it one.</b> Admitting on the far
-    /// side of it would make <c>arrivals_per_day</c> a suggestion; refunding the stock would make a
-    /// full gate a reason for people to stop existing.
-    /// </remarks>
     [Fact]
     public void A_full_gate_admits_nobody_and_spends_no_stock()
     {
@@ -368,11 +330,6 @@ public sealed class ProspectAdmissionTests
     /// <summary>
     /// A Household already promised to a gate cannot also be drawn by somebody else.
     /// </summary>
-    /// <remarks>
-    /// <b>Reserved is counted inside the stock and not beside it</b>, so the free count is what
-    /// admission reads. A family queueing outside a full gate has not left the Outside — what it
-    /// cannot be is spent twice.
-    /// </remarks>
     [Fact]
     public void Reserved_stock_is_not_available_to_admit()
     {
@@ -416,10 +373,6 @@ public sealed class ProspectAdmissionTests
     /// <summary>
     /// A prospect that does not describe the row it names is refused rather than admitted from it.
     /// </summary>
-    /// <remarks>
-    /// <b>A handle outlives a retirement.</b> A recycled slot holding a different composition would
-    /// otherwise admit a family the Outside never had and debit a group it never stood in.
-    /// </remarks>
     [Fact]
     public void A_prospect_that_does_not_match_its_group_admits_nobody()
     {
@@ -445,11 +398,6 @@ public sealed class ProspectAdmissionTests
     /// <summary>
     /// A refusal does not roll a gate's meter over, so yesterday's full gate is still full to it.
     /// </summary>
-    /// <remarks>
-    /// <b>An old Day's quota reads as zero-used and is written only when an admission succeeds</b>
-    /// (<c>plans/0073</c> D7). Resetting during validation would let a family the gate turned away
-    /// clear the meter on its way out.
-    /// </remarks>
     [Fact]
     public void A_refusal_does_not_roll_a_stale_meter_over()
     {

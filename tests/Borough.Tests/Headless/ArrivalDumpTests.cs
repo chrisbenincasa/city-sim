@@ -169,13 +169,6 @@ public sealed class ArrivalDumpTests
     /// <summary>
     /// A Ruleset with a counted Outside prints the circuit and the runner asks for nothing.
     /// </summary>
-    /// <remarks>
-    /// <b>The Ruleset chooses the picture and no flag does.</b> <c>attracted.toml</c> states
-    /// <c>[immigration]</c>, so the mode must not knock — a single <c>Arrive</c> would put a caller
-    /// back inside the one mechanism whose point is not having one — and the panels that explain why
-    /// anybody crossed must appear. <c>asked/Day</c> is the explicit-presentation column, so its
-    /// absence is what says no command was issued.
-    /// </remarks>
     [Fact]
     public void A_counted_outside_prints_the_circuit_and_asks_for_nothing()
     {
@@ -208,16 +201,8 @@ public sealed class ArrivalDumpTests
     /// A second Ruleset comes into force mid-run, and the city before it is untouched.
     /// </summary>
     /// <remarks>
-    /// 🔴 <b><c>--reload-at</c> was accepted by <see cref="Options"/> and dropped by this mode</b>, so
-    /// a run handed a rent-only partner file printed the unchanged city and called it the treatment.
-    /// Two Rulesets with no transition are already refused at parse, so nothing anywhere said the
-    /// second file had not been read.
-    /// <para>
-    /// ⚠ <b>The assertion is the PAIR and not either half.</b> <c>yesterday</c> is the Day before the
-    /// transition and must be identical on both sides — a treatment that had already diverged before
-    /// its own intervention would be measuring the seed. <c>today</c> is the Day after it and must
-    /// not be.
-    /// </para>
+    /// The catalogue retains both Rulesets so the transition changes the simulation at its recorded
+    /// Tick.
     /// </remarks>
     [Fact]
     public void A_ruleset_transition_reaches_the_circuit_and_leaves_the_day_before_it_alone()

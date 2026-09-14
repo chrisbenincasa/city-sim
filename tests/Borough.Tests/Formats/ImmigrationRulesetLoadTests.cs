@@ -7,21 +7,6 @@ namespace Borough.Tests.Formats;
 /// <c>[immigration]</c> and <c>[[hinterland.population]]</c>: the counted Outside, and every way a
 /// file can state one that would be read by nothing.
 /// </summary>
-/// <remarks>
-/// <para>
-/// <c>plans/0073</c> task 1. <b>The file is mostly about company rather than range.</b> Almost
-/// every value here is legal alone and wrong beside something else: a money band that holds no
-/// amount because the purse range is narrow, children in a stage with no school, a queue review
-/// longer than the wait it reviews, a stock world with no choice model to weigh it.
-/// </para>
-/// <para>
-/// 🔴 <b>The class of defect all of these guard is the same one, and it is not a crash.</b> Each
-/// would load clean, be saved, be hashed, survive a reload, and be consulted by nothing — a
-/// population counted in the account and drawable by nobody. ⚠ <b>That is <c>adr/0048</c>'s
-/// <em>loads clean and misbehaves in silence</em></b>, which is why they are refusals rather than
-/// clamps.
-/// </para>
-/// </remarks>
 public sealed class ImmigrationRulesetLoadTests
 {
     /// <summary>
@@ -141,6 +126,49 @@ public sealed class ImmigrationRulesetLoadTests
         Assert.False(result.Ok, "the Ruleset was accepted.");
 
         return result.Refusals[0];
+    }
+
+    [Theory]
+    [InlineData("[2147483647, 1, 0]", 0, 1)]
+    [InlineData("[2147483647, 2147483647, 2]", 0, 1)]
+    [InlineData("[1, 0, 0]", int.MaxValue, 1)]
+    [InlineData("[2147483647, 1, 0]", 0, 0)]
+    [InlineData("[1, 0, 0]", int.MaxValue, 0)]
+    [InlineData("[2147483647, 0, 0]", 0, 2)]
+    public void Population_counts_are_validated_before_narrow_sums(
+        string adults, int children, int households)
+    {
+        RulesetRefusal refusal = Refused(World(Singles + $$"""
+
+            [[hinterland.population]]
+            stage = "family"
+            adults_by_tier = {{adults}}
+            children = {{children}}
+            money_band = 0
+            households = {{households}}
+            """));
+
+        Assert.Contains("more people", refusal.Reason, StringComparison.Ordinal);
+        Assert.True(refusal.Line > 0);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public void A_representable_member_total_is_accepted(int households)
+    {
+        Ruleset rules = Accepted(World(Singles + $$"""
+
+            [[hinterland.population]]
+            stage = "family"
+            adults_by_tier = [2147483646, 0, 0]
+            children = 1
+            money_band = 0
+            households = {{households}}
+            """));
+
+        Assert.Equal(int.MaxValue, rules.HinterlandPopulations[1].Members);
+        Assert.Equal((long)households * int.MaxValue, rules.HinterlandPopulations[1].People);
     }
 
     /// <summary>
@@ -279,9 +307,7 @@ public sealed class ImmigrationRulesetLoadTests
     /// An Outside that was never a city: children behind an edge with nobody who bore them.
     /// </summary>
     /// <remarks>
-    /// ⚠ <b>The refusal is of the AUTHORING and not of the composition.</b> A city that loses both
-    /// parents to illness makes exactly this Household and returns it intact; what a file may not
-    /// do is state one at world creation.
+    /// Child-only return stock remains supported even though authored openings require an adult.
     /// </remarks>
     [Fact]
     public void An_authored_composition_of_children_with_no_adult_is_refused()
@@ -321,10 +347,6 @@ public sealed class ImmigrationRulesetLoadTests
     /// <summary>
     /// A band the purse range leaves empty holds stock nobody could ever be drawn from.
     /// </summary>
-    /// <remarks>
-    /// <b>The west edge runs 800 to 4,000, which is 3,201 amounts and three full bands</b>, so this
-    /// world's refusal has to come from a narrowed range rather than from the band number.
-    /// </remarks>
     [Fact]
     public void A_money_band_the_balance_range_leaves_empty_is_refused()
     {
@@ -401,11 +423,6 @@ public sealed class ImmigrationRulesetLoadTests
     /// <summary>
     /// Zero recovery is a world and zero anything else is not.
     /// </summary>
-    /// <remarks>
-    /// <b>Recovery's zero freezes the stock in both directions</b>, which is the world that
-    /// demonstrates depletion with nothing refilling behind it. The other three are cadences, and a
-    /// cadence of no Days fires on every Tick rather than never.
-    /// </remarks>
     [Fact]
     public void Only_recovery_may_be_zero()
     {

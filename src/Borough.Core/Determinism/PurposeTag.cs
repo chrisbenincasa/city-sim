@@ -881,19 +881,8 @@ public enum PurposeTag : ulong
     /// group's purse band.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// <b>Distinct from <see cref="EmigrantBalance"/> for that tag's own reason, one level down.</b>
-    /// That draw spans a Hinterland's whole authored range; this one spans a third of it, and the
-    /// same id takes the same fraction of whichever span it is given — so sharing would make the
-    /// richest family in the low band the richest family in the high band, which is a correlation
-    /// between a composition's key and its purse that nothing authored.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>The two populations do not overlap either.</b> A world counting its Outside presents
-    /// prospects and never draws <see cref="EmigrantBalance"/>; a world that does not, does the
-    /// reverse. The tags are separate because the numbers would be wrong if they were shared, not
-    /// because the draws would collide.
-    /// </para>
+    /// Separate from resident endowments so equally numbered prospects and residents do not share a
+    /// purse draw.
     /// </remarks>
     ProspectPurse = 54,
 
@@ -901,17 +890,7 @@ public enum PurposeTag : ulong
     /// Which Outside a Household that has given up looking goes to.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// <b>A choice and not a return address</b> (<c>plans/0073</c> D9). The family compares all four
-    /// Hinterlands through the same utility kernel a resident uses, so where it came from carries no
-    /// weight and the gate it arrived by may not exist any more.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>Distinct from <see cref="ChoiceDraw"/> although both draw over utilities.</b> A departing
-    /// family is compared against the same id on the same Tick it was last shown dwellings on — the
-    /// give-up test runs in the pass that failed to house it — so a shared tag would tie which edge it
-    /// leaves by to which dwelling it was last refused.
-    /// </para>
+    /// Independent of housing choice and admission; the destination is drawn even if no gate remains.
     /// </remarks>
     DepartureDestination = 55,
 
@@ -919,10 +898,7 @@ public enum PurposeTag : ulong
     /// Which group behind an edge an <c>Arrive</c> command draws the family it asked for from.
     /// </summary>
     /// <remarks>
-    /// <b>Distinct from the edge's own occasions although both pick a group</b> (<c>plans/0073</c>
-    /// D8). A command is an extra reconsideration on a Tick the Outside is already presenting people
-    /// on, so a shared tag would tie which family the runner asked for to which family the edge
-    /// offered of its own accord.
+    /// Selects a composition for an explicit Arrive request, independently of its housing choice.
     /// </remarks>
     RequestedFamily = 56,
 }

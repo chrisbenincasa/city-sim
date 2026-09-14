@@ -7,26 +7,8 @@ using Borough.Core.Tables;
 /// One row per map edge: the population standing behind it, as a total and as a set of flows.
 /// </summary>
 /// <remarks>
-/// <para>
-/// <b>Four rows for the life of the world, and the slot is the edge.</b>
-/// <c>CONTEXT.md</c> → Hinterland makes the edge the identity — <em>the economy behind one map edge,
-/// shared by every Outside Connection on that edge</em> — and <see cref="Rules.Ruleset.Hinterlands"/>
-/// declares at most one per edge. So there is nothing to allocate at runtime and no handle anybody
-/// needs: <see cref="SlotOf"/> is the whole addressing scheme, and <see cref="Edge"/> is saved beside
-/// it so a row says which edge it is rather than a reader having to know the convention.
-/// </para>
-/// <para>
-/// <b>What is here is the edge's lifetime account, and it outlives the groups it came from.</b> A
-/// composition nobody authored is freed once nothing stands in it
-/// (<see cref="HinterlandPopulationTable"/>), so a sum over live groups is a sum over survivors —
-/// which is exactly the shape <c>plans/0073</c> D10 refuses for the global account. These columns are
-/// written at the same call that moves a group's own counter, so a retirement takes nothing with it.
-/// </para>
-/// <para>
-/// ⚠ <b>It is not a simulated place and holds no money, prices or wages.</b> Those are
-/// <see cref="Rules.HinterlandDefinition"/>, which is Ruleset content the designer authors; this is
-/// the stock the city spends and the record of what it spent.
-/// </para>
+/// Four saved rows hold edge-wide flows, sequences and queue heads. Gate and composition
+/// lists are derived; lifetime counters survive retirement of the groups that generated them.
 /// </remarks>
 [Table]
 public sealed class HinterlandTable
@@ -122,11 +104,7 @@ public sealed class HinterlandTable
 
     /// <summary>The first composition standing behind this edge, in ascending slot order.</summary>
     /// <remarks>
-    /// <b><c>(derived AND rebuilt)</c>, and the ordered insert is what makes that honest.</b> A group
-    /// is threaded in ascending slot order however it arrived, so
-    /// <see cref="HinterlandPopulationTable.RebuildIndexes"/> walking the live rows reproduces the
-    /// order and not merely the membership — <see cref="Parking.CarParkResidency"/>'s test, which
-    /// appending would fail the moment the free list recycled a slot.
+    /// The derived composition list is in slot order; GroupCursor rotates its starting point.
     /// </remarks>
     public Column<int> GroupHead { get; }
 
@@ -155,10 +133,7 @@ public sealed class HinterlandTable
     /// Households the Outside has dropped from here because it held more than it rests at.
     /// </summary>
     /// <remarks>
-    /// <b>Outside population turnover, and it is not a death</b> (<c>plans/0073</c> D2). Stock above
-    /// the resting count leaves the same way it would have arrived — the recovery term working
-    /// downwards — and naming it separately is what keeps a returning family from being reported as a
-    /// casualty of anything the city did.
+    /// Counts external population turnover, separately from city deaths and departures.
     /// </remarks>
     public Column<long> TurnoverHouseholds { get; }
 
@@ -169,25 +144,19 @@ public sealed class HinterlandTable
     /// How many families this edge has ever presented. The next one's identity comes off it.
     /// </summary>
     /// <remarks>
-    /// <b>Monotonic and saved, because it is what makes two families distinct</b>
-    /// (<c>plans/0073</c> D4). A recycled group slot, a queue position or a per-Tick ordinal would
-    /// each hand the same identity to two different families, and an identity is what a purse and a
-    /// taste are drawn from — so two prospects would compare the city as the same person.
+    /// Monotonic per-edge prospect sequence; increment with overflow checking before drawing identity.
     /// </remarks>
     public Column<ulong> Sequence { get; }
 
     /// <summary>The monotonic id of the gate that last admitted somebody here.</summary>
     /// <remarks>
-    /// <b>The round-robin cursor over an edge's doors</b> (D6). An id and not a slot: a demolished
-    /// gate's slot is handed to the next Building raised anywhere in the city, and a cursor comparing
-    /// slots would resume from whatever took the place of the door it meant.
+    /// A monotonic Building id, so recycling a gate slot cannot move the admission cursor.
     /// </remarks>
     public Column<ulong> LastGate { get; }
 
     /// <summary>Where the next Tick's walk over this edge's compositions starts.</summary>
     /// <remarks>
-    /// <b>So that declaration order does not give one group every last vacancy</b> (D3). The walk is
-    /// a rotation rather than a scan from the head, and the start advances each Tick.
+    /// Severable: an expired cursor restarts at the edge list head.
     /// </remarks>
     public HandleColumn<HinterlandPopulation> GroupCursor { get; }
 
@@ -205,10 +174,7 @@ public sealed class HinterlandTable
 
     /// <summary>The first Outside Connection standing on this edge, in ascending slot order.</summary>
     /// <remarks>
-    /// <b><c>(derived AND rebuilt)</c></b>, on <see cref="GroupHead"/>'s terms: every insert is
-    /// ordered by slot, so a rebuild walking the live Buildings reproduces the order and not merely
-    /// the membership. A Building is in it only while its kind is an Outside Connection and its Lot
-    /// resolves to this edge.
+    /// Derived from live gates whose Lots resolve to this edge.
     /// </remarks>
     public Column<int> GateHead { get; }
 
@@ -228,11 +194,8 @@ public sealed class HinterlandTable
     /// How many of today's occasions an <c>Arrive</c> command asked for.
     /// </summary>
     /// <remarks>
-    /// <b>A subset of <see cref="OccasionsToday"/> and not a second stream</b> (<c>plans/0073</c>
-    /// D8). A commanded family goes through the same comparison and lands in the same four outcomes,
-    /// so counting it outside the occasion total would break the identity every readout depends on.
-    /// What this column says is how much of the Day's flow a runner asked for rather than the Outside
-    /// deciding on its own.
+    /// Explicit requests are also occasions. This counter identifies their subset; do not add it to
+    /// occasions.
     /// </remarks>
     public Column<int> RequestedToday { get; }
 
@@ -315,9 +278,7 @@ public sealed class HinterlandTable
     /// Moves every edge's Day counters on, if <paramref name="day"/> is not the Day they count.
     /// </summary>
     /// <remarks>
-    /// <b>Driven from <c>Simulation</c> and never lazily from a reader</b> (D10). A rollover
-    /// performed by whoever looked first would make the previous Day's figures depend on being
-    /// watched, and a Day nobody inspected would fold into the next one.
+    /// Roll once before input on each new Day, including Days with no arrivals.
     /// </remarks>
     public void RollDay(int day)
     {

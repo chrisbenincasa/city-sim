@@ -440,10 +440,7 @@ public sealed class DerivedRebuildAuditTests
 
     /// <summary>A world whose map edges have Households standing behind them.</summary>
     /// <remarks>
-    /// <b>Gated on a Ruleset key</b>, which is <see cref="Severed"/>'s shape: the composition rows
-    /// exist because a file declared them, and <c>attracted.toml</c> is the only shipped file that
-    /// does. Unstepped on purpose — the rows are there before anything happens, and what a run would
-    /// add is a group the city created by sending somebody back, which nothing does yet.
+    /// No population command is needed: Outside tables are seeded by World construction.
     /// </remarks>
     private static World Attracted() => new(GoldenFixtures.Population, Shipped("attracted.toml"));
 
@@ -460,9 +457,7 @@ public sealed class DerivedRebuildAuditTests
 
     /// <summary>The same world with a city in it, so its edges have doors on them.</summary>
     /// <remarks>
-    /// <b>A gate is a Building of a kind declaring <c>arrivals_per_day</c> standing on an edge Lot</b>,
-    /// so the gate lists are empty until something builds one. <see cref="Attracted()"/> declares the
-    /// people and this one lets them in.
+    /// Exercise rebuilds with active immigration state as well as a newly constructed World.
     /// </remarks>
     private static World Attracted(int ticks)
     {
@@ -485,12 +480,6 @@ public sealed class DerivedRebuildAuditTests
     /// <summary>
     /// Puts a second door on one edge, so the gate list has a link in it rather than a single head.
     /// </summary>
-    /// <remarks>
-    /// <b><c>SyntheticCity</c> raises one gate per edge</b>, and a list of one exercises the head and
-    /// the tail but never the link between two. Nothing in <c>src/</c> sites a gate until milestone 24
-    /// gives the player the verb, so the second one is built here through <c>CreateBuilding</c> — the
-    /// same call the first went through.
-    /// </remarks>
     private static void RaiseSecondGate(World world, MapEdge edge, WorldKey key)
     {
         byte kind = 0;

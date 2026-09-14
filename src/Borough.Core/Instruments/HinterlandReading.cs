@@ -5,18 +5,8 @@ using Borough.Core.Space;
 
 /// <summary>What one edge's Outside did over a single Day, counter by counter.</summary>
 /// <remarks>
-/// <para>
-/// <b>A fresh occasion has exactly one of four outcomes</b> — <paramref name="NoConnection"/>,
-/// <paramref name="NoSample"/>, <paramref name="StayedOutside"/> or <paramref name="Willing"/> — so
-/// those four sum to <paramref name="Occasions"/> and a reader may say so. The rest do not partition
-/// anything: <paramref name="Reviewed"/> counts retries of families already waiting and must never be
-/// added to the fresh interest, and <paramref name="Replenished"/> and <paramref name="Turnover"/> are
-/// the Outside's own arithmetic rather than anybody's decision.
-/// </para>
-/// <para>
-/// ⚠ <b><paramref name="Requested"/> is the subset of <paramref name="Occasions"/> a player asked
-/// for</b> with an <c>Arrive</c> command, not a separate series beside them.
-/// </para>
+/// Today and yesterday are disjoint Day intervals. Requests are a subset of fresh occasions;
+/// queue reviews, cancellations and admissions are separate events.
 /// </remarks>
 /// <param name="Occasions">Fresh occasions the edge generated, asked-for ones included.</param>
 /// <param name="Requested">Of those, the ones an <c>Arrive</c> command asked for.</param>
@@ -52,17 +42,8 @@ public readonly record struct HinterlandFlows(
 /// One edge's Outside as it stands, with the Day it is in and the last complete Day beside it.
 /// </summary>
 /// <remarks>
-/// <para>
-/// <b>Reading changes nothing.</b> No draw is consumed, no meter is reset and no row is written, so a
-/// panel refreshing every frame and a headless dump reading once see the same city. That is why the
-/// placement and give-up figures the inspection contract also asks for are <em>not</em> here: they
-/// live in <c>PlacementActivity</c>, which a Census <em>drains</em>, and a reading that drained them
-/// would take them from whoever asked second.
-/// </para>
-/// <para>
-/// ⚠ <b>Every figure is per edge and never per gate</b>, stock included. Two doors on one edge share
-/// one Outside, so a reader must not present a gate's admissions as its own market.
-/// </para>
+/// Read-only aggregate for one edge. Stock includes reservations; free stock excludes them.
+/// Gate quota belongs to each door and does not duplicate the edge population.
 /// </remarks>
 /// <param name="Edge">Which edge this is.</param>
 /// <param name="Day">The Day <paramref name="Today"/> counts, and the Day the gate meters count.</param>
@@ -210,9 +191,7 @@ public readonly record struct HinterlandReading(
 
 /// <summary>One Outside Connection's own quota, on the Day the meter counts.</summary>
 /// <remarks>
-/// ⚠ <b>A gate has a quota and it does not have a market.</b> The stock it draws on belongs to the
-/// edge and is shared with every other door on it, so a reader showing this beside
-/// <see cref="HinterlandReading.StockHouseholds"/> must say which of the two the number belongs to.
+/// An old arrival meter reads as zero-used without resetting saved state.
 /// </remarks>
 /// <param name="Building">The gate's monotonic id, which survives a slot being reused.</param>
 /// <param name="Edge">The edge it stands on.</param>
@@ -265,9 +244,7 @@ public readonly record struct HinterlandGateReading(
 
 /// <summary>One composition of Households standing behind an edge.</summary>
 /// <remarks>
-/// ⚠ <b>A composition is a storage key rather than a group that decides anything.</b> The Households
-/// in it are counted together because they are identical, and they are split the moment one of them
-/// crosses — which is <c>CONTEXT.md</c>'s reason for banning a Cohort and not an exception to it.
+/// One exact composition, including return-only groups absent from the authored opening.
 /// </remarks>
 /// <param name="Edge">The edge it stands behind.</param>
 /// <param name="Composition">Who one of these Households is made of.</param>

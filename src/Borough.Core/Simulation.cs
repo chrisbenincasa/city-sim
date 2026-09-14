@@ -139,9 +139,7 @@ public sealed class Simulation
         _disasters = new DisasterEngine(world, key);
         _placement = new PlacementEngine(world, key, _trips);
 
-        // It borrows placement's choice model rather than owning one. A family outside the city and a
-        // Household inside it weigh a dwelling the same way, and two implementations of that would be
-        // two cities (plans/0073 D4).
+        // Use the resident housing choice model for prospects too.
         _hinterlands = new HinterlandEngine(world, key, _placement);
         _commutes = new CommuteEngine(world, _trips);
         _civic = new CivicEngine(world, _trips, _commutes);
@@ -411,15 +409,10 @@ public sealed class Simulation
 
         Reload(input, tick);
 
-        // Before the input and after the reload, which is the only place it can go: what it folds is
-        // the world creation, and an Arrive command on Tick zero is an ordinary admission rather than
-        // part of the founding. It seals once and a load cannot seal it again.
+        // Seal setup before input so a Tick-zero arrival remains an admission.
         _world.SealFoundingPopulation();
 
-        // Behind the reload and ahead of the input, so a Day's figures are complete before anything
-        // this Tick adds to them, and a refused Ruleset transition has already left them alone. It
-        // runs on a Day the Outside does nothing on: an idle Day reads as zeroes rather than as
-        // yesterday's numbers standing.
+        // Roll after a successful reload and before input, even on Days with no population flows.
         _world.RollPopulationDayFlows(tick);
 
         ApplyInput(input, tick);
@@ -682,9 +675,6 @@ public sealed class Simulation
                 break;
 
             case CommandKind.Gate:
-                // plans/0073 D14. Connect edits Streets and Service needs a serves key, so before
-                // this verb the only thing that could raise a door was the generator -- a player
-                // could make a city worth moving to and could not give anybody a way in.
                 ApplyGate(command, tick);
                 break;
 
@@ -1015,17 +1005,7 @@ public sealed class Simulation
     /// Whether a gate may be placed or removed at the named Lot origin — <c>plans/0073</c> D14.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// <b>Two verbs in one, and the payload tells them apart.</b> A stated kind places; a zero
-    /// removes. The order below is the plan's: kind, door, ground, edge, market, reach. Every step
-    /// answers with its own reason, because <em>the gate went nowhere</em> tells a player nothing
-    /// about which of six things to change.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>The width check comes before the narrowing rather than after it.</b> A kind id is a byte
-    /// and the payload is sixteen bits, so 256 narrows to zero and zero removes. Refusing late would
-    /// take a standing gate away in answer to a command that asked to place one.
-    /// </para>
+    /// Check payload width before narrowing, because zero means removal.
     /// </remarks>
     private Refusal RefuseGate(Command command, out byte kind, out int lot, out int gate)
     {
@@ -1068,9 +1048,7 @@ public sealed class Simulation
             return Refusal.GateNoVacantLotOnThatTile;
         }
 
-        // Touching counts the edges rather than merely naming one, which is the whole reason a
-        // corner is answerable separately: it returns two and leaves the edge None, so an interior
-        // Lot and a corner Lot are distinguishable here and nowhere else.
+        // Count touched edges so corners have a distinct refusal from interior Lots.
         int edges = MapEdges.Touching(_world.Lots.East[lot], _world.Lots.North[lot], out MapEdge edge);
 
         if (edges == 2)
@@ -1602,9 +1580,7 @@ public sealed class Simulation
             throw new InvalidOperationException(Explain(refusal, command));
         }
 
-        // plans/0073 D8. Where the Outside is a counted stock the command asks IT for the families
-        // it named, and they cross through the comparison, the quota and the queue the edge's own
-        // occasions use. The verb still says how many present themselves; it no longer invents them.
+        // A stock-world command requests existing families through the autonomous comparison and quota path.
         if (_world.Rules.Immigration.Stated)
         {
             _hinterlands.Request(
@@ -1859,9 +1835,7 @@ public sealed class Simulation
 
     /// <summary>Raises or takes away an Outside Connection — <c>plans/0073</c> D14.</summary>
     /// <remarks>
-    /// <b>A door is priced like any other Building</b>, through the same <c>placement_cost</c> and the
-    /// same door in <c>World</c> as <see cref="ApplyService"/>. ⚠ <b>Removal refunds nothing</b>, on
-    /// <see cref="ApplyDemolish"/>'s terms rather than a rule of this verb's own.
+    /// Placement charges placement_cost through World. Removal refunds nothing.
     /// </remarks>
     private void ApplyGate(Command command, Ticks tick)
     {
@@ -2246,14 +2220,7 @@ public sealed class Simulation
 
         _rules.SweepNeeds(tick);
 
-        // IMMEDIATELY AHEAD OF PLACEMENT, and the order is the decision. A family admitted here joins
-        // the Unplaced Pool, and the line below is what drains that Pool into standing vacancy -- so
-        // somebody who crossed the edge this Tick can be housed on this Tick rather than waiting a
-        // Day for the next pass. Behind SweepNeeds for the reason the placement line is: the city
-        // these families are choosing between is the city as this Tick has left it.
-        //
-        // ⚠ It is silent on every shipped Ruleset but attracted.toml, which is the only one declaring
-        // [immigration] -- the sweep returns before it looks at an edge.
+        // Run before placement so families admitted this Tick can immediately seek housing.
         _hinterlands.Sweep(tick);
 
         _placement.Place(tick);

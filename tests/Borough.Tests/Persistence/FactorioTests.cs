@@ -529,10 +529,7 @@ public sealed class FactorioTests(ITestOutputHelper output)
 
     /// <summary>A world whose gates are full, so somebody is standing outside one.</summary>
     /// <remarks>
-    /// <b>A twelfth fixture, and this test's corollary once more</b>: a <c>waiting</c> row is written
-    /// by the immigration engine, which runs only where the Ruleset states <c>[immigration]</c> —
-    /// <see cref="WithDistricts"/>'s *gated on a Ruleset key* — and then only once a door has taken
-    /// its Day's admissions and a willing family has nowhere to go but the queue.
+    /// Save with a nonempty queue and spent quota so continuation exercises immigration state.
     /// </remarks>
     private static World WithWaiting(int ticks)
     {
@@ -556,11 +553,6 @@ public sealed class FactorioTests(ITestOutputHelper output)
     }
 
     /// <summary>Takes every gate's whole Day of arrivals, so each one refuses the next.</summary>
-    /// <remarks>
-    /// <b>The meter is written rather than spent through <c>TryArrive</c></b>. That door invents a
-    /// Household, and a world holding a counted Outside has nowhere for one to have come from — the
-    /// city would hold people no edge ever supplied.
-    /// </remarks>
     private static void FillGates(World world)
     {
         for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)

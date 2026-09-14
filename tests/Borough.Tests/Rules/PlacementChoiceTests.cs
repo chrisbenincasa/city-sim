@@ -39,11 +39,7 @@ public sealed class PlacementChoiceTests
     /// The sharpest scale parameter <c>chosen.toml</c>'s own friction admits.
     /// </summary>
     /// <remarks>
-    /// <b>The ceiling is the two keys together and neither one alone.</b> That file prices staying
-    /// put at 720 a Day against a rent scale of 120, which is six utility units of incumbency, and
-    /// adr/0038's horizon is <c>11.09 / μ</c> units — so above 184 percent a dwelling identical to
-    /// the one a Household lives in is drawn with probability exactly zero and
-    /// <see cref="PlacementRuleset.EqualAlternativeSurvives"/> refuses the file. 185 is refused.
+    /// Largest mu for which the fixture moving friction leaves an equal alternative above underflow.
     /// </remarks>
     private const int SharpestMu = 184;
 
@@ -192,12 +188,6 @@ public sealed class PlacementChoiceTests
     /// <summary>
     /// Friction past adr/0038's horizon is refused at load rather than discovered in the city.
     /// </summary>
-    /// <remarks>
-    /// <b>Each of the three keys is in range and the combination is not.</b> The horizon moves with
-    /// μ and the incumbent's advantage moves with the rent scale, so no per-key bound can catch
-    /// this — and what it produces is a file that loads, a choice model that runs, and a city in
-    /// which no Household can ever move for a reason nothing on screen can state.
-    /// </remarks>
     [Fact]
     public void Friction_that_makes_an_equal_home_impossible_is_refused()
     {

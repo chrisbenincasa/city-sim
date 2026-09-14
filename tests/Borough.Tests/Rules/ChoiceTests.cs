@@ -124,11 +124,7 @@ public sealed class ChoiceTests
     /// A candidate at the bottom of the clamp stays at the bottom instead of wrapping to the top.
     /// </summary>
     /// <remarks>
-    /// <b>Both operands span the whole of <c>int</c> because the scorer clamps rather than
-    /// checks.</b> <c>PlacementEngine.Utility</c> saturates a sum it cannot hold, so a Ruleset with
-    /// a small domain-unit scale produces exactly this pair — and a narrow subtraction turns the
-    /// worst candidate in the list into the heaviest one, silently, with the draw landing on the
-    /// home nobody would take.
+    /// The full int utility gap requires widening before subtraction.
     /// </remarks>
     [Fact]
     public void The_widest_possible_gap_stays_negative()

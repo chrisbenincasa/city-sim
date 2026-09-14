@@ -14,19 +14,8 @@ namespace Borough.Tests.Entities;
 /// <c>plans/0045</c> row 31 task 4: the family a full door turns away, and what becomes of it.
 /// </summary>
 /// <remarks>
-/// <para>
-/// <b>A queue row promises a Household and moves nobody</b> (<c>plans/0073</c> D5). The people are
-/// still behind the edge and still counted there; the reservation only stops the same family being
-/// drawn twice, once by the queue it stands in and once by a fresh occasion. Every test here is
-/// about that promise being kept — served in order, released on a change of mind, released at the
-/// authored wait, and released when the door it was waiting at stops existing.
-/// </para>
-/// <para>
-/// ⚠ <b>The Ruleset is <c>attracted.toml</c> with one key rewritten.</b> A shipped gate takes 96
-/// arrivals a Day and the stock presents nothing like that many willing families, so no queue would
-/// ever form; at one arrival a Day the second willing family of the Day waits, which is the
-/// condition under test rather than a tuning claim about the shipped file.
-/// </para>
+/// Use a one-arrival-per-Day gate to exercise queueing. The shipped 96-per-Day quota
+/// usually admits willing prospects without a wait.
 /// </remarks>
 public sealed class HinterlandQueueTests
 {
@@ -62,13 +51,11 @@ public sealed class HinterlandQueueTests
 
     /// <summary>Puts every door's meter at its Day's ceiling, so the queue cannot be served.</summary>
     /// <remarks>
-    /// <b>The meter is written rather than spent through <c>TryArrive</c></b>, which would fill the
-    /// Unplaced Pool with families this test never asked for and make demolishing the gate a
-    /// different experiment.
+    /// Set quota directly so closing doors does not create unwanted city Households.
     /// </remarks>
-    private static void ShutTheDoors(World world)
+    private static void ShutTheDoors(World world, Ticks? now = null)
     {
-        int day = (int)(world.Tick.Raw / Ticks.PerDay);
+        int day = (int)((now ?? world.Tick).Raw / Ticks.PerDay);
 
         for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
         {
@@ -121,12 +108,65 @@ public sealed class HinterlandQueueTests
     private static int GroupOf(World world, int slot) =>
         world.HinterlandPopulation.Rows.Resolve(world.HinterlandQueue.Group[slot]);
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void A_waiting_family_with_no_feasible_home_releases_its_reservation(bool reviewDue)
+    {
+        (World world, Simulation simulation) = City(Narrow());
+        int edge = Waited(world, simulation);
+        int head = world.Hinterlands.AdmitHead[edge] - 1;
+        int group = GroupOf(world, head);
+        ulong identity = world.HinterlandQueue.Identity[head];
+        int stock = world.HinterlandPopulation.Stock[group];
+        int reserved = world.HinterlandPopulation.Reserved[group];
+        long admitted = world.Hinterlands.AdmittedHouseholds[edge];
+
+        Ticks now = reviewDue
+            ? new Ticks(world.HinterlandQueue.Reviewed[head].Raw
+                + (ulong)world.Rules.Immigration.QueueReconsiderTicks)
+            : world.Tick;
+
+        for (int building = 0; building < world.Buildings.Rows.SlotCount; building++)
+        {
+            if (!world.Buildings.Rows.IsLive(building))
+            {
+                continue;
+            }
+
+            if (world.IsOutsideConnection(world.Buildings.Kind[building]))
+            {
+                world.Buildings.ArrivalsToday[building] = 0;
+            }
+            else
+            {
+                world.DestroyBuilding(world.Buildings.Rows.At(building), now);
+            }
+        }
+
+        var placement = new PlacementEngine(world, Key, new Core.Movement.TripEngine(world));
+        var engine = new HinterlandEngine(world, Key, placement);
+        var prospect = new ArrivalProspect(
+            world.HinterlandQueue.Group[head], HinterlandTable.EdgeAt(edge),
+            world.HinterlandPopulation.CompositionAt(group),
+            world.HinterlandQueue.Purse[head], identity);
+        int gate = world.Buildings.Gates(world.Hinterlands).PeekFront(edge);
+
+        Assert.Equal(ProspectOutcome.NoSample,
+            placement.Compare(prospect, world.Buildings.Rows.At(gate), now));
+
+        // Sweep alone keeps the missing-housing condition fixed through admission.
+        engine.Sweep(now);
+
+        Assert.Equal(admitted, world.Hinterlands.AdmittedHouseholds[edge]);
+        Assert.False(StillWaiting(world, edge, identity));
+        Assert.Equal(stock, world.HinterlandPopulation.Stock[group]);
+        Assert.True(world.HinterlandPopulation.Reserved[group] < reserved);
+        Assert.Equal(0, world.Buildings.ArrivalsToday[gate]);
+        world.Invariants.RunEndOfRun(world);
+    }
+
     /// <summary>A family standing outside is promised, not moved.</summary>
-    /// <remarks>
-    /// <b>The distinction the row exists for.</b> A queue that transferred its people would count
-    /// them in the city while they stood outside it, and a change of mind would then have to invent a
-    /// Household to send back.
-    /// </remarks>
     [Fact]
     public void Waiting_reserves_a_Household_and_transfers_nobody()
     {
@@ -221,8 +261,7 @@ public sealed class HinterlandQueueTests
 
     /// <summary>Patience runs out at the authored wait and not a Tick either side of it.</summary>
     /// <remarks>
-    /// <b>Measured from the join and never from the last review</b>, so reviewing a wait cannot
-    /// extend it. The doors are held shut throughout, which is what makes the expiry the only way out.
+    /// Isolate the expiry deadline from earlier cancellation by a housing comparison.
     /// </remarks>
     [Fact]
     public void A_wait_ends_at_exactly_the_authored_duration()
@@ -233,23 +272,26 @@ public sealed class HinterlandQueueTests
         int head = world.Hinterlands.AdmitHead[edge] - 1;
 
         ulong identity = world.HinterlandQueue.Identity[head];
-        long since = (long)world.HinterlandQueue.Since[head].Raw;
-        long wait = world.Rules.Immigration.QueueWaitTicks;
+        ulong since = world.HinterlandQueue.Since[head].Raw;
+        ulong wait = (ulong)world.Rules.Immigration.QueueWaitTicks;
+        var beforeExpiry = new Ticks(since + wait - 1);
+        var expiry = new Ticks(since + wait);
 
-        // Step drives the Tick the world is standing on and then advances it, so the last Tick that
-        // must still find the family waiting is the one before the wait is up.
-        while ((long)world.Tick.Raw < since + wait)
-        {
-            ShutTheDoors(world);
-            simulation.Step(default);
+        // Start after a scheduled review that retained the reservation. Isolate expiry from
+        // earlier cancellation and verify that review time cannot extend the original Since.
+        world.HinterlandQueue.Reviewed[head] =
+            new Ticks(since + (ulong)world.Rules.Immigration.QueueReconsiderTicks);
+        world.HinterlandQueue.Reviews(world.Hinterlands).MoveToBack(edge, head);
 
-            Assert.True(
-                StillWaiting(world, edge, identity),
-                $"the family left the queue at Tick {world.Tick.Raw}, before its wait was up.");
-        }
+        var placement = new PlacementEngine(world, Key, new Core.Movement.TripEngine(world));
+        var engine = new HinterlandEngine(world, Key, placement);
 
-        ShutTheDoors(world);
-        simulation.Step(default);
+        ShutTheDoors(world, beforeExpiry);
+        engine.Sweep(beforeExpiry);
+        Assert.True(StillWaiting(world, edge, identity));
+
+        ShutTheDoors(world, expiry);
+        engine.Sweep(expiry);
 
         Assert.False(
             StillWaiting(world, edge, identity), "the family outstayed the authored wait.");

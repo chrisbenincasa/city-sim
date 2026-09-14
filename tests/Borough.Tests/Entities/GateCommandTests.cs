@@ -14,17 +14,7 @@ namespace Borough.Tests.Entities;
 /// <c>plans/0073</c> D14: <b>the player's own door, raised and taken away through the verb.</b>
 /// </summary>
 /// <remarks>
-/// <para>
-/// <c>RefusalTests</c> owns every gate refusal reason — it enumerates <see cref="Refusal"/> and goes
-/// red on a member with no case — so this class asserts the accepting half instead. What a door that
-/// really lands does to the stock behind its edge, to the families waiting at it, and to a log that
-/// replays it.
-/// </para>
-/// <para>
-/// 🔴 <b>Every gate here is raised by <see cref="CommandKind.Gate"/>.</b> The three existing
-/// second-gate fixtures call <c>World.CreateBuilding</c> directly, which runs no Phase 0 and cannot
-/// fail the way a command can — so nothing yet asserted that the verb reaches the same mechanism.
-/// </para>
+/// Exercise gate placement and removal through commands; RefusalTests covers rejected commands.
 /// </remarks>
 public sealed class GateCommandTests
 {
@@ -60,9 +50,8 @@ public sealed class GateCommandTests
     /// A second door widens the way in and adds no second Outside behind the edge.
     /// </summary>
     /// <remarks>
-    /// ⚠ <b>The stock is asserted across the placement, not after a run.</b> A door that created
-    /// population would read as a working mechanism in every later figure — more admissions through
-    /// two doors is what the player expects to see either way.
+    /// Compare stock immediately across placement, before subsequent flows can mask a spurious
+    /// addition.
     /// </remarks>
     [Fact]
     public void A_second_door_on_one_edge_shares_the_stock_behind_it()
@@ -89,16 +78,12 @@ public sealed class GateCommandTests
     }
 
     /// <summary>A door placed by a command admits on the Tick it appears.</summary>
-    /// <remarks>
-    /// Phase 0 raises it and phase 6 walks the admission list, so the families already waiting at the
-    /// shut doors reach this one without waiting a Tick for it to be noticed.
-    /// </remarks>
     [Fact]
     public void A_door_placed_by_a_command_admits_on_the_Tick_it_appears()
     {
         (World world, Simulation simulation) = City(Attracted());
 
-        int edge = Waited(world, simulation);
+        int edge = Waited(world, simulation, willingNow: true);
         MapEdge named = HinterlandTable.EdgeAt(edge);
         int lot = DoorstepOn(world, named);
 
@@ -126,11 +111,6 @@ public sealed class GateCommandTests
     /// <summary>
     /// Removing the last door sends the waiting families home, and a new one lets them start again.
     /// </summary>
-    /// <remarks>
-    /// ⚠ <b>A cancelled reservation must come back as stock rather than vanish.</b> The queue holds
-    /// Households that were never subtracted from the Outside, so a removal that dropped the rows
-    /// without releasing the count would take those families out of circulation for good.
-    /// </remarks>
     [Fact]
     public void Removing_the_last_door_sends_the_waiting_families_home()
     {
@@ -175,9 +155,7 @@ public sealed class GateCommandTests
 
     /// <summary>A refused door leaves the city exactly as it was, including the second removal.</summary>
     /// <remarks>
-    /// <b>Stated as a State Hash equality</b> rather than as a claim about <c>ApplyGate</c>'s write
-    /// order. ⚠ The world is stepped once first: the founding seal and the Day rollover both write,
-    /// and a refusal measured across Tick 0 would be measured across those instead.
+    /// Seal founding population before comparing State Hashes around a refused command.
     /// </remarks>
     [Fact]
     public void A_refused_door_changes_nothing()
@@ -213,10 +191,6 @@ public sealed class GateCommandTests
     }
 
     /// <summary>The verb survives the log it is written to, removal included.</summary>
-    /// <remarks>
-    /// A removal is a kind of zero, so a codec that dropped an absent payload would write a line that
-    /// reads back as a placement of kind zero — or as nothing at all.
-    /// </remarks>
     [Fact]
     public void A_door_command_survives_the_log_it_is_written_to()
     {
@@ -233,9 +207,7 @@ public sealed class GateCommandTests
 
     /// <summary>A log holding a door replays to the same city twice.</summary>
     /// <remarks>
-    /// 🔴 <b>The Tile is scouted from a replay rather than chosen.</b> Gate positions are the
-    /// subdivider's, so a hand-picked Tile would name a Lot that happens to be vacant in a world built
-    /// the fixture's way and occupied in the one the log builds.
+    /// Scout the target Lot from a replay so it is vacant in the world the log actually constructs.
     /// </remarks>
     [Fact]
     public void A_log_holding_a_door_replays_the_same_city_twice()
@@ -410,9 +382,10 @@ public sealed class GateCommandTests
     }
 
     /// <returns>The slot of the edge somebody is waiting behind.</returns>
-    private static int Waited(World world, Simulation simulation)
+    private static int Waited(World world, Simulation simulation, bool willingNow = false)
     {
         int limit = 4 * Ticks.PerDay;
+        var placement = new PlacementEngine(world, Key, new Core.Movement.TripEngine(world));
 
         for (int tick = 0; tick < limit; tick++)
         {
@@ -423,6 +396,25 @@ public sealed class GateCommandTests
             {
                 if (world.Hinterlands.AdmitHead[edge] != 0)
                 {
+                    // Opening a gate guarantees quota, not willingness. Admission assertions
+                    // need a family whose current sample still includes a feasible home.
+                    if (willingNow)
+                    {
+                        int waiting = world.Hinterlands.AdmitHead[edge] - 1;
+                        int group = world.HinterlandPopulation.Rows.Resolve(world.HinterlandQueue.Group[waiting]);
+                        var prospect = new ArrivalProspect(
+                            world.HinterlandQueue.Group[waiting], HinterlandTable.EdgeAt(edge),
+                            world.HinterlandPopulation.CompositionAt(group),
+                            world.HinterlandQueue.Purse[waiting], world.HinterlandQueue.Identity[waiting]);
+                        int gate = world.Buildings.Gates(world.Hinterlands).PeekFront(edge);
+
+                        if (placement.Compare(prospect, world.Buildings.Rows.At(gate), world.Tick)
+                            != ProspectOutcome.Willing)
+                        {
+                            continue;
+                        }
+                    }
+
                     return edge;
                 }
             }

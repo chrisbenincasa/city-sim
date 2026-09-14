@@ -8,25 +8,8 @@ using Borough.Core.Tables;
 /// Which row holds a given composition behind a given edge. The lookup a return needs.
 /// </summary>
 /// <remarks>
-/// <para>
-/// <b>A flat open-addressed table, because the alternative is banned and the walk is the wrong
-/// shape.</b> <c>05 §4</c> lint 3 forbids a <c>Dictionary</c> in simulation code, and a linear scan of
-/// an edge's list would be fine at four authored compositions and quadratic in a city that has been
-/// sending families back for a hundred thousand Ticks — the reachable key space is every stage against
-/// every tier split against every child count against every purse band.
-/// </para>
-/// <para>
-/// <b>Lookup and insertion only, and a retirement rebuilds.</b> Linear probing cannot delete without
-/// tombstones, and a tombstone is a key the index keeps after the row is gone — which is
-/// <c>plans/0073</c> D1's stated refusal and an <c>adr/0006</c> leak besides. A group is retired when
-/// it empties, which is rare, so paying a whole rebuild for it buys the guarantee that this structure
-/// holds exactly the live rows and nothing else.
-/// </para>
-/// <para>
-/// <b><c>(derived AND rebuilt)</c>, and it lives outside the table on <c>BOR0901</c>'s rule</b> —
-/// <see cref="Parking.CarParkResidency"/>'s shape, for its reason. Every entry is a pure function of
-/// the saved composition columns, so <c>World.RebuildDerived</c> reproduces it exactly.
-/// </para>
+/// Derived open-addressed index, rebuilt from live composition rows. No departed identities
+/// or retired keys are retained.
 /// </remarks>
 public sealed class HinterlandCompositions
 {
@@ -85,7 +68,7 @@ public sealed class HinterlandCompositions
 
     /// <summary>Drops one retired group, by rebuilding around it.</summary>
     /// <remarks>
-    /// ⚠ <b>Call it after the row is freed</b>, since what the rebuild walks is the live set.
+    /// Call after freeing the rows. A batch of retirements needs only one rebuild.
     /// </remarks>
     public void Remove(HinterlandPopulationTable groups) => Rebuild(groups);
 
@@ -130,12 +113,6 @@ public sealed class HinterlandCompositions
     /// <summary>
     /// The bucket a composition behind an edge starts probing at.
     /// </summary>
-    /// <remarks>
-    /// <b><see cref="Randomness.Mix"/> rather than a hand-rolled fold</b>, because it is SplitMix64's
-    /// finaliser and already in the project for the property this needs: it spreads adjacent inputs,
-    /// and a child count of two against a child count of three has to land in different buckets. It is
-    /// not a draw and takes no <c>purpose_tag</c> — nothing here is random.
-    /// </remarks>
     private static ulong KeyOf(MapEdge edge, in HinterlandComposition composition)
     {
         ulong key = Randomness.Mix((ulong)edge);

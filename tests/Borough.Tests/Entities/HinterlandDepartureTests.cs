@@ -14,18 +14,7 @@ namespace Borough.Tests.Entities;
 /// gave up looking becomes people standing behind an edge again.
 /// </summary>
 /// <remarks>
-/// <para>
-/// <b>Departure was a one-sided entry until this row.</b> The ledger counted who left and the money
-/// supply lost their savings, and then the people were simply gone — no Outside held them, so a city
-/// could empty itself into nowhere and the accounts would still balance. <c>plans/0073</c> D9 closes
-/// it: the family draws a destination with the same kernel a resident uses, and one Household of its
-/// exact composition joins the stock behind that edge.
-/// </para>
-/// <para>
-/// ⚠ <b>Only a Departure credits.</b> A dissolution and a fixture's destruction both free the same
-/// rows, and neither is somebody moving away. Each has its own test here because the three doors are
-/// one method apart and a credit written in the wrong one would invent a family.
-/// </para>
+/// Only Departure credits the Outside. Dissolution and scenario removal have separate population flows.
 /// </remarks>
 public sealed class HinterlandDepartureTests
 {
@@ -56,10 +45,6 @@ public sealed class HinterlandDepartureTests
     }
 
     /// <summary>A Household the generated city housed, taken out of its dwelling and into the Pool.</summary>
-    /// <remarks>
-    /// <b>It never crossed a gate</b>, so its <c>Arrived</c> column is zero and there is no edge to
-    /// inherit a destination from. That is what makes it the fixture for a locally formed family.
-    /// </remarks>
     private static Handle<Household> Local(World world)
     {
         Handle<Household> handle = Housed(world);
@@ -196,11 +181,6 @@ public sealed class HinterlandDepartureTests
     }
 
     /// <summary>A family of one adult at each of two tiers with two children returns as exactly that.</summary>
-    /// <remarks>
-    /// <b>The composition is counted off the Citizens who are still here</b> (D9), so this is also the
-    /// assertion that the credit runs before the members are destroyed. A credit written after the
-    /// retirement would find nobody and file an empty Household.
-    /// </remarks>
     [Fact]
     public void A_family_returns_at_the_composition_it_actually_had()
     {
@@ -245,10 +225,6 @@ public sealed class HinterlandDepartureTests
     }
 
     /// <summary>A demolished door does not keep anybody in the city.</summary>
-    /// <remarks>
-    /// <b>The destination is an accounting edge and not a journey</b> (D9). Where the people went is
-    /// a question with an answer whether or not a gate still stands to walk out of.
-    /// </remarks>
     [Fact]
     public void A_city_with_no_gates_left_still_sends_its_leavers_somewhere()
     {
@@ -298,17 +274,7 @@ public sealed class HinterlandDepartureTests
 
     /// <summary>Where a family goes follows the Outside economy, and not the edge it arrived by.</summary>
     /// <remarks>
-    /// <para>
-    /// <b>A family admitted at the dearest edge leaves by the cheapest one</b>, which is the whole of
-    /// D9's claim that provenance is not a return address. There is no incumbent bonus and nothing
-    /// about the arrival edge enters the comparison.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>The second world is what makes the first assertion mean anything.</b> Any code that
-    /// happened to always name one edge would pass the first half, so the Ruleset is retuned to make
-    /// the cheapest Outside the dearest and the destination has to move with it. The draw over four
-    /// widely separated worths is near enough deterministic to assert on directly.
-    /// </para>
+    /// Reverse the relative Outside prices in a second world to rule out a fixed-edge destination.
     /// </remarks>
     [Fact]
     public void The_destination_follows_the_Outside_economy_rather_than_provenance()
@@ -376,10 +342,6 @@ public sealed class HinterlandDepartureTests
     }
 
     /// <summary>A Household holding nobody returns as a Household holding nobody.</summary>
-    /// <remarks>
-    /// <b>One Household and zero people, which are separate counts for this reason.</b> Collapsing
-    /// them would either lose the row or credit a person who does not exist.
-    /// </remarks>
     [Fact]
     public void An_empty_Household_returns_as_an_empty_Household()
     {
@@ -401,11 +363,6 @@ public sealed class HinterlandDepartureTests
     }
 
     /// <summary>A Household of nothing but children is counted, and rests at nobody.</summary>
-    /// <remarks>
-    /// <b>No authored group has this shape and none ever will</b>, so the row it lands in is created
-    /// with a resting count of zero — counted while it is there, and never a population the Outside
-    /// maintains (D1, D2).
-    /// </remarks>
     [Fact]
     public void A_Household_of_children_lands_in_a_group_that_rests_at_nobody()
     {
@@ -453,11 +410,6 @@ public sealed class HinterlandDepartureTests
     }
 
     /// <summary>A purse above every authored range files into the top band rather than nowhere.</summary>
-    /// <remarks>
-    /// <b>The band belongs to the destination and the destination is drawn</b>, so the amount has to
-    /// clear the widest authored ceiling of the four to make the assertion hold whichever edge the
-    /// family goes to.
-    /// </remarks>
     [Fact]
     public void A_Household_carrying_more_than_any_range_files_into_the_top_band()
     {
@@ -491,11 +443,6 @@ public sealed class HinterlandDepartureTests
     }
 
     /// <summary>A group nobody authored drains away again and takes its row with it.</summary>
-    /// <remarks>
-    /// <b>Recovery works from both directions</b> (D2), so a row resting at zero with one Household in
-    /// it is removed and reported as turnover, and the row is freed once it holds nobody. Without that
-    /// every Departure to an unusual composition would leave a permanent row behind.
-    /// </remarks>
     [Fact]
     public void A_returned_group_recovers_back_to_nothing()
     {

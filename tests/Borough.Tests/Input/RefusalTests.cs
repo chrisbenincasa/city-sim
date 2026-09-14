@@ -536,11 +536,6 @@ public sealed class RefusalTests
     /// <summary>
     /// A gate command against a named Lot, or off the map where this world holds no such Lot.
     /// </summary>
-    /// <remarks>
-    /// <see cref="Arrive"/>'s fallback, taken for its reason:
-    /// <see cref="Asking_writes_nothing"/> builds every case against one world and only queries
-    /// them, so a command that cannot be addressed there still has to be constructible.
-    /// </remarks>
     private static Command Gated(World world, int lot, byte kind) =>
         lot < 0
             ? Command.Gate(new Tiles(9_000), new Tiles(9_000), kind)
@@ -586,10 +581,6 @@ public sealed class RefusalTests
     }
 
     /// <summary>The first Lot holding an Outside Connection, or <c>-1</c>.</summary>
-    /// <remarks>
-    /// The LOT and not the Building standing on it, because a command names a Tile and the Tile is
-    /// the Lot's. The two slots are different numbers and neither table refuses the other's.
-    /// </remarks>
     private static int FirstGateLot(World world)
     {
         for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
@@ -683,11 +674,6 @@ public sealed class RefusalTests
     /// The shipped world whose four edges hold a counted Outside — the only one where an
     /// <c>Arrive</c> can name a family that does not exist.
     /// </summary>
-    /// <remarks>
-    /// <b>The shipped file rather than a hand-written Ruleset</b>, because what is refused is a
-    /// mismatch against compositions somebody authored, and a fixture that authored its own would be
-    /// checking the refusal against itself.
-    /// </remarks>
     private static (World World, Simulation Simulation) AttractedWorld()
     {
         RulesetLoadResult loaded =
@@ -857,9 +843,7 @@ public sealed class RefusalTests
 
     /// <summary>A door with a price on it, and a market behind every edge to open onto.</summary>
     /// <remarks>
-    /// Four Hinterlands rather than one, because which edge the generator leaves a vacant Lot on is
-    /// not something this fixture chooses. They state no rent or centrality: those are weighed by a
-    /// choice model, and <see cref="Base"/> states none.
+    /// Give the gate a nonzero placement price to exercise treasury refusal.
     /// </remarks>
     private const string PricedPort = """
 

@@ -6,36 +6,9 @@ using Borough.Core.Tables;
 /// Where every person in this city came from and where everyone who left it went: one row, for ever.
 /// </summary>
 /// <remarks>
-/// <para>
-/// <b><see cref="MoneySupplyTable"/>'s argument about people.</b> <em>Nobody is created or destroyed
-/// except at a named door</em> cannot be checked from a snapshot — a count of the live Citizens is
-/// just as consistent after somebody has been freed by accident as before. What makes it checkable is
-/// an opening figure and a classified flow per door, held apart from the rows, so that the check
-/// compares two quantities arrived at differently. Summing the tables to produce the anchor is the
-/// failure that invariant found at milestone 10 task 1: a check that recomputes the producer's own
-/// expression checks that a write happened and never what was written.
-/// </para>
-/// <para>
-/// <b>A door is a reason and not a row operation.</b> Freeing a Citizen row is one implementation with
-/// several callers, and they mean different things: a fertility birth, an admission at a gate, an
-/// illness death, a Household that emigrated, a Household that dissolved when its last stage ended,
-/// and a fixture bulldozing rows. Which one it was cannot be recovered afterwards, so the reason is
-/// recorded where the decision is made — <c>World.Bear</c>, <c>World.DieCitizen</c>,
-/// <c>World.Depart</c>, <c>World.Dissolve</c> — and the unaccounted cleanup those call is private.
-/// </para>
-/// <para>
-/// ⚠ <b><see cref="Sealed"/> exists because world creation is not a flow.</b> A synthesised city is
-/// built by the same public doors a fixture uses, so its setup counts as scenario creation until the
-/// first <c>Simulation.Step</c> folds those entries into the opening figures and seals the row. After
-/// that the same call is an ordinary recorded event. Loading a save cannot seal it again: what the
-/// save carries is a sealed row.
-/// </para>
-/// <para>
-/// ⚠ <b>Households and people are counted separately, and neither is derivable from the other.</b>
-/// A child leaving home creates a Household and adds nobody; an arrival creates one Household and
-/// several people; a dissolution removes one Household and everybody in it. Two equations hold at
-/// once, and a single counter could not state either of them.
-/// </para>
+/// Saved founding baselines and disjoint lifetime flows reconcile against live Citizens and
+/// Households. Day snapshots expose interval flows without observation mutating the account.
+/// Seal the founding baseline once, before the first input command.
 /// </remarks>
 [Table]
 public sealed class PopulationLedgerTable
@@ -141,10 +114,7 @@ public sealed class PopulationLedgerTable
 
     /// <summary>How many people stood behind the map's edges at world creation.</summary>
     /// <remarks>
-    /// <b>Filled in at construction from validated Ruleset content, and retaken at the seal.</b> The
-    /// Outside is not built by the public doors, so the construction pass states the whole of it. The
-    /// retake exists for the narrow window a fixture has before the first Tick, where a Departure or a
-    /// return can cross an edge that the construction figure knows nothing about.
+    /// Captured with the city baseline, after scenario setup and before the first input.
     /// </remarks>
     public Column<long> OpeningOutsidePeople { get; }
 
@@ -161,9 +131,7 @@ public sealed class PopulationLedgerTable
     /// People created by an explicit instruction rather than by a mechanism.
     /// </summary>
     /// <remarks>
-    /// <b>World creation before the seal, and a fixture or a scenario command after it.</b> It is not
-    /// a birth: nobody's fertility produced them and no Hinterland lost them, so folding them in with
-    /// either would make the other two counts unreadable.
+    /// Explicit scenario creation, excluding births and admission.
     /// </remarks>
     public Column<long> ScenarioAdditions { get; }
 
@@ -204,16 +172,13 @@ public sealed class PopulationLedgerTable
     /// What <see cref="Births"/> stood at when this Day opened, so today's births are the difference.
     /// </summary>
     /// <remarks>
-    /// <b>Every counter is snapshotted rather than split into a lifetime total and a daily one.</b>
-    /// A pair of counters can disagree — a writer that increments one and forgets the other reports a
-    /// Day that does not add up to the history — and a subtraction cannot. The cost is that a Day's
-    /// figure is read rather than stored, which is what <see cref="RollDay"/>'s two writes buy.
+    /// Day flows are differences between lifetime counters and these saved snapshots.
     /// </remarks>
     public Column<long> BirthsAtDayStart { get; }
 
     /// <summary>What <see cref="Births"/> stood at when the last complete Day opened.</summary>
     /// <remarks>
-    /// Yesterday's figure is the difference between this and <see cref="BirthsAtDayStart"/>.
+    /// Together with the current Day start, reconstructs the last complete Day.
     /// </remarks>
     public Column<long> BirthsAtPreviousDayStart { get; }
 
@@ -332,10 +297,7 @@ public sealed class PopulationLedgerTable
     /// Moves both snapshots on, if <paramref name="day"/> is not the Day they stand at.
     /// </summary>
     /// <remarks>
-    /// <b>Driven from <c>Simulation</c> and never lazily from a reader</b>, for
-    /// <see cref="HinterlandTable.RollDay"/>'s reason: a rollover performed by whoever looked first
-    /// would make the previous Day's figures depend on being watched. It runs after
-    /// <see cref="Seal"/>, so a snapshot never stands ahead of a counter the seal has zeroed.
+    /// Runs before input so all flows on the boundary Tick belong to the new Day.
     /// </remarks>
     public void RollDay(int day)
     {
@@ -375,11 +337,7 @@ public sealed class PopulationLedgerTable
     /// Folds every setup entry into the opening figures, once.
     /// </summary>
     /// <remarks>
-    /// <b>It folds the counters rather than counting the rows, and that is what gives the invariant
-    /// teeth.</b> Reading the live tables here would make the opening figure agree with them by
-    /// construction, so a setup door that forgot to record itself would be laundered into the anchor
-    /// and nothing would ever fire. Folding what was recorded means a missing setup write shows up as
-    /// a mismatch on the first Tick.
+    /// Called once after scenario setup. Loading a sealed world must not reset its baseline.
     /// </remarks>
     /// <returns>Whether this call was the one that sealed it.</returns>
     public bool Seal()

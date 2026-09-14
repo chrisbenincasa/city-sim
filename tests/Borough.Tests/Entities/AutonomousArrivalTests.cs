@@ -13,18 +13,8 @@ namespace Borough.Tests.Entities;
 /// runner said so.
 /// </summary>
 /// <remarks>
-/// <para>
-/// <b>Every immigrant before this row was invented by whoever called <c>Arrive</c></b>. The city
-/// could persuade a family and could admit one, and the family itself came from the script — so
-/// growth was a property of the runner. These tests step a world with an empty input on every Tick
-/// and assert that people still come, that they come out of a counted stock, and that each way of
-/// stopping them stops them for its own stated reason.
-/// </para>
-/// <para>
-/// ⚠ <b>Each refusal is asserted through its own counter as well as through the admission count</b>,
-/// because a zero can be produced by the wrong bottleneck — a full door and an empty Outside look
-/// identical from the population figure alone.
-/// </para>
+/// Step with empty input. Assert the reason counters as well as admissions so a different
+/// bottleneck cannot satisfy a zero-admissions assertion.
 /// </remarks>
 public sealed class AutonomousArrivalTests
 {
@@ -155,11 +145,6 @@ public sealed class AutonomousArrivalTests
     }
 
     /// <summary>An edge with no door admits nobody, and the Outside behind it loses nothing.</summary>
-    /// <remarks>
-    /// <b>The counter matters as much as the zero</b>: a family that could see no way in has not
-    /// refused the city, and counting it as a refusal would make a gateless map look like an
-    /// unattractive one.
-    /// </remarks>
     [Fact]
     public void A_city_with_no_gates_admits_nobody_and_spends_no_stock()
     {
@@ -195,11 +180,6 @@ public sealed class AutonomousArrivalTests
     }
 
     /// <summary>Every occasion ends in exactly one of the four outcomes, and the counters say which.</summary>
-    /// <remarks>
-    /// <b>What makes a zero readable</b> (<c>plans/0073</c> D10). The Day's occasions are the sum of
-    /// no-connection, no-sample, stayed-outside and willing, so a run that admitted nobody can always
-    /// be attributed to the reason it happened for.
-    /// </remarks>
     [Fact]
     public void Every_occasion_is_accounted_for_by_one_outcome()
     {
@@ -306,10 +286,6 @@ public sealed class AutonomousArrivalTests
     }
 
     /// <summary>One Household in the whole Outside still gets its occasion.</summary>
-    /// <remarks>
-    /// <b>The accrual is a fraction that is kept</b> (D3), so a group too small to earn a whole
-    /// occasion in one Tick earns one eventually rather than being rounded away every Tick forever.
-    /// </remarks>
     [Fact]
     public void A_single_Household_is_never_rounded_away()
     {

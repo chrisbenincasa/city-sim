@@ -1387,18 +1387,7 @@ public readonly record struct LifeStageDefinition
     /// percent of the neutral weight.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// <b>100 is the weight every stage had before stages could disagree about it.</b> Below it a
-    /// stage will pay for what it wants; above it the stage is looking at the price first. A
-    /// Household newly formed from its children and a Household with two earners are not the same
-    /// shopper, and until this key there was nothing in the file that could say so.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>It scales the rent term and is never a budget.</b> What a family can pay at all is the
-    /// affordability filter, which is <c>02 §5.4</c>'s <i>hard constraints are filters</i>; what a
-    /// family minds paying is this. A weight of zero is a stage that does not look at rent, not a
-    /// stage that can afford anything.
-    /// </para>
+    /// Scales preference for rent, not the affordability budget. Zero ignores rent in utility only.
     /// </remarks>
     public int RentWeightPercent { get; init; }
 }
@@ -1756,12 +1745,6 @@ public readonly record struct HinterlandDefinition(
     public bool Endows => EmigrantBalanceMax.Raw > 0;
 
     /// <summary>How many purse bands an emigrant balance range is cut into.</summary>
-    /// <remarks>
-    /// <b>Three, and it is a representation rather than three Outside economies.</b> A stock row is
-    /// keyed by the money its Households carry, and money is a range rather than a value, so the
-    /// key needs a partition. Low, middle and high thirds is the coarsest one that still lets a
-    /// city drain the purses it can house and leave the ones it cannot.
-    /// </remarks>
     public const int MoneyBands = 3;
 
     /// <summary>How many distinct amounts the emigrant balance range holds, inclusive.</summary>
@@ -1780,10 +1763,7 @@ public readonly record struct HinterlandDefinition(
     /// Whether <paramref name="band"/> holds any amount at all.
     /// </summary>
     /// <remarks>
-    /// ⚠ <b>A narrow range leaves the upper bands empty, and a file authoring stock into one is
-    /// refused.</b> A width of one has only band zero: every Household carries the same amount, so
-    /// there is no third to be in the middle of. The group would load, be counted, and never be
-    /// drawable.
+    /// A width-one purse range has only band zero. Reject authored stock in empty bands.
     /// </remarks>
     public bool DeclaresBand(int band) =>
         band >= 0 && band < MoneyBands && BandFloor(band) <= BandCeiling(band);
@@ -1810,11 +1790,6 @@ public readonly record struct HinterlandDefinition(
     public int PopulationFirst { get; init; }
 
     /// <summary>How many opening compositions this Hinterland declares.</summary>
-    /// <remarks>
-    /// ⚠ <b>Zero is a world and is not an omission.</b> An edge behind which nobody lives is an
-    /// edge the city cannot draw on, which is the whole of the depletion demonstration: a file may
-    /// state four Hinterlands and put people behind only one of them.
-    /// </remarks>
     public int PopulationCount { get; init; }
 
     /// <summary>
@@ -1864,22 +1839,8 @@ public readonly record struct HinterlandDefinition(
     /// What a prospect from <paramref name="band"/> carries, drawn once and carried through.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// <b><see cref="EmigrantBalance"/> narrowed to a third of the range</b>, because a stock group
-    /// is keyed by which third its Households carry (<c>plans/0073</c> D1) and drawing over the whole
-    /// range would file a family in one band and endow it out of another.
-    /// </para>
-    /// <para>
-    /// 🔴 <b>This is the amount the city is compared against AND the amount that arrives.</b> The old
-    /// prospect path drew a purse to test affordability and the admitted Household drew its own, so a
-    /// family that could afford to come was not the family that came. Here the draw happens once on
-    /// the prospect's choice identity and <c>World.TryAdmitProspect</c> endows exactly it.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>A band the range does not hold returns its floor.</b> The loader refuses a stock group
-    /// naming one (<see cref="DeclaresBand"/>), so reaching this is a returned composition whose band
-    /// was computed against a range that has since been retuned.
-    /// </para>
+    /// Draw once within the composition band and retain the purse through reviews and admission.
+    /// If a reload empties a return-only band, the current fallback is its floor.
     /// </remarks>
     /// <param name="key">The world seed.</param>
     /// <param name="entityId">The prospect's choice identity, which the Household then keeps.</param>
@@ -2007,17 +1968,8 @@ public readonly record struct PlacementRuleset(
     /// Whether a dwelling exactly as good as the incumbent still has a weight the model can hold.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// <b>Friction and scale together can put every alternative past adr/0038's horizon.</b>
-    /// <see cref="StayingPut"/> is the gap an alternative starts behind by, and
-    /// <see cref="Transcendental.ExpUnderflowsBelow"/> is where a gap stops being unlikely and
-    /// becomes impossible — so a file may state three plausible keys and get a city in which no
-    /// Household can ever move, with nothing to read off a panel that says why.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>This guarantees only that friction alone does not delete an equal alternative.</b> A
-    /// candidate genuinely far worse still underflows, which is the horizon working.
-    /// </para>
+    /// Reject friction that alone makes an equal alternative underflow. Worse alternatives
+    /// may still legitimately lie beyond the choice horizon.
     /// </remarks>
     public bool EqualAlternativeSurvives =>
         !Chooses || !Transcendental.UnderflowsFor(Mu, 0, StayingPut);
@@ -4394,10 +4346,7 @@ public sealed class Ruleset
     /// <see cref="HinterlandDefinition.PopulationFirst"/> and its count.
     /// </summary>
     /// <remarks>
-    /// <b>Beside the collection rather than inside the item</b>, which is
-    /// <see cref="HinterlandPrices"/>'s decision and the same constraint: a variable-length run
-    /// cannot live in a <c>record struct</c> that has to satisfy <c>unmanaged</c>. The run is
-    /// contiguous per Hinterland and in the order the file declared it.
+    /// Contiguous per Hinterland in declaration order; kept outside the unmanaged definition.
     /// </remarks>
     public HinterlandPopulationDefinition[] HinterlandPopulations { get; init; } = [];
 
@@ -4805,11 +4754,7 @@ public sealed class Ruleset
 
     /// <summary>The rent weight a Life Stage stating none carries.</summary>
     /// <remarks>
-    /// <b>100 is the weight every stage had when no stage could state one</b>, so a file saying
-    /// nothing keeps the placement this build already had rather than being defaulted into an
-    /// opinion. ⚠ <b>A world that states <c>[immigration]</c> is refused without it</b>: who
-    /// presents themselves at a gate turns on what they mind paying, so a stock world leaving it
-    /// unstated is declining to answer a question it has just made load-bearing.
+    /// Legacy stages default to 100; stock-enabled worlds must explicitly state their weights.
     /// </remarks>
     public const int RentNeutralPercent = 100;
 
@@ -4902,11 +4847,6 @@ public sealed class Ruleset
     }
 
     /// <summary>How heavily a Household in <paramref name="stage"/> weighs rent.</summary>
-    /// <remarks>
-    /// <b><see cref="CentralityTaste"/>'s posture for a stage id nothing declares</b>, and the same
-    /// reason: a world with no stage table carries zero in the column, so the neutral answer has to
-    /// come back from the lookup rather than from a caller remembering to ask whether stages exist.
-    /// </remarks>
     public int RentWeight(byte stage) => stage == 0 || stage > LifeStages.Length
         ? RentNeutralPercent
         : LifeStages[stage - 1].RentWeightPercent;

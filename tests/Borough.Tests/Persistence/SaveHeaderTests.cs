@@ -138,12 +138,6 @@ public sealed class SaveHeaderTests
     /// <summary>
     /// A version an earlier build wrote is refused by the same check.
     /// </summary>
-    /// <remarks>
-    /// <b>The direction that now has files behind it.</b> The version has moved five times, four of
-    /// them for row 31's tables, so a save written by a build one declaration set behind this one is an
-    /// artefact that exists rather than a hypothesis. Refusing it is <c>plans/0073</c> D11's *no partial
-    /// migration*: every column added since would read as whatever the file's next bytes happen to be.
-    /// </remarks>
     [Fact]
     public void A_format_version_an_earlier_build_wrote_is_refused()
     {

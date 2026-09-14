@@ -420,9 +420,7 @@ public sealed class PlacementEngine
 
         byte stage = _world.Households.LifeStage[slot];
 
-        // TasteIdentity and not the row id: a Household that walked in through a gate compared this
-        // city against its home before it had a row at all, and the preferences it compared with are
-        // drawn on the identity it arrived carrying (plans/0073 D4).
+        // Arrivals retain the taste identity used before their city Household existed.
         ulong taste = _world.Households.TasteIdentity(slot);
         int rentWeight = _world.Rules.RentWeight(stage);
 
@@ -734,32 +732,8 @@ public sealed class PlacementEngine
     /// Whether the family in <paramref name="prospect"/> would rather come in than stay where it is.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// 🔴 <b>A PROSPECT IS NO LONGER ANONYMOUS, and the overload above says why it used to be.</b>
-    /// That path had nobody to be particular about: it drew a purse to test affordability, weighed
-    /// taste at zero, and the Household that arrived redrew everything on its own id. Here the family
-    /// exists before the comparison — its purse, its Life Stage and its taste are all drawn on
-    /// <see cref="Entities.ArrivalProspect.Identity"/>, and <c>World.TryAdmitProspect</c> admits
-    /// exactly the one that compared (<c>plans/0073</c> D4).
-    /// </para>
-    /// <para>
-    /// <b>The Outside carries <see cref="PlacementRuleset.StayingPut"/> and a Pool member's does
-    /// not.</b> Somebody weighing a move out of the home they live in is paying to avoid moving; a
-    /// Household already standing at a gate with its things has moved. ***That is a real difference
-    /// between the two comparisons and not an inconsistency between them.***
-    /// </para>
-    /// <para>
-    /// ⚠ <b>The whole candidate set is compared, where the anonymous path compared only its best.</b>
-    /// It can afford to: a named family has a taste that separates the homes it was shown, so the set
-    /// is not <c>candidates</c> copies of one question. De-duplicating by Building is what keeps that
-    /// honest — two sampled Lots on one dwelling would double that home's probability, which is the
-    /// sampler talking rather than the family.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>Nothing here reserves the dwelling it chose.</b> The choice is evidence that this family
-    /// wants to come; where it ends up is placement's question, on a later Tick and possibly in a
-    /// different home.
-    /// </para>
+    /// The Outside receives moving friction for an unadmitted prospect. Feasible Buildings
+    /// are deduplicated before the draw; willingness does not reserve the chosen dwelling.
     /// </remarks>
     /// <param name="prospect">The family standing at the edge.</param>
     /// <param name="gate">A live Outside Connection on its edge. Without one there is no city to see.</param>
@@ -772,9 +746,7 @@ public sealed class PlacementEngine
     /// The same comparison, saying which of the three things happened.
     /// </summary>
     /// <remarks>
-    /// <b>An empty sample and a rejection are both <em>did not come</em> and they are not the same
-    /// event.</b> The engine counts them apart because a city with no room reads identically to a
-    /// city nobody wants when only the admissions are visible.
+    /// Report an empty feasible sample separately from a preference for staying Outside.
     /// </remarks>
     public ProspectOutcome Compare(in ArrivalProspect prospect, Handle<Building> gate, Ticks tick)
     {
@@ -792,9 +764,7 @@ public sealed class PlacementEngine
         long weight = HousingUtility.Taste(_world.Rules, _key, prospect.Identity, prospect.Stage);
         int rentWeight = _world.Rules.RentWeight(prospect.Stage);
 
-        // Position 0 is not coming, so a draw landing there is the family staying where it is. It is
-        // scored, weighed and drawn exactly like the others -- only DIFFERENCES matter in a logit, so
-        // "everything this city has is worse than home" is inexpressible until home is a row.
+        // Position zero is the incumbent Outside home, including its moving-friction bonus.
         _candidateBuildings[0] = Rows.NoSlot;
         _candidateUtilities[0] = HousingUtility.Saturate(
             (long)HousingUtility.Worth(
@@ -804,9 +774,7 @@ public sealed class PlacementEngine
         int found = 1;
         int lots = _world.LotsAdmitting.Count(_world.Lots, LotTable.Housing);
 
-        // A city with no gate on this edge is a city this family cannot see into, and one with no Lot
-        // admitting a dwelling has nothing to show. Neither is proof that every home here is
-        // unsuitable; both are the absence of a second row to compare against.
+        // No gate or feasible Lot means no city alternative in this sample.
         if (lots > 0 && _world.Buildings.Rows.TryResolve(gate, out _))
         {
             int budget = candidates * 2;
@@ -847,8 +815,7 @@ public sealed class PlacementEngine
 
     /// <summary>Whether this Building is already in the candidate set.</summary>
     /// <remarks>
-    /// <b>A scan and not a set, because <c>candidates</c> is three.</b> It starts at 1: position 0 is
-    /// the alternative to moving at all and carries no Building.
+    /// Position zero is the Outside alternative and carries no Building.
     /// </remarks>
     private bool Shown(int building, int found)
     {
@@ -910,10 +877,8 @@ public sealed class PlacementEngine
 
     /// <summary>Which Outside the family at <paramref name="position"/> is comparing the city with.</summary>
     /// <remarks>
-    /// <b>The gate it came through, and its saved arrival edge when that gate is gone</b>
-    /// (<c>plans/0073</c> D9). An immigrant knows where it came from whether or not the door still
-    /// stands; a locally formed Household never had one and compares the city with nowhere, which is
-    /// the Pool's behaviour for everybody before the stock existed.
+    /// Use the origin gate when live, otherwise the saved arrival edge. Local families may have
+    /// neither.
     /// </remarks>
     private bool TryOutsideEdge(int position, out MapEdge edge)
     {

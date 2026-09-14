@@ -748,11 +748,6 @@ public partial class Main
     /// Places a gate on the vacant Lot nearest the click, or removes the Outside Connection
     /// standing nearest it — <c>plans/0073</c> D14.
     /// </summary>
-    /// <remarks>
-    /// <b>Shift removes, on the Street tool's gesture rather than on a second tool.</b> What the
-    /// two verbs share is the Tile, and a player who has just placed a door in the wrong corner
-    /// wants the same hand to take it away.
-    /// </remarks>
     private void Door((Tiles East, Tiles North) at, bool remove)
     {
         if (remove)
@@ -794,11 +789,6 @@ public partial class Main
     }
 
     /// <summary>The Lot holding an Outside Connection nearest the click, within its Cell.</summary>
-    /// <remarks>
-    /// <see cref="VacantNear"/>'s complement, and kinded rather than merely occupied for
-    /// <c>Simulation.GateOn</c>'s reason: an ordinary Building at the aimed Tile is not the thing
-    /// this verb removes.
-    /// </remarks>
     private int GateNear((Tiles East, Tiles North) at)
     {
         LotTable lots = _world.Lots;
@@ -891,10 +881,8 @@ public partial class Main
 
     /// <summary>The Cell a click can name for a Lot anchored at <paramref name="anchor"/>.</summary>
     /// <remarks>
-    /// 🔴 <b>An edge Lot on the north or east boundary anchors at <see cref="CellGrid.WorldTiles"/>,
-    /// which converts to a Cell one past the last one.</b> No click reaches that Cell — <c>Aim</c>
-    /// rejects a cursor there and a driven click is refused — so comparing a Lot's raw Cell against a
-    /// click's leaves those two edges unreachable, and <c>plans/0073</c> D14 promises all four.
+    /// North/east boundary Lots anchor at WorldTiles, beyond the last Cell. Map them to the
+    /// last clickable Cell for hit testing while retaining the exact Lot origin for commands.
     /// </remarks>
     private static Cells ClickableCell(Tiles anchor) =>
         CellGrid.ToCells(new Tiles(

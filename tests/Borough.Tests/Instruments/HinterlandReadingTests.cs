@@ -13,19 +13,6 @@ namespace Borough.Tests.Instruments;
 /// <c>plans/0045</c> row 31 task 7: what an inspection may say about the Outside, and what reading it
 /// is not allowed to cost.
 /// </summary>
-/// <remarks>
-/// <para>
-/// <b>A reading is the one thing in this project that a player triggers and the city must not
-/// notice.</b> Every other observer here either owns its meters or drains them; a panel refreshing on
-/// every collected batch does neither, so the first test is that the State Hash does not move across
-/// a full read of every edge, every door, every composition and the account.
-/// </para>
-/// <para>
-/// ⚠ <b>The rest are about the figures meaning what their names say.</b> A reading that added a
-/// queue retry to the fresh interest, or presented one door's admissions as its edge's market, would
-/// be wrong in a way no hash could see.
-/// </para>
-/// </remarks>
 public sealed class HinterlandReadingTests
 {
     private static readonly WorldKey Key = WorldKey.FromSeed(7);
@@ -95,10 +82,6 @@ public sealed class HinterlandReadingTests
     }
 
     /// <summary>The four fresh outcomes are disjoint and exhaustive, so they add up to the occasions.</summary>
-    /// <remarks>
-    /// ⚠ <b>A queue retry is not a fresh occasion.</b> <c>Reviewed</c> is deliberately outside this
-    /// sum: adding it would report the same family's second thoughts as new interest in the city.
-    /// </remarks>
     [Fact]
     public void The_four_fresh_outcomes_add_up_to_the_occasions()
     {
@@ -220,11 +203,6 @@ public sealed class HinterlandReadingTests
     }
 
     /// <summary>Yesterday's figures are exactly what today's were when the Day turned over.</summary>
-    /// <remarks>
-    /// <b>The rollover is <c>Simulation</c>'s and never a reader's</b> (D10), which is what this
-    /// asserts by reading either side of it: a Day nobody watched still ends, and the figures it ended
-    /// with are the ones the next Day reports.
-    /// </remarks>
     [Fact]
     public void Yesterday_is_what_today_was_when_the_Day_turned()
     {

@@ -307,17 +307,8 @@ public readonly ref struct IndexList
 /// without walking to it.
 /// </summary>
 /// <remarks>
-/// <para>
-/// <b>The outside queue is the consumer <see cref="IndexList.Remove"/> says is worth the column.</b>
-/// A willing family waits in two lists at once — the admission order it is served in and the review
-/// order its next reconsideration is due in — and leaving either one removes it from both. So every
-/// cancellation, expiry and admission is a removal from the middle of a list as long as the queue,
-/// and the singly-linked walk would make one Tick's departures quadratic in the number waiting.
-/// </para>
-/// <para>
-/// <b>Encoded slot-plus-one and zero for empty</b>, which is <see cref="IndexList"/>'s encoding for
-/// its reason: a freed row is zeroed, and a terminator of <c>-1</c> would read as slot 0.
-/// </para>
+/// Doubly linked removal is constant-time. Links encode slot-plus-one with zero for empty,
+/// so cleared rows cannot accidentally point to slot zero.
 /// </remarks>
 public readonly ref struct LinkedIndexList
 {
@@ -358,8 +349,7 @@ public readonly ref struct LinkedIndexList
 
     /// <summary>The element after <paramref name="node"/>, or <see cref="Rows.NoSlot"/>.</summary>
     /// <remarks>
-    /// <b>Read it before processing a node that may leave the list.</b> A walk that reads the link
-    /// afterwards reads a zeroed one and stops at the first departure.
+    /// Read the successor before processing a node that may be removed and cleared.
     /// </remarks>
     public int After(int node)
     {
@@ -422,11 +412,6 @@ public readonly ref struct LinkedIndexList
     }
 
     /// <summary>Moves an element already in the list to the end of it.</summary>
-    /// <remarks>
-    /// <b>What a served review does.</b> The family keeps its place in the admission order and takes
-    /// a new place in the review order, and the two lists say so by holding it in different positions
-    /// rather than by storing a second copy of when it is next due.
-    /// </remarks>
     public void MoveToBack(int owner, int node)
     {
         if (_tail[owner] == node + 1)
@@ -440,8 +425,7 @@ public readonly ref struct LinkedIndexList
 
     /// <summary>Drops every element, without touching their links.</summary>
     /// <remarks>
-    /// <see cref="IndexList.Clear"/>'s restriction, for its reason: correct only when the elements
-    /// are about to be freed or re-linked.
+    /// Only safe when the elements are about to be freed or relinked.
     /// </remarks>
     public void Clear(int owner)
     {

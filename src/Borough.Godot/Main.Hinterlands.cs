@@ -8,15 +8,7 @@ using Godot;
 
 namespace Borough.Shell;
 
-// ---- the Outside -- who is out there, who is waiting at a door, and who got in
-//
-// plans/0073 task 7. Borough.Headless's --arrivals answers the same question for a reader with a
-// terminal; this answers it for the player who has just raised a door and wants to know whether
-// anybody came through it.
-//
-// Every figure here is read through Core's instruments and none is computed in the shell. A panel
-// that did its own arithmetic over the tables would be a second opinion about the city, and the one
-// that is invisible to every test in the suite.
+// The Outside panel reads population and gate figures through Core instruments.
 
 public partial class Main
 {
@@ -33,11 +25,6 @@ public partial class Main
     /// <summary>
     /// What the panel's SHAPE depends on, as against what its figures do.
     /// </summary>
-    /// <remarks>
-    /// <b>The selected edge and what stands behind it</b>, because a group retiring or a door coming
-    /// down changes how many rows there are rather than what any row says. The type scale is the
-    /// third, as everywhere: a label is sized at the moment it is made.
-    /// </remarks>
     private string _outsideShape = string.Empty;
 
     /// <summary>The four edges in the order every reader of this city states them.</summary>
@@ -45,13 +32,10 @@ public partial class Main
         [MapEdge.West, MapEdge.East, MapEdge.South, MapEdge.North];
 
     /// <summary>
-    /// Read buffers, held so a refresh allocates nothing.
+    /// Reusable buffers for gate and composition readings.
     /// </summary>
     /// <remarks>
-    /// <b>The instruments fill a caller's Span for exactly this reason.</b> A panel refreshed on
-    /// every collected batch that allocated two arrays a frame would be a garbage collector attached
-    /// to a readout. A city with more doors or more compositions than these fills what fits and the
-    /// panel says so rather than growing without a bound the player can see.
+    /// Caller-owned fixed buffers bound allocations; the panel reports truncated rows.
     /// </remarks>
     private readonly HinterlandGateReading[] _outsideGates = new HinterlandGateReading[32];
 
@@ -138,17 +122,7 @@ public partial class Main
     /// Writes what the Outside now says into the labels the panel is already holding.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// <b>Reading the Outside changes nothing about it</b>, which is the contract
-    /// <c>HinterlandReading</c> is written to and <c>A_reading_moves_no_state</c> asserts. No draw is
-    /// consumed and no meter is reset, so a panel open all session and a panel opened once see the
-    /// same city.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>The rollover is <c>Simulation</c>'s and never this panel's</b> (plans/0073 D10). Yesterday
-    /// is whatever today was when the Day turned, whether or not anybody was looking, and a Day
-    /// nobody watched still ends.
-    /// </para>
+    /// Simulation rolls the Day counters before input. Refreshing the panel never writes them.
     /// </remarks>
     private void RefreshHinterlands()
     {
@@ -204,11 +178,6 @@ public partial class Main
     /// <summary>
     /// Makes the panel's rows once, keeping every label the refresh will write into.
     /// </summary>
-    /// <remarks>
-    /// <b>Four edge rows whatever the city has done</b>, so an edge with no door and no stock is
-    /// visible as an edge with no door rather than absent from a list of four. ***A panel that omits
-    /// what is empty cannot be read for what is missing.***
-    /// </remarks>
     /// <param name="stated">Whether this Ruleset states an <c>[immigration]</c> table at all.</param>
     /// <param name="gates">How many doors stand on the open edge.</param>
     /// <param name="groups">How many compositions stand behind it.</param>
@@ -229,10 +198,7 @@ public partial class Main
 
         if (!stated)
         {
-            // A file with no counted Outside has no Households standing anywhere to report, and four
-            // rows of zeroes would read as an empty world rather than as a Ruleset that states no
-            // Outside -- ArrivalDump.Refuse's polarity, where refusing outright is not an option
-            // because the player opened the panel.
+            // Distinguish an absent immigration mechanism from a declared Outside with zero population.
             _outsideBody.AddChild(Wrapped(
                 "This city states no [immigration] table, so nobody stands outside it and nobody "
                 + "decides to come. Arrivals here are presented by an explicit command. Load a "
@@ -396,9 +362,7 @@ public partial class Main
     /// arithmetic.
     /// </summary>
     /// <remarks>
-    /// ⚠ <b><c>reviewed</c> stands apart from the four fresh outcomes and is never added to them.</b>
-    /// It counts second thoughts by families already waiting, so a panel that summed it with the
-    /// fresh interest would report the same family twice.
+    /// Reviews belong to queued prospects and must not be added to fresh occasions.
     /// </remarks>
     private void BuildOutsideFlows()
     {
@@ -574,9 +538,7 @@ public partial class Main
     /// The gate's own quota, on the Building the player is inspecting.
     /// </summary>
     /// <remarks>
-    /// <b>The quota is this door's and the stock is the edge's</b>, which is why the section states
-    /// the one and links to the other. A reader shown an edge's Households under one door's heading
-    /// would take the market for the door's own.
+    /// Show the individual gate quota and link to the shared edge stock.
     /// </remarks>
     private void AddGateOutside(List<InformationSection> sections, int slot)
     {
@@ -623,11 +585,6 @@ public partial class Main
     }
 
     /// <summary>Every door on every edge, for a driven check to hold the panel against.</summary>
-    /// <remarks>
-    /// <b>Off the reading and not off the panel's labels</b>, for the reason the Budget's own
-    /// published figures state: a scrape reads what the panel formatted, and what a check wants is
-    /// what the panel read.
-    /// </remarks>
     private HinterlandGateReading[] OutsideDoors()
     {
         var doors = new List<HinterlandGateReading>();

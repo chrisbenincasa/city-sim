@@ -13,18 +13,7 @@ namespace Borough.Tests.Entities;
 /// which ones it refuses.
 /// </summary>
 /// <remarks>
-/// <para>
-/// <b>The line is depth against speed</b> (<c>plans/0073</c> D12). What a home costs out there, how
-/// central it feels, what an emigrant carries, how often anybody reconsiders and how fast the stock
-/// refills are all comparisons the city makes again every Tick, so they retune while the world runs.
-/// How many Households stand behind an edge and what they are made of is the state itself, and an
-/// edit to it would have to invent or destroy people.
-/// </para>
-/// <para>
-/// ⚠ <b>A refused reload leaves the world untouched, and that is asserted by State Hash</b> rather
-/// than by inspection. A refusal that had already moved a fraction or a quota would be a reload that
-/// half happened, which is the one outcome <c>adr/0015</c> rules out.
-/// </para>
+/// Retunes preserve live stock, queue identity and fractional progress; structural stock edits refuse.
 /// </remarks>
 public sealed class HinterlandReloadTests
 {
@@ -124,11 +113,6 @@ public sealed class HinterlandReloadTests
     }
 
     /// <summary>A retuned cadence keeps the progress the old one had accrued.</summary>
-    /// <remarks>
-    /// <b>The fraction is meaningless without its denominator</b> (D12). Carrying it across unchanged
-    /// would fire the next occasion early against a longer period; clearing it would make every
-    /// retune cost the Outside the progress it had made.
-    /// </remarks>
     [Fact]
     public void A_retuned_reconsider_period_rescales_the_fraction_it_had()
     {
@@ -175,10 +159,6 @@ public sealed class HinterlandReloadTests
     }
 
     /// <summary>A family already waiting keeps the purse it was evaluated with.</summary>
-    /// <remarks>
-    /// <b>A redrawn purse would make waiting a lottery over wealth</b> (D5), and the affordability
-    /// test on the other side of the wait would then be about somebody else.
-    /// </remarks>
     [Fact]
     public void A_retuned_purse_range_leaves_a_queued_family_holding_what_it_drew()
     {
@@ -198,11 +178,6 @@ public sealed class HinterlandReloadTests
     }
 
     /// <summary>A quota cut below what a door has already taken shuts it for the rest of the Day.</summary>
-    /// <remarks>
-    /// <b>The meter counts what a Day has spent and the Ruleset states the ceiling</b>, so a lowered
-    /// ceiling is read against a meter that has already passed it. The alternative — carrying the old
-    /// ceiling until the Day rolls — would make a reload take effect at a time nobody asked for.
-    /// </remarks>
     [Fact]
     public void A_quota_cut_below_what_a_door_has_taken_admits_nobody_else()
     {
@@ -245,10 +220,8 @@ public sealed class HinterlandReloadTests
 
     /// <summary>A retune that empties a band keeps the stock standing in it, and reopening it restores it.</summary>
     /// <remarks>
-    /// <b>Authoring stock into an empty band is refused and arriving at one by retune is not</b>
-    /// (D12). A band is a third of the purse range, so narrowing the range empties the upper bands —
-    /// and a group already filed under one is counted, recovers and turns over as before. Deleting or
-    /// refiling it would be a stock edit performed by the loader.
+    /// A narrowed purse range can empty a return-only band. Keep its stock and composition
+    /// so reopening the band does not recreate population.
     /// </remarks>
     [Fact]
     public void A_retune_that_empties_a_band_keeps_the_stock_standing_in_it()
@@ -286,11 +259,6 @@ public sealed class HinterlandReloadTests
     }
 
     /// <summary>A waiting family is held to the duration in force, and keeps the Tick it joined at.</summary>
-    /// <remarks>
-    /// <b>The wait is measured rather than counted down</b> (D12), so the Tick a family joined at is
-    /// what a retune must leave alone. Restarting it would give everybody already queued a fresh full
-    /// wait; clearing it would expire the lot on the next pass.
-    /// </remarks>
     [Fact]
     public void A_longer_wait_keeps_the_Tick_a_family_joined_at()
     {
@@ -302,8 +270,13 @@ public sealed class HinterlandReloadTests
         Ticks since = world.HinterlandQueue.Since[head];
         Ticks reviewed = world.HinterlandQueue.Reviewed[head];
 
-        world.Adopt(
-            Edited("queue_wait_days       = 2", "queue_wait_days       = 4"), 0, world.Tick, Key);
+        // Defer review beyond the old deadline so a changed housing sample cannot cancel the
+        // reservation before this test observes the retuned expiry.
+        Ruleset longer = Parsed(Text("attracted.toml")
+            .Replace("queue_wait_days       = 2", "queue_wait_days       = 4", StringComparison.Ordinal)
+            .Replace("queue_reconsider_days = 1", "queue_reconsider_days = 3", StringComparison.Ordinal),
+            "longer-wait.toml");
+        world.Adopt(longer, 0, world.Tick, Key);
 
         Assert.Equal(since, world.HinterlandQueue.Since[head]);
         Assert.Equal(reviewed, world.HinterlandQueue.Reviewed[head]);
@@ -324,11 +297,6 @@ public sealed class HinterlandReloadTests
     }
 
     /// <summary>Recovery switched back on starts from nothing and still empties the group.</summary>
-    /// <remarks>
-    /// ⚠ <b>The pair with the switch-off case is the test.</b> A cleared fraction that no later
-    /// reload could refill would make disabling recovery permanent, and the Outside would keep every
-    /// group the city ever returned to it.
-    /// </remarks>
     [Fact]
     public void Recovery_switched_back_on_starts_from_zero_and_still_drains()
     {
@@ -382,9 +350,7 @@ public sealed class HinterlandReloadTests
 
     /// <summary>A composition edit is refused, and refused even beside an edit that would be allowed.</summary>
     /// <remarks>
-    /// 🔴 <b>The pair is the test.</b> A refusal that depended on which difference was noticed first
-    /// would let a composition change through whenever a rent change sat beside it, and the stock
-    /// would then be filed under a key nothing declares.
+    /// Include an allowed retune beside the forbidden edit to exercise all compatibility checks.
     /// </remarks>
     [Fact]
     public void Changing_a_composition_is_refused_alongside_a_change_that_would_be_allowed()
@@ -405,10 +371,6 @@ public sealed class HinterlandReloadTests
     }
 
     /// <summary>Moving a resting count is moving people, so it is refused.</summary>
-    /// <remarks>
-    /// <b>Target immutable, recovery speed tunable</b> (D12). A lowered target is a population the
-    /// recovery pass would remove as turnover, which is a Shock under another name.
-    /// </remarks>
     [Fact]
     public void Changing_a_resting_count_is_refused()
     {
@@ -496,10 +458,8 @@ public sealed class HinterlandReloadTests
 
     /// <summary>The shipped world with only the lowest-band group behind west.</summary>
     /// <remarks>
-    /// <b>So the purse range can be narrowed without the loader refusing the file.</b> Stock authored
-    /// into a band the range does not reach is refused at load, which is the rule this fixture stays
-    /// inside — the group that ends up in an empty band is one the city returned, not one the file
-    /// states.
+    /// Only band zero is authored, allowing a reload to narrow the range without changing opening
+    /// stock.
     /// </remarks>
     private static string OneBandWest()
     {
