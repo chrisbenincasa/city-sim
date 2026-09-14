@@ -810,8 +810,8 @@ public partial class Main
         for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
         {
             if (!lots.Rows.IsLive(slot) || lots.IsVacant(slot)
-                || CellGrid.ToCells(lots.East[slot]) != east
-                || CellGrid.ToCells(lots.North[slot]) != north)
+                || ClickableCell(lots.East[slot]) != east
+                || ClickableCell(lots.North[slot]) != north)
             {
                 continue;
             }
@@ -869,8 +869,8 @@ public partial class Main
         for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
         {
             if (!lots.Rows.IsLive(slot) || !lots.IsVacant(slot)
-                || CellGrid.ToCells(lots.East[slot]) != east
-                || CellGrid.ToCells(lots.North[slot]) != north)
+                || ClickableCell(lots.East[slot]) != east
+                || ClickableCell(lots.North[slot]) != north)
             {
                 continue;
             }
@@ -888,6 +888,17 @@ public partial class Main
 
         return nearest;
     }
+
+    /// <summary>The Cell a click can name for a Lot anchored at <paramref name="anchor"/>.</summary>
+    /// <remarks>
+    /// 🔴 <b>An edge Lot on the north or east boundary anchors at <see cref="CellGrid.WorldTiles"/>,
+    /// which converts to a Cell one past the last one.</b> No click reaches that Cell — <c>Aim</c>
+    /// rejects a cursor there and a driven click is refused — so comparing a Lot's raw Cell against a
+    /// click's leaves those two edges unreachable, and <c>plans/0073</c> D14 promises all four.
+    /// </remarks>
+    private static Cells ClickableCell(Tiles anchor) =>
+        CellGrid.ToCells(new Tiles(
+            anchor.Raw < CellGrid.WorldTiles ? anchor.Raw : CellGrid.WorldTiles - 1));
 
     /// <summary>The first declared kind that serves a Need, or zero when the file declares none.</summary>
     /// <remarks>
