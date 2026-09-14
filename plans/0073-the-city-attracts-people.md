@@ -683,6 +683,43 @@ city nobody was willing to enter and one whose doors had no connection to offer.
 prints lifetime admissions and lets that discriminate, because ***a picture that cannot tell two
 cities apart must not name one of them.***
 
+**The shell reads the Outside through the same instruments and computes nothing of its own.**
+`Main.Hinterlands.cs` holds the panel: four edge rows that stand whatever the city has done to them,
+the city's account beneath, and — for a selected edge — its doors, its compositions and all three
+groups of flow counters for today and the last complete Day. It opens from an **Outside** launcher
+that appears only where the file states `[immigration]`, and from a section on any inspected Outside
+Connection which states that door's own quota and links to the edge whose stock it shares.
+`PopulationReading` gained an `Ever` window so the panel can put births beside admissions without
+the shell adding up columns. ⚠ **Waiting outside and admitted-and-looking are separate headings with
+separate counts**, because they are different states and a reader told only *unplaced* cannot tell a
+full door from a city with no dwellings.
+
+**It writes into standing labels and rebuilds only when the shape changes**, on `Main.Budget`'s
+split-signature discipline — a panel refreshed on every collected batch that tore thirty labels down
+and made thirty more would be one refreshed too rarely to watch. `scripts/ui/check-hinterlands.py`
+drives it: four edges, each edge's admissions adding up out of its own doors, every fresh occasion
+being exactly one of four outcomes, the account's residual at zero, the panel opening from a door as
+well as from the console, and — the one that matters — ***the State Hash unmoved across a full
+read.***
+
+**The shell had no sentence for any of the eleven gate refusals, so a refused door fell through to
+`refused for reason 34, which this shell has no sentence for`.** `Simulation.Explain` had the
+diagnosis all along and the player never saw it. The eleven sentences in `Main.Verbs.cs` are the
+shell's own and shorter than Core's: they name the plot, the kind or the money, say what to do next,
+and cite no ADR.
+
+**`GateCommandTests` asserts the accepting half, because `RefusalTests` enumerates `Refusal` and
+goes red on a member with no case.** ⚠ **Every existing second-gate fixture raises its door with
+`World.CreateBuilding`** — `AutonomousArrivalTests`, `HinterlandQueueTests` and
+`DerivedRebuildAuditTests` all do, and none of them runs phase 0 — so nothing asserted that the
+player's verb reaches the same mechanism. The seven cases are a door landing on the named plot, a
+second door leaving its edge's stock and compositions untouched, a door admitting on the Tick it
+appears, removal sending the queue home and a replacement resuming it, three refusals leaving the
+State Hash where it was, the log round trip, and a two-run replay whose Tile is scouted from a
+replay rather than chosen. ⚠ **The same-Tick admission is asserted on the new door's own meter**:
+a Tick that rolled the Day would reopen the shut doors and raise the edge's total without this one
+admitting anybody.
+
 ### D12 — Ruleset surface, validation and reload
 
 Add `HinterlandPopulationRuleset.cs` for the new immutable definitions; thread them through

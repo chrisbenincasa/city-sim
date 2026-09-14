@@ -75,6 +75,7 @@ public readonly record struct PopulationFlows(
 /// <param name="PoolOldestWait">How long the longest-searching one has looked, in Ticks.</param>
 /// <param name="Today">The Day in progress.</param>
 /// <param name="Yesterday">The last complete Day.</param>
+/// <param name="Ever">Every Day there has been, which is what the counters hold outright.</param>
 public readonly record struct PopulationReading(
     int Day,
     long People,
@@ -89,8 +90,17 @@ public readonly record struct PopulationReading(
     long PoolPeople,
     ulong PoolOldestWait,
     PopulationFlows Today,
-    PopulationFlows Yesterday)
+    PopulationFlows Yesterday,
+    PopulationFlows Ever)
 {
+    /// <summary>Which Day's worth of a counter a figure is taken from.</summary>
+    private enum Window
+    {
+        Today,
+        Yesterday,
+        Ever,
+    }
+
     /// <summary>Live Citizen rows less what the account expects. Zero, or somebody is unaccounted.</summary>
     public long Residual => LivePeople - People;
 
@@ -144,11 +154,12 @@ public readonly record struct PopulationReading(
             pool.Count,
             poolPeople,
             oldest,
-            Flows(ledger, today: true),
-            Flows(ledger, today: false));
+            Flows(ledger, Window.Today),
+            Flows(ledger, Window.Yesterday),
+            Flows(ledger, Window.Ever));
     }
 
-    private static PopulationFlows Flows(PopulationLedgerTable ledger, bool today)
+    private static PopulationFlows Flows(PopulationLedgerTable ledger, Window window)
     {
         int slot = PopulationLedgerTable.Slot;
 
@@ -200,7 +211,11 @@ public readonly record struct PopulationReading(
         long Figure(
             Tables.Column<long> total,
             Tables.Column<long> dayStart,
-            Tables.Column<long> previousDayStart) =>
-            today ? total[slot] - dayStart[slot] : dayStart[slot] - previousDayStart[slot];
+            Tables.Column<long> previousDayStart) => window switch
+        {
+            Window.Today => total[slot] - dayStart[slot],
+            Window.Yesterday => dayStart[slot] - previousDayStart[slot],
+            _ => total[slot],
+        };
     }
 }

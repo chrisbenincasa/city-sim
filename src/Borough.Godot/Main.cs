@@ -1776,6 +1776,7 @@ public partial class Main : Node3D
         RefreshHealthMarkers();
         RefreshCityEvidence();
         RefreshBudget();
+        RefreshHinterlands();
     }
 
     /// <summary>

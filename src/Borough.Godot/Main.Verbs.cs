@@ -497,6 +497,55 @@ public partial class Main
             "there is nowhere for anybody to live yet. Lay some streets, zone the blocks they "
             + "enclose, and then ask again.",
 
+        Refusal.GateKindIsWiderThanAKindId =>
+            $"there is no gate kind {command.Zone}. A kind id is a byte and 0 is the instruction to "
+            + "remove, so a number past the end is refused rather than trimmed into taking away the "
+            + "gate already standing there.",
+
+        Refusal.GateKindNotDeclared =>
+            "this Ruleset declares no such building, so there is no door of that kind to place.",
+
+        Refusal.GateKindIsNotAnOutsideConnection =>
+            $"{_names.Kind((byte)command.Zone) ?? "that building"} states no arrivals_per_day, which "
+            + "is the width of a door — so it is an ordinary building rather than a gate. Use the "
+            + "municipal tool for a building that serves a need.",
+
+        Refusal.GateNoVacantLotOnThatTile =>
+            "that plot is taken, and a gate needs a vacant one. A standing building and an abandoned "
+            + "shell both hold it; demolish first.",
+
+        Refusal.GateLotIsNotOnAnEdge =>
+            "a gate is where the city meets what lies beyond it, and that plot is inland — a door "
+            + "there would open onto nothing. Lay streets out to the edge of the map and zone along "
+            + "it first.",
+
+        Refusal.GateLotIsOnTwoEdges =>
+            "that plot is a corner and touches two edges, and a gate is listed against exactly one. "
+            + "Which Outside stands behind a corner has no answer, so move one plot along either "
+            + "edge.",
+
+        Refusal.GateEdgeHasNoHinterland =>
+            "this Ruleset states no Outside behind that edge, so a door there would have nobody to "
+            + "admit and no rent to be compared against. Put the gate on an edge that has one.",
+
+        Refusal.GateLotHasNoFrontage =>
+            "that edge plot has no street along it, and an arriving household walks from the gate to "
+            + "wherever it ends up living. Lay a street along it first.",
+
+        Refusal.GateRemoveNoGateOnThatTile =>
+            "no gate stands on that plot to remove. An ordinary building is cleared with demolish "
+            + "instead.",
+
+        Refusal.GateRemoveGateIsOccupied =>
+            "somebody still lives or works in that gate. Clearing occupied ground is a compulsory "
+            + "purchase and its price is not built, so the door stays. People waiting outside to "
+            + "come in are not tenants and never hold it up.",
+
+        Refusal.GateTreasuryCannotPay =>
+            "the city cannot afford it. A gate is paid for out of the treasury in full, like any "
+            + "other building placed by hand. The plot and the kind are both fine, so this click "
+            + "works once the money is there.",
+
         Refusal.VerbNotApplied =>
             "that verb is not built yet.",
 
