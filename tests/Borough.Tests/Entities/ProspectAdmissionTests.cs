@@ -427,8 +427,10 @@ public sealed class ProspectAdmissionTests
         int group = GroupOf(world, MapEdge.West, stage: 1);
         int gate = GateOn(world, MapEdge.West);
 
-        ArrivalProspect prospect = Present(world, MapEdge.West, stage: 1, identity: 12)
-            with { Composition = new HinterlandComposition(1, 4, 0, 0, 9, 0) };
+        ArrivalProspect prospect = Present(world, MapEdge.West, stage: 1, identity: 12) with
+        {
+            Composition = new HinterlandComposition(1, 4, 0, 0, 9, 0)
+        };
 
         Standing before = Standing.Of(world, group, gate);
 

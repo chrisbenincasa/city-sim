@@ -212,10 +212,10 @@ public readonly record struct PopulationReading(
             Tables.Column<long> total,
             Tables.Column<long> dayStart,
             Tables.Column<long> previousDayStart) => window switch
-        {
-            Window.Today => total[slot] - dayStart[slot],
-            Window.Yesterday => dayStart[slot] - previousDayStart[slot],
-            _ => total[slot],
-        };
+            {
+                Window.Today => total[slot] - dayStart[slot],
+                Window.Yesterday => dayStart[slot] - previousDayStart[slot],
+                _ => total[slot],
+            };
     }
 }
