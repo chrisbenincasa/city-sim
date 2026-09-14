@@ -70,6 +70,11 @@ public sealed class HouseholdTable
         // about the city rather than a break in the handle.
         University = _rows.SavedHandle(
             "university", buildings.Rows, reference: Reference.Severable);
+
+        // Save origin and choice identity: the gate may disappear, and no city row owns the prospect identity.
+        Arrived = _rows.Saved<byte>("arrived", Touch.Cold);
+        ArrivalEdge = _rows.Saved<byte>("arrival_edge", Touch.Cold);
+        ChoiceIdentity = _rows.Saved<ulong>("choice_identity", Touch.Cold);
         _rows.Seal();
     }
 
@@ -87,6 +92,39 @@ public sealed class HouseholdTable
 
     /// <summary>Where this Household is studying, or the unset handle.</summary>
     public HandleColumn<Building> University { get; }
+
+    /// <summary>
+    /// Whether this Household crossed a gate from a counted Outside.
+    /// </summary>
+    /// <remarks>
+    /// Also marks the presence of ChoiceIdentity: zero is a valid prospect identity.
+    /// </remarks>
+    public Column<byte> Arrived { get; }
+
+    /// <summary>
+    /// Which edge this Household came in through, where <see cref="Arrived"/> says it did.
+    /// </summary>
+    /// <remarks>
+    /// Retained if the origin gate is removed; it does not dictate the eventual departure destination.
+    /// </remarks>
+    public Column<byte> ArrivalEdge { get; }
+
+    /// <summary>
+    /// The coordinate this Household's preferences are drawn on, where it arrived with one.
+    /// </summary>
+    /// <remarks>
+    /// Retained through admission and stage changes so housing tastes belong to the same family.
+    /// </remarks>
+    public Column<ulong> ChoiceIdentity { get; }
+
+    /// <summary>
+    /// Whose preferences to draw for the Household in <paramref name="slot"/>.
+    /// </summary>
+    /// <remarks>
+    /// The Arrived flag distinguishes a valid zero prospect identity from a locally formed Household.
+    /// </remarks>
+    public ulong TasteIdentity(int slot) =>
+        Arrived[slot] != 0 ? ChoiceIdentity[slot] : _rows.IdAt(slot);
 
     /// <summary>
     /// How well fed this Household is. <b>0 is ideal and negative is deficit.</b>

@@ -73,6 +73,7 @@ public partial class Main
         Console();
         Chrome();
         BudgetPanel(_hud);
+        HinterlandPanel(_hud);
 
         _inspector = InformationPanel();
         _inspector.Size = new Vector2(406, 600);
@@ -220,7 +221,7 @@ public partial class Main
         _palette?.AddThemeStyleboxOverride("panel",
             InformationUi.Box(paper, line, 16, 12, InformationUi.PanelRadius, shadow));
         foreach (Control panel in _informationPanels
-            .Concat(new Control?[] { _policyPanel, _cityPanel, _budgetPanel, _tuner })
+            .Concat(new Control?[] { _policyPanel, _cityPanel, _budgetPanel, _outsidePanel, _tuner })
             .Where(p => p is not null).Select(p => p!))
         {
             panel.AddThemeStyleboxOverride("panel", InformationUi.Box(paper, line,
@@ -334,6 +335,14 @@ public partial class Main
             FitPanel(_cityPanel, cityScroll, cityBody, margin, margin, cityWidth, 100,
                 Math.Max(100, consoleTop - _cameraPanel.GetCombinedMinimumSize().Y - 8 - margin * 2), true);
         }
+        if (_outsidePanel is not null && _outsideShown)
+        {
+            var outsideScroll = _outsidePanel.GetChildren().OfType<ScrollContainer>().First();
+            var outsideBody = outsideScroll.GetChild<Control>(0);
+            float outsideWidth = Math.Min(720, size.X - width - margin * 3);
+            FitPanel(_outsidePanel, outsideScroll, outsideBody, margin, margin, outsideWidth, 100,
+                Math.Max(100, consoleTop - _cameraPanel.GetCombinedMinimumSize().Y - 8 - margin * 2), true);
+        }
         if (_budgetPanel is not null && _budgetShown)
         {
             // 🔴 THE RIGHT OF THE SCREEN, AND IT IS THE ONE PANEL THAT IS. Government holds the
@@ -358,6 +367,11 @@ public partial class Main
             if (_cityPanel is not null && _cityShown)
             {
                 budgetLeft = Math.Max(budgetLeft, _cityPanel.GetGlobalRect().End.X + margin);
+            }
+
+            if (_outsidePanel is not null && _outsideShown)
+            {
+                budgetLeft = Math.Max(budgetLeft, _outsidePanel.GetGlobalRect().End.X + margin);
             }
 
             float budgetWidth = Math.Clamp(size.X - budgetLeft - margin, 1, 620);
@@ -495,7 +509,9 @@ public partial class Main
         || _policyPanel is not null && _policyPanel.Visible && _policyPanel.GetGlobalRect().HasPoint(at)
         || _cityPanel is not null && _cityPanel.Visible && _cityPanel.GetGlobalRect().HasPoint(at)
         || _budgetPanel is not null && _budgetPanel.Visible
-            && _budgetPanel.GetGlobalRect().HasPoint(at));
+            && _budgetPanel.GetGlobalRect().HasPoint(at)
+        || _outsidePanel is not null && _outsidePanel.Visible
+            && _outsidePanel.GetGlobalRect().HasPoint(at));
 
     private void Ui(string action) => AtBoundary(() => Apply(new DriveCommand(_world.Tick.Raw, DriveVerb.Ui, 0, action)));
 
@@ -518,6 +534,7 @@ public partial class Main
         if (ZoningAction(words)) return;
         if (CityEvidenceAction(words)) return;
         if (BudgetAction(words)) return;
+        if (HinterlandAction(words)) return;
         switch (words[0])
         {
             case "help" when words.Length == 2 && words[1] is "on" or "off":
@@ -1038,6 +1055,7 @@ public partial class Main
         sections.Add(Attention(evidence, default, false, true));
         AddFacilityHealth(sections, slot);
         AddFacilitySchooling(sections, slot);
+        AddGateOutside(sections, slot);
         var households = new List<InformationRow>();
         foreach (Handle<Household> household in evidence.Occupants.Span)
         {
@@ -1313,6 +1331,20 @@ public partial class Main
             CityEvidencePanel = Rect(_cityPanel),
             BudgetShown = _budgetShown,
             BudgetPanel = Rect(_budgetPanel),
+            OutsideShown = _outsideShown,
+            OutsidePanel = Rect(_outsidePanel),
+
+            // The readings themselves, for the reason the Budget object states: a scrape reads what
+            // the panel formatted, and what a check wants to hold is what the panel READ.
+            Outside = !_world.Rules.Immigration.Stated ? null : (object)new
+            {
+                OpenEdge = _outsideEdge.ToString(),
+                Account = Borough.Core.Instruments.PopulationReading.Of(_world),
+                Edges = OutsideEdges
+                    .Select(edge => Borough.Core.Instruments.HinterlandReading.Of(_world, edge))
+                    .ToArray(),
+                Doors = OutsideDoors(),
+            },
 
             // The figures rather than the labels holding them. Every visible Label's text is in
             // Fonts already, so a driven run could scrape them -- but a scrape reads what the panel

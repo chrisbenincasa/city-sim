@@ -46,6 +46,9 @@ public sealed class BuildingTable
 
         CellNext = _rows.Derived<int>("cell_next");
 
+        // Derived per-edge gate lists depend on saved Building kinds and Lot positions.
+        GateNext = _rows.Derived<int>("gate_next");
+
         // The gate's daily throughput meter. Saved rather than derived, because how many crossed
         // today is not reproducible from anything else -- a reload that reset it would let a gate
         // admit its whole quota twice in one Day, and the Factorio test is where that would surface.
@@ -319,6 +322,17 @@ public sealed class BuildingTable
     /// </para>
     /// </remarks>
     public Column<int> ArrivalsToday { get; }
+
+    /// <summary>The next Outside Connection on the same edge, encoded. <c>(derived AND rebuilt)</c>.</summary>
+    public Column<int> GateNext { get; }
+
+    /// <summary>The Outside Connections standing on one edge, in ascending slot order.</summary>
+    public IndexList Gates(HinterlandTable hinterlands)
+    {
+        ArgumentNullException.ThrowIfNull(hinterlands);
+
+        return new IndexList(hinterlands.GateHead, hinterlands.GateTail, GateNext);
+    }
 
     /// <summary>
     /// Which Day <see cref="ArrivalsToday"/> counts, so the meter resets without a sweep.

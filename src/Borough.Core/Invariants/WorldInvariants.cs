@@ -67,6 +67,14 @@ public static class WorldInvariants
         invariants.Register(InvariantTier.EndOfRun, ThePoolWaitsAtRealGates);
         invariants.Register(InvariantTier.EndOfRun, DistrictMembershipNamesLiveDistrictsAndBuiltGround);
         invariants.Register(InvariantTier.EndOfRun, DistrictPoolsAreOneLiveBinPerGood);
+
+        // Check population accounts before their supporting indexes to report missing people first.
+        invariants.Register(InvariantTier.EndOfRun, CityPopulationIsAccounted);
+        invariants.Register(InvariantTier.EndOfRun, CityHouseholdsAreAccounted);
+        invariants.Register(InvariantTier.EndOfRun, HinterlandGroupsAreAccounted);
+        invariants.Register(InvariantTier.EndOfRun, TheCompositionIndexNamesEveryGroup);
+        invariants.Register(InvariantTier.EndOfRun, TheQueueMatchesItsReservations);
+        invariants.Register(InvariantTier.EndOfRun, TheCityAndItsOutsideBalance);
     }
 
     /// <summary>
@@ -1857,5 +1865,244 @@ public static class WorldInvariants
                     raw);
             }
         }
+    }
+
+    /// <summary>
+    /// <c>plans/0073</c> D10's city-side account: the live Citizens are the opening figure plus every
+    /// classified flow.
+    /// </summary>
+    internal static void CityPopulationIsAccounted(World world, InvariantRegistry report)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(report);
+
+        long live = world.Citizens.Rows.LiveCount;
+        long accounted = world.PopulationLedger.People;
+
+        report.Require(
+            live == accounted,
+            Invariant.CityPopulationIsAccounted,
+            other: live - accounted);
+    }
+
+    /// <summary>The same account about Households, which no people counter implies.</summary>
+    internal static void CityHouseholdsAreAccounted(World world, InvariantRegistry report)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(report);
+
+        long live = world.Households.Rows.LiveCount;
+        long accounted = world.PopulationLedger.Households;
+
+        report.Require(
+            live == accounted,
+            Invariant.CityHouseholdsAreAccounted,
+            other: live - accounted);
+    }
+
+    /// <summary>
+    /// <c>plans/0073</c> D10's global account: the city plus its Outside is the opening pair plus
+    /// every flow that crossed the world's outer boundary.
+    /// </summary>
+    /// <remarks>
+    /// Edge lifetime counters survive group retirement. Admissions transfer between city and
+    /// Outside and therefore have no net term; departures and returns are counted separately.
+    /// </remarks>
+    internal static void TheCityAndItsOutsideBalance(World world, InvariantRegistry report)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(report);
+
+        if (!world.Rules.Immigration.Stated)
+        {
+            return;
+        }
+
+        HinterlandPopulationTable groups = world.HinterlandPopulation;
+
+        long outside = 0;
+
+        for (int slot = 0; slot < groups.Rows.SlotCount; slot++)
+        {
+            if (groups.Rows.IsLive(slot))
+            {
+                outside += groups.People(slot);
+            }
+        }
+
+        long replenished = 0;
+        long returned = 0;
+        long turnover = 0;
+
+        for (int edge = 0; edge < HinterlandTable.Edges; edge++)
+        {
+            replenished += world.Hinterlands.ReplenishedPeople[edge];
+            returned += world.Hinterlands.ReturnedPeople[edge];
+            turnover += world.Hinterlands.TurnoverPeople[edge];
+        }
+
+        PopulationLedgerTable ledger = world.PopulationLedger;
+        int row = PopulationLedgerTable.Slot;
+
+        long live = world.Citizens.Rows.LiveCount + outside;
+
+        long accounted = ledger.OpeningCityPeople[row] + ledger.OpeningOutsidePeople[row]
+            + ledger.Births[row] + ledger.ScenarioAdditions[row] + replenished + returned
+            - ledger.IllnessDeaths[row] - ledger.DissolutionPeople[row] - ledger.ScenarioRemovals[row]
+            - turnover - ledger.Departures[row];
+
+        report.Require(
+            live == accounted,
+            Invariant.TheCityAndItsOutsideBalance,
+            other: live - accounted);
+    }
+
+    /// <summary>
+    /// Every group behind an edge holds what it opened with plus every crossing since, and promises no
+    /// more than it holds.
+    /// </summary>
+    internal static void HinterlandGroupsAreAccounted(World world, InvariantRegistry report)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(report);
+
+        HinterlandPopulationTable groups = world.HinterlandPopulation;
+
+        for (int slot = 0; slot < groups.Rows.SlotCount; slot++)
+        {
+            if (!groups.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            long accounted = groups.Opening[slot]
+                + groups.Replenished[slot] + groups.Returned[slot]
+                - groups.Admitted[slot] - groups.Turnover[slot];
+
+            report.Require(
+                groups.Stock[slot] == accounted,
+                Invariant.AHinterlandGroupIsAccounted,
+                slot,
+                groups.Stock[slot] - accounted);
+
+            report.Require(
+                groups.Reserved[slot] >= 0 && groups.Reserved[slot] <= groups.Stock[slot],
+                Invariant.AHinterlandGroupIsAccounted,
+                slot,
+                groups.Reserved[slot]);
+        }
+    }
+
+    /// <summary>
+    /// Every reservation is a family standing in a queue, and every waiting family holds one.
+    /// </summary>
+    internal static void TheQueueMatchesItsReservations(World world, InvariantRegistry report)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(report);
+
+        HinterlandPopulationTable groups = world.HinterlandPopulation;
+        HinterlandQueueTable queue = world.HinterlandQueue;
+
+        LinkedIndexList admissions = queue.Admissions(world.Hinterlands);
+        LinkedIndexList reviews = queue.Reviews(world.Hinterlands);
+
+        long waiting = 0;
+        long reviewing = 0;
+
+        for (int edge = 0; edge < HinterlandTable.Edges; edge++)
+        {
+            foreach (int slot in admissions.Walk(edge))
+            {
+                waiting++;
+
+                if (!groups.Rows.TryResolve(queue.Group[slot], out int group))
+                {
+                    report.Require(false, Invariant.TheQueueMatchesItsReservations, slot);
+                    continue;
+                }
+
+                report.Require(
+                    groups.Edge[group] == (byte)HinterlandTable.EdgeAt(edge),
+                    Invariant.TheQueueMatchesItsReservations,
+                    slot,
+                    group);
+            }
+
+            foreach (int slot in reviews.Walk(edge))
+            {
+                reviewing++;
+            }
+        }
+
+        report.Require(
+            waiting == queue.Rows.LiveCount && reviewing == queue.Rows.LiveCount,
+            Invariant.TheQueueMatchesItsReservations,
+            other: waiting - queue.Rows.LiveCount);
+
+        for (int slot = 0; slot < groups.Rows.SlotCount; slot++)
+        {
+            if (!groups.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            long rows = 0;
+
+            for (int edge = 0; edge < HinterlandTable.Edges; edge++)
+            {
+                foreach (int row in admissions.Walk(edge))
+                {
+                    if (groups.Rows.TryResolve(queue.Group[row], out int group) && group == slot)
+                    {
+                        rows++;
+                    }
+                }
+            }
+
+            report.Require(
+                groups.Reserved[slot] == rows,
+                Invariant.TheQueueMatchesItsReservations,
+                slot,
+                groups.Reserved[slot] - rows);
+        }
+    }
+
+    /// <summary>
+    /// The composition index and the per-edge lists name every live group exactly once.
+    /// </summary>
+    internal static void TheCompositionIndexNamesEveryGroup(World world, InvariantRegistry report)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(report);
+
+        HinterlandPopulationTable groups = world.HinterlandPopulation;
+        int listed = 0;
+
+        for (int slot = 0; slot < groups.Rows.SlotCount; slot++)
+        {
+            if (!groups.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            var edge = (MapEdge)groups.Edge[slot];
+
+            report.Require(
+                world.HinterlandCompositions.TryFind(
+                    groups, edge, groups.CompositionAt(slot), out int found) && found == slot,
+                Invariant.TheCompositionIndexNamesEveryGroup,
+                slot);
+        }
+
+        for (int edge = 0; edge < HinterlandTable.Edges; edge++)
+        {
+            listed += groups.Groups(world.Hinterlands).Length(edge);
+        }
+
+        report.Require(
+            listed == groups.Rows.LiveCount,
+            Invariant.TheCompositionIndexNamesEveryGroup,
+            other: listed - groups.Rows.LiveCount);
     }
 }

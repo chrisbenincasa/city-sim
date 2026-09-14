@@ -109,7 +109,7 @@ internal static class Choice
     /// </remarks>
     private static long Weight(int utility, int best, int mu)
     {
-        long scaled = IntegerMath.ShiftRight((long)mu * (utility - best), Fixed.FractionalBits);
+        long scaled = Transcendental.ScaleForExp(mu, utility, best);
 
         return scaled <= Transcendental.ExpUnderflowsBelow ? 0 : Transcendental.Exp((int)scaled);
     }

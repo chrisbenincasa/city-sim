@@ -67,7 +67,9 @@ public readonly struct SaveHeader : IEquatable<SaveHeader>
     /// new table exists is short by a table and needs a migration; the hash it was written at was never
     /// wrong.
     /// </remarks>
-    public const int Current = 1;
+    // Version 6 includes Outside stock, queued prospects, household provenance and Day flow snapshots.
+    // Older declaration sets are refused before their body is read.
+    public const int Current = 6;
 
     private const ulong ByteOrderSentinel = 0x0102_0304_0506_0708UL;
 

@@ -400,6 +400,37 @@
             "description": "The least money a Household arriving from this Hinterland brings with it.",
             "type": "integer"
           },
+          "population": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "adults_by_tier": {
+                  "description": "How many of the Household's adults hold each Skill Tier, lowest first. Exactly three entries, because the Tiers are a closed set: a shorter list would read as 'the rest are zero', which is an author who has forgotten a Tier and an author who meant none writing the same thing. A composition with no adult at any Tier is refused.",
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                "children": {
+                  "description": "How many children each Household of this composition carries. The stage must state a school_level to carry any, because the level is a property of the stage rather than of the child — children imported into a stage naming no level would arrive with nothing to school them.",
+                  "type": "integer"
+                },
+                "households": {
+                  "description": "How many Households of this exact composition stand behind the edge at world creation, and the count the Outside recovers back to. Zero is legitimate and declares a composition the Outside keeps none of but will hold returns in. At least one composition somewhere in the world holds a positive count.",
+                  "type": "integer"
+                },
+                "money_band": {
+                  "description": "Which third of this Hinterland's emigrant balance range the Households carry, numbered from 0 lowest. A band holding no amount is refused: a narrow balance range leaves the upper bands empty, and stock in one would be counted, recovered and never drawable.",
+                  "type": "integer"
+                },
+                "stage": {
+                  "description": "Which Life Stage every Household of this composition is in, naming a [[life_stage]]. The stage decides what the family wants from a home and whether it can carry children at all. It is resolved by the stage's authored name rather than by its position, so reordering the stages does not repopulate the Outside.",
+                  "type": "string"
+                }
+              }
+            }
+          },
           "prices": {
             "description": "What this Hinterland will sell each Good for, one entry per Good. These are the only authored anchor under every price in the design: a District's Pool may charge up to the cheapest declared Hinterland price and no more.",
             "type": "array",
@@ -437,6 +468,27 @@
         },
         "opening_balance_min": {
           "description": "The least money a Household is created with at world creation.",
+          "type": "integer"
+        }
+      }
+    },
+    "immigration": {
+      "type": "object",
+      "properties": {
+        "queue_reconsider_days": {
+          "description": "How often a Household waiting at a full gate weighs that wait again. It is strictly shorter than queue_wait_days: a review at or beyond the wait it reviews never runs, because the family's patience expires first.",
+          "type": "integer"
+        },
+        "queue_wait_days": {
+          "description": "The longest a Household willing to come waits at a gate whose quota is spent before it gives up and goes back to the stock.",
+          "type": "integer"
+        },
+        "reconsider_days": {
+          "description": "How often a Household outside weighs the city against the life it already has. It counts occasions and is not an arrival rate: what each occasion decides is the choice model's answer. Stating the table at all is what turns a counted population into a flow, and every arrival in a world without it comes from an Arrive command.",
+          "type": "integer"
+        },
+        "recovery_days": {
+          "description": "How long the Outside takes to return to the resting stock its populations authored, from either direction — below target it adds Households, above target it removes them and reports the removal as turnover. Zero freezes the stock both ways, which is the world that demonstrates depletion with nothing refilling behind it.",
           "type": "integer"
         }
       }
@@ -663,6 +715,10 @@
           "next": {
             "description": "The stage a Household moves to when its countdown comes due. Absent means the stage is terminal, which is the only way to spell that — a stage naming itself is refused.",
             "type": "string"
+          },
+          "rent_weight_percent": {
+            "description": "How heavily this stage weighs rent against everything else it wants from a home, as a percent of the neutral weight. It scales the rent term in the comparison and is never a budget — what a Household can pay at all is the affordability filter, which runs before any scoring. Absent is the neutral weight, which is the placement this build had before stages could disagree about price; a world stating [immigration] is refused without it, because who presents themselves at a gate turns on what they mind paying.",
+            "type": "integer"
           },
           "school_level": {
             "description": "Which school level this stage's children attend: 1 primary, 2 secondary. A university is refused here — it is attended by a Household In Education, a state and not a Life Stage. Absent means this stage's children attend no school.",

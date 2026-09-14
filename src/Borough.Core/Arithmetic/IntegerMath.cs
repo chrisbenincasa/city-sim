@@ -246,4 +246,22 @@ public static class IntegerMath
 
         return (int)result;
     }
+
+    /// <summary>
+    /// <c>floor(value × numerator / denominator)</c> for non-negative operands, without losing the
+    /// product to 64 bits.
+    /// </summary>
+    /// <remarks>
+    /// Uses an Int128 intermediate so a representable quotient can have a product wider than long.
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException">An operand is negative, or the denominator is zero.</exception>
+    /// <exception cref="OverflowException">The result exceeds <see cref="long"/>.</exception>
+    public static long MulDivFloor(long value, long numerator, long denominator)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(value);
+        ArgumentOutOfRangeException.ThrowIfNegative(numerator);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(denominator);
+
+        return checked((long)((Int128)value * numerator / denominator));
+    }
 }

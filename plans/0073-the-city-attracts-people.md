@@ -6,7 +6,9 @@
 
 ## Status, authority and scope
 
-**SCOPED; NOT STARTED.** This replaces the initial scoping draft's three unanswered branches with
+**BUILT AND DEMONSTRATED.** Tasks 1–8 are built and the observation episodes are taken; the
+completion record at the end of this file carries the evidence and the defects the work found. The
+scoping text below is kept as written. This replaces the initial scoping draft's three unanswered branches with
 explicit implementation choices. **The user confirmed three design decisions during planning:**
 Life Stage housing preferences participate, willing prospects queue outside with timed
 reconsideration, and Outside population recovers towards its resting stock from either direction,
@@ -95,7 +97,8 @@ stock row; record its removal as a Household event only.
 Matching uses a flat derived hash index with lookup and insertion only, rebuilt by walking rows in
 slot order. Never enumerate a `Dictionary` or `HashSet`. Prefer the repository's existing flat
 index style; a new index must delete/rebuild entries on row retirement and cannot retain every key
-that ever appeared. Non-authored rows with zero stock and no queue reservations are freed,
+that ever appeared. Retire empty groups in their existing per-edge order and rebuild the lookup
+once after each batch, with no lookup or insertion while the index is stale. Non-authored rows with zero stock and no queue reservations are freed,
 including their fractions. An explicit saved `Authored` flag distinguishes an authored zero target
 from a return-only group; authored target rows persist when empty. Anonymous returned composition
 is retained; departed Household/Citizen ids, names, experience, attendance and Trip history are not.
@@ -238,7 +241,9 @@ children and creates no births. Maximum residence is the authored duration, not 
 
 After expiry, process every review-list head whose elapsed time since its last scheduled review
 is at least `queue_reconsider_days × Ticks.PerDay`, even when all gates are full. Re-run the choice
-with retained purse/identity and current conditions. A decline cancels its reservation; willingness
+with retained purse/identity and current conditions. A decline or a sample with no feasible city
+alternative cancels its reservation and counts as a changed mind. Neither spends stock or gate quota;
+the released stock earns fresh reconsideration credit from the next Tick. Willingness
 keeps its place in the admission FIFO and appends it to the review-list tail with the scheduled
 review Tick updated. A scheduled review never resets `SinceTick`, so it cannot make the waiting
 bound infinite. A fresh enqueue starts both clocks on its enqueue Tick. An admission or any
@@ -247,7 +252,8 @@ changing that interval on reload preserves review-list ordering.
 
 When an edge has capacity, process its admission FIFO in order. Re-evaluate each old queue member against
 current housing and Outside conditions, using its retained purse and identity, a new Tick draw and
-current preferences. A decline cancels its reservation; a willing result tries admission. Stop when
+current preferences. A decline or an empty feasible sample cancels its reservation; only a willing
+result tries admission. Stop when
 no gate on that edge has quota left. A prospect generated on this Tick already made its comparison:
 try it once without a second draw, enqueueing it if the edge's quota is exhausted. Honour
 `LastComparedTick` for prospects queued by phase-0 commands too: a gate placed by a later command
@@ -475,6 +481,251 @@ State Hash fixtures through `tests/Borough.Tests/Golden/README.md`; do not paste
 New saved tables can move even stock-disabled world's hashes, so do not promise golden stability
 merely because their gameplay path is unchanged.
 
+**Task 2 declared the three tables and a subset of the columns above, and the subset is deliberate.**
+A column declared with `Rows.Saved` is allocated, folded into the State Hash and written to every
+save whether or not anything assigns it, so a column ahead of its writer is state the city carries and
+nobody maintains. What exists after task 2: on `HinterlandTable`, the edge and the lifetime flow pairs
+(replenished, returned, admitted, turnover), plus derived gate-list head and tail. On
+`HinterlandPopulationTable`, the whole composition key, the Authored flag, target, opening, stock,
+reserved, the four group flow counters and the derived per-edge link. On `PopulationLedgerTable`, the
+Sealed flag, the four opening figures and the thirteen classified flow counters. What is absent and
+which task brings it: the prospect sequence and the composition-start cursor (task 4, which is what
+advances them); the last-admitted gate id and the current-Day flow columns (task 4's rollover); the
+reconsider and recovery numerators (task 4's engine); the current- and previous-Day snapshots on the
+ledger (task 7, which is what reads them); `HouseholdTable.ArrivalEdge` and the choice identity
+(task 3). ⚠ **Each of those is a further `SaveHeader.Current` bump**, which costs nothing while nobody
+carries a save.
+
+**The city side of the account is closed and the Outside side is not, and task 5 owns the gap.**
+`World.Depart` counts its Household and its people as departures, and credits no Hinterland with
+receiving them — D9's destination choice needs `HouseholdTable.ArrivalEdge` and the choice model,
+neither of which exists yet. `World.ReturnToHinterland` and `World.CompositionOf` are built and tested
+and have no caller in `src/`. So `CityPopulationIsAccounted` and `CityHouseholdsAreAccounted` are
+whole-world equations over live rows, and there is no two-sided conservation law over city and Outside
+together until task 5 wires the credit. ***Half an account is not a conservation law.***
+
+**Task 3 added the three `HouseholdTable` columns, so `SaveHeader.Current` is 3 and all three golden
+artefacts were re-recorded.** `Arrived` is the presence flag D4 asks for and both columns beside it
+need one: zero is `MapEdge.North` and zero is a choice identity a draw can produce, so neither value
+can double as an absence. `HouseholdTable.TasteIdentity` is what both resident choice paths now draw
+on — the arrival's identity where there is one and the row's own monotonic id otherwise — which is
+identical to what they drew before in every world that has no stock.
+
+**The shared kernel is `Rules/HousingUtility.cs`, and a rent weight of 100 is bit-identical to the
+arithmetic it replaced.** `TryHouse`, `Reassess`, the Outside row and the prospect all go through
+`Worth`; `Taste` is the `2T − One` expression the first two duplicated. So the State Hash moved for
+the three columns and not for the kernel, and `attracted.toml` is the only file whose stages weigh
+rent at anything but neutral. ⚠ **The weight scales the rent *term* and never the money** — the
+affordability filter in `Consider` does not read it, and a stage at zero still cannot move into what
+it cannot afford.
+
+**`World.TryAdmitProspect` and the new `ProspectCrosses` overload have no caller in `src/`.** Task 4's
+engine and task 5's commands are what reach them; the legacy `TryArrive` and the anonymous
+`ProspectCrosses(int gate, …)` are untouched, which is what D8 requires of a stock-disabled world.
+⚠ **Two pieces of D7 are deliberately absent.** Admission requires *unreserved* stock
+(`Stock − Reserved ≥ 1`) and has no path for a caller presenting its own reservation, because nothing
+reserves yet; task 4 extends it alongside the queue, and admission must then decrement `Reserved` as
+well as `Stock`. The prospect *sequence* that makes an identity unique is task 4's too — task 3's
+`ArrivalProspect.Of` takes an identity rather than minting one.
+
+**The purse draw is `HinterlandDefinition.BandBalance` on a new `PurposeTag.ProspectPurse`; the
+candidate sample and the choice draw reuse `PlacementCandidate` and `ChoiceDraw`.** Reusing those two
+is `ChoiceDraw`'s own recorded argument — *one tag serves every consumer of the choice model, because
+the entity id already separates them* — and the purse needed its own for `EmigrantBalance`'s reason
+one level down: the same id takes the same fraction of whichever span it is given, so a shared tag
+would make the richest family in the low band the richest family in the high band.
+
+**Task 4 added `HinterlandQueueTable`, `Rules/HinterlandEngine.cs` and the state the engine advances,
+so `SaveHeader.Current` is 4 and all four golden artefacts were re-recorded.** On `HinterlandTable`:
+the prospect sequence, the last-admitted gate id, the composition cursor, the two queue-list ends, the
+derived gate-list ends and the thirteen current/previous Day flow pairs, rolled by `RollDay` before the
+inputs. On `HinterlandPopulationTable`: the reconsider and recovery numerators and the recovery
+direction. The queue's admission and review lists are **saved** because join order is recoverable from
+nothing else — a rebuild would put the queue in slot order and serve a different family after a reload —
+while the gate list is derived from Kind and Lot position. `LinkedIndexList` is the doubly-linked
+sibling `IndexList.Remove`'s remark anticipated; a queue row leaves the middle of both lists at once.
+
+**A waiting family is reconsidered only when a door on its edge has room, and that ordering is the
+mechanism rather than an optimisation.** Re-asking at a shut door re-draws willingness on every Tick of
+the wait, which cancelled almost every queue member within a dozen Ticks and made the authored wait
+unreachable — caught by `A_wait_ends_at_exactly_the_authored_duration`. `World.GateHasRoom` exists for
+that question. `TryAdmitProspect` gained the `reserved` path D7 left for this task, so a queued family
+spends its own reservation and stock together.
+
+**`Invariant.TheQueueMatchesItsReservations` compares the count with the rows**, which nothing else
+does: a reservation left behind by a cancelled row takes a Household out of circulation for good, and a
+row whose count was never raised lets a fresh occasion draw the family already standing at the door.
+
+⚠ **Three of the acceptance cases named for this task are not written yet.** The reduced-quota case
+needs the reload plumbing D12 gives task 5; `StockArrivalCommandTests` is task 5's; and the
+selective-depletion ensemble belongs with task 8's observation, where a rate comparison can be read
+against the diagnostic counters rather than asserted from one run. `AutonomousArrivalTests` covers the
+attribution those tests will rest on — every occasion sums to exactly one of no-connection, no-sample,
+stayed-outside and willing.
+
+**Task 5 added one saved pair, so `SaveHeader.Current` is 5 and three artefacts were re-recorded.**
+`HinterlandTable` gained `requested_today` and `requested_yesterday`, rolled by `RollDay` beside the
+other Day pairs: a commanded `Arrive` is an occasion the player caused, and it increments both that
+pair and `occasions_today`, so the attribution identity task 4 rests on still holds. No shipped
+Ruleset was edited, so no content hash moved and no `.borough` literal with it.
+
+**The two-sided law this section said did not exist is now `Invariant.TheCityAndItsOutsideBalance`.**
+The city plus everybody standing behind its edges equals the two opening figures plus births,
+scenario additions, replenishment and returns, less illness deaths, dissolutions, scenario removals,
+turnover and departures. ⚠ **An arrival has no term in it, and that absence is the check.** A gate
+that produced a Household without spending stock raises the left side and leaves the right side
+alone, which is exactly what a stock-aware `ApplyArrive` must not do. Departures and returns each
+carry a term because they need not be equal — a family with no edge to go to leaves the world.
+
+**`SealFoundingPopulation` retakes the Outside figures and clears the edge crossing counters.** The
+opening stock is filled in at construction from Ruleset content, so a fixture that departed or
+returned somebody before the first Tick had them counted twice, once inside the opening figure and
+once as the crossing that moved them. It is a no-op in every world nothing touches before its first
+Tick, which is every world outside a test. ***An opening figure taken at a different moment from the
+one it is compared against is not an opening figure.***
+
+**`World.Adopt` refuses the Outside edits that would invent or destroy people, and rescales the two
+fractions the rest carry.** Refused: stating or withdrawing `[immigration]`, changing the money
+Resource, adding or removing a `[[hinterland]]`, and any inequality between two
+`HinterlandPopulationDefinition`s — which covers composition, resting count, purse band and declaration
+order in one comparison. Retuned: rent, centrality, the emigrant purse range, and the reconsider and
+recovery periods, whose accrued numerators are rescaled by `IntegerMath.MulDivFloor` into the new
+denominator. ⚠ **The refusal is taken before `RulesetShape.Compare`**, so a composition edit sitting
+beside a rent edit is refused rather than let through by whichever difference was noticed first, and
+`HinterlandReloadTests` asserts the untouched world by State Hash rather than by inspection. Four
+further allowed edits are covered there: a gate quota cut below what a door has already spent shuts
+it for the rest of the Day; a purse-range retune that empties a band keeps the stock filed under it,
+which is the one place authoring is stricter than transition; a longer queue wait leaves the Tick a
+waiting family joined at alone; and recovery switched off and back on resumes from zero and still
+empties the group.
+
+**Task 6 changed no production code, and the reason it did not is the finding.** `SaveFile` and
+`SaveHash` walk `World.Tables` and each table's saved columns, so row 31's four tables entered the
+file the moment they were appended to the world; all three derived rebuilds already clear before they
+fill. What was missing was evidence. `FactorioTests` compares a saved world against one that never
+stopped on `minimal` and `congested`, and neither states `[immigration]` — so no world with anybody
+standing behind its edges had ever been resumed, and the machinery being generic is a reason to expect
+it works rather than a demonstration that it does.
+
+**`HinterlandPersistenceTests` saves over a deliberately awkward Outside and asserts that it is
+awkward before writing the file.** An idle Outside round-trips by holding still: empty queues, whole
+fractions and unspent quotas all survive a load that does nothing. So the fixture checks, before every
+save, that a queue is non-empty, that both fractions are part-way accrued, that stock is reserved,
+that a door is spent and that a group the Ruleset never declared is standing. Nothing is staged by
+writing a meter — `recovery_days` is cut to 1 so a returned group finishes draining and frees a row,
+and the authored quota of ninety-six families a Day across four gates supplies the pressure on its
+own. ⚠ **A freed row is handed straight back to the next return**, so the drained group is identified
+by composition through `HinterlandCompositions.TryFind` and never by slot; asserting on the slot reads
+the reuse as a group that never left.
+
+⚠ **The queue exists only while the gate quota is the binding constraint, and that window closes.**
+Once the city is full enough that housing is the limit, prospects stay outside and nobody queues, so a
+later save is a save over an idle Outside. The two save points sit at Tick 4,000 and at Tick 4,090 —
+the second six Ticks before a Day rolls, so the resumed world is the one that performs the rollover
+and moves the flow counters. Join order is the one piece of Outside state no rebuild could recover: it
+lives in the admission list and nowhere else, so a load reconstructing the queue from live rows would
+come back in slot order and admit a different family. Worker-count equivalence is worth asking of a
+stock world in particular, because an admitted family joins the Unplaced Pool and its move-in Trip is
+routed on the parallel path.
+
+**Replay equivalence had never been asked of a world anybody emigrates to.** `ReplayTests` runs under
+`Ruleset.Empty`. The new case replays a log whose whole content is `Populate` at Tick 0 — a hand-built
+`Arrive` log cannot name a gate Tile, because gate positions are decided by the subdivider — twice
+under the stock Ruleset, into two Worlds sharing nothing but the log's seed. Admissions are asserted
+nonzero, since two traces over a stock engine that never ran would agree perfectly. `SaveHeaderTests`
+gained the refusal in the other direction: the format version has moved five times, four of them for
+row 31, so a file one declaration set behind this build is an artefact that exists rather than a
+hypothesis. No saved column was added, so the header stayed at 5 and nothing was re-recorded.
+
+**Task 7's gate is charged, which closes the inconsistency D14 opened.** `ApplyGate` pays the kind's
+`placement_cost` through `World.SpendOnPlacement` exactly as `ApplyService` does, and
+`GateTreasuryCannotPay` is asked **last** for `RefuseService`'s reason: the six checks ahead of it
+are shape and this one is a level, so it is the only one that can answer differently for the same
+command two Ticks apart. ⚠ **No shipped Ruleset prices a door**, so every shipped world still raises
+one for nothing and the refusal is reachable only from a Ruleset that states a cost —
+`RefusalTests.PricedPort` is that world, and it declares four Hinterlands because which edge the
+generator leaves a vacant Lot on is not something a fixture chooses. Removal refunds nothing, on
+`ApplyDemolish`'s terms rather than a rule of this verb's own.
+
+**The ledger's Day figures are snapshots rather than a second set of counters, so a writer cannot
+forget one.** `population_ledger` gained `flow_day` and, for each of its thirteen classified flow
+counters, what that counter stood at when the current Day opened and when the last complete Day
+opened — twenty-seven saved columns, `SaveHeader.Current` `5 → 6`, three golden artefacts
+re-recorded. A Day's figure is the **difference** between a counter and its snapshot. The
+alternative pairs a lifetime counter with a daily one at each of the sixteen recording sites, and
+two counters can disagree: an increment that lands on one and misses the other reports a Day that
+does not add up to the history it sits inside. ⚠ **`RollDay` runs after `Seal`** — `Simulation.Step`
+seals before it rolls, and the first roll is a Day after the seal — so a snapshot never stands ahead
+of a counter the seal has zeroed and a Day's figure is never negative.
+
+**`HinterlandReading` reads and never drains, and `A_reading_moves_no_state` is the assertion that
+says so.** `Instruments/HinterlandReading.cs` carries the per-edge reading with its two Days of
+flows, plus `HinterlandGateReading` and `HinterlandGroupReading`, which fill a caller's Span so a
+panel refreshing every frame allocates nothing. `Instruments/PopulationReading.cs` carries the
+account, the Pool and the residual. The Day each reading is denominated in comes from the table's own
+`FlowDay` rather than from dividing the Tick out, so the flow counters and the gate meters cannot
+disagree about which Day they are counting.
+
+⚠ **The placements and give-ups the inspection contract lists are deliberately NOT in the
+reading.** They live in `PlacementActivity`, which a **Census drains** — so a reading that carried
+them would take them from whichever of the panel and the dump asked second, and the contract's own
+first rule is that inspecting resets no meter. The two readers that want them already own a Census
+each. ***A figure that cannot be read twice does not belong in a thing that is read every frame.***
+
+**`--arrivals` became two pictures and the Ruleset picks which, so no flag enables a Ruleset's own
+mechanism.** A file stating `[immigration]` gets a run that **issues no commands at all** — every
+Tick stepped empty — and four new panels reading the instruments: who stands behind each edge and
+who is waiting at a full door, every composition with whether the file authored it or an emigration
+created it, each door's quota spent and remaining, the whole circuit today and over the last
+complete Day, and the population account with its residual. A file without one keeps the driven run,
+now labelled **explicit presentations** in the header and in `Options.Usage`. ⚠ **The Households in
+`waiting` are not the Unplaced Pool**: they are still the Outside's stock, held as `reserved`, with
+no Citizen row anywhere — the Pool holds people already let in and looking for a home, and the
+panels say so where both appear.
+
+⚠ **The empty-Pool claim was false and is now a figure rather than a sentence.** "The Pool is empty,
+which in a world with a door in it means construction kept up with the gates" reads identically in a
+city nobody was willing to enter and one whose doors had no connection to offer. The panel now
+prints lifetime admissions and lets that discriminate, because ***a picture that cannot tell two
+cities apart must not name one of them.***
+
+**The shell reads the Outside through the same instruments and computes nothing of its own.**
+`Main.Hinterlands.cs` holds the panel: four edge rows that stand whatever the city has done to them,
+the city's account beneath, and — for a selected edge — its doors, its compositions and all three
+groups of flow counters for today and the last complete Day. It opens from an **Outside** launcher
+that appears only where the file states `[immigration]`, and from a section on any inspected Outside
+Connection which states that door's own quota and links to the edge whose stock it shares.
+`PopulationReading` gained an `Ever` window so the panel can put births beside admissions without
+the shell adding up columns. ⚠ **Waiting outside and admitted-and-looking are separate headings with
+separate counts**, because they are different states and a reader told only *unplaced* cannot tell a
+full door from a city with no dwellings.
+
+**It writes into standing labels and rebuilds only when the shape changes**, on `Main.Budget`'s
+split-signature discipline — a panel refreshed on every collected batch that tore thirty labels down
+and made thirty more would be one refreshed too rarely to watch. `scripts/ui/check-hinterlands.py`
+drives it: four edges, each edge's admissions adding up out of its own doors, every fresh occasion
+being exactly one of four outcomes, the account's residual at zero, the panel opening from a door as
+well as from the console, and — the one that matters — ***the State Hash unmoved across a full
+read.***
+
+**The shell had no sentence for any of the eleven gate refusals, so a refused door fell through to
+`refused for reason 34, which this shell has no sentence for`.** `Simulation.Explain` had the
+diagnosis all along and the player never saw it. The eleven sentences in `Main.Verbs.cs` are the
+shell's own and shorter than Core's: they name the plot, the kind or the money, say what to do next,
+and cite no ADR.
+
+**`GateCommandTests` asserts the accepting half, because `RefusalTests` enumerates `Refusal` and
+goes red on a member with no case.** ⚠ **Every existing second-gate fixture raises its door with
+`World.CreateBuilding`** — `AutonomousArrivalTests`, `HinterlandQueueTests` and
+`DerivedRebuildAuditTests` all do, and none of them runs phase 0 — so nothing asserted that the
+player's verb reaches the same mechanism. The seven cases are a door landing on the named plot, a
+second door leaving its edge's stock and compositions untouched, a door admitting on the Tick it
+appears, removal sending the queue home and a replacement resuming it, three refusals leaving the
+State Hash where it was, the log round trip, and a two-run replay whose Tile is scouted from a
+replay rather than chosen. ⚠ **The same-Tick admission is asserted on the new door's own meter**:
+a Tick that rolled the Day would reopen the shut doors and raise the edge's total without this one
+admitting anybody.
+
 ### D12 — Ruleset surface, validation and reload
 
 Add `HinterlandPopulationRuleset.cs` for the new immutable definitions; thread them through
@@ -582,8 +833,9 @@ Return a specific refusal for each failure, distinguishing a corner from an inte
 the geometry can state that difference. Do not snap to a neighbouring gate, invent a Lot, pave a
 Street or clear a Building as part of placement. On success call `World.CreateBuilding` once and
 update the gate index. The player supplies ground through the existing Street/zoning tools;
-`LotSubdivider.SubdivideAt` and `PaintParcelAt` are the existing ground paths. No new construction
-price is invented here; capital expenditure remains row 32's scope.
+`LotSubdivider.SubdivideAt` and `PaintParcelAt` are the existing ground paths. A gate is charged the
+`placement_cost` its kind states, through row 32's mechanism; no price is invented here, and a
+Ruleset that states none places a door for nothing.
 
 Remove validates a live Outside Connection at that exact Tile and no Household or Business tenants,
 then calls `World.DestroyBuilding`. A gate need not be marked abandoned: that is the ordinary
@@ -801,3 +1053,156 @@ results, persistence/determinism evidence, tests run, relevant performance findi
 watching surprised the implementer with. Route defects to their owning task immediately. The row
 closes only when autonomous people enter, housing and Outside changes alter that flow, returns and
 recovery add up, and the player can distinguish the causes on screen.
+
+### Ruleset hashes
+
+Measured through `RulesetFile.HashOf`. Every episode below ran on `--citizens 1000`.
+
+| File | Content hash |
+|---|---|
+| `rulesets/attracted.toml` | `0xBF8F4407E4C78272` |
+| `rulesets/attracted-outside-cheaper.toml` | `0xCC003D5CA871F64D` |
+| `rulesets/attracted-declining.toml` | `0xE524A0B61FB74912` |
+
+### Final provisional settings and why they changed
+
+`attracted-declining.toml` was added during task 8 and nothing else was retuned. `attracted.toml`'s
+circuit **stops from Day 58**: Pool, placements and give-ups all read zero, the Money supply freezes
+at 1,755,996, and 3,519 Households still stand behind the four edges with none willing. Every
+long-run assertion would have passed in that world *against an immigration engine that had been
+deleted*, which is why the steady long-run fixture uses the declining file instead. It differs from
+`attracted.toml` by two keys only — `condemn_after_days = 2` and `collapses_after_days = 1` — and its
+header records that its population falls (827 against 1,377) and that the fast decline serves a
+test's horizon rather than making a claim about cities.
+
+### The observation episodes
+
+Four were driven through the shell; the rest are headless dumps or assertion tests. That split is
+recorded rather than smoothed over, because the plan asked for driven demonstrations and only
+episodes 4, 6 and 8 have one.
+
+| Episode | How | Measured result |
+|---|---|---|
+| Autonomous onset | headless `--arrivals --ticks 4096` | Pool **366** at Tick 4,096; Citizens 1,566, Buildings 111, vacant Lots 25. Stock west 820 / east 900 / south 895 / north 714, north reserving 68. North admitted 96 today with 68 queued, and no `Arrive` command was issued. Also `AutonomousArrivalTests.People_arrive_without_a_single_Arrive_command`. |
+| Selective depletion | assertion tests | 30 tests green across `AutonomousArrivalTests`, `HinterlandStockTests`, `HinterlandDepartureTests`. Corroborated over 50 Days: west 900→642, north 900→166, east 900→1,956, south flat ~899. No driven run, no per-episode figures. |
+| Scarcity and recovery | assertion tests | Same 30-test lane, plus `HinterlandReloadTests`' recovery-off and recovery-on cases. No driven run. |
+| Housing intervention | **driven**, `--start-at 4096` | See below. |
+| Outside competition | headless pair, `--reload-at 2048` | Control byte-identical to the stored onset dump, treatment differs. Numeric tables were never printed after the fix, so only that verdict stands. Regression test `ArrivalDumpTests.A_ruleset_transition_reaches_the_circuit_and_leaves_the_day_before_it_alone`. |
+| Shared gate constraint | **driven**, south edge | Gates 1→2, quota 96→192, stock unchanged at 893 Households / 1,478 people. Pool 366→469. Plus `GateCommandTests.A_second_door_on_one_edge_shares_the_stock_behind_it`. |
+| Return | assertion tests | 11 `HinterlandDepartureTests` cases, plus `HinterlandLongRunTests.A_returned_group_is_opened_and_later_retired`: 34 groups opened beyond the 12 authored, live count falling on Days 24, 37 and 39. |
+| Lost connection | **driven**, north edge | Removing the sole gate against a 52-Household queue cancelled exactly **52**, left stock untouched at 714, and a replacement door on the vacated Lot resumed ordinary admissions — 2 willing, 2 admitted by Tick 4,300. The other three edges did not move. |
+| Turnover | assertion tests | East sits above its resting count and is trimmed: 900→1,956 over 50 Days, turnover 11 today / 9 yesterday in the 64-Day run. No driven run. |
+
+### Episode 4, in full, because its premise was wrong
+
+**The plan's stated mechanism does not exist in this codebase.** This row asked to "let resubdivision
+remove its affected housing", but `LotSubdivider.Resubdivide` frees a Lot only when it is unfronted
+**and** vacant. `adr/0079` and `02 §2.2` both state that a Building whose last Street is bulldozed
+keeps standing and keeps its Occupants, and `SimulationTests.A_building_survives_losing_its_street_and_a_vacant_lot_beside_it_does_not`
+already asserts exactly that, including the vacant-Lot deletion. That test's own remark rejects the
+mechanism this plan assumed: `ZoneRuleEngine.Condemn` is keyed on a starving Rule Instance, and a
+bulldozed Street starves nothing.
+
+The first attempt demonstrated the rule rather than the plan. Bulldozing Segment 130,304 — frontage
+"3 Lots · 0 vacant", Buildings 61, 62 and 63, all dwellings — produced a treatment **identical to
+the control** at Tick 6,144 and 8,192. The Street did go: the hover changed to "LAYS a Street on the
+edge running EAST from (8,160, 8,128)", and a re-lay stood a new Segment 536,525 there.
+
+Capacity moves only where vacant Lots lose their frontage. Four Segments were cut one per Tick from
+Tick 4,096 and re-laid one per Tick from Tick 6,144 — one command a Tick deliberately, because the
+backlog records a shell crash when two arrive in one Tick.
+
+| Segment | Aim | Vacant frontage |
+|---|---|---|
+| 130,303 | (8144, 8128) | 3 of 3 Lots |
+| 130,816 | (8176, 8160) | 3 of 5 Lots |
+| 131,328 | (8176, 8192) | 2 of 5 Lots |
+| 392,959 | (8128, 8144) | 2 of 2 Lots |
+
+| Tick | Control | Treatment |
+|---|---|---|
+| 4,096 | 1,566 / 111 / **25** | — |
+| 4,112 (four cut) | — | 1,669 / 111 / **15** |
+| 6,144 | 1,604 / 112 / **24** | 1,604 / 112 / **14** |
+| 6,160 (four re-laid) | — | 1,603 / 112 / **24** |
+| 8,192 | 1,395 / 112 / **24** | 1,395 / 112 / **24** |
+
+Citizens / Buildings / vacant Lots. The ten vacant Lots lost are exactly the 3 + 3 + 2 + 2 measured
+beforehand, and re-laying returned all ten. A two-Segment control on the same world took 25 to **19**,
+exactly the six predicted. **Buildings never fell** — 111 to 112 throughout — so not one occupied
+dwelling was removed, which is `adr/0079` behaving as specified. By Tick 8,192 treatment and control
+agree exactly. ⚠ The Citizens figure at Tick 4,112 is not comparable to the control's 4,096 sample;
+vacant Lots is the measured variable here.
+
+**What the shell cannot show.** The Unplaced Pool is unreachable from a driven run. The Outside
+panel's text never reaches the `readout` caption, and `--arrivals` refuses `--log`, so the
+intervention's own Input Log cannot be replayed for the account. So episode 4's "more waiting or
+give-ups" half rests on the assertion tests above and not on this run.
+
+### Population and Money account
+
+From the 64-Day `attracted.toml` dump: people **1,377** with 1,377 rows standing and residual **0**;
+Households **470** with 470 rows standing and residual 0; admitted-unhoused 0. Money conserved
+exactly — supply 1,755,996, walked 1,755,996, no flow term — with 1,659,090 held by Households and
+96,906 by the treasury. 1,955 people were admitted over that run.
+
+### Long run
+
+`HinterlandLongRunTests` exercises two fixtures for 102,400 Ticks each at seed 11 and 1,000
+founding Citizens: `attracted-declining.toml` for continuing flow and `attracted.toml` for a city
+that fills. The corrected queue comparison changes which families reach the city and return.
+
+The storage check discards one authored recovery period before comparing tail halves, rather
+than a fixed eight Days. Recovery takes 32 Days in this fixture; the earlier window measured
+initial adjustment as well as later growth. A Release run of the corrected engine measured:
+
+| Reading | Result |
+|---|---|
+| groups, opening to Day 50 | 12 → 47 |
+| old Day-8 tail means | 36 → 43, 19.4% drift |
+| Day-32 tail means | 42 → 45, 7.1% drift against the unchanged 12.5% tripwire |
+
+This is a finite-run regression check, not proof of a plateau. The fixture must still exercise
+admissions, willing occasions, queueing and retirement, and both worlds must reconcile population
+and Money. Fixture construction time is shared by the assertions and is not a per-Tick timing.
+The original demonstration measurements remain in Git at `35c20dd`.
+
+### Persistence, determinism and tests run
+
+Full working lane green after review fixes: **3,593 tests, 0 failed, 5m09s**
+(`scripts/test.sh -- --no-restore`). This includes persistence, replay, worker equivalence and
+both 50-Day fixtures. Regression cases cover queue cancellation with no feasible housing,
+composition overflow and batched retirement with slot reuse. Queue fixtures now establish a
+currently willing prospect where admission is required. `scripts/format.sh --check` and the Godot
+build passed. No instrument tier was run and no performance figure is claimed.
+
+The review smoke used the compatibility renderer, `attracted.toml`, 1,000 founding Citizens and
+Tick 128. The four-edge panel opened, seven people had arrived, and both population residuals
+were zero. Forward+ hit an instance resource limit; the full socket-driven panel check did not
+complete. This smoke verifies the overview only. Shell edits in this review are comments only;
+a C# token comparison confirmed that the comment cleanup did not change executable shell code.
+
+### Defects this work found
+
+| Fixed | What |
+|---|---|
+| `270598e` | **Two of four edges could not be clicked at all.** An edge Lot on the north or east boundary anchors at exactly `CellGrid.WorldTiles`, which converts to a Cell one past the last, so `Aim` refused a cursor there and `GateNear`/`VacantNear` compared that unreachable Cell. The gate tool could not reach the north or east doors by hand or by script, though D14 promises all four. No test could catch it — `GateCommandTests` builds `Command`s directly and `Main.Verbs.cs` does not compile into the test project. The fix clamps the Lot's Cell for comparison only, so Core still receives the true anchor. |
+| `ea575d5` | `--arrivals` silently dropped `--reload-at`, so a transition run read and hashed the second Ruleset, never switched to it, and reported it anyway. The header also named only the opening Ruleset. |
+| `4afc887` | `attracted.toml`'s dead circuit, above, and the long-run tests that would have passed against it. |
+
+Open, and not this row's: `AllocationProbe`'s failure message directs a reader to `plans/0002` §D and
+`plans/0003` item 13, and **both are retired tombstones**. `AllocationAssertionTests` pins the dead
+pointer with `Assert.Contains("plans/0002", message)`, so the test changes with the message.
+
+### What watching actually surprised the implementer with
+
+1. **The plan was wrong about the corpus, and the corpus had already written the correction down.**
+   Episode 4 was scoped around resubdivision removing housing. It cannot. The test that asserts the
+   real behaviour also contains a remark rejecting the exact mechanism this plan assumed, which means
+   somebody had made and recorded this error before.
+2. **A shipped Ruleset can make a long-run test meaningless without failing it.** `attracted.toml`'s
+   circuit stops dead at Day 58 while 3,519 Households wait outside. Every balance assertion still
+   passes, because conserved nothing is still conserved.
+3. **A visible capability was unreachable on half its surface and no test could have said so.** The
+   gate tool never worked on the north or east edges. The defect lived in the one file the test
+   project cannot compile, which is precisely why the driven run is the guard.

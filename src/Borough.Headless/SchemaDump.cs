@@ -145,6 +145,14 @@ internal static class SchemaDump
     /// produces <c>[layers]</c>, <c>[[building]]</c> and, for an inline table, the enclosing path
     /// with the key appended: <c>[[rule]] inputs</c>. So the first token carries the repeat marker
     /// and every later one is a plain key.
+    /// <para>
+    /// ⚠ <b>The first token may be a DOTTED path and has to be split again.</b>
+    /// <c>[[hinterland.population]]</c> is one nested array-of-table, and left whole it would
+    /// publish a section literally named <c>hinterland.population</c> beside <c>hinterland</c> —
+    /// a property no editor could follow to a real TOML path. ***The repeat marker belongs to the
+    /// last segment***: in <c>[[a.b]]</c> it is <c>b</c> that repeats, and <c>a</c> takes whatever
+    /// its own context said.
+    /// </para>
     /// </remarks>
     private static void Absorb(
         Section root, IReadOnlyDictionary<string, IReadOnlyDictionary<string, RulesetKeyKind>> surface)
@@ -165,16 +173,21 @@ internal static class SchemaDump
             for (int step = 0; step < path.Length; step++)
             {
                 bool repeats = step == 0 && path[step].StartsWith("[[", StringComparison.Ordinal);
-                string name = path[step].Trim('[', ']');
+                string[] segments = path[step].Trim('[', ']').Split('.');
 
-                if (!at.Children.TryGetValue(name, out Section? child))
+                for (int segment = 0; segment < segments.Length; segment++)
                 {
-                    child = new Section();
-                    at.Children[name] = child;
-                }
+                    string name = segments[segment];
 
-                child.Repeats |= repeats;
-                at = child;
+                    if (!at.Children.TryGetValue(name, out Section? child))
+                    {
+                        child = new Section();
+                        at.Children[name] = child;
+                    }
+
+                    child.Repeats |= repeats && segment == segments.Length - 1;
+                    at = child;
+                }
             }
 
             foreach (KeyValuePair<string, RulesetKeyKind> key in entry.Value)

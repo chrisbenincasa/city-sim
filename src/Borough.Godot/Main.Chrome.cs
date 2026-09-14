@@ -47,6 +47,11 @@ public partial class Main
         _budgetButton.TooltipText = "What the city took in, what it paid out, and what it is holding";
         UiIcons.Attach(_budgetButton, "trade");
         _dataLaunchers.AddChild(_budgetButton);
+        _outsideButton = ConsoleButton("Outside", () => Ui(_outsideShown ? "outside off" : "outside on"));
+        _outsideButton.ToggleMode = true;
+        _outsideButton.TooltipText = "Who stands outside the city, who is waiting at a door, and who got in";
+        UiIcons.Attach(_outsideButton, "waiting");
+        _dataLaunchers.AddChild(_outsideButton);
         var reservedPins = ConsoleButton("Pins", () => { });
         reservedPins.Disabled = true;
         reservedPins.TooltipText = "Pins view is not available yet";

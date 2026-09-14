@@ -63,11 +63,20 @@ public sealed class SimulationTests
     /// second published fold would be an API a test wanted and a thing to keep in step for ever. The
     /// clock's own movement is asserted too, so the test cannot pass by excluding everything.
     /// </para>
+    /// <para>
+    /// <b>The reading starts at the second Tick, because the first one is not an empty Tick.</b> The
+    /// first <see cref="Simulation.Step"/> of a world's life folds whatever built it into the founding
+    /// population figures (<see cref="World.SealFoundingPopulation"/>) — a city cannot state what it
+    /// started with until it has started. That is a write nobody commanded, and it happens exactly
+    /// once, so the claim is made against a world that is already running.
+    /// </para>
     /// </remarks>
     [Fact]
     public void A_tick_with_no_commands_changes_nothing_but_the_clock()
     {
         Simulation simulation = Build();
+
+        simulation.Step(TickInput.Empty);
 
         ulong before = HashExceptTheClock(simulation.World);
         Ticks was = simulation.World.Tick;

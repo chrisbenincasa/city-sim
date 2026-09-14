@@ -379,6 +379,14 @@ public static class RulesetKeyNotes
             "Where this stage sits on the space-against-centrality axis when it looks for a home — 0 "
             + "wants room, 100 wants the middle of the city. Absent is the neutral value, which is "
             + "the placement this build had before preferences existed.",
+        ["[[life_stage]] rent_weight_percent"] =
+            "How heavily this stage weighs rent against everything else it wants from a home, as a "
+            + "percent of the neutral weight. It scales the rent term in the comparison and is "
+            + "never a budget \u2014 what a Household can pay at all is the affordability filter, "
+            + "which runs before any scoring. Absent is the neutral weight, which is the placement "
+            + "this build had before stages could disagree about price; a world stating "
+            + "[immigration] is refused without it, because who presents themselves at a gate turns "
+            + "on what they mind paying.",
         ["[[life_stage]] centrality_spread_percent"] =
             "The width of the band a Household of this stage draws its own position from, so that a "
             + "stage is a distribution rather than one opinion. Zero means the stage agrees with "
@@ -488,6 +496,52 @@ public static class RulesetKeyNotes
             "Which Good is being priced, naming a [[resource]]. Only a good may be — a utility is "
             + "not stocked, and money is what a price is denominated in rather than a thing that has "
             + "one.",
+        // ---- [[hinterland.population]] --------------------------------------------------------
+        ["[[hinterland.population]] stage"] =
+            "Which Life Stage every Household of this composition is in, naming a [[life_stage]]. "
+            + "The stage decides what the family wants from a home and whether it can carry "
+            + "children at all. It is resolved by the stage's authored name rather than by its "
+            + "position, so reordering the stages does not repopulate the Outside.",
+        ["[[hinterland.population]] adults_by_tier"] =
+            "How many of the Household's adults hold each Skill Tier, lowest first. Exactly three "
+            + "entries, because the Tiers are a closed set: a shorter list would read as 'the rest "
+            + "are zero', which is an author who has forgotten a Tier and an author who meant none "
+            + "writing the same thing. A composition with no adult at any Tier is refused.",
+        ["[[hinterland.population]] children"] =
+            "How many children each Household of this composition carries. The stage must state a "
+            + "school_level to carry any, because the level is a property of the stage rather than "
+            + "of the child \u2014 children imported into a stage naming no level would arrive "
+            + "with nothing to school them.",
+        ["[[hinterland.population]] money_band"] =
+            "Which third of this Hinterland's emigrant balance range the Households carry, numbered "
+            + "from 0 lowest. A band holding no amount is refused: a narrow balance range leaves "
+            + "the upper bands empty, and stock in one would be counted, recovered and never "
+            + "drawable.",
+        ["[[hinterland.population]] households"] =
+            "How many Households of this exact composition stand behind the edge at world creation, "
+            + "and the count the Outside recovers back to. Zero is legitimate and declares a "
+            + "composition the Outside keeps none of but will hold returns in. At least one "
+            + "composition somewhere in the world holds a positive count.",
+
+        // ---- [immigration] --------------------------------------------------------------------
+        ["[immigration] reconsider_days"] =
+            "How often a Household outside weighs the city against the life it already has. It "
+            + "counts occasions and is not an arrival rate: what each occasion decides is the "
+            + "choice model's answer. Stating the table at all is what turns a counted population "
+            + "into a flow, and every arrival in a world without it comes from an Arrive command.",
+        ["[immigration] recovery_days"] =
+            "How long the Outside takes to return to the resting stock its populations authored, "
+            + "from either direction \u2014 below target it adds Households, above target it "
+            + "removes them and reports the removal as turnover. Zero freezes the stock both ways, "
+            + "which is the world that demonstrates depletion with nothing refilling behind it.",
+        ["[immigration] queue_wait_days"] =
+            "The longest a Household willing to come waits at a gate whose quota is spent before it "
+            + "gives up and goes back to the stock.",
+        ["[immigration] queue_reconsider_days"] =
+            "How often a Household waiting at a full gate weighs that wait again. It is strictly "
+            + "shorter than queue_wait_days: a review at or beyond the wait it reviews never runs, "
+            + "because the family's patience expires first.",
+
         ["[[hinterland]] prices price"] =
             "The import price, which becomes the ceiling on what that Good can cost inside the city. "
             + "Delete the entry to leave a Good unpriced; a price of zero would make it free "

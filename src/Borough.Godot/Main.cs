@@ -769,6 +769,8 @@ public partial class Main : Node3D
     /// <summary>Which <c>serves</c> kind <see cref="Verb.Service"/> would raise.</summary>
     private byte _serviceKind;
 
+    private byte _gateKind;
+
     /// <summary>Whether the governing panel is open.</summary>
     private bool _governing;
 
@@ -1774,6 +1776,7 @@ public partial class Main : Node3D
         RefreshHealthMarkers();
         RefreshCityEvidence();
         RefreshBudget();
+        RefreshHinterlands();
     }
 
     /// <summary>
@@ -1988,4 +1991,7 @@ internal enum Verb : byte
     /// name, which is what stops the exception becoming a general <em>place anything</em> verb.
     /// </remarks>
     Service = 4,
+
+    /// <summary>Place or remove an Outside Connection on a vacant edge Lot.</summary>
+    Gate = 5,
 }
