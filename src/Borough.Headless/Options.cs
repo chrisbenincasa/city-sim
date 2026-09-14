@@ -1870,7 +1870,11 @@ internal sealed class Options
                                 PRESENTATIONS: nobody in that world decides to come, so
                                 the runner knocks on every gate once a Day asking for
                                 more than the door can take, and what is admitted is the
-                                file's ceiling rather than a rate chosen by the runner
+                                file's ceiling rather than a rate chosen by the runner.
+                                Honours --reload-at, so a second --ruleset comes into
+                                force mid-run and the circuit after it is the same city
+                                under different Rules -- which is how a rent-only partner
+                                file is read against the one it partners
           --flood               dump the floods: where the world seeded each one, how far it
                                 got, and how many Buildings it ruined and swept. Needs
                                 --ruleset stating [disasters], which rulesets/flooded.toml

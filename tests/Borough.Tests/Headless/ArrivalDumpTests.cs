@@ -204,6 +204,46 @@ public sealed class ArrivalDumpTests
         Assert.DoesNotContain("THE CIRCUIT", report, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// A second Ruleset comes into force mid-run, and the city before it is untouched.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b><c>--reload-at</c> was accepted by <see cref="Options"/> and dropped by this mode</b>, so
+    /// a run handed a rent-only partner file printed the unchanged city and called it the treatment.
+    /// Two Rulesets with no transition are already refused at parse, so nothing anywhere said the
+    /// second file had not been read.
+    /// <para>
+    /// ⚠ <b>The assertion is the PAIR and not either half.</b> <c>yesterday</c> is the Day before the
+    /// transition and must be identical on both sides — a treatment that had already diverged before
+    /// its own intervention would be measuring the seed. <c>today</c> is the Day after it and must
+    /// not be.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_ruleset_transition_reaches_the_circuit_and_leaves_the_day_before_it_alone()
+    {
+        const string Pair = "4096";
+
+        (int control, string unchanged) = Run(Ruleset("attracted.toml"), ticks: Pair);
+        (int treated, string cheaper) = Run(
+            Ruleset("attracted.toml"),
+            ticks: Pair,
+            extra: ["--ruleset", Ruleset("attracted-outside-cheaper.toml"), "--reload-at", "2048"]);
+
+        Assert.Equal(0, control);
+        Assert.Equal(0, treated);
+
+        Assert.Equal(Occasions(unchanged, "yesterday"), Occasions(cheaper, "yesterday"));
+        Assert.NotEqual(Occasions(unchanged, "today"), Occasions(cheaper, "today"));
+
+        Assert.Contains("attracted-outside-cheaper.toml at Tick 2048", cheaper, StringComparison.Ordinal);
+        Assert.DoesNotContain("at Tick", unchanged, StringComparison.Ordinal);
+    }
+
+    /// <summary>The west edge's fresh-occasion row, which is the first table to carry one.</summary>
+    private static string Occasions(string report, string when) =>
+        report.Split('\n').First(line => line.Contains("west      " + when, StringComparison.Ordinal));
+
     private static string Ruleset(string name) =>
         Path.Combine(AppContext.BaseDirectory, "Rulesets", name);
 
@@ -232,11 +272,11 @@ public sealed class ArrivalDumpTests
     private static string Dump() => Report.Value;
 
     private static (int Code, string Report) Run(
-        string ruleset, string citizens = Population, string ticks = Ticks)
+        string ruleset, string citizens = Population, string ticks = Ticks, params string[] extra)
     {
         Assert.True(
             Options.TryParse(
-                ["--arrivals", "--ruleset", ruleset, "--citizens", citizens, "--ticks", ticks],
+                ["--arrivals", "--ruleset", ruleset, "--citizens", citizens, "--ticks", ticks, .. extra],
                 out Options? options,
                 out string? complaint),
             complaint);

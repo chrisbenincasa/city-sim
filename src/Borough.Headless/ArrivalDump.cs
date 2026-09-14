@@ -89,9 +89,14 @@ internal static class ArrivalDump
             return refusal;
         }
 
+        if (!TryCatalogue(options, rules, out RulesetCatalogue catalogue, out ulong[] transitions))
+        {
+            return 2;
+        }
+
         var key = WorldKey.FromSeed(options.Seed);
         World world = new(options.Citizens, rules);
-        Simulation simulation = new(world, key) { VerifyDecideWritesNothing = false };
+        Simulation simulation = new(world, key, catalogue) { VerifyDecideWritesNothing = false };
 
         SyntheticCity.PopulateInto(world, key, new Ticks(0));
 
@@ -115,7 +120,16 @@ internal static class ArrivalDump
         // would be adding a caller to a mechanism whose whole point is not having one.
         bool stock = rules.Immigration.Stated;
 
-        Run(simulation, world, gates, options.Ticks, series, asking: !stock);
+        Run(
+            simulation,
+            world,
+            gates,
+            options.Ticks,
+            series,
+            asking: !stock,
+            options.ReloadTicks,
+            transitions,
+            catalogue.OpeningHash);
 
         Header(output, options, rules, names, gates, stock);
 
@@ -161,12 +175,26 @@ internal static class ArrivalDump
         Gate[] gates,
         ulong ticks,
         List<Reading> series,
-        bool asking)
+        bool asking,
+        IReadOnlyList<ulong> reloadTicks,
+        ulong[] transitions,
+        ulong opening)
     {
         Span<Command> knock = stackalloc Command[1];
+        ulong inForce = opening;
+        int next = 0;
 
         for (ulong tick = 0; tick < ticks; tick++)
         {
+            // adr/0015's iteration loop, on the Tick the command line named. The hash rides every
+            // input rather than a flag, so the transition reaches Simulation.Reload by the same door
+            // a recorded session's does and resolves out of the catalogue built above.
+            if (next < reloadTicks.Count && tick == reloadTicks[next])
+            {
+                inForce = transitions[next];
+                next++;
+            }
+
             if (tick % Ticks.PerDay == 0)
             {
                 foreach (Gate gate in gates)
@@ -177,7 +205,7 @@ internal static class ArrivalDump
                     }
 
                     knock[0] = gate.Knock();
-                    simulation.Step(new TickInput(knock, simulation.RulesetInForce));
+                    simulation.Step(new TickInput(knock, inForce));
                 }
 
                 // Every knock above consumed a Tick, so the Day's remaining Ticks are stepped empty
@@ -191,7 +219,7 @@ internal static class ArrivalDump
                 series.Add(Reading.Of(world, tick, simulation.Placement.Drain()));
             }
 
-            simulation.Step(default);
+            simulation.Step(new TickInput(default, inForce));
         }
     }
 
@@ -208,6 +236,16 @@ internal static class ArrivalDump
         output.WriteLine("ARRIVAL THROUGH THE GATE");
         output.WriteLine();
         output.WriteLine(F($"  ruleset        {options.RulesetPath}"));
+
+        // A run that transitioned and named only the file it opened with would report the treatment
+        // as the control. The Tick is here because the panels below are a reading at the end of the
+        // run, and which Rules produced them is the difference between the pair and one world.
+        for (int i = 0; i < options.ReloadTicks.Count; i++)
+        {
+            output.WriteLine(F(
+                $"  then           {options.RulesetPaths[i + 1]} at Tick {options.ReloadTicks[i]}"));
+        }
+
         output.WriteLine(F($"  citizens       {options.Citizens} at world creation"));
         output.WriteLine(F($"  ticks          {options.Ticks} ({options.Ticks / Ticks.PerDay} Days)"));
         output.WriteLine(F($"  gates          {gates.Length}"));
@@ -724,6 +762,53 @@ internal static class ArrivalDump
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// The Rulesets this run may put in force, and the hash each <c>--reload-at</c> transitions to.
+    /// </summary>
+    /// <remarks>
+    /// <b>Core cannot turn a hash into Rules</b>, so every file a transition can name is loaded here
+    /// and handed over as a catalogue. The opening entry is the one the World was created with, and
+    /// <see cref="RulesetCatalogue.Of"/> refuses two files under one hash rather than picking either.
+    /// </remarks>
+    private static bool TryCatalogue(
+        Options options,
+        Ruleset opening,
+        out RulesetCatalogue catalogue,
+        out ulong[] transitions)
+    {
+        catalogue = RulesetCatalogue.None;
+        transitions = [];
+
+        int count = options.RulesetPaths.Count;
+
+        if (count == 0)
+        {
+            return true;
+        }
+
+        var rules = new Ruleset[count];
+        var hashes = new ulong[count];
+
+        rules[0] = opening;
+        hashes[0] = RulesetFile.HashOf(options.RulesetPaths[0]);
+
+        for (int i = 1; i < count; i++)
+        {
+            if (!Session.TryRules(options.RulesetPaths[i], out Ruleset later, out _))
+            {
+                return false;
+            }
+
+            rules[i] = later;
+            hashes[i] = RulesetFile.HashOf(options.RulesetPaths[i]);
+        }
+
+        catalogue = RulesetCatalogue.Of(hashes, rules);
+        transitions = [.. hashes.AsSpan(1)];
+
+        return true;
     }
 
     /// <summary>Every standing Outside Connection, with the Tile a command must name.</summary>
