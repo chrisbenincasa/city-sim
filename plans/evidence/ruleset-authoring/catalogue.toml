@@ -33,7 +33,7 @@ label = "Books"
 price = 100
 
 [baskets.basic]
-use = { "food" = 32, "fuel" = 16 }
+use = { "food" = 48, "fuel" = 16 }
 
 [baskets.varied]
 use = { "books" = 8, "clothes" = 8, "food" = 32, "soap" = 8 }
@@ -45,12 +45,12 @@ days = 2
 days = 4
 
 [variants.reserve]
-days = 6
+days = 10
 
 [kinds.home_00]
 label = "Home 00"
 basket = "basic"
-overrides = { "reserve" = 8 }
+overrides = { }
 
 [kinds.home_01]
 label = "Home 01"
