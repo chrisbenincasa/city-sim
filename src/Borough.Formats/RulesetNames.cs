@@ -85,6 +85,26 @@ public sealed class RulesetNames
         _zoneRules = [.. zoneRules];
     }
 
+    private RulesetNames(
+        string[] kinds,
+        string[] businessKinds,
+        string[] conditions,
+        string[] resources,
+        string[] rules,
+        string[] lifeStages,
+        string?[] policies,
+        string?[] zoneRules)
+    {
+        _kinds = kinds;
+        _businessKinds = businessKinds;
+        _conditions = conditions;
+        _resources = resources;
+        _rules = rules;
+        _lifeStages = lifeStages;
+        _policies = policies;
+        _zoneRules = zoneRules;
+    }
+
     private RulesetNames()
     {
         _kinds = Nothing;
@@ -169,6 +189,51 @@ public sealed class RulesetNames
 
     private static string? At(string[] table, int id) =>
         id > 0 && id < table.Length ? table[id] : null;
+
+    /// <summary>
+    /// These names with each declaration's display label in place of the source id it was read under.
+    /// </summary>
+    /// <remarks>
+    /// A source v1 package lowers ids into the single-file reader's <c>name</c> keys, so the tables
+    /// arrive holding ids. <paramref name="label"/> receives the declaration section
+    /// (<c>building</c>, <c>rule</c>, ...) and the id. Conditions are not declarations and keep their
+    /// names. Identity keys are unaffected: they were folded from the ids before this runs.
+    /// </remarks>
+    internal RulesetNames Relabelled(Func<string, string, string> label) =>
+        new(
+            RelabelIds(_kinds, "building", label),
+            RelabelIds(_businessKinds, "business", label),
+            _conditions,
+            RelabelIds(_resources, "resource", label),
+            RelabelIds(_rules, "rule", label),
+            RelabelIds(_lifeStages, "life_stage", label),
+            RelabelPositions(_policies, "policy", label),
+            RelabelPositions(_zoneRules, "zone_rule", label));
+
+    private static string[] RelabelIds(string[] names, string section, Func<string, string, string> label)
+    {
+        string[] relabelled = new string[names.Length];
+
+        for (int i = 0; i < names.Length; i++)
+        {
+            relabelled[i] = names[i] is null ? names[i] : label(section, names[i]);
+        }
+
+        return relabelled;
+    }
+
+    private static string?[] RelabelPositions(
+        string?[] names, string section, Func<string, string, string> label)
+    {
+        string?[] relabelled = new string?[names.Length];
+
+        for (int i = 0; i < names.Length; i++)
+        {
+            relabelled[i] = names[i] is { } name ? label(section, name) : null;
+        }
+
+        return relabelled;
+    }
 
     /// <summary>
     /// Turns a name-to-id map into an id-indexed table.

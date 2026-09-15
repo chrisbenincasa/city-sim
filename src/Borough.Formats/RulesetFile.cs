@@ -48,12 +48,22 @@ public static class RulesetFile
     }
 
     /// <inheritdoc cref="HashOf"/>
-    public static ulong HashOfContent(ReadOnlySpan<byte> content)
+    public static ulong HashOfContent(ReadOnlySpan<byte> content) =>
+        ContentHash.Of(WithoutCarriageReturnPairs(content));
+
+    /// <summary>
+    /// <paramref name="content"/> with the CR of every CRLF pair removed, and nothing else changed.
+    /// </summary>
+    /// <remarks>
+    /// The one normalisation both identities share: the legacy hash above, and each manifest and
+    /// member inside a source bundle's frame (<see cref="RulesetCapture"/>). A lone CR is content.
+    /// </remarks>
+    internal static byte[] WithoutCarriageReturnPairs(ReadOnlySpan<byte> content)
     {
         const byte CarriageReturn = 0x0D;
         const byte LineFeed = 0x0A;
 
-        Span<byte> normalised = new byte[content.Length];
+        byte[] normalised = new byte[content.Length];
         int length = 0;
 
         for (int i = 0; i < content.Length; i++)
@@ -68,6 +78,7 @@ public static class RulesetFile
             }
         }
 
-        return ContentHash.Of(normalised[..length]);
+        Array.Resize(ref normalised, length);
+        return normalised;
     }
 }
