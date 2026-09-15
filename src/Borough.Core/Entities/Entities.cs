@@ -197,3 +197,26 @@ public readonly struct Business;
 /// </para>
 /// </remarks>
 public readonly struct District;
+
+/// <summary>
+/// The population behind one map edge, of which there are exactly four. <b>Empty for
+/// <see cref="Citizen"/>'s reason.</b>
+/// </summary>
+public readonly struct Hinterland;
+
+/// <summary>
+/// One exact family composition standing behind one edge, and how many Households of it there are.
+/// <b>Empty for <see cref="Citizen"/>'s reason.</b>
+/// </summary>
+public readonly struct HinterlandPopulation;
+
+/// <summary>
+/// Where the city's people came from and where the ones who left went, of which there is exactly one.
+/// <b>Empty for <see cref="Citizen"/>'s reason.</b>
+/// </summary>
+public readonly struct PopulationLedger;
+
+/// <summary>
+/// A family that has decided it wants to come and is waiting outside a gate for room.
+/// </summary>
+public readonly struct Waiting;

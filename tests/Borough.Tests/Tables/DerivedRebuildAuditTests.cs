@@ -136,6 +136,8 @@ public sealed class DerivedRebuildAuditTests
             Run(Stocked()),
             Run(Orphaned()),
             Run(GoldenFixtures.Build()),
+            Run(Attracted()),
+            Run(Attracted(512)),
         ];
 
         string[] all = audits[0].Derived;
@@ -227,7 +229,23 @@ public sealed class DerivedRebuildAuditTests
         // ***A column is derived when the derivation's inputs are always present, and never merely
         // when a derivation exists.*** adr/0079's shape one table over: a Lot keeps ground its
         // lattice no longer explains, exactly as a Building keeps an Address it can no longer reach.
-        Assert.Equal(41, all.Length);
+        //
+        // 41 -> 44: hinterland.group_head, hinterland.group_tail and hinterland_population.group_next,
+        // plans/0045 row 31 task 2. The per-edge list of compositions standing behind a map edge,
+        // derived because every insert is ordered by slot -- so a rebuild reproduces the ORDER and not
+        // merely the membership, which is CarParkResidency's test and the one an appending rebuild
+        // fails the moment the free list recycles a slot.
+        //
+        // ⚠ All three needed a fixture named for them, which is this audit's standing corollary: the
+        // rows are created by DECLARATION -- World's constructor reads [[hinterland.population]] --
+        // and attracted.toml is the only shipped file stating one. Every world above holds four empty
+        // Hinterland rows, so all three columns were unexercised the day they were declared.
+        //
+        // 44 -> 47: hinterland.gate_head, hinterland.gate_tail and building.gate_next, row 31 task 4.
+        // The doors standing on one edge, derived for the composition list's reason exactly -- the
+        // insert is ordered by slot, so the round-robin over an edge's gates reads an order a rebuild
+        // reproduces rather than the order the player happened to build them in.
+        Assert.Equal(47, all.Length);
         Assert.Single(ScratchColumns(Stepped(0)));
     }
 
@@ -418,6 +436,80 @@ public sealed class DerivedRebuildAuditTests
         }
 
         return world;
+    }
+
+    /// <summary>A world whose map edges have Households standing behind them.</summary>
+    /// <remarks>
+    /// No population command is needed: Outside tables are seeded by World construction.
+    /// </remarks>
+    private static World Attracted() => new(GoldenFixtures.Population, Shipped("attracted.toml"));
+
+    /// <summary>Loads one of the Rulesets the build copies next to the test assembly.</summary>
+    private static Ruleset Shipped(string file)
+    {
+        string path = Path.Combine(AppContext.BaseDirectory, "Rulesets", file);
+        RulesetLoadResult loaded = RulesetLoader.Load(path);
+
+        return loaded.Ruleset
+            ?? throw new InvalidOperationException(
+                $"{path} was refused, so the world cannot be built:\n{loaded.Describe()}");
+    }
+
+    /// <summary>The same world with a city in it, so its edges have doors on them.</summary>
+    /// <remarks>
+    /// Exercise rebuilds with active immigration state as well as a newly constructed World.
+    /// </remarks>
+    private static World Attracted(int ticks)
+    {
+        var key = WorldKey.FromSeed(GoldenFixtures.Seed);
+        var world = new World(GoldenFixtures.Population, Shipped("attracted.toml"), key);
+
+        SyntheticCity.PopulateInto(world, key, Ticks.Zero);
+        RaiseSecondGate(world, MapEdge.West, key);
+
+        var simulation = new Simulation(world, key) { VerifyDecideWritesNothing = false };
+
+        for (int tick = 0; tick < ticks; tick++)
+        {
+            simulation.Step(default);
+        }
+
+        return world;
+    }
+
+    /// <summary>
+    /// Puts a second door on one edge, so the gate list has a link in it rather than a single head.
+    /// </summary>
+    private static void RaiseSecondGate(World world, MapEdge edge, WorldKey key)
+    {
+        byte kind = 0;
+
+        for (int declared = 1; declared <= world.Rules.KindCount; declared++)
+        {
+            if (world.IsOutsideConnection((byte)declared))
+            {
+                kind = (byte)declared;
+                break;
+            }
+        }
+
+        if (kind == 0)
+        {
+            throw new InvalidOperationException("this Ruleset declares no Outside Connection.");
+        }
+
+        for (int lot = 0; lot < world.Lots.Rows.SlotCount; lot++)
+        {
+            if (world.Lots.Rows.IsLive(lot)
+                && world.Lots.IsVacant(lot)
+                && world.EdgeOf(lot) == edge)
+            {
+                world.CreateBuilding(world.Lots.Rows.At(lot), kind, Ticks.Zero, key);
+                return;
+            }
+        }
+
+        throw new InvalidOperationException($"no vacant Lot stands on the {edge} edge.");
     }
 
     /// <summary>

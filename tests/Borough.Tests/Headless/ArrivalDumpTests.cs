@@ -93,7 +93,7 @@ public sealed class ArrivalDumpTests
     {
         string report = Dump();
 
-        Assert.DoesNotContain("Nobody. The Pool is empty", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("Nobody. An empty Pool does NOT", report, StringComparison.Ordinal);
         Assert.Contains("of them have waited LONGER THAN THE BOUND", report, StringComparison.Ordinal);
     }
 
@@ -135,10 +135,11 @@ public sealed class ArrivalDumpTests
     /// The mode refuses to be pointed at a recorded session, because it drives one itself.
     /// </summary>
     /// <remarks>
-    /// 🔴 <b>This is the only dump that issues Commands</b>, and it is the reason the refusal exists:
-    /// a replayed log would be stepped and then driven on top of, so the run would be neither the
-    /// recorded session nor a clean demonstration. Nothing in the simulation decides to arrive until
-    /// milestone 16 (<c>adr/0128</c>), so a mode showing arrivals has to ask for them.
+    /// 🔴 <b>This is the only dump that issues Commands</b>, over a Ruleset stating no
+    /// <c>[immigration]</c>, and it is the reason the refusal exists: a replayed log would be stepped
+    /// and then driven on top of, so the run would be neither the recorded session nor a clean
+    /// demonstration. The refusal holds for a file with a counted Outside too, which drives no
+    /// commands but still builds its own world.
     /// </remarks>
     [Fact]
     public void The_mode_refuses_a_recorded_session()
@@ -149,7 +150,7 @@ public sealed class ArrivalDumpTests
                 out Options? _,
                 out string? complaint));
 
-        Assert.Contains("issues its own arrive commands", complaint!, StringComparison.Ordinal);
+        Assert.Contains("builds and drives its own world", complaint!, StringComparison.Ordinal);
     }
 
     /// <summary>Asking for two pictures at once is refused, as every other mode refuses it.</summary>
@@ -164,6 +165,69 @@ public sealed class ArrivalDumpTests
 
         Assert.Contains("each picture builds its own world", complaint!, StringComparison.Ordinal);
     }
+
+    /// <summary>
+    /// A Ruleset with a counted Outside prints the circuit and the runner asks for nothing.
+    /// </summary>
+    [Fact]
+    public void A_counted_outside_prints_the_circuit_and_asks_for_nothing()
+    {
+        (int code, string report) = Run(Ruleset("attracted.toml"));
+
+        Assert.Equal(0, code);
+
+        foreach (string panel in
+            (string[])["THE OUTSIDE", "WHO IS OUT THERE", "THE CIRCUIT", "THE POPULATION ACCOUNT"])
+        {
+            Assert.Contains(panel, report, StringComparison.Ordinal);
+        }
+
+        Assert.Contains("mode           a counted Outside", report, StringComparison.Ordinal);
+        Assert.Contains("THE RUNNER ISSUES NO COMMANDS AT ALL", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("asked/Day", report, StringComparison.Ordinal);
+    }
+
+    /// <summary>A file with no counted Outside says so, and keeps the driven picture.</summary>
+    [Fact]
+    public void A_file_without_one_is_labelled_explicit_presentations()
+    {
+        string report = Dump();
+
+        Assert.Contains("mode           explicit presentations", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("THE CIRCUIT", report, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A second Ruleset comes into force mid-run, and the city before it is untouched.
+    /// </summary>
+    /// <remarks>
+    /// The catalogue retains both Rulesets so the transition changes the simulation at its recorded
+    /// Tick.
+    /// </remarks>
+    [Fact]
+    public void A_ruleset_transition_reaches_the_circuit_and_leaves_the_day_before_it_alone()
+    {
+        const string Pair = "4096";
+
+        (int control, string unchanged) = Run(Ruleset("attracted.toml"), ticks: Pair);
+        (int treated, string cheaper) = Run(
+            Ruleset("attracted.toml"),
+            ticks: Pair,
+            extra: ["--ruleset", Ruleset("attracted-outside-cheaper.toml"), "--reload-at", "2048"]);
+
+        Assert.Equal(0, control);
+        Assert.Equal(0, treated);
+
+        Assert.Equal(Occasions(unchanged, "yesterday"), Occasions(cheaper, "yesterday"));
+        Assert.NotEqual(Occasions(unchanged, "today"), Occasions(cheaper, "today"));
+
+        Assert.Contains("attracted-outside-cheaper.toml at Tick 2048", cheaper, StringComparison.Ordinal);
+        Assert.DoesNotContain("at Tick", unchanged, StringComparison.Ordinal);
+    }
+
+    /// <summary>The west edge's fresh-occasion row, which is the first table to carry one.</summary>
+    private static string Occasions(string report, string when) =>
+        report.Split('\n').First(line => line.Contains("west      " + when, StringComparison.Ordinal));
 
     private static string Ruleset(string name) =>
         Path.Combine(AppContext.BaseDirectory, "Rulesets", name);
@@ -193,11 +257,11 @@ public sealed class ArrivalDumpTests
     private static string Dump() => Report.Value;
 
     private static (int Code, string Report) Run(
-        string ruleset, string citizens = Population, string ticks = Ticks)
+        string ruleset, string citizens = Population, string ticks = Ticks, params string[] extra)
     {
         Assert.True(
             Options.TryParse(
-                ["--arrivals", "--ruleset", ruleset, "--citizens", citizens, "--ticks", ticks],
+                ["--arrivals", "--ruleset", ruleset, "--citizens", citizens, "--ticks", ticks, .. extra],
                 out Options? options,
                 out string? complaint),
             complaint);

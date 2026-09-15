@@ -1135,4 +1135,65 @@ public enum Invariant
     /// which point the catchment leaves the guard's exclusion and this is replaced rather than relaxed.
     /// </remarks>
     CatchmentIsUnchangedSinceItWasLaid = 57,
+
+    /// <summary>
+    /// The live Citizens are exactly the people the account says arrived, minus the ones it says left.
+    /// </summary>
+    /// <remarks>
+    /// Live Citizens equal founding population plus births, admissions and scenario additions,
+    /// minus illness deaths, dissolutions, departures and scenario removals.
+    /// </remarks>
+    CityPopulationIsAccounted = 58,
+
+    /// <summary>
+    /// The live Households are exactly the ones the account says were created, minus the ones it lost.
+    /// </summary>
+    /// <remarks>
+    /// Local Household formation moves existing people; Household and Citizen totals need separate
+    /// accounts.
+    /// </remarks>
+    CityHouseholdsAreAccounted = 59,
+
+    /// <summary>
+    /// What stands behind an edge is what the group opened with, plus every crossing since.
+    /// </summary>
+    /// <remarks>
+    /// Stock equals opening plus replenishment and returns minus admissions and turnover.
+    /// Reservations must remain between zero and stock.
+    /// </remarks>
+    AHinterlandGroupIsAccounted = 60,
+
+    /// <summary>
+    /// The composition index names every live group, once, and nothing else.
+    /// </summary>
+    /// <remarks>
+    /// Each live composition must resolve to its own row, and the index must retain no retired keys.
+    /// </remarks>
+    TheCompositionIndexNamesEveryGroup = 61,
+
+    /// <summary>
+    /// An adult holds one of <c>adr/0104</c>'s three Skill Tiers.
+    /// </summary>
+    /// <remarks>
+    /// Adult Skill Tiers must be 1 through 3; malformed credentials cannot silently lose a person.
+    /// </remarks>
+    AnAdultHoldsADeclaredSkillTier = 62,
+
+    /// <summary>
+    /// Each group's reservations are exactly the live queue rows naming it, and every row is in both
+    /// of its edge's lists.
+    /// </summary>
+    /// <remarks>
+    /// Every queued Household reserves exactly one unit of its live composition stock.
+    /// </remarks>
+    TheQueueMatchesItsReservations = 63,
+
+    /// <summary>
+    /// The people in the city and the people behind its edges are the opening figures plus every
+    /// flow that crossed the world's outer boundary.
+    /// </summary>
+    /// <remarks>
+    /// Reconciles city and Outside people against founding baselines and classified external flows.
+    /// </remarks>
+    TheCityAndItsOutsideBalance = 64,
 }

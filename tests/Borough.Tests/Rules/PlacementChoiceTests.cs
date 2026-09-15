@@ -35,6 +35,14 @@ public sealed class PlacementChoiceTests
     private const int Citizens = 12_000;
     private const ulong Ticks = 20_480;
 
+    /// <summary>
+    /// The sharpest scale parameter <c>chosen.toml</c>'s own friction admits.
+    /// </summary>
+    /// <remarks>
+    /// Largest mu for which the fixture moving friction leaves an equal alternative above underflow.
+    /// </remarks>
+    private const int SharpestMu = 184;
+
     private static readonly WorldKey Key = WorldKey.FromSeed(0);
 
     private static string Source() =>
@@ -168,12 +176,45 @@ public sealed class PlacementChoiceTests
     public void A_sharper_mu_puts_centre_seekers_nearer_the_centre()
     {
         long loose = CentreMeanWalk(Run(At(10)));
-        long sharp = CentreMeanWalk(Run(At(2_000)));
+        long sharp = CentreMeanWalk(Run(At(SharpestMu)));
 
         Assert.True(
             sharp < loose,
-            $"mu = 20 left centre-seeking Households a mean {sharp} Tiles out and mu = 0.1 left "
-            + $"them {loose}. A sharper choice must act harder on the scores, or nothing reads them.");
+            $"mu = {SharpestMu} percent left centre-seeking Households a mean {sharp} Tiles out and "
+            + $"mu = 0.1 left them {loose}. A sharper choice must act harder on the scores, or "
+            + "nothing reads them.");
+    }
+
+    /// <summary>
+    /// Friction past adr/0038's horizon is refused at load rather than discovered in the city.
+    /// </summary>
+    [Fact]
+    public void Friction_that_makes_an_equal_home_impossible_is_refused()
+    {
+        string toml = System.Text.RegularExpressions.Regex.Replace(
+            Source(), @"moving_costs_rent\s*=\s*-?\d+", "moving_costs_rent = 2400");
+
+        RulesetLoadResult result = RulesetLoader.Parse(toml, "chosen.toml");
+
+        Assert.Null(result.Ruleset);
+        Assert.Contains("moving impossible rather than expensive", result.Describe(),
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The ceiling is the keys together, so one more percent of μ refuses a file 184 accepts.
+    /// </summary>
+    [Fact]
+    public void The_sharpest_mu_a_file_may_state_is_the_one_its_friction_leaves_room_for()
+    {
+        Assert.True(At(SharpestMu).Placement.EqualAlternativeSurvives);
+
+        string toml = Source().Replace(
+            "mu_percent                = 100",
+            $"mu_percent                = {SharpestMu + 1}",
+            StringComparison.Ordinal);
+
+        Assert.Null(RulesetLoader.Parse(toml, "chosen.toml").Ruleset);
     }
 
     /// <summary>The draw is deterministic, which a hash-bearing choice has to be.</summary>
@@ -189,7 +230,7 @@ public sealed class PlacementChoiceTests
     [Fact]
     public void Mu_is_hash_bearing()
     {
-        Assert.NotEqual(Run(At(100)).HashState(), Run(At(2_000)).HashState());
+        Assert.NotEqual(Run(At(100)).HashState(), Run(At(SharpestMu)).HashState());
     }
 
     /// <summary>
@@ -210,28 +251,29 @@ public sealed class PlacementChoiceTests
     }
 
     /// <summary>
-    /// The whole usable band, measured, because both ends of it are surprising.
+    /// The whole authorable band, measured, because the top of it is surprising.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Two utility units of stickiness is a city playing musical chairs and twenty is a city
-    /// nobody can leave.</b> Over 20,480 Ticks at 12,000 Citizens: <b>240 a Day (2 units) moves
-    /// 9,388 Households, 720 (6 units) moves 324, 960 (8 units) moves 42, and 2,400 (20 units)
-    /// moves none at all.</b> Roughly 2,100 Households are housed, so the first figure is every
-    /// family moving four times in ten Days.
+    /// <b>Two utility units of stickiness is a city playing musical chairs and eight is a city that
+    /// has nearly stopped.</b> Over 20,480 Ticks at 12,000 Citizens: <b>240 a Day (2 units) moves
+    /// 9,388 Households, 720 (6 units) moves 324, and 960 (8 units) moves 42.</b> Roughly 2,100
+    /// Households are housed, so the first figure is every family moving four times in ten Days.
     /// </para>
     /// <para>
-    /// 🔴 <b>The zero at the top is adr/0038's horizon reaching gameplay for the first time.</b>
-    /// Twenty units is past <c>11.09 / μ</c>, so every alternative has weight EXACTLY zero and
-    /// moving is impossible rather than rare. ***The stickiness key therefore has a ceiling nobody
-    /// authored***, it moves with μ, and a designer turning it up would find the city stop dead
-    /// rather than slow down.
+    /// 🔴 <b>The band stops where it does because adr/0038's horizon reaches gameplay.</b> Past
+    /// <c>11.09 / μ</c> utility units a dwelling identical to the incumbent has weight EXACTLY zero
+    /// and moving is impossible rather than rare, so the stickiness key has a ceiling and it moves
+    /// with μ. A designer turning it up would once have found the city stop dead rather than slow
+    /// down; <see cref="PlacementRuleset.EqualAlternativeSurvives"/> refuses that file at load
+    /// instead, which is why 2,400 a Day is no longer a row here.
     /// </para>
     /// </remarks>
     [Theory]
     [InlineData(240, 720)]
     [InlineData(720, 960)]
-    public void Stickiness_is_a_taper_until_it_is_a_wall(int footlooseRent, int settledRent)
+    public void Stickiness_tapers_across_every_band_a_file_may_state(
+        int footlooseRent, int settledRent)
     {
         Assert.True(
             Measure(Settled(settledRent)).Activity.PreferredMoves.Sum
@@ -252,11 +294,11 @@ public sealed class PlacementChoiceTests
     public void A_settled_city_moves_house_less_than_a_footloose_one()
     {
         long footloose = Measure(Settled(0)).Activity.PreferredMoves.Sum;
-        long settled = Measure(Settled(2_400)).Activity.PreferredMoves.Sum;
+        long settled = Measure(Settled(960)).Activity.PreferredMoves.Sum;
 
         Assert.True(
             settled < footloose,
-            $"a city where staying is worth 2,400 a Day moved {settled} Households and one where "
+            $"a city where staying is worth 960 a Day moved {settled} Households and one where "
                 + $"it is worth nothing moved {footloose}. The stay-put row is not being weighed.");
     }
 

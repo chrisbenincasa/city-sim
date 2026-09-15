@@ -875,4 +875,30 @@ public enum PurposeTag : ulong
     /// </para>
     /// </remarks>
     ChoiceDraw = 53,
+
+    /// <summary>
+    /// What a prospect standing at a gate has in its pocket, drawn uniformly inside its stock
+    /// group's purse band.
+    /// </summary>
+    /// <remarks>
+    /// Separate from resident endowments so equally numbered prospects and residents do not share a
+    /// purse draw.
+    /// </remarks>
+    ProspectPurse = 54,
+
+    /// <summary>
+    /// Which Outside a Household that has given up looking goes to.
+    /// </summary>
+    /// <remarks>
+    /// Independent of housing choice and admission; the destination is drawn even if no gate remains.
+    /// </remarks>
+    DepartureDestination = 55,
+
+    /// <summary>
+    /// Which group behind an edge an <c>Arrive</c> command draws the family it asked for from.
+    /// </summary>
+    /// <remarks>
+    /// Selects a composition for an explicit Arrive request, independently of its housing choice.
+    /// </remarks>
+    RequestedFamily = 56,
 }

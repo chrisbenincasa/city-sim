@@ -1381,6 +1381,15 @@ public readonly record struct LifeStageDefinition
     /// </para>
     /// </remarks>
     public byte SchoolLevel { get; init; }
+
+    /// <summary>
+    /// How heavily this stage weighs rent against everything else it wants from a home, as a
+    /// percent of the neutral weight.
+    /// </summary>
+    /// <remarks>
+    /// Scales preference for rent, not the affordability budget. Zero ignores rent in utility only.
+    /// </remarks>
+    public int RentWeightPercent { get; init; }
 }
 
 
@@ -1735,6 +1744,54 @@ public readonly record struct HinterlandDefinition(
     /// </remarks>
     public bool Endows => EmigrantBalanceMax.Raw > 0;
 
+    /// <summary>How many purse bands an emigrant balance range is cut into.</summary>
+    public const int MoneyBands = 3;
+
+    /// <summary>How many distinct amounts the emigrant balance range holds, inclusive.</summary>
+    public long BalanceWidth => (EmigrantBalanceMax - EmigrantBalanceMin).Raw + 1;
+
+    /// <summary>The least money a Household in <paramref name="band"/> carries.</summary>
+    public Money BandFloor(int band) =>
+        EmigrantBalanceMin + new Money(IntegerMath.CeilDiv(band * BalanceWidth, MoneyBands));
+
+    /// <summary>The most money a Household in <paramref name="band"/> carries.</summary>
+    public Money BandCeiling(int band) =>
+        EmigrantBalanceMin
+        + new Money(IntegerMath.CeilDiv((band + 1) * BalanceWidth, MoneyBands) - 1);
+
+    /// <summary>
+    /// Whether <paramref name="band"/> holds any amount at all.
+    /// </summary>
+    /// <remarks>
+    /// A width-one purse range has only band zero. Reject authored stock in empty bands.
+    /// </remarks>
+    public bool DeclaresBand(int band) =>
+        band >= 0 && band < MoneyBands && BandFloor(band) <= BandCeiling(band);
+
+    /// <summary>Which band <paramref name="amount"/> falls in.</summary>
+    public int BandOf(Money amount)
+    {
+        long offset = amount.Raw - EmigrantBalanceMin.Raw;
+        long width = BalanceWidth;
+
+        if (offset < 0)
+        {
+            offset = 0;
+        }
+        else if (offset > width - 1)
+        {
+            offset = width - 1;
+        }
+
+        return (int)IntegerMath.FloorDiv(MoneyBands * offset, width);
+    }
+
+    /// <summary>Where this Hinterland's opening stock starts in <c>Ruleset.HinterlandPopulations</c>.</summary>
+    public int PopulationFirst { get; init; }
+
+    /// <summary>How many opening compositions this Hinterland declares.</summary>
+    public int PopulationCount { get; init; }
+
     /// <summary>
     /// What the Household whose never-reused id is <paramref name="entityId"/> carries across.
     /// </summary>
@@ -1776,6 +1833,31 @@ public readonly record struct HinterlandDefinition(
         ulong draw = Randomness.Draw(key, entityId, Ticks.Zero, PurposeTag.EmigrantBalance);
 
         return EmigrantBalanceMin + new Money((long)(draw % (ulong)span));
+    }
+
+    /// <summary>
+    /// What a prospect from <paramref name="band"/> carries, drawn once and carried through.
+    /// </summary>
+    /// <remarks>
+    /// Draw once within the composition band and retain the purse through reviews and admission.
+    /// If a reload empties a return-only band, the current fallback is its floor.
+    /// </remarks>
+    /// <param name="key">The world seed.</param>
+    /// <param name="entityId">The prospect's choice identity, which the Household then keeps.</param>
+    /// <param name="band">Which third of the range this prospect stands in.</param>
+    public Money BandBalance(WorldKey key, ulong entityId, int band)
+    {
+        Money floor = BandFloor(band);
+        long span = (BandCeiling(band) - floor).Raw + 1;
+
+        if (span <= 1)
+        {
+            return floor;
+        }
+
+        ulong draw = Randomness.Draw(key, entityId, Ticks.Zero, PurposeTag.ProspectPurse);
+
+        return floor + new Money((long)(draw % (ulong)span));
     }
 }
 
@@ -1881,6 +1963,16 @@ public readonly record struct PlacementRuleset(
 
     /// <summary>The scale parameter in Q16.16.</summary>
     public int Mu => (int)IntegerMath.FloorDiv((long)MuPercent * Fixed.One, 100);
+
+    /// <summary>
+    /// Whether a dwelling exactly as good as the incumbent still has a weight the model can hold.
+    /// </summary>
+    /// <remarks>
+    /// Reject friction that alone makes an equal alternative underflow. Worse alternatives
+    /// may still legitimately lie beyond the choice horizon.
+    /// </remarks>
+    public bool EqualAlternativeSurvives =>
+        !Chooses || !Transcendental.UnderflowsFor(Mu, 0, StayingPut);
 
     /// <summary>A Ruleset whose city houses nobody.</summary>
     public static PlacementRuleset None => default;
@@ -4250,6 +4342,20 @@ public sealed class Ruleset
     public Money[] HinterlandPrices { get; init; } = [];
 
     /// <summary>
+    /// Every Hinterland's opening population, flattened, indexed by
+    /// <see cref="HinterlandDefinition.PopulationFirst"/> and its count.
+    /// </summary>
+    /// <remarks>
+    /// Contiguous per Hinterland in declaration order; kept outside the unmanaged definition.
+    /// </remarks>
+    public HinterlandPopulationDefinition[] HinterlandPopulations { get; init; } = [];
+
+    /// <summary>
+    /// <c>[immigration]</c>, or a world whose arrivals all come from a caller.
+    /// </summary>
+    public ImmigrationRuleset Immigration { get; init; } = ImmigrationRuleset.None;
+
+    /// <summary>
     /// The <c>[market]</c> table — <b>how a Pool price moves</b>. <see cref="MarketRuleset.None"/>
     /// when the file states none, which is a city whose prices never leave the ceiling.
     /// </summary>
@@ -4646,6 +4752,12 @@ public sealed class Ruleset
     /// <summary>The percent that <see cref="CentralityNeutral"/> is written as in a Ruleset.</summary>
     public const int CentralityNeutralPercent = 50;
 
+    /// <summary>The rent weight a Life Stage stating none carries.</summary>
+    /// <remarks>
+    /// Legacy stages default to 100; stock-enabled worlds must explicitly state their weights.
+    /// </remarks>
+    public const int RentNeutralPercent = 100;
+
     /// <summary>
     /// Whether any Life Stage in this Ruleset states an opinion about centrality.
     /// </summary>
@@ -4734,6 +4846,11 @@ public sealed class Ruleset
         return (int)IntegerMath.FloorDiv(scaled, 100);
     }
 
+    /// <summary>How heavily a Household in <paramref name="stage"/> weighs rent.</summary>
+    public int RentWeight(byte stage) => stage == 0 || stage > LifeStages.Length
+        ? RentNeutralPercent
+        : LifeStages[stage - 1].RentWeightPercent;
+
     /// <summary>This Ruleset with different Map Layer data, and everything else shared.</summary>
     /// <remarks>
     /// <para>
@@ -4791,6 +4908,8 @@ public sealed class Ruleset
             Policies = Policies,
             Hinterlands = Hinterlands,
             HinterlandPrices = HinterlandPrices,
+            HinterlandPopulations = HinterlandPopulations,
+            Immigration = Immigration,
             Market = Market,
             IncomeTax = IncomeTax,
             BusinessTax = BusinessTax,

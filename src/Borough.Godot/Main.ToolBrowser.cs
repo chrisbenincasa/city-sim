@@ -85,7 +85,13 @@ public partial class Main
     {
         if (_heldTool is null) return;
         _heldTool.Text = _verb == Verb.Zone ? ZoneName() : _verb switch
-        { Verb.Look => "Look", Verb.Connect => "Street", Verb.Demolish => "Demolish", _ => _names.Kind(_serviceKind) ?? "Service" };
+        {
+            Verb.Look => "Look",
+            Verb.Connect => "Street",
+            Verb.Demolish => "Demolish",
+            Verb.Gate => _names.Kind(_gateKind) ?? "Outside Connection",
+            _ => _names.Kind(_serviceKind) ?? "Service"
+        };
         _heldTool.Text = ToolLabel(_heldTool.Text);
         _heldTool.TooltipText = _heldTool.Text;
         _cancelTool.Visible = _verb != Verb.Look;
@@ -105,6 +111,7 @@ public partial class Main
                     "street" => _verb == Verb.Connect,
                     "demolish" => _verb == Verb.Demolish,
                     "service" => _verb == Verb.Service && option.Choice == _serviceKind,
+                    "gate" => _verb == Verb.Gate && option.Choice == _gateKind,
                     _ => false,
                 };
                 var button = new Button

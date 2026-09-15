@@ -219,6 +219,23 @@ public sealed class World
         IncomeTaxRates = new IncomeTaxTable();
         MoneySupply = new MoneySupplyTable();
 
+        // Sized from the Ruleset for PolicyTable's reason -- a composition is declared and not
+        // populated -- and doubled because returns open rows nobody authored. A hint; it grows.
+        HinterlandPopulation =
+            new HinterlandPopulationTable(
+                rules.HinterlandPopulations.Length == 0
+                    ? HinterlandTable.Edges
+                    : rules.HinterlandPopulations.Length * 2);
+
+        // After the groups, because the edge row holds a handle into them: the walk over an edge's
+        // compositions starts where the last one stopped, and the cursor names a group.
+        Hinterlands = new HinterlandTable(HinterlandPopulation);
+
+        // A hint, and a small one: a queue only has rows while the gates cannot keep up.
+        HinterlandQueue = new HinterlandQueueTable(8, HinterlandPopulation);
+
+        PopulationLedger = new PopulationLedgerTable();
+
         // adr/0142's collection, and its capacity hint assumes even less than the Business table's:
         // milestone 27 task 8 gave this pool its inflow (adr/0145), so it is no longer empty in every
         // world -- a Ruleset stating [business] founds into it. A hint, since it grows.
@@ -471,6 +488,10 @@ public sealed class World
             // historical fact about conditions that are gone and cannot be recomputed from a world
             // that has moved on.
             Blocks.Rows, Shopping.Rows, KnownShops.Rows, Civic.Rows, FamilyCare.Rows, KnownClinics.Rows, CareHistory.Rows, CareDays.Rows,
+
+            // Save Outside stock and its population account alongside the city tables.
+            Hinterlands.Rows, HinterlandPopulation.Rows, HinterlandQueue.Rows,
+            PopulationLedger.Rows,
         ];
 
         // The same list minus the tables no Tick phase can write, for the Decide guard alone. See
@@ -505,6 +526,193 @@ public sealed class World
         {
             EndowTreasury(rules.Treasury.OpeningBalance);
         }
+
+        SeedHinterlandPopulation();
+    }
+
+    /// <summary>
+    /// Puts the Ruleset's opening population behind the edges, and records what it put there.
+    /// </summary>
+    /// <remarks>
+    /// Seed only during world construction. Loading restores saved stock; rebuilding derived
+    /// indexes must never recreate the opening population.
+    /// </remarks>
+    private void SeedHinterlandPopulation()
+    {
+        long people = 0;
+        long households = 0;
+
+        for (int edge = 0; edge < HinterlandTable.Edges; edge++)
+        {
+            if (!Rules.TryHinterland(HinterlandTable.EdgeAt(edge), out HinterlandDefinition declared))
+            {
+                continue;
+            }
+
+            for (int entry = 0; entry < declared.PopulationCount; entry++)
+            {
+                HinterlandPopulationDefinition group =
+                    Rules.HinterlandPopulations[declared.PopulationFirst + entry];
+
+                int slot = HinterlandPopulation.Open(
+                    Hinterlands,
+                    declared.Edge,
+                    HinterlandComposition.Of(group),
+                    group.Households,
+                    group.Households,
+                    authored: true);
+
+                HinterlandCompositions.Add(HinterlandPopulation, slot);
+
+                people += group.People;
+                households += group.Households;
+            }
+        }
+
+        PopulationLedger.OpeningOutsidePeople[PopulationLedgerTable.Slot] = people;
+        PopulationLedger.OpeningOutsideHouseholds[PopulationLedgerTable.Slot] = households;
+    }
+
+    /// <summary>
+    /// Takes the founding figures, once, before the first Tick applies any input.
+    /// </summary>
+    /// <remarks>
+    /// Seal once after scenario setup and before input, so a Tick-zero Arrive remains an admission.
+    /// </remarks>
+    /// <remarks>
+    /// Capture both city and Outside baselines, then reset setup flows together.
+    /// </remarks>
+    /// <returns>Whether this call was the one that sealed it.</returns>
+    public bool SealFoundingPopulation()
+    {
+        if (!PopulationLedger.Seal())
+        {
+            return false;
+        }
+
+        long people = 0;
+        long households = 0;
+
+        for (int slot = 0; slot < HinterlandPopulation.Rows.SlotCount; slot++)
+        {
+            if (!HinterlandPopulation.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            HinterlandPopulation.Opening[slot] = HinterlandPopulation.Stock[slot];
+            HinterlandPopulation.Replenished[slot] = 0;
+            HinterlandPopulation.Returned[slot] = 0;
+            HinterlandPopulation.Admitted[slot] = 0;
+            HinterlandPopulation.Turnover[slot] = 0;
+
+            people += HinterlandPopulation.People(slot);
+            households += HinterlandPopulation.Stock[slot];
+        }
+
+        for (int edge = 0; edge < HinterlandTable.Edges; edge++)
+        {
+            Hinterlands.ReplenishedHouseholds[edge] = 0;
+            Hinterlands.ReplenishedPeople[edge] = 0;
+            Hinterlands.ReturnedHouseholds[edge] = 0;
+            Hinterlands.ReturnedPeople[edge] = 0;
+            Hinterlands.AdmittedHouseholds[edge] = 0;
+            Hinterlands.AdmittedPeople[edge] = 0;
+            Hinterlands.TurnoverHouseholds[edge] = 0;
+            Hinterlands.TurnoverPeople[edge] = 0;
+        }
+
+        PopulationLedger.OpeningOutsidePeople[PopulationLedgerTable.Slot] = people;
+        PopulationLedger.OpeningOutsideHouseholds[PopulationLedgerTable.Slot] = households;
+
+        return true;
+    }
+
+    /// <summary>
+    /// Who a Household is made of, as the Outside would store it.
+    /// </summary>
+    /// <remarks>
+    /// Count actual live members before retiring them. Age zero denotes a child; adults retain
+    /// their Skill Tiers. Classify the purse using the destination range.
+    /// </remarks>
+    public HinterlandComposition CompositionOf(
+        Handle<Household> household, in HinterlandDefinition destination)
+    {
+        int slot = Households.Rows.Resolve(household);
+
+        int tier1 = 0;
+        int tier2 = 0;
+        int tier3 = 0;
+        int children = 0;
+
+        foreach (int member in Members.Walk(slot))
+        {
+            if (Citizens.Age[member] == 0)
+            {
+                children++;
+                continue;
+            }
+
+            switch (Citizens.SkillTier[member])
+            {
+                case 2:
+                    tier2++;
+                    break;
+
+                case SchoolingRuleset.TopTier:
+                    tier3++;
+                    break;
+
+                case SchoolingRuleset.FloorTier:
+                    tier1++;
+                    break;
+
+                default:
+                    Invariants.Report(
+                        Invariant.AnAdultHoldsADeclaredSkillTier,
+                        member,
+                        Citizens.SkillTier[member]);
+                    tier1++;
+                    break;
+            }
+        }
+
+        return new HinterlandComposition(
+            Households.LifeStage[slot],
+            tier1,
+            tier2,
+            tier3,
+            children,
+            destination.BandOf(BalanceOf(household)));
+    }
+
+    /// <summary>
+    /// Puts one Household of an exact composition behind an edge, opening a group if there is none.
+    /// </summary>
+    /// <remarks>
+    /// Return-only compositions have target zero. Update edge lifetime counters because
+    /// the group and its own counters may later retire.
+    /// </remarks>
+    /// <returns>The group the Household joined.</returns>
+    public int ReturnToHinterland(MapEdge edge, in HinterlandComposition composition)
+    {
+        if (!HinterlandCompositions.TryFind(HinterlandPopulation, edge, composition, out int slot))
+        {
+            slot = HinterlandPopulation.Open(
+                Hinterlands, edge, composition, stock: 0, target: 0, authored: false);
+
+            HinterlandCompositions.Add(HinterlandPopulation, slot);
+        }
+
+        HinterlandPopulation.Stock[slot]++;
+        HinterlandPopulation.Returned[slot]++;
+
+        int edgeSlot = HinterlandTable.SlotOf(edge);
+
+        Hinterlands.ReturnedHouseholds[edgeSlot]++;
+        Hinterlands.ReturnedPeople[edgeSlot] += composition.Members;
+
+        return slot;
     }
 
     /// <summary>
@@ -577,6 +785,33 @@ public sealed class World
     /// balance — see <see cref="MoneySupplyTable"/>.
     /// </summary>
     public MoneySupplyTable MoneySupply { get; }
+
+    /// <summary>
+    /// The population behind each of the map's four edges: what stands there and what has crossed.
+    /// </summary>
+    /// <remarks>
+    /// One row for each map edge, including edges with no opening stock.
+    /// </remarks>
+    public HinterlandTable Hinterlands { get; }
+
+    /// <summary>
+    /// Every composition standing behind an edge, one aggregate row each.
+    /// </summary>
+    public HinterlandPopulationTable HinterlandPopulation { get; }
+
+    /// <summary>
+    /// Which row holds a given composition behind a given edge. <c>(derived AND rebuilt)</c>.
+    /// </summary>
+    public HinterlandCompositions HinterlandCompositions { get; } = new();
+
+    /// <summary>The families waiting outside the gates for room.</summary>
+    public HinterlandQueueTable HinterlandQueue { get; }
+
+    /// <summary>
+    /// Where this city's people came from and where the ones who left went, as one saved row. The
+    /// anchor <see cref="Invariant.CityPopulationIsAccounted"/> is an equality against.
+    /// </summary>
+    public PopulationLedgerTable PopulationLedger { get; }
 
     /// <summary>
     /// The Tick this world is about to run.
@@ -940,6 +1175,148 @@ public sealed class World
     public Movement.KnownShopTable KnownShops { get; }
 
     /// <summary>
+    /// Refuses a reload that would move the Outside rather than retune it.
+    /// </summary>
+    /// <remarks>
+    /// Stock mode, declared edges, opening compositions and Money identity cannot change.
+    /// Durations, preferences and purse ranges may retune without replacing population.
+    /// </remarks>
+    private void RefuseIncompatibleOutside(Ruleset rules)
+    {
+        if (rules.Immigration.Stated != Rules.Immigration.Stated)
+        {
+            throw new NotSupportedException(
+                $"this world was founded {(Rules.Immigration.Stated ? "with" : "without")} a counted "
+                + $"Outside and the reloaded Ruleset states {(rules.Immigration.Stated ? "one" : "none")}. "
+                + "Enabling it would need an opening stock nobody counted, and disabling it would "
+                + "strand the Households standing behind every edge with no account to retire them "
+                + "through (plans/0073 D12).");
+        }
+
+        if (!Rules.Immigration.Stated)
+        {
+            return;
+        }
+
+        if (MoneyResourceOf(Rules).Raw != MoneyResourceOf(rules).Raw)
+        {
+            throw new NotSupportedException(
+                "the reloaded Ruleset names a different Resource as money, and every Household "
+                + "outside is filed under which third of a purse range it carries. The band indices "
+                + "already stored would keep their numbers and mean a different currency.");
+        }
+
+        for (int slot = 0; slot < HinterlandTable.Edges; slot++)
+        {
+            MapEdge edge = HinterlandTable.EdgeAt(slot);
+
+            bool had = Rules.TryHinterland(edge, out HinterlandDefinition was);
+            bool has = rules.TryHinterland(edge, out HinterlandDefinition now);
+
+            if (had != has)
+            {
+                throw new NotSupportedException(
+                    $"the reloaded Ruleset {(has ? "adds an Outside behind" : "removes the Outside behind")} "
+                    + $"the {edge} edge. A Departure draws its destination from the declared edges "
+                    + "(plans/0073 D9), so a world that lost one would have nowhere to send the "
+                    + "families that leave by it and stock standing where nothing reads.");
+            }
+
+            if (!had)
+            {
+                continue;
+            }
+
+            if (was.PopulationCount != now.PopulationCount)
+            {
+                throw new NotSupportedException(
+                    $"the {edge} Outside declares {now.PopulationCount} compositions where this world "
+                    + $"was founded with {was.PopulationCount}. A composition is the key its stock is "
+                    + "filed under, so adding or removing one leaves Households filed under a key "
+                    + "nothing declares.");
+            }
+
+            for (int entry = 0; entry < was.PopulationCount; entry++)
+            {
+                if (Rules.HinterlandPopulations[was.PopulationFirst + entry]
+                    == rules.HinterlandPopulations[now.PopulationFirst + entry])
+                {
+                    continue;
+                }
+
+                throw new NotSupportedException(
+                    $"composition {entry} behind the {edge} edge is not the one this world was founded "
+                    + "with. Its shape is the key the stock is filed under and its count is the "
+                    + "resting target recovery moves towards, so an edit here would either re-file "
+                    + "people already standing there or move a population nobody transferred "
+                    + "(plans/0073 D12). Rent, centrality, purse ranges, the durations and the stage "
+                    + "preferences all retune freely; depth needs a new world.");
+            }
+        }
+    }
+
+    /// <summary>The one conserved Resource a Ruleset declares, or none.</summary>
+    private static ResourceId MoneyResourceOf(Ruleset rules)
+    {
+        for (int raw = 1; raw <= rules.ResourceCount; raw++)
+        {
+            var resource = new ResourceId((ushort)raw);
+
+            if (rules.IsConserved(resource))
+            {
+                return resource;
+            }
+        }
+
+        return default;
+    }
+
+    /// <summary>
+    /// Keeps every part-accrued fraction meaning what it meant, against a retuned duration.
+    /// </summary>
+    /// <remarks>
+    /// Preserve progress as numerator/new-denominator fractions. Disabling recovery clears
+    /// its remainder and direction; re-enabling starts from zero.
+    /// </remarks>
+    /// <param name="was">The durations in force before the swap.</param>
+    private void RescaleOutsideFractions(in ImmigrationRuleset was)
+    {
+        ImmigrationRuleset now = Rules.Immigration;
+
+        if (!was.Stated || !now.Stated)
+        {
+            return;
+        }
+
+        HinterlandPopulationTable groups = HinterlandPopulation;
+
+        for (int slot = 0; slot < groups.Rows.SlotCount; slot++)
+        {
+            if (!groups.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            if (was.ReconsiderTicks != now.ReconsiderTicks)
+            {
+                groups.ReconsiderNumerator[slot] = IntegerMath.MulDivFloor(
+                    groups.ReconsiderNumerator[slot], now.ReconsiderTicks, was.ReconsiderTicks);
+            }
+
+            if (!now.Recovers)
+            {
+                groups.RecoveryNumerator[slot] = 0;
+                groups.RecoveryDirection[slot] = 0;
+            }
+            else if (was.Recovers && was.RecoveryTicks != now.RecoveryTicks)
+            {
+                groups.RecoveryNumerator[slot] = IntegerMath.MulDivFloor(
+                    groups.RecoveryNumerator[slot], now.RecoveryTicks, was.RecoveryTicks);
+            }
+        }
+    }
+
+    /// <summary>
     /// Puts a different Ruleset in force, degrading whatever the new one cannot describe.
     /// </summary>
     /// <remarks>
@@ -1001,6 +1378,8 @@ public sealed class World
                 + "mint into a city that has already spent what it was founded with.");
         }
 
+        RefuseIncompatibleOutside(rules);
+
         RulesetChange change = RulesetShape.Compare(Rules, rules);
         RulesetMigration? migration = null;
 
@@ -1019,9 +1398,13 @@ public sealed class World
         }
 
         // Every refusal has run by here, so what follows cannot leave the world half-migrated.
+        ImmigrationRuleset outside = Rules.Immigration;
+
         Layers.Adopt(rules.Layers);
         Roads.Adopt(rules.Roads);
         Rules = rules;
+
+        RescaleOutsideFractions(outside);
 
         // The governed amounts follow their Policy's NAME to whatever index it now sits at; see
         // PolicyTable.Adopt for what happens to one whose name is gone. Before Migrate, because a
@@ -1430,10 +1813,24 @@ public sealed class World
         return definition.DurationDays + (long)offset;
     }
 
+    /// <summary>
+    /// Adds one classified population event to the account.
+    /// </summary>
+    /// <remarks>
+    /// Population flow counters have a single row.
+    /// </remarks>
+    private static void Record(Column<long> counter, long amount) =>
+        counter[PopulationLedgerTable.Slot] += amount;
+
     /// <summary>Adds a Household to a Building, linking it into the Building's occupant list.</summary>
+    /// <remarks>
+    /// Scenario creation is counted separately from admissions and local household formation.
+    /// </remarks>
     public Handle<Household> CreateHousehold(Handle<Building> dwelling, byte lifeStage)
     {
         int buildingSlot = Buildings.Rows.Resolve(dwelling);
+
+        Record(PopulationLedger.HouseholdsCreated, 1);
 
         Handle<Household> handle = Households.Rows.Allocate();
         int slot = Households.Rows.Resolve(handle);
@@ -1445,9 +1842,7 @@ public sealed class World
         // world whose Ruleset names money. Empty -- World.Endow is the only door money enters by.
         if (TryMoneyResource(out ResourceId money))
         {
-            // adr/0143: the LIST is the saved truth and Balance is derived from it, so the append is
-            // the write that matters and the assignment is a derived column maintained at its write
-            // site -- the same shape as BuildingBins.InsertOrdered in CreateBin.
+            // The saved bin list owns membership; Balance is its maintained derived lookup.
             Handle<Bin> balance = OpenBalance(BinOwnerKind.Household, money);
 
             AppendOwnerBin(Households.BinHead, Households.BinTail, slot, balance);
@@ -2007,45 +2402,14 @@ public sealed class World
             return false;
         }
 
-        // FloorDiv rather than raw '/', which BOR0203 is an error for: a Tick count is unsigned and
-        // never crosses zero, so the two agree here -- but stating the rounding is the rule and the
-        // exception is not this method's to grant.
-        int day = (int)IntegerMath.FloorDiv((long)now.Raw, Ticks.PerDay);
-
-        // Lazily, rather than in a per-Day sweep: the reset is O(1) at the read site, costs nothing
-        // on the Buildings nobody arrives at -- which is all of them in nine of the ten shipped
-        // Rulesets -- and is right for a world loaded mid-Day, where a sweep that has already run
-        // would leave the meter counting a Day that has passed.
-        if (Buildings.ArrivalDay[gateSlot] != day)
-        {
-            Buildings.ArrivalDay[gateSlot] = day;
-            Buildings.ArrivalsToday[gateSlot] = 0;
-        }
-
-        if (Buildings.ArrivalsToday[gateSlot] >= ceiling)
+        if (!GateHasQuota(gateSlot, ceiling, now))
         {
             return false;
         }
 
-        Buildings.ArrivalsToday[gateSlot]++;
+        SpendArrivalQuota(gateSlot, now);
 
-        Handle<Household> handle = Households.Rows.Allocate();
-        int slot = Households.Rows.Resolve(handle);
-
-        Households.LifeStage[slot] = lifeStage;
-
-        // CreateHousehold's line, for its reason (adr/0114). Empty: what an emigrant carries is drawn
-        // from the Hinterland at task 5, and World.Endow is still the only door money enters by.
-        if (TryMoneyResource(out ResourceId money))
-        {
-            // adr/0143: the LIST is the saved truth and Balance is derived from it, so the append is
-            // the write that matters and the assignment is a derived column maintained at its write
-            // site -- the same shape as BuildingBins.InsertOrdered in CreateBin.
-            Handle<Bin> balance = OpenBalance(BinOwnerKind.Household, money);
-
-            AppendOwnerBin(Households.BinHead, Households.BinTail, slot, balance);
-            Households.Balance[slot] = balance;
-        }
+        int slot = OpenArrival(lifeStage, out Handle<Household> handle);
 
         // Money crosses here, which is MoneySupplyTable.Issued's second writer and the first thing in
         // this project that moves the supply after the founding. Endow is still the only door: it
@@ -2066,27 +2430,323 @@ public sealed class World
         // Household nobody can make the move-in Trip for -- adr/0075 makes a Traveller a cursor over
         // a CITIZEN's journey, so an empty Household would arrive and then never travel.
         //
+        // Through AddMember rather than through CreateCitizen, and the account is the reason. Every
+        // person here crossed a gate, so the door records ONE admission of this many people -- while
+        // CreateCitizen is the explicit-instruction door and would file each of them as a scenario
+        // addition. The two channels have to stay separable or the ledger cannot say whether a city
+        // grew by immigration or by a fixture.
         for (int i = 0; i < citizens; i++)
         {
-            CreateCitizen(handle);
+            AddMember(handle, child: false);
         }
 
-        // The stage countdown starts when the Household does, and an arriving Household is no
-        // different from a founded one -- adr/0023's immigrants are Households like any other, and a
-        // stage clock that only ran for the locally born would make the Pool's composition a function
-        // of where its members came from.
-        ArmLifeStage(slot);
+        Record(PopulationLedger.Admissions, citizens);
+        Record(PopulationLedger.HouseholdsAdmitted, 1);
 
-        // The dwelling handle is left default by the allocator -- FreeSlot zeroes every column, so a
-        // recycled slot arrives unhoused rather than carrying its predecessor's address.
-        Invariants.Require(
-            UnplacedPool.Join(Households, handle, gate, now) == UnplacedPool.Count - 1,
-            Invariant.ThePoolAppendsInOrder,
-            slot);
+        JoinPoolAtGate(handle, slot, gate, now);
 
         household = handle;
 
         return true;
+    }
+
+    /// <summary>
+    /// Admits the family in <paramref name="prospect"/> through <paramref name="gate"/>, spending one
+    /// Household of the Outside stock it came from.
+    /// </summary>
+    /// <remarks>
+    /// All ordinary refusals precede writes. Admission preserves the evaluated purse, identity
+    /// and exact composition, then spends stock and gate quota and joins the Unplaced Pool.
+    /// Imported children are admissions, not births. Admission does not reserve a dwelling.
+    /// </remarks>
+    /// <param name="prospect">The family, its stock row and the purse it was evaluated with.</param>
+    /// <param name="gate">The Outside Connection it is being admitted through.</param>
+    /// <param name="now">The Tick the arrival happens on, which is what names the Day.</param>
+    /// <param name="household">The Household created, or a default handle on any refusal.</param>
+    /// <returns><see cref="Admission.Admitted"/>, or why not.</returns>
+    public Admission TryAdmitProspect(
+        in ArrivalProspect prospect,
+        Handle<Building> gate,
+        Ticks now,
+        out Handle<Household> household,
+        bool reserved = false)
+    {
+        household = default;
+
+        if (!HinterlandPopulation.Rows.TryResolve(prospect.Group, out int group))
+        {
+            return Admission.GroupIsGone;
+        }
+
+        // The prospect must still match its live stock row.
+        if (!HinterlandPopulation.Holds(group, prospect.Edge, prospect.Composition))
+        {
+            return Admission.ProspectIsNotOfThatGroup;
+        }
+
+        // Reserved arrivals spend their reservation; fresh arrivals can only spend unreserved stock.
+        bool available = reserved
+            ? HinterlandPopulation.Reserved[group] >= 1 && HinterlandPopulation.Stock[group] >= 1
+            : HinterlandPopulation.Free(group) >= 1;
+
+        if (!available)
+        {
+            return Admission.StockIsSpent;
+        }
+
+        if (!Buildings.Rows.TryResolve(gate, out int gateSlot)
+            || !TryArrivalsPerDay(Buildings.Kind[gateSlot], out int ceiling))
+        {
+            return Admission.GateAdmitsNobody;
+        }
+
+        // A gate must belong to the same single edge as the prospect; corners have no unique edge.
+        if (!Lots.Rows.TryResolve(Buildings.Lot[gateSlot], out int gateLot)
+            || EdgeOf(gateLot) != prospect.Edge)
+        {
+            return Admission.GateIsOnAnotherEdge;
+        }
+
+        if (!GateHasQuota(gateSlot, ceiling, now))
+        {
+            return Admission.GateIsFullToday;
+        }
+
+        SpendArrivalQuota(gateSlot, now);
+
+        int slot = OpenArrival(prospect.Stage, out Handle<Household> handle);
+
+        Households.Arrived[slot] = 1;
+        Households.ArrivalEdge[slot] = (byte)prospect.Edge;
+        Households.ChoiceIdentity[slot] = prospect.Identity;
+
+        // Exactly what the prospect was evaluated with, and not a redraw on the new Household's id.
+        // That seam is what made the old path's affordability test a statement about somebody else.
+        if (prospect.Purse.Raw > 0 && !Households.Balance[slot].IsNone)
+        {
+            Endow(handle, prospect.Purse);
+        }
+
+        HinterlandComposition who = prospect.Composition;
+
+        // Tier order, then children, so two runs building the same family lay its rows down in the
+        // same order -- the ids are folded into the State Hash and creation order is what sets them.
+        for (byte tier = SchoolingRuleset.FloorTier; tier <= SchoolingRuleset.TopTier; tier++)
+        {
+            for (int adult = 0; adult < who.AdultsAt(tier); adult++)
+            {
+                AddMember(handle, child: false, tier);
+            }
+        }
+
+        // Imported children count as admissions, not births.
+        for (int child = 0; child < who.Children; child++)
+        {
+            AddMember(handle, child: true);
+        }
+
+        Record(PopulationLedger.Admissions, who.Members);
+        Record(PopulationLedger.HouseholdsAdmitted, 1);
+
+        HinterlandPopulation.Stock[group]--;
+        HinterlandPopulation.Admitted[group]++;
+
+        if (reserved)
+        {
+            HinterlandPopulation.Reserved[group]--;
+        }
+
+        int edgeSlot = HinterlandTable.SlotOf(prospect.Edge);
+
+        Hinterlands.AdmittedHouseholds[edgeSlot]++;
+        Hinterlands.AdmittedPeople[edgeSlot] += who.Members;
+
+        JoinPoolAtGate(handle, slot, gate, now);
+
+        household = handle;
+
+        return Admission.Admitted;
+    }
+
+    /// <summary>Whether this gate could take one more Household today, writing nothing.</summary>
+    /// <remarks>
+    /// An old Day meter is logically unused. Reset it only when admission succeeds.
+    /// </remarks>
+    private bool GateHasQuota(int gateSlot, int ceiling, Ticks now) =>
+        Buildings.ArrivalDay[gateSlot] != DayOf(now)
+        || Buildings.ArrivalsToday[gateSlot] < ceiling;
+
+    /// <summary>Whether this gate can still admit somebody today.</summary>
+    /// <remarks>
+    /// Check quota before reconsidering the queue, so full gates do not trigger a new draw each Tick.
+    /// </remarks>
+    internal bool GateHasRoom(int gateSlot, Ticks now) =>
+        TryArrivalsPerDay(Buildings.Kind[gateSlot], out int ceiling)
+        && GateHasQuota(gateSlot, ceiling, now);
+
+    private void SpendArrivalQuota(int gateSlot, Ticks now)
+    {
+        int day = DayOf(now);
+
+        if (Buildings.ArrivalDay[gateSlot] != day)
+        {
+            Buildings.ArrivalDay[gateSlot] = day;
+            Buildings.ArrivalsToday[gateSlot] = 0;
+        }
+
+        Buildings.ArrivalsToday[gateSlot]++;
+    }
+
+    /// <summary>
+    /// Which Day <paramref name="now"/> falls in.
+    /// </summary>
+    /// <remarks>
+    /// Quota and flow counters use whole Days derived from the simulation Tick.
+    /// </remarks>
+    private static int DayOf(Ticks now) => (int)IntegerMath.FloorDiv((long)now.Raw, Ticks.PerDay);
+
+    /// <summary>Puts a newly raised gate on its edge's list of doors.</summary>
+    /// <remarks>
+    /// Only live Outside Connections on exactly one map edge belong in the list.
+    /// </remarks>
+    private void ListGate(int slot)
+    {
+        if (!IsOutsideConnection(Buildings.Kind[slot])
+            || !Lots.Rows.TryResolve(Buildings.Lot[slot], out int lotSlot))
+        {
+            return;
+        }
+
+        MapEdge edge = EdgeOf(lotSlot);
+
+        if (edge != MapEdge.None)
+        {
+            Buildings.Gates(Hinterlands).InsertOrdered(HinterlandTable.SlotOf(edge), slot);
+        }
+    }
+
+    /// <summary>Takes a gate off its edge's list of doors.</summary>
+    private void UnlistGate(int slot)
+    {
+        if (!IsOutsideConnection(Buildings.Kind[slot])
+            || !Lots.Rows.TryResolve(Buildings.Lot[slot], out int lotSlot))
+        {
+            return;
+        }
+
+        MapEdge edge = EdgeOf(lotSlot);
+
+        if (edge != MapEdge.None)
+        {
+            Buildings.Gates(Hinterlands).Remove(HinterlandTable.SlotOf(edge), slot);
+        }
+    }
+
+    /// <summary>Rebuilds every edge's list of doors from the live Buildings.</summary>
+    /// <remarks>
+    /// Ordered insertion matches creation-time maintenance and preserves round-robin traversal.
+    /// </remarks>
+    private void RebuildGates()
+    {
+        Hinterlands.GateHead.Span.Clear();
+        Hinterlands.GateTail.Span.Clear();
+        Buildings.GateNext.Span.Clear();
+
+        for (int slot = 0; slot < Buildings.Rows.SlotCount; slot++)
+        {
+            if (Buildings.Rows.IsLive(slot))
+            {
+                ListGate(slot);
+            }
+        }
+    }
+
+    /// <summary>Moves every edge's Day flow counters on, if the Day has changed.</summary>
+    /// <remarks>
+    /// Runs once before input; reads and instruments never roll counters.
+    /// </remarks>
+    public void RollPopulationDayFlows(Ticks now)
+    {
+        int day = DayOf(now);
+
+        Hinterlands.RollDay(day);
+        PopulationLedger.RollDay(day);
+    }
+
+    /// <summary>
+    /// Retires empty return-only compositions on an edge, rebuilding their lookup once.
+    /// </summary>
+    /// <remarks>
+    /// Only unauthored rows with no stock or reservations may retire.
+    /// </remarks>
+    public void RetireEmptyHinterlandGroups(MapEdge edge)
+    {
+        HinterlandPopulationTable groups = HinterlandPopulation;
+        int encoded = Hinterlands.GroupHead[HinterlandTable.SlotOf(edge)];
+        bool retired = false;
+
+        while (encoded != 0)
+        {
+            int slot = encoded - 1;
+            // Freeing clears links; preserve the successor and the existing retirement order.
+            encoded = groups.GroupNext[slot];
+
+            if (groups.Authored[slot] == 0 && groups.Stock[slot] == 0 && groups.Reserved[slot] == 0)
+            {
+                groups.Retire(Hinterlands, slot);
+                retired = true;
+            }
+        }
+
+        // No composition lookup or insertion occurs while the index is stale.
+        if (retired)
+        {
+            HinterlandCompositions.Rebuild(groups);
+        }
+    }
+
+    /// <summary>Allocates an arriving Household and its empty balance, before anybody is in it.</summary>
+    /// <remarks>
+    /// Shared allocation for legacy and stock arrivals; the caller endows the evaluated purse.
+    /// </remarks>
+    private int OpenArrival(byte lifeStage, out Handle<Household> household)
+    {
+        household = Households.Rows.Allocate();
+
+        int slot = Households.Rows.Resolve(household);
+
+        Households.LifeStage[slot] = lifeStage;
+
+        // CreateHousehold's line, for its reason (adr/0114). Empty: what a family carries in is
+        // endowed by the caller, and World.Endow is still the only door money enters by.
+        if (TryMoneyResource(out ResourceId money))
+        {
+            // adr/0143: the LIST is the saved truth and Balance is derived from it, so the append is
+            // the write that matters and the assignment is a derived column maintained at its write
+            // site -- the same shape as BuildingBins.InsertOrdered in CreateBin.
+            Handle<Bin> balance = OpenBalance(BinOwnerKind.Household, money);
+
+            AppendOwnerBin(Households.BinHead, Households.BinTail, slot, balance);
+            Households.Balance[slot] = balance;
+        }
+
+        return slot;
+    }
+
+    /// <summary>Starts an arrival's stage clock and puts it in the Pool at the gate it came through.</summary>
+    /// <remarks>
+    /// Retain the origin gate on Pool membership for the move-in Trip, and the edge on the
+    /// Household so losing the gate does not erase provenance.
+    /// </remarks>
+    private void JoinPoolAtGate(
+        Handle<Household> household, int slot, Handle<Building> gate, Ticks now)
+    {
+        ArmLifeStage(slot);
+
+        Invariants.Require(
+            UnplacedPool.Join(Households, household, gate, now) == UnplacedPool.Count - 1,
+            Invariant.ThePoolAppendsInOrder,
+            slot);
     }
 
     /// <summary>
@@ -2165,8 +2825,15 @@ public sealed class World
     /// founding city's Citizens would make the whole population children under <c>plans/0046</c>
     /// stage 4's gate, which is why the draw is here rather than only at the spawn.
     /// </remarks>
-    public Handle<Citizen> CreateCitizen(Handle<Household> household) =>
-        AddMember(household, child: false);
+    /// <remarks>
+    /// Scenario creation. Births and imported members use their own classified operations.
+    /// </remarks>
+    public Handle<Citizen> CreateCitizen(Handle<Household> household)
+    {
+        Record(PopulationLedger.ScenarioAdditions, 1);
+
+        return AddMember(household, child: false);
+    }
 
     /// <summary>
     /// Bears a child into a Household — <c>adr/0011</c>'s fertility decision, one Citizen at a time.
@@ -2188,9 +2855,22 @@ public sealed class World
     /// of them is a reader that does not exist yet.
     /// </para>
     /// </remarks>
-    public Handle<Citizen> Bear(Handle<Household> household) => AddMember(household, child: true);
+    public Handle<Citizen> Bear(Handle<Household> household)
+    {
+        Record(PopulationLedger.Births, 1);
 
-    private Handle<Citizen> AddMember(Handle<Household> household, bool child)
+        return AddMember(household, child: true);
+    }
+
+    /// <param name="household">The Household to add to.</param>
+    /// <param name="child">Whether this member is a child, which is what sets its age to zero.</param>
+    /// <param name="tier">
+    /// The Skill Tier the member starts at. <b>Only an arrival states one</b>: a founding adult was
+    /// schooled somewhere this simulation cannot see, which is exactly what the floor tier names,
+    /// and an imported child has no schooling anywhere yet.
+    /// </param>
+    private Handle<Citizen> AddMember(
+        Handle<Household> household, bool child, byte tier = SchoolingRuleset.FloorTier)
     {
         int householdSlot = Households.Rows.Resolve(household);
 
@@ -2200,10 +2880,9 @@ public sealed class World
         Citizens.HouseholdOf[slot] = household;
         Citizens.Age[slot] = child ? (ushort)0 : DrawAdultAge(slot);
 
-        // 1 and not 0, because there is no tier 0 (adr/0104) and a founding adult who was schooled
-        // somewhere this simulation cannot see is exactly the state tier 1 names. A zero here would
-        // be a tier below the floor, and every credential filter in the city would refuse it.
-        Citizens.SkillTier[slot] = SchoolingRuleset.FloorTier;
+        // Never 0, because there is no tier 0 (adr/0104): a zero would be a tier below the floor and
+        // every credential filter in the city would refuse it.
+        Citizens.SkillTier[slot] = tier;
 
         // 02 §10's per-Tick tier: O(changed), at the write site. A member list is small by
         // construction, so this is the cheap half of *no Citizen in two places* — complete within
@@ -2549,6 +3228,9 @@ public sealed class World
     /// </remarks>
     private Handle<Household> FormHousehold(byte lifeStage, Ticks now)
     {
+        // Household formation moves existing Citizens and does not add population.
+        Record(PopulationLedger.HouseholdsFormed, 1);
+
         Handle<Household> handle = Households.Rows.Allocate();
         int slot = Households.Rows.Resolve(handle);
 
@@ -2647,7 +3329,11 @@ public sealed class World
             UnplacedPool.Leave(Households, position);
         }
 
-        DestroyHousehold(household);
+        // Dissolution removes people from the world; it does not return a family to the Outside.
+        Record(PopulationLedger.DissolutionPeople, Members.Length(slot));
+        Record(PopulationLedger.HouseholdsDissolved, 1);
+
+        RetireHousehold(household);
     }
 
     /// <summary>
@@ -2728,7 +3414,74 @@ public sealed class World
         // at the end of the run rather than here.
         UnplacedPool.Leave(Households, position);
 
-        DestroyHousehold(household);
+        // The emigration, counted where the money leaves and for the same reason it is written there.
+        Record(PopulationLedger.Departures, Members.Length(slot));
+        Record(PopulationLedger.HouseholdsDeparted, 1);
+
+        // Count and return the actual composition before retiring its Citizens.
+        if (Rules.Immigration.Stated)
+        {
+            MapEdge destination = DepartureEdge(slot);
+
+            if (destination != MapEdge.None
+                && Rules.TryHinterland(destination, out HinterlandDefinition outside))
+            {
+                ReturnToHinterland(destination, CompositionOf(household, outside));
+            }
+        }
+
+        RetireHousehold(household);
+    }
+
+    /// <summary>
+    /// Which Outside a Household that has given up looking compares its way into.
+    /// </summary>
+    /// <remarks>
+    /// Compare all declared edges in numeric order, without an incumbent or origin-edge bonus.
+    /// The destination is an accounting edge and does not require a physical exit Trip.
+    /// </remarks>
+    private MapEdge DepartureEdge(int slot)
+    {
+        byte stage = Households.LifeStage[slot];
+
+        long taste = HousingUtility.Taste(Rules, Key, Households.TasteIdentity(slot), stage);
+        int rentWeight = Rules.RentWeight(stage);
+
+        Span<int> worth = stackalloc int[HinterlandTable.Edges];
+        Span<MapEdge> edges = stackalloc MapEdge[HinterlandTable.Edges];
+
+        int found = 0;
+
+        // Edge slot order, which is MapEdge numeric order, so the candidate list does not depend on
+        // the order the file happened to declare its Hinterlands in.
+        for (int edge = 0; edge < HinterlandTable.Edges; edge++)
+        {
+            MapEdge which = HinterlandTable.EdgeAt(edge);
+
+            if (!Rules.TryHinterland(which, out HinterlandDefinition outside))
+            {
+                continue;
+            }
+
+            edges[found] = which;
+            worth[found] = HousingUtility.Worth(
+                Rules.Placement, outside.CentralityTiles, taste, outside.Rent, rentWeight);
+
+            found++;
+        }
+
+        if (found == 0)
+        {
+            return MapEdge.None;
+        }
+
+        int taken = Choice.Draw(
+            worth[..found],
+            Rules.Placement.Mu,
+            Randomness.Draw(
+                Key, Households.Rows.IdAt(slot), Tick, PurposeTag.DepartureDestination));
+
+        return edges[taken];
     }
 
     /// <summary>
@@ -3049,8 +3802,37 @@ public sealed class World
         DestroyBusiness(business);
     }
 
-    /// <summary>Retires a Citizen, unlinking it from its Household first.</summary>
+    /// <summary>
+    /// Retires a Citizen on an explicit instruction — a fixture, or a scenario.
+    /// </summary>
+    /// <remarks>
+    /// Scenario removal. Illness and Household retirement use their own classified operations.
+    /// </remarks>
     public void DestroyCitizen(Handle<Citizen> citizen)
+    {
+        Record(PopulationLedger.ScenarioRemovals, 1);
+
+        RetireCitizen(citizen);
+    }
+
+    /// <summary>
+    /// A Citizen dies of an untreated illness. <c>CivicEngine</c>'s door, and only its own.
+    /// </summary>
+    /// <remarks>
+    /// Counts an illness death before freeing the Citizen.
+    /// </remarks>
+    public void DieCitizen(Handle<Citizen> citizen)
+    {
+        Record(PopulationLedger.IllnessDeaths, 1);
+
+        RetireCitizen(citizen);
+    }
+
+    /// <summary>Frees a Citizen row, unlinking it from every list it is in first.</summary>
+    /// <remarks>
+    /// Unclassified primitive; callers record the appropriate population flow before retirement.
+    /// </remarks>
+    private void RetireCitizen(Handle<Citizen> citizen)
     {
         int slot = Citizens.Rows.Resolve(citizen);
 
@@ -3082,14 +3864,39 @@ public sealed class World
     }
 
     /// <summary>
-    /// Retires a Household and every Citizen in it, unlinking it from its dwelling.
+    /// Retires a Household and every Citizen in it on an explicit instruction.
     /// </summary>
     /// <remarks>
+    /// <b><see cref="DestroyCitizen"/>'s door one table up</b>, and a scenario removal for its reason:
+    /// a Household freed without a stated reason did not emigrate and did not dissolve. The two
+    /// reasons that exist are <see cref="Depart(Handle{Household})"/> and <see cref="Dissolve"/>, and
+    /// both count their members and then call <see cref="RetireHousehold"/>.
+    /// </remarks>
+    public void DestroyHousehold(Handle<Household> household)
+    {
+        int slot = Households.Rows.Resolve(household);
+
+        Record(PopulationLedger.ScenarioRemovals, Members.Length(slot));
+        Record(PopulationLedger.HouseholdsRemoved, 1);
+
+        RetireHousehold(household);
+    }
+
+    /// <summary>
+    /// Frees a Household row and every Citizen in it, unlinking it from its dwelling.
+    /// </summary>
+    /// <remarks>
+    /// <para>
     /// The members go with it rather than being left behind, because a Citizen whose Household handle
     /// is stale is a row nothing can reach and nothing will free — which is adr/0006's rule about
     /// collections that only grow, arriving through the back door.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Private, for <see cref="RetireCitizen"/>'s reason</b>: it records nothing, and the people
+    /// it takes with it are counted by whichever door decided they were leaving.
+    /// </para>
     /// </remarks>
-    public void DestroyHousehold(Handle<Household> household)
+    private void RetireHousehold(Handle<Household> household)
     {
         int slot = Households.Rows.Resolve(household);
 
@@ -3111,7 +3918,7 @@ public sealed class World
         int member = Members.PeekFront(slot);
         while (member != Rows.NoSlot)
         {
-            DestroyCitizen(Citizens.Rows.At(member));
+            RetireCitizen(Citizens.Rows.At(member));
             member = Members.PeekFront(slot);
         }
 
@@ -3404,6 +4211,11 @@ public sealed class World
         Lots.FrontageSlot.Span.Clear();
         Lots.FrontageOffset.Span.Clear();
         Bins.Capacity.Span.Clear();
+
+        // Rebuild the derived composition lookup and per-edge lists from saved live rows.
+        HinterlandPopulation.RebuildIndexes(Hinterlands);
+        HinterlandCompositions.Rebuild(HinterlandPopulation);
+        RebuildGates();
 
         // The Parking Shed's supply index, rebuilt wholesale from the Car Parks' saved Addresses.
         // After Roads.RebuildDerived because it resolves a Segment handle against the rebuilt graph,
@@ -4286,6 +5098,8 @@ public sealed class World
         Handle<Building> building = Buildings.Create(Lots, lot, kind);
 
         BuildingsInCells.Add(Buildings, Lots, Buildings.Rows.Resolve(building));
+
+        ListGate(Buildings.Rows.Resolve(building));
 
         // CONTEXT.md -> Building: "a Building has a footprint (the set of Tiles it covers)" and
         // "interacts with Map Layers through that footprint". Sealing is such a Layer, and this is
@@ -7921,6 +8735,9 @@ public sealed class World
         // the Cell it is listed in and would leave a dangling entry for the next allocation of this
         // slot to be inserted into twice.
         BuildingsInCells.Remove(Buildings, Lots, slot);
+
+        // Unlist before freeing the Lot: its position determines the gate edge.
+        UnlistGate(slot);
 
         // Before the row is freed, because the Lot handle is read off it.
         if (Lots.Rows.TryResolve(Buildings.Lot[slot], out int lotSlot))

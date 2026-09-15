@@ -716,6 +716,12 @@ public partial class Main
             RefreshCityEvidence();
         }
 
+        if (!_governing && _outsideShown)
+        {
+            _outsideShown = false;
+            RefreshHinterlands();
+        }
+
         _governing = !_governing;
         _policyPanel.Visible = _governing;
         _policiesButton.ButtonPressed = _governing;

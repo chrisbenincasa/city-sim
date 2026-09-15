@@ -54,6 +54,7 @@ public sealed class Simulation
     private readonly DisasterEngine _disasters;
     private DisasterReading _lastDisasters;
     private readonly PlacementEngine _placement;
+    private readonly HinterlandEngine _hinterlands;
     private readonly EmploymentEngine _employment;
     private readonly TripEngine _trips;
     private readonly CommuteEngine _commutes;
@@ -137,6 +138,9 @@ public sealed class Simulation
         // folds World._tables, which nothing here touches.
         _disasters = new DisasterEngine(world, key);
         _placement = new PlacementEngine(world, key, _trips);
+
+        // Use the resident housing choice model for prospects too.
+        _hinterlands = new HinterlandEngine(world, key, _placement);
         _commutes = new CommuteEngine(world, _trips);
         _civic = new CivicEngine(world, _trips, _commutes);
         _services = new ServiceEngine(world, _trips, _civic);
@@ -404,6 +408,13 @@ public sealed class Simulation
         Ticks tick = _world.Tick;
 
         Reload(input, tick);
+
+        // Seal setup before input so a Tick-zero arrival remains an admission.
+        _world.SealFoundingPopulation();
+
+        // Roll after a successful reload and before input, even on Days with no population flows.
+        _world.RollPopulationDayFlows(tick);
+
         ApplyInput(input, tick);
         PhaseCompleted?.Invoke(TickPhase.Input);
         Wake(tick);
@@ -663,6 +674,10 @@ public sealed class Simulation
                 ApplyService(command, tick);
                 break;
 
+            case CommandKind.Gate:
+                ApplyGate(command, tick);
+                break;
+
             case CommandKind.None:
             default:
                 throw new InvalidOperationException(Explain(Refusal.VerbNotApplied, command));
@@ -712,6 +727,7 @@ public sealed class Simulation
         CommandKind.Tax => RefuseTax(command, _world.Tick, out _, out _),
         CommandKind.Demolish => RefuseDemolish(command, out _),
         CommandKind.Service => RefuseService(command, out _, out _),
+        CommandKind.Gate => RefuseGate(command, out _, out _, out _),
         CommandKind.People => RefusePeople(),
         _ => Refusal.VerbNotApplied,
     };
@@ -772,7 +788,42 @@ public sealed class Simulation
     {
         gate = GateOn(command.East, command.North);
 
-        return gate < 0 ? Refusal.ArriveNoGateOnThatTile : Refusal.None;
+        if (gate < 0)
+        {
+            return Refusal.ArriveNoGateOnThatTile;
+        }
+
+        ArrivePayload payload = ArrivePayload.Decode(command.Zone);
+
+        // A world with no [immigration] keeps the verb it always had, and a request for nobody is a
+        // no-op whatever the Outside holds.
+        if (!_world.Rules.Immigration.Stated || payload.Households == 0)
+        {
+            return Refusal.None;
+        }
+
+        return _hinterlands.CanRequest(EdgeOfGate(gate), payload.LifeStage, payload.Citizens)
+            ? Refusal.None
+            : Refusal.ArriveNoSuchFamilyOutside;
+    }
+
+    /// <summary>Which edge a gate stands on, or <see cref="MapEdge.None"/> if it stands on none.</summary>
+    private MapEdge EdgeOfGate(int gate) =>
+        _world.Lots.Rows.TryResolve(_world.Buildings.Lot[gate], out int lot)
+            ? _world.EdgeOf(lot)
+            : MapEdge.None;
+
+    /// <summary>Why a stock-holding edge has nobody of the shape the payload named.</summary>
+    private static string ArriveMismatch(Command command)
+    {
+        ArrivePayload payload = ArrivePayload.Decode(command.Zone);
+
+        return $"arrive asks for {payload.Households} Household(s) of {payload.Citizens} people in "
+            + $"Life Stage {payload.LifeStage}, and no Outside behind that edge holds or ever held a "
+            + "family of that shape. A stock-holding world admits the families standing behind its "
+            + "edges (plans/0073 D8), so a composition nobody declares names people this command "
+            + "would have to invent. An exhausted composition is the other answer and is not this "
+            + "one: it admits nobody today and is refused by nothing.";
     }
 
     /// <inheritdoc cref="ApplyGovern"/>
@@ -950,6 +1001,85 @@ public sealed class Simulation
             : Refusal.None;
     }
 
+    /// <summary>
+    /// Whether a gate may be placed or removed at the named Lot origin — <c>plans/0073</c> D14.
+    /// </summary>
+    /// <remarks>
+    /// Check payload width before narrowing, because zero means removal.
+    /// </remarks>
+    private Refusal RefuseGate(Command command, out byte kind, out int lot, out int gate)
+    {
+        kind = 0;
+        lot = -1;
+        gate = -1;
+
+        if (command.Zone > byte.MaxValue)
+        {
+            return Refusal.GateKindIsWiderThanAKindId;
+        }
+
+        kind = (byte)command.Zone;
+
+        if (kind == 0)
+        {
+            gate = GateOn(command.East, command.North);
+
+            // A queue is not a tenancy. The people waiting outside are cancelled by the engine's
+            // next pass (D5), so they are not something this verb has to clear first.
+            return gate < 0 ? Refusal.GateRemoveNoGateOnThatTile
+                : _world.Tenants(gate) > 0 ? Refusal.GateRemoveGateIsOccupied
+                : Refusal.None;
+        }
+
+        if (!_world.Rules.Declares(kind))
+        {
+            return Refusal.GateKindNotDeclared;
+        }
+
+        if (_world.Rules.Kind(kind).ArrivalsPerDay <= 0)
+        {
+            return Refusal.GateKindIsNotAnOutsideConnection;
+        }
+
+        lot = VacantLotOn(command.East, command.North);
+
+        if (lot < 0)
+        {
+            return Refusal.GateNoVacantLotOnThatTile;
+        }
+
+        // Count touched edges so corners have a distinct refusal from interior Lots.
+        int edges = MapEdges.Touching(_world.Lots.East[lot], _world.Lots.North[lot], out MapEdge edge);
+
+        if (edges == 2)
+        {
+            return Refusal.GateLotIsOnTwoEdges;
+        }
+
+        if (edge == MapEdge.None)
+        {
+            return Refusal.GateLotIsNotOnAnEdge;
+        }
+
+        if (!_world.Rules.TryHinterland(edge, out _))
+        {
+            return Refusal.GateEdgeHasNoHinterland;
+        }
+
+        if (!_world.Lots.HasFrontage(lot))
+        {
+            return Refusal.GateLotHasNoFrontage;
+        }
+
+        // Last, for RefuseService's reason: the six checks above are shape and this one is a level,
+        // so it is the only one that can answer differently for the same command two Ticks apart.
+        Money price = _world.Rules.Kind(kind).PlacementCost;
+
+        return price.Raw > 0 && (_world.TreasuryBalance()?.Raw ?? 0) < price.Raw
+            ? Refusal.GateTreasuryCannotPay
+            : Refusal.None;
+    }
+
     /// <inheritdoc cref="ApplyPeople"/>
     /// <remarks>
     /// ⚠ <b>The two arms are <c>SyntheticCity.PeopleInto</c>'s own two throws, in its order.</b> That
@@ -1026,6 +1156,8 @@ public sealed class Simulation
             + "nearest gate, because the edge a Household entered by selects its Hinterland "
             + "(adr/0088) -- so a substituted gate does not misplace an arrival, it changes "
             + "which market it came from.",
+
+        Refusal.ArriveNoSuchFamilyOutside => ArriveMismatch(command),
 
         Refusal.GovernNoSuchPolicy =>
             $"Govern names Policy {command.Zone} and this Ruleset declares "
@@ -1155,6 +1287,76 @@ public sealed class Simulation
             + "zone the blocks, then populate. It refuses rather than making no rows, because a "
             + "populator that answers the sizing question with an empty world and reports success is "
             + "the one outcome nothing downstream can tell from a small city.",
+
+        Refusal.GateKindIsWiderThanAKindId =>
+            $"gate names kind {command.Zone}, and a kind id is a byte. The number is refused here "
+            + "rather than narrowed, because narrowing it gives zero and zero is this verb's "
+            + "removal instruction -- so a command asking to place a kind out of range would take "
+            + "away the gate already standing on that Tile.",
+
+        Refusal.GateKindNotDeclared =>
+            $"gate names building kind {(byte)command.Zone}, which this Ruleset does not declare. "
+            + "The kinds are the [[building]] tables in the file the world was loaded from.",
+
+        Refusal.GateKindIsNotAnOutsideConnection =>
+            $"gate names building kind {(byte)command.Zone}, which states no arrivals_per_day and "
+            + "is therefore an ordinary Building rather than a door. adr/0023: arrivals_per_day is "
+            + "the width of a door, and a kind without one has no width because it is not one. "
+            + "This verb places gates; use service for a kind that serves a Need, and let the "
+            + "Zone Rules raise everything else.",
+
+        Refusal.GateNoVacantLotOnThatTile =>
+            $"gate names Tile ({command.East.Raw}, {command.North.Raw}), where there is no vacant "
+            + "Lot. The Tile is matched exactly rather than resolved to the block, on demolish's "
+            + "reasoning: [lots] lots_per_segment is five, so `the Lot in this block` names up to "
+            + "twenty of them. A Lot holding a Building -- standing or an adr/0091 shell -- is not "
+            + "vacant; demolish first.",
+
+        Refusal.GateLotIsNotOnAnEdge =>
+            $"gate names a vacant Lot at ({command.East.Raw}, {command.North.Raw}), which is in the "
+            + "interior of the map. An Outside Connection is where the city meets what is beyond it "
+            + "(adr/0020), so it stands on an edge or it opens onto nothing. Lay Streets out to an "
+            + "edge and zone there first.",
+
+        Refusal.GateLotIsOnTwoEdges =>
+            $"gate names a vacant Lot at ({command.East.Raw}, {command.North.Raw}), which is a "
+            + "corner and touches two edges. A gate is listed against exactly one edge's "
+            + "Hinterland, and which of the two stands behind a corner has no answer -- so picking "
+            + "one silently would file the door's admissions under a market the player did not "
+            + "choose. Move one Lot along either edge.",
+
+        Refusal.GateEdgeHasNoHinterland =>
+            $"gate names a Lot on an edge this Ruleset declares no [[hinterland]] behind. A door "
+            + "onto an unstated Outside has nobody to admit and no rent to be compared against, so "
+            + "it would stand there looking like a mechanism while doing nothing. Declare a "
+            + "[[hinterland]] for that edge, or put the gate on an edge that has one.",
+
+        Refusal.GateLotHasNoFrontage =>
+            $"gate names an edge Lot at ({command.East.Raw}, {command.North.Raw}) with no usable "
+            + "frontage. An admitted Household walks from the gate to wherever it ends up living, "
+            + "and a Lot with no Street face has no Address for that Trip to start from "
+            + "(adr/0079). Lay a Street along it first.",
+
+        Refusal.GateRemoveNoGateOnThatTile =>
+            $"gate asks to remove Tile ({command.East.Raw}, {command.North.Raw}), where no Outside "
+            + "Connection stands. The Tile is matched exactly and the kind is checked, so an "
+            + "ordinary Building at the named Tile is not the thing this verb removes -- demolish "
+            + "is.",
+
+        Refusal.GateRemoveGateIsOccupied =>
+            $"gate asks to remove an Outside Connection that a Household or a Business is still in. "
+            + "Clearing occupied ground pays market value and adr/0091 refuses to compose that "
+            + "price, so it is blocked here exactly as it is on demolish rather than being added "
+            + "quietly to the cheapest click in the shell. An outside QUEUE is not a tenancy: "
+            + "people waiting to come in are cancelled on the engine's next pass and never stand "
+            + "in the way of this.",
+
+        Refusal.GateTreasuryCannotPay =>
+            $"gate names a kind whose placement_cost of "
+            + $"{_world.Rules.Kind((byte)command.Zone).PlacementCost.Raw} is more than the treasury "
+            + $"holds ({_world.TreasuryBalance()?.Raw ?? 0}). A door is built and paid for like any "
+            + "other Building. The plot and the kind are both fine, so this is the one gate refusal "
+            + "that answers differently once the city can afford it.",
 
         _ => $"command kind {(ushort)command.Kind} was refused with reason {(ushort)refusal}, which "
             + "this build has no diagnosis for.",
@@ -1376,6 +1578,15 @@ public sealed class Simulation
         if (refusal != Refusal.None)
         {
             throw new InvalidOperationException(Explain(refusal, command));
+        }
+
+        // A stock-world command requests existing families through the autonomous comparison and quota path.
+        if (_world.Rules.Immigration.Stated)
+        {
+            _hinterlands.Request(
+                EdgeOfGate(gate), payload.LifeStage, payload.Citizens, payload.Households, tick);
+
+            return;
         }
 
         Handle<Building> handle = _world.Buildings.Rows.At(gate);
@@ -1619,6 +1830,36 @@ public sealed class Simulation
         _world.SpendOnPlacement(price);
         _placementThisTick += price.Raw;
 
+        _world.CreateBuilding(_world.Lots.Rows.At(lot), kind, tick, _key);
+    }
+
+    /// <summary>Raises or takes away an Outside Connection — <c>plans/0073</c> D14.</summary>
+    /// <remarks>
+    /// Placement charges placement_cost through World. Removal refunds nothing.
+    /// </remarks>
+    private void ApplyGate(Command command, Ticks tick)
+    {
+        Refusal refusal = RefuseGate(command, out byte kind, out int lot, out int gate);
+
+        if (refusal != Refusal.None)
+        {
+            throw new InvalidOperationException(Explain(refusal, command));
+        }
+
+        if (gate >= 0)
+        {
+            _world.DestroyBuilding(_world.Buildings.Rows.At(gate), tick);
+
+            return;
+        }
+
+        Money price = _world.Rules.Kind(kind).PlacementCost;
+
+        _world.SpendOnPlacement(price);
+        _placementThisTick += price.Raw;
+
+        // Through World's own door, which lists the gate against its edge on the way past --
+        // World.ListGate. A gate index maintained anywhere else would go stale on the next reload.
         _world.CreateBuilding(_world.Lots.Rows.At(lot), kind, tick, _key);
     }
 
@@ -1978,6 +2219,9 @@ public sealed class Simulation
         _lastSubsidies = _subsidies.Sweep(tick);
 
         _rules.SweepNeeds(tick);
+
+        // Run before placement so families admitted this Tick can immediately seek housing.
+        _hinterlands.Sweep(tick);
 
         _placement.Place(tick);
 

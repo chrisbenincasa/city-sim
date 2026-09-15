@@ -645,3 +645,63 @@ columns and the whole schedule table fold zeroes throughout. The trading columns
 — both baselines declare a `[[business]]`, so whether those folded anything is a property of the run
 and not of the file. ***The tax is covered by `rulesets/taxing.toml` and its suites***, which is where
 to look rather than here.
+
+**Row 31 task 2 re-recorded three artefacts — both session traces and `world-hash.txt` — and moved no
+Ruleset content hash.** The world gained three tables: `HinterlandTable` (four rows, one per map edge,
+created by the constructor and never absent), `HinterlandPopulationTable` (one row per composition of
+Households standing behind an edge) and `PopulationLedgerTable` (one row, the city's population
+account). All three are saved, so the composition moved and every number in the three files moved with
+it. No `.borough` literal and nothing in `GoldenFixtures` had to move first, and `SaveHeader.Current`
+went `1 → 2` because the declaration set is what a save is.
+
+⚠ **Two of the three tables fold almost nothing in any of these artefacts, and the third folds a real
+figure.** `attracted.toml` is the only shipped Ruleset stating `[[hinterland.population]]`, and it is
+not a baseline file — so in every artefact here `HinterlandPopulationTable` holds no rows at all and
+`HinterlandTable` holds four rows whose only non-zero column is the edge each one names. What did
+change substantively is the ledger: the founding population is folded into `opening_city_people` and
+`opening_city_households` on the first Tick of a session, and every birth, death, admission and
+departure after it lands in a counter beside them. ***So these baselines cover the account and not the
+stock***; the stock is covered by `HinterlandStockTests`, which builds `attracted.toml` directly.
+
+**Row 31 task 3 re-recorded the same three artefacts, for three columns rather than three tables.**
+`household` gained `arrived`, `arrival_edge` and `choice_identity` — where a family came from and
+whose preferences it holds — and `SaveHeader.Current` went `2 → 3`. In every artefact here all three
+fold zeroes on every row: no baseline Ruleset states `[[hinterland.population]]`, so nothing in these
+sessions is admitted through the stock path that writes them. ***A column of zeroes still moves the
+fold***, which is the whole reason this re-record exists and the reason a re-baseline is a signed act
+rather than a consequence.
+
+⚠ **The same commit moved the housing utility into one kernel and that moved nothing.**
+`PlacementEngine.Utility`, `TryOutside` and `Reassess`'s incumbent term now go through
+`Rules/HousingUtility.cs`, which adds a per-Life-Stage rent weight. A stage stating none carries 100,
+and at 100 the arithmetic is the same expression in the same rounding order — so if these files had
+moved for that reason it would have been a defect and not a re-baseline. What actually moved them is
+the three columns, and nothing else in this commit touches a shipped baseline world.
+
+**Row 31 task 5 re-recorded the same three artefacts for one saved pair, and moved no Ruleset content
+hash.** `hinterland` gained `requested_today` and `requested_yesterday` — the arrivals a player asked
+for, split from the occasions the Outside generated on its own — and `SaveHeader.Current` went
+`4 → 5`. Both columns fold zeroes on all four edge rows in every artefact here, because no baseline
+Ruleset states `[[hinterland.population]]` and nothing in these sessions issues an `Arrive`.
+
+⚠ **The same commit changed what the founding seal takes and moved nothing.**
+`World.SealFoundingPopulation` now retakes the opening Outside figures and clears the edge crossing
+counters, so that a fixture which moved somebody across an edge before the first Tick is not counted
+twice. A baseline world has no stock behind its edges and no crossings to clear, so every one of
+those writes stores the value already there. ***A change to when a figure is taken moves nothing in a
+world where the figure is zero***, and the new `TheCityAndItsOutsideBalance` invariant returns
+immediately on all three artefacts for the same reason: none of them states `[immigration]`.
+
+**Row 31 task 7 re-recorded the same three artefacts for twenty-seven columns, and moved no Ruleset
+content hash.** `population_ledger` gained `flow_day` and, for each of its thirteen classified flow
+counters, what that counter stood at when the current Day opened and when the last complete Day
+opened — so `SaveHeader.Current` went `5 → 6`. A Day's figure is the **difference** between a counter
+and its snapshot rather than a second counter kept alongside it: two counters can disagree when a
+writer increments one and forgets the other, and a subtraction cannot.
+
+⚠ **The snapshots are written in both sessions and in neither hand-built world.** `Simulation.Step`
+rolls them at the first Tick of each Day, which is three times in the 8,192-Tick session and once in
+the 4,096-Tick one. `GoldenFixtures.Build()` never steps, so all twenty-seven of its new columns are
+zeroes and its hash moved on the declaration set alone — *a baseline that covers a column's existence
+reads exactly like one that covers its behaviour*, which is this directory's standing finding and is
+why the sessions carry this one.

@@ -418,17 +418,19 @@ public sealed class PlacementEngine
         // that fills for a reason no Ruleset authored.
         bool varies = _world.Rules.CentralityVaries;
 
+        byte stage = _world.Households.LifeStage[slot];
+
+        // Arrivals retain the taste identity used before their city Household existed.
+        ulong taste = _world.Households.TasteIdentity(slot);
+        int rentWeight = _world.Rules.RentWeight(stage);
+
         // 02 section 5.4 arriving. `chooses` is a SUPERSET of `varies` and not an alternative to it:
         // a file may state a choice model over rent alone, and a file may state a taste axis and no
         // model, in which case the argmin below is the mu -> infinity limit of the model it omits.
         bool chooses = _world.Rules.Placement.Chooses;
         bool scored = varies || chooses;
 
-        long weight = varies
-            ? (2L * _world.Rules.CentralityTaste(
-                _key, _world.Households.Rows.IdAt(slot), _world.Households.LifeStage[slot]))
-                - Fixed.One
-            : 0L;
+        long weight = HousingUtility.Taste(_world.Rules, _key, taste, stage);
 
         // 02 section 5.4's stay-put alternative on the Pool side, and the reason it is position 0
         // rather than a test afterwards: only DIFFERENCES matter in a logit, so "everything I was
@@ -437,7 +439,8 @@ public sealed class PlacementEngine
         // `V_outside` by name, because a number nobody can compare against anything is a number no
         // designer, playtester or player can say is too generous.
         int worthOfOutside = 0;
-        int outside = chooses && TryOutside(position, weight, out worthOfOutside) ? 1 : 0;
+        int outside =
+            chooses && TryOutside(position, weight, rentWeight, out worthOfOutside) ? 1 : 0;
 
         if (chooses)
         {
@@ -512,7 +515,7 @@ public sealed class PlacementEngine
             if (chooses)
             {
                 _candidateBuildings[found] = building;
-                _candidateUtilities[found] = Utility(lot, building, weight);
+                _candidateUtilities[found] = Utility(lot, building, weight, rentWeight);
                 found++;
 
                 continue;
@@ -702,7 +705,7 @@ public sealed class PlacementEngine
                 continue;
             }
 
-            best = Utility(lot, building, 0L);
+            best = Utility(lot, building, 0L, Ruleset.RentNeutralPercent);
             anywhere = true;
         }
 
@@ -717,11 +720,114 @@ public sealed class PlacementEngine
 
         Span<int> both = _candidateUtilities.AsSpan(0, 2);
 
-        both[0] = Clamp(-IntegerMath.FloorDiv(home.Rent.Raw * Fixed.One, placement.RentPerUnit));
+        both[0] = HousingUtility.Saturate(
+            -IntegerMath.FloorDiv(home.Rent.Raw * Fixed.One, placement.RentPerUnit));
         both[1] = best;
 
         return Choice.Draw(both, placement.Mu,
             Randomness.Draw(_key, id, tick, PurposeTag.ChoiceDraw)) == 1;
+    }
+
+    /// <summary>
+    /// Whether the family in <paramref name="prospect"/> would rather come in than stay where it is.
+    /// </summary>
+    /// <remarks>
+    /// The Outside receives moving friction for an unadmitted prospect. Feasible Buildings
+    /// are deduplicated before the draw; willingness does not reserve the chosen dwelling.
+    /// </remarks>
+    /// <param name="prospect">The family standing at the edge.</param>
+    /// <param name="gate">A live Outside Connection on its edge. Without one there is no city to see.</param>
+    /// <param name="tick">The Tick being run.</param>
+    public bool ProspectCrosses(in ArrivalProspect prospect, Handle<Building> gate, Ticks tick) =>
+        Compare(prospect, gate, tick) == ProspectOutcome.Willing;
+
+    /// <inheritdoc cref="ProspectCrosses(in ArrivalProspect, Handle{Building}, Ticks)"/>
+    /// <summary>
+    /// The same comparison, saying which of the three things happened.
+    /// </summary>
+    /// <remarks>
+    /// Report an empty feasible sample separately from a preference for staying Outside.
+    /// </remarks>
+    public ProspectOutcome Compare(in ArrivalProspect prospect, Handle<Building> gate, Ticks tick)
+    {
+        PlacementRuleset placement = _world.Rules.Placement;
+
+        if (!_world.Rules.TryHinterland(prospect.Edge, out HinterlandDefinition home))
+        {
+            return ProspectOutcome.NoSample;
+        }
+
+        int candidates = placement.Candidates;
+
+        Retain(candidates + 1);
+
+        long weight = HousingUtility.Taste(_world.Rules, _key, prospect.Identity, prospect.Stage);
+        int rentWeight = _world.Rules.RentWeight(prospect.Stage);
+
+        // Position zero is the incumbent Outside home, including its moving-friction bonus.
+        _candidateBuildings[0] = Rows.NoSlot;
+        _candidateUtilities[0] = HousingUtility.Saturate(
+            (long)HousingUtility.Worth(
+                placement, home.CentralityTiles, weight, home.Rent, rentWeight)
+            + placement.StayingPut);
+
+        int found = 1;
+        int lots = _world.LotsAdmitting.Count(_world.Lots, LotTable.Housing);
+
+        // No gate or feasible Lot means no city alternative in this sample.
+        if (lots > 0 && _world.Buildings.Rows.TryResolve(gate, out _))
+        {
+            int budget = candidates * 2;
+
+            for (int draw = 0; draw < budget && found <= candidates; draw++)
+            {
+                ulong entity = Randomness.Mix(prospect.Identity ^ ((ulong)(uint)draw << 32));
+                ulong value = Randomness.Draw(_key, entity, tick, PurposeTag.PlacementCandidate);
+
+                int lot = _world.LotsAdmitting.Nth(
+                    _world.Lots, LotTable.Housing, (int)(value % (ulong)(uint)lots));
+
+                int building = Consider(lot, prospect.Purse, out bool costsALook, out _);
+
+                if (!costsALook || building == Rows.NoSlot || Shown(building, found))
+                {
+                    continue;
+                }
+
+                _candidateBuildings[found] = building;
+                _candidateUtilities[found] = Utility(lot, building, weight, rentWeight);
+                found++;
+            }
+        }
+
+        if (found == 1)
+        {
+            return ProspectOutcome.NoSample;
+        }
+
+        int chosen = Choice.Draw(
+            _candidateUtilities.AsSpan(0, found),
+            placement.Mu,
+            Randomness.Draw(_key, prospect.Identity, tick, PurposeTag.ChoiceDraw));
+
+        return chosen == 0 ? ProspectOutcome.StayedOutside : ProspectOutcome.Willing;
+    }
+
+    /// <summary>Whether this Building is already in the candidate set.</summary>
+    /// <remarks>
+    /// Position zero is the Outside alternative and carries no Building.
+    /// </remarks>
+    private bool Shown(int building, int found)
+    {
+        for (int candidate = 1; candidate < found; candidate++)
+        {
+            if (_candidateBuildings[candidate] == building)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -749,28 +855,47 @@ public sealed class PlacementEngine
     /// twice on the reassessment path and once on nobody's behalf here.
     /// </para>
     /// </remarks>
-    private bool TryOutside(int position, long weight, out int worth)
+    private bool TryOutside(int position, long weight, int rentWeightPercent, out int worth)
     {
         worth = 0;
 
-        if (!_world.Buildings.Rows.TryResolve(_world.UnplacedPool.GateAt(position), out int gate)
-            || !_world.Lots.Rows.TryResolve(_world.Buildings.Lot[gate], out int lot)
-            || !_world.Rules.TryHinterland(_world.EdgeOf(lot), out HinterlandDefinition hinterland))
+        if (!TryOutsideEdge(position, out MapEdge edge)
+            || !_world.Rules.TryHinterland(edge, out HinterlandDefinition hinterland))
         {
             return false;
         }
 
-        PlacementRuleset placement = _world.Rules.Placement;
-
-        long centrality = -IntegerMath.FloorDiv(
-            hinterland.CentralityTiles * weight, placement.CentralityTilesPerUnit);
-
-        long rent = -IntegerMath.FloorDiv(
-            hinterland.Rent.Raw * Fixed.One, placement.RentPerUnit);
-
-        worth = Clamp(centrality + rent);
+        worth = HousingUtility.Worth(
+            _world.Rules.Placement,
+            hinterland.CentralityTiles,
+            weight,
+            hinterland.Rent,
+            rentWeightPercent);
 
         return true;
+    }
+
+    /// <summary>Which Outside the family at <paramref name="position"/> is comparing the city with.</summary>
+    /// <remarks>
+    /// Use the origin gate when live, otherwise the saved arrival edge. Local families may have
+    /// neither.
+    /// </remarks>
+    private bool TryOutsideEdge(int position, out MapEdge edge)
+    {
+        if (_world.Buildings.Rows.TryResolve(_world.UnplacedPool.GateAt(position), out int gate)
+            && _world.Lots.Rows.TryResolve(_world.Buildings.Lot[gate], out int lot))
+        {
+            edge = _world.EdgeOf(lot);
+            return edge != MapEdge.None;
+        }
+
+        int slot = _world.Households.Rows.Resolve(_world.UnplacedPool.At(position));
+
+        edge = _world.Households.Arrived[slot] == 0
+            ? MapEdge.None
+            : (MapEdge)_world.Households.ArrivalEdge[slot];
+
+        return edge != MapEdge.None;
     }
 
     /// <summary>Sizes the candidate buffers to one occasion's looks.</summary>
@@ -811,31 +936,13 @@ public sealed class PlacementEngine
     /// failure standing in for a Ruleset nobody would write.
     /// </para>
     /// </remarks>
-    private int Utility(int lot, int building, long weight)
-    {
-        PlacementRuleset placement = _world.Rules.Placement;
-
-        long centrality = -IntegerMath.FloorDiv(
-            Distance(lot) * weight, placement.CentralityTilesPerUnit);
-
-        long rent = -IntegerMath.FloorDiv(
-            (long)_world.Rules.Kind(_world.Buildings.Kind[building]).Rent.Raw * Fixed.One,
-            placement.RentPerUnit);
-
-        return Clamp(centrality + rent);
-    }
-
-    /// <summary>
-    /// A utility sum held inside what Q16.16 represents.
-    /// </summary>
-    /// <remarks>
-    /// <b>Clamping cannot change a choice</b> — <see cref="Choice"/> gives every candidate past
-    /// adr/0038's horizon a weight of exactly zero, and the clamp sits four orders beyond it. The
-    /// alternative is an overflow exception standing in for a Ruleset nobody would write.
-    /// </remarks>
-    private static int Clamp(long utility) => utility > Fixed.MaxValue
-        ? Fixed.MaxValue
-        : utility < Fixed.MinValue ? Fixed.MinValue : (int)utility;
+    private int Utility(int lot, int building, long weight, int rentWeightPercent) =>
+        HousingUtility.Worth(
+            _world.Rules.Placement,
+            Distance(lot),
+            weight,
+            _world.Rules.Kind(_world.Buildings.Kind[building]).Rent,
+            rentWeightPercent);
 
     /// <summary>
     /// How far a Lot is from the nearest <c>[[lattice]]</c> origin, in Tiles, <b>walked rather than
@@ -1420,17 +1527,19 @@ public sealed class PlacementEngine
         Handle<Household> household = _world.Households.Rows.At(slot);
         ulong id = _world.Households.Rows.IdAt(slot);
 
-        long weight = _world.Rules.CentralityVaries
-            ? (2L * _world.Rules.CentralityTaste(_key, id, _world.Households.LifeStage[slot]))
-                - Fixed.One
-            : 0L;
+        byte stage = _world.Households.LifeStage[slot];
+        int rentWeight = _world.Rules.RentWeight(stage);
+
+        long weight = HousingUtility.Taste(
+            _world.Rules, _key, _world.Households.TasteIdentity(slot), stage);
 
         Retain(candidates + 1);
 
         // Position 0 is the incumbent, so a draw landing there is the family staying. It is not a
         // special case anywhere below: it is scored, weighed and drawn exactly like the others.
         _candidateBuildings[0] = building;
-        _candidateUtilities[0] = Utility(home, building, weight) + placement.StayingPut;
+        _candidateUtilities[0] = HousingUtility.Saturate(
+            (long)Utility(home, building, weight, rentWeight) + placement.StayingPut);
 
         int found = 1;
         int budget = candidates * 2;
@@ -1460,7 +1569,7 @@ public sealed class PlacementEngine
             }
 
             _candidateBuildings[found] = alternative;
-            _candidateUtilities[found] = Utility(lot, alternative, weight);
+            _candidateUtilities[found] = Utility(lot, alternative, weight, rentWeight);
             found++;
         }
 

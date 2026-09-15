@@ -211,4 +211,72 @@ public enum Refusal : ushort
     /// gets the right answer every frame, which is why it is asked rather than cached.
     /// </remarks>
     ServiceTreasuryCannotPay = 29,
+
+    /// <summary>
+    /// <c>Arrive</c> asks a stock-holding edge for a family of a size and Life Stage no Outside
+    /// behind it holds or has ever held.
+    /// </summary>
+    /// <remarks>
+    /// An exhausted matching composition is a valid request that presents nobody.
+    /// </remarks>
+    ArriveNoSuchFamilyOutside = 30,
+
+    /// <summary>
+    /// <c>Gate</c> names a kind id wider than the byte a kind id is, so it is refused before it is
+    /// narrowed.
+    /// </summary>
+    /// <remarks>
+    /// Validate before narrowing: 256 would otherwise become the removal payload zero.
+    /// </remarks>
+    GateKindIsWiderThanAKindId = 31,
+
+    /// <summary><c>Gate</c> names a Building kind this Ruleset does not declare.</summary>
+    GateKindNotDeclared = 32,
+
+    /// <summary>
+    /// <c>Gate</c> names a declared kind stating no <c>arrivals_per_day</c>, so it is an ordinary
+    /// Building rather than a door.
+    /// </summary>
+    GateKindIsNotAnOutsideConnection = 33,
+
+    /// <summary><c>Gate</c> names a Tile holding no vacant Lot — a shell is not vacant.</summary>
+    GateNoVacantLotOnThatTile = 34,
+
+    /// <summary>
+    /// <c>Gate</c> names a vacant Lot in the interior of the map, where a door would open onto
+    /// nothing.
+    /// </summary>
+    GateLotIsNotOnAnEdge = 35,
+
+    /// <summary><c>Gate</c> names a Lot in a corner of the map, which touches two edges.</summary>
+    /// <remarks>
+    /// A gate must resolve to exactly one edge; corner Lots do not select a Hinterland.
+    /// </remarks>
+    GateLotIsOnTwoEdges = 36,
+
+    /// <summary>
+    /// <c>Gate</c> names a Lot on an edge this Ruleset declares no <c>[[hinterland]]</c> behind.
+    /// </summary>
+    GateEdgeHasNoHinterland = 37,
+
+    /// <summary><c>Gate</c> names an edge Lot with no usable frontage, which nobody could reach.</summary>
+    /// <remarks>
+    /// Move-in Trips need a usable Street address at the gate.
+    /// </remarks>
+    GateLotHasNoFrontage = 38,
+
+    /// <summary><c>Gate</c> asks to remove a Tile where no Outside Connection stands.</summary>
+    GateRemoveNoGateOnThatTile = 39,
+
+    /// <summary><c>Gate</c> asks to remove a gate a Household or a Business is still in.</summary>
+    /// <remarks>
+    /// Outside queue membership is not a tenancy and does not prevent removal.
+    /// </remarks>
+    GateRemoveGateIsOccupied = 40,
+
+    /// <summary><c>Gate</c> names a kind whose <c>placement_cost</c> is more than the city holds.</summary>
+    /// <remarks>
+    /// Uses the same treasury placement charge as other placed Buildings.
+    /// </remarks>
+    GateTreasuryCannotPay = 41,
 }

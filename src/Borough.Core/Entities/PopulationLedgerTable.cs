@@ -1,0 +1,372 @@
+namespace Borough.Core.Entities;
+
+using Borough.Core.Tables;
+
+/// <summary>
+/// Where every person in this city came from and where everyone who left it went: one row, for ever.
+/// </summary>
+/// <remarks>
+/// Saved founding baselines and disjoint lifetime flows reconcile against live Citizens and
+/// Households. Day snapshots expose interval flows without observation mutating the account.
+/// Seal the founding baseline once, before the first input command.
+/// </remarks>
+[Table]
+public sealed class PopulationLedgerTable
+{
+    /// <summary>The row the account lives at, for the life of the world.</summary>
+    public const int Slot = 0;
+
+    private readonly Rows<PopulationLedger> _rows;
+
+    /// <summary>Builds the account at zero, which is what an unbuilt world holds.</summary>
+    public PopulationLedgerTable()
+    {
+        _rows = new Rows<PopulationLedger>("population_ledger", 1, Buffering.OneCopy);
+
+        Sealed = _rows.Saved<byte>("sealed", Touch.Cold);
+
+        OpeningCityPeople = _rows.Saved<long>("opening_city_people", Touch.Cold);
+        OpeningCityHouseholds = _rows.Saved<long>("opening_city_households", Touch.Cold);
+        OpeningOutsidePeople = _rows.Saved<long>("opening_outside_people", Touch.Cold);
+        OpeningOutsideHouseholds = _rows.Saved<long>("opening_outside_households", Touch.Cold);
+
+        Births = _rows.Saved<long>("births", Touch.Cold);
+        Admissions = _rows.Saved<long>("admissions", Touch.Cold);
+        ScenarioAdditions = _rows.Saved<long>("scenario_additions", Touch.Cold);
+        Departures = _rows.Saved<long>("departures", Touch.Cold);
+        IllnessDeaths = _rows.Saved<long>("illness_deaths", Touch.Cold);
+        DissolutionPeople = _rows.Saved<long>("dissolution_people", Touch.Cold);
+        ScenarioRemovals = _rows.Saved<long>("scenario_removals", Touch.Cold);
+
+        HouseholdsCreated = _rows.Saved<long>("households_created", Touch.Cold);
+        HouseholdsFormed = _rows.Saved<long>("households_formed", Touch.Cold);
+        HouseholdsAdmitted = _rows.Saved<long>("households_admitted", Touch.Cold);
+        HouseholdsDeparted = _rows.Saved<long>("households_departed", Touch.Cold);
+        HouseholdsDissolved = _rows.Saved<long>("households_dissolved", Touch.Cold);
+        HouseholdsRemoved = _rows.Saved<long>("households_removed", Touch.Cold);
+
+        FlowDay = _rows.Saved<int>("flow_day", Touch.Cold);
+
+        BirthsAtDayStart = _rows.Saved<long>("births_at_day_start", Touch.Cold);
+        BirthsAtPreviousDayStart = _rows.Saved<long>("births_at_previous_day_start", Touch.Cold);
+        AdmissionsAtDayStart = _rows.Saved<long>("admissions_at_day_start", Touch.Cold);
+        AdmissionsAtPreviousDayStart =
+            _rows.Saved<long>("admissions_at_previous_day_start", Touch.Cold);
+        ScenarioAdditionsAtDayStart =
+            _rows.Saved<long>("scenario_additions_at_day_start", Touch.Cold);
+        ScenarioAdditionsAtPreviousDayStart =
+            _rows.Saved<long>("scenario_additions_at_previous_day_start", Touch.Cold);
+        DeparturesAtDayStart = _rows.Saved<long>("departures_at_day_start", Touch.Cold);
+        DeparturesAtPreviousDayStart =
+            _rows.Saved<long>("departures_at_previous_day_start", Touch.Cold);
+        IllnessDeathsAtDayStart = _rows.Saved<long>("illness_deaths_at_day_start", Touch.Cold);
+        IllnessDeathsAtPreviousDayStart =
+            _rows.Saved<long>("illness_deaths_at_previous_day_start", Touch.Cold);
+        DissolutionPeopleAtDayStart =
+            _rows.Saved<long>("dissolution_people_at_day_start", Touch.Cold);
+        DissolutionPeopleAtPreviousDayStart =
+            _rows.Saved<long>("dissolution_people_at_previous_day_start", Touch.Cold);
+        ScenarioRemovalsAtDayStart = _rows.Saved<long>("scenario_removals_at_day_start", Touch.Cold);
+        ScenarioRemovalsAtPreviousDayStart =
+            _rows.Saved<long>("scenario_removals_at_previous_day_start", Touch.Cold);
+
+        HouseholdsCreatedAtDayStart =
+            _rows.Saved<long>("households_created_at_day_start", Touch.Cold);
+        HouseholdsCreatedAtPreviousDayStart =
+            _rows.Saved<long>("households_created_at_previous_day_start", Touch.Cold);
+        HouseholdsFormedAtDayStart = _rows.Saved<long>("households_formed_at_day_start", Touch.Cold);
+        HouseholdsFormedAtPreviousDayStart =
+            _rows.Saved<long>("households_formed_at_previous_day_start", Touch.Cold);
+        HouseholdsAdmittedAtDayStart =
+            _rows.Saved<long>("households_admitted_at_day_start", Touch.Cold);
+        HouseholdsAdmittedAtPreviousDayStart =
+            _rows.Saved<long>("households_admitted_at_previous_day_start", Touch.Cold);
+        HouseholdsDepartedAtDayStart =
+            _rows.Saved<long>("households_departed_at_day_start", Touch.Cold);
+        HouseholdsDepartedAtPreviousDayStart =
+            _rows.Saved<long>("households_departed_at_previous_day_start", Touch.Cold);
+        HouseholdsDissolvedAtDayStart =
+            _rows.Saved<long>("households_dissolved_at_day_start", Touch.Cold);
+        HouseholdsDissolvedAtPreviousDayStart =
+            _rows.Saved<long>("households_dissolved_at_previous_day_start", Touch.Cold);
+        HouseholdsRemovedAtDayStart =
+            _rows.Saved<long>("households_removed_at_day_start", Touch.Cold);
+        HouseholdsRemovedAtPreviousDayStart =
+            _rows.Saved<long>("households_removed_at_previous_day_start", Touch.Cold);
+
+        _rows.Seal();
+
+        // One row for the life of the world, never freed. MoneySupplyTable's line and its reason.
+        _rows.Allocate();
+    }
+
+    /// <summary>The slot allocator, the generation counters and the column list.</summary>
+    public Rows<PopulationLedger> Rows => _rows;
+
+    /// <summary>Whether the founding figures have been taken. Written once, by the first Tick.</summary>
+    public Column<byte> Sealed { get; }
+
+    /// <summary>How many people the city was founded with.</summary>
+    public Column<long> OpeningCityPeople { get; }
+
+    /// <summary>How many Households it was founded with.</summary>
+    public Column<long> OpeningCityHouseholds { get; }
+
+    /// <summary>How many people stood behind the map's edges at world creation.</summary>
+    /// <remarks>
+    /// Captured with the city baseline, after scenario setup and before the first input.
+    /// </remarks>
+    public Column<long> OpeningOutsidePeople { get; }
+
+    /// <summary>How many Households stood behind them.</summary>
+    public Column<long> OpeningOutsideHouseholds { get; }
+
+    /// <summary>People born here. <c>World.Bear</c>, and nothing else.</summary>
+    public Column<long> Births { get; }
+
+    /// <summary>People admitted through a gate.</summary>
+    public Column<long> Admissions { get; }
+
+    /// <summary>
+    /// People created by an explicit instruction rather than by a mechanism.
+    /// </summary>
+    /// <remarks>
+    /// Explicit scenario creation, excluding births and admission.
+    /// </remarks>
+    public Column<long> ScenarioAdditions { get; }
+
+    /// <summary>People who emigrated. <c>World.Depart</c>, and nothing else.</summary>
+    public Column<long> Departures { get; }
+
+    /// <summary>People who died of an untreated illness. <c>World.DieCitizen</c>.</summary>
+    public Column<long> IllnessDeaths { get; }
+
+    /// <summary>People who went with a Household whose last Life Stage ended.</summary>
+    public Column<long> DissolutionPeople { get; }
+
+    /// <summary>People removed by an explicit instruction rather than by a mechanism.</summary>
+    public Column<long> ScenarioRemovals { get; }
+
+    /// <summary>Households created directly — world creation, a fixture, a scenario.</summary>
+    public Column<long> HouseholdsCreated { get; }
+
+    /// <summary>Households the city formed itself, when children left home.</summary>
+    public Column<long> HouseholdsFormed { get; }
+
+    /// <summary>Households admitted through a gate.</summary>
+    public Column<long> HouseholdsAdmitted { get; }
+
+    /// <summary>Households that emigrated.</summary>
+    public Column<long> HouseholdsDeparted { get; }
+
+    /// <summary>Households whose last Life Stage ended.</summary>
+    public Column<long> HouseholdsDissolved { get; }
+
+    /// <summary>Households removed by an explicit instruction.</summary>
+    public Column<long> HouseholdsRemoved { get; }
+
+    /// <summary>Which Day the two snapshots below were last moved on.</summary>
+    public Column<int> FlowDay { get; }
+
+    /// <summary>
+    /// What <see cref="Births"/> stood at when this Day opened, so today's births are the difference.
+    /// </summary>
+    /// <remarks>
+    /// Day flows are differences between lifetime counters and these saved snapshots.
+    /// </remarks>
+    public Column<long> BirthsAtDayStart { get; }
+
+    /// <summary>What <see cref="Births"/> stood at when the last complete Day opened.</summary>
+    /// <remarks>
+    /// Together with the current Day start, reconstructs the last complete Day.
+    /// </remarks>
+    public Column<long> BirthsAtPreviousDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtDayStart"/>
+    public Column<long> AdmissionsAtDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtPreviousDayStart"/>
+    public Column<long> AdmissionsAtPreviousDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtDayStart"/>
+    public Column<long> ScenarioAdditionsAtDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtPreviousDayStart"/>
+    public Column<long> ScenarioAdditionsAtPreviousDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtDayStart"/>
+    public Column<long> DeparturesAtDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtPreviousDayStart"/>
+    public Column<long> DeparturesAtPreviousDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtDayStart"/>
+    public Column<long> IllnessDeathsAtDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtPreviousDayStart"/>
+    public Column<long> IllnessDeathsAtPreviousDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtDayStart"/>
+    public Column<long> DissolutionPeopleAtDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtPreviousDayStart"/>
+    public Column<long> DissolutionPeopleAtPreviousDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtDayStart"/>
+    public Column<long> ScenarioRemovalsAtDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtPreviousDayStart"/>
+    public Column<long> ScenarioRemovalsAtPreviousDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtDayStart"/>
+    public Column<long> HouseholdsCreatedAtDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtPreviousDayStart"/>
+    public Column<long> HouseholdsCreatedAtPreviousDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtDayStart"/>
+    public Column<long> HouseholdsFormedAtDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtPreviousDayStart"/>
+    public Column<long> HouseholdsFormedAtPreviousDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtDayStart"/>
+    public Column<long> HouseholdsAdmittedAtDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtPreviousDayStart"/>
+    public Column<long> HouseholdsAdmittedAtPreviousDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtDayStart"/>
+    public Column<long> HouseholdsDepartedAtDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtPreviousDayStart"/>
+    public Column<long> HouseholdsDepartedAtPreviousDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtDayStart"/>
+    public Column<long> HouseholdsDissolvedAtDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtPreviousDayStart"/>
+    public Column<long> HouseholdsDissolvedAtPreviousDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtDayStart"/>
+    public Column<long> HouseholdsRemovedAtDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtPreviousDayStart"/>
+    public Column<long> HouseholdsRemovedAtPreviousDayStart { get; }
+
+    /// <summary>How many people the account says are alive in the city.</summary>
+    public long People =>
+        OpeningCityPeople[Slot] + Births[Slot] + Admissions[Slot] + ScenarioAdditions[Slot]
+        - Departures[Slot] - IllnessDeaths[Slot] - DissolutionPeople[Slot] - ScenarioRemovals[Slot];
+
+    /// <summary>How many Households the account says are live in the city.</summary>
+    public long Households =>
+        OpeningCityHouseholds[Slot] + HouseholdsCreated[Slot] + HouseholdsFormed[Slot]
+        + HouseholdsAdmitted[Slot] - HouseholdsDeparted[Slot] - HouseholdsDissolved[Slot]
+        - HouseholdsRemoved[Slot];
+
+    /// <summary>What <see cref="People"/> stood at when this Day opened.</summary>
+    public long PeopleAtDayStart =>
+        OpeningCityPeople[Slot] + BirthsAtDayStart[Slot] + AdmissionsAtDayStart[Slot]
+        + ScenarioAdditionsAtDayStart[Slot] - DeparturesAtDayStart[Slot]
+        - IllnessDeathsAtDayStart[Slot] - DissolutionPeopleAtDayStart[Slot]
+        - ScenarioRemovalsAtDayStart[Slot];
+
+    /// <summary>What <see cref="People"/> stood at when the last complete Day opened.</summary>
+    public long PeopleAtPreviousDayStart =>
+        OpeningCityPeople[Slot] + BirthsAtPreviousDayStart[Slot]
+        + AdmissionsAtPreviousDayStart[Slot] + ScenarioAdditionsAtPreviousDayStart[Slot]
+        - DeparturesAtPreviousDayStart[Slot] - IllnessDeathsAtPreviousDayStart[Slot]
+        - DissolutionPeopleAtPreviousDayStart[Slot] - ScenarioRemovalsAtPreviousDayStart[Slot];
+
+    /// <summary>What <see cref="Households"/> stood at when this Day opened.</summary>
+    public long HouseholdsAtDayStart =>
+        OpeningCityHouseholds[Slot] + HouseholdsCreatedAtDayStart[Slot]
+        + HouseholdsFormedAtDayStart[Slot] + HouseholdsAdmittedAtDayStart[Slot]
+        - HouseholdsDepartedAtDayStart[Slot] - HouseholdsDissolvedAtDayStart[Slot]
+        - HouseholdsRemovedAtDayStart[Slot];
+
+    /// <summary>What <see cref="Households"/> stood at when the last complete Day opened.</summary>
+    public long HouseholdsAtPreviousDayStart =>
+        OpeningCityHouseholds[Slot] + HouseholdsCreatedAtPreviousDayStart[Slot]
+        + HouseholdsFormedAtPreviousDayStart[Slot] + HouseholdsAdmittedAtPreviousDayStart[Slot]
+        - HouseholdsDepartedAtPreviousDayStart[Slot] - HouseholdsDissolvedAtPreviousDayStart[Slot]
+        - HouseholdsRemovedAtPreviousDayStart[Slot];
+
+    /// <summary>
+    /// Moves both snapshots on, if <paramref name="day"/> is not the Day they stand at.
+    /// </summary>
+    /// <remarks>
+    /// Runs before input so all flows on the boundary Tick belong to the new Day.
+    /// </remarks>
+    public void RollDay(int day)
+    {
+        if (FlowDay[Slot] == day)
+        {
+            return;
+        }
+
+        FlowDay[Slot] = day;
+
+        Roll(Births, BirthsAtDayStart, BirthsAtPreviousDayStart);
+        Roll(Admissions, AdmissionsAtDayStart, AdmissionsAtPreviousDayStart);
+        Roll(ScenarioAdditions, ScenarioAdditionsAtDayStart, ScenarioAdditionsAtPreviousDayStart);
+        Roll(Departures, DeparturesAtDayStart, DeparturesAtPreviousDayStart);
+        Roll(IllnessDeaths, IllnessDeathsAtDayStart, IllnessDeathsAtPreviousDayStart);
+        Roll(DissolutionPeople, DissolutionPeopleAtDayStart, DissolutionPeopleAtPreviousDayStart);
+        Roll(ScenarioRemovals, ScenarioRemovalsAtDayStart, ScenarioRemovalsAtPreviousDayStart);
+
+        Roll(HouseholdsCreated, HouseholdsCreatedAtDayStart, HouseholdsCreatedAtPreviousDayStart);
+        Roll(HouseholdsFormed, HouseholdsFormedAtDayStart, HouseholdsFormedAtPreviousDayStart);
+        Roll(HouseholdsAdmitted, HouseholdsAdmittedAtDayStart, HouseholdsAdmittedAtPreviousDayStart);
+        Roll(HouseholdsDeparted, HouseholdsDepartedAtDayStart, HouseholdsDepartedAtPreviousDayStart);
+        Roll(
+            HouseholdsDissolved,
+            HouseholdsDissolvedAtDayStart,
+            HouseholdsDissolvedAtPreviousDayStart);
+        Roll(HouseholdsRemoved, HouseholdsRemovedAtDayStart, HouseholdsRemovedAtPreviousDayStart);
+    }
+
+    private static void Roll(Column<long> total, Column<long> dayStart, Column<long> previousDayStart)
+    {
+        previousDayStart[Slot] = dayStart[Slot];
+        dayStart[Slot] = total[Slot];
+    }
+
+    /// <summary>
+    /// Folds every setup entry into the opening figures, once.
+    /// </summary>
+    /// <remarks>
+    /// Called once after scenario setup. Loading a sealed world must not reset its baseline.
+    /// </remarks>
+    /// <returns>Whether this call was the one that sealed it.</returns>
+    public bool Seal()
+    {
+        if (Sealed[Slot] != 0)
+        {
+            return false;
+        }
+
+        OpeningCityPeople[Slot] = People;
+        OpeningCityHouseholds[Slot] = Households;
+
+        Births[Slot] = 0;
+        Admissions[Slot] = 0;
+        ScenarioAdditions[Slot] = 0;
+        Departures[Slot] = 0;
+        IllnessDeaths[Slot] = 0;
+        DissolutionPeople[Slot] = 0;
+        ScenarioRemovals[Slot] = 0;
+
+        HouseholdsCreated[Slot] = 0;
+        HouseholdsFormed[Slot] = 0;
+        HouseholdsAdmitted[Slot] = 0;
+        HouseholdsDeparted[Slot] = 0;
+        HouseholdsDissolved[Slot] = 0;
+        HouseholdsRemoved[Slot] = 0;
+
+        Sealed[Slot] = 1;
+
+        return true;
+    }
+}

@@ -328,6 +328,16 @@ public enum CommandKind : ushort
     /// </para>
     /// </remarks>
     Fund = 13,
+
+    /// <summary>
+    /// Place or remove an Outside Connection at the named Lot origin. <c>plans/0073</c> D14, and —
+    /// like <see cref="Demolish"/> — a verb a player really has.
+    /// </summary>
+    /// <remarks>
+    /// A nonzero payload places a declared gate kind; zero removes a gate. The Tile names an
+    /// exact Lot origin. Placement requires frontage and exactly one declared Hinterland edge.
+    /// </remarks>
+    Gate = 14,
 }
 
 /// <summary>
@@ -465,6 +475,16 @@ public readonly struct Command
 
         return new Command(CommandKind.Service, east, north, kind);
     }
+
+    /// <summary>
+    /// Place the named gate kind at this Lot origin, or remove the Outside Connection standing there
+    /// when <paramref name="kind"/> is zero.
+    /// </summary>
+    /// <remarks>
+    /// Kind zero requests removal; nonzero selects the declared gate kind.
+    /// </remarks>
+    public static Command Gate(Tiles east, Tiles north, byte kind) =>
+        new(CommandKind.Gate, east, north, kind);
 
     /// <summary>Which verb.</summary>
     public CommandKind Kind { get; }

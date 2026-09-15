@@ -311,6 +311,7 @@ public static class InputLogCodec
             "people" => CommandKind.People,
             "tax" => CommandKind.Tax,
             "fund" => CommandKind.Fund,
+            "gate" => CommandKind.Gate,
             _ => throw lines.Complain($"'{fields[1]}' is not a verb this format knows."),
         };
 
@@ -336,6 +337,7 @@ public static class InputLogCodec
         CommandKind.People => "people",
         CommandKind.Tax => "tax",
         CommandKind.Fund => "fund",
+        CommandKind.Gate => "gate",
         _ => throw new ArgumentOutOfRangeException(
             nameof(kind), kind, "a command with no verb cannot be written."),
     };

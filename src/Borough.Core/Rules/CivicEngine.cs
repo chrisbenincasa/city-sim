@@ -330,7 +330,7 @@ public sealed class CivicEngine : IComparer<int>
                 if (Randomness.Draw(_world.Key, id, tick, PurposeTag.IllnessDeath) % 1000 < risk)
                 {
                     Trace(row, State.AdmissionWanted[row] != 0 ? CareEventKind.DiedAwaitingBed : CareEventKind.Died, tick);
-                    _people.Remove(id); _world.DestroyCitizen(State.Citizen[row]);
+                    _people.Remove(id); _world.DieCitizen(State.Citizen[row]);
                     State.Rows.Free(State.Rows.At(row)); return;
                 }
             }

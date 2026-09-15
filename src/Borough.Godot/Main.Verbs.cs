@@ -149,6 +149,9 @@ public partial class Main
         Verb.Service => _serviceKind != 0
             ? $"SERVICE {_names.Kind(_serviceKind) ?? _serviceKind.ToString()} (s cycles)"
             : "SERVICE — no kind declares `serves`",
+        Verb.Gate => _gateKind != 0
+            ? $"GATE {_names.Kind(_gateKind) ?? _gateKind.ToString()} (shift-click removes)"
+            : "GATE — no kind declares `arrivals_per_day`",
         _ => "look",
     };
 
@@ -241,6 +244,10 @@ public partial class Main
                 Raise(at);
                 break;
 
+            case Verb.Gate:
+                Door(at, inverted);
+                break;
+
             default:
                 break;
         }
@@ -303,6 +310,17 @@ public partial class Main
 
                 break;
 
+            case "gate":
+                _verb = Verb.Gate;
+
+                // Zero means "the first kind declaring arrivals_per_day", on the service tool's
+                // reasoning. A kind id is 1-based (Ruleset.KindCount).
+                _gateKind = choice > 0 && choice <= byte.MaxValue
+                    ? (byte)choice
+                    : NextGate(0);
+
+                break;
+
             default:
                 // 🔴 DISARMED RATHER THAN LEFT AS IT WAS, and this was found by running it: a
                 // misspelt tool left the PREVIOUS one held, so the next click acted with a verb
@@ -310,7 +328,7 @@ public partial class Main
                 // loaded hand*** -- looking is the one verb that cannot do damage.
                 _verb = Verb.Look;
                 _refused = $"there is no tool called '{tool}'. There is look, zone, street, "
-                    + "demolish and service.";
+                    + "demolish, service and gate.";
 
                 break;
         }
@@ -321,6 +339,7 @@ public partial class Main
             "street" => "Connections",
             "demolish" => "Demolish",
             "service" => "Municipal",
+            "gate" => "Connections",
             _ => _toolCategory,
         };
         ShowTools();
@@ -468,12 +487,64 @@ public partial class Main
         Refusal.ArriveNoGateOnThatTile =>
             "no gate stands there, so nobody can arrive through it.",
 
+        Refusal.ArriveNoSuchFamilyOutside =>
+            "no family that size lives out that way, so there is nobody to ask for.",
+
         Refusal.PeopleWorldAlreadyHasAPopulation =>
             "this city already has people in it, and there is only one moving-in day.",
 
         Refusal.PeopleWorldHasNoLots =>
             "there is nowhere for anybody to live yet. Lay some streets, zone the blocks they "
             + "enclose, and then ask again.",
+
+        Refusal.GateKindIsWiderThanAKindId =>
+            $"there is no gate kind {command.Zone}. A kind id is a byte and 0 is the instruction to "
+            + "remove, so a number past the end is refused rather than trimmed into taking away the "
+            + "gate already standing there.",
+
+        Refusal.GateKindNotDeclared =>
+            "this Ruleset declares no such building, so there is no door of that kind to place.",
+
+        Refusal.GateKindIsNotAnOutsideConnection =>
+            $"{_names.Kind((byte)command.Zone) ?? "that building"} states no arrivals_per_day, which "
+            + "is the width of a door — so it is an ordinary building rather than a gate. Use the "
+            + "municipal tool for a building that serves a need.",
+
+        Refusal.GateNoVacantLotOnThatTile =>
+            "that plot is taken, and a gate needs a vacant one. A standing building and an abandoned "
+            + "shell both hold it; demolish first.",
+
+        Refusal.GateLotIsNotOnAnEdge =>
+            "a gate is where the city meets what lies beyond it, and that plot is inland — a door "
+            + "there would open onto nothing. Lay streets out to the edge of the map and zone along "
+            + "it first.",
+
+        Refusal.GateLotIsOnTwoEdges =>
+            "that plot is a corner and touches two edges, and a gate is listed against exactly one. "
+            + "Which Outside stands behind a corner has no answer, so move one plot along either "
+            + "edge.",
+
+        Refusal.GateEdgeHasNoHinterland =>
+            "this Ruleset states no Outside behind that edge, so a door there would have nobody to "
+            + "admit and no rent to be compared against. Put the gate on an edge that has one.",
+
+        Refusal.GateLotHasNoFrontage =>
+            "that edge plot has no street along it, and an arriving household walks from the gate to "
+            + "wherever it ends up living. Lay a street along it first.",
+
+        Refusal.GateRemoveNoGateOnThatTile =>
+            "no gate stands on that plot to remove. An ordinary building is cleared with demolish "
+            + "instead.",
+
+        Refusal.GateRemoveGateIsOccupied =>
+            "somebody still lives or works in that gate. Clearing occupied ground is a compulsory "
+            + "purchase and its price is not built, so the door stays. People waiting outside to "
+            + "come in are not tenants and never hold it up.",
+
+        Refusal.GateTreasuryCannotPay =>
+            "the city cannot afford it. A gate is paid for out of the treasury in full, like any "
+            + "other building placed by hand. The plot and the kind are both fine, so this click "
+            + "works once the money is there.",
 
         Refusal.VerbNotApplied =>
             "that verb is not built yet.",
@@ -673,8 +744,52 @@ public partial class Main
         Send(Command.Service(_world.Lots.East[lot], _world.Lots.North[lot], _serviceKind));
     }
 
-    /// <summary>The vacant Lot nearest a Tile within its own Cell, or <see cref="Rows.NoSlot"/>.</summary>
-    private int VacantNear((Tiles East, Tiles North) at)
+    /// <summary>
+    /// Places a gate on the vacant Lot nearest the click, or removes the Outside Connection
+    /// standing nearest it — <c>plans/0073</c> D14.
+    /// </summary>
+    private void Door((Tiles East, Tiles North) at, bool remove)
+    {
+        if (remove)
+        {
+            int standing = GateNear(at);
+
+            if (standing == Rows.NoSlot)
+            {
+                _refused = "no Outside Connection in this Cell to remove.";
+
+                return;
+            }
+
+            Send(Command.Gate(_world.Lots.East[standing], _world.Lots.North[standing], 0));
+
+            return;
+        }
+
+        if (_gateKind == 0)
+        {
+            _refused =
+                "this Ruleset declares no kind with `arrivals_per_day`, so there is no gate to place.";
+
+            return;
+        }
+
+        int lot = VacantNear(at);
+
+        if (lot == Rows.NoSlot)
+        {
+            _refused =
+                "no vacant Lot in this Cell. A gate stands on an edge Lot with a Street along it; a "
+                + "Lot holding a Building — standing or an abandoned shell — is not vacant.";
+
+            return;
+        }
+
+        Send(Command.Gate(_world.Lots.East[lot], _world.Lots.North[lot], _gateKind));
+    }
+
+    /// <summary>The Lot holding an Outside Connection nearest the click, within its Cell.</summary>
+    private int GateNear((Tiles East, Tiles North) at)
     {
         LotTable lots = _world.Lots;
         Cells east = CellGrid.ToCells(at.East);
@@ -684,9 +799,16 @@ public partial class Main
 
         for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
         {
-            if (!lots.Rows.IsLive(slot) || !lots.IsVacant(slot)
-                || CellGrid.ToCells(lots.East[slot]) != east
-                || CellGrid.ToCells(lots.North[slot]) != north)
+            if (!lots.Rows.IsLive(slot) || lots.IsVacant(slot)
+                || ClickableCell(lots.East[slot]) != east
+                || ClickableCell(lots.North[slot]) != north)
+            {
+                continue;
+            }
+
+            int building = lots.BuildingOn(slot);
+
+            if (building < 0 || !_world.IsOutsideConnection(_world.Buildings.Kind[building]))
             {
                 continue;
             }
@@ -704,6 +826,67 @@ public partial class Main
 
         return nearest;
     }
+
+    /// <summary>
+    /// The next declared gate kind after this one, cycling. Zero where the Ruleset declares none.
+    /// </summary>
+    private byte NextGate(byte after)
+    {
+        int count = _world.Rules.KindCount;
+
+        for (int step = 1; step <= count; step++)
+        {
+            var kind = (byte)(((after + step - 1) % count) + 1);
+
+            if (_world.IsOutsideConnection(kind))
+            {
+                return kind;
+            }
+        }
+
+        return 0;
+    }
+
+    /// <summary>The vacant Lot nearest a Tile within its own Cell, or <see cref="Rows.NoSlot"/>.</summary>
+    private int VacantNear((Tiles East, Tiles North) at)
+    {
+        LotTable lots = _world.Lots;
+        Cells east = CellGrid.ToCells(at.East);
+        Cells north = CellGrid.ToCells(at.North);
+        int nearest = Rows.NoSlot;
+        long best = long.MaxValue;
+
+        for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
+        {
+            if (!lots.Rows.IsLive(slot) || !lots.IsVacant(slot)
+                || ClickableCell(lots.East[slot]) != east
+                || ClickableCell(lots.North[slot]) != north)
+            {
+                continue;
+            }
+
+            long de = lots.East[slot].Raw - at.East.Raw;
+            long dn = lots.North[slot].Raw - at.North.Raw;
+            long away = (de * de) + (dn * dn);
+
+            if (away < best)
+            {
+                best = away;
+                nearest = slot;
+            }
+        }
+
+        return nearest;
+    }
+
+    /// <summary>The Cell a click can name for a Lot anchored at <paramref name="anchor"/>.</summary>
+    /// <remarks>
+    /// North/east boundary Lots anchor at WorldTiles, beyond the last Cell. Map them to the
+    /// last clickable Cell for hit testing while retaining the exact Lot origin for commands.
+    /// </remarks>
+    private static Cells ClickableCell(Tiles anchor) =>
+        CellGrid.ToCells(new Tiles(
+            anchor.Raw < CellGrid.WorldTiles ? anchor.Raw : CellGrid.WorldTiles - 1));
 
     /// <summary>The first declared kind that serves a Need, or zero when the file declares none.</summary>
     /// <remarks>
