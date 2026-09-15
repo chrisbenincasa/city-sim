@@ -75,11 +75,20 @@ loads a package yet.
   `storage` selections are refused as unimplemented.
 - **Legacy compatibility.** Every shipped Ruleset resolves through `RulesetSource.Load` with its
   existing hash, refusal text and field-for-field Ruleset, and returns the reader's own result.
+- **Bundle codec.** `RulesetBundle.Write` and `.Read` carry a capture as an entry-name/byte
+  collection, so the host owns the directory or archive: `bundle.json` with envelope version, mode,
+  identity, source/resolver versions and sorted members, then `source.toml` with `members/<path>`,
+  or `ruleset.toml` alone under its legacy hash. A read recaptures through `FromEntries`, so
+  membership, portable paths and UTF-8 are checked as a directory capture checks them. It refuses an
+  unknown envelope, source or resolver version, a duplicate or undeclared entry, a member list
+  disagreeing with the manifest, and content that does not fold to the recorded identity. The JSON
+  spelling is not an identity input.
 
 Remaining work and dependencies, in addition to the sequence below:
 
-1. Hosts still call `RulesetLoader` and `RulesetFile` directly. Switch them only with the bundle
-   codec and CitySave v2, so a package city can be saved, reloaded and replayed (steps 3-4).
+1. Hosts still call `RulesetLoader` and `RulesetFile` directly, and nothing writes a bundle. The
+   codec is in place; CitySave v2 and the shared host loading path are not, so no package city can
+   yet be saved, reloaded or replayed (steps 3-4).
 2. Reader refusals have no column, some quote the lowered `name` key, and typed reference errors
    come from the single-file reader rather than a typed resolver. Provenance/dependency edges,
    expansion counts, impact previews and old/new id-key collision refusal are not built.

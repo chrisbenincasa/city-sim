@@ -8,9 +8,9 @@ the loader resolves references, derives quantities and reports consequences.
 **The release decisions below are agreed; runtime mechanics and the saved-selection schema
 still need design. The source format is only partly implemented.** `RulesetSource` in Formats
 captures manifests, frames bundle identity, collects typed declarations with located diagnostics
-and resolves them deterministically by lowering into the single-file reader. Neither host loads a
-package yet, and shared baskets, recipe references and storage selections are refused as
-unimplemented. The hosts' loader currently reads a single execution-oriented TOML document. The disposable prototype demonstrates
+and resolves them deterministically by lowering into the single-file reader. `RulesetBundle` writes
+and reads the stored bundle described below. Neither host stores or loads a package yet, and shared
+baskets, recipe references and storage selections are refused as unimplemented. The hosts' loader currently reads a single execution-oriented TOML document. The disposable prototype demonstrates
 shared maintenance and impact reports; the factored representation and bakery contract establish
 bounded design evidence. They are not production loaders or substitutes for Core mechanics.
 [Plan 0077](../plans/0077-ruleset-source-loading.md) captures loader and guide implementation;

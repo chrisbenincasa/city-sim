@@ -138,6 +138,15 @@ public static class RulesetDiagnosticCode
     /// <summary>Source v1 syntax whose runtime or resolver support this build does not have yet.</summary>
     public const string Unimplemented = "unimplemented";
 
+    /// <summary>A stored bundle whose entries or metadata do not describe one captured Ruleset.</summary>
+    public const string Bundle = "bundle";
+
+    /// <summary>A stored bundle written by an envelope, source or resolver version this build lacks.</summary>
+    public const string BundleVersion = "bundle-version";
+
+    /// <summary>A stored bundle whose content does not fold to the identity it records.</summary>
+    public const string BundleIdentity = "bundle-identity";
+
     /// <summary>A refusal from the single-file Ruleset reader.</summary>
     public const string Ruleset = "ruleset";
 }
