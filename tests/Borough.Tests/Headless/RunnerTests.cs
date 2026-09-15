@@ -541,6 +541,50 @@ public sealed class RunnerTests
         }
     }
 
+    [Fact]
+    public void A_package_loads_through_the_runner_and_is_identified_by_its_bundle()
+    {
+        string root = Directory.CreateTempSubdirectory("borough-package-").FullName;
+
+        try
+        {
+            string entry = Path.Combine(root, "ruleset.toml");
+
+            File.WriteAllText(entry, """
+                [source]
+                version = 1
+                members = ["dwelling.toml", "goods.toml"]
+                """);
+
+            // dwelling.toml sorts first and refers forward to a Resource goods.toml declares.
+            File.WriteAllText(Path.Combine(root, "dwelling.toml"), """
+                [[building]]
+                id = "dwelling"
+                houses = true
+                premises = true
+                bins = [ { resource = "sundries", capacity = 48, owner = "occupant" } ]
+                """);
+
+            File.WriteAllText(Path.Combine(root, "goods.toml"), """
+                [[resource]]
+                id = "sundries"
+                family = "good"
+                """);
+
+            Assert.True(Borough.Headless.Session.TryRules(entry, out Ruleset rules));
+            Assert.NotSame(Ruleset.Empty, rules);
+
+            // The identity is the framed bundle over every member, not the manifest's own bytes.
+            Assert.True(Borough.Headless.Session.TryIdentity(entry, out ulong identity));
+            Assert.Equal(Borough.Formats.RulesetCapture.Read(entry).Capture!.ContentHash, identity);
+            Assert.NotEqual(Borough.Formats.RulesetFile.HashOf(entry), identity);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     /// <summary>
     /// <b>A fresh session is recorded against the Ruleset it was handed.</b>
     /// </summary>

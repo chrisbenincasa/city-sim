@@ -9,8 +9,9 @@ the loader resolves references, derives quantities and reports consequences.
 still need design. The source format is only partly implemented.** `RulesetSource` in Formats
 captures manifests, frames bundle identity, collects typed declarations with located diagnostics
 and resolves them deterministically by lowering into the single-file reader. `RulesetBundle` writes
-and reads the stored bundle described below. Neither host stores or loads a package yet, and shared
-baskets, recipe references and storage selections are refused as unimplemented. The hosts' loader currently reads a single execution-oriented TOML document. The disposable prototype demonstrates
+and reads the stored bundle described below. The headless runner loads a package through
+`RulesetSource`; the Godot shell does not, no host stores a bundle yet, and shared baskets, recipe
+references and storage selections are refused as unimplemented. The hosts' loader currently reads a single execution-oriented TOML document. The disposable prototype demonstrates
 shared maintenance and impact reports; the factored representation and bakery contract establish
 bounded design evidence. They are not production loaders or substitutes for Core mechanics.
 [Plan 0077](../plans/0077-ruleset-source-loading.md) captures loader and guide implementation;
@@ -91,7 +92,9 @@ Definition labels may contain Unicode. Membership order has no semantic preceden
 Capture the manifest and all members once as immutable UTF-8 bytes (an optional UTF-8 BOM is
 accepted); parsing, hashing, previews and retention use that same capture. Reject invalid UTF-8.
 A later disk edit requires another candidate capture. A capture is the candidate's identity;
-it does not promise a filesystem transaction across an editor's concurrent writes.
+it does not promise a filesystem transaction across an editor's concurrent writes. A manifest
+lists at most 256 members, and neither a manifest nor a member may exceed 4 MiB. These bound what
+a load will read; they are not a budget for how much content a game may have.
 
 Start with the connected mechanisms required for a small settlement. Additional Goods, kinds,
 recipes and services should add their actual dependencies rather than require every future

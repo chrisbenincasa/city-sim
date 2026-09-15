@@ -138,6 +138,9 @@ public static class RulesetDiagnosticCode
     /// <summary>Source v1 syntax whose runtime or resolver support this build does not have yet.</summary>
     public const string Unimplemented = "unimplemented";
 
+    /// <summary>A manifest or member beyond the documented loading limits.</summary>
+    public const string Limit = "limit";
+
     /// <summary>A stored bundle whose entries or metadata do not describe one captured Ruleset.</summary>
     public const string Bundle = "bundle";
 

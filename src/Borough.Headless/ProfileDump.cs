@@ -21,7 +21,7 @@ internal static class ProfileDump
     {
         if (!Session.TryRules(options.RulesetPath, out Ruleset rules, out _)) { return 2; }
         var key = WorldKey.FromSeed(options.Seed);
-        ulong rulesetHash = RulesetFile.HashOf(options.RulesetPath!);
+        if (!Session.TryIdentity(options.RulesetPath!, out ulong rulesetHash)) { return 2; }
         World world;
         Simulation sim;
         if (options.ProfileLoadPath is { } load)

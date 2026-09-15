@@ -44,8 +44,10 @@ internal static class Session
             return Resume(options);
         }
 
-        Supplied[] supplied = [.. options.RulesetPaths.Select(
-            path => new Supplied(path, RulesetFile.HashOf(path)))];
+        if (!TrySupplied(options.RulesetPaths, out Supplied[] supplied))
+        {
+            return Refused;
+        }
 
         InputLog log = Load(options, supplied);
 
@@ -252,8 +254,10 @@ internal static class Session
     /// </remarks>
     private static int Resume(Options options)
     {
-        Supplied[] supplied = [.. options.RulesetPaths.Select(
-            path => new Supplied(path, RulesetFile.HashOf(path)))];
+        if (!TrySupplied(options.RulesetPaths, out Supplied[] supplied))
+        {
+            return Refused;
+        }
 
         if (!TryCatalogue(supplied, supplied[0].Hash, out RulesetCatalogue rulesets))
         {
@@ -484,7 +488,7 @@ internal static class Session
             return true;
         }
 
-        RulesetLoadResult result = RulesetLoader.Load(path);
+        RulesetLoadResult result = RulesetSource.Load(path).ToLoadResult();
 
         if (result.Ruleset is null)
         {
@@ -498,6 +502,48 @@ internal static class Session
 
         rules = result.Ruleset;
         names = result.Names;
+        return true;
+    }
+
+    /// <summary>The content identity of the Ruleset at <paramref name="path"/>.</summary>
+    /// <remarks>
+    /// Captured rather than hashed, so a source package is identified by its framed bundle rather than
+    /// by the manifest alone. A single file keeps the hash it has always had.
+    /// </remarks>
+    internal static bool TryIdentity(string path, out ulong hash)
+    {
+        RulesetCaptureResult captured = RulesetCapture.Read(path);
+
+        if (captured.Capture is not { } capture)
+        {
+            Console.Error.WriteLine(string.Join(Environment.NewLine, captured.Diagnostics));
+            Console.Error.WriteLine(
+                $"{captured.Diagnostics.Count} refusal(s). The Ruleset was not loaded and nothing ran.");
+
+            hash = ContentHash.None;
+            return false;
+        }
+
+        hash = capture.ContentHash;
+        return true;
+    }
+
+    /// <summary>Every Ruleset the operator named, each with its content identity.</summary>
+    private static bool TrySupplied(IReadOnlyList<string> paths, out Supplied[] supplied)
+    {
+        supplied = new Supplied[paths.Count];
+
+        for (int i = 0; i < paths.Count; i++)
+        {
+            if (!TryIdentity(paths[i], out ulong hash))
+            {
+                supplied = [];
+                return false;
+            }
+
+            supplied[i] = new Supplied(paths[i], hash);
+        }
+
         return true;
     }
 

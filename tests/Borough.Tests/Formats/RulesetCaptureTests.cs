@@ -221,6 +221,21 @@ public sealed class RulesetCaptureTests
         Assert.Contains("directory", captured.Diagnostics[2].Reason, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void A_manifest_or_member_beyond_the_loading_limits_is_refused()
+    {
+        string oversize = new('#', RulesetCapture.ByteLimit + 1);
+        string[] many = [.. Enumerable.Range(0, RulesetCapture.MemberLimit + 1).Select(i => $"m{i}.toml")];
+
+        RulesetCaptureResult member = Capture(Manifest("goods.toml"), ("goods.toml", oversize));
+        RulesetCaptureResult manifest = Capture(Manifest() + oversize);
+        RulesetCaptureResult crowded = Capture(Manifest(many), [.. many.Select(path => (path, Goods))]);
+
+        Assert.Equal(RulesetDiagnosticCode.Limit, Assert.Single(member.Diagnostics).Code);
+        Assert.Equal(RulesetDiagnosticCode.Limit, Assert.Single(manifest.Diagnostics).Code);
+        Assert.Equal(RulesetDiagnosticCode.Limit, Assert.Single(crowded.Diagnostics).Code);
+    }
+
     private static void AddUInt32(List<byte> frame, uint value)
     {
         byte[] bytes = new byte[4];

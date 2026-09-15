@@ -784,17 +784,24 @@ internal static class ArrivalDump
         var hashes = new ulong[count];
 
         rules[0] = opening;
-        hashes[0] = RulesetFile.HashOf(options.RulesetPaths[0]);
+
+        if (!Session.TryIdentity(options.RulesetPaths[0], out ulong first))
+        {
+            return false;
+        }
+
+        hashes[0] = first;
 
         for (int i = 1; i < count; i++)
         {
-            if (!Session.TryRules(options.RulesetPaths[i], out Ruleset later, out _))
+            if (!Session.TryRules(options.RulesetPaths[i], out Ruleset later, out _)
+                || !Session.TryIdentity(options.RulesetPaths[i], out ulong hash))
             {
                 return false;
             }
 
             rules[i] = later;
-            hashes[i] = RulesetFile.HashOf(options.RulesetPaths[i]);
+            hashes[i] = hash;
         }
 
         catalogue = RulesetCatalogue.Of(hashes, rules);

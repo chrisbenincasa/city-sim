@@ -74,6 +74,12 @@ public sealed class RulesetCapture
     /// <summary>The source interpretation this build implements, framed into identity.</summary>
     public const uint ResolverVersion = 1;
 
+    /// <summary>The most members one manifest may list.</summary>
+    public const int MemberLimit = 256;
+
+    /// <summary>The most bytes one manifest or one member may hold.</summary>
+    public const int ByteLimit = 4 << 20;
+
     private static readonly UTF8Encoding StrictUtf8 =
         new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
@@ -297,6 +303,14 @@ public sealed class RulesetCapture
                     entry, [], RulesetFile.HashOfContent(entry)));
         }
 
+        if (entry.Length > ByteLimit)
+        {
+            diagnostics.Add(new RulesetDiagnostic(entryName, 0, 0, RulesetDiagnosticCode.Limit, null,
+                null, $"the manifest holds {entry.Length} bytes; the limit is {ByteLimit}."));
+
+            return RulesetCaptureResult.Refused(diagnostics);
+        }
+
         if (!TryDecodeUtf8(entry, out string text))
         {
             diagnostics.Add(new RulesetDiagnostic(entryName, 0, 0, RulesetDiagnosticCode.Utf8, null,
@@ -325,18 +339,20 @@ public sealed class RulesetCapture
                 diagnostics.Add(new RulesetDiagnostic(entryName, item.At.Line, item.At.Column,
                     found.Code, null, null, $"member '{item.Path}' {found.Problem}"));
             }
+            else if (found.Content.Length > ByteLimit)
+            {
+                diagnostics.Add(new RulesetDiagnostic(item.Path, 0, 0, RulesetDiagnosticCode.Limit,
+                    null, null,
+                    $"the member holds {found.Content.Length} bytes; the limit is {ByteLimit}."));
+            }
+            else if (!TryDecodeUtf8(found.Content, out _))
+            {
+                diagnostics.Add(new RulesetDiagnostic(item.Path, 0, 0, RulesetDiagnosticCode.Utf8,
+                    null, null, "the member is not valid UTF-8."));
+            }
             else
             {
-                if (!TryDecodeUtf8(found.Content, out _))
-                {
-                    diagnostics.Add(new RulesetDiagnostic(item.Path, 0, 0,
-                        RulesetDiagnosticCode.Utf8, null, null,
-                        "the member is not valid UTF-8."));
-                }
-                else
-                {
-                    members.Add(new RulesetMember(item.Path, found.Content));
-                }
+                members.Add(new RulesetMember(item.Path, found.Content));
             }
         }
 
@@ -482,6 +498,16 @@ public sealed class RulesetCapture
         {
             Refuse(members, RulesetDiagnosticCode.Manifest,
                 "members must be an array of quoted relative paths.");
+
+            return listed;
+        }
+
+        int count = array.Items.ChildrenCount;
+
+        if (count > MemberLimit)
+        {
+            Refuse(members, RulesetDiagnosticCode.Limit,
+                $"[source] lists {count} members; the limit is {MemberLimit}.");
 
             return listed;
         }

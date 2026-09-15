@@ -83,21 +83,36 @@ loads a package yet.
   unknown envelope, source or resolver version, a duplicate or undeclared entry, a member list
   disagreeing with the manifest, and content that does not fold to the recorded identity. The JSON
   spelling is not an identity input.
+- **Headless loading.** `Session.TryRules` resolves through `RulesetSource`, so every dump command
+  accepts a package without a call-site change, and `Session.TryIdentity` captures rather than
+  hashes, so a package's framed identity reaches the catalogue, Input Log transitions and
+  `SaveHeader.RulesetInForce` instead of the manifest's own legacy hash. `RulesetCheck` still sees
+  identities before anything is parsed, so a supplied-Ruleset mismatch is still reported ahead of a
+  parse refusal.
+- **Loading limits.** A manifest lists at most 256 members and neither a manifest nor a member may
+  exceed 4 MiB, refused as `limit` during capture, so the bundle codec inherits the same bounds.
 
 Remaining work and dependencies, in addition to the sequence below:
 
-1. Hosts still call `RulesetLoader` and `RulesetFile` directly, and nothing writes a bundle. The
-   codec is in place; CitySave v2 and the shared host loading path are not, so no package city can
-   yet be saved, reloaded or replayed (steps 3-4).
+1. The Godot shell still calls `RulesetLoader` and `RulesetFile` directly and nothing writes a
+   bundle, so no package city can yet be saved or reloaded in the shell (steps 3-4). Its `_toml`
+   is one string threaded through the tuner's line-oriented rewrites, so a package needs either a
+   tuner that knows which member owns a key — which needs step 2's provenance edges — or a tuner
+   that declines on package content. `Main.Menu.cs` also assigns the loaded save's path to
+   `_rulesetPath`, so after a resume the tuner's parse label names the `.borough-city` archive.
 2. Reader refusals have no column, some quote the lowered `name` key, and typed reference errors
    come from the single-file reader rather than a typed resolver. Provenance/dependency edges,
    expansion counts, impact previews and old/new id-key collision refusal are not built.
 3. Shared baskets, recipe references and storage derivation (step 2) wait on the runtime
    factoring design: fractional consumption progress and the saved-selection source schema.
    Integrated execution must replace the lowering before the first usable release.
-4. Loading limits for member size and count are undefined; regular-file checks do not exclude
-   special files such as FIFOs. Schema/key-reference output does not yet describe `id`, `label`,
-   `order` or the manifest, and the authoring walkthrough and designer handoff remain.
+4. Excluding special files such as FIFOs is deferred to Ruleset sharing and modding, which is where
+   a package from outside the player's own checkout first arrives. .NET reports a FIFO as an
+   existing regular file of length zero, with the same attributes and Unix mode as a plain file, so
+   refusing one needs `stat` through P/Invoke and an `adr/0018` exception; without it a member that
+   is a FIFO blocks the read until a writer opens the pipe. Schema/key-reference output does not yet
+   describe `id`, `label`, `order` or the manifest, and the authoring walkthrough and designer
+   handoff remain.
 
 ## Implementation sequence
 
