@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Borough.Core;
 using Borough.Core.Determinism;
@@ -478,17 +479,31 @@ internal static class Session
     /// two-argument overload. <see cref="RulesetNames.None"/> comes back for a run with
     /// no <c>--ruleset</c>, which is the honest answer: there was no file, so there are no names.
     /// </remarks>
-    internal static bool TryRules(string? path, out Ruleset rules, out RulesetNames names)
+    internal static bool TryRules(string? path, out Ruleset rules, out RulesetNames names) =>
+        Resolved(path is null ? null : RulesetSource.Load(path), out rules, out names);
+
+    /// <summary>
+    /// <see cref="TryRules(string?, out Ruleset, out RulesetNames)"/> for a Ruleset already captured.
+    /// </summary>
+    /// <remarks>
+    /// The bytes that resolve are the bytes the identity was folded from. Reading the path a second
+    /// time would let an edit between the two reads register one content identity against different
+    /// Rules, which a save header and a replay transition both read as provenance.
+    /// </remarks>
+    internal static bool TryRules(RulesetCapture? capture, out Ruleset rules, out RulesetNames names) =>
+        Resolved(capture is null ? null : RulesetSource.Resolve(capture), out rules, out names);
+
+    private static bool Resolved(RulesetSourceResult? source, out Ruleset rules, out RulesetNames names)
     {
         names = RulesetNames.None;
 
-        if (path is null)
+        if (source is null)
         {
             rules = Ruleset.Empty;
             return true;
         }
 
-        RulesetLoadResult result = RulesetSource.Load(path).ToLoadResult();
+        RulesetLoadResult result = source.ToLoadResult();
 
         if (result.Ruleset is null)
         {
@@ -505,26 +520,27 @@ internal static class Session
         return true;
     }
 
-    /// <summary>The content identity of the Ruleset at <paramref name="path"/>.</summary>
+    /// <summary>The capture of the Ruleset at <paramref name="path"/>, or every refusal.</summary>
     /// <remarks>
-    /// Captured rather than hashed, so a source package is identified by its framed bundle rather than
-    /// by the manifest alone. A single file keeps the hash it has always had.
+    /// A source package is identified by its framed bundle rather than by the manifest alone, and a
+    /// single file keeps the hash it has always had. The caller keeps the capture rather than just its
+    /// identity, so the identity it records and the Rules it later resolves come from one read.
     /// </remarks>
-    internal static bool TryIdentity(string path, out ulong hash)
+    internal static bool TryCapture(string path, [NotNullWhen(true)] out RulesetCapture? capture)
     {
         RulesetCaptureResult captured = RulesetCapture.Read(path);
 
-        if (captured.Capture is not { } capture)
+        if (captured.Capture is null)
         {
             Console.Error.WriteLine(string.Join(Environment.NewLine, captured.Diagnostics));
             Console.Error.WriteLine(
                 $"{captured.Diagnostics.Count} refusal(s). The Ruleset was not loaded and nothing ran.");
 
-            hash = ContentHash.None;
+            capture = null;
             return false;
         }
 
-        hash = capture.ContentHash;
+        capture = captured.Capture;
         return true;
     }
 
@@ -535,13 +551,13 @@ internal static class Session
 
         for (int i = 0; i < paths.Count; i++)
         {
-            if (!TryIdentity(paths[i], out ulong hash))
+            if (!TryCapture(paths[i], out RulesetCapture? capture))
             {
                 supplied = [];
                 return false;
             }
 
-            supplied[i] = new Supplied(paths[i], hash);
+            supplied[i] = new Supplied(paths[i], capture.ContentHash, capture);
         }
 
         return true;
@@ -591,7 +607,7 @@ internal static class Session
 
         foreach (Supplied entry in supplied)
         {
-            if (!TryRules(entry.Path, out Ruleset parsed))
+            if (!TryRules(entry.Capture, out Ruleset parsed, out _))
             {
                 ok = false;
                 continue;

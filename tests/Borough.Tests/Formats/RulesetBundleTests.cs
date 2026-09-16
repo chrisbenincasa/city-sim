@@ -156,6 +156,17 @@ public sealed class RulesetBundleTests
         Assert.Equal(RulesetDiagnosticCode.Bundle, Refusal(entries).Code);
     }
 
+    [Fact]
+    public void A_member_sharing_the_manifest_entry_name_round_trips()
+    {
+        RulesetCapture captured = Capture(Manifest("source.toml"), ("source.toml", Goods)).Capture!;
+
+        RulesetCaptureResult read = RulesetBundle.Read(RulesetBundle.Write(captured));
+
+        Assert.True(read.Ok, read.Capture is null ? read.Diagnostics[0].ToString() : string.Empty);
+        Assert.Equal(captured.ContentHash, read.Capture!.ContentHash);
+    }
+
     private static List<KeyValuePair<string, byte[]>> Bundled() =>
         [.. RulesetBundle.Write(Capture(Manifest([.. Base.Select(member => member.Path)]), Base).Capture!)];
 

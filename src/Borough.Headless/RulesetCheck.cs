@@ -1,6 +1,7 @@
 using System.Globalization;
 using Borough.Core.Determinism;
 using Borough.Core.Input;
+using Borough.Formats;
 
 namespace Borough.Headless;
 
@@ -13,7 +14,10 @@ namespace Borough.Headless;
 /// </remarks>
 /// <param name="Path">The path as it was given on the command line.</param>
 /// <param name="Hash">Its content hash.</param>
-internal readonly record struct Supplied(string Path, ulong Hash);
+/// <param name="Capture">
+/// The bytes it was captured from, carried so that the Rules resolved are the Rules hashed.
+/// </param>
+internal readonly record struct Supplied(string Path, ulong Hash, RulesetCapture Capture);
 
 /// <summary>
 /// Whether a session may run against the Ruleset it was handed, and what to say if not.

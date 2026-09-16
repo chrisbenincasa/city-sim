@@ -36,8 +36,13 @@ public sealed class RunnerTests
     }
 
     /// <summary>What the operator named on the command line.</summary>
+    /// <remarks>
+    /// The captures are empty because these cases exercise the hash policy, which reads the hash and
+    /// the path and never resolves Rules.
+    /// </remarks>
     private static Supplied[] Given(params (string Path, ulong Hash)[] rulesets) =>
-        [.. rulesets.Select(entry => new Supplied(entry.Path, entry.Hash))];
+        [.. rulesets.Select(entry => new Supplied(
+            entry.Path, entry.Hash, RulesetCapture.FromEntries(entry.Path, [], []).Capture!))];
 
     /// <summary>
     /// The acceptance criterion, as a test: a run whose Ruleset does not match refuses to start.
@@ -220,10 +225,13 @@ public sealed class RunnerTests
             string opening = Write(directory, "opening.toml", "sundries");
             string patched = Write(directory, "patched.toml", "repairs");
 
+            RulesetCapture patchedRules = RulesetCapture.Read(patched).Capture!;
+            RulesetCapture openingRules = RulesetCapture.Read(opening).Capture!;
+
             Supplied[] supplied =
             [
-                new(patched, RulesetFile.HashOf(patched)),
-                new(opening, RulesetFile.HashOf(opening)),
+                new(patched, patchedRules.ContentHash, patchedRules),
+                new(opening, openingRules.ContentHash, openingRules),
             ];
 
             Assert.True(Borough.Headless.Session.TryCatalogue(
@@ -575,9 +583,9 @@ public sealed class RunnerTests
             Assert.NotSame(Ruleset.Empty, rules);
 
             // The identity is the framed bundle over every member, not the manifest's own bytes.
-            Assert.True(Borough.Headless.Session.TryIdentity(entry, out ulong identity));
-            Assert.Equal(Borough.Formats.RulesetCapture.Read(entry).Capture!.ContentHash, identity);
-            Assert.NotEqual(Borough.Formats.RulesetFile.HashOf(entry), identity);
+            Assert.True(Borough.Headless.Session.TryCapture(entry, out RulesetCapture? captured));
+            Assert.Equal(RulesetCapture.Read(entry).Capture!.ContentHash, captured.ContentHash);
+            Assert.NotEqual(RulesetFile.HashOf(entry), captured.ContentHash);
         }
         finally
         {

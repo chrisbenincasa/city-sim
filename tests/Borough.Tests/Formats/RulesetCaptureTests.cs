@@ -104,12 +104,10 @@ public sealed class RulesetCaptureTests
     }
 
     [Fact]
-    public void A_manifest_cannot_list_itself_or_a_member_twice()
+    public void A_manifest_cannot_list_a_member_twice()
     {
-        RulesetCaptureResult self = Capture(Manifest("ruleset.toml"), ("ruleset.toml", Goods));
         RulesetCaptureResult twice = Capture(Manifest("goods.toml", "goods.toml"), ("goods.toml", Goods));
 
-        Assert.Equal(RulesetDiagnosticCode.MemberPath, Assert.Single(self.Diagnostics).Code);
         Assert.Equal(RulesetDiagnosticCode.MemberDuplicate, Assert.Single(twice.Diagnostics).Code);
     }
 
@@ -234,6 +232,35 @@ public sealed class RulesetCaptureTests
         Assert.Equal(RulesetDiagnosticCode.Limit, Assert.Single(member.Diagnostics).Code);
         Assert.Equal(RulesetDiagnosticCode.Limit, Assert.Single(manifest.Diagnostics).Code);
         Assert.Equal(RulesetDiagnosticCode.Limit, Assert.Single(crowded.Diagnostics).Code);
+    }
+
+    /// <summary>
+    /// Members share the manifest's directory, so listing it would read it. A bundle supplies the
+    /// manifest outside the member map, where a member may carry the same name.
+    /// </summary>
+    [Fact]
+    public void A_manifest_cannot_list_itself()
+    {
+        using var package = new Directory();
+
+        package.Write("ruleset.toml", Manifest("ruleset.toml"));
+
+        RulesetCaptureResult captured = RulesetCapture.Read(Path.Combine(package.Root, "ruleset.toml"));
+
+        Assert.Equal(RulesetDiagnosticCode.MemberPath, Assert.Single(captured.Diagnostics).Code);
+    }
+
+    [Fact]
+    public void An_oversize_member_on_disk_is_refused()
+    {
+        using var package = new Directory();
+
+        package.Write("ruleset.toml", Manifest("goods.toml"));
+        package.Write("goods.toml", new string('#', RulesetCapture.ByteLimit + 1));
+
+        RulesetCaptureResult captured = RulesetCapture.Read(Path.Combine(package.Root, "ruleset.toml"));
+
+        Assert.Equal(RulesetDiagnosticCode.Limit, Assert.Single(captured.Diagnostics).Code);
     }
 
     private static void AddUInt32(List<byte> frame, uint value)

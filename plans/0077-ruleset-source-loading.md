@@ -53,7 +53,8 @@ loads a package yet.
   as single files. It enforces version 1, exactly `version`/`members`, the portable path
   vocabulary, self-listing, duplicate and missing members, symbolic links, directories and
   strict UTF-8 with an optional BOM. `FromEntries` applies the same rules to an entry/byte
-  collection with exact membership, for the future bundle codec. An empty member list captures.
+  collection with exact membership, except that its manifest arrives outside the member map, so a
+  member there may carry the entry's own name. An empty member list captures.
 - **Identity.** A package's `ContentHash` is the documented framed bundle over retained bytes.
   Single files keep `RulesetFile.HashOfContent`; its CRLF normalisation is now shared, unchanged.
 - **Collection and diagnostics.** `RulesetSource.Resolve` collects every member's top-level
@@ -79,18 +80,23 @@ loads a package yet.
   collection, so the host owns the directory or archive: `bundle.json` with envelope version, mode,
   identity, source/resolver versions and sorted members, then `source.toml` with `members/<path>`,
   or `ruleset.toml` alone under its legacy hash. A read recaptures through `FromEntries`, so
-  membership, portable paths and UTF-8 are checked as a directory capture checks them. It refuses an
+  membership, portable paths and UTF-8 are checked as a directory capture checks them; only
+  self-listing differs, because the manifest is a separate entry rather than a file among the
+  members. It refuses an
   unknown envelope, source or resolver version, a duplicate or undeclared entry, a member list
   disagreeing with the manifest, and content that does not fold to the recorded identity. The JSON
   spelling is not an identity input.
 - **Headless loading.** `Session.TryRules` resolves through `RulesetSource`, so every dump command
-  accepts a package without a call-site change, and `Session.TryIdentity` captures rather than
-  hashes, so a package's framed identity reaches the catalogue, Input Log transitions and
-  `SaveHeader.RulesetInForce` instead of the manifest's own legacy hash. `RulesetCheck` still sees
+  accepts a package without a call-site change, and `Session.TryCapture` returns the capture rather
+  than a hash, so a package's framed identity reaches the catalogue, Input Log transitions and
+  `SaveHeader.RulesetInForce` instead of the manifest's own legacy hash. A command captures once and
+  resolves those same bytes, so an edit between two reads cannot record one identity against
+  different Rules. `RulesetCheck` still sees
   identities before anything is parsed, so a supplied-Ruleset mismatch is still reported ahead of a
   parse refusal.
 - **Loading limits.** A manifest lists at most 256 members and neither a manifest nor a member may
-  exceed 4 MiB, refused as `limit` during capture, so the bundle codec inherits the same bounds.
+  exceed 4 MiB, refused as `limit` during capture, so the bundle codec inherits the same bounds. An
+  oversize member on disk is refused from its length, before its bytes are read.
 
 Remaining work and dependencies, in addition to the sequence below:
 

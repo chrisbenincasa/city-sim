@@ -79,7 +79,14 @@ internal static class ArrivalDump
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(output);
 
-        if (!Session.TryRules(options.RulesetPath, out Ruleset rules, out RulesetNames names))
+        RulesetCapture? captured = null;
+
+        if (options.RulesetPath is { } entry && !Session.TryCapture(entry, out captured))
+        {
+            return 2;
+        }
+
+        if (!Session.TryRules(captured, out Ruleset rules, out RulesetNames names))
         {
             return 2;
         }
@@ -89,7 +96,8 @@ internal static class ArrivalDump
             return refusal;
         }
 
-        if (!TryCatalogue(options, rules, out RulesetCatalogue catalogue, out ulong[] transitions))
+        if (!TryCatalogue(
+            options, rules, captured, out RulesetCatalogue catalogue, out ulong[] transitions))
         {
             return 2;
         }
@@ -767,6 +775,7 @@ internal static class ArrivalDump
     private static bool TryCatalogue(
         Options options,
         Ruleset opening,
+        RulesetCapture? captured,
         out RulesetCatalogue catalogue,
         out ulong[] transitions)
     {
@@ -775,7 +784,7 @@ internal static class ArrivalDump
 
         int count = options.RulesetPaths.Count;
 
-        if (count == 0)
+        if (count == 0 || captured is null)
         {
             return true;
         }
@@ -784,24 +793,18 @@ internal static class ArrivalDump
         var hashes = new ulong[count];
 
         rules[0] = opening;
-
-        if (!Session.TryIdentity(options.RulesetPaths[0], out ulong first))
-        {
-            return false;
-        }
-
-        hashes[0] = first;
+        hashes[0] = captured.ContentHash;
 
         for (int i = 1; i < count; i++)
         {
-            if (!Session.TryRules(options.RulesetPaths[i], out Ruleset later, out _)
-                || !Session.TryIdentity(options.RulesetPaths[i], out ulong hash))
+            if (!Session.TryCapture(options.RulesetPaths[i], out RulesetCapture? later)
+                || !Session.TryRules(later, out Ruleset parsed, out _))
             {
                 return false;
             }
 
-            rules[i] = later;
-            hashes[i] = hash;
+            rules[i] = parsed;
+            hashes[i] = later.ContentHash;
         }
 
         catalogue = RulesetCatalogue.Of(hashes, rules);

@@ -19,9 +19,10 @@ internal static class ProfileDump
 {
     internal static int Run(Options options, TextWriter output, TextReader? input = null)
     {
-        if (!Session.TryRules(options.RulesetPath, out Ruleset rules, out _)) { return 2; }
+        if (!Session.TryCapture(options.RulesetPath!, out RulesetCapture? captured)
+            || !Session.TryRules(captured, out Ruleset rules, out _)) { return 2; }
         var key = WorldKey.FromSeed(options.Seed);
-        if (!Session.TryIdentity(options.RulesetPath!, out ulong rulesetHash)) { return 2; }
+        ulong rulesetHash = captured.ContentHash;
         World world;
         Simulation sim;
         if (options.ProfileLoadPath is { } load)

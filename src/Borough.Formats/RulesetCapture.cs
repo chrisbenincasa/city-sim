@@ -123,7 +123,12 @@ public sealed class RulesetCapture
         byte[] entry = File.ReadAllBytes(entryPath);
         string root = Path.GetDirectoryName(Path.GetFullPath(entryPath)) ?? Path.GetFullPath(".");
 
-        return Capture(entryPath, entry, relative => ReadMember(root, relative), supplied: []);
+        return Capture(
+            entryPath,
+            entry,
+            relative => ReadMember(root, relative),
+            supplied: [],
+            self: Path.GetFileName(entryPath));
     }
 
     /// <summary>
@@ -166,7 +171,8 @@ public sealed class RulesetCapture
             path => supplied.TryGetValue(path, out byte[]? content)
                 ? MemberRead.Found(content)
                 : MemberRead.Missing(),
-            supplied.Keys);
+            supplied.Keys,
+            self: null);
     }
 
     /// <summary>
@@ -284,7 +290,11 @@ public sealed class RulesetCapture
             && basename[3] is >= '0' and <= '9');
 
     private static RulesetCaptureResult Capture(
-        string entryName, byte[] entry, Func<string, MemberRead> read, IReadOnlyCollection<string> supplied)
+        string entryName,
+        byte[] entry,
+        Func<string, MemberRead> read,
+        IReadOnlyCollection<string> supplied,
+        string? self)
     {
         DocumentSyntax probe = SyntaxParser.Parse(DecodeAsSingleFile(entry), entryName, validate: true);
         var diagnostics = new List<RulesetDiagnostic>();
@@ -327,7 +337,7 @@ public sealed class RulesetCapture
             return RulesetCaptureResult.Refused(diagnostics);
         }
 
-        List<Listed> listed = ReadManifest(manifest, entryName, diagnostics);
+        List<Listed> listed = ReadManifest(manifest, entryName, self, diagnostics);
         var members = new List<RulesetMember>(listed.Count);
 
         foreach (Listed item in listed)
@@ -338,12 +348,6 @@ public sealed class RulesetCapture
             {
                 diagnostics.Add(new RulesetDiagnostic(entryName, item.At.Line, item.At.Column,
                     found.Code, null, null, $"member '{item.Path}' {found.Problem}"));
-            }
-            else if (found.Content.Length > ByteLimit)
-            {
-                diagnostics.Add(new RulesetDiagnostic(item.Path, 0, 0, RulesetDiagnosticCode.Limit,
-                    null, null,
-                    $"the member holds {found.Content.Length} bytes; the limit is {ByteLimit}."));
             }
             else if (!TryDecodeUtf8(found.Content, out _))
             {
@@ -410,7 +414,7 @@ public sealed class RulesetCapture
     }
 
     private static List<Listed> ReadManifest(
-        DocumentSyntax manifest, string entryName, List<RulesetDiagnostic> diagnostics)
+        DocumentSyntax manifest, string entryName, string? self, List<RulesetDiagnostic> diagnostics)
     {
         List<Listed> listed = [];
 
@@ -512,8 +516,6 @@ public sealed class RulesetCapture
             return listed;
         }
 
-        string self = Path.GetFileName(entryName);
-
         foreach (ArrayItemSyntax item in array.Items)
         {
             if (item.Value is not StringValueSyntax { Value: { } path } text)
@@ -584,7 +586,17 @@ public sealed class RulesetCapture
 
         try
         {
-            return MemberRead.Found(File.ReadAllBytes(current));
+            using FileStream stream = File.OpenRead(current);
+
+            if (stream.Length > ByteLimit)
+            {
+                return MemberRead.TooLarge(stream.Length);
+            }
+
+            byte[] content = new byte[stream.Length];
+            stream.ReadExactly(content);
+
+            return MemberRead.Found(content);
         }
         catch (IOException exception)
         {
@@ -635,7 +647,14 @@ public sealed class RulesetCapture
 
     private readonly record struct MemberRead(byte[]? Content, string Code, string Problem)
     {
-        public static MemberRead Found(byte[] content) => new(content, string.Empty, string.Empty);
+        public static MemberRead Found(byte[] content) =>
+            content.Length > ByteLimit
+                ? TooLarge(content.Length)
+                : new(content, string.Empty, string.Empty);
+
+        public static MemberRead TooLarge(long bytes) =>
+            new(null, RulesetDiagnosticCode.Limit,
+                $"holds {bytes} bytes; the limit is {ByteLimit}.");
 
         public static MemberRead Missing() =>
             new(null, RulesetDiagnosticCode.MemberMissing,
