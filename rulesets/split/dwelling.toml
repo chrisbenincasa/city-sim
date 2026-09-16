@@ -1,0 +1,18 @@
+# The one Building kind and the trade it houses. `label` is display text and never an identity.
+
+[[business]]
+id = "shop"
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+[[building]]
+id = "dwelling"
+label = "Terraced house"
+bins = [
+    { resource = "sundries", capacity = 48, owner = "occupant" },
+    { resource = "repairs",  capacity = 4 },
+]
+houses   = true
+premises = true
+parked   = true
+business = "shop"

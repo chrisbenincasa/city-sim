@@ -45,8 +45,8 @@ integrated release; a loader may not round away either capability.
 
 ## Implemented foundation
 
-This is a development slice in `Borough.Formats`. It does not complete step 1 below, and no host
-loads a package yet.
+This is a development slice in `Borough.Formats` and the two hosts. It does not complete step 1
+below.
 
 - **Capture.** `RulesetCapture.Read` reads the entry once; `[source]` (as a table, array or root
   key) selects the package reader and malformed or unsupported manifests are refused, never read
@@ -94,18 +94,26 @@ loads a package yet.
   different Rules. `RulesetCheck` still sees
   identities before anything is parsed, so a supplied-Ruleset mismatch is still reported ahead of a
   parse refusal.
+- **Shell loading and saving.** `Main` holds the capture rather than one TOML string, so the Godot
+  shell boots a package through `RulesetSource` and folds its framed identity into the Input Log and
+  the save header. `CitySave` envelope version 2 stores the bundle beside `world.save`; version 1
+  saves still read, under their legacy hash. `CityTuning` offers every dial to every member, so a
+  package keeps live tuning without knowing which member owns a key: a member that does not state
+  the table comes back byte-identical, and a byte order mark and each line's own ending survive, so
+  an untuned member cannot move the bundle identity. A tuned Ruleset is written out beside the Input
+  Log — one file for a single-file Ruleset, a directory for a package — and the reproduce line
+  names it.
 - **Loading limits.** A manifest lists at most 256 members and neither a manifest nor a member may
   exceed 4 MiB, refused as `limit` during capture, so the bundle codec inherits the same bounds. An
   oversize member on disk is refused from its length, before its bytes are read.
 
 Remaining work and dependencies, in addition to the sequence below:
 
-1. The Godot shell still calls `RulesetLoader` and `RulesetFile` directly and nothing writes a
-   bundle, so no package city can yet be saved or reloaded in the shell (steps 3-4). Its `_toml`
-   is one string threaded through the tuner's line-oriented rewrites, so a package needs either a
-   tuner that knows which member owns a key — which needs step 2's provenance edges — or a tuner
-   that declines on package content. `Main.Menu.cs` also assigns the loaded save's path to
-   `_rulesetPath`, so after a resume the tuner's parse label names the `.borough-city` archive.
+1. `Main.Menu.cs` assigns the loaded save's path to `_rulesetPath`, so after a resume the tuner's
+   parse label and the readout name the `.borough-city` archive rather than the Ruleset. A content
+   catalogue holding several bundles waits on registered in-session reloads, which the shell's
+   regenerating tuner is not. The drive channel has no verb for the tuner or for save and load, so
+   those two paths are covered by test rather than by a driven run.
 2. Reader refusals have no column, some quote the lowered `name` key, and typed reference errors
    come from the single-file reader rather than a typed resolver. Provenance/dependency edges,
    expansion counts, impact previews and old/new id-key collision refusal are not built.
@@ -117,8 +125,9 @@ Remaining work and dependencies, in addition to the sequence below:
    existing regular file of length zero, with the same attributes and Unix mode as a plain file, so
    refusing one needs `stat` through P/Invoke and an `adr/0018` exception; without it a member that
    is a FIFO blocks the read until a writer opens the pipe. Schema/key-reference output does not yet
-   describe `id`, `label`, `order` or the manifest, and the authoring walkthrough and designer
-   handoff remain.
+   describe `id`, `label`, `order` or the manifest, so `.taplo.toml` associates the schema with
+   `rulesets/*.toml` only and package members get no editor hints; widen that glob when the schema
+   can describe them. The authoring walkthrough and designer handoff remain.
 
 ## Implementation sequence
 

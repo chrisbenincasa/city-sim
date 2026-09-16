@@ -1,0 +1,13 @@
+# The Goods the rest of the package refers to by id.
+
+[[resource]]
+id = "sundries"
+family = "good"
+
+[[resource]]
+id = "repairs"
+family = "good"
+
+[[resource]]
+id = "money"
+family = "money"

@@ -142,8 +142,7 @@ public partial class Main
         _savePath = null;
         _simulation = simulation;
         _world = simulation.World;
-        _log = new InputLogBuilder(_seed, new WorldConfiguration(_citizens),
-            RulesetFile.HashOfContent(System.Text.Encoding.UTF8.GetBytes(_toml)));
+        _log = new InputLogBuilder(_seed, new WorldConfiguration(_citizens), _capture.ContentHash);
         _log.Append(Ticks.Zero, new Command(_empty ? CommandKind.Ground : CommandKind.Populate, default, default));
         _presentedTick = _world.Tick.Raw;
         _owed = 0;

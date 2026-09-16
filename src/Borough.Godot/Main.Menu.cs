@@ -177,7 +177,7 @@ public partial class Main
         {
             if (_cityPicker.FileMode == FileDialog.FileModeEnum.SaveFile)
             {
-                CitySave.Write(path, _world, _toml, _seed);
+                CitySave.Write(path, _world, _capture, _seed);
                 _savedWorld = _world;
                 _savedTick = _world.Tick.Raw;
                 _savePath = path;
@@ -193,7 +193,7 @@ public partial class Main
                 city.World.Changes = new WorldChanges();
                 city.World.Changes.Invalidate();
                 _rulesetPath = path;
-                _toml = city.Toml;
+                _capture = city.Capture;
                 _names = city.Names;
                 _seed = city.Seed;
                 _citizens = city.World.Citizens.Rows.LiveCount;

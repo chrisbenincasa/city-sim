@@ -9,9 +9,10 @@ the loader resolves references, derives quantities and reports consequences.
 still need design. The source format is only partly implemented.** `RulesetSource` in Formats
 captures manifests, frames bundle identity, collects typed declarations with located diagnostics
 and resolves them deterministically by lowering into the single-file reader. `RulesetBundle` writes
-and reads the stored bundle described below. The headless runner loads a package through
-`RulesetSource`; the Godot shell does not, no host stores a bundle yet, and shared baskets, recipe
-references and storage selections are refused as unimplemented. The hosts' loader currently reads a single execution-oriented TOML document. The disposable prototype demonstrates
+and reads the stored bundle described below. Both hosts load a package through `RulesetSource`, and
+CitySave envelope version 2 stores its bundle, so a package city saves and reloads without its
+source directory. Shared baskets, recipe references and storage selections are refused as
+unimplemented. The disposable prototype demonstrates
 shared maintenance and impact reports; the factored representation and bakery contract establish
 bounded design evidence. They are not production loaders or substitutes for Core mechanics.
 [Plan 0077](../plans/0077-ruleset-source-loading.md) captures loader and guide implementation;
@@ -316,13 +317,16 @@ version or refuse it explicitly. Retaining bytes alone is not an interpreter com
 
 ### CitySave and replay integration
 
-Introduce CitySave envelope version 2 in the shell, keeping `world.save` owned by Core. Its
-`city.json` records seed, active content identity and the content catalogue entries. Store each
-Formats bundle under `content/<16-digit-lower-case-hash>/`; the bundle codec defines its internal
-layout. Verify metadata, bundle identities and `SaveHeader.RulesetInForce` agree before building
-the world. Read version 1 saves through their existing `ruleset.toml` path and hash rules. Write
-new saves as version 2, including when the active source is legacy. Do not rewrite old artifacts
-or change Core's binary save schema merely to package sources.
+CitySave envelope version 2 is in the shell, keeping `world.save` owned by Core. Its `city.json`
+records the envelope version and seed; the active bundle's entries sit at the archive root, where
+the bundle codec owns their layout. The bundle's recomputed identity and `SaveHeader.RulesetInForce`
+must agree before the world is built. Version 1 saves read through their existing `ruleset.toml`
+path and hash rules. New saves are version 2, including when the active source is legacy. Old
+artifacts are not rewritten and Core's binary save schema is unchanged.
+
+A content catalogue under `content/<16-digit-lower-case-hash>/` holding several bundles arrives with
+registered in-session reloads, which need an opening bundle and one per transition. The shell's
+tuner regenerates rather than reloading, so a session holds one Ruleset and stores one bundle.
 
 A save containing a checkpoint needs the active bundle for continuation. Retain other bundles
 referenced by an included Input Log from that checkpoint onward, plus its opening bundle. A
@@ -454,8 +458,9 @@ retain every exact Ruleset used: comments and whitespace affect the content hash
 
 ## Delivering the production authoring guide
 
-Keep this document current as the loader ships. Turn the reviewed source v1 syntax into runnable
-examples for a small connected package, then walk through adding a Good/recipe, referencing a
+Keep this document current as the loader ships. `rulesets/split/` is the runnable example:
+minimal.toml's content across four members, demonstrating explicit membership, cross-member forward
+references and explicit Rule order. Walk through adding a Good/recipe, referencing a
 shared basket, choosing storage, introducing/removing an exception and evolving an inhabited
 city. Show the impact report and source-located diagnostics for common mistakes. Document which
 changes are supported, require migration, or require a new city.
