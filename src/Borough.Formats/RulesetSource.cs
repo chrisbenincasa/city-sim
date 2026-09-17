@@ -319,12 +319,12 @@ public static class RulesetSource
                     continue;
                 }
 
-                if (table is TableArraySyntax && name is "basket" or "recipe" or "storage")
+                if (table is TableArraySyntax && name is "basket" or "recipe" or "reserve")
                 {
                     Refuse(at, RulesetDiagnosticCode.Unimplemented, null, null,
                         $"[[{name}]] is a source v1 shared definition this build does not implement "
                         + "yet. Shared baskets need saved fractional consumption progress in Core, "
-                        + "and derived storage needs them; neither is approximated by the loader.");
+                        + "and derived reserves need them; neither is approximated by the loader.");
                     continue;
                 }
 
@@ -440,14 +440,14 @@ public static class RulesetSource
                 }
                 else if (section == "building" && key == "bins" && item.Value is ArraySyntax bins)
                 {
-                    RefuseStorageSelections(source, bins, declared.Id);
+                    RefuseReserveSelections(source, bins, declared.Id);
                 }
             }
 
             return declared;
         }
 
-        private void RefuseStorageSelections(Source source, ArraySyntax bins, string? id)
+        private void RefuseReserveSelections(Source source, ArraySyntax bins, string? id)
         {
             foreach (ArrayItemSyntax bin in bins.Items)
             {
@@ -458,13 +458,13 @@ public static class RulesetSource
 
                 foreach (InlineTableItemSyntax field in fields.Items)
                 {
-                    if (field.KeyValue is { } pair && RulesetCapture.NameOf(pair.Key) == "storage")
+                    if (field.KeyValue is { } pair && RulesetCapture.NameOf(pair.Key) == "reserve")
                     {
                         Refuse(RulesetSourceLocation.Of(source.Path, pair),
                             RulesetDiagnosticCode.Unimplemented, "building", id,
-                            "a Bin storage selection is not implemented by this build yet: it derives "
-                            + "capacity from a shared basket and saved selections need runtime "
-                            + "support. State the Bin's capacity.");
+                            "a Bin reserve selection is not implemented by this build yet. It derives "
+                            + "capacity from a shared basket, and that needs runtime support. State "
+                            + "the Bin's capacity.");
                     }
                 }
             }

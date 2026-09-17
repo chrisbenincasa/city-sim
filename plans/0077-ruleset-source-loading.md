@@ -13,19 +13,21 @@ development work, not a completed loader.
 The canonical [source v1 contract](../docs/ruleset-authoring.md#organising-the-source) owns the
 syntax and compatibility contract. The integrated release boundary, deterministic fractional
 consumption and deferral of explicit identity/profile migration mappings are agreed. The format
-is not implemented; the runtime mechanics and saved-selection schema below still need design.
+is not implemented. The runtime mechanics are now scoped by
+[the runtime factoring plan](ruleset-runtime-factoring.md), which also scopes per-instance
+parameter variation out of this release.
 
 1. `[source] version = 1` with explicit relative `members`; no includes, discovery or file-order
    overrides. Capture one immutable candidate. Existing execution sections remain available,
-   with typed `id`/`label` and shallow basket, recipe and consumption-storage references.
+   with typed `id`/`label` and shallow basket, recipe and consumption-reserve references.
 2. Allocate dense ids deterministically from typed source ids; explicit `order` controls Rules,
    Policies and Zone Rules. Preserve source spans and separate identity keys from display names.
    Frame source/resolver versions, manifest and sorted members for bundle identity; preserve the
    legacy hash path and its CRLF normalisation. Content identity is not semantic equivalence.
 3. Formats owns typed resolution, provenance, previews, retained content and lowering into today's
-   numeric Core Ruleset. Report per-kind Rule expansion; never generate kinds for storage variants.
-   Saved selections, production-based capacity and work-dependent execution require their separate
-   runtime support and are refused meanwhile. No hidden fallback to fixed production or jobs.
+   numeric Core Ruleset. Report per-kind Rule expansion; never generate kinds for reserve variants.
+   Per-instance selections, production-based capacity and work-dependent execution require their
+   separate runtime support and are refused meanwhile. No hidden fallback to fixed production or jobs.
 4. A Formats bundle codec serves both hosts. CitySave envelope v2 embeds required bundles while
    retaining v1 reading; Input Log encoding and Core save bytes need no packaging-driven change.
    Keep active/checkpoint/replay dependencies and prune unreferenced content. Supported tuning
@@ -34,14 +36,12 @@ is not implemented; the runtime mechanics and saved-selection schema below still
 The foundation below covers manifest capture, declaration collection and legacy compatibility.
 Loader and runtime factoring remain separately implementable tasks,
 but their integration is required for the first usable authoring release. Demonstrate shared
-behaviour and distinct saved storage selections together, without a kind × profile expansion.
+behaviour and reserve-derived capacities together, without a kind × profile expansion.
 Work-dependent production remains separate gameplay work. Intermediate lowering into existing
 Rules is development scaffolding, not completion of the authoring release.
 
-Daily consumption must not require exact division across firings. Runtime factoring also owns
-saved per-actor/per-Good fractional progress, atomic consumption, shortage/retry behaviour and
-progress migration. Resolve those mechanics and the saved-selection source schema before the
-integrated release; a loader may not round away either capability.
+Daily consumption must not require exact division across firings. Runtime factoring owns the saved
+per-actor/per-Good fractional progress that makes this work; a loader may not round it away.
 
 ## Implemented foundation
 
@@ -72,8 +72,8 @@ below.
   line-preserving `id`→`name` and blanked `label`/`order` edits, so every existing field keeps its
   validation. Reader refusals map to member lines. `terrain` keeps its enum `name`; `hinterland`
   and `lattice` ids are collected but not lowered, and a test keeps that list aligned with the
-  reader's key surface. `[[basket]]`, `[[recipe]]`, `[[storage]]`, Rule `basket`/`recipe` and Bin
-  `storage` selections are refused as unimplemented.
+  reader's key surface. `[[basket]]`, `[[recipe]]`, `[[reserve]]`, Rule `basket`/`recipe` and Bin
+  `reserve` selections are refused as unimplemented.
 - **Legacy compatibility.** Every shipped Ruleset resolves through `RulesetSource.Load` with its
   existing hash, refusal text and field-for-field Ruleset, and returns the reader's own result.
 - **Bundle codec.** `RulesetBundle.Write` and `.Read` carry a capture as an entry-name/byte
@@ -117,8 +117,8 @@ Remaining work and dependencies, in addition to the sequence below:
 2. Reader refusals have no column, some quote the lowered `name` key, and typed reference errors
    come from the single-file reader rather than a typed resolver. Provenance/dependency edges,
    expansion counts, impact previews and old/new id-key collision refusal are not built.
-3. Shared baskets, recipe references and storage derivation (step 2) wait on the runtime
-   factoring design: fractional consumption progress and the saved-selection source schema.
+3. Shared baskets, recipe references and reserve derivation (step 2) wait on the saved fractional
+   consumption progress scoped in [the runtime factoring plan](ruleset-runtime-factoring.md).
    Integrated execution must replace the lowering before the first usable release.
 4. Excluding special files such as FIFOs is deferred to Ruleset sharing and modding, which is where
    a package from outside the player's own checkout first arrives. .NET reports a FIFO as an
@@ -147,8 +147,8 @@ Remaining work and dependencies, in addition to the sequence below:
 ## Acceptance
 
 - Integrate the separate runtime factoring work before the first usable authoring release. Show
-  shared behaviour with distinct per-instance storage selections, sparse exceptions, and
-  replay/save-load equivalence across affected owners, without multiplying kinds by profiles.
+  shared behaviour with reserve-derived capacities, local `days` overrides, and replay/save-load
+  equivalence across affected owners, without multiplying kinds by profiles.
 
 - A small multi-file package loads through the real shared host path. Cross-file forward references
   work; duplicate ids name both files; unknown/missing definitions name their source location.
@@ -157,7 +157,7 @@ Remaining work and dependencies, in addition to the sequence below:
 - Reordering manifest membership or moving declarations preserves resolved execution but may
   change bundle identity and consequently State Hash provenance. Test those separately from
   enumeration permutations of the same captured bytes. Preserve legacy declaration ordering.
-- A shared consumption edit and a storage exception change only their intended dependants. The
+- A shared consumption edit and a reserve override change only their intended dependants. The
   report explains derived capacities, untouched exceptions and unsupported runtime features.
 - A failed candidate load leaves the current Ruleset in force. Supported reloads are registered
   and logged; pinned old saves load without the original source directory. Replay and upgraded
@@ -176,8 +176,9 @@ Remaining work and dependencies, in addition to the sequence below:
 
 ## Boundaries
 
-Core profile selections, capacity resolution, shared behaviour execution and old-state migration
-are separate runtime work identified by [0076](0076-ruleset-authoring-experiment.md). Work-dependent
+Saved fractional consumption progress and reserve-derived capacity are separate runtime work,
+scoped in [the runtime factoring plan](ruleset-runtime-factoring.md). Per-instance parameter
+variation is out of scope there too, so no Ruleset surface here may assume it. Work-dependent
 production belongs to the private-production item. Full gameplay balance, a graphical editor,
 mod discovery/distribution, a general DSL and arbitrary inheritance are outside this loader slice.
 The loader may be developed alongside runtime work, but may not claim support for behaviour the

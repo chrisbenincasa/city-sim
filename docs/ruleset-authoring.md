@@ -11,7 +11,7 @@ captures manifests, frames bundle identity, collects typed declarations with loc
 and resolves them deterministically by lowering into the single-file reader. `RulesetBundle` writes
 and reads the stored bundle described below. Both hosts load a package through `RulesetSource`, and
 CitySave envelope version 2 stores its bundle, so a package city saves and reloads without its
-source directory. Shared baskets, recipe references and storage selections are refused as
+source directory. Shared baskets, recipe references and reserve selections are refused as
 unimplemented. The disposable prototype demonstrates
 shared maintenance and impact reports; the factored representation and bakery contract establish
 bounded design evidence. They are not production loaders or substitutes for Core mechanics.
@@ -21,9 +21,11 @@ the [board](../plans/0000-board.md) owns scheduling and the separate runtime/gam
 ## First usable release
 
 The loader and runtime factoring can be developed as separate tasks. Their integration is a
-requirement of the first usable authoring release: demonstrate shared behaviour and distinct
-saved storage selections together, including sparse exceptions and replay/save-load equivalence,
-without manufacturing kinds for profiles. Parsing, diagnostics and bundle retention can start
+requirement of the first usable authoring release: demonstrate shared behaviour and derived reserve
+capacities together, including sparse exceptions and replay/save-load equivalence. Saved
+per-instance selections are **not** part of that release; a reserve difference between two
+otherwise identical premises is expressed as a second kind until the separate per-instance
+parameter variation work lands. Parsing, diagnostics and bundle retention can start
 independently. Work-dependent production remains separate gameplay work. Daily consumption accepts
 quantities that do not divide evenly across firings, using deterministic fractional progress.
 Explicit membership and portable filenames remain engineering constraints. The first release
@@ -35,15 +37,15 @@ mappings are deferred. Structural conversions must not infer mappings or silentl
 | Intent | Author once | Derive or share |
 |---|---|---|
 | Household consumption | A named basket's Goods and daily quantities | Behaviour wherever that basket is referenced |
-| Supply storage | Days of consumption or nominal production | Integer Bin capacities; make the throughput basis explicit |
+| Supply reserve | Days of consumption or nominal production | Integer Bin capacities; make the throughput basis explicit |
 | A deliberate exception | An explicit local override | Unrelated kinds continue inheriting; omission restores inheritance |
 | Production | A recipe's actual input/output edges | Businesses referencing that recipe share its meaning |
-| Different premises | The relevant geometry/tenancy and storage choices | Posts derive from floor allocation; a storage choice does not copy the whole kind |
+| Different premises | The relevant geometry/tenancy and reserve choices | Posts derive from floor allocation; a reserve choice does not copy the whole kind |
 | Employment and funding | Work/pay terms and distinct funding choices | Payroll needs and funding coverage, without forcing them to be equal |
 | Economic connectivity | Owners, suppliers, buyers and payment counterparties | Missing-link diagnostics and a dependency/impact report |
 
-A kind's identity, shared behaviour, storage selection and appearance are separate concerns.
-Do not manufacture another behavioural kind merely to express a storage or cosmetic difference.
+A kind's identity, shared behaviour, reserve selection and appearance are separate concerns.
+Do not manufacture another behavioural kind merely to express a cosmetic difference.
 Keep individual Citizen decisions and actual per-entity stock: factoring definitions does not
 remove the work needed to simulate actual relationships.
 
@@ -77,7 +79,7 @@ base-game/
   consumption.toml
   recipes.toml
   businesses.toml
-  storage.toml
+  reserves.toml
   services.toml
 ```
 
@@ -120,7 +122,7 @@ performs no filesystem discovery or TOML parsing. Both hosts must use the same l
    override precedence; do not use last-file-wins or a generic deep merge. Explicit domain
    overrides remain local. Reject unknown keys and unresolved references with source locations.
 4. **Typed derivation.** Resolve quantities with units, ownership and a declared basis. Show how
-   storage follows consumption or nominal throughput. Refuse unsupported/unrepresentable
+   a reserve follows consumption or nominal throughput. Refuse unsupported/unrepresentable
    semantics rather than substitute a superficially similar mechanism. Validate cycles according
    to their meaning; a legitimate recycling recipe graph is not an inheritance cycle.
 5. **Deterministic assembly.** Produce stable definition ordering and runtime references independent
@@ -163,9 +165,9 @@ candidate. Add these shallow shared definitions:
 |---|---|---|
 | `[[basket]]` | `owner`, `use_per_day` | `owner` is `premises`, `occupant` or `business`, matching Bin tenancy (`occupant` means Household stock). `use_per_day` maps Good Resource ids to positive integer units per actor per Day. |
 | `[[recipe]]` | `inputs`, `outputs` | Existing typed Rule term arrays, amounts per application; retain scope and ownership/payment validation. Neither field implies free supply or labour. |
-| `[[storage]]` | `days` | Positive integer Days of an explicitly selected consumption basis. A flat reusable definition; no parent profiles. |
+| `[[reserve]]` | `days` | Positive integer Days of an explicitly selected consumption basis. A flat reusable definition; no parent profiles. |
 | `[[rule]]` addition | `basket` or `recipe` | A typed reference. A basket supplies local consumption inputs; a recipe supplies its input/output terms. Keep the Rule's existing kind, rate, apply, failure and emission fields. |
-| Building Bin addition | `storage` | An inline table `{ profile = "reserve", basket = "basic", days = 5 }`. `profile` and `basket` are required typed references; `days` is an optional local override. This replaces that Bin's literal `capacity`. |
+| Building Bin addition | `reserve` | An inline table `{ profile = "standard", basket = "basic", days = 5 }`. `profile` and `basket` are required typed references; `days` is an optional local override. This replaces that Bin's literal `capacity`. |
 
 For a basket Rule, explicit `inputs` and `outputs` are refused; for a recipe Rule, explicit
 `inputs`/`outputs` are refused. `basket` and `recipe` are mutually exclusive. A basket Rule uses
@@ -203,19 +205,25 @@ id = "basic"
 owner = "occupant"
 use_per_day = { food = 32, fuel = 16 }
 
-[[storage]]
-id = "reserve"
+[[reserve]]
+id = "standard"
 days = 3
 ```
 
-An occupant Food Bin using `storage = { profile = "reserve", basket = "basic" }` has capacity
+An occupant Food Bin using `reserve = { profile = "standard", basket = "basic" }` has capacity
 96. Adding `days = 5` there gives that Bin capacity 160; changing the shared profile no longer
 changes that Bin. Changing basic Food use to 48 changes these capacities to 144 and 240:
 the exception preserves Days, not a hidden absolute capacity.
 
-Nominal production storage and saved instance profile selections require the separate runtime
-factoring work; the first usable release must integrate saved selections as specified above.
-Their source schema must be completed with that runtime contract before release. Work-dependent
+⚠ **A reserve is Days of cover and is not `CONTEXT` → Resource's *Storage*.** That parameter is
+whether a Bin carries over between periods — zero for Power, filling for Waste — and `RulesetLoader`
+holds `storage` open as a named hole on `[[resource]]` for it. The two are different fields and the
+word is not reused. A Household's Life-Stage-sized money buffer is also called a reserve in
+`CONTEXT`; that one is Money and is unrelated to this.
+
+Nominal production reserves require the separate runtime factoring work. Saved per-instance profile
+selections are deferred beyond the first usable release and their source schema is not settled;
+until then a `profile` names a reserve every instance of that kind shares. Work-dependent
 recipes remain separate gameplay work. Until implemented, requests for these semantics must be
 refused with the missing capability named; the research bakery's `work` or `selection` tables
 must not parse as ignored metadata.
@@ -256,9 +264,8 @@ instead of separately reading, hashing and parsing files.
 
 During implementation, source sharing may lower into existing Rule and Bin declarations, once per actual kind
 attachment. Report that duplication and enforce the existing limits before publication. Do not
-create another kind for a storage choice or emit a kind × profile product. The separate runtime
-factoring item owns shared execution and saved selections; integration must replace this lowering
-before the first usable authoring release. Develop the integrated resolver
+emit a kind × profile product. The separate runtime factoring item owns shared execution;
+integration must replace this lowering before the first usable authoring release. Develop the integrated resolver
 behind the same typed source boundary, with explicit format/resolver versioning and equivalence
 checks. Preserve each actor, Rule family, cadence, fallback and transaction scope.
 
@@ -383,9 +390,9 @@ whole-game usability or balance result.
 
 The initial expansion exceeded Core's 254-kind limit at 83 consumer kinds with three variants.
 The [factoring/bakery study](../plans/evidence/ruleset-authoring/scaling-and-bakery.md) preserves
-storage differences through separate selections and shares behaviour definitions in research
+reserve differences through separate selections and shares behaviour definitions in research
 code. Native Core integration, saved selection state and migration remain development work.
-The isolated bakery keeps recipe/work/storage/supply/sales edits local, but a native probe produces
+The isolated bakery keeps recipe/work/reserve/supply/sales edits local, but a native probe produces
 Food with zero workers. Core needs work-dependent production; its `jobs` Readout counts declared
 posts and must not stand in for workers present. Existing Pool purchases already exchange Goods
 and Money with local sellers.
@@ -412,8 +419,8 @@ an explicit founding scenario decision before they become claims in playable con
 | Authored intent | Values to check together |
 |---|---|
 | Consumption per Day | Rule input amount, `apply`, `rate` (Ticks), Bin capacity; shopping derives daily use from the net local consumption Rules |
-| Days of shopping stock | Consumption above, `low_days`, `target_days`, carry/storage capacity and shop opening times |
-| Production throughput | Input/output amounts, `apply`, `rate`, available inputs and output storage; fixed-count production has no automatic staffing factor |
+| Days of shopping stock | Consumption above, `low_days`, `target_days`, carry and Bin capacity, and shop opening times |
+| Production throughput | Input/output amounts, `apply`, `rate`, available inputs and output Bin space; fixed-count production has no automatic staffing factor |
 | Paid public jobs | Trade `wage_per_day`, `pay_period_days`, Policy `interval`, grant `amount`, `apply = { derived = "jobs" }` and wage tier/experience settings if enabled |
 | Building capacity | Geometry and occupied floor share, `floor_tiles_per_occupant`, `floor_tiles_per_job`, `floor_tiles_per_place`; service places also depend on staffing |
 | A Good in a District market | Resource, ownership of declared Bins, supply/consumption Rules, reachable seller and Hinterland price declarations |
@@ -461,7 +468,7 @@ retain every exact Ruleset used: comments and whitespace affect the content hash
 Keep this document current as the loader ships. `rulesets/split/` is the runnable example:
 minimal.toml's content across four members, demonstrating explicit membership, cross-member forward
 references and explicit Rule order. Walk through adding a Good/recipe, referencing a
-shared basket, choosing storage, introducing/removing an exception and evolving an inhabited
+shared basket, choosing a reserve, introducing/removing an exception and evolving an inhabited
 city. Show the impact report and source-located diagnostics for common mistakes. Document which
 changes are supported, require migration, or require a new city.
 
