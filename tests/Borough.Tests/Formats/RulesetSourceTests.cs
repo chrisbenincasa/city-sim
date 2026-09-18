@@ -188,8 +188,9 @@ public sealed class RulesetSourceTests
     [Fact]
     public void A_refusal_from_the_single_file_reader_is_reported_at_its_member_line()
     {
-        string misspelt = Consumption.Replace("kind    = \"dwelling\"\nrate    = 64",
-            "kind    = \"dwelinng\"\nrate    = 64", StringComparison.Ordinal);
+        // A scope is a closed set the reader parses, not a reference the resolver can match.
+        string misspelt = Consumption.Replace("\"local\", resource = \"sundries\"",
+            "\"locall\", resource = \"sundries\"", StringComparison.Ordinal);
 
         RulesetSourceResult result = Resolve(
             ("dwelling.toml", Dwelling), ("goods.toml", Goods), ("rules.toml", misspelt));

@@ -532,7 +532,8 @@ internal static class Session
 
         if (captured.Capture is null)
         {
-            Console.Error.WriteLine(string.Join(Environment.NewLine, captured.Diagnostics));
+            Console.Error.WriteLine(string.Join(
+                Environment.NewLine, captured.Diagnostics.Select(d => d.ToRefusal())));
             Console.Error.WriteLine(
                 $"{captured.Diagnostics.Count} refusal(s). The Ruleset was not loaded and nothing ran.");
 

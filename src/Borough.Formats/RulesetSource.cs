@@ -57,8 +57,7 @@ public sealed class RulesetSourceResult
     /// result unchanged; a package's refusals carry member paths and lines.
     /// </summary>
     public RulesetLoadResult ToLoadResult() =>
-        _loaded ?? RulesetLoadResult.Refused(
-            [.. Diagnostics.Select(d => new RulesetRefusal(d.Path, d.Line, d.Id, d.Reason))]);
+        _loaded ?? RulesetLoadResult.Refused([.. Diagnostics.Select(d => d.ToRefusal())]);
 
     /// <summary>Every diagnostic, one per line.</summary>
     public string Describe() => string.Join(Environment.NewLine, Diagnostics);
@@ -205,6 +204,13 @@ public static class RulesetSource
 
             RefuseDuplicates();
 
+            // References resolve against collected ids, so a declaration whose own id was refused
+            // would draw a second refusal from every member naming it.
+            if (Diagnostics.Count == 0)
+            {
+                ResolveReferences();
+            }
+
             foreach (Declared declared in _declared)
             {
                 if (declared is { Valid: true, IsArray: true, Id: { } id })
@@ -295,6 +301,7 @@ public static class RulesetSource
                     // A nested table belongs to the declaration above it, in this member only.
                     if (owner is not null && owner.Section == name[..dot])
                     {
+                        owner.Tables.Add(table);
                         continue;
                     }
 
@@ -332,6 +339,7 @@ public static class RulesetSource
                     ? CollectArray(source, table, name, at)
                     : new Declared(source, name, false, at, headerLine);
 
+                owner.Tables.Add(table);
                 _declared.Add(owner);
             }
 
@@ -383,10 +391,13 @@ public static class RulesetSource
             if (name is not null && lowersId)
             {
                 declared.Valid = false;
-                Refuse(RulesetSourceLocation.Of(source.Path, name), RulesetDiagnosticCode.Id, section,
-                    declared.Id,
-                    "name is not a source key here: id identifies the declaration and label is its "
-                    + "display text.");
+
+                // No section without an id: a diagnostic naming one and no id reads as a singleton,
+                // and this declaration is an array member whose id is exactly what is missing.
+                Refuse(RulesetSourceLocation.Of(source.Path, name), RulesetDiagnosticCode.Id,
+                    declared.Id is null ? null : section, declared.Id,
+                    $"name is not a source key on [[{section}]]. id identifies the declaration and "
+                    + "label is its display text.");
             }
 
             if (label is not null)
@@ -540,6 +551,126 @@ public static class RulesetSource
             }
         }
 
+        /// <summary>Matches every typed reference against the ids collected across the package.</summary>
+        /// <remarks>
+        /// <para>
+        /// <b>The third stage, and it runs only on a package that collected cleanly.</b> A reference
+        /// is matched against ids, so a declaration whose own id was refused would draw a second
+        /// refusal from every member that names it — one mistake reported once by the declaration
+        /// and again by each of its readers.
+        /// </para>
+        /// <para>
+        /// A value that is not a quoted string is left alone. The reader owns the shape of every key
+        /// it reads, and its sentence for a wrong shape is the one a designer should get.
+        /// </para>
+        /// </remarks>
+        private void ResolveReferences()
+        {
+            var ids = new HashSet<(string Section, string Id)>();
+
+            foreach (Declared declared in _declared)
+            {
+                if (declared.Id is { } id)
+                {
+                    ids.Add((declared.Section, id));
+                }
+            }
+
+            foreach (Declared declared in _declared)
+            {
+                foreach (TableSyntaxBase table in declared.Tables)
+                {
+                    string section = RulesetCapture.NameOf(table.Name);
+
+                    foreach (RulesetSourceReference reference in RulesetSourceReferences.For(section))
+                    {
+                        Descend(ids, declared, table, reference.Key.Split('.'), 0, reference.Target);
+                    }
+                }
+            }
+        }
+
+        private void Descend(
+            HashSet<(string Section, string Id)> ids,
+            Declared declared,
+            SyntaxNode holder,
+            string[] path,
+            int depth,
+            string target)
+        {
+            string segment = path[depth];
+            bool repeated = segment.EndsWith("[]", StringComparison.Ordinal);
+            KeyValueSyntax? entry = Field(holder, repeated ? segment[..^2] : segment);
+
+            if (entry?.Value is not { } value)
+            {
+                return;
+            }
+
+            if (depth == path.Length - 1)
+            {
+                Match(ids, declared, entry, target);
+            }
+            else if (repeated && value is ArraySyntax array)
+            {
+                foreach (ArrayItemSyntax item in array.Items)
+                {
+                    if (item.Value is InlineTableSyntax element)
+                    {
+                        Descend(ids, declared, element, path, depth + 1, target);
+                    }
+                }
+            }
+            else if (!repeated && value is InlineTableSyntax inline)
+            {
+                Descend(ids, declared, inline, path, depth + 1, target);
+            }
+        }
+
+        private void Match(
+            HashSet<(string Section, string Id)> ids,
+            Declared declared,
+            KeyValueSyntax entry,
+            string target)
+        {
+            if (entry.Value is not StringValueSyntax { Value: { } id } || ids.Contains((target, id)))
+            {
+                return;
+            }
+
+            Refuse(RulesetSourceLocation.Of(declared.Source.Path, entry),
+                RulesetDiagnosticCode.Reference, declared.Section, declared.Id,
+                $"{RulesetCapture.NameOf(entry.Key)} names '{id}', and no [[{target}]] in this "
+                + "package declares that id. A reference is matched against the target section's "
+                + "ids alone, exactly and case-sensitively.");
+        }
+
+        private static KeyValueSyntax? Field(SyntaxNode holder, string key)
+        {
+            if (holder is TableSyntaxBase table)
+            {
+                foreach (KeyValueSyntax item in table.Items)
+                {
+                    if (RulesetCapture.NameOf(item.Key) == key)
+                    {
+                        return item;
+                    }
+                }
+            }
+            else if (holder is InlineTableSyntax inline)
+            {
+                foreach (InlineTableItemSyntax item in inline.Items)
+                {
+                    if (item.KeyValue is { } pair && RulesetCapture.NameOf(pair.Key) == key)
+                    {
+                        return pair;
+                    }
+                }
+            }
+
+            return null;
+        }
+
         private void Refuse(
             RulesetSourceLocation at, string code, string? section, string? id, string reason) =>
             Diagnostics.Add(new RulesetDiagnostic(at.Path, at.Line, at.Column, code, section, id, reason));
@@ -648,6 +779,9 @@ public static class RulesetSource
         public bool Valid { get; set; } = true;
 
         public List<Edit> Edits { get; } = [];
+
+        /// <summary>The declaration's own table, then the nested tables that stayed with it.</summary>
+        public List<TableSyntaxBase> Tables { get; } = [];
 
         /// <summary>The declaration's lines with its edits applied; line structure is unchanged.</summary>
         public string Render()

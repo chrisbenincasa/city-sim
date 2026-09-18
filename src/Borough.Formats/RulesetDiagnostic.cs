@@ -44,6 +44,14 @@ public sealed record RulesetDiagnostic(
             CultureInfo.InvariantCulture, $"{Path}:{Line}:{Column}: {declaration}{Reason} ({Code})");
     }
 
+    /// <summary>The same reason in the shape a host prints, keeping the section and the column.</summary>
+    /// <remarks>
+    /// The diagnostic code is dropped. It identifies the refusal to a caller matching on one, and a
+    /// designer reading a member already has the sentence that the code abbreviates.
+    /// </remarks>
+    public RulesetRefusal ToRefusal() =>
+        new(Path, Line, Id, Reason) { Section = Section, Column = Column };
+
     internal static RulesetDiagnostic[] Sorted(IEnumerable<RulesetDiagnostic> diagnostics)
     {
         RulesetDiagnostic[] sorted = [.. diagnostics];
@@ -134,6 +142,9 @@ public static class RulesetDiagnosticCode
 
     /// <summary>One section written both as a table and as an array of tables.</summary>
     public const string DeclarationKind = "declaration-kind";
+
+    /// <summary>A typed reference naming an id no declaration of the target section carries.</summary>
+    public const string Reference = "reference";
 
     /// <summary>Source v1 syntax whose runtime or resolver support this build does not have yet.</summary>
     public const string Unimplemented = "unimplemented";

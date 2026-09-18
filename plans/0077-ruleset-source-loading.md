@@ -68,6 +68,22 @@ below.
   labels reach only `RulesetNames`. Enumeration permutations of the same capture give identical
   hashes, Rulesets and reports; moved declarations and reordered membership give identical
   Rulesets under different identities.
+- **Typed references.** `RulesetSourceReferences` names the sixteen places one declaration states
+  another's id, each with the section it resolves into, and `RulesetSource` matches every one across
+  the whole package before lowering. A refusal names the key, the id, the target section and the
+  column, so a Bin naming a Good nobody declares reports at the `resource` key rather than at the
+  enclosing inline table. Resolution is a third stage and runs only on a package that collected
+  cleanly, because a declaration whose own id was refused would otherwise draw a second refusal from
+  every member naming it. A section's own table and the nested tables that stayed with it are both
+  walked, so `[[hinterland.population]] stage` resolves and reports against its owning
+  `[[hinterland]]`. `RulesetSourceReferenceTests` holds the list against `RulesetLoader.KeySurface`;
+  a Rule's `fills` resource is held by name instead, because no shipped Ruleset writes it and the
+  surface records only what a file asks for.
+- **The section in a refusal.** `RulesetRefusal` carries an optional section and column, so
+  `ToLoadResult` no longer drops what the source diagnostic knew and a `[[resource]]` duplicate stops
+  reporting as `rule '<id>'`. The reader's own refusals record neither and keep their existing text
+  exactly. `RulesetDiagnostic.ToRefusal` is the single conversion, and the headless runner uses it
+  for a capture failure too, so the manifest stage and the resolve stage print one format.
 - **Lowering scaffolding.** Ordered declarations are re-emitted for `RulesetLoader` with
   line-preserving `id`→`name` and blanked `label`/`order` edits, so every existing field keeps its
   validation. Reader refusals map to member lines. `terrain` keeps its enum `name`; `hinterland`
@@ -133,11 +149,10 @@ Remaining work and dependencies, in addition to the sequence below:
    store has no producer. `RulesetBundle` also writes fixed entry names, so a second bundle in one
    save needs a codec change and a CitySave envelope 3. The drive channel has no verb for the tuner
    or for save and load, so those two paths are covered by test rather than by a driven run.
-2. Reader refusals have no column, some quote the lowered `name` key, and typed reference errors
-   come from the single-file reader rather than a typed resolver. `RulesetRefusal.ToString` also
-   spells every declaration in scope `rule '<id>'`, so a `[[resource]]` duplicate reports as a rule;
-   the section is on the source diagnostic and is lost in `ToLoadResult`. Provenance/dependency
-   edges, expansion counts, impact previews and old/new id-key collision refusal are not built.
+2. Refusals the single-file reader raises on the lowered text still carry a line without a column and
+   say `name` where a member writes `id`. The reader keeps every value check, shape check and
+   `on_fail` cycle; the resolver has taken only the references. Provenance/dependency edges,
+   expansion counts, impact previews and old/new id-key collision refusal are not built.
 3. Shared baskets, recipe references and reserve derivation (step 2) wait on the saved fractional
    consumption progress scoped in [the runtime factoring plan](ruleset-runtime-factoring.md).
    Integrated execution must replace the lowering before the first usable release.

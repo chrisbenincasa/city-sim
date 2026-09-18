@@ -531,16 +531,18 @@ Each of these is one edit to a copy of `rulesets/split/`, and the text is what t
 
 | The mistake | What you get |
 |---|---|
-| A Bin names a Good nobody declares | `dwelling.toml:13: rule 'dwelling': 'repair' is not a declared [[resource]].` |
-| Two members declare one id | `goods.toml:3: rule 'sundries': a second [[resource]] has id 'sundries'; the first is at dwelling.toml:20:1. Duplicate ids are refused even when their values agree.` |
-| A listed member is not on disk | `ruleset.toml:15: member 'goods.toml' is missing. A listed member never falls back to another file.` |
-| `order` outside the three ordered families | `dwelling.toml:10: rule 'dwelling': order is accepted only on [[policy]], [[rule]], [[zone_rule]]; other declarations are ordered by id.` |
-| `name` where `id` belongs | `dwelling.toml:8: [[building]] has no id. Every source declaration is identified by id.` and `dwelling.toml:9: name is not a source key here: id identifies the declaration and label is its display text.` |
+| A Bin names a Good nobody declares | `dwelling.toml:13:7: [[building]] 'dwelling': resource names 'repair', and no [[resource]] in this package declares that id. A reference is matched against the target section's ids alone, exactly and case-sensitively.` |
+| Two members declare one id | `goods.toml:15:1: [[resource]] 'sundries': a second [[resource]] has id 'sundries'; the first is at goods.toml:3:1. Duplicate ids are refused even when their values agree.` |
+| A listed member is not on disk | `ruleset.toml:15:42: member 'goods.toml' is missing. A listed member never falls back to another file.` |
+| `order` outside the three ordered families | `dwelling.toml:11:1: [[building]] 'dwelling': order is accepted only on [[policy]], [[rule]], [[zone_rule]]; other declarations are ordered by id.` |
+| `name` where `id` belongs | `dwelling.toml:8:1: [[building]] has no id. Every source declaration is identified by id.` and `dwelling.toml:9:1: name is not a source key on [[building]]. id identifies the declaration and label is its display text.` |
 
-A refusal names the member and the line within it, not an offset into a concatenation. ⚠ The
-`rule '...'` prefix names whichever declaration is in scope, whatever section it belongs to — it is
-the single-file reader's spelling and it says `rule` even for a `[[resource]]`. Nothing is loaded
-when a package is refused, so a refused edit leaves the previous Ruleset in force.
+A refusal names the member, the line within it and the column, not an offset into a concatenation.
+The prefix names the declaration in scope by its own section, so a `[[resource]]` reports as one and
+a reference reports against the declaration that states it. ⚠ A refusal with no declaration in scope
+has no prefix — a manifest problem, or one the single-file reader raises against the whole document
+rather than against a member's line. Nothing is loaded when a package is refused, so a refused edit
+leaves the previous Ruleset in force.
 
 ### Changing a value in a running city
 
@@ -576,7 +578,10 @@ replay depends on.
   a Rule's inputs and outputs directly.
 - **There is no impact preview.** Nothing reports before/after values, affected and unchanged
   dependants or expansion counts, so the effect of an edit is read from a run.
-- **Refusals carry no column**, and some quote the lowered `name` key rather than the `id` you wrote.
+- **A refusal the single-file reader raises still describes the lowered text.** The resolver owns
+  every reference a declaration makes to another, so those name the key, the column and the section.
+  Everything else — a value out of range, a wrong shape, an `on_fail` cycle — comes from the reader,
+  which reports a line without a column and says `name` where a member writes `id`.
 - 🔴 **Do not point `--schema` or `--key-reference` at a package directory.** Both take the folder
   holding `--ruleset` and read every `.toml` in it as a separate single-file Ruleset — on
   `rulesets/split/` that is five files, four of which the loader refuses, and the manifest
