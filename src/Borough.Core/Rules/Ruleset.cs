@@ -108,7 +108,34 @@ public readonly record struct ConditionId(ushort Raw)
 public readonly record struct BinRef(Scope Scope, ResourceId Resource);
 
 /// <summary>One input or output of a Bin Rule: which Bin, and how much per application.</summary>
-public readonly record struct Term(BinRef Bin, int Amount);
+public readonly record struct Term(BinRef Bin, int Amount)
+{
+    /// <summary>
+    /// When set, <see cref="Amount"/> is a quantity per Day rather than per application, and the
+    /// engine derives the whole units this firing takes from <c>BinTable.Progress</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A daily quantity need not divide evenly across a Rule's firings, and this is what carries
+    /// the shortfall.</b> A Rule firing every <c>rate</c> Ticks fires <c>Ticks.PerDay / rate</c>
+    /// times a Day, so three units a Day over eight firings is neither zero nor eight. The remainder
+    /// lives on the Bin because the grain the quantity is stated at is the actor and the consumed
+    /// Good, which is <c>BinTable</c>'s row.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Inputs only, and never <see cref="Scope.Pool"/>.</b> A purchase settles three deltas
+    /// against a market row rather than drawing one Bin down, so it has no single Bin to carry a
+    /// remainder. <see cref="RuleEngine"/> refuses both rather than reading the flag as per
+    /// application.
+    /// </para>
+    /// <para>
+    /// <b>An init property rather than a positional parameter</b>, on
+    /// <see cref="RuleDefinition.Tenancy"/>'s precedent: false is the behaviour of every Ruleset
+    /// written before this existed, so the existing construction sites all state it already.
+    /// </para>
+    /// </remarks>
+    public bool PerDay { get; init; }
+}
 
 /// <summary>
 /// A write to a Map Layer cell under the Building's footprint.

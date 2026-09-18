@@ -24,6 +24,28 @@ terminology correction below.
 ⚠ `CONTEXT.md` already uses "reserve" for a Household's Life-Stage-sized money buffer. The two are
 unrelated and both attach to Households; document the distinction where `[[reserve]]` is defined.
 
+## Core: implemented
+
+`BinTable.Progress` is appended after `owner_next` as `consumption_progress`, and a `Term` carries
+`PerDay` as an init property, so an input amount may be a quantity per Day. `RuleEngine.Check`
+derives the whole units a firing takes and holds the remainder; `Fire` banks it, so a Rule that is
+checked and then blocked accrues nothing. Both Bin constructors zero it, for the reason the level
+and the cost are already written on a recycled slot.
+
+Refused in the engine, pending the loader's own refusal with a file and a line: a per-Day quantity
+on a pool term, which settles three deltas against a market row and so has no Bin to carry a
+remainder; on an output term, because the column is consumption progress; and under an apply count
+that is not fixed at one, because Check multiplies every delta by the applications it settled on.
+
+`SaveHeader.Current` is 7. `World.HashSeed`'s version byte is unmoved: the fold did not change, a
+column was added to it. The four golden artefacts were re-recorded on 2026-09-17 and nothing else
+in the working lane moved — 3,759 passed, 4 golden baselines failed, and the re-record is the only
+diff. `ConsumptionProgressTests` covers the daily total, eight Days without drift, the evenly
+dividing case, a firing below a whole unit, accrual frozen while blocked, no catch-up on recovery,
+save and reload mid-fraction, a recycled Bin, and the apply-count refusal.
+
+Still Core's, still open: nothing. The remaining work is `What Formats needs` below.
+
 ## What Core needs: one saved column
 
 `BinTable` is already one row per owner per Resource, which is the grain the contract asks for
