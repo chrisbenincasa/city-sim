@@ -132,6 +132,10 @@ public sealed class RulesetBundleTests
     [InlineData("""{"Version":1,"Mode":"legacy","Identity":"0000000000000000","Members":[]}""", RulesetDiagnosticCode.Bundle)]
     [InlineData("""{"Version":1,"Mode":"source","Identity":"NOTAHASH00000000"}""", RulesetDiagnosticCode.Bundle)]
     [InlineData("""{"Version":1,"Mode":"source","Identity":"abc"}""", RulesetDiagnosticCode.Bundle)]
+    [InlineData("""{"Version":1,"Mode":"source","Identity":"0000000000000000","Name":"a/b.toml"}""", RulesetDiagnosticCode.Bundle)]
+    [InlineData("""{"Version":1,"Mode":"source","Identity":"0000000000000000","Name":"a\\b.toml"}""", RulesetDiagnosticCode.Bundle)]
+    [InlineData("""{"Version":1,"Mode":"source","Identity":"0000000000000000","Name":".."}""", RulesetDiagnosticCode.Bundle)]
+    [InlineData("""{"Version":1,"Mode":"source","Identity":"0000000000000000","Name":""}""", RulesetDiagnosticCode.Bundle)]
     [InlineData("not json", RulesetDiagnosticCode.Bundle)]
     public void Unreadable_metadata_is_refused(string metadata, string code)
     {
@@ -165,6 +169,51 @@ public sealed class RulesetBundleTests
 
         Assert.True(read.Ok, read.Capture is null ? read.Diagnostics[0].ToString() : string.Empty);
         Assert.Equal(captured.ContentHash, read.Capture!.ContentHash);
+    }
+
+    [Fact]
+    public void The_recorded_name_is_the_authored_file_without_its_directory()
+    {
+        RulesetCapture captured =
+            RulesetCapture.FromEntries("/home/someone/rulesets/neighbourhood.toml", Utf8(Goods), []).Capture!;
+
+        List<KeyValuePair<string, byte[]>> entries = [.. RulesetBundle.Write(captured)];
+
+        Assert.Equal("neighbourhood.toml", Envelope(entries).GetProperty("Name").GetString());
+        Assert.Equal("neighbourhood.toml", RulesetBundle.Read(entries).Capture!.EntryName);
+    }
+
+    [Fact]
+    public void A_package_restores_the_name_its_manifest_was_authored_under()
+    {
+        RulesetCapture captured = RulesetCapture.FromEntries(
+            "/home/someone/rulesets/split/city.toml",
+            Utf8(Manifest([.. Base.Select(member => member.Path)])),
+            Base.Select(member => new KeyValuePair<string, byte[]>(member.Path, Utf8(member.Text)))).Capture!;
+
+        RulesetCaptureResult read = RulesetBundle.Read(RulesetBundle.Write(captured));
+
+        Assert.True(read.Ok, read.Capture is null ? read.Diagnostics[0].ToString() : string.Empty);
+        Assert.Equal("city.toml", read.Capture!.EntryName);
+        Assert.Equal(captured.ContentHash, read.Capture.ContentHash);
+    }
+
+    [Fact]
+    public void A_bundle_recording_no_name_reads_under_the_codec_entry_name()
+    {
+        List<KeyValuePair<string, byte[]>> entries = Bundled();
+        string identity = Envelope(entries).GetProperty("Identity").GetString()!;
+
+        entries[0] = new KeyValuePair<string, byte[]>("bundle.json", Utf8(
+            $$"""
+            {"Version":1,"Mode":"source","Identity":"{{identity}}","Source":1,"Resolver":1,
+             "Members":["dwelling.toml","goods.toml","rules.toml"]}
+            """));
+
+        RulesetCaptureResult read = RulesetBundle.Read(entries);
+
+        Assert.True(read.Ok, read.Capture is null ? read.Diagnostics[0].ToString() : string.Empty);
+        Assert.Equal("source.toml", read.Capture!.EntryName);
     }
 
     private static List<KeyValuePair<string, byte[]>> Bundled() =>

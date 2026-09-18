@@ -85,7 +85,12 @@ below.
   members. It refuses an
   unknown envelope, source or resolver version, a duplicate or undeclared entry, a member list
   disagreeing with the manifest, and content that does not fold to the recorded identity. The JSON
-  spelling is not an identity input.
+  spelling is not an identity input. The envelope also records the file name the entry was authored
+  under, so a host that no longer has a path still has a name; it is the last path component only,
+  refused on read if it carries a separator, and is not an identity input either.
+- **Naming a resumed Ruleset.** A resumed city has no Ruleset path, so the readout and a driven
+  run's `draw` file read `RulesetName()` off the capture rather than `_rulesetPath`, which is now
+  the boot argument alone. `Main.Menu.cs` no longer assigns the `.borough-city` path to it.
 - **Headless loading.** `Session.TryRules` resolves through `RulesetSource`, so every dump command
   accepts a package without a call-site change, and `Session.TryCapture` returns the capture rather
   than a hash, so a package's framed identity reaches the catalogue, Input Log transitions and
@@ -109,11 +114,12 @@ below.
 
 Remaining work and dependencies, in addition to the sequence below:
 
-1. `Main.Menu.cs` assigns the loaded save's path to `_rulesetPath`, so after a resume the tuner's
-   parse label and the readout name the `.borough-city` archive rather than the Ruleset. A content
-   catalogue holding several bundles waits on registered in-session reloads, which the shell's
-   regenerating tuner is not. The drive channel has no verb for the tuner or for save and load, so
-   those two paths are covered by test rather than by a driven run.
+1. A content catalogue holding several bundles waits on registered in-session reloads, which the
+   shell's regenerating tuner is not: `Main.Panels.Regenerate` builds a fresh `Simulation` and a
+   fresh `InputLogBuilder`, so a shell session only ever references one bundle and a multi-bundle
+   store has no producer. `RulesetBundle` also writes fixed entry names, so a second bundle in one
+   save needs a codec change and a CitySave envelope 3. The drive channel has no verb for the tuner
+   or for save and load, so those two paths are covered by test rather than by a driven run.
 2. Reader refusals have no column, some quote the lowered `name` key, and typed reference errors
    come from the single-file reader rather than a typed resolver. Provenance/dependency edges,
    expansion counts, impact previews and old/new id-key collision refusal are not built.

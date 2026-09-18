@@ -192,7 +192,6 @@ public partial class Main
                 simulation.CheckEndOfRun();
                 city.World.Changes = new WorldChanges();
                 city.World.Changes.Invalidate();
-                _rulesetPath = path;
                 _capture = city.Capture;
                 _names = city.Names;
                 _seed = city.Seed;

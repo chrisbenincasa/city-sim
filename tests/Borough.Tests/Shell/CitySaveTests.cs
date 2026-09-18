@@ -87,6 +87,39 @@ public sealed class CitySaveTests
     }
 
     [Fact]
+    public void A_resumed_city_names_its_Ruleset_rather_than_the_archive()
+    {
+        RulesetCapture capture = Single("minimal.toml");
+        var key = WorldKey.FromSeed(11);
+        var world = new World(16, Rules(capture), key);
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".borough-city");
+        try
+        {
+            CitySave.Write(path, world, capture, 11);
+
+            Assert.Equal("minimal.toml", CitySave.Read(path).Capture.EntryName);
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public void A_package_city_resumes_under_its_manifest_name()
+    {
+        RulesetCapture capture = RulesetCapture.Read(
+            Path.Combine(AppContext.BaseDirectory, "Rulesets", "split", "ruleset.toml")).Capture!;
+        var key = WorldKey.FromSeed(13);
+        var world = new World(16, Rules(capture), key);
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".borough-city");
+        try
+        {
+            CitySave.Write(path, world, capture, 13);
+
+            Assert.Equal("ruleset.toml", CitySave.Read(path).Capture.EntryName);
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
     public void A_version_1_save_still_loads_under_its_legacy_identity()
     {
         byte[] content = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Rulesets", "minimal.toml"));

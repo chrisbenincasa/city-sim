@@ -12,13 +12,20 @@ namespace Borough.Formats;
 /// <para>
 /// A bundle is an entry-name/byte collection rather than a directory or an archive, so the host owns
 /// the container and neither shell can extract an arbitrary archive path or develop its own
-/// membership rules. <c>bundle.json</c> records the envelope version, the mode and the content
-/// identity, and for a package the source and resolver versions and the sorted member paths. Source
-/// mode stores the manifest as <c>source.toml</c> and member bytes beneath <c>members/</c>; legacy
-/// mode stores <c>ruleset.toml</c> alone under its original hash.
+/// membership rules. <c>bundle.json</c> records the envelope version, the mode, the content identity
+/// and the file name the entry was authored under, and for a package the source and resolver
+/// versions and the sorted member paths. Source mode stores the manifest as <c>source.toml</c> and
+/// member bytes beneath <c>members/</c>; legacy mode stores <c>ruleset.toml</c> alone under its
+/// original hash.
 /// </para>
 /// <para>
-/// The JSON spelling and the container's compression are not identity inputs. A read recaptures the
+/// The recorded name is what a host displays for a Ruleset it no longer has a path to, and a read
+/// restores it as the capture's <see cref="RulesetCapture.EntryName"/>. It is a bare file name, never
+/// a path, and carries no directory from the machine that wrote it.
+/// </para>
+/// <para>
+/// The JSON spelling, the recorded name and the container's compression are not identity inputs. A
+/// read recaptures the
 /// bytes through <see cref="RulesetCapture.FromEntries"/>, so membership, portable paths and UTF-8
 /// are checked exactly as a directory capture checks them, and then refuses a recomputed identity
 /// that differs from the recorded one. See <c>docs/ruleset-authoring.md</c>, "Bundle identity and
@@ -45,6 +52,10 @@ public static class RulesetBundle
     private const string LegacyMode = "legacy";
     private const string SourceMode = "source";
 
+    private const int NameLimit = 255;
+
+    private static readonly char[] Separators = ['/', '\\'];
+
     private static readonly JsonSerializerOptions Spelling = new()
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
@@ -70,7 +81,8 @@ public static class RulesetBundle
             Identity(capture.ContentHash),
             source ? RulesetCapture.SourceVersion : null,
             source ? RulesetCapture.ResolverVersion : null,
-            source ? [.. capture.Members.Select(member => member.Path)] : null);
+            source ? [.. capture.Members.Select(member => member.Path)] : null,
+            Named(capture.EntryName));
 
         var entries = new List<KeyValuePair<string, byte[]>>(capture.Members.Count + 2)
         {
@@ -82,6 +94,21 @@ public static class RulesetBundle
             new KeyValuePair<string, byte[]>(MemberPrefix + member.Path, member.Content.ToArray())));
 
         return entries;
+    }
+
+    /// <summary>
+    /// The file name an entry was authored under, without the directories it was read from.
+    /// </summary>
+    /// <remarks>
+    /// A capture's <see cref="RulesetCapture.EntryName"/> is the path its host supplied, which for the
+    /// Godot shell is absolute. Only the last component is recorded, so a stored bundle names the
+    /// author's file without carrying the author's directory tree into a shared save.
+    /// </remarks>
+    private static string Named(string entryName)
+    {
+        int cut = entryName.LastIndexOfAny(Separators);
+
+        return cut < 0 ? entryName : entryName[(cut + 1)..];
     }
 
     /// <summary>Recaptures the Ruleset held in <paramref name="entries"/>, or says why it cannot.</summary>
@@ -141,6 +168,11 @@ public static class RulesetBundle
                 "the recorded identity is not sixteen lower-case hex digits."));
         }
 
+        if (NameProblem(envelope.Name) is { } problem)
+        {
+            return Refuse(Problem(MetadataEntry, problem));
+        }
+
         return envelope.Mode switch
         {
             LegacyMode => ReadLegacy(envelope, held, recorded),
@@ -164,7 +196,7 @@ public static class RulesetBundle
         }
 
         return Undeclared(held)
-            ?? Verify(RulesetCapture.FromEntries(LegacyEntry, content, []), recorded);
+            ?? Verify(RulesetCapture.FromEntries(envelope.Name ?? LegacyEntry, content, []), recorded);
     }
 
     private static RulesetCaptureResult ReadSource(
@@ -209,7 +241,8 @@ public static class RulesetBundle
             return undeclared;
         }
 
-        RulesetCaptureResult captured = RulesetCapture.FromEntries(ManifestEntry, manifest, members);
+        RulesetCaptureResult captured =
+            RulesetCapture.FromEntries(envelope.Name ?? ManifestEntry, manifest, members);
 
         if (captured.Capture is not { } capture)
         {
@@ -247,6 +280,31 @@ public static class RulesetBundle
         return RulesetCaptureResult.Refused(diagnostics);
     }
 
+    /// <summary>Why the recorded name cannot be an entry name, or null.</summary>
+    /// <remarks>
+    /// The name reaches diagnostics as a path, so it stays a bare file name. A bundle written before
+    /// the field existed records none, and reads under the codec's own entry name.
+    /// </remarks>
+    private static string? NameProblem(string? name)
+    {
+        if (name is null)
+        {
+            return null;
+        }
+
+        if (name.Length == 0 || name.Length > NameLimit)
+        {
+            return $"the recorded name is empty or longer than {NameLimit} characters.";
+        }
+
+        if (name.IndexOfAny(Separators) >= 0 || name is "." or "..")
+        {
+            return "the recorded name is a path rather than a file name.";
+        }
+
+        return null;
+    }
+
     private static bool TryReadIdentity(string? text, out ulong identity)
     {
         identity = 0;
@@ -268,5 +326,6 @@ public static class RulesetBundle
         string? Identity,
         uint? Source,
         uint? Resolver,
-        string[]? Members);
+        string[]? Members,
+        string? Name);
 }
