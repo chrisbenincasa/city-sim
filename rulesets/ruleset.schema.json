@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/chrisbenincasa/city-sim/rulesets/ruleset.schema.json",
   "title": "Borough Ruleset",
-  "description": "GENERATED from RulesetLoader by `--schema` -- do not edit; RulesetSchemaTests fails when this file drifts from the loader. The loader is the authority and this is autocomplete: unknown keys stay permitted here because the loader refuses them at the parse site with a spelling suggestion. A key listed with no `type` was asked for by a reader that never asserted one. Keys the loader knows ONLY in order to refuse them by name are not here at all: they stay permitted so that writing one gets the sentence saying where the key went, and they are not offered, because a completion that always refuses the file is worse than no completion.",
+  "description": "GENERATED from RulesetLoader by `--schema` -- do not edit; RulesetSchemaTests fails when this file drifts from the loader. The loader is the authority and this is autocomplete: unknown keys stay permitted here because the loader refuses them at the parse site with a spelling suggestion. A key listed with no `type` was asked for by a reader that never asserted one. Keys the loader knows ONLY in order to refuse them by name are not here at all: they stay permitted so that writing one gets the sentence saying where the key went, and they are not offered, because a completion that always refuses the file is worse than no completion. A declaration's `id`, `label` and `order` come from RulesetSourceKeys rather than from a reader: a source package states them and the resolver lowers them away before the loader sees the member.",
   "type": "object",
   "properties": {
     "band": {
@@ -16,6 +16,14 @@
             "items": {
               "type": "integer"
             }
+          },
+          "id": {
+            "description": "Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.",
+            "type": "string"
+          },
+          "label": {
+            "description": "The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.",
+            "type": "string"
           },
           "name": {
             "description": "What this density band is called.",
@@ -90,6 +98,14 @@
             "description": "Whether a HOUSEHOLD may take a tenancy in a Building of this kind. It says whether and never how many: the count is the Building's own floor area over [capacity] floor_tiles_per_occupant, so two Buildings of one kind on differently-sized ground hold different numbers. Households and Businesses share the one ceiling, and this is one of the two permissions over it — see premises, which does not follow from this one. Absent means no Household may live here, which is what most kinds are.",
             "type": "boolean"
           },
+          "id": {
+            "description": "Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.",
+            "type": "string"
+          },
+          "label": {
+            "description": "The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.",
+            "type": "string"
+          },
           "level": {
             "description": "Which school level a kind serving education teaches: 1 primary, 2 secondary, 3 university. Refused on any kind that does not serve education. Required of an education kind exactly where the file also states [schooling]; absent otherwise means an undifferentiated school every family matches.",
             "type": "integer"
@@ -141,6 +157,14 @@
           "goes_bankrupt_after_short_paydays": {
             "description": "How many paydays running this trade may fail to pay its workers in full before it is wound up: the staff are dismissed and the premises are left standing and empty. A payroll met in full resets the count. Absent means it never goes bankrupt.",
             "type": "integer"
+          },
+          "id": {
+            "description": "Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.",
+            "type": "string"
+          },
+          "label": {
+            "description": "The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.",
+            "type": "string"
           },
           "name": {
             "description": "What this trade is called. [[building]] business names it.",
@@ -400,6 +424,14 @@
             "description": "The least money a Household arriving from this Hinterland brings with it.",
             "type": "integer"
           },
+          "id": {
+            "description": "Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.",
+            "type": "string"
+          },
+          "label": {
+            "description": "The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.",
+            "type": "string"
+          },
           "population": {
             "type": "array",
             "items": {
@@ -571,6 +603,14 @@
       "items": {
         "type": "object",
         "properties": {
+          "id": {
+            "description": "Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.",
+            "type": "string"
+          },
+          "label": {
+            "description": "The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.",
+            "type": "string"
+          },
           "origin_east_tiles": {
             "description": "How far east of the map's corner this Street lattice starts, in Tiles, on the block grid. What a file authors is where a settlement is; its extent and its share of the population are derived.",
             "type": "integer"
@@ -707,6 +747,14 @@
           "duration_days": {
             "description": "The fewest Days a Household spends in this stage before its countdown comes due.",
             "type": "integer"
+          },
+          "id": {
+            "description": "Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.",
+            "type": "string"
+          },
+          "label": {
+            "description": "The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.",
+            "type": "string"
           },
           "name": {
             "description": "What this stage of a Household's life is called. next, childless and children_become name a stage by this.",
@@ -919,13 +967,25 @@
             "description": "The most a subsidy may pay out in one Day, rationed across every claimant at once rather than paid in slot order until the money runs out. Only a subsidy has one, and a subsidy states it: a grant with no bound is an entitlement. A stated zero is a subsidy shipped switched off, which the player raises through the governing panel.",
             "type": "integer"
           },
+          "id": {
+            "description": "Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.",
+            "type": "string"
+          },
           "interval": {
             "description": "How many Ticks between sweeps of this Policy over that population.",
             "type": "integer"
           },
+          "label": {
+            "description": "The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.",
+            "type": "string"
+          },
           "name": {
             "description": "What this Policy is called. The player's governing panel addresses a Policy by this and by nothing else, so an unnamed one is unaddressable rather than addressable by position.",
             "type": "string"
+          },
+          "order": {
+            "description": "Places this declaration in execution order ahead of a higher one. A package member states it, and declarations sharing an order or stating none fall back to id order. A single-file Ruleset orders these by declaration position instead.",
+            "type": "integer"
           },
           "relief_percent": {
             "description": "The share of a qualifying Business's profit tax that a relief forgoes. Only a relief has one, and a relief states it -- there is no transfer on a relief to carry it. A relief can never pay a Business that owes no tax, which is the line between forgoing revenue and spending it.",
@@ -975,6 +1035,14 @@
         "properties": {
           "family": {
             "description": "Which of the three kinds of thing this is: a good moves as a Shipment on the Road Graph and shows up in the traffic, a utility flows along the District adjacency graph, and money is conserved and does not move at all. The family decides transport and whether a Bin holding it has a ceiling, so there is no default.",
+            "type": "string"
+          },
+          "id": {
+            "description": "Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.",
+            "type": "string"
+          },
+          "label": {
+            "description": "The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.",
             "type": "string"
           },
           "name": {
@@ -1071,6 +1139,10 @@
             "description": "Which Bin a fallback link is relieving, so a chain can be answered as one mechanism. The map scope is refused: nothing ever waits on a Layer, so nothing can rescue a wait on one.",
             "type": "object"
           },
+          "id": {
+            "description": "Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.",
+            "type": "string"
+          },
           "inputs": {
             "description": "What the Rule consumes on each application. A term that cannot be drawn is what makes the firing fail, which is what arms the Failure Pressure the decline thresholds read.",
             "type": "array",
@@ -1096,6 +1168,10 @@
             "description": "Which [[building]] kind this Rule runs on. Whether it is the premises' Rule or its tenant's is derived from the Bins its terms reach, never authored.",
             "type": "string"
           },
+          "label": {
+            "description": "The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.",
+            "type": "string"
+          },
           "name": {
             "description": "What this Rule is called. on_fail names another Rule by this.",
             "type": "string"
@@ -1103,6 +1179,10 @@
           "on_fail": {
             "description": "Another Rule to try when this one's inputs cannot be met — a source ladder over one Bin. A Rule named here is a link rather than a head, so it is reached by walking a failed chain and is never armed on its own rate.",
             "type": "string"
+          },
+          "order": {
+            "description": "Places this declaration in execution order ahead of a higher one. A package member states it, and declarations sharing an order or stating none fall back to id order. A single-file Ruleset orders these by declaration position instead.",
+            "type": "integer"
           },
           "outputs": {
             "description": "What the Rule produces on each application, into a Bin or onto a Map Layer.",
@@ -1240,6 +1320,14 @@
             "description": "The ceiling this ground's Fertility starts at, as a percentage of fully fertile. 100 is the top of the scale rather than a tuning choice.",
             "type": "integer"
           },
+          "id": {
+            "description": "Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.",
+            "type": "string"
+          },
+          "label": {
+            "description": "The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.",
+            "type": "string"
+          },
           "name": {
             "description": "Which of the five terrain types this table prices: ordinary, rock, floodplain, marsh or thin_soil. The set is closed — this selects a type the generator already places rather than declaring one. A file prices all five or none.",
             "type": "string"
@@ -1340,6 +1428,10 @@
             "description": "How many Days a District waits after raising a Building of this kind before it may raise another — what damps the response to the demand signal. Requires build_threshold_days, since a Rule reading no demand has nothing to damp.",
             "type": "integer"
           },
+          "id": {
+            "description": "Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.",
+            "type": "string"
+          },
           "interval": {
             "description": "How many Ticks between sweeps of this Rule over the city. Distinct from a Bin Rule's rate: a Zone Rule sweeps, it is not armed per Lot.",
             "type": "integer"
@@ -1348,9 +1440,17 @@
             "description": "Which [[building]] kind this Rule raises on a Lot it accepts.",
             "type": "string"
           },
+          "label": {
+            "description": "The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.",
+            "type": "string"
+          },
           "name": {
             "description": "What this Zone Rule is called.",
             "type": "string"
+          },
+          "order": {
+            "description": "Places this declaration in execution order ahead of a higher one. A package member states it, and declarations sharing an order or stating none fall back to id order. A single-file Ruleset orders these by declaration position instead.",
+            "type": "integer"
           },
           "revisit_ticks": {
             "description": "How long this Rule takes to look at every Lot once, in Ticks. The sample per trigger is derived from this duration rather than authored, so the fraction of the city covered per cycle does not shrink as the city grows. The draw is with replacement, so this is a rate and not coverage.",

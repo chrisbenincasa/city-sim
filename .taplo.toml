@@ -13,7 +13,14 @@
 #
 # The loader derives its permitted key set from the readers that ask for each key, so it already
 # owns this and a hand-written schema would be a second copy. RulesetSchemaTests fails when the
-# committed file drifts from it.
+# committed file drifts from it. A declaration's id, label and order come from RulesetSourceKeys
+# instead: the resolver lowers them away before the loader sees a package member.
+#
+# ⚠ THE GLOB COVERS THE RULESET FOLDER AND NOT A PACKAGE INSIDE IT. A package's manifest is an
+# ordinary .toml holding [source] alone, and its filename is not reserved -- so a glob reaching into
+# rulesets/split/ would hand the Ruleset schema to the manifest as well as to its members and
+# complete it with sections a manifest may not hold. Widen it once the manifest has a schema of its
+# own; plan 0077 carries that as remaining work.
 #
 # ⚠ The schema leaves unknown keys PERMITTED on purpose. The loader refuses them at the parse site
 # with a spelling suggestion and the full key list for that table, which is a better message than a

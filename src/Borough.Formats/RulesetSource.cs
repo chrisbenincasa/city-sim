@@ -406,13 +406,14 @@ public static class RulesetSource
 
             if (order is not null)
             {
-                if (section is not ("rule" or "policy" or "zone_rule"))
+                if (!RulesetSourceKeys.Orders(section))
                 {
                     declared.Valid = false;
                     Refuse(RulesetSourceLocation.Of(source.Path, order), RulesetDiagnosticCode.Order,
                         section, declared.Id,
-                        "order is accepted only on [[rule]], [[policy]] and [[zone_rule]]; other "
-                        + "declarations are ordered by id.");
+                        "order is accepted only on "
+                        + string.Join(", ", RulesetSourceKeys.Ordered.Select(name => $"[[{name}]]"))
+                        + "; other declarations are ordered by id.");
                 }
                 else if (order.Value is not IntegerValueSyntax { Value: >= 0 } number)
                 {

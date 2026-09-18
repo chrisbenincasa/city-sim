@@ -27,6 +27,12 @@ namespace Borough.Tests.Corpus;
 /// to both sides of this comparison and the test passes over it in silence. That is not a hole this
 /// test can close — it is why the schema leaves unknown keys permitted.
 /// </para>
+/// <para>
+/// ⚠ <b>The schema carries a second surface the loader does not own.</b> <c>RulesetSource</c> lowers
+/// a declaration's <c>id</c>, <c>label</c> and <c>order</c> away before a reader sees a package
+/// member, so <see cref="RulesetSourceKeys"/> publishes them and both sides of this comparison add
+/// them from there.
+/// </para>
 /// </remarks>
 public sealed class RulesetSchemaTests
 {
@@ -207,6 +213,11 @@ public sealed class RulesetSchemaTests
     private static SortedDictionary<string, string> FromLoader(string folder)
     {
         var flat = new SortedDictionary<string, string>(StringComparer.Ordinal);
+
+        // The sections that hold source declarations, collected before the brackets come off: a
+        // singleton `[layers]` and an array `[[building]]` flatten to the same spelling, and only
+        // the second one a package member writes an id in.
+        var declares = new SortedSet<string>(StringComparer.Ordinal);
         string[] files = Directory.GetFiles(folder, "*.toml");
 
         Array.Sort(files, StringComparer.Ordinal);
@@ -226,6 +237,13 @@ public sealed class RulesetSchemaTests
                 }
 
                 string context = string.Join('.', steps.Select(s => s.Trim('[', ']')));
+
+                if (steps.Length == 1
+                    && steps[0].StartsWith("[[", StringComparison.Ordinal)
+                    && !context.Contains('.', StringComparison.Ordinal))
+                {
+                    declares.Add(context);
+                }
 
                 foreach (KeyValuePair<string, RulesetKeyKind> key in section.Value)
                 {
@@ -248,6 +266,20 @@ public sealed class RulesetSchemaTests
             if (flat.Keys.Any(other => other.StartsWith(at + ".", StringComparison.Ordinal)))
             {
                 flat.Remove(at);
+            }
+        }
+
+        // ⚠ THE SOURCE KEYS ARE NOT THE LOADER'S AND THE SCHEMA CARRIES THEM ANYWAY.
+        // RulesetSource lowers id, label and order away before a reader sees a package member, so
+        // KeySurface can never record them -- but an editor completing a member against a schema
+        // without them offers the lowered `name`, which source v1 refuses. SchemaDump adds them from
+        // RulesetSourceKeys and this adds them from the same place, so the two still agree by
+        // construction rather than by a second list kept here.
+        foreach (string section in declares)
+        {
+            foreach (RulesetSourceKey key in RulesetSourceKeys.For(section))
+            {
+                flat.TryAdd($"{section}.{key.Name}", Named(key.Kind));
             }
         }
 

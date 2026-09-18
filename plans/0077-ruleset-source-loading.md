@@ -91,6 +91,13 @@ below.
 - **Naming a resumed Ruleset.** A resumed city has no Ruleset path, so the readout and a driven
   run's `draw` file read `RulesetName()` off the capture rather than `_rulesetPath`, which is now
   the boot argument alone. `Main.Menu.cs` no longer assigns the `.borough-city` path to it.
+- **Declaration keys in the generated references.** `RulesetSourceKeys` publishes `id`, `label` and
+  `order` with their shapes and their sentences, because the resolver lowers them away before a
+  reader sees a member and `RulesetLoader.KeySurface` therefore cannot record them. The schema, the
+  key reference and `RulesetSchemaTests` all add them from there, so the two sides still agree by
+  construction; `RulesetSourceKeys.Orders` is also the single owner of which sections accept an
+  `order`. Each note says the key belongs to a package member, since a single-file Ruleset writes
+  `name` and would be refused for writing `id`.
 - **Headless loading.** `Session.TryRules` resolves through `RulesetSource`, so every dump command
   accepts a package without a call-site change, and `Session.TryCapture` returns the capture rather
   than a hash, so a package's framed identity reaches the catalogue, Input Log transitions and
@@ -130,10 +137,12 @@ Remaining work and dependencies, in addition to the sequence below:
    a package from outside the player's own checkout first arrives. .NET reports a FIFO as an
    existing regular file of length zero, with the same attributes and Unix mode as a plain file, so
    refusing one needs `stat` through P/Invoke and an `adr/0018` exception; without it a member that
-   is a FIFO blocks the read until a writer opens the pipe. Schema/key-reference output does not yet
-   describe `id`, `label`, `order` or the manifest, so `.taplo.toml` associates the schema with
-   `rulesets/*.toml` only and package members get no editor hints; widen that glob when the schema
-   can describe them. The authoring walkthrough and designer handoff remain.
+   is a FIFO blocks the read until a writer opens the pipe. The manifest has no schema of its own:
+   the generator writes one root document, and a manifest's filename is not reserved, so no
+   `.taplo.toml` glob can tell a manifest from a member. `.taplo.toml` therefore still associates
+   the schema with `rulesets/*.toml` only, and package members get no editor hints; widening that
+   glob waits on a manifest schema, which needs a second mode and a second committed file. The
+   authoring walkthrough and designer handoff remain.
 
 ## Implementation sequence
 

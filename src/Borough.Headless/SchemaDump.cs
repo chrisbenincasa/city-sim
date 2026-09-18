@@ -91,6 +91,8 @@ internal static class SchemaDump
             Absorb(root, RulesetLoader.KeySurface(text, Path.GetFileName(file)));
         }
 
+        Declarations(root);
+
         Console.Error.WriteLine(
             $"{files.Length} Ruleset(s) read from {folder}"
             + (refused > 0 ? $", {refused} of which the loader refuses" : string.Empty)
@@ -212,6 +214,41 @@ internal static class SchemaDump
         }
     }
 
+    /// <summary>Adds the source keys each declaration states, which no reader asks for.</summary>
+    /// <remarks>
+    /// <b><c>RulesetSource</c> lowers <c>id</c>, <c>label</c> and <c>order</c> away before the reader
+    /// runs</b>, so the surface this file is otherwise built from cannot contain them and a package
+    /// member opened in an editor is completed against keys source v1 refuses.
+    /// <see cref="RulesetSourceKeys"/> owns which sections take which, and the repeat marker is what
+    /// says a section holds declarations at all.
+    /// </remarks>
+    private static void Declarations(Section root)
+    {
+        foreach (KeyValuePair<string, Section> section in root.Children)
+        {
+            if (!section.Value.Repeats)
+            {
+                continue;
+            }
+
+            foreach (RulesetSourceKey key in RulesetSourceKeys.For(section.Key))
+            {
+                if (!section.Value.Children.TryGetValue(key.Name, out Section? leaf))
+                {
+                    leaf = new Section();
+                    section.Value.Children[key.Name] = leaf;
+                }
+
+                if (leaf.Kind == RulesetKeyKind.Unknown)
+                {
+                    leaf.Kind = key.Kind;
+                }
+
+                leaf.Note ??= key.Note;
+            }
+        }
+    }
+
     private static string Render(Section root)
     {
         var buffer = new MemoryStream();
@@ -238,7 +275,9 @@ internal static class SchemaDump
                 + "ONLY in order to refuse them by name are not here at all: they stay permitted "
                 + "so that writing one gets the sentence saying where the key went, and they are "
                 + "not offered, because a completion that always refuses the file is worse than "
-                + "no completion.");
+                + "no completion. A declaration's `id`, `label` and `order` come from "
+                + "RulesetSourceKeys rather than from a reader: a source package states them and "
+                + "the resolver lowers them away before the loader sees the member.");
             writer.WriteString("type", "object");
             WriteProperties(writer, root);
             writer.WriteEndObject();
