@@ -463,17 +463,144 @@ Use a fresh run for changes to frozen world geometry/layer contracts. For suppor
 retain every exact Ruleset used: comments and whitespace affect the content hash. Read
 [the golden procedure](../tests/Borough.Tests/Golden/README.md) before changing golden inputs.
 
+## Walking through the example package
+
+`rulesets/split/` is the runnable example: `minimal.toml`'s content across four members. It
+demonstrates explicit membership, cross-member forward references and explicit Rule order. It
+models no city and makes no balance claim; `minimal.toml` carries the reasoning behind every
+number in it. Every command below runs from a clean checkout.
+
+### Loading it
+
+```sh
+dotnet run --project src/Borough.Headless -- \
+  --ruleset rulesets/split/ruleset.toml --citizens 200 --ticks 200 --kinds
+```
+
+The manifest is the entry and `--ruleset` takes it exactly as it takes a single file, because
+`[source]` is what selects the package reader. Every runner mode accepts a package this way; none
+of them needed a change for it. The kind dump names the Building `Terraced house`, which is
+`dwelling.toml`'s `label`, while `rules.toml` refers to the same declaration by its id, `dwelling`.
+
+The Godot shell takes the same path:
+
+```sh
+godot --path src/Borough.Godot -- --ruleset rulesets/split/ruleset.toml --citizens 400
+```
+
+### Membership is explicit
+
+The manifest lists its members and nothing else finds them:
+
+```toml
+[source]
+version = 1
+members = ["city.toml", "dwelling.toml", "goods.toml", "rules.toml"]
+```
+
+⚠ **A `.toml` file in the directory that the manifest does not list is not part of the package, and
+nothing says so.** Only listed members participate, so a new member is two edits — write the file,
+then list it. Forgetting the second edit loads the package without it, and the failure arrives later
+as a missing declaration rather than as a missing file.
+
+A member the manifest lists and the disk does not have is refused, because that is the case the
+loader can tell apart from a deliberate omission.
+
+### Identity, display text and order
+
+| Key | What it does | Where |
+|---|---|---|
+| `id` | Identifies the declaration across the package. Other members refer to it by this | Every `[[section]]` |
+| `label` | Display text the shell shows a player. Moves no reference | Every `[[section]]`, optional |
+| `order` | Places a declaration ahead of a higher one; ties fall back to id order | `[[policy]]`, `[[rule]]`, `[[zone_rule]]` |
+
+A package member states `id` where a single-file Ruleset states `name`, and stating both is refused.
+Renaming a `label` renames what a player reads and moves nothing else. Declarations order by id
+unless they carry an explicit `order`, so `rules.toml`'s sequence survives a member being split or
+moved — which is the reason position in a file means nothing here.
+
+Cross-member references need no ordering. `dwelling.toml`'s Bins name Goods that `goods.toml`
+declares, and `goods.toml` sorts after it.
+
+The generated [key reference](ruleset-reference.md) lists these three on every array-of-tables
+section, alongside the keys a reader asks for.
+
+### Reading a refusal
+
+Each of these is one edit to a copy of `rulesets/split/`, and the text is what the runner prints.
+
+| The mistake | What you get |
+|---|---|
+| A Bin names a Good nobody declares | `dwelling.toml:13: rule 'dwelling': 'repair' is not a declared [[resource]].` |
+| Two members declare one id | `goods.toml:3: rule 'sundries': a second [[resource]] has id 'sundries'; the first is at dwelling.toml:20:1. Duplicate ids are refused even when their values agree.` |
+| A listed member is not on disk | `ruleset.toml:15: member 'goods.toml' is missing. A listed member never falls back to another file.` |
+| `order` outside the three ordered families | `dwelling.toml:10: rule 'dwelling': order is accepted only on [[policy]], [[rule]], [[zone_rule]]; other declarations are ordered by id.` |
+| `name` where `id` belongs | `dwelling.toml:8: [[building]] has no id. Every source declaration is identified by id.` and `dwelling.toml:9: name is not a source key here: id identifies the declaration and label is its display text.` |
+
+A refusal names the member and the line within it, not an offset into a concatenation. ⚠ The
+`rule '...'` prefix names whichever declaration is in scope, whatever section it belongs to — it is
+the single-file reader's spelling and it says `rule` even for a `[[resource]]`. Nothing is loaded
+when a package is refused, so a refused edit leaves the previous Ruleset in force.
+
+### Changing a value in a running city
+
+Register both versions and name the Tick the change lands on:
+
+```sh
+dotnet run --project src/Borough.Headless -- \
+  --ruleset rulesets/split/ruleset.toml --ruleset /tmp/split-v2/ruleset.toml \
+  --reload-at 100 --citizens 200 --ticks 200 --hash-every 100
+```
+
+The trace reports `1 reload(s)`, and the header's `ruleset` line carries the opening content
+identity. A reload is a transition in the Input Log, so a replay of that log needs both packages in
+its catalogue. ⚠ The Godot shell's tuner does not do this — it **regenerates** the city from edited
+bytes held in memory, which is a new world rather than a Ruleset swap.
+
+### Saving and resuming
+
+```sh
+dotnet run --project src/Borough.Headless -- \
+  --ruleset rulesets/split/ruleset.toml --citizens 200 --ticks 100 --save /tmp/city.save
+```
+
+A city saved from the Godot shell embeds its whole package, so it resumes without the source
+directory and names the Ruleset it was authored under rather than the archive. Comments and
+whitespace are part of the content identity, so retain the exact bytes of any Ruleset a save or a
+replay depends on.
+
+### What this build does not do yet
+
+- **Shared `[[basket]]`, `[[recipe]]` and `[[reserve]]` definitions are refused**, by name, as
+  unimplemented. So are a Rule's `basket`/`recipe` reference and a Bin's `reserve` selection. State
+  a Rule's inputs and outputs directly.
+- **There is no impact preview.** Nothing reports before/after values, affected and unchanged
+  dependants or expansion counts, so the effect of an edit is read from a run.
+- **Refusals carry no column**, and some quote the lowered `name` key rather than the `id` you wrote.
+- 🔴 **Do not point `--schema` or `--key-reference` at a package directory.** Both take the folder
+  holding `--ruleset` and read every `.toml` in it as a separate single-file Ruleset — on
+  `rulesets/split/` that is five files, four of which the loader refuses, and the manifest
+  contributes a `[source]` section to the output. Generate from `rulesets/minimal.toml`.
+- **A manifest gets no editor hints.** `.taplo.toml` associates the schema with `rulesets/*.toml`
+  only, because a manifest's filename is not reserved and no glob can tell one from a member.
+
 ## Delivering the production authoring guide
 
-Keep this document current as the loader ships. `rulesets/split/` is the runnable example:
-minimal.toml's content across four members, demonstrating explicit membership, cross-member forward
-references and explicit Rule order. Walk through adding a Good/recipe, referencing a
-shared basket, choosing a reserve, introducing/removing an exception and evolving an inhabited
-city. Show the impact report and source-located diagnostics for common mistakes. Document which
-changes are supported, require migration, or require a new city.
+Keep this document current as the loader ships. The walkthrough above covers what this build can
+do: membership, identity and order, located diagnostics, an in-session change and a package city
+that saves and resumes. What it still cannot walk through, each waiting on the implementation it
+names, is adding a Good and a recipe, referencing a shared basket, choosing a reserve,
+introducing and removing an exception, and evolving an inhabited city. The impact report has no
+implementation to show. Document which changes are supported, require migration, or require a new
+city, once a reload can tell them apart.
 
-Update schema/completion and the generated key reference with the implementation, using
-`RulesetKeyNotes.cs` as the description source. Keep conceptual authoring instructions here,
-field-level contracts in the generated reference, and bounded evidence in the investigation.
+⚠ The walkthrough's commands are not held against the runner by anything. A flag renamed or a mode
+removed leaves them stale and silent. `ExamplePackageTests` pins the package itself — that it
+resolves, and the label and ids the walkthrough quotes — which is the half that a test can hold.
+
+Update schema/completion and the generated key reference with the implementation. `RulesetKeyNotes`
+describes the keys a reader asks for and `RulesetSourceKeys` the three a declaration states; the
+manifest has neither a schema nor a glob that could find one. Keep conceptual authoring instructions
+here, field-level contracts in the generated reference, and bounded evidence in the investigation.
 Documentation and a designer handoff are acceptance requirements of the loader work, not an
 optional follow-up after a parser lands. See [0077](../plans/0077-ruleset-source-loading.md).

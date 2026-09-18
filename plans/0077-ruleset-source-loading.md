@@ -98,6 +98,12 @@ below.
   construction; `RulesetSourceKeys.Orders` is also the single owner of which sections accept an
   `order`. Each note says the key belongs to a package member, since a single-file Ruleset writes
   `name` and would be refused for writing `id`.
+- **The walkthrough.** [The authoring contract](../docs/ruleset-authoring.md) walks
+  `rulesets/split/` from either host through membership, identity and order, five refusals quoted
+  from the runner, an in-session change and a package city that saves and resumes, and it states
+  what this build refuses. `ExamplePackageTests` pins the package's members, its label and its Rule
+  order, which is the half of the walkthrough a test can hold; the commands themselves are unheld
+  and the document says so.
 - **Headless loading.** `Session.TryRules` resolves through `RulesetSource`, so every dump command
   accepts a package without a call-site change, and `Session.TryCapture` returns the capture rather
   than a hash, so a package's framed identity reaches the catalogue, Input Log transitions and
@@ -128,8 +134,10 @@ Remaining work and dependencies, in addition to the sequence below:
    save needs a codec change and a CitySave envelope 3. The drive channel has no verb for the tuner
    or for save and load, so those two paths are covered by test rather than by a driven run.
 2. Reader refusals have no column, some quote the lowered `name` key, and typed reference errors
-   come from the single-file reader rather than a typed resolver. Provenance/dependency edges,
-   expansion counts, impact previews and old/new id-key collision refusal are not built.
+   come from the single-file reader rather than a typed resolver. `RulesetRefusal.ToString` also
+   spells every declaration in scope `rule '<id>'`, so a `[[resource]]` duplicate reports as a rule;
+   the section is on the source diagnostic and is lost in `ToLoadResult`. Provenance/dependency
+   edges, expansion counts, impact previews and old/new id-key collision refusal are not built.
 3. Shared baskets, recipe references and reserve derivation (step 2) wait on the saved fractional
    consumption progress scoped in [the runtime factoring plan](ruleset-runtime-factoring.md).
    Integrated execution must replace the lowering before the first usable release.
@@ -142,7 +150,11 @@ Remaining work and dependencies, in addition to the sequence below:
    `.taplo.toml` glob can tell a manifest from a member. `.taplo.toml` therefore still associates
    the schema with `rulesets/*.toml` only, and package members get no editor hints; widening that
    glob waits on a manifest schema, which needs a second mode and a second committed file. The
-   authoring walkthrough and designer handoff remain.
+   authoring walkthrough covers what this build does — loading a package from either host,
+   membership, identity and order, the five common refusals, `--reload-at` and a package city that
+   saves and resumes — and names what it cannot yet walk through. Adding a Good and a recipe, a
+   shared basket, a reserve, an exception, an inhabited city's evolution and the impact report all
+   wait on the implementation each names. The designer handoff remains.
 
 ## Implementation sequence
 
