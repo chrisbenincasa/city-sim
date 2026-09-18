@@ -69,7 +69,7 @@ public readonly struct SaveHeader : IEquatable<SaveHeader>
     /// </remarks>
     // Version 6 includes Outside stock, queued prospects, household provenance and Day flow snapshots.
     // Older declaration sets are refused before their body is read.
-    public const int Current = 6;
+    public const int Current = 7;
 
     private const ulong ByteOrderSentinel = 0x0102_0304_0506_0708UL;
 

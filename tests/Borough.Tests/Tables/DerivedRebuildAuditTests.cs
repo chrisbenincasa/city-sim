@@ -44,6 +44,14 @@ namespace Borough.Tests.Tables;
 /// </remarks>
 public sealed class DerivedRebuildAuditTests
 {
+    private static World PaintedGround()
+    {
+        var world = new World(0, GoldenFixtures.Rules());
+        world.PaintPermissions(new LandRectangle(0, 0, 32, 32), new GroundPermissions(1, 2));
+        world.PaintFormPermissions(new LandRectangle(1, 1, 1, 1), true, 0);
+        return world;
+    }
+
     /// <summary>One column's identity and what its storage folded to.</summary>
     private readonly record struct ColumnFold(string Name, Disposition Disposition, ulong Fold);
 
@@ -138,6 +146,7 @@ public sealed class DerivedRebuildAuditTests
             Run(GoldenFixtures.Build()),
             Run(Attracted()),
             Run(Attracted(512)),
+            Run(PaintedGround()),
         ];
 
         string[] all = audits[0].Derived;
@@ -245,7 +254,8 @@ public sealed class DerivedRebuildAuditTests
         // The doors standing on one edge, derived for the composition list's reason exactly -- the
         // insert is ordered by slot, so the round-robin over an edge's gates reads an order a rebuild
         // reproduces rather than the order the player happened to build them in.
-        Assert.Equal(47, all.Length);
+        // Geographic permission page links are populated by PaintedGround.
+        Assert.Equal(48, all.Length);
         Assert.Single(ScratchColumns(Stepped(0)));
     }
 

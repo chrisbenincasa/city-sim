@@ -209,6 +209,11 @@ public static class SaveFile
         {
             source.Read(scalars);
 
+            if (ReferenceEquals(table, world.PermissionRectangles.Rows)
+                && BinaryPrimitives.ReadInt32LittleEndian(scalars) > rules.PermissionRecordLimit)
+            {
+                throw new InvalidOperationException("Saved permission slots exceed the Ruleset record limit.");
+            }
             table.Restore(
                 BinaryPrimitives.ReadInt32LittleEndian(scalars),
                 BinaryPrimitives.ReadInt32LittleEndian(scalars[4..]),

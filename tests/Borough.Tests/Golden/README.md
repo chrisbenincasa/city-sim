@@ -705,3 +705,10 @@ the 4,096-Tick one. `GoldenFixtures.Build()` never steps, so all twenty-seven of
 zeroes and its hash moved on the declaration set alone — *a baseline that covers a column's existence
 reads exactly like one that covers its behaviour*, which is this directory's standing finding and is
 why the sessions carry this one.
+
+The geographic permission foundation appends `land_permission` to the saved table composition
+and advances Core save format 6 → 7. Its empty allocator state moves all three golden outputs;
+the baseline Ruleset content hashes and hash algorithm/seed do not change. The nonempty geographic
+state, refusal/no-op identity, rebuilt links and continued allocation after load are exercised by
+`LandPermissionTests` and the derived rebuild audit. Gameplay paint still uses the legacy path
+until the reader migration slice.

@@ -463,3 +463,8 @@ all three surfaces separately before changing one.
 Steps 1, 4 and 5 are implemented and verified. The Tower now demonstrates the geometric half of
 step 2, but its intensity is still inferred from the selected pattern. Step 3—and the saved
 intensity/form separation it requires—remains deliberately separate from this geometry change.
+
+The geographic permission storage foundation is implemented in the `urban-permissions` worktree:
+exact bounded painting and ground queries, saved/hash-bearing rows, load/reload refusal and a C#
+memory measurement. See the [local contract](urban-fabric-local-layout-contract.md#implemented-geographic-storage-foundation).
+Local assembly, gameplay reader migration, automatic selection and shell integration remain.

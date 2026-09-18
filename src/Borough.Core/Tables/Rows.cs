@@ -670,6 +670,23 @@ public abstract class Rows
         }
     }
 
+    /// <summary>Allocates column headroom without changing saved allocator state.</summary>
+    internal void PrepareCapacity(int slots, int maximum)
+    {
+        if (slots < 0 || slots > maximum || _slotCount > maximum)
+        {
+            throw new ArgumentOutOfRangeException(nameof(slots));
+        }
+        if (slots <= _capacity) { return; }
+        int capacity = _capacity;
+        while (capacity < slots)
+        {
+            capacity = capacity > maximum - capacity ? maximum : capacity * 2;
+        }
+        foreach (Column column in _columns) { column.Grow(capacity); }
+        _capacity = capacity;
+    }
+
     /// <summary>Restores exact storage unless the table opts into the allocator's growth headroom.</summary>
     private void GrowTo(int slots)
     {

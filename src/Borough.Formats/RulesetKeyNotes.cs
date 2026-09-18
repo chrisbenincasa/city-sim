@@ -767,6 +767,10 @@ public static class RulesetKeyNotes
             "The same for a foot path.",
 
         // ---- [capacity] -----------------------------------------------------------------------
+        ["[land_permissions] max_records"] =
+            "Maximum geographic permission records. Provisional default: 1048576; minimum: 8. "
+            + "Paint exceeding the final count is refused without mutation. Reload cannot lower this "
+            + "below the saved slot high-water mark.",
         ["[capacity] floor_tiles_per_occupant"] =
             "How much floor one tenancy takes, in Tiles. A Building's occupancy is its floor area — "
             + "its footprint on every storey — divided by this, so it varies with the ground the "

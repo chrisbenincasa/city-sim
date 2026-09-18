@@ -25,7 +25,7 @@ dotnet run --project src/Borough.Headless -- \
 
 ## The sections
 
-43 sections, 277 keys.
+44 sections, 278 keys.
 
 - [`[[band]]`](#band) — 2 keys
 - [`[[building]]`](#building) — 20 keys
@@ -56,6 +56,7 @@ dotnet run --project src/Borough.Headless -- \
 - [`[immigration]`](#immigration) — 4 keys
 - [`[income_tax]`](#income_tax) — 4 keys
 - [`[jobs]`](#jobs) — 11 keys
+- [`[land_permissions]`](#land_permissions) — 1 key
 - [`[layers]`](#layers) — 20 keys
 - [`[lots]`](#lots) — 10 keys
 - [`[market]`](#market) — 2 keys
@@ -940,6 +941,14 @@ What one Day worked is worth to a Citizen who missed schooling, as a percent of 
 **`wage_tier_percent`** · *array of whole numbers*
 
 What each of the three Skill Tiers is paid, as a percent of the trade's posted rate — exactly three entries, the first of which restates the posted rate and can only be 100. Absent means every tier is paid the same.
+
+---
+
+## `[land_permissions]`
+
+**`max_records`** · *whole number*
+
+Maximum geographic permission records. Provisional default: 1048576; minimum: 8. Paint exceeding the final count is refused without mutation. Reload cannot lower this below the saved slot high-water mark.
 
 ---
 

@@ -28,6 +28,13 @@ namespace Borough.Core.Invariants;
 /// </remarks>
 public static class WorldInvariants
 {
+    internal static void LandPermissionsAreWellFormed(World world, InvariantRegistry report)
+    {
+        bool valid = world.LandPermissions.IsValid(out int row);
+        report.Require(valid && world.PermissionRectangles.Rows.SlotCount <= world.Rules.PermissionRecordLimit,
+            Invariant.LandPermissionsAreWellFormed, row);
+    }
+
     /// <summary>Registers every check this slice can make.</summary>
     public static void RegisterAll(InvariantRegistry invariants)
     {
@@ -38,6 +45,7 @@ public static class WorldInvariants
         invariants.Register(InvariantTier.Staggered, SegmentsAreWellFormed);
 
         invariants.Register(InvariantTier.EndOfRun, EveryHandleResolves);
+        invariants.Register(InvariantTier.EndOfRun, LandPermissionsAreWellFormed);
         invariants.Register(InvariantTier.EndOfRun, EveryoneIsInExactlyOnePlace);
         invariants.Register(InvariantTier.EndOfRun, MoneyIsRepresentable);
 

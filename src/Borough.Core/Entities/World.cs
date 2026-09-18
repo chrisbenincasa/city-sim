@@ -158,6 +158,8 @@ public sealed class World
         // ⚠ It is a capacity and not a bound on the world: the lattice has Span^2 squares and this
         // table holds only the ones somebody has zoned.
         Blocks = new BlockTable(PerThousand(citizens, 32));
+        PermissionRectangles = new Space.LandPermissionTable();
+        LandPermissions = new Space.LandPermissions(PermissionRectangles);
 
         Buildings = new BuildingTable(PerThousand(citizens, 150), Lots);
 
@@ -491,7 +493,7 @@ public sealed class World
 
             // Save Outside stock and its population account alongside the city tables.
             Hinterlands.Rows, HinterlandPopulation.Rows, HinterlandQueue.Rows,
-            PopulationLedger.Rows,
+            PopulationLedger.Rows, PermissionRectangles.Rows,
         ];
 
         // The same list minus the tables no Tick phase can write, for the Decide guard alone. See
@@ -1378,6 +1380,10 @@ public sealed class World
                 + "mint into a city that has already spent what it was founded with.");
         }
 
+        if (rules.PermissionRecordLimit < PermissionRectangles.Rows.SlotCount)
+        {
+            throw new InvalidOperationException("Permission record limit is below the saved slot high-water mark.");
+        }
         RefuseIncompatibleOutside(rules);
 
         RulesetChange change = RulesetShape.Compare(Rules, rules);
@@ -1641,6 +1647,17 @@ public sealed class World
 
         return dropped;
     }
+
+    /// <summary>Saved geographic permission rectangles, independent of Lots.</summary>
+    public Space.LandPermissionTable PermissionRectangles { get; }
+    public Space.LandPermissions LandPermissions { get; }
+
+    /// <summary>The Core geographic paint boundary; gameplay readers migrate in the next slice.</summary>
+    public Space.PermissionRefusal PaintPermissions(Space.LandRectangle area, Space.GroundPermissions permission) =>
+        LandPermissions.Paint(area, permission, Rules.PermissionRecordLimit);
+
+    public Space.PermissionRefusal PaintFormPermissions(Space.LandRectangle area, bool restricted, ushort forms) =>
+        LandPermissions.PaintForms(area, restricted, forms, Rules.PermissionRecordLimit);
 
     /// <summary>Every table, in the declaration order the hash folds them in.</summary>
     public ReadOnlySpan<Rows> Tables => _tables;
@@ -4173,6 +4190,7 @@ public sealed class World
     /// </remarks>
     public void RebuildDerived()
     {
+        LandPermissions.Rebuild();
         Layers.RebuildDerived();
         Roads.RebuildDerived();
 

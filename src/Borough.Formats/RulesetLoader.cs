@@ -288,6 +288,7 @@ public static class RulesetLoader
         private TableSyntaxBase? _roadsTable;
         private TableSyntaxBase? _lotsTable;
         private TableSyntaxBase? _capacityTable;
+        private TableSyntaxBase? _landPermissionsTable;
         private TableSyntaxBase? _tripsTable;
         private TableSyntaxBase? _jobsTable;
         private TableSyntaxBase? _householdsTable;
@@ -352,6 +353,7 @@ public static class RulesetLoader
             // FIRST, because ReadBusinessKinds asks it whether this Ruleset employs anybody before
             // it decides whether a shift band and a wage are owed. It reads no other table.
             CapacityRuleset capacity = ReadCapacity();
+            int permissionRecordLimit = ReadPermissionRecordLimit();
 
             RuleDefinition[] rules = ReadRules(out Term[] inputs, out Term[] outputs,
                 out MapEmission[] emissions);
@@ -478,6 +480,7 @@ public static class RulesetLoader
                 Lattices = lattices,
                 Lots = lots,
                 Capacity = capacity,
+                PermissionRecordLimit = permissionRecordLimit,
                 Bands = bands,
                 Trips = trips,
                 Jobs = jobs,
@@ -662,6 +665,14 @@ public static class RulesetLoader
                         }
 
                         _roadsTable = table;
+                        break;
+
+                    case "land_permissions":
+                        if (_landPermissionsTable is not null)
+                        {
+                            Refuse(LineOf(table), null, "a second [land_permissions] is declared.");
+                        }
+                        _landPermissionsTable = table;
                         break;
 
                     case "capacity":
@@ -6996,6 +7007,23 @@ public static class RulesetLoader
             var dimensions = plots ? new Core.Space.ResidentialPlots((int)frontage, (int)depth,
                 (int)houseWidth, (int)houseDepth, (int)houseStoreys) : default;
             return new LotRuleset((int)value, (int)setback, (int)step, (int)spread, (int)streetHalfWidth, dimensions);
+        }
+
+        private int ReadPermissionRecordLimit()
+        {
+            const int fallback = Ruleset.DefaultPermissionRecordLimit;
+            if (_landPermissionsTable is null
+                || !TryInteger(_landPermissionsTable, "max_records", out long value, required: false))
+            {
+                return fallback;
+            }
+            if (value < 8 || value > CellGrid.WorldTiles * CellGrid.WorldTiles)
+            {
+                Refuse(LineOf(_landPermissionsTable), null,
+                    "max_records must be between 8 and the number of Tiles in the world.");
+                return fallback;
+            }
+            return (int)value;
         }
 
         /// <summary>Reads <c>[capacity]</c> — how much floor one tenancy, job, car or pupil takes.</summary>

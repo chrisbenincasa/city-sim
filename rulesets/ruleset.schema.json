@@ -566,6 +566,15 @@
         }
       }
     },
+    "land_permissions": {
+      "type": "object",
+      "properties": {
+        "max_records": {
+          "description": "Maximum geographic permission records. Provisional default: 1048576; minimum: 8. Paint exceeding the final count is refused without mutation. Reload cannot lower this below the saved slot high-water mark.",
+          "type": "integer"
+        }
+      }
+    },
     "lattice": {
       "type": "array",
       "items": {

@@ -1,7 +1,8 @@
 # 0062 — Local layout storage and commit contract
 
 Implementation design for the [redevelopment walkthrough](urban-fabric-redevelopment-walkthrough.md).
-This is a recommended contract, not implemented code. It preserves the decisions in
+The geographic storage foundation below is implemented; local assembly and reader migration remain
+implementation work. This contract preserves the decisions in
 [0062](0062-the-urban-fabric.md) without adding a developer actor.
 
 ## Sources of truth
@@ -219,11 +220,42 @@ Review that expectation and resulting placement pace; preserve bounded individua
 than claim that all historical test expectations remain applicable. Re-record golden behaviour
 deliberately after the chosen index contract is implemented.
 
-The reader audit is complete for the direct accesses and index consumers above. The storage model
-now supplies a provisional record budget and the preflight sequence. Next implement the permission
-table and exact painting/query operations with Core refusal, allocator, hash and save/load checks.
-The C# memory measurement and final API signatures belong to that implementation; this document
-does not claim the Python prototype proves them.
+The reader audit is complete for the direct accesses and index consumers above. The geographic
+storage foundation is implemented; reader migration and local assembly remain the next work.
+
+## Implemented geographic storage foundation
+
+`World.PaintPermissions` and `World.PaintFormPermissions` select exact `LandRectangle` bounds.
+`World.LandPermissions.At` reads one Tile; `Check` examines complete rectangular ground for use,
+a single proposed form bit and uniform intensity, returning `PermissionRefusal` and a band.
+Use admission keeps the existing any-matching-use-bit semantics. Form restrictions are explicitly
+optional: an absent restriction admits any form, a present empty mask admits none. Form-only paint
+preserves each Tile's use and band, including restrictions on otherwise unzoned ground.
+
+`LandPermissionTable` owns the saved rectangles and packed permissions. It has no Lot handles.
+The Cell directory and ascending-slot intrusive page links are rebuilt, including after save/load.
+Painting counts every changed page before staging, caps column growth (including non-power-of-two
+limits), retires all replaced pages before allocating replacements, and leaves saved allocator
+identity unchanged for no-ops and refusals. An end-of-run invariant checks geometry, disjointness,
+index coverage and the saved slot bound. Repeated clearing/repainting reuses the high-water slots.
+
+`[land_permissions] max_records` defaults to the provisional 1,048,576, is retained when Rulesets
+are copied, and refuses reload/load below the saved slot high-water mark. Physical column capacity
+is allocation headroom, not saved state; existing high-water capacity is retained after clearing.
+The [C# measurement](evidence/urban-fabric/permission-storage-csharp.md) records actual allocated
+memory and the additional staging/growth costs.
+
+Core save format is now **7**; earlier versions are explicitly refused, with no inferred migration
+from block/Lot paint. The Formats CitySave envelope stays unchanged. Appending the permission table
+intentionally changes State Hash composition; the three golden outputs are re-recorded under the
+existing procedure. The hash algorithm/seed and baseline Ruleset content hashes are unchanged.
+
+This is an isolated Core foundation: existing Block/Lot paint, gameplay permission readers,
+standing-housing sampling, Input commands and shell controls still use their prior contracts.
+They must move together to the geographic authority before this API becomes playable zoning;
+there is no automatic copying between competing sources. No local assembly or automatic housing
+selection is claimed by this storage slice. The next step is site evaluation/atomic local assembly,
+followed by the audited reader and road-edit migration above.
 
 Baseline verification on 2026-09-18 at `ebab65f`: 57 tests passed with
 `scripts/test.sh --filter '(FullyQualifiedName~PlacementTests|FullyQualifiedName~PlacementChoiceTests|FullyQualifiedName~BandAdmissionTests|FullyQualifiedName~ZonedLotsTests)&tier!=instrument'`;
