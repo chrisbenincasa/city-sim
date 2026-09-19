@@ -28,8 +28,8 @@ For this example, intensity permissions are uniform and admit all the candidate 
 This isolates parcel assembly from the separate implementation of different intensity limits.
 Four actual Households remain seeking homes after placement. Assume their current circumstances
 and sufficiently observed searches justify four additional tenancies here, with no suitable spare
-capacity already covering them. This is an input to the walkthrough, not a claim that the housing
-evidence algorithm has been implemented. All proposed homes use an affordable rent.
+capacity already covering them. The capacity-shortage integration now verifies this input against actual unplaced Households
+and complete bounded standing capacity. All proposed homes use an affordable rent.
 
 ## Compare alternatives on the same ground
 
@@ -117,12 +117,15 @@ permission preservation after assembly and removal, occupied-neighbour invarianc
 refusals without mutation, actual floor capacity, derived rebuild equivalence, save/load and road
 edit behaviour. Repeated assembly/removal/repainting must have bounded storage with reclaimed state.
 
-The next integration slice adds bounded candidate comparison and actual seeker/capacity accounting
-to Zone Rules. Shell painting and previews must then agree with the same realised layout. A driven
+The opt-in Core integration adds bounded candidate comparison and actual seeker/capacity accounting
+to Zone Rules. Existing shell painting and previews already read the saved realised layout. A driven
 demonstration must show the trigger, one-Building response and changed continuation; new or changed
 Building assets follow Blender authoring first. Playtesting follows that executable integration,
 with attention to visible evolution, preserved Street character and explanations for refused growth.
 
-This walkthrough defines the foundation's outcome and checks. Permission storage and the internal
-local commit contract are implemented. Reader and road-edit migration comes next; scoring and
-housing sampling remain open for the integration slice.
+Permission storage, local commit, reader/road-edit migration and bounded capacity-shortage selection
+are implemented in `urban-permissions`. `HousingConstructionTests` exercises both arrangements,
+remaining need before placement, competing Zone Rules, repaint and save/load continuation. Persistent
+preference mismatch, numeric intensity caps, larger arrangements and new shell controls remain later
+work; the [local contract](urban-fabric-local-layout-contract.md#capacity-shortage-integration)
+states the current search bounds.

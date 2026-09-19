@@ -1,6 +1,8 @@
 using Borough.Core.Arithmetic;
 using Borough.Core.Determinism;
 using Borough.Core.Quantities;
+using Borough.Core.Entities;
+using Borough.Core.Space;
 
 namespace Borough.Core.Rules;
 
@@ -76,4 +78,54 @@ public static class HousingUtility
     public static int Saturate(long utility) => utility > Fixed.MaxValue
         ? Fixed.MaxValue
         : utility < Fixed.MinValue ? Fixed.MinValue : (int)utility;
+    internal static long Distance(World world, int lot)
+    {
+        long east = world.Lots.East[lot].Raw, north = world.Lots.North[lot].Raw;
+        if (world.Rules.Lattices.Length == 0) { return Abs(east) + Abs(north); }
+        long nearest = long.MaxValue;
+        foreach (LatticeDefinition lattice in world.Rules.Lattices)
+        {
+            long distance = Abs(east - lattice.OriginEastTiles) + Abs(north - lattice.OriginNorthTiles);
+            if (distance < nearest) { nearest = distance; }
+        }
+        return nearest;
+    }
+
+    internal static bool TryOutside(World world, int position, long weight, int rentWeight, out int worth)
+    {
+        MapEdge edge;
+        if (world.Buildings.Rows.TryResolve(world.UnplacedPool.GateAt(position), out int gate)
+            && world.Lots.Rows.TryResolve(world.Buildings.Lot[gate], out int lot))
+        {
+            edge = world.EdgeOf(lot);
+        }
+        else
+        {
+            int household = world.Households.Rows.Resolve(world.UnplacedPool.At(position));
+            edge = world.Households.Arrived[household] == 0 ? MapEdge.None
+                : (MapEdge)world.Households.ArrivalEdge[household];
+        }
+        worth = 0;
+        if (edge == MapEdge.None || !world.Rules.TryHinterland(edge, out HinterlandDefinition hinterland)) { return false; }
+        worth = Worth(world.Rules.Placement, hinterland.CentralityTiles, weight, hinterland.Rent, rentWeight);
+        return true;
+    }
+
+    // A tie with Outside is not positive evidence for new construction. Existing capacity at a tie
+    // still suppresses construction, so a probabilistic placement loss cannot manufacture shortage.
+    internal static bool Suitable(World world, WorldKey key, int position, int lot, byte kind, bool prospective)
+    {
+        int household = world.Households.Rows.Resolve(world.UnplacedPool.At(position));
+        Money rent = world.Rules.Kind(kind).Rent;
+        if (rent.Raw > 0 && world.BalanceOf(world.UnplacedPool.At(position)).Raw < rent.Raw) { return false; }
+        if (!world.Rules.Placement.Chooses) { return true; }
+        byte stage = world.Households.LifeStage[household];
+        long taste = Taste(world.Rules, key, world.Households.TasteIdentity(household), stage);
+        int rentWeight = world.Rules.RentWeight(stage);
+        if (!TryOutside(world, position, taste, rentWeight, out int outside)) { return true; }
+        int inside = Worth(world.Rules.Placement, Distance(world, lot), taste, rent, rentWeight);
+        return prospective ? inside > outside : inside >= outside;
+    }
+
+    private static long Abs(long value) => value < 0 ? -value : value;
 }

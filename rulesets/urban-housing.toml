@@ -1,0 +1,71 @@
+# Core redevelopment fixture, not a balanced city. Narrow two-storey terraces and a
+# two-Lot courtyard compete at the same intensity. Four distinct uncovered seekers
+# support either two terraces or one courtyard; only the first Building commits.
+# The walkthrough tests supply occupied neighbours, seekers and geographic paint.
+# Provisional bounds and weights exercise mechanics, not quiet-machine performance.
+[[resource]]
+name = "sundries"
+family = "good"
+[[resource]]
+name = "money"
+family = "money"
+[[building]]
+name = "dwelling"
+houses = true
+bins = [{ resource = "sundries", capacity = 48 }]
+[roads]
+block_tiles = 64
+arterial_count = 0
+arterial_junction_tiles = 512
+foot_crossing_every = 4
+foot_paths_per_thousand_blocks = 40
+street_speed_kph = 50
+arterial_speed_kph = 90
+walk_speed_kph = 5
+street_capacity_per_hour = 3600
+arterial_capacity_per_hour = 12000
+foot_path_capacity_per_hour = 1000
+[lots]
+lots_per_segment = 5
+setback_tiles = 2
+[capacity]
+floor_tiles_per_occupant = 128
+floor_tiles_per_job = 1
+floor_tiles_per_parking_space = 6
+[housing_construction]
+max_seekers = 16
+max_building_slots = 4096
+max_lot_slots = 4096
+max_sources = 3
+max_candidates = 32
+surplus_percent = 0
+max_surplus = 0
+alignment_bonus = 2
+same_form_bonus = 1
+[[housing_form]]
+name = "terrace"
+pattern = 2
+min_frontage_tiles = 12
+max_frontage_tiles = 12
+min_depth_tiles = 16
+max_depth_tiles = 16
+storeys = 2
+setback_tiles = 0
+weight = 4
+[[housing_form]]
+name = "courtyard"
+pattern = 3
+min_frontage_tiles = 24
+max_frontage_tiles = 24
+min_depth_tiles = 16
+max_depth_tiles = 16
+storeys = 2
+setback_tiles = 0
+weight = 4
+
+[[zone_rule]]
+name = "housing"
+kind = "dwelling"
+zone = 0
+interval = 1
+revisit_ticks = 1

@@ -1,8 +1,8 @@
 # 0062 — Local layout storage and commit contract
 
 Implementation design for the [redevelopment walkthrough](urban-fabric-redevelopment-walkthrough.md).
-The geographic storage and local assembly foundations below are implemented; reader migration remains
-implementation work. This contract preserves the decisions in
+Geographic storage, local assembly and reader migration are implemented. The current integration
+adds bounded capacity-shortage housing construction. This contract preserves the decisions in
 [0062](0062-the-urban-fabric.md) without adding a developer actor.
 
 ## Sources of truth
@@ -104,9 +104,8 @@ Lots, cross a Street or decide arbitrary corner/polygon subdivision.
    commit path; no shell can publish half a subdivision or bypass permission checks.
 
 Core returns structured refusal codes and ids/numbers. The shell explains, for example, that a
-site crosses a form restriction or still holds a Building. Full construction-evidence accounting
-arrives in the integration slice; test proposals exercise the same site/commit contract without
-pretending that housing choice has been implemented.
+site crosses a form restriction or still holds a Building. Capacity-shortage evidence is now checked in the housing integration path. Persistent preference
+mismatch remains a later extension; the lower-level assembly API is also used by geometry tests.
 
 ## Readers, rebuilds and persistence
 
@@ -323,3 +322,50 @@ It is not a completed or green full-instrument result. The two relevant permissi
 instruments were then run on the committed code and both passed, reproducing **47,188,128 bytes**
 at the record budget and **1,048,600 bytes** for oversized refusal without mutation; log
 `/tmp/borough-test-20260918-215645.log`.
+
+## Capacity-shortage integration
+
+`[housing_construction]` opts housing Zone Rules into local construction. Omitted tables preserve
+existing fixture behaviour; market-reading Rules retain District trade-Lot accounting. This is a
+Core integration slice, with no new shell controls. `rulesets/urban-housing.toml` is an executable
+mechanics fixture, not balanced content.
+
+- Assess a bounded, distinct circular sample of current Unplaced Pool members, using its own counter
+  hash purpose tag. Do not extrapolate the sample. Compare actual affordability and the shared
+  placement utility against each Household's origin/saved Outside. A prospective tie with Outside
+  supplies no positive evidence; an existing tie still covers demand.
+- Completely inspect standing Building slots within authored Building and Lot high-water budgets.
+  If either budget is exceeded, refuse before allocation. Missing a sampled vacancy never proves
+  absence. Match site-qualifying seekers to usable existing tenancies with augmenting paths, so a
+  flexible seeker cannot consume the only affordable home as evidence for another Building. Actual
+  Business and Household occupancies share the same ceiling. Matching places and reserves nobody.
+- Each form authors a frontage/depth envelope, storeys, symmetric setback and relative weight,
+  independently of intensity. Its maximum floor-derived capacity must be earnable within the seeker
+  limit and bounded surplus. Assembly still requires uniform geographic intensity and full-site
+  permissions. Numeric intensity caps remain deferred.
+- From the sampled Lot, extend a bounded window through consecutive vacant whole Lots in increasing
+  Street coordinate. Generate singleton and contiguous merged sites within a capped number of
+  form/site attempts, counting failed attempts too. Compare one- and two-Building arrangements,
+  deduplicating identical realised alternatives. This bounded search is not an exhaustive block
+  optimiser; longer arrangements and searching on both sides are later extensions.
+- Maximise useful distinct seekers served; surplus earns no utility. Compare equal-usefulness
+  alternatives with an authored weighted counter draw. Immediate standing neighbours add a Street
+  wall alignment bonus and a no-larger same-form bonus; no founding identity is stored. These are
+  provisional mechanics weights. Each possible first Building gets one draw entry, regardless of
+  the number of hypothetical companions it could have. Reuse matching scratch across comparisons.
+- Commit only the first Building. Revalidate exact source identities, geometry, authored form,
+  permissions and current individual evidence before allocation or retirement. Subsequent samples,
+  Rules and Ticks read its real capacity. No queue, cooldown or persistent reservation can resurrect
+  already-covered demand. Save/load requires no new state columns or format revision.
+
+This slice handles capacity shortages without a persistence delay, including first homes. It does
+not infer a preference mismatch from a random placement loss. A future extension can build alongside
+otherwise usable vacancies for substantial, persistent mismatch, with saved elapsed-Tick evidence.
+Selection currently returns no proposal on refusal; `HousingNeedAssessment` exposes the structured
+coverage/no-need/excess-capacity distinction for a specific proposal. A shell explanation for the
+entire search is later integration work.
+
+The [construction validation](evidence/urban-fabric/housing-construction.md) records the executable
+walkthrough, the recycled-sample identity finding and the measured allocation conditions. The next
+Core extension is saved elapsed-Tick evidence for substantial persistent preference mismatch; it must
+not delay first-home capacity shortages or treat unsampled waiting as new evidence.

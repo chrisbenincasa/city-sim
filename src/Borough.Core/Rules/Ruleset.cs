@@ -4085,6 +4085,9 @@ public sealed class Ruleset
     /// <summary>The <c>[capacity]</c> table — how much floor one tenancy, job or car takes.</summary>
     public CapacityRuleset Capacity { get; init; } = CapacityRuleset.None;
 
+    /// <summary>Optional bounded automatic local housing construction.</summary>
+    public HousingConstructionRuleset? HousingConstruction { get; init; }
+
     /// <summary>Provisional default for [land_permissions] max_records when omitted.</summary>
     public const int DefaultPermissionRecordLimit = 1_048_576;
 
@@ -4914,6 +4917,7 @@ public sealed class Ruleset
             Lots = Lots,
             Capacity = Capacity,
             PermissionRecordLimit = PermissionRecordLimit,
+            HousingConstruction = HousingConstruction,
             Bands = Bands,
             Trips = Trips,
             Jobs = Jobs,

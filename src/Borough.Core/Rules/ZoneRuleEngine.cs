@@ -122,6 +122,7 @@ public sealed class ZoneRuleEngine
 
     /// <summary>Where <see cref="ZoneSample.Draw"/> writes. Grown to the widest sample, then reused.</summary>
     private int[] _sample = [];
+    private Handle<Lot>[] _housingSample = [];
 
     private int _tickTriggers;
     private int _tickVacant;
@@ -250,6 +251,14 @@ public sealed class ZoneRuleEngine
 
             Span<int> into = Scratch(definition.SampleFor(_world.Lots.Rows.SlotCount));
             int drawn = ZoneSample.Draw(_world.Lots, into, _key, tick, rule);
+            bool localHousing = !definition.ReadsDemand && _world.Rules.HousingConstruction is not null
+                && _world.Rules.Declares(definition.Kind) && _world.Rules.Kind(definition.Kind).Houses;
+            if (localHousing)
+            {
+                if (_housingSample.Length < drawn) { _housingSample = new Handle<Lot>[drawn]; }
+                for (int i = 0; i < drawn; i++) { _housingSample[i] = _world.Lots.Rows.At(into[i]); }
+            }
+
 
             // adr/0170: the SAMPLE IS THE CANDIDATE LIST, and no extra draws are taken. A tier-1
             // Rule scores every vacant Lot it drew and builds on the best one; a tier-0 Rule builds
@@ -263,6 +272,10 @@ public sealed class ZoneRuleEngine
             {
                 // The fork the rest of the slice hangs off. A vacant Lot is a candidate for creation;
                 // an occupied one is a Building whose failure pressure is read, which is task 7's.
+                // Assembly may have retired this sampled identity and reused its slot. Never
+                // reinterpret that old draw as a newly created Lot or Building.
+                if (localHousing && !_world.Lots.Rows.TryResolve(_housingSample[i], out _)) { continue; }
+                if (!_world.Lots.Rows.IsLive(into[i])) { continue; }
                 if (_world.Lots.IsVacant(into[i]))
                 {
                     _tickVacant++;
@@ -601,37 +614,21 @@ public sealed class ZoneRuleEngine
 
 
     /// <summary>
-    /// The create predicate: <b>vacant AND permitted AND somebody in the Pool would take it</b>.
+    /// Local housing uses distinct seeker evidence and atomic assembly when authored. Legacy
+    /// fixtures retain their existing trigger; market-reading Rules retain District trade units.
+    /// Construction creates an empty Building and leaves placement to its own later pass.
     /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <b>Three terms, and the third is a documented vacancy reason rather than a stand-in for the
-    /// pro-forma.</b> <c>02 §5.6</c>'s developer test needs prices, capital and a bid contest, none of
-    /// which exist. But <c>CONTEXT</c> → Frontage lists the four answers to <em>why is this Lot
-    /// vacant</em>, and <em>"no Household in the Unplaced Pool that would accept it"</em> is one of
-    /// them — <b>beside</b> <em>no capital</em>, not downstream of it. So consulting the Pool is the
-    /// design's own reason, and what is missing is missing rather than approximated.
-    /// </para>
-    /// <para>
-    /// <b>The permission bit is a term here and nowhere else</b> (<c>adr/0055</c>). Filtering the
-    /// sample by it instead would let a player repaint a Lot and put the Building on it beyond every
-    /// Rule's reach, which is immortality by paintbrush.
-    /// </para>
-    /// <para>
-    /// <b>The Pool is read as <em>non-empty</em> and drained blind</b> (<c>adr/0054</c>). There is no
-    /// acceptance test, because acceptance needs rent, a commute and a tolerance; a Household that
-    /// would refuse this dwelling is a thing this build cannot express, and pretending otherwise would
-    /// put a number in a file that nothing had measured.
-    /// </para>
-    /// <para>
-    /// <b>Construction time is deliberately absent</b> (<c>02 §5.7</c>'s second pacing mechanism). A
-    /// Building under construction occupies its Lot and produces nothing, which needs a state a
-    /// Building does not have. Growth is therefore instantaneous, and the only thing pacing it is the
-    /// trigger interval and the sample.
-    /// </para>
-    /// </remarks>
     private void Create(ZoneRuleDefinition definition, int lot, Ticks tick)
     {
+        if (!definition.ReadsDemand && _world.Rules.HousingConstruction is not null
+            && _world.Rules.Declares(definition.Kind) && _world.Rules.Kind(definition.Kind).Houses)
+        {
+            if ((definition.Admits & LotTable.Housing) == 0) { return; }
+            LocalLayoutProposal? proposal = HousingConstruction.Select(_world, _key, _world.Lots.Rows.At(lot), definition.Kind);
+            if (proposal is not null && HousingConstruction.Commit(_world, _key, proposal, out _).Accepted) { _tickCreated++; }
+            return;
+        }
+
         if (!Admits(definition, lot))
         {
             return;
@@ -651,17 +648,6 @@ public sealed class ZoneRuleEngine
 
         _world.CreateBuilding(_world.Lots.Rows.At(lot), definition.Kind, tick, _key);
 
-        // adr/0069: construction houses NOBODY. This used to draw a Pool member and place them here,
-        // which was placement's job done one Household deep by the only mechanism that existed --
-        // World.Place had exactly one caller and it was this line. The new Building stands empty and
-        // PlacementEngine fills it over the following Days, which is what makes its declared capacity
-        // reachable at all and what balances the demolish-and-rebuild cycle: eviction and re-housing
-        // now use the same door.
-        //
-        // The Pool is still read, one line above, and that reading is what changed character. It is no
-        // longer a population count that this method then decrements; it is the RESIDUAL left after
-        // placement ran earlier in the same phase, so a member of it is somebody the standing stock
-        // could not house. A developer does not build while there are empty flats.
         _tickCreated++;
     }
 

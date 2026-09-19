@@ -442,6 +442,13 @@ all three surfaces separately before changing one.
 
 ## Implemented so far
 
+The `urban-permissions` branch adds geographic permission storage, atomic whole-Lot assembly,
+saved-layout readers and opt-in capacity-shortage housing selection. See the
+[local contract](urban-fabric-local-layout-contract.md#capacity-shortage-integration) for implemented
+bounds and the remaining distinction from persistent preference mismatch. New housing forms have
+independent authored envelopes; the legacy initial-subdivision band ladder remains for existing
+fixtures. The earlier drawing work below is separate from that construction integration.
+
 - `--morphology` now reports parcel, potential-footprint and standing-footprint coverage by the
   saved pattern on each Lot. At 10,000 Citizens, the old Tower measured 25.0%, 17.1% and 8.0%.
 - A Tower now owns its full block. Its shared `BuildingPlan` is a two-storey, near-full-site podium

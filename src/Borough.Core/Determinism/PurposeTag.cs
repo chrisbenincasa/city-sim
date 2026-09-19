@@ -901,4 +901,8 @@ public enum PurposeTag : ulong
     /// Selects a composition for an explicit Arrive request, independently of its housing choice.
     /// </remarks>
     RequestedFamily = 56,
+    /// <summary>Distinct unplaced Households assessed for local housing construction.</summary>
+    HousingConstructionSeekers = 57,
+    /// <summary>Variation among equally useful local arrangements.</summary>
+    HousingConstructionForm = 58,
 }

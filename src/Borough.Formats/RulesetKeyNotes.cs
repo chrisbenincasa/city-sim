@@ -767,6 +767,42 @@ public static class RulesetKeyNotes
             "The same for a foot path.",
 
         // ---- [capacity] -----------------------------------------------------------------------
+        ["[housing_construction] alignment_bonus"] =
+            "Added draw weight for matching an immediate standing neighbour's Street wall; 0..1000. Applies only among equally useful arrangements.",
+        ["[housing_construction] same_form_bonus"] =
+            "Additional weight for the same form at a matching Street wall; 0..alignment_bonus. No permanent founding identity is stored.",
+        ["[housing_construction] max_seekers"] =
+            "Maximum distinct current unplaced Households assessed; 1..256. Samples are never extrapolated.",
+        ["[housing_construction] max_building_slots"] =
+            "Complete standing-home coverage budget, including dead Building slots. Exceeding it refuses construction; 1..1048576.",
+        ["[housing_construction] max_lot_slots"] =
+            "Complete Lot geometry coverage budget, including dead slots. Exceeding it refuses construction; 1..1048576.",
+        ["[housing_construction] max_sources"] =
+            "Maximum adjacent whole vacant Lots in the local comparison window; 1..16.",
+        ["[housing_construction] max_candidates"] =
+            "Maximum form/site attempts, including failed checks; 1..64. Compare one or two Buildings, committing only the first.",
+        ["[housing_construction] surplus_percent"] =
+            "Permitted capacity surplus above distinct uncovered seekers, rounded up, and capped by max_surplus; 0..100.",
+        ["[housing_construction] max_surplus"] =
+            "Absolute cap on surplus tenancies per proposed arrangement; 0..256. Zero seekers never supports construction.",
+        ["[[housing_form]] name"] =
+            "Unique authored name for this housing form envelope. Package declarations lower their id to this name.",
+        ["[[housing_form]] pattern"] =
+            "Built form: 0 Detached, 1 Perimeter, 2 BackToBack, 3 Courtyard, 4 Slab, 5 Tower. Independent of intensity.",
+        ["[[housing_form]] min_frontage_tiles"] =
+            "Minimum whole-site frontage for this form, in Tiles.",
+        ["[[housing_form]] max_frontage_tiles"] =
+            "Maximum whole-site frontage for this form, in Tiles. Maximum capacity must be earnable within max_seekers and the surplus bound.",
+        ["[[housing_form]] min_depth_tiles"] =
+            "Minimum whole-site depth behind its Street, in Tiles.",
+        ["[[housing_form]] max_depth_tiles"] =
+            "Maximum whole-site depth behind its Street, in Tiles.",
+        ["[[housing_form]] storeys"] =
+            "Realised storeys of this authored form; 1..255.",
+        ["[[housing_form]] setback_tiles"] =
+            "Inset on every side of the site, in Tiles; must leave a positive footprint.",
+        ["[[housing_form]] weight"] =
+            "Relative deterministic draw weight among equally useful first Buildings; 1..1000. Surplus capacity adds no usefulness.",
         ["[land_permissions] max_records"] =
             "Maximum geographic permission records. Provisional default: 1048576; minimum: 8. "
             + "Paint exceeding the final count is refused without mutation. Reload cannot lower this "

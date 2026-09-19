@@ -29,6 +29,7 @@ public enum LocalLayoutRefusal : byte
     StaleProposal,
     Storage,
     WrongPhase,
+    HousingNeed,
 }
 
 /// <summary>Structured refusal plus the geographic check's more specific reason.</summary>

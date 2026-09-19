@@ -803,48 +803,8 @@ public sealed class PlacementEngine
     /// twice on the reassessment path and once on nobody's behalf here.
     /// </para>
     /// </remarks>
-    private bool TryOutside(int position, long weight, int rentWeightPercent, out int worth)
-    {
-        worth = 0;
-
-        if (!TryOutsideEdge(position, out MapEdge edge)
-            || !_world.Rules.TryHinterland(edge, out HinterlandDefinition hinterland))
-        {
-            return false;
-        }
-
-        worth = HousingUtility.Worth(
-            _world.Rules.Placement,
-            hinterland.CentralityTiles,
-            weight,
-            hinterland.Rent,
-            rentWeightPercent);
-
-        return true;
-    }
-
-    /// <summary>Which Outside the family at <paramref name="position"/> is comparing the city with.</summary>
-    /// <remarks>
-    /// Use the origin gate when live, otherwise the saved arrival edge. Local families may have
-    /// neither.
-    /// </remarks>
-    private bool TryOutsideEdge(int position, out MapEdge edge)
-    {
-        if (_world.Buildings.Rows.TryResolve(_world.UnplacedPool.GateAt(position), out int gate)
-            && _world.Lots.Rows.TryResolve(_world.Buildings.Lot[gate], out int lot))
-        {
-            edge = _world.EdgeOf(lot);
-            return edge != MapEdge.None;
-        }
-
-        int slot = _world.Households.Rows.Resolve(_world.UnplacedPool.At(position));
-
-        edge = _world.Households.Arrived[slot] == 0
-            ? MapEdge.None
-            : (MapEdge)_world.Households.ArrivalEdge[slot];
-
-        return edge != MapEdge.None;
-    }
+    private bool TryOutside(int position, long weight, int rentWeightPercent, out int worth) =>
+        HousingUtility.TryOutside(_world, position, weight, rentWeightPercent, out worth);
 
     /// <summary>Sizes the candidate buffers to one occasion's looks.</summary>
     private void Retain(int candidates)
@@ -921,33 +881,7 @@ public sealed class PlacementEngine
     /// wrong half of this method.***
     /// </para>
     /// </remarks>
-    private long Distance(int lot)
-    {
-        LatticeDefinition[] lattices = _world.Rules.Lattices;
-        long east = _world.Lots.East[lot].Raw;
-        long north = _world.Lots.North[lot].Raw;
-
-        if (lattices.Length == 0)
-        {
-            return (east < 0 ? -east : east) + (north < 0 ? -north : north);
-        }
-
-        long nearest = long.MaxValue;
-
-        for (int at = 0; at < lattices.Length; at++)
-        {
-            long sideways = east - lattices[at].OriginEastTiles;
-            long up = north - lattices[at].OriginNorthTiles;
-            long walked = (sideways < 0 ? -sideways : sideways) + (up < 0 ? -up : up);
-
-            if (walked < nearest)
-            {
-                nearest = walked;
-            }
-        }
-
-        return nearest;
-    }
+    private long Distance(int lot) => HousingUtility.Distance(_world, lot);
 
     /// <summary>
     /// Whether the member at <paramref name="position"/> has been looking longer than it will look.

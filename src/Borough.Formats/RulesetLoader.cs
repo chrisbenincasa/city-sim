@@ -289,6 +289,8 @@ public static class RulesetLoader
         private TableSyntaxBase? _lotsTable;
         private TableSyntaxBase? _capacityTable;
         private TableSyntaxBase? _landPermissionsTable;
+        private TableSyntaxBase? _housingConstructionTable;
+        private readonly List<TableSyntaxBase> _housingFormTables = [];
         private TableSyntaxBase? _tripsTable;
         private TableSyntaxBase? _jobsTable;
         private TableSyntaxBase? _householdsTable;
@@ -354,6 +356,7 @@ public static class RulesetLoader
             // it decides whether a shift band and a wage are owed. It reads no other table.
             CapacityRuleset capacity = ReadCapacity();
             int permissionRecordLimit = ReadPermissionRecordLimit();
+            HousingConstructionRuleset? housingConstruction = ReadHousingConstruction(capacity);
 
             RuleDefinition[] rules = ReadRules(out Term[] inputs, out Term[] outputs,
                 out MapEmission[] emissions);
@@ -481,6 +484,7 @@ public static class RulesetLoader
                 Lots = lots,
                 Capacity = capacity,
                 PermissionRecordLimit = permissionRecordLimit,
+                HousingConstruction = housingConstruction,
                 Bands = bands,
                 Trips = trips,
                 Jobs = jobs,
@@ -667,6 +671,14 @@ public static class RulesetLoader
                         _roadsTable = table;
                         break;
 
+                    case "housing_construction":
+                        if (_housingConstructionTable is not null)
+                        { Refuse(LineOf(table), null, "a second [housing_construction] is declared."); }
+                        _housingConstructionTable = table;
+                        break;
+                    case "housing_form":
+                        _housingFormTables.Add(table);
+                        break;
                     case "land_permissions":
                         if (_landPermissionsTable is not null)
                         {
@@ -7007,6 +7019,43 @@ public static class RulesetLoader
             var dimensions = plots ? new Core.Space.ResidentialPlots((int)frontage, (int)depth,
                 (int)houseWidth, (int)houseDepth, (int)houseStoreys) : default;
             return new LotRuleset((int)value, (int)setback, (int)step, (int)spread, (int)streetHalfWidth, dimensions);
+        }
+
+        private HousingConstructionRuleset? ReadHousingConstruction(CapacityRuleset capacity)
+        {
+            if (_housingConstructionTable is null)
+            {
+                if (_housingFormTables.Count != 0) { Refuse(LineOf(_housingFormTables[0]), null, "housing_form requires [housing_construction]."); }
+                return null;
+            }
+            int Read(TableSyntaxBase table, string key, int min, int max)
+            {
+                if (!TryInteger(table, key, out long value, required: true)) { return min; }
+                if (value < min || value > max)
+                { Refuse(LineOf(table), null, $"{key} must be between {min} and {max}."); return min; }
+                return (int)value;
+            }
+            var t = _housingConstructionTable;
+            int seekers = Read(t, "max_seekers", 1, 256), buildings = Read(t, "max_building_slots", 1, 1048576);
+            int lots = Read(t, "max_lot_slots", 1, 1048576), sources = Read(t, "max_sources", 1, 16);
+            int candidates = Read(t, "max_candidates", 1, 64), percent = Read(t, "surplus_percent", 0, 100);
+            int surplus = Read(t, "max_surplus", 0, 256);
+            int alignment = Read(t, "alignment_bonus", 0, 1000), sameForm = Read(t, "same_form_bonus", 0, 1000);
+            var forms = new HousingForm[_housingFormTables.Count];
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            for (int i = 0; i < forms.Length; i++)
+            {
+                var f = _housingFormTables[i];
+                if (TryString(f, "name", out string? name, required: true)
+                    && (string.IsNullOrWhiteSpace(name) || !names.Add(name)))
+                { Refuse(LineOf(f), null, "A housing form needs a nonempty, unique name."); }
+                forms[i] = new HousingForm((BlockPattern)Read(f, "pattern", 0, BlockPatterns.Count - 1),
+                    Read(f, "min_frontage_tiles", 1, CellGrid.WorldTiles), Read(f, "max_frontage_tiles", 1, CellGrid.WorldTiles),
+                    Read(f, "min_depth_tiles", 1, CellGrid.WorldTiles), Read(f, "max_depth_tiles", 1, CellGrid.WorldTiles),
+                    (byte)Read(f, "storeys", 1, 255), Read(f, "setback_tiles", 0, CellGrid.WorldTiles), Read(f, "weight", 1, 1000));
+            }
+            try { return new HousingConstructionRuleset(seekers, buildings, lots, sources, candidates, percent, surplus, forms, capacity.FloorTilesPerOccupant, alignment, sameForm); }
+            catch (ArgumentException ex) { Refuse(LineOf(t), null, ex.Message); return null; }
         }
 
         private int ReadPermissionRecordLimit()

@@ -25,7 +25,7 @@ dotnet run --project src/Borough.Headless -- \
 
 ## The sections
 
-44 sections, 278 keys.
+46 sections, 296 keys.
 
 - [`[[band]]`](#band) — 2 keys
 - [`[[building]]`](#building) — 20 keys
@@ -34,6 +34,7 @@ dotnet run --project src/Borough.Headless -- \
 - [`[[hinterland.population]]`](#hinterlandpopulation) — 5 keys
 - [`[[hinterland]]`](#hinterland) — 6 keys
 - [`[[hinterland]] prices`](#hinterland-prices) — 2 keys
+- [`[[housing_form]]`](#housing_form) — 9 keys
 - [`[[lattice]]`](#lattice) — 2 keys
 - [`[[life_stage]]`](#life_stage) — 14 keys
 - [`[[policy]]`](#policy) — 9 keys
@@ -53,6 +54,7 @@ dotnet run --project src/Borough.Headless -- \
 - [`[districts]`](#districts) — 4 keys
 - [`[founding]`](#founding) — 2 keys
 - [`[households]`](#households) — 3 keys
+- [`[housing_construction]`](#housing_construction) — 9 keys
 - [`[immigration]`](#immigration) — 4 keys
 - [`[income_tax]`](#income_tax) — 4 keys
 - [`[jobs]`](#jobs) — 11 keys
@@ -313,6 +315,48 @@ The import price, which becomes the ceiling on what that Good can cost inside th
 **`resource`** · *quoted string*
 
 Which Good is being priced, naming a [[resource]]. Only a good may be — a utility is not stocked, and money is what a price is denominated in rather than a thing that has one.
+
+---
+
+## `[[housing_form]]`
+
+*An array of tables — a file may declare this more than once.*
+
+**`max_depth_tiles`** · *whole number*
+
+Maximum whole-site depth behind its Street, in Tiles.
+
+**`max_frontage_tiles`** · *whole number*
+
+Maximum whole-site frontage for this form, in Tiles. Maximum capacity must be earnable within max_seekers and the surplus bound.
+
+**`min_depth_tiles`** · *whole number*
+
+Minimum whole-site depth behind its Street, in Tiles.
+
+**`min_frontage_tiles`** · *whole number*
+
+Minimum whole-site frontage for this form, in Tiles.
+
+**`name`** · *quoted string*
+
+Unique authored name for this housing form envelope. Package declarations lower their id to this name.
+
+**`pattern`** · *whole number*
+
+Built form: 0 Detached, 1 Perimeter, 2 BackToBack, 3 Courtyard, 4 Slab, 5 Tower. Independent of intensity.
+
+**`setback_tiles`** · *whole number*
+
+Inset on every side of the site, in Tiles; must leave a positive footprint.
+
+**`storeys`** · *whole number*
+
+Realised storeys of this authored form; 1..255.
+
+**`weight`** · *whole number*
+
+Relative deterministic draw weight among equally useful first Buildings; 1..1000. Surplus capacity adds no usefulness.
 
 ---
 
@@ -853,6 +897,46 @@ The most. Both ends or neither — one end alone reads either as a fixed endowme
 **`opening_balance_min`** · *whole number*
 
 The least money a Household is created with at world creation.
+
+---
+
+## `[housing_construction]`
+
+**`alignment_bonus`** · *whole number*
+
+Added draw weight for matching an immediate standing neighbour's Street wall; 0..1000. Applies only among equally useful arrangements.
+
+**`max_building_slots`** · *whole number*
+
+Complete standing-home coverage budget, including dead Building slots. Exceeding it refuses construction; 1..1048576.
+
+**`max_candidates`** · *whole number*
+
+Maximum form/site attempts, including failed checks; 1..64. Compare one or two Buildings, committing only the first.
+
+**`max_lot_slots`** · *whole number*
+
+Complete Lot geometry coverage budget, including dead slots. Exceeding it refuses construction; 1..1048576.
+
+**`max_seekers`** · *whole number*
+
+Maximum distinct current unplaced Households assessed; 1..256. Samples are never extrapolated.
+
+**`max_sources`** · *whole number*
+
+Maximum adjacent whole vacant Lots in the local comparison window; 1..16.
+
+**`max_surplus`** · *whole number*
+
+Absolute cap on surplus tenancies per proposed arrangement; 0..256. Zero seekers never supports construction.
+
+**`same_form_bonus`** · *whole number*
+
+Additional weight for the same form at a matching Street wall; 0..alignment_bonus. No permanent founding identity is stored.
+
+**`surplus_percent`** · *whole number*
+
+Permitted capacity surplus above distinct uncovered seekers, rounded up, and capped by max_surplus; 0..100.
 
 ---
 

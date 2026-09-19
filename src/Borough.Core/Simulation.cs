@@ -386,6 +386,15 @@ public sealed class Simulation
             : new LocalLayoutCheck(LocalLayoutRefusal.WrongPhase);
     }
 
+    internal LocalLayoutCheck CommitHousingLayout(LocalLayoutProposal proposal, out Handle<Building> building)
+    {
+        ArgumentNullException.ThrowIfNull(proposal);
+        building = default;
+        return _phase == TickPhase.Commit
+            ? HousingConstruction.Commit(_world, _key, proposal, out building)
+            : new LocalLayoutCheck(LocalLayoutRefusal.WrongPhase);
+    }
+
     /// <summary>
     /// Whether to prove, every Tick, that <see cref="TickPhase.Decide"/> wrote nothing.
     /// </summary>
