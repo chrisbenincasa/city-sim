@@ -1,0 +1,131 @@
+{
+  "conditions": {
+    "page_tiles": 32,
+    "world_tiles": 16384,
+    "packed_permission_bytes": 8,
+    "proposed_record_bytes": 48,
+    "proposed_record_limit": 1048576,
+    "timing_claim": false,
+    "core_implementation": false
+  },
+  "workloads": [
+    {
+      "name": "uniform_1000_repeats",
+      "operations": 1000,
+      "noops": 999,
+      "canonical_final": 1,
+      "canonical_peak": 1,
+      "split_only_final": 1,
+      "split_only_peak": 1,
+      "allocated_rows": 8,
+      "allocated_record_bytes": 384
+    },
+    {
+      "name": "four_parcels",
+      "operations": 4,
+      "noops": 0,
+      "canonical_final": 4,
+      "canonical_peak": 4,
+      "split_only_final": 4,
+      "split_only_peak": 4,
+      "allocated_rows": 8,
+      "allocated_record_bytes": 384
+    },
+    {
+      "name": "one_tile_stripes",
+      "operations": 32,
+      "noops": 0,
+      "canonical_final": 32,
+      "canonical_peak": 32,
+      "split_only_final": 32,
+      "split_only_peak": 32,
+      "allocated_rows": 32,
+      "allocated_record_bytes": 1536
+    },
+    {
+      "name": "checkerboard",
+      "operations": 1024,
+      "noops": 0,
+      "canonical_final": 1024,
+      "canonical_peak": 1024,
+      "split_only_final": 1024,
+      "split_only_peak": 1024,
+      "allocated_rows": 1024,
+      "allocated_record_bytes": 49152
+    },
+    {
+      "name": "random_rectangles_seed_620018",
+      "operations": 2000,
+      "noops": 94,
+      "canonical_final": 69,
+      "canonical_peak": 92,
+      "split_only_final": 84,
+      "split_only_peak": 122,
+      "allocated_rows": 128,
+      "allocated_record_bytes": 6144
+    },
+    {
+      "name": "same_colour_cuts",
+      "operations": 1025,
+      "noops": 1024,
+      "canonical_final": 1,
+      "canonical_peak": 1,
+      "split_only_final": 1024,
+      "split_only_peak": 1024,
+      "allocated_rows": 8,
+      "allocated_record_bytes": 384
+    },
+    {
+      "name": "parcel_clear_cycles_10",
+      "operations": 50,
+      "noops": 0,
+      "canonical_final": 0,
+      "canonical_peak": 4,
+      "split_only_final": 0,
+      "split_only_peak": 4,
+      "allocated_rows": 8,
+      "allocated_record_bytes": 384
+    },
+    {
+      "name": "parcel_clear_cycles_1000",
+      "operations": 5000,
+      "noops": 0,
+      "canonical_final": 0,
+      "canonical_peak": 4,
+      "split_only_final": 0,
+      "split_only_peak": 4,
+      "allocated_rows": 8,
+      "allocated_record_bytes": 384
+    },
+    {
+      "name": "fragment_restore_cycles_10",
+      "operations": 10250,
+      "noops": 4608,
+      "canonical_final": 1,
+      "canonical_peak": 1024,
+      "split_only_final": 1,
+      "split_only_peak": 1024,
+      "allocated_rows": 1024,
+      "allocated_record_bytes": 49152
+    }
+  ],
+  "estimates": {
+    "full_world_dense_payload_bytes": 2147483648,
+    "full_world_rectangle_record_bytes": 12884901888,
+    "sparse_page_directory_bytes": 1048576,
+    "one_dense_page_payload_bytes": 8192,
+    "proposed_record_capacity_bytes": 50331648,
+    "one_page_decode_scratch_bytes": 8192,
+    "one_page_max_rect_scratch_bytes": 24576,
+    "projected_cells_10000_four_parcels_records": 40000,
+    "projected_cells_10000_four_parcels_allocated_bytes": 3145728
+  },
+  "checks": [
+    "non-overlap and exact paint roundtrip after every operation",
+    "canonical encoding is idempotent",
+    "no-op paint keeps canonical records",
+    "repeated edit cycles reuse peak row capacity",
+    "multi-page over-limit refusal returns original state",
+    "at-limit acceptance and subsequent compaction"
+  ]
+}

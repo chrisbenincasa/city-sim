@@ -12,6 +12,11 @@ a built form: the city chooses among eligible forms. A player may narrow the per
 independently of the intensity permission. An unrestricted form choice still obeys the use,
 intensity and physical constraints of the site; permission does not cause construction.
 
+The player's land restrictions are hard constraints on future development. Merging, splitting or
+rearranging parcels must preserve the use, intensity and form permissions on each piece of ground.
+Need, historical influence and candidate scoring cannot override those permissions. If no permitted
+proposal fits, the land remains unbuilt; changing the permission is the player's decision.
+
 Changed form restrictions apply only to future construction and redevelopment. Standing Buildings
 remain permitted to continue in their existing form. Changing a restriction does not itself trigger
 demolition, redevelopment or a change to the existing subdivision.
@@ -51,8 +56,20 @@ therefore evolve locally, allowing gradual changes in built form within one bloc
 
 These decisions concern site assembly and form selection within construction and redevelopment.
 They do not introduce a developer actor or presume a property-acquisition or relocation mechanism.
-The implementation design must establish the existing construction triggers and actors before
-assigning responsibility for these choices.
+The construction trace below establishes Zone Rules as the existing automatic construction trigger.
+
+## Next implementation boundary
+
+The [worked redevelopment example](urban-fabric-redevelopment-walkthrough.md) follows incremental terrace
+construction and a courtyard assembled from adjoining parcels, then save/load and changed conditions.
+It defines the first Core slice: local assembly on a partially occupied block, preserving geographic
+permissions and realised geometry. The [local layout contract](urban-fabric-local-layout-contract.md) proposes
+independent geographic permission records and read-only evaluation followed by a validated local
+commit. Its reader audit identifies standing-housing search, District trade-land counting and
+permission explanations as distinct migration paths. The [storage-sizing model](evidence/urban-fabric/permission-storage.md)
+supplies bounded page normalisation, a provisional record budget and refusal-before-mutation.
+Next implement geographic permission storage and queries with Core persistence/refusal checks;
+automatic housing evidence and form selection follow as a separate integration slice.
 
 ## Decisions still needed
 
@@ -106,11 +123,12 @@ Traced against `c15d45d`; this describes current code, not an implementation of 
    wholly vacant block, preserves mixed parcel zoning and requires a higher pattern rank; its caller
    is `Resubdivide`, not Building destruction. There is no local parcel-assembly step.
 
-The storage issue is more than adding a saved rectangle: `LotTable` already saves parcel bounds,
-footprints, storeys and pattern. `World.RebuildParcels` nevertheless overwrites fronted Lots from the
-block's pattern and current `LotRuleset`. Local assemblies and realised Building geometry need an
-authoritative representation that this path preserves. `LotTable.FloorTiles` and Godot massing use
-the shared `BuildingPlan`; keep that agreement when changing the representation.
+`LotTable` already saves parcel bounds, footprints, storeys and pattern. Normal save/load restores
+them: `World.RebuildDerived` explicitly does not call `RebuildParcels`. The latter method still
+overwrites fronted Lots from the block's pattern and current `LotRuleset`, but its comment identifying
+the normal rebuild as a caller is stale. The local-layout changes must address that explicit method,
+whole-block subdivision and previews, while preserving the existing saved geometry contract.
+`LotTable.FloorTiles` and Godot massing use the shared `BuildingPlan`; keep that agreement.
 
 Baseline verification: 69 tests passed on 2026-09-17 with
 `scripts/test.sh --filter 'FullyQualifiedName~ZoneRuleCreateTests|FullyQualifiedName~ZoneRuleDemolishTests|FullyQualifiedName~ParcelTests|FullyQualifiedName~BlockPatternTests|FullyQualifiedName~BuildingPlanTests'`.
@@ -299,6 +317,90 @@ site/form if permitted, or wait for stronger evidence. A player restriction perm
 forms does not itself supply the missing justification. Candidate ranking within these bounds still
 needs to balance useful capacity, site fit and the agreed secondary historical influence; spare
 capacity is not itself a benefit to maximise.
+
+## Comparing candidate forms — proposed decision structure
+
+Do not optimise raw capacity, minimum height or minimum ground consumption. Raw capacity rewards
+empty homes; always choosing the smallest response prevents larger forms from competing; minimising
+ground alone rewards height without the construction cost that would make it a tradeoff.
+
+1. **Establish feasible candidates.** Use the actual assembled site, a frontage/access arrangement,
+   permitted form, footprint and whole-storey count. Check permissions over the complete site,
+   non-overlap, intensity limits and the justified-capacity envelope. Form-specific geometry must
+   remain recognisable: independence from intensity does not mean stretching a Detached house into
+   a tower or shrinking a Tower until only its podium remains. Authored form limits need to be
+   coordinated with the geometry and Building assets.
+2. **Compare useful outcomes.** Count distinct qualifying seekers each proposal could accommodate
+   at its kind's rent and location, capped by its actual available tenancies. Extra empty capacity
+   contributes no benefit. Keep the opportunity to meet materially more justified need from being
+   outweighed by resemblance to neighbours. The tolerance for comparable outcomes remains Ruleset
+   design/tuning; neither an arbitrary one-tenancy difference nor a large deficiency should silently
+   decide every comparison.
+3. **Compare site arrangements.** Check frontage, access and remaining ground. Refuse encroachment
+   or severing a neighbour's access. Avoid leaving unusable slivers through assembly where an
+   alternative layout can preserve usable parcels; do not penalise intentional courtyards or gardens
+   as wasted space. These require geometric definitions. A low ground-coverage fraction alone
+   neither makes a candidate better nor worse.
+4. **Apply secondary continuity and variation.** Among otherwise comparable feasible alternatives,
+   favour compatible Street alignment and setbacks, then modestly favour nearby forms. This cannot
+   rescue an unsuitable candidate or veto materially better provision. A deterministic weighted
+   choice among close alternatives can retain variation without making enum order the city's
+   architectural preference. Use distinct purpose tags and authored Ruleset weights; calculate
+   candidates without mutation and save the committed result. This selection method is a proposal,
+   not yet an agreed scoring formula.
+
+Comparison must not give a single large Building an automatic advantage over a sequence of small
+Buildings on the same ground. Evaluate a bounded arrangement of several small Buildings with the
+same aggregate capacity accounting. Otherwise counting Households served per Building simply
+recreates a preference for the largest form.
+
+Incremental construction is agreed: assess the broader arrangement but commit only its first
+Building, then reassess the remainder on a later construction opportunity. The rest of the
+arrangement is a feasibility comparison, not a construction queue or a promise to fill the site.
+Only the Building actually created contributes new capacity and reduces residual need. Do not
+reserve seekers or ground for unbuilt members of the arrangement. The first Building must satisfy
+its own site, access, permission and capacity checks; hypothetical later Buildings cannot make an
+otherwise invalid first step legal. Deterministic ordering and deduplication must stop one form
+gaining extra weight merely because it generates more equivalent arrangements.
+
+Current automatic construction has no Materials payment or private construction budget. Therefore
+these choices are authored spatial and capacity preferences, not a demonstrated financial optimum.
+Introducing an imaginary height cost into this score would disguise missing economics. The separate
+development/economy work can later add actual costs without changing zoning permission into a
+command. This slice must still show multiple forms at comparable intensity and a change in form
+when site opportunities or justified capacity change.
+
+## Land permissions during incremental redevelopment
+
+Respect for painted restrictions throughout parcel changes is agreed. The representation and
+geometric accounting below must implement that rule, not create exceptions to it.
+
+Keep painted permissions attached to the ground they cover when parcel boundaries change. Current
+parcel zoning is saved on Lots, while whole-block repainting uses `Blocks.Zone`; that representation
+needs revision or a lossless transfer rule for local merging/splitting. A new parcel cannot simply
+inherit whichever predecessor was sampled first. Separate the land's permitted future development
+from the realised geometry of a standing Building.
+
+A proposed Building must satisfy the use and form permissions across its complete development
+site, including its retained open ground. A parcel allowing terraces and courtyards can combine
+with an adjoining courtyard-only parcel for a courtyard proposal; a terrace-only parcel cannot
+be absorbed by that proposal. Unrestricted land adds no form restriction. Do not average permission
+sets or use one permissive frontage to override restrictions behind it. The geometry design must
+define floor-area accounting that respects differing intensity limits on their own ground. This
+is an implementation obligation, not an unresolved permission to bypass a lower limit.
+
+Commit only the parcel changes necessary for the selected Building and for valid residual parcels.
+Preserve their painted permissions and existing neighbours' geometry and access. The wider
+comparison must leave a feasible remainder after the first step, but its hypothetical later forms
+must not become restrictions on that remainder. A later sweep may select a different arrangement.
+An unsuccessful proposal makes no parcel changes. Repainting between construction opportunities
+affects the next proposal and leaves the Building already constructed intact.
+
+Acceptance needs a mixed-permission site, construction of just the first Building, a change in
+remaining need or painted restrictions, and save/reload before the next proposal. Verify that the
+rest can evolve differently, no unbuilt capacity suppresses need, and no neighbouring permission
+or Building changes as a side effect. Arbitrary corner cuts and unusable residual fragments remain
+geometry refusals, not grounds to extend assembly onto occupied land.
 
 ## Proposed integration, pending remaining design
 
