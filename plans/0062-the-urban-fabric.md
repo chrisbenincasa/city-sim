@@ -70,8 +70,14 @@ permission explanations as distinct migration paths. The [storage-sizing model](
 supplies bounded page normalisation, a provisional record budget and refusal-before-mutation.
 Geographic permission storage, local assembly, reader/road-edit migration and bounded automatic
 housing selection are implemented. Housing evidence now distinguishes immediate capacity shortage
-from substantial persistent preference mismatch, using saved elapsed-Tick episodes. Next add
-numeric intensity caps independently of built form; larger arrangements and shell controls follow.
+from substantial persistent preference mismatch, using saved elapsed-Tick episodes. The
+[playable neighbourhood](urban-neighbourhood.md) exposes that behaviour for user acceptance.
+
+**Completion requires the outstanding user playtest**, deferred while the user has only remote
+shell access. Revisit when graphical play is possible; record their assessment of clarity and
+payoff and resolve acceptance-blocking findings. Automated tests and driven observation do not
+satisfy this requirement. Other work may proceed meanwhile. Numeric intensity caps, larger
+arrangements and further shell controls remain later candidates, informed by the playtest verdict.
 
 ## Decisions still needed
 

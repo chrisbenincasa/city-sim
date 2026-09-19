@@ -2,6 +2,24 @@
 
 Show the payoff of the existing individual housing decisions before adding intensity caps.
 Owner: `urban-permissions`.
+Status: implementation and automated/driven validation delivered; **user playtest outstanding
+and deferred**. This design is not complete until that playtest and its acceptance review finish.
+
+## Required user playtest — deferred
+
+The user currently accesses the session remotely over a shell and cannot playtest. Revisit when
+they have access to the graphical game and can play the [walkthrough](../examples/UrbanNeighbourhood/README.md).
+This deferral blocks completion of the urban-fabric design, not progress on other work.
+Automated tests and the agent-driven demonstration remain valid evidence but do not replace this
+user acceptance step.
+
+- [ ] The user plays the neighbourhood, granting permission before and after the waiting period.
+- [ ] Confirm they can understand why the Households wait, what the zoning action changes, and
+  why construction stops once both are housed; assess whether the interaction justifies its complexity.
+- [ ] Record the user's verdict and resolve any acceptance-blocking findings before marking the
+  design complete. Select further intensity/form work in light of that verdict.
+
+## Demonstration scope
 
 Deliver a reproducible saved neighbourhood with Citizens, affordable but unattractive vacancies,
 two seeking Households and unpermitted frontage. Use the existing zoning gesture to permit an
@@ -53,8 +71,8 @@ Watching exposed two presentation gaps that are fixed here: unplaced Households 
 inspected, and “Nothing in the city is stopped” ignored their housing search. The headline now
 states Building activity separately. The fixture gate has no visible geometry; its population
 admissions are real, but it is not presented as a finished Outside Connection scene. The example
-omits jobs, supplies and rent collection. Play this interaction before deciding whether more
-intensity controls would improve it.
+omits jobs, supplies and rent collection. The deferred user playtest above will assess whether
+more intensity controls would improve the interaction.
 
 ## Validation
 
