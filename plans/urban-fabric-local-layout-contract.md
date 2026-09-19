@@ -1,7 +1,7 @@
 # 0062 — Local layout storage and commit contract
 
 Implementation design for the [redevelopment walkthrough](urban-fabric-redevelopment-walkthrough.md).
-The geographic storage foundation below is implemented; local assembly and reader migration remain
+The geographic storage and local assembly foundations below are implemented; reader migration remains
 implementation work. This contract preserves the decisions in
 [0062](0062-the-urban-fabric.md) without adding a developer actor.
 
@@ -221,7 +221,7 @@ than claim that all historical test expectations remain applicable. Re-record go
 deliberately after the chosen index contract is implemented.
 
 The reader audit is complete for the direct accesses and index consumers above. The geographic
-storage foundation is implemented; reader migration and local assembly remain the next work.
+storage and local assembly foundations are implemented; reader migration remains the next work.
 
 ## Implemented geographic storage foundation
 
@@ -253,9 +253,8 @@ existing procedure. The hash algorithm/seed and baseline Ruleset content hashes 
 This is an isolated Core foundation: existing Block/Lot paint, gameplay permission readers,
 standing-housing sampling, Input commands and shell controls still use their prior contracts.
 They must move together to the geographic authority before this API becomes playable zoning;
-there is no automatic copying between competing sources. No local assembly or automatic housing
-selection is claimed by this storage slice. The next step is site evaluation/atomic local assembly,
-followed by the audited reader and road-edit migration above.
+there is no automatic copying between competing sources. Automatic housing selection remains a
+later integration slice. The next step is the audited reader and road-edit migration above.
 
 Baseline verification on 2026-09-18 at `ebab65f`: 57 tests passed with
 `scripts/test.sh --filter '(FullyQualifiedName~PlacementTests|FullyQualifiedName~PlacementChoiceTests|FullyQualifiedName~BandAdmissionTests|FullyQualifiedName~ZonedLotsTests)&tier!=instrument'`;
@@ -264,3 +263,49 @@ Baseline verification on 2026-09-18 at `ebab65f`: 57 tests passed with
 These exercise existing behaviour. No production code or regression tests were changed for this
 audit; the repaint/search and band-explanation findings follow from the traced predicates, not a
 new end-to-end reproduction. The migration checks above still need implementation.
+
+
+## Implemented read-only evaluation and local assembly
+
+`LocalLayout.Evaluate` accepts explicit whole-Lot handles and a `LocalBuildingPlan`. It checks a
+rectangular contiguous site along one Street face, vacancy (including the authoritative Building
+references), depth, access, overlap and Address uniqueness. The entire site must admit housing and
+the requested form under one intensity band. Floor area uses `BuildingPlan.TryFloorTiles`; housing
+capacity subtracts the kind's own Business tenancy when one will actually be fitted. This initial
+operation supports housing kinds only. Broader trade construction and District land accounting
+remain part of the permission-reader migration before gameplay integration.
+
+The immutable proposal captures source identities and geometry, Street identity/epoch, Ruleset,
+Tick, realised plan and capacity. `Simulation.CommitLocalLayout` is an internal Commit-phase
+integration boundary, exercised directly by Core tests. It re-evaluates current state before any
+mutation. It has no Input command or shell caller, no pending queue, and no evidence reservation.
+Automatic construction will need to supply current housing evidence at this boundary.
+
+Preflight checks allocator slot requirements and remaining monotonic ids for the Lot, Building,
+Bins, Business, Rule Instances, Car Park and affected sparse Layer Cells before reserving capacity.
+Expected refusal leaves saved and derived table state and allocator capacities unchanged; process
+allocation failure still has the repository's crash semantics. Source Lots retire in monotonic-id
+order. The new Lot retains the oldest source's Address, receives saved parcel/footprint/form/storeys,
+and enters `World.CreateBuilding`. Frontage is rebuilt and admission invalidated; the common creation
+path maintains Building residency, fitted contents, access and sealing. Ground permissions are never
+collapsed into the merged Lot. Its legacy Zone is a housing discovery summary only.
+
+The existing severable condemnation-history reference stays stale after retirement, even if its slot
+is reused. Normal save/load preserves realised geometry without any new saved columns or format
+revision. The explicit `RebuildParcels`, generated previews and road-edit subdivision still require
+the next migration; the internal assembly path is not yet exposed to those gameplay flows.
+
+`LocalLayoutTests` makes both walkthrough branches executable. On a 64-Tile Street, five adjacent
+12-by-16 parcels leave W/E standing. Two storeys give a terrace (`BackToBack`) 320 floor Tiles;
+a courtyard on A+B gives 512. At 128 floor Tiles per tenancy these supply two and four tenancies.
+The mixed-use version supplies three housing tenancies plus its own Business. Tests cover all four
+Street faces, changed permissions, gaps, occupied/abandoned sites, stale geometry/handles/Street/
+Ruleset/Tick, allocator exhaustion, immutable neighbours, severed history, save/load continuation,
+derived rebuild, and twelve construction/removal cycles without slot growth. The continuation runs
+with one versus two route workers and the Decide write guard enabled. These are explicit Core
+proposals, not a demonstration of automatic housing choice or a visible shell capability.
+
+Validation on 2026-09-18: `scripts/test.sh -- -m:1 --no-restore` passed 3,801 tests (35 new local-layout
+cases), log `/tmp/borough-test-20260918-200244.log`. The working lane includes persistence, replay,
+golden and route-worker equivalence coverage; no golden outputs changed. Formatting passed with
+`scripts/format.sh --check -- --no-restore`. The instrument tier was not run for this slice.

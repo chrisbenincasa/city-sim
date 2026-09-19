@@ -670,6 +670,18 @@ public abstract class Rows
         }
     }
 
+    /// <summary>Required high-water slots after allocations and known retirements, without mutation.</summary>
+    internal bool AllocationSlots(int additional, int retiring, out int slots)
+    {
+        slots = _slotCount;
+        if (additional < 0 || retiring < 0 || retiring > _liveCount
+            || (ulong)additional > ulong.MaxValue - _nextId) { return false; }
+        long needed = (long)_liveCount - retiring + additional;
+        if (needed > int.MaxValue) { return false; }
+        if (needed > slots) { slots = (int)needed; }
+        return true;
+    }
+
     /// <summary>Allocates column headroom without changing saved allocator state.</summary>
     internal void PrepareCapacity(int slots, int maximum)
     {

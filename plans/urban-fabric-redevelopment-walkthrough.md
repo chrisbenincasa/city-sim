@@ -1,9 +1,10 @@
 # 0062 — A street changes one Building at a time
 
-Design walkthrough supporting [the urban-fabric plan](0062-the-urban-fabric.md), not a run of the
-simulation. Capacities below are illustrative fixture requirements, not measured geometry or
-balanced Ruleset values. Exact dimensions must produce these capacities through `BuildingPlan`
-and the real capacity rules before this can become an executable demonstration.
+Design walkthrough supporting [the urban-fabric plan](0062-the-urban-fabric.md). The Core geometry
+and permission branches now run in `LocalLayoutTests`: 12-by-16 parcels, two storeys and 128 floor
+Tiles per tenancy give two terrace tenancies or four in a combined 24-by-16 courtyard. These are
+fixture values, not balanced Ruleset tuning. Automatic housing choice, evidence accounting and the
+visible shell demonstration below remain planned integration work.
 
 ## Starting conditions
 
@@ -122,6 +123,6 @@ demonstration must show the trigger, one-Building response and changed continuat
 Building assets follow Blender authoring first. Playtesting follows that executable integration,
 with attention to visible evolution, preserved Street character and explanations for refused growth.
 
-This walkthrough defines the foundation's outcome and checks. Permission storage and the commit/
-read contracts are the next implementation-design work; scoring and housing sampling remain open
-for the integration slice.
+This walkthrough defines the foundation's outcome and checks. Permission storage and the internal
+local commit contract are implemented. Reader and road-edit migration comes next; scoring and
+housing sampling remain open for the integration slice.

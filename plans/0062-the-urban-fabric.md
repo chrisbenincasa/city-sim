@@ -63,12 +63,12 @@ The construction trace below establishes Zone Rules as the existing automatic co
 The [worked redevelopment example](urban-fabric-redevelopment-walkthrough.md) follows incremental terrace
 construction and a courtyard assembled from adjoining parcels, then save/load and changed conditions.
 It defines the first Core slice: local assembly on a partially occupied block, preserving geographic
-permissions and realised geometry. The [local layout contract](urban-fabric-local-layout-contract.md) proposes
+permissions and realised geometry. The [local layout contract](urban-fabric-local-layout-contract.md) defines
 independent geographic permission records and read-only evaluation followed by a validated local
 commit. Its reader audit identifies standing-housing search, District trade-land counting and
 permission explanations as distinct migration paths. The [storage-sizing model](evidence/urban-fabric/permission-storage.md)
 supplies bounded page normalisation, a provisional record budget and refusal-before-mutation.
-Next implement geographic permission storage and queries with Core persistence/refusal checks;
+Geographic permission storage and local assembly are implemented; next migrate permission/layout readers and road edits;
 automatic housing evidence and form selection follow as a separate integration slice.
 
 ## Decisions still needed
@@ -77,15 +77,9 @@ automatic housing evidence and form selection follow as a separate integration s
   built form, and how the first development chooses where there are no neighbours. Today's
   `BlockPatterns.ForBand` selects a pattern from a density-ranked ladder; it is not an independent
   form-selection mechanism.
-- How a proposed development resolves permissions across its whole site, including mixed form
-  restrictions within a block. Today's saved `BlockPattern` chooses a subdivision for the whole
-  block; painting finer permissions must not silently replace neighbours' permissions or assume
-  that mixed built forms are already supported by that representation.
-- How to assemble adjacent vacant parcels, preserve neighbouring access and permissions, and
-  distinguish cleared ground from an unoccupied standing Building requiring demolition. Today's
-  `LotSubdivider.RecarveBlock` requires a vacant block and permits only an increase in pattern rank;
-  local redevelopment needs a replacement for both constraints and saved geometry that survives
-  rebuilding derived state.
+- How the legacy preview, painting, subdivision and road-edit paths adopt realised local layouts.
+  Geographic site checks and atomic whole-vacant-Lot assembly are implemented; existing gameplay
+  still uses block patterns. Road edits must preserve occupied merged sites and their access.
 - Saved intensity and form permissions versus the saved pattern and storeys already realised;
   floor-area limits, capacity and drawing must agree.
 
@@ -467,4 +461,9 @@ intensity/form separation it requires—remains deliberately separate from this 
 The geographic permission storage foundation is implemented in the `urban-permissions` worktree:
 exact bounded painting and ground queries, saved/hash-bearing rows, load/reload refusal and a C#
 memory measurement. See the [local contract](urban-fabric-local-layout-contract.md#implemented-geographic-storage-foundation).
-Local assembly, gameplay reader migration, automatic selection and shell integration remain.
+Gameplay reader migration, automatic selection and shell integration remain.
+
+The local assembly foundation now evaluates explicit housing proposals without mutation and commits
+one Building through an internal simulation boundary. See the [implemented contract](urban-fabric-local-layout-contract.md#implemented-read-only-evaluation-and-local-assembly)
+for scope, walkthrough dimensions and checks. Reader/road-edit migration precedes gameplay exposure;
+automatic housing choice and shell integration remain later work.

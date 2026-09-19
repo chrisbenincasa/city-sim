@@ -376,6 +376,16 @@ public sealed class Simulation
     /// <summary>The phase last entered. For the crash artifact, which reports where a panic landed.</summary>
     public TickPhase Phase => _phase;
 
+    /// <summary>Internal integration boundary for synchronous local construction proposals.</summary>
+    internal LocalLayoutCheck CommitLocalLayout(LocalLayoutProposal proposal, out Handle<Building> building)
+    {
+        ArgumentNullException.ThrowIfNull(proposal);
+        building = default;
+        return _phase == TickPhase.Commit
+            ? LocalLayoutCommit.Apply(_world, proposal, _key, out building)
+            : new LocalLayoutCheck(LocalLayoutRefusal.WrongPhase);
+    }
+
     /// <summary>
     /// Whether to prove, every Tick, that <see cref="TickPhase.Decide"/> wrote nothing.
     /// </summary>
