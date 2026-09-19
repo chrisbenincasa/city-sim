@@ -121,10 +121,12 @@ below.
   `name` and would be refused for writing `id`.
 - **The walkthrough.** [The authoring contract](../docs/ruleset-authoring.md) walks
   `rulesets/split/` from either host through membership, identity and order, five refusals quoted
-  from the runner, an in-session change and a package city that saves and resumes, and it states
-  what this build refuses. `ExamplePackageTests` pins the package's members, its label and its Rule
-  order, which is the half of the walkthrough a test can hold; the commands themselves are unheld
-  and the document says so.
+  from the runner, an in-session change, an impact preview, adding a Good and a recipe, sharing a
+  basket, sizing a Bin from a reserve, making an exception, and a package city that saves and
+  resumes. It states what this build refuses. `ExamplePackageTests` pins the package's members, its
+  label and its Rule order; `WalkthroughEditTests` applies each content edit to the shipped package
+  and holds the numbers the guide quotes, which are derived and therefore movable without anyone
+  touching the guide. The commands themselves are still unheld and the document says so.
 - **Headless loading.** `Session.TryRules` resolves through `RulesetSource`, so every dump command
   accepts a package without a call-site change, and `Session.TryCapture` returns the capture rather
   than a hash, so a package's framed identity reaches the catalogue, Input Log transitions and
@@ -165,6 +167,8 @@ below.
   index is not stable across an edit. Values belonging to no one declaration — a Resource's Need,
   import price and ceiling live in world-level tables rather than on the Resource — are reported
   against their field path rather than dropped.
+  A value holding a dense id is reported as the id its author wrote, because a dense id moves when
+  a declaration is inserted and `Resource.Raw 2 -> 4` asks the reader to count declarations.
   ⚠ **The old/new id-key collision refusal is written and unexercised.** A 64-bit
   `ContentHash.Of(UTF8(id))` collision is not constructible, so the guard has no test firing it;
   what is tested is that one id in two sections is two declarations and not a collision, which is

@@ -610,6 +610,159 @@ does not tell you whether the edit missed something it should have reached.
 ⚠ **A preview binds to the two content identities it printed.** Editing either file afterwards
 invalidates the report rather than changing what a later run would put in force.
 
+### Adding a Good and a recipe
+
+`rules.toml` says nothing produces `repairs`, so every dwelling in the example declines. Fixing that
+takes a Good, a recipe that makes `repairs` out of it, a Bin to hold it and a Rule to run the
+recipe. Write a new member and list it:
+
+```toml
+# shared.toml
+[[recipe]]
+id      = "mend"
+inputs  = [ { scope = "local", resource = "timber",  amount = 1 } ]
+outputs = [ { scope = "local", resource = "repairs", amount = 4 } ]
+```
+
+```toml
+# ruleset.toml
+members = ["city.toml", "dwelling.toml", "goods.toml", "rules.toml", "shared.toml"]
+```
+
+Then `timber` in `goods.toml`, a `timber` Bin on the dwelling, and a Rule naming the recipe:
+
+```toml
+# rules.toml
+[[rule]]
+id     = "mend"
+order  = 4
+kind   = "dwelling"
+rate   = 64
+apply  = { min = 1, max = 2 }
+recipe = "mend"
+```
+
+A recipe Rule states neither `inputs` nor `outputs`, because the recipe is both. `apply` may carry a
+band here, unlike a basket Rule, because a recipe is priced per application rather than per Day.
+
+```text
+declared
+  recipe           0 -> 1
+  resource         3 -> 4
+  rule             3 -> 4
+
+changed
+  [[rule]] mend  added
+    Kind                                     - -> dwelling
+    Rate                                     - -> 64
+    inputs[0].Bin.Resource.Raw               - -> timber
+    inputs[0].Amount                         - -> 1
+    outputs[0].Bin.Resource.Raw              - -> repairs
+    outputs[0].Amount                        - -> 4
+```
+
+The recipe's terms are reported against the Rule that runs them, not against the recipe, because
+that is where they end up. `[[recipe]] mend added` carries no values of its own for the same reason.
+
+### Sharing a daily basket and sizing a Bin from it
+
+A `[[basket]]` says what one occupant uses in a Day. A `[[reserve]]` says how many Days of it a Bin
+holds. Naming both puts the rate and the ceiling in one place:
+
+```toml
+# shared.toml
+[[basket]]
+id          = "basic"
+owner       = "occupant"
+use_per_day = { sundries = 128 }
+
+[[reserve]]
+id   = "standard"
+days = 3
+```
+
+The Bin names them instead of stating a capacity, and the Rule names the basket instead of listing
+an input:
+
+```toml
+{ resource = "sundries", reserve = { profile = "standard", basket = "basic" }, owner = "occupant" },
+```
+
+```toml
+[[rule]]
+id      = "consume"
+order   = 2
+kind    = "dwelling"
+rate    = 32
+apply   = { min = 1, max = 1 }
+basket  = "basic"
+```
+
+```text
+changed
+  [[basket]] basic  added
+  [[building]] dwelling  changed
+    bins[0].Capacity.Units                   48 -> 384
+  [[reserve]] standard  added
+  [[rule]] consume  changed
+    inputs[0].Amount                         4 -> 128
+    inputs[0].PerDay                         False -> True
+
+shared
+  [[basket]] basic
+    building/dwelling                via bins[].reserve.basket    changed
+    rule/consume                     via basket                   changed
+  [[reserve]] standard
+    building/dwelling                via bins[].reserve.profile   changed
+```
+
+The capacity is `use_per_day × days`, so 128 × 3 = 384. The Rule's term becomes a daily quantity —
+`PerDay` turns true — which is what lets one basket serve a Rule firing 64 times a Day and a Bin
+sized in Days of cover. A basket Rule applies exactly once per firing, because a daily quantity is
+spent once. Giving it a band is refused:
+
+> `rules.toml:13:0: [[rule]] 'consume': this Rule states a basket under an apply count that is not
+> fixed at one. A daily quantity is spent once per firing, so a Rule free to apply twice would take
+> twice the Day's amount while the Bin's progress advanced once. Drop the apply band, or state the
+> Rule's inputs literally.`
+
+### Making an exception and what it preserves
+
+A Bin that needs more cover than the shared profile gives states `days` locally:
+
+```toml
+{ resource = "sundries", reserve = { profile = "standard", basket = "basic", days = 5 }, owner = "occupant" },
+```
+
+```text
+changed
+  [[building]] dwelling  changed
+    bins[0].Capacity.Units                   384 -> 640
+
+shared
+  [[basket]] basic
+    building/dwelling                via bins[].reserve.basket    changed
+    rule/consume                     via basket                   unchanged
+```
+
+The Rule is listed and unchanged, which is the point of listing it. An exception on the Bin's Days
+does not touch the Rule that spends the basket.
+
+⚠ **An exception preserves Days, not a capacity.** Moving the shared basket to 160 afterwards moves
+the excepted Bin too:
+
+```text
+changed
+  [[building]] dwelling  changed
+    bins[0].Capacity.Units                   640 -> 800
+  [[rule]] consume  changed
+    inputs[0].Amount                         128 -> 160
+```
+
+640 was 128 × 5 and 800 is 160 × 5. A Bin that wanted a frozen number wants a literal `capacity`
+instead; `repairs` keeps one in the example for exactly that reason. Deleting the local `days`
+restores inheritance and the Bin follows the profile again.
+
 ### Saving and resuming
 
 ```sh
@@ -656,11 +809,11 @@ replay depends on.
 ## Delivering the production authoring guide
 
 Keep this document current as the loader ships. The walkthrough above covers what this build can
-do: membership, identity and order, located diagnostics, an in-session change and a package city
-that saves and resumes. What it still cannot walk through is evolving an inhabited city.
-Adding a Good and a recipe, referencing a shared basket and choosing a reserve all load today and
-are owed walkthrough steps. Document which changes are supported, require migration, or require a new
-city, once a reload can tell them apart.
+do: membership, identity and order, located diagnostics, an in-session change, an impact preview,
+adding a Good and a recipe, sharing a basket, sizing a Bin from a reserve, making an exception, and
+a package city that saves and resumes. What it still cannot walk through is evolving an inhabited
+city, because no reload yet reports what a transition would do to one. Document which changes are
+supported, require migration, or require a new city, once a reload can tell them apart.
 
 ⚠ The walkthrough's commands are not held against the runner by anything. A flag renamed or a mode
 removed leaves them stale and silent. `ExamplePackageTests` pins the package itself — that it

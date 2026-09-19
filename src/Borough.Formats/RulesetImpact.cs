@@ -404,6 +404,7 @@ public sealed class RulesetImpact
         }
 
         Pools(candidate, owned);
+        Spell(candidate.Ids, owned);
 
         foreach (RulesetSourceDeclaration declaration in candidate.Declarations)
         {
@@ -547,6 +548,54 @@ public sealed class RulesetImpact
             }
         }
     }
+
+    /// <summary>
+    /// Puts the authored id back on a value that holds a dense one.
+    /// </summary>
+    /// <remarks>
+    /// <b>A dense id is not what an author wrote and it moves when a declaration is inserted.</b>
+    /// Reporting <c>Resource.Raw 2 -> 4</c> asks the reader to count declarations; reporting
+    /// <c>sundries -> timber</c> answers. A lookup that finds nothing keeps the number, which is the
+    /// honest answer for a slot no declaration fills.
+    /// </remarks>
+    private static void Spell(
+        RulesetNames ids, Dictionary<(string, string), List<RulesetImpactValue>> owned)
+    {
+        foreach (List<RulesetImpactValue> values in owned.Values)
+        {
+            for (int i = 0; i < values.Count; i++)
+            {
+                if (Namespace(values[i].Path) is { } section
+                    && ushort.TryParse(
+                        values[i].After,
+                        System.Globalization.NumberStyles.None,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out ushort raw)
+                    && raw != 0
+                    && Named(ids, section, raw) is { } id)
+                {
+                    values[i] = values[i] with { After = id };
+                }
+            }
+        }
+    }
+
+    private static string? Namespace(string path) => path switch
+    {
+        "Kind" => "building",
+        "OnFail.Raw" => "rule",
+        "Reports.Raw" => "condition",
+        _ => path.EndsWith("Resource.Raw", StringComparison.Ordinal) ? "resource" : null,
+    };
+
+    private static string? Named(RulesetNames ids, string section, ushort raw) => section switch
+    {
+        "resource" => ids.Resource(new ResourceId(raw)),
+        "rule" => ids.Rule(new RuleId(raw)),
+        "building" => ids.Kind((byte)raw),
+        "condition" => ids.Condition(new ConditionId(raw)),
+        _ => null,
+    };
 
     private static void Terms(List<RulesetImpactValue> values, ReadOnlySpan<Term> terms, string path)
     {

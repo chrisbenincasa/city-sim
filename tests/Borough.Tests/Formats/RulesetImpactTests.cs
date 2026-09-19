@@ -156,6 +156,38 @@ public sealed class RulesetImpactTests
         Assert.Equal(RulesetImpactVerdict.Unchanged, Of(impact, "rule", "consume").Verdict);
     }
 
+    /// <summary>
+    /// A value holding a dense id is reported as the id its author wrote.
+    /// </summary>
+    /// <remarks>
+    /// A dense id moves when a declaration is inserted, so <c>Resource.Raw 2 -&gt; 4</c> asks the
+    /// reader to count declarations to find out what changed.
+    /// </remarks>
+    [Fact]
+    public void A_dense_id_is_reported_as_the_authored_one()
+    {
+        RulesetImpact impact = RulesetImpact.Between(
+            Accepted(("dwelling.toml", Dwellings), ("goods.toml", Goods), ("shared.toml", Shared)),
+            Accepted(
+                ("dwelling.toml", Dwellings.Replace(
+                    "inputs  = [ { scope = \"local\", resource = \"repairs\", amount = 1 } ]",
+                    "inputs  = [ { scope = \"local\", resource = \"sundries\", amount = 1 } ]",
+                    StringComparison.Ordinal)),
+                ("goods.toml", Goods),
+                ("shared.toml", Shared)));
+
+        RulesetImpactValue resource = Assert.Single(
+            Of(impact, "rule", "upkeep").Values, v => v.Path == "inputs[0].Bin.Resource.Raw");
+
+        Assert.Equal("repairs", resource.Before);
+        Assert.Equal("sundries", resource.After);
+
+        // A Rule a Building runs is named the same way, for the same reason.
+        Assert.All(
+            Of(impact, "building", "shed").Values.Where(v => v.Path.StartsWith("rules[")),
+            v => Assert.Equal("upkeep", v.After));
+    }
+
     [Fact]
     public void A_relabelled_declaration_is_not_a_changed_one()
     {
