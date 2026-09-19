@@ -105,7 +105,7 @@ Lots, cross a Street or decide arbitrary corner/polygon subdivision.
 
 Core returns structured refusal codes and ids/numbers. The shell explains, for example, that a
 site crosses a form restriction or still holds a Building. Capacity-shortage evidence is now checked in the housing integration path. Persistent preference
-mismatch remains a later extension; the lower-level assembly API is also used by geometry tests.
+mismatch uses saved search episodes; the lower-level assembly API is also used by geometry tests.
 
 ## Readers, rebuilds and persistence
 
@@ -356,16 +356,48 @@ mechanics fixture, not balanced content.
 - Commit only the first Building. Revalidate exact source identities, geometry, authored form,
   permissions and current individual evidence before allocation or retirement. Subsequent samples,
   Rules and Ticks read its real capacity. No queue, cooldown or persistent reservation can resurrect
-  already-covered demand. Save/load requires no new state columns or format revision.
+  already-covered demand. Temporary matching is rebuilt; preference episodes are saved separately.
 
-This slice handles capacity shortages without a persistence delay, including first homes. It does
-not infer a preference mismatch from a random placement loss. A future extension can build alongside
-otherwise usable vacancies for substantial, persistent mismatch, with saved elapsed-Tick evidence.
-Selection currently returns no proposal on refusal; `HousingNeedAssessment` exposes the structured
+Capacity and affordability shortages have no persistence delay, including first homes. Affordable
+vacancies cover seekers in the scratch matching even below Outside until a substantial mismatch
+has qualified. A current affordable home within the preference margin of Outside prevents that
+seeker supplying mismatch evidence; a random choice loss is never enough. Selection currently
+returns no proposal on refusal; `HousingNeedAssessment` exposes the structured
 coverage/no-need/excess-capacity distinction for a specific proposal. A shell explanation for the
 entire search is later integration work.
 
-The [construction validation](evidence/urban-fabric/housing-construction.md) records the executable
-walkthrough, the recycled-sample identity finding and the measured allocation conditions. The next
-Core extension is saved elapsed-Tick evidence for substantial persistent preference mismatch; it must
-not delay first-home capacity shortages or treat unsampled waiting as new evidence.
+## Persistent preference mismatch
+
+After a sampled Household fails an actual placement search, `HousingSearchEvidence` inspects all
+standing Building slots within the existing coverage bounds. At most `max_seekers` drawn positions
+per placement pass can contribute observations. Each affordable available home's utility is compared
+with that Household's origin/saved Outside using the same rent, centrality and Life Stage terms as
+placement. All must lose by at least `preference_margin_percent` hundredths of a utility unit.
+No Outside or no choice model means no preference episode. A smaller gap is conservatively treated
+as usable capacity; neither its probability of rejection nor a slightly better proposal establishes
+persistent mismatch.
+
+The Pool saves the last search reason and two unsigned Tick values: the first and latest qualifying
+observation. Construction requires elapsed time **between those observations** to reach
+`preference_persistence_ticks` and the latest to be at most `preference_freshness_ticks` old. A gap
+larger than freshness restarts the episode. Same-Tick observations add no time. A different reason
+clears the episode; Pool swap-removal carries every field with its Household, reentry starts clean,
+and Ruleset adoption clears evidence gathered under the old comparison. An end-of-run invariant
+checks reason and clock consistency. The save declaration advances Core format 8 → 9; old formats
+are refused before reading their body.
+
+Evaluation and selection remain read-only. They require a current complete comparison as well as
+the saved episode, so a newly suitable home suppresses construction even before the next placement
+observation. The proposed home must be affordable and strictly better than Outside. Real capacity
+from an earlier commit covers later proposals immediately; there is no reserved future capacity.
+Placement remains probabilistic and may end the episode by housing the Household at any search.
+
+Tuning is provisional: the shipped mechanics fixture states persistence 1,024 Ticks, freshness
+2,048 Ticks and margin 0.25 utility units. Tune freshness with placement's interval, revisit period,
+Pool sampling and the observation budget: an infrequently sampled Household must restart after a
+stale gap. The focused demonstration compresses these to 8, 4 and 0.10 to exercise boundaries.
+
+The [construction validation](evidence/urban-fabric/housing-construction.md) records capacity-shortage
+coverage. The [preference validation](evidence/urban-fabric/preference-mismatch.md) covers the new
+saved episodes and continued automatic construction. Numeric intensity caps, larger arrangements,
+District trade assembly and shell controls remain separate follow-ups.

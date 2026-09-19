@@ -33,6 +33,10 @@ floor_tiles_per_occupant = 128
 floor_tiles_per_job = 1
 floor_tiles_per_parking_space = 6
 [housing_construction]
+# Provisional mismatch timing and utility margin; the preference tests use a shorter clock.
+preference_persistence_ticks = 1024
+preference_freshness_ticks = 2048
+preference_margin_percent = 25
 max_seekers = 16
 max_building_slots = 4096
 max_lot_slots = 4096

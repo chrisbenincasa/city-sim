@@ -647,9 +647,24 @@ The set of Households currently seeking housing — immigrants, existing Househo
 
 **Eviction is the one route the Household did not choose**, and it is the reason the Pool cannot be described as *Households seeking to move*. The other three are looking; an evicted Household is looking because the city stopped housing it. It arrives with its balance intact — losing a dwelling is not losing what you own — which is also what keeps demolition from being a hole in `adr/0024`'s conserved Money. *(It said **Money and Savings** until milestone 10 task 4c; `adr/0114` deleted the second, which stored a **threshold** as a stock — every design sentence about savings describes a reserve sized by Life Stage, and ***a threshold stored as a stock reads as a second account, and every document that later names the pair inherits it***.)*
 
-A Household that finds no acceptable dwelling in a cycle stays in the Pool with a **recorded refusal reason**.
+A Household that finds no acceptable dwelling stays in the Pool. With local housing construction
+enabled, a bounded selection of failed placement searches records a **housing search reason** from
+a complete inspection of available homes: capacity, affordability, suitable alternatives, substantial
+preference mismatch, or incomplete coverage. These reasons describe current homes, not a random
+choice outcome.
 
-**What drains the Pool is placement, and placement is not construction** (`adr/0069`). A sampled pass runs each cycle over vacant capacity in Buildings that already stand; a Zone Rule raising a new Building houses nobody. The ordering is what makes the Pool a demand signal rather than a population count: placement runs **first**, so a Household still in the Pool when a developer looks is one **the standing stock could not house** — a developer does not build while there are empty flats.
+**Preference mismatch** means every affordable available home is worse than the Household's own
+Outside by the Ruleset's utility margin. Its **episode** saves the first and latest qualifying Tick
+on the Pool membership. Only repeated fresh observations establish persistence; an unsampled wait
+does not. A different reason, stale gap, Ruleset reload or leaving the Pool ends the episode.
+Households without an Outside comparison cannot provide this preference evidence.
+
+**Placement is not construction.** Placement runs first and chooses among standing homes. Local
+construction matches distinct seekers against actual available tenancies and never extrapolates the
+sample. Capacity and affordability shortages may justify construction immediately. Affordable
+vacancies suppress construction unless a substantial preference mismatch persists; a proposed home
+must still be affordable and better than Outside, with alternatives rechecked at commit. Construction
+houses nobody and reserves nobody; its real new capacity suppresses subsequent equivalent proposals.
 
 The Pool *is* the demand signal. It replaces the global RCI demand scalar found in other city builders, and it is strictly better as an interface: "412 Households want to move in; 380 can't find anything under §900; 32 can't reach a job inside their Commute Budget" is a diagnosis rather than a bar chart.
 

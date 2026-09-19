@@ -767,6 +767,12 @@ public static class RulesetKeyNotes
             "The same for a foot path.",
 
         // ---- [capacity] -----------------------------------------------------------------------
+        ["[housing_construction] preference_persistence_ticks"] =
+            "Elapsed Ticks from first to latest qualifying search observation required for preference mismatch; positive. Waiting without observations does not qualify.",
+        ["[housing_construction] preference_freshness_ticks"] =
+            "Maximum Tick gap between qualifying observations and maximum age at construction; positive. A larger gap restarts the episode. Tune against placement revisit_ticks and sampling coverage.",
+        ["[housing_construction] preference_margin_percent"] =
+            "Minimum utility gap below the Household's Outside for every affordable available home, in hundredths of a utility unit; 1..10000. Rounded up in Q16.16; neither random rejection nor a minor improvement qualifies.",
         ["[housing_construction] alignment_bonus"] =
             "Added draw weight for matching an immediate standing neighbour's Street wall; 0..1000. Applies only among equally useful arrangements.",
         ["[housing_construction] same_form_bonus"] =

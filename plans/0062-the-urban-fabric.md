@@ -68,8 +68,10 @@ independent geographic permission records and read-only evaluation followed by a
 commit. Its reader audit identifies standing-housing search, District trade-land counting and
 permission explanations as distinct migration paths. The [storage-sizing model](evidence/urban-fabric/permission-storage.md)
 supplies bounded page normalisation, a provisional record budget and refusal-before-mutation.
-Geographic permission storage and local assembly are implemented; next migrate permission/layout readers and road edits;
-automatic housing evidence and form selection follow as a separate integration slice.
+Geographic permission storage, local assembly, reader/road-edit migration and bounded automatic
+housing selection are implemented. Housing evidence now distinguishes immediate capacity shortage
+from substantial persistent preference mismatch, using saved elapsed-Tick episodes. Next add
+numeric intensity caps independently of built form; larger arrangements and shell controls follow.
 
 ## Decisions still needed
 
@@ -239,11 +241,12 @@ Acceptance examples for the eventual algorithm:
 New housing may be justified alongside existing vacancies when repeated unsuccessful searches
 establish a substantial, persistent mismatch with the available homes. This direction is agreed.
 A minor preference improvement alone is insufficient, and the proposed home must be affordable.
-The numerical preference margin and persistence duration remain tuning/design work. Actual
+The Ruleset now supplies the preference margin, persistence duration and freshness limit; their
+provisional values still need calibration in playable content. Actual
 placement remains probabilistic where enabled; construction evidence does not turn its estimates
 into mandatory Household choices.
 
-### Persistence — recommended mechanics
+### Persistence — implemented mechanics
 
 Measure elapsed Ticks between qualifying observations, not a count of searches. The current
 `UnplacedTable.Since` records entry into the Pool and `Considered` counts existing Buildings shown;
@@ -254,8 +257,9 @@ A qualifying observation must distinguish capacity shortage, affordability and a
 preference mismatch. Start an episode on the first such observation, and require later evidence
 of the same reason plus a current comparison before it can justify construction. Merely losing a
 probabilistic choice draw is insufficient. A large gap without observations must not certify
-continuous mismatch: define a freshness limit consistent with the sampling cadence. Proposed
-duration, freshness and preference-margin tuning belongs in the Ruleset.
+continuous mismatch: define a freshness limit consistent with the sampling cadence. Duration, freshness and preference-margin tuning belongs in the Ruleset; the
+[implemented contract](urban-fabric-local-layout-contract.md#persistent-preference-mismatch) states
+the current Outside-relative comparison and observation bounds.
 
 End or restart an episode when the relevant reason changes, when an assessment finds suitable
 available capacity, or when the Household leaves the Pool. A later construction proposal still
@@ -443,9 +447,9 @@ all three surfaces separately before changing one.
 ## Implemented so far
 
 The `urban-permissions` branch adds geographic permission storage, atomic whole-Lot assembly,
-saved-layout readers and opt-in capacity-shortage housing selection. See the
+saved-layout readers and opt-in housing selection for capacity shortage and persistent preference mismatch. See the
 [local contract](urban-fabric-local-layout-contract.md#capacity-shortage-integration) for implemented
-bounds and the remaining distinction from persistent preference mismatch. New housing forms have
+bounds and the saved elapsed-Tick preference episodes. New housing forms have
 independent authored envelopes; the legacy initial-subdivision band ladder remains for existing
 fixtures. The earlier drawing work below is separate from that construction integration.
 

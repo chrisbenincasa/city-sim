@@ -7041,6 +7041,9 @@ public static class RulesetLoader
             int candidates = Read(t, "max_candidates", 1, 64), percent = Read(t, "surplus_percent", 0, 100);
             int surplus = Read(t, "max_surplus", 0, 256);
             int alignment = Read(t, "alignment_bonus", 0, 1000), sameForm = Read(t, "same_form_bonus", 0, 1000);
+            int persistence = Read(t, "preference_persistence_ticks", 1, int.MaxValue);
+            int freshness = Read(t, "preference_freshness_ticks", 1, int.MaxValue);
+            int margin = Read(t, "preference_margin_percent", 1, 10000);
             var forms = new HousingForm[_housingFormTables.Count];
             var names = new HashSet<string>(StringComparer.Ordinal);
             for (int i = 0; i < forms.Length; i++)
@@ -7054,7 +7057,7 @@ public static class RulesetLoader
                     Read(f, "min_depth_tiles", 1, CellGrid.WorldTiles), Read(f, "max_depth_tiles", 1, CellGrid.WorldTiles),
                     (byte)Read(f, "storeys", 1, 255), Read(f, "setback_tiles", 0, CellGrid.WorldTiles), Read(f, "weight", 1, 1000));
             }
-            try { return new HousingConstructionRuleset(seekers, buildings, lots, sources, candidates, percent, surplus, forms, capacity.FloorTilesPerOccupant, alignment, sameForm); }
+            try { return new HousingConstructionRuleset(seekers, buildings, lots, sources, candidates, percent, surplus, forms, capacity.FloorTilesPerOccupant, persistence, freshness, margin, alignment, sameForm); }
             catch (ArgumentException ex) { Refuse(LineOf(t), null, ex.Message); return null; }
         }
 

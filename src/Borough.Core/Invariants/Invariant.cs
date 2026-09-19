@@ -1199,4 +1199,7 @@ public enum Invariant
 
     /// <summary>Geographic permissions are bounded, page-contained, disjoint and indexed exactly once.</summary>
     LandPermissionsAreWellFormed = 65,
+
+    /// <summary>Preference episode clocks are ordered and only a mismatch retains them.</summary>
+    HousingSearchEvidenceIsWellFormed = 66,
 }

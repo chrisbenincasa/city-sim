@@ -185,6 +185,11 @@ public sealed class PlacementEngine
                 continue;
             }
 
+            // Only an actual failed search can contribute evidence. Full bounded coverage keeps
+            // an unlucky candidate sample or probabilistic loss from inventing a mismatch.
+            if (_world.Rules.HousingConstruction is { } housing && i < housing.MaxSeekers)
+            { HousingSearchEvidence.Observe(_world, _key, position, tick); }
+
             // The bound is tested AFTER the attempt, not before it. A Household past its duration
             // that would have found a home this occasion is housed rather than sent away -- "failed
             // repeatedly, gave up" is the channel's own wording, and giving up in front of an empty

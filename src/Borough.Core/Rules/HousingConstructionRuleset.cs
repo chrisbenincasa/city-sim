@@ -7,23 +7,28 @@ namespace Borough.Core.Rules;
 public readonly record struct HousingForm(BlockPattern Pattern, int MinFrontage, int MaxFrontage,
     int MinDepth, int MaxDepth, byte Storeys, int Setback, int Weight);
 
-/// <summary>Bounded, opt-in capacity-shortage construction. Absence preserves existing fixtures.</summary>
+/// <summary>Bounded, opt-in housing construction. Absence preserves existing fixtures.</summary>
 public sealed class HousingConstructionRuleset
 {
     public HousingConstructionRuleset(int maxSeekers, int maxBuildingSlots, int maxLotSlots,
         int maxSources, int maxCandidates, int surplusPercent, int maxSurplus, HousingForm[] forms,
-        int floorTilesPerOccupant, int alignmentBonus = 0, int sameFormBonus = 0)
+        int floorTilesPerOccupant, int preferencePersistenceTicks, int preferenceFreshnessTicks,
+        int preferenceMarginPercent, int alignmentBonus = 0, int sameFormBonus = 0)
     {
         ArgumentNullException.ThrowIfNull(forms);
         if (maxSeekers is < 1 or > 256 || maxBuildingSlots is < 1 or > 1048576
             || maxLotSlots is < 1 or > 1048576 || maxSources is < 1 or > 16
             || maxCandidates is < 1 or > 64 || surplusPercent is < 0 or > 100
             || maxSurplus is < 0 or > 256 || alignmentBonus is < 0 or > 1000
-            || sameFormBonus < 0 || sameFormBonus > alignmentBonus || forms.Length is < 1 or > 32 || floorTilesPerOccupant <= 0)
+            || preferencePersistenceTicks < 1 || preferenceFreshnessTicks < 1
+            || preferenceMarginPercent is < 1 or > 10000 || sameFormBonus < 0 || sameFormBonus > alignmentBonus || forms.Length is < 1 or > 32 || floorTilesPerOccupant <= 0)
         { throw new ArgumentException("Invalid housing construction bounds."); }
         MaxSeekers = maxSeekers; MaxBuildingSlots = maxBuildingSlots; MaxLotSlots = maxLotSlots;
         MaxSources = maxSources; MaxCandidates = maxCandidates; SurplusPercent = surplusPercent; MaxSurplus = maxSurplus;
         AlignmentBonus = alignmentBonus; SameFormBonus = sameFormBonus;
+        PreferencePersistenceTicks = preferencePersistenceTicks;
+        PreferenceFreshnessTicks = preferenceFreshnessTicks;
+        PreferenceMargin = (int)IntegerMath.CeilDiv((long)preferenceMarginPercent * Fixed.One, 100);
         _forms = (HousingForm[])forms.Clone();
         foreach (HousingForm form in _forms)
         {
@@ -41,6 +46,9 @@ public sealed class HousingConstructionRuleset
 
     private readonly HousingForm[] _forms;
     public ReadOnlySpan<HousingForm> Forms => _forms;
+    public int PreferencePersistenceTicks { get; }
+    public int PreferenceFreshnessTicks { get; }
+    public int PreferenceMargin { get; }
     public int AlignmentBonus { get; }
     public int SameFormBonus { get; }
     public int MaxSeekers { get; }

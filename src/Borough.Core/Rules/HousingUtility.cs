@@ -111,13 +111,19 @@ public static class HousingUtility
         return true;
     }
 
+    internal static bool Affordable(World world, int position, byte kind)
+    {
+        Money rent = world.Rules.Kind(kind).Rent;
+        return rent.Raw <= 0 || world.BalanceOf(world.UnplacedPool.At(position)).Raw >= rent.Raw;
+    }
+
     // A tie with Outside is not positive evidence for new construction. Existing capacity at a tie
     // still suppresses construction, so a probabilistic placement loss cannot manufacture shortage.
     internal static bool Suitable(World world, WorldKey key, int position, int lot, byte kind, bool prospective)
     {
         int household = world.Households.Rows.Resolve(world.UnplacedPool.At(position));
         Money rent = world.Rules.Kind(kind).Rent;
-        if (rent.Raw > 0 && world.BalanceOf(world.UnplacedPool.At(position)).Raw < rent.Raw) { return false; }
+        if (!Affordable(world, position, kind)) { return false; }
         if (!world.Rules.Placement.Chooses) { return true; }
         byte stage = world.Households.LifeStage[household];
         long taste = Taste(world.Rules, key, world.Households.TasteIdentity(household), stage);

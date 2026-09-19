@@ -721,3 +721,12 @@ masks are derived, and standing-housing searches draw live declared housing Buil
 id order rather than future-housing-painted Lots. Empty land no longer consumes housing attempts.
 The hand-built golden world explicitly paints its ground. Ruleset files and the hash seed are
 unchanged; the Core save version is 8 because saved column disposition changed.
+
+### Persistent housing preference evidence (2026-09-19)
+
+The Unplaced Pool gains a saved search reason and first/latest mismatch-observation Ticks, advancing
+Core save format 8 → 9. The second half of `session-trace.txt` changes because its Pool slots hash
+the extra columns. Both traces were regenerated with the commands above; the driving trace and
+hand-built world hash are unchanged. Baseline Ruleset content and hash seed are unchanged. Those
+worlds do not opt into local housing construction, so `HousingConstructionTests` covers the nonzero
+episodes, their lifetime and continued automatic construction after save/load.

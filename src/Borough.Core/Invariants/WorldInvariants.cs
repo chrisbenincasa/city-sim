@@ -608,6 +608,13 @@ public static class WorldInvariants
                 continue;
             }
 
+            bool mismatch = pool.SearchReason[slot] == (byte)Rules.HousingSearchReason.Preference;
+            report.Require(pool.SearchReason[slot] <= (byte)Rules.HousingSearchReason.Preference
+                && (mismatch ? pool.MismatchSince[slot] <= pool.MismatchObserved[slot]
+                    && pool.MismatchObserved[slot] <= world.Tick.Raw
+                    : pool.MismatchSince[slot] == 0 && pool.MismatchObserved[slot] == 0),
+                Invariant.HousingSearchEvidenceIsWellFormed, slot);
+
             if (!households.Rows.TryResolve(pool.Household[slot], out int householdSlot))
             {
                 report.Report(Invariant.ThePoolNamesOnlyUnhousedHouseholds, slot);

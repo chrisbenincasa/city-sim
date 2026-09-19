@@ -47,13 +47,14 @@ public static class HousingNeedAssessment
         private LocalLayoutProposal _first = null!;
         private LocalLayoutProposal? _second;
         private readonly int[] _positions, _homes, _capacity, _assigned;
-        private readonly bool[] _eligible, _visited;
+        private readonly bool[] _eligible, _visited, _mismatch;
         private int _homeCount;
 
         internal Assessment(World world, WorldKey key, int count)
         {
             _world = world; _key = key;
             _positions = new int[count]; _assigned = new int[count]; _eligible = new bool[count];
+            _mismatch = new bool[count];
             _homes = new int[world.Buildings.Rows.SlotCount]; _capacity = new int[_homes.Length];
             _visited = new bool[_homes.Length];
             ulong draw = Randomness.Draw(key, 0, world.Tick, PurposeTag.HousingConstructionSeekers);
@@ -61,6 +62,8 @@ public static class HousingNeedAssessment
             for (int i = 0; i < count; i++)
             {
                 _positions[i] = (int)(((long)start + i) % world.UnplacedPool.Count);
+                _mismatch[i] = HousingSearchEvidence.Persistent(world, _positions[i])
+                    && HousingSearchEvidence.Current(world, key, _positions[i]) == HousingSearchReason.Preference;
             }
             for (int row = 0; row < world.Buildings.Rows.SlotCount; row++)
             {
@@ -115,12 +118,14 @@ public static class HousingNeedAssessment
 
         private bool Match(int seeker)
         {
+            // Until fresh repeated observations establish a substantial mismatch, affordable
+            // vacancies cover need even below Outside. A random rejection cannot justify building.
+            if (_mismatch[seeker]) { return false; }
             for (int home = 0; home < _homeCount; home++)
             {
                 if (_visited[home]) { continue; }
                 int building = _homes[home];
-                int lot = _world.Lots.Rows.Resolve(_world.Buildings.Lot[building]);
-                if (!HousingUtility.Suitable(_world, _key, _positions[seeker], lot, _world.Buildings.Kind[building], false)) { continue; }
+                if (!HousingUtility.Affordable(_world, _positions[seeker], _world.Buildings.Kind[building])) { continue; }
                 _visited[home] = true;
                 int used = 0;
                 for (int other = 0; other < _assigned.Length; other++) { if (_assigned[other] == home) { used++; } }

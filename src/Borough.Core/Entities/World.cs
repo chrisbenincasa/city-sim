@@ -1411,6 +1411,8 @@ public sealed partial class World
         Roads.Adopt(rules.Roads);
         Rules = rules;
         HousingBuildings.Invalidate();
+        // Old observations were made under different rents, preferences or evidence thresholds.
+        for (int position = 0; position < UnplacedPool.Count; position++) { UnplacedPool.ClearSearch(position); }
 
         RescaleOutsideFractions(outside);
 

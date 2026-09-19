@@ -25,7 +25,7 @@ dotnet run --project src/Borough.Headless -- \
 
 ## The sections
 
-46 sections, 296 keys.
+46 sections, 299 keys.
 
 - [`[[band]]`](#band) — 2 keys
 - [`[[building]]`](#building) — 20 keys
@@ -54,7 +54,7 @@ dotnet run --project src/Borough.Headless -- \
 - [`[districts]`](#districts) — 4 keys
 - [`[founding]`](#founding) — 2 keys
 - [`[households]`](#households) — 3 keys
-- [`[housing_construction]`](#housing_construction) — 9 keys
+- [`[housing_construction]`](#housing_construction) — 12 keys
 - [`[immigration]`](#immigration) — 4 keys
 - [`[income_tax]`](#income_tax) — 4 keys
 - [`[jobs]`](#jobs) — 11 keys
@@ -929,6 +929,18 @@ Maximum adjacent whole vacant Lots in the local comparison window; 1..16.
 **`max_surplus`** · *whole number*
 
 Absolute cap on surplus tenancies per proposed arrangement; 0..256. Zero seekers never supports construction.
+
+**`preference_freshness_ticks`** · *whole number*
+
+Maximum Tick gap between qualifying observations and maximum age at construction; positive. A larger gap restarts the episode. Tune against placement revisit_ticks and sampling coverage.
+
+**`preference_margin_percent`** · *whole number*
+
+Minimum utility gap below the Household's Outside for every affordable available home, in hundredths of a utility unit; 1..10000. Rounded up in Q16.16; neither random rejection nor a minor improvement qualifies.
+
+**`preference_persistence_ticks`** · *whole number*
+
+Elapsed Ticks from first to latest qualifying search observation required for preference mismatch; positive. Waiting without observations does not qualify.
 
 **`same_form_bonus`** · *whole number*
 

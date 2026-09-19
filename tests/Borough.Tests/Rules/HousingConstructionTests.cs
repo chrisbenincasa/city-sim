@@ -17,6 +17,9 @@ public sealed class HousingConstructionTests(Xunit.Abstractions.ITestOutputHelpe
     private static readonly WorldKey Key = WorldKey.FromSeed(62002);
     private const string Settings = """
         [housing_construction]
+        preference_persistence_ticks = 1024
+        preference_freshness_ticks = 2048
+        preference_margin_percent = 25
         max_seekers = 16
         max_building_slots = 4096
         max_lot_slots = 4096
@@ -303,6 +306,225 @@ public sealed class HousingConstructionTests(Xunit.Abstractions.ITestOutputHelpe
         output.WriteLine($"Release walkthrough: 5 Lots, 2 full Buildings, 4 seekers, source limit 3, candidate attempt limit 32. Selection allocated {bytes} managed bytes.");
     }
 
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(4)]
+    public void Preference_evidence_measures_elapsed_observed_ticks_not_search_count(int cadence)
+    {
+        var (world, lots) = MismatchCity();
+        for (int tick = 0; tick <= 8; tick++)
+        {
+            AtTick(world, tick);
+            if (tick % cadence == 0) { ObserveAll(world); }
+            var plan = LocalLayoutTests.Evaluate(world, [lots[1]], BlockPattern.BackToBack);
+            ulong before = All(world);
+            Assert.Equal(tick == 8, HousingNeedAssessment.Evaluate(world, Key, plan).Accepted);
+            Assert.Equal(before, All(world));
+        }
+        var proposal = LocalLayoutTests.Evaluate(world, [lots[1]], BlockPattern.BackToBack);
+        Assert.True(new Simulation(world, Key).CommitHousingLayout(proposal, out _).Accepted);
+        Assert.Equal(6, Vacancy(world)); // Poor homes remain; the two new homes cover both seekers.
+        Assert.Null(HousingConstruction.Select(world, Key, lots[2], 1));
+        ObserveAll(world);
+        Assert.Equal((byte)HousingSearchReason.Suitable, world.UnplacedPool.SearchReason[0]);
+        Assert.Equal(0UL, world.UnplacedPool.MismatchSince[0]);
+    }
+
+    [Fact]
+    public void Unsampled_waits_and_duplicate_observations_do_not_certify_persistence()
+    {
+        var (world, lots) = MismatchCity();
+        AtTick(world, 40); // Time already spent in the Pool supplies no evidence.
+        for (int i = 0; i < 10; i++) { ObserveAll(world); }
+        Assert.Equal(40UL, world.UnplacedPool.MismatchSince[0]);
+        AtTick(world, 48);
+        Assert.Null(HousingConstruction.Select(world, Key, lots[1], 1));
+        ObserveAll(world); // The eight-Tick gap exceeds freshness and restarts the episode.
+        Assert.Equal(48UL, world.UnplacedPool.MismatchSince[0]);
+        AtTick(world, 52); ObserveAll(world);
+        AtTick(world, 56); ObserveAll(world);
+        Assert.NotNull(HousingConstruction.Select(world, Key, lots[1], 1));
+        AtTick(world, 61);
+        Assert.Null(HousingConstruction.Select(world, Key, lots[1], 1));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Changed_reason_clears_episode_and_capacity_shortage_does_not_wait(bool unaffordable)
+    {
+        var (world, lots) = MismatchCity();
+        ObserveAll(world); AtTick(world, 4); ObserveAll(world);
+        if (unaffordable)
+        {
+            for (int i = 0; i < world.UnplacedPool.Count; i++)
+            { world.Withdraw(world.Households.Balance[world.Households.Rows.Resolve(world.UnplacedPool.At(i))], 100, world.Tick); }
+        }
+        else
+        {
+            foreach (int index in new[] { 0, 4 })
+            {
+                int row = world.Lots.BuildingOn(world.Lots.Rows.Resolve(lots[index]));
+                while (world.HasRoomForHousehold(row)) { world.CreateHousehold(world.Buildings.Rows.At(row), 0); }
+            }
+        }
+        ObserveAll(world);
+        Assert.Equal((byte)(unaffordable ? HousingSearchReason.Affordability : HousingSearchReason.Capacity), world.UnplacedPool.SearchReason[0]);
+        Assert.Equal(0UL, world.UnplacedPool.MismatchObserved[0]);
+        Assert.NotNull(HousingConstruction.Select(world, Key, lots[1], 1));
+        if (unaffordable)
+        {
+            AtTick(world, 8);
+            for (int i = 0; i < world.UnplacedPool.Count; i++) { world.Endow(world.UnplacedPool.At(i), new Money(100)); }
+            ObserveAll(world);
+            Assert.Equal(8UL, world.UnplacedPool.MismatchSince[0]);
+            Assert.Null(HousingConstruction.Select(world, Key, lots[1], 1));
+        }
+    }
+
+    [Fact]
+    public void Current_alternatives_and_proposed_rent_override_old_evidence_without_mutating_a_refusal()
+    {
+        var (world, lots) = MismatchCity();
+        Mature(world);
+        var proposal = LocalLayoutTests.Evaluate(world, [lots[1]], BlockPattern.BackToBack);
+        Assert.True(LocalLayout.Evaluate(world, [lots[1]], proposal.Building with { Kind = 2 }, out var worse).Accepted);
+        Assert.False(HousingNeedAssessment.Evaluate(world, Key, worse!).Accepted);
+        int west = world.Lots.BuildingOn(world.Lots.Rows.Resolve(lots[0]));
+        world.Buildings.Kind[west] = 1; // Newly suitable capacity without another placement pass.
+        ulong before = All(world);
+        Assert.Equal(LocalLayoutRefusal.HousingNeed, new Simulation(world, Key).CommitHousingLayout(proposal, out _).Refusal);
+        Assert.Equal(before, All(world));
+        ObserveAll(world);
+        Assert.Equal((byte)HousingSearchReason.Suitable, world.UnplacedPool.SearchReason[0]);
+    }
+
+    [Fact]
+    public void Small_preference_gap_and_Outside_tie_never_accumulate_evidence()
+    {
+        foreach (int outside in new[] { 45, 50, 75 })
+        {
+            var (world, lots) = MismatchCity(outside: outside);
+            Mature(world);
+            Assert.Equal((byte)HousingSearchReason.Suitable, world.UnplacedPool.SearchReason[0]);
+            Assert.Null(HousingConstruction.Select(world, Key, lots[1], 1));
+        }
+    }
+
+    [Fact]
+    public void Pool_swap_reentry_and_ruleset_reload_preserve_or_clear_the_right_history()
+    {
+        var (world, lots) = MismatchCity();
+        AtTick(world, 2); HousingSearchEvidence.Observe(world, Key, 1, world.Tick);
+        AtTick(world, 4); HousingSearchEvidence.Observe(world, Key, 0, world.Tick);
+        var leaver = world.UnplacedPool.At(0);
+        var mover = world.UnplacedPool.At(1);
+        var shelter = world.Buildings.Rows.At(world.Lots.BuildingOn(world.Lots.Rows.Resolve(lots[0])));
+        world.Place(leaver, shelter);
+        Assert.Equal(mover, world.UnplacedPool.At(0));
+        Assert.Equal(2UL, world.UnplacedPool.MismatchSince[0]);
+        world.Unplace(leaver);
+        Assert.Equal((byte)HousingSearchReason.None, world.UnplacedPool.SearchReason[1]);
+        Assert.Equal(0UL, world.UnplacedPool.MismatchSince[1]);
+        world.Adopt(world.Rules, 1, world.Tick, Key);
+        Assert.Equal((byte)HousingSearchReason.None, world.UnplacedPool.SearchReason[0]);
+    }
+
+    [Fact]
+    public void Mid_episode_save_replay_and_route_threads_continue_real_search_and_construction()
+    {
+        var (world, lots) = MismatchCity(zoneRules: true);
+        var simulation = new Simulation(world, Key) { RouteWorkerCount = 1, VerifyDecideWritesNothing = true };
+        for (int tick = 0; tick < 5; tick++) { simulation.Step(default); }
+        Assert.Equal(2, world.Buildings.Rows.LiveCount);
+        Assert.Equal((byte)HousingSearchReason.Preference, world.UnplacedPool.SearchReason[0]);
+        Assert.Equal(0UL, world.UnplacedPool.MismatchSince[0]);
+        var file = new MemorySave(); SaveFile.Write(world, 62002, file);
+        World loaded = SaveFile.Read(file, world.Rules, out _);
+        Assert.Equal(world.HashState(), loaded.HashState());
+        var resumed = new Simulation(loaded, Key) { RouteWorkerCount = 2, VerifyDecideWritesNothing = true };
+        for (int tick = 5; tick < 32; tick++)
+        {
+            simulation.Step(default); resumed.Step(default);
+            Assert.Equal(world.HashState(), loaded.HashState());
+        }
+        Assert.Equal(3, world.Buildings.Rows.LiveCount);
+        simulation.CheckEndOfRun(); resumed.CheckEndOfRun();
+    }
+
+    [Theory]
+    [InlineData("preference_persistence_ticks = 1024", "preference_persistence_ticks = 0")]
+    [InlineData("preference_freshness_ticks = 2048", "preference_freshness_ticks = -1")]
+    [InlineData("preference_margin_percent = 25", "preference_margin_percent = 10001")]
+    [InlineData("preference_margin_percent = 25", "")]
+    public void Invalid_or_missing_persistence_tuning_is_refused(string oldValue, string newValue)
+    {
+        string text = File.ReadAllText(Path.Combine(FindRoot(), "rulesets", "urban-housing.toml"));
+        Assert.False(RulesetLoader.Parse(text.Replace(oldValue, newValue, StringComparison.Ordinal), "invalid.toml").Ok);
+    }
+
+    [Fact]
+    public void Coverage_loss_clears_evidence_and_episode_clock_invariant_catches_corruption()
+    {
+        var (world, lots) = MismatchCity();
+        ObserveAll(world);
+        world.UnplacedPool.MismatchObserved[0] = 1;
+        var failure = Assert.Throws<Borough.Core.Invariants.InvariantViolationException>(() => new Simulation(world, Key).CheckEndOfRun());
+        Assert.Contains("HousingSearchEvidenceIsWellFormed", failure.Message, StringComparison.Ordinal);
+        world.UnplacedPool.MismatchObserved[0] = 0;
+        for (int i = world.Lots.Rows.SlotCount; i <= 4096; i++)
+        { world.Lots.Create(new Tiles(1000 + i), new Tiles(1000), 0); }
+        ObserveAll(world);
+        Assert.Equal((byte)HousingSearchReason.CoverageLimit, world.UnplacedPool.SearchReason[0]);
+        Assert.Equal(0UL, world.UnplacedPool.MismatchObserved[0]);
+        Assert.Null(HousingConstruction.Select(world, Key, lots[1], 1));
+    }
+
+    private static void AtTick(World world, int tick)
+    { while (world.Tick.Raw < (ulong)tick) { world.Advance(); } }
+    private static void ObserveAll(World world)
+    { for (int i = 0; i < world.UnplacedPool.Count; i++) { HousingSearchEvidence.Observe(world, Key, i, world.Tick); } }
+    private static void Mature(World world)
+    { ObserveAll(world); AtTick(world, 4); ObserveAll(world); AtTick(world, 8); ObserveAll(world); }
+
+    private static (World World, Handle<Lot>[] Lots) MismatchCity(bool zoneRules = false, int outside = 25)
+    {
+        string choice = $"""
+
+            [placement]
+            interval = 2
+            revisit_ticks = 2
+            candidates = 3
+            gives_up_after_days = 2
+            mu_percent = 10000
+            centrality_tiles_per_unit = 2048
+            rent_per_unit = 120
+            moving_costs_rent = 0
+            [[hinterland]]
+            edge = "west"
+            rent = {outside}
+            centrality_tiles = 0
+            emigrant_balance_min = 100
+            emigrant_balance_max = 100
+            """;
+        string settings = Settings.Replace("preference_persistence_ticks = 1024", "preference_persistence_ticks = 8", StringComparison.Ordinal)
+            .Replace("preference_freshness_ticks = 2048", "preference_freshness_ticks = 4", StringComparison.Ordinal)
+            .Replace("preference_margin_percent = 25", "preference_margin_percent = 10", StringComparison.Ordinal);
+        var (world, lots) = City(2, fillNeighbours: false, zoneRules: zoneRules, settings: settings + MoneyKinds + choice);
+        foreach (int index in new[] { 0, 4 })
+        { world.Buildings.Kind[world.Lots.BuildingOn(world.Lots.Rows.Resolve(lots[index]))] = 2; }
+        for (int i = 0; i < world.UnplacedPool.Count; i++)
+        {
+            var household = world.UnplacedPool.At(i);
+            int row = world.Households.Rows.Resolve(household);
+            world.Endow(household, new Money(100));
+            world.Households.Arrived[row] = 1;
+            world.Households.ArrivalEdge[row] = (byte)MapEdge.West;
+        }
+        return (world, lots);
+    }
+
     private const string MoneyKinds = """
 
         [[resource]]
@@ -312,6 +534,7 @@ public sealed class HousingConstructionTests(Xunit.Abstractions.ITestOutputHelpe
         name = "expensive"
         houses = true
         rent = 50
+        bins = [{ resource = "sundries", capacity = 48 }]
         """;
 
     private static (World World, Handle<Lot>[] Lots) City(int seekers, bool fillNeighbours = true, bool zoneRules = false, string? settings = null)
