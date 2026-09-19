@@ -248,6 +248,12 @@ public static class RulesetLoader
         private readonly List<TableSyntaxBase> _ruleTables = [];
         private readonly List<TableSyntaxBase> _zoneRuleTables = [];
 
+        private readonly Dictionary<string, ushort> _baskets = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, ushort> _reserves = new(StringComparer.Ordinal);
+
+        private readonly List<TableSyntaxBase> _basketTables = [];
+        private readonly List<TableSyntaxBase> _reserveTables = [];
+
         private readonly List<TableSyntaxBase> _bandTables = [];
         private readonly List<TableSyntaxBase> _policyTables = [];
 
@@ -353,6 +359,11 @@ public static class RulesetLoader
             // it decides whether a shift band and a wage are owed. It reads no other table.
             CapacityRuleset capacity = ReadCapacity();
 
+            // Before the Rules and the kinds, which resolve into them. A basket names Resources and
+            // a reserve names nothing, so neither points forward.
+            ReadBaskets();
+            ReadReserves();
+
             RuleDefinition[] rules = ReadRules(out Term[] inputs, out Term[] outputs,
                 out MapEmission[] emissions);
             KindDefinition[] kinds = ReadKinds(rules, inputs, outputs, out BinDeclaration[] bins,
@@ -452,6 +463,7 @@ public static class RulesetLoader
                 RefuseUnterminatedChains(rules);
                 RefuseUnrelievedChains(rules, inputs, outputs);
                 RefuseUnbalancedMoney(rules, inputs, outputs);
+                RefuseSharedProgress(rules, inputs);
             }
 
             if (_refusals.Count > 0)
@@ -596,6 +608,16 @@ public static class RulesetLoader
                     case "rule":
                         _ruleTables.Add(table);
                         Register(_rules, table, "rule", (ushort)(_rules.Count + 1));
+                        break;
+
+                    case "basket":
+                        _basketTables.Add(table);
+                        Register(_baskets, table, "basket", (ushort)(_baskets.Count + 1));
+                        break;
+
+                    case "reserve":
+                        _reserveTables.Add(table);
+                        Register(_reserves, table, "reserve", (ushort)(_reserves.Count + 1));
                         break;
 
                     case "policy":
@@ -975,7 +997,8 @@ public static class RulesetLoader
                         Refuse(LineOf(table), null,
                             $"'{section}' is not a Ruleset section. The sections are "
                             + "[needs], "
-                            + "[[resource]], [[building]], [[business]], [[rule]], [[zone_rule]], "
+                            + "[[resource]], [[building]], [[business]], [[rule]], [[basket]], "
+                            + "[[reserve]], [[zone_rule]], "
                             + "[[policy]], [[hinterland]], [[lattice]], [[terrain]], [layers], "
                             + "[placement], [roads], [lots], [trips], [jobs], [households], "
                             + "[traffic], [parking], [water], [districts], [market], "
@@ -1005,6 +1028,190 @@ public static class RulesetLoader
             }
         }
 
+        // ---- shared definitions ---------------------------------------------------------------
+
+        /// <summary>One Good a basket names, and what one actor uses of it per Day.</summary>
+        private readonly record struct BasketUse(ResourceId Resource, int UsePerDay);
+
+        /// <summary>
+        /// A named daily consumption basket: whose Bins it draws on, and the slice of
+        /// <see cref="_basketUses"/> holding its Goods.
+        /// </summary>
+        private readonly record struct BasketDefinition(BinTenancy Owner, int First, int Count);
+
+        private BasketDefinition[] _basketDefinitions = [];
+        private readonly List<BasketUse> _basketUses = [];
+
+        /// <summary>Days of cover per <c>[[reserve]]</c>, in declaration order.</summary>
+        private int[] _reserveDays = [];
+
+        /// <summary>
+        /// Reads every <c>[[basket]]</c>, whose Goods become a Rule's input terms and a Bin's
+        /// capacity.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Before <see cref="ReadRules"/> and <see cref="ReadKinds"/>, because both resolve into
+        /// it.</b> A basket names Resources only, and those are registered in
+        /// <see cref="Enumerate"/>, so nothing here points forward.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>The Goods are sorted by Resource id and not left in authored order.</b> The
+        /// declaration is a map, so its order is how one designer happened to type it; two files
+        /// naming the same Goods differently would otherwise lower to different term arrays and
+        /// hash apart while meaning the same thing.
+        /// </para>
+        /// </remarks>
+        private void ReadBaskets()
+        {
+            _basketDefinitions = new BasketDefinition[_basketTables.Count];
+
+            for (int i = 0; i < _basketTables.Count; i++)
+            {
+                TableSyntaxBase table = _basketTables[i];
+                string? name = TryString(table, "name", out string? found, required: false)
+                    ? found
+                    : null;
+
+                BinTenancy owner = BinTenancy.Premises;
+
+                if (Find(table, "owner", RulesetKeyKind.Quoted) is null)
+                {
+                    Refuse(LineOf(table), name,
+                        "this basket declares no owner. A basket is what one actor uses in a Day, so "
+                        + "it has to say which actor: premises, occupant or business. The Bins it "
+                        + "sizes must belong to the same one.");
+                }
+                else
+                {
+                    TryTenancy(table, name, out owner);
+                }
+
+                int first = _basketUses.Count;
+                ReadUsePerDay(table, name, first);
+
+                _basketDefinitions[i] = new BasketDefinition(
+                    owner, first, _basketUses.Count - first);
+            }
+        }
+
+        private void ReadUsePerDay(TableSyntaxBase table, string? name, int first)
+        {
+            KeyValueSyntax? entry = Find(table, "use_per_day", RulesetKeyKind.Table);
+
+            if (entry is null)
+            {
+                Refuse(LineOf(table), name,
+                    "this basket names no Goods. use_per_day maps a Good to the whole units one "
+                    + "actor uses of it per Day, and a basket of nothing sizes no Bin and feeds no "
+                    + "Rule.");
+                return;
+            }
+
+            if (entry.Value is not InlineTableSyntax inline)
+            {
+                Refuse(LineOf(entry), name, "use_per_day must be an inline table.");
+                return;
+            }
+
+            foreach (InlineTableItemSyntax item in inline.Items)
+            {
+                if (item.KeyValue is not { } pair)
+                {
+                    continue;
+                }
+
+                string good = NameOf(pair.Key);
+
+                if (!_resources.TryGetValue(good, out ushort raw))
+                {
+                    Refuse(LineOf(pair), name,
+                        $"'{good}' is not a declared [[resource]].");
+                    continue;
+                }
+
+                var resource = new ResourceId(raw);
+
+                if (_families[raw - 1] == ResourceFamily.Money)
+                {
+                    Refuse(LineOf(pair), name,
+                        $"'{good}' is money, and a basket is a daily consumption of Goods. Money "
+                        + "leaves an actor through a price or a wage rather than through a rate of "
+                        + "use, and a money Bin has no ceiling for a reserve to size.");
+                    continue;
+                }
+
+                if (pair.Value is not IntegerValueSyntax number)
+                {
+                    Refuse(LineOf(pair), name, $"{good} must be a whole number.");
+                    continue;
+                }
+
+                if (number.Value < 1 || number.Value > int.MaxValue)
+                {
+                    Refuse(LineOf(pair), name,
+                        $"{good} is {number.Value} a Day. A basket states what an actor uses, so a "
+                        + "Good it does not use is a Good it does not name rather than a rate of "
+                        + "zero.");
+                    continue;
+                }
+
+                _basketUses.Add(new BasketUse(resource, (int)number.Value));
+            }
+
+            _basketUses.Sort(first, _basketUses.Count - first, BasketUseOrder.ByResource);
+        }
+
+        private sealed class BasketUseOrder : IComparer<BasketUse>
+        {
+            public static readonly BasketUseOrder ByResource = new();
+
+            public int Compare(BasketUse a, BasketUse b) =>
+                a.Resource.Raw.CompareTo(b.Resource.Raw);
+        }
+
+        /// <summary>Reads every <c>[[reserve]]</c>, whose Days multiply a basket into a capacity.</summary>
+        /// <remarks>
+        /// ⚠ <b>Days of cover, and not <c>CONTEXT</c> → Resource's <em>Storage</em></b>, which is
+        /// whether a Bin carries over between periods and stays a named hole on
+        /// <c>[[resource]]</c>. A Household's Life-Stage-sized money buffer is a third unrelated
+        /// use of the word.
+        /// </remarks>
+        private void ReadReserves()
+        {
+            _reserveDays = new int[_reserveTables.Count];
+
+            for (int i = 0; i < _reserveTables.Count; i++)
+            {
+                TableSyntaxBase table = _reserveTables[i];
+                string? name = TryString(table, "name", out string? found, required: false)
+                    ? found
+                    : null;
+
+                if (!TryInteger(table, "days", out long days, required: true, name))
+                {
+                    continue;
+                }
+
+                if (days < 1 || days > MaximumReserveDays)
+                {
+                    Refuse(LineOf(table), name,
+                        $"days is {days}. A reserve is how many Days of use a Bin holds, so it is at "
+                        + $"least one and at most {MaximumReserveDays}; a Bin sized for no Days "
+                        + "could never be filled.");
+                    continue;
+                }
+
+                _reserveDays[i] = (int)days;
+            }
+        }
+
+        /// <summary>
+        /// The ceiling on a reserve's Days, chosen so that Days × daily use cannot leave
+        /// <see cref="BinCapacity"/>'s range.
+        /// </summary>
+        private const int MaximumReserveDays = 100_000;
+
         // ---- rules ----------------------------------------------------------------------------
 
         private RuleDefinition[] ReadRules(
@@ -1031,8 +1238,26 @@ public static class RulesetLoader
                         $"kind '{kindName}' is not a declared [[building]].");
                 }
 
+                ApplyCount apply = ReadApply(table, name);
+
                 int inputFirst = allInputs.Count;
-                ReadTerms(table, "inputs", name, allInputs, emissions: null);
+
+                if (TryReadBasket(table, name, apply, out int basket))
+                {
+                    BasketDefinition definition = _basketDefinitions[basket];
+
+                    for (int u = 0; u < definition.Count; u++)
+                    {
+                        BasketUse use = _basketUses[definition.First + u];
+
+                        allInputs.Add(new Term(
+                            new BinRef(Scope.Local, use.Resource), use.UsePerDay) { PerDay = true });
+                    }
+                }
+                else
+                {
+                    ReadTerms(table, "inputs", name, allInputs, emissions: null);
+                }
 
                 int outputFirst = allOutputs.Count;
                 int emissionFirst = allEmissions.Count;
@@ -1041,7 +1266,7 @@ public static class RulesetLoader
                 definitions[i] = new RuleDefinition(
                     Kind: kind,
                     Rate: ReadRate(table, name),
-                    Apply: ReadApply(table, name),
+                    Apply: apply,
                     OnFail: ReadOnFail(table, name),
                     HasFills: TryReadFills(table, name, out BinRef fills),
                     Fills: fills,
@@ -1059,6 +1284,89 @@ public static class RulesetLoader
             emissions = [.. allEmissions];
 
             return definitions;
+        }
+
+        /// <summary>
+        /// Resolves a Rule's <c>basket</c>, whose Goods become its input terms at a daily rate.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>A basket replaces <c>inputs</c> rather than adding to them.</b> Stating both would
+        /// leave two lists of Goods on one Rule with nothing keeping them in step, and the shared
+        /// one is the one a designer edits elsewhere. <c>outputs</c> is refused beside it for the
+        /// same reason a basket has no outputs to share.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>A fixed apply count of one is required.</b> The engine settles every delta against
+        /// the applications it chose, so a Rule free to apply twice would take twice the Day's
+        /// amount while advancing the Bin's progress once. <c>RuleEngine.PerFiring</c> throws on
+        /// that shape and says the refusal belongs here.
+        /// </para>
+        /// </remarks>
+        private bool TryReadBasket(
+            TableSyntaxBase table, string? name, in ApplyCount apply, out int basket)
+        {
+            basket = -1;
+
+            if (Find(table, "recipe", RulesetKeyKind.Quoted) is not null)
+            {
+                Refuse(LineOf(table), name,
+                    "this Rule states a recipe. A shared recipe supplies a Rule's inputs and its "
+                    + "outputs together, and this build resolves a basket only -- state the Rule's "
+                    + "inputs and outputs, or its basket if it only consumes.");
+                return false;
+            }
+
+            if (Find(table, "basket", RulesetKeyKind.Quoted) is null)
+            {
+                return false;
+            }
+
+            if (!TryString(table, "basket", out string? reference, required: true, name))
+            {
+                return false;
+            }
+
+            if (!_baskets.TryGetValue(reference!, out ushort raw))
+            {
+                Refuse(LineOf(table), name,
+                    $"basket '{reference}' is not a declared [[basket]].");
+                return false;
+            }
+
+            bool sound = true;
+
+            foreach (string key in new[] { "inputs", "outputs" })
+            {
+                if (Find(table, key, RulesetKeyKind.Array) is null)
+                {
+                    continue;
+                }
+
+                sound = false;
+                Refuse(LineOf(table), name,
+                    $"this Rule states both a basket and {key}. A basket is the Goods this Rule "
+                    + "moves, so a second list beside it is a second answer to one question -- and "
+                    + "the two would drift apart the first time the shared basket changed.");
+            }
+
+            if (!apply.Derived.IsNone || apply.Min != 1 || apply.Max != 1)
+            {
+                sound = false;
+                Refuse(LineOf(table), name,
+                    "this Rule states a basket under an apply count that is not fixed at one. A "
+                    + "daily quantity is spent once per firing, so a Rule free to apply twice would "
+                    + "take twice the Day's amount while the Bin's progress advanced once. Drop the "
+                    + "apply band, or state the Rule's inputs literally.");
+            }
+
+            if (!sound)
+            {
+                return false;
+            }
+
+            basket = raw - 1;
+            return true;
         }
 
         /// <summary>
@@ -3974,6 +4282,13 @@ public static class RulesetLoader
                     continue;
                 }
 
+                // Before the ceiling and not after, because a reserve selection is refused when the
+                // Bin and the basket it sizes belong to different actors.
+                if (!TryTenancy(inline, kind, out BinTenancy tenancy))
+                {
+                    continue;
+                }
+
                 // A Money Bin has no ceiling (CONTEXT -> Resource), so authoring one is refused
                 // rather than ignored: a number the loader silently drops is a number a designer
                 // will tune and then wonder about.
@@ -3982,16 +4297,28 @@ public static class RulesetLoader
 
                 if (unbounded)
                 {
-                    if (Find(inline, "capacity") is not null)
+                    string? stated =
+                        Find(inline, "capacity") is not null ? "capacity"
+                        : Find(inline, "reserve") is not null ? "reserve"
+                        : null;
+
+                    if (stated is not null)
                     {
                         Refuse(LineOf(inline), kind,
-                            "a money Bin declares no capacity. Money has no physical ceiling, and a "
+                            $"a money Bin declares no {stated}. Money has no physical ceiling, and a "
                             + "finite one would mean an actor too full of money to be paid -- a sale "
                             + "failing on space because the seller is rich.");
                         continue;
                     }
 
                     declared = BinCapacity.Unbounded;
+                }
+                else if (Find(inline, "reserve", RulesetKeyKind.Table) is not null)
+                {
+                    if (!TryReadReserve(inline, kind, resource, tenancy, out declared))
+                    {
+                        continue;
+                    }
                 }
                 else
                 {
@@ -4025,14 +4352,186 @@ public static class RulesetLoader
                     continue;
                 }
 
-                if (!TryTenancy(inline, kind, out BinTenancy tenancy))
-                {
-                    continue;
-                }
-
                 into.Add(new BinDeclaration(resource, declared, tenancy));
             }
         }
+
+        /// <summary>
+        /// Derives a Bin's ceiling from the basket it draws on and the Days it holds.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Days of cover rather than a number of units, which is the whole point of the
+        /// selection.</b> Changing what the shared basket uses moves every ceiling sized from it;
+        /// the local <c>days</c> override preserves the Days it states rather than freezing the
+        /// product, so the same edit moves an excepted Bin too.
+        /// </para>
+        /// <para>
+        /// ⚠ <b><c>profile</c> names the <c>[[reserve]]</c>.</b> The key keeps the word a Bin
+        /// selects with, because the thing being selected is eventually per-instance and the
+        /// declaration is shared until then.
+        /// </para>
+        /// </remarks>
+        private bool TryReadReserve(
+            InlineTableSyntax inline, string? kind, ResourceId resource, BinTenancy tenancy,
+            out BinCapacity declared)
+        {
+            declared = BinCapacity.Unbounded;
+
+            if (Find(inline, "capacity") is not null)
+            {
+                Refuse(LineOf(inline), kind,
+                    "this Bin states both a capacity and a reserve. A reserve derives the ceiling "
+                    + "from what the basket uses and the Days held, so a literal number beside it is "
+                    + "a second answer that stops moving when the basket changes.");
+                return false;
+            }
+
+            if (Find(inline, "reserve")?.Value is not InlineTableSyntax selection)
+            {
+                Refuse(LineOf(inline), kind,
+                    "reserve must be an inline table naming a profile and a basket.");
+                return false;
+            }
+
+            if (!TryString(selection, "profile", out string? profile, required: true, kind)
+                || !TryString(selection, "basket", out string? basket, required: true, kind))
+            {
+                return false;
+            }
+
+            if (!_reserves.TryGetValue(profile!, out ushort profileRaw))
+            {
+                Refuse(LineOf(selection), kind,
+                    $"reserve profile '{profile}' is not a declared [[reserve]].");
+                return false;
+            }
+
+            if (!_baskets.TryGetValue(basket!, out ushort basketRaw))
+            {
+                Refuse(LineOf(selection), kind,
+                    $"reserve basket '{basket}' is not a declared [[basket]].");
+                return false;
+            }
+
+            BasketDefinition definition = _basketDefinitions[basketRaw - 1];
+
+            if (definition.Owner != tenancy)
+            {
+                Refuse(LineOf(selection), kind,
+                    $"this Bin belongs to the {Owner(tenancy)} and basket '{basket}' states what the "
+                    + $"{Owner(definition.Owner)} uses in a Day. A reserve is that actor's own cover, "
+                    + "so sizing one actor's Bin from another's consumption would hold Days that "
+                    + "nobody here spends.");
+                return false;
+            }
+
+            int use = 0;
+
+            for (int i = 0; i < definition.Count; i++)
+            {
+                if (_basketUses[definition.First + i].Resource == resource)
+                {
+                    use = _basketUses[definition.First + i].UsePerDay;
+                    break;
+                }
+            }
+
+            if (use == 0)
+            {
+                Refuse(LineOf(selection), kind,
+                    $"basket '{basket}' does not name this Bin's Resource, so it says nothing about "
+                    + "how fast the Bin empties and cannot say how many Days it holds.");
+                return false;
+            }
+
+            long days = _reserveDays[profileRaw - 1];
+
+            if (Find(selection, "days", RulesetKeyKind.Whole) is not null)
+            {
+                if (!TryInteger(selection, "days", out days, required: true, kind))
+                {
+                    return false;
+                }
+
+                if (days < 1 || days > MaximumReserveDays)
+                {
+                    Refuse(LineOf(selection), kind,
+                        $"days is {days}. A Bin's local override is how many Days of use it holds, "
+                        + $"so it is at least one and at most {MaximumReserveDays}; removing the key "
+                        + $"restores profile '{profile}'.");
+                    return false;
+                }
+            }
+
+            declared = BinCapacity.Of(use * days);
+            return true;
+        }
+
+        /// <summary>
+        /// Refusal — two Rules of one kind draw one actor's Bin at a daily rate.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>One Bin carries one consumption progress, so two daily draws on it would interleave.</b>
+        /// Each firing would continue from the other's remainder, and what either Rule took in a Day
+        /// would depend on the order the two happened to fire in. The sum is well defined and the
+        /// split is not, which makes this a balance outcome decided by scheduling.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>Two daily terms inside ONE Rule are fine and are not this.</b> <c>PerFiring</c>
+        /// carries a per-firing remainder across the terms of one evaluation, so two terms naming one
+        /// Bin take what one term for their sum would take. The ambiguity needs two separate firings.
+        /// </para>
+        /// </remarks>
+        private void RefuseSharedProgress(RuleDefinition[] rules, Term[] inputs)
+        {
+            for (int i = 0; i < rules.Length; i++)
+            {
+                for (int j = i + 1; j < rules.Length; j++)
+                {
+                    if (rules[i].Kind != rules[j].Kind || rules[i].Tenancy != rules[j].Tenancy)
+                    {
+                        continue;
+                    }
+
+                    for (int a = 0; a < rules[i].InputCount; a++)
+                    {
+                        Term first = inputs[rules[i].InputFirst + a];
+
+                        if (!first.PerDay)
+                        {
+                            continue;
+                        }
+
+                        for (int b = 0; b < rules[j].InputCount; b++)
+                        {
+                            Term second = inputs[rules[j].InputFirst + b];
+
+                            if (!second.PerDay || second.Bin != first.Bin)
+                            {
+                                continue;
+                            }
+
+                            Refuse(LineOf(_ruleTables[j]), NameOfRule(j),
+                                $"this Rule and '{NameOfRule(i)}' both draw the {Owner(rules[j].Tenancy)}'s "
+                                + $"'{NameOfResource(first.Bin.Resource)}' at a rate per Day, on one "
+                                + "Building kind. A Bin carries one consumption progress, so the two "
+                                + "would continue from each other's remainder and what each took in "
+                                + "a Day would depend on which fired first.");
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        private static string Owner(BinTenancy tenancy) => tenancy switch
+        {
+            BinTenancy.Occupant => "occupant",
+            BinTenancy.Business => "business",
+            _ => "premises",
+        };
 
         // ---- the refusals ---------------------------------------------------------------
 
@@ -4125,7 +4624,7 @@ public static class RulesetLoader
         {
             string here = ContextOf(node, context);
 
-            if (_consulted.TryGetValue(node, out HashSet<string>? asked))
+            if (_consulted.TryGetValue(node, out HashSet<string>? asked) && !IsDataKeyed(here))
             {
                 if (!into.TryGetValue(here, out Dictionary<string, RulesetKeyKind>? union))
                 {
@@ -4196,12 +4695,36 @@ public static class RulesetLoader
             }
         }
 
+        /// <summary>
+        /// Holders whose keys are content rather than format, named by the context spelling both
+        /// walks build.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>A map keyed by a Resource id is the one shape the derived key surface cannot
+        /// describe.</b> Every other key in the format is a word the loader asks for, which is what
+        /// lets <see cref="RefuseUnknownKeys"/> treat <em>unasked</em> as <em>unknown</em> and lets
+        /// <see cref="Surface"/> publish the asks as a schema. Here the author chooses the words, so
+        /// the same mechanism would refuse every Good a basket names and would then publish the
+        /// Goods of the shipped Rulesets as if they were keys of the format.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>The keys are still resolved.</b> A Good that is not a declared <c>[[resource]]</c> is
+        /// refused where the basket is read, with the line and the basket's name — a better sentence
+        /// than the unknown-key walk could produce, because it knows what the word was meant to be.
+        /// </para>
+        /// </remarks>
+        private static readonly string[] DataKeyedHolders = ["[[basket]] use_per_day"];
+
+        private static bool IsDataKeyed(string context) =>
+            Array.IndexOf(DataKeyedHolders, context) >= 0;
+
         private void RefuseUnknownKeysIn(
             SyntaxNode node, string context, Dictionary<string, HashSet<string>> permitted)
         {
             string here = ContextOf(node, context);
 
-            if (node is TableSyntaxBase or InlineTableSyntax)
+            if (node is TableSyntaxBase or InlineTableSyntax && !IsDataKeyed(here))
             {
                 permitted.TryGetValue(here, out HashSet<string>? union);
 
@@ -4657,8 +5180,14 @@ public static class RulesetLoader
         /// value is refused by name rather than defaulted: a Bin whose owner a designer meant to
         /// state and mis-spelled would otherwise stay on the premises silently, and the symptom —
         /// stock that does not follow a tenant out — is several milestones away from the typo.
+        /// <para>
+        /// <b>Widened from a Bin's inline table to any holder for <c>[[basket]]</c></b>, which
+        /// states the same word about the same three actors. Both sides read it through this one
+        /// reader, so a basket sizing a Bin it does not share an owner with is caught by comparing
+        /// two values rather than two spellings.
+        /// </para>
         /// </remarks>
-        private bool TryTenancy(InlineTableSyntax inline, string? kind, out BinTenancy tenancy)
+        private bool TryTenancy(SyntaxNode inline, string? kind, out BinTenancy tenancy)
         {
             tenancy = BinTenancy.Premises;
 

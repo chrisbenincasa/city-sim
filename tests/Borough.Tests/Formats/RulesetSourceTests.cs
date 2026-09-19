@@ -272,12 +272,8 @@ public sealed class RulesetSourceTests
     }
 
     [Theory]
-    [InlineData("[[basket]]\nid = \"basic\"\n")]
     [InlineData("[[recipe]]\nid = \"bake\"\n")]
-    [InlineData("[[reserve]]\nid = \"standard\"\n")]
-    [InlineData("[[rule]]\nid = \"eat\"\nkind = \"dwelling\"\nbasket = \"basic\"\n")]
     [InlineData("[[rule]]\nid = \"bake\"\nkind = \"dwelling\"\nrecipe = \"bake\"\n")]
-    [InlineData("[[building]]\nid = \"flat\"\nbins = [ { resource = \"repairs\", reserve = { profile = \"standard\", basket = \"basic\" } } ]\n")]
     public void Shared_definitions_without_runtime_support_are_refused_by_name(string member)
     {
         RulesetDiagnostic refused = Refused(RulesetDiagnosticCode.Unimplemented, [.. Base, ("shared.toml", member)]);

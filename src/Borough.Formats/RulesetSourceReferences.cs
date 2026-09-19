@@ -34,6 +34,8 @@ public static class RulesetSourceReferences
 {
     private static readonly RulesetSourceReference[] Declared =
     [
+        new("building", "bins[].reserve.basket", "basket"),
+        new("building", "bins[].reserve.profile", "reserve"),
         new("building", "bins[].resource", "resource"),
         new("building", "business", "business"),
         new("hinterland", "prices[].resource", "resource"),
@@ -43,6 +45,7 @@ public static class RulesetSourceReferences
         new("life_stage", "next", "life_stage"),
         new("policy", "trade", "business"),
         new("policy", "transfer.resource", "resource"),
+        new("rule", "basket", "basket"),
         new("rule", "fills.resource", "resource"),
         new("rule", "inputs[].resource", "resource"),
         new("rule", "kind", "building"),

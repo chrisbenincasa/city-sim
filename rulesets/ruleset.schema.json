@@ -32,6 +32,34 @@
         }
       }
     },
+    "basket": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.",
+            "type": "string"
+          },
+          "label": {
+            "description": "The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.",
+            "type": "string"
+          },
+          "name": {
+            "description": "What this basket is called. A Rule's basket and a Bin's reserve name it by this.",
+            "type": "string"
+          },
+          "owner": {
+            "description": "Which actor's daily use this describes: the premises, the occupant Household or the business tenanting them. A Bin sized from this basket must belong to the same one.",
+            "type": "string"
+          },
+          "use_per_day": {
+            "description": "The Goods this basket covers and the whole units one actor uses of each per Day, keyed by [[resource]] name. A Rule naming the basket consumes these at that rate however often it fires, so a daily quantity need not divide evenly across firings. Money is refused here.",
+            "type": "object"
+          }
+        }
+      }
+    },
     "building": {
       "type": "array",
       "items": {
@@ -62,6 +90,24 @@
                 "owner": {
                   "description": "Whose Bin this is: the premises', or the tenant's. It is what makes a Rule over this Bin the tenant's Rule rather than the Building's, and a tenant's Bins live exactly as long as the tenancy. Absent means the premises own it.",
                   "type": "string"
+                },
+                "reserve": {
+                  "description": "Sizes this Bin as Days of cover instead of a literal capacity, naming the basket that empties it and the profile that says how many Days. Changing what the basket uses moves every Bin sized from it. Refused beside capacity, and on a money Bin.",
+                  "type": "object",
+                  "properties": {
+                    "basket": {
+                      "description": "Which [[basket]] this Bin empties into, naming the daily use that the Days multiply. The basket must name this Bin's Resource and belong to the same owner.",
+                      "type": "string"
+                    },
+                    "days": {
+                      "description": "Holds this one Bin for a different number of Days than its profile states. It is an exception in Days and not in units, so a change to the basket still moves it; removing the key returns the Bin to the profile.",
+                      "type": "integer"
+                    },
+                    "profile": {
+                      "description": "Which [[reserve]] supplies the Days this Bin holds. Every Bin naming it moves together when its Days change.",
+                      "type": "string"
+                    }
+                  }
                 },
                 "resource": {
                   "description": "Which Resource this Bin holds, naming a [[resource]]. One Bin per Resource per kind.",
@@ -1028,6 +1074,30 @@
         }
       }
     },
+    "reserve": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "days": {
+            "description": "How many Days of a basket's use a Bin sized from this profile holds. It is the shared number; a Bin may state its own days to hold a different span.",
+            "type": "integer"
+          },
+          "id": {
+            "description": "Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.",
+            "type": "string"
+          },
+          "label": {
+            "description": "The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.",
+            "type": "string"
+          },
+          "name": {
+            "description": "What this reserve is called. A Bin's reserve profile names it by this.",
+            "type": "string"
+          }
+        }
+      }
+    },
     "resource": {
       "type": "array",
       "items": {
@@ -1135,6 +1205,10 @@
               }
             }
           },
+          "basket": {
+            "description": "Takes this Rule's inputs from a shared [[basket]] instead of listing them, at the basket's daily rate. Refused beside inputs or outputs, and requires a fixed apply count of one, because a daily quantity is spent once per firing.",
+            "type": "string"
+          },
           "fills": {
             "description": "Which Bin a fallback link is relieving, so a chain can be answered as one mechanism. The map scope is refused: nothing ever waits on a Layer, so nothing can rescue a wait on one.",
             "type": "object"
@@ -1212,6 +1286,10 @@
           "rate": {
             "description": "How often a Rule Instance re-arms, in Ticks — its reschedule interval. Distinct from the sweep interval a Zone Rule or a Policy states: a Bin Rule is armed per Building on the Event Wheel, not swept over the city.",
             "type": "integer"
+          },
+          "recipe": {
+            "description": "Names a shared [[recipe]] supplying this Rule's inputs and outputs together. Refused: this build resolves a basket only.",
+            "type": "string"
           },
           "reports": {
             "description": "The name of the Condition this Rule's failure reports under, which is what the diagnosis panel groups by. Absent means the failure is not reported by name.",

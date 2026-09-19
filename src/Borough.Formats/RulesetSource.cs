@@ -326,12 +326,12 @@ public static class RulesetSource
                     continue;
                 }
 
-                if (table is TableArraySyntax && name is "basket" or "recipe" or "reserve")
+                if (table is TableArraySyntax && name == "recipe")
                 {
                     Refuse(at, RulesetDiagnosticCode.Unimplemented, null, null,
-                        $"[[{name}]] is a source v1 shared definition this build does not implement "
-                        + "yet. Shared baskets need saved fractional consumption progress in Core, "
-                        + "and derived reserves need them; neither is approximated by the loader.");
+                        "[[recipe]] is a source v1 shared definition this build does not implement "
+                        + "yet. A recipe shares a Rule's inputs and its outputs together; a "
+                        + "[[basket]] shares what one actor consumes in a Day and is implemented.");
                     continue;
                 }
 
@@ -441,45 +441,17 @@ public static class RulesetSource
 
             foreach (KeyValueSyntax item in table.Items)
             {
-                string key = RulesetCapture.NameOf(item.Key);
-
-                if (section == "rule" && key is "basket" or "recipe")
+                if (section == "rule" && RulesetCapture.NameOf(item.Key) == "recipe")
                 {
                     Refuse(RulesetSourceLocation.Of(source.Path, item),
                         RulesetDiagnosticCode.Unimplemented, section, declared.Id,
-                        $"a Rule's {key} reference is not implemented by this build yet. State the "
-                        + "Rule's inputs and outputs.");
-                }
-                else if (section == "building" && key == "bins" && item.Value is ArraySyntax bins)
-                {
-                    RefuseReserveSelections(source, bins, declared.Id);
+                        "a Rule's recipe reference is not implemented by this build yet. A recipe "
+                        + "supplies inputs and outputs together; state them, or state a basket if "
+                        + "the Rule only consumes.");
                 }
             }
 
             return declared;
-        }
-
-        private void RefuseReserveSelections(Source source, ArraySyntax bins, string? id)
-        {
-            foreach (ArrayItemSyntax bin in bins.Items)
-            {
-                if (bin.Value is not InlineTableSyntax fields)
-                {
-                    continue;
-                }
-
-                foreach (InlineTableItemSyntax field in fields.Items)
-                {
-                    if (field.KeyValue is { } pair && RulesetCapture.NameOf(pair.Key) == "reserve")
-                    {
-                        Refuse(RulesetSourceLocation.Of(source.Path, pair),
-                            RulesetDiagnosticCode.Unimplemented, "building", id,
-                            "a Bin reserve selection is not implemented by this build yet. It derives "
-                            + "capacity from a shared basket, and that needs runtime support. State "
-                            + "the Bin's capacity.");
-                    }
-                }
-            }
         }
 
         private void RefuseDuplicates()

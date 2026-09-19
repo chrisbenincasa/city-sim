@@ -44,7 +44,9 @@ diff. `ConsumptionProgressTests` covers the daily total, eight Days without drif
 dividing case, a firing below a whole unit, accrual frozen while blocked, no catch-up on recovery,
 save and reload mid-fraction, a recycled Bin, and the apply-count refusal.
 
-Still Core's, still open: nothing. The remaining work is `What Formats needs` below.
+Still Core's, still open: nothing. Two of the three engine throws below are now unreachable from a
+file, because a basket supplies local input terms only; the apply-count one is refused at load. They
+stay as backstops.
 
 ## What Core needs: one saved column
 
@@ -88,7 +90,12 @@ Consequences to carry:
 | Shortage and retry | `adr/0063`. A short Rule subscribes to the blocking Bin; `World.Drain` recomputes the requirement live on every deposit and wakes it. No stored deficit, no polling |
 | Per-instance capacity plumbing | `adr/0064`. Capacity is `Rows.Derived`, rebuilt from the Ruleset in force at load and at every swap |
 
-## What Formats needs
+## Formats: implemented
+
+All five points below are implemented and tested. `SharedDefinitionLoadTests` covers the
+single-file reader, `RulesetSourceReferenceTests` covers cross-member resolution in a package, and
+`rulesets/stocked.toml` is the shipped demonstration — 250 sundries a Day over 64 firings, which
+divides badly on purpose, with the larder's ceiling derived rather than stated.
 
 1. `[[basket]]` — `id`, `label`, `owner` matching `BinTenancy`, `use_per_day` mapping Resource ids to
    positive integers. `[[reserve]]` — `id`, `label`, `days`.
@@ -100,6 +107,19 @@ Consequences to carry:
 4. Refuse two basket Rules consuming one Resource for one actor. They would share the one progress
    field on that Bin and interleave.
 5. Resolved capacities must fit existing Core bounds. Literal capacities remain supported.
+
+Twenty refusal sites, enumerated in `adr/0048`; the count of record moved 345 → 365. A basket's
+`use_per_day` is the first map-shaped key in the format, so `RulesetLoader.DataKeyedHolders` exempts
+it from the unknown-key walk and from the published key surface — otherwise every Good a basket names
+would be refused as an unknown key, and the shipped Rulesets' Goods would be published as keys of the
+format. `RulesetSourceReferences` gains `rule.basket`, `building.bins[].reserve.profile` and
+`building.bins[].reserve.basket`.
+
+**Still open.** `[[recipe]]` and a Rule's `recipe` reference stay refused by name; they share
+production rather than consumption and need no fractional progress, so they are cheap and separable.
+A basket's `use_per_day` keys are resolved by the single-file reader with a line, not by the package
+resolver — `RulesetSourceReference` has no syntax for *every key of this inline table*, so a package
+naming an undeclared Good there gets the reader's refusal rather than a located package diagnostic.
 
 ## Acceptance
 

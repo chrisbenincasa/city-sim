@@ -27,11 +27,13 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-43 sections, 302 keys.
+46 sections, 317 keys.
 
 - [`[[band]]`](#band) — 4 keys
+- [`[[basket]]`](#basket) — 5 keys
 - [`[[building]]`](#building) — 22 keys
-- [`[[building]] bins`](#building-bins) — 3 keys
+- [`[[building]] bins`](#building-bins) — 4 keys
+- [`[[building]] bins reserve`](#building-bins-reserve) — 3 keys
 - [`[[business]]`](#business) — 14 keys
 - [`[[hinterland.population]]`](#hinterlandpopulation) — 5 keys
 - [`[[hinterland]]`](#hinterland) — 8 keys
@@ -41,8 +43,9 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[[policy]]`](#policy) — 12 keys
 - [`[[policy]] apply`](#policy-apply) — 4 keys
 - [`[[policy]] transfer`](#policy-transfer) — 4 keys
+- [`[[reserve]]`](#reserve) — 4 keys
 - [`[[resource]]`](#resource) — 5 keys
-- [`[[rule]]`](#rule) — 12 keys
+- [`[[rule]]`](#rule) — 14 keys
 - [`[[rule]] apply`](#rule-apply) — 4 keys
 - [`[[rule]] inputs`](#rule-inputs) — 3 keys
 - [`[[rule]] outputs`](#rule-outputs) — 4 keys
@@ -94,6 +97,32 @@ The display text for this declaration. It reaches the shell's names and nothing 
 **`name`** · *quoted string*
 
 What this density band is called.
+
+---
+
+## `[[basket]]`
+
+*An array of tables — a file may declare this more than once.*
+
+**`id`** · *quoted string*
+
+Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.
+
+**`label`** · *quoted string*
+
+The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.
+
+**`name`** · *quoted string*
+
+What this basket is called. A Rule's basket and a Bin's reserve name it by this.
+
+**`owner`** · *quoted string*
+
+Which actor's daily use this describes: the premises, the occupant Household or the business tenanting them. A Bin sized from this basket must belong to the same one.
+
+**`use_per_day`** · *inline table*
+
+The Goods this basket covers and the whole units one actor uses of each per Day, keyed by [[resource]] name. A Rule naming the basket consumes these at that rate however often it fires, so a daily quantity need not divide evenly across firings. Money is refused here.
 
 ---
 
@@ -203,9 +232,31 @@ How much of that Resource the Bin holds when full. Refused on a money Bin, which
 
 Whose Bin this is: the premises', or the tenant's. It is what makes a Rule over this Bin the tenant's Rule rather than the Building's, and a tenant's Bins live exactly as long as the tenancy. Absent means the premises own it.
 
+**`reserve`** · *inline table*
+
+Sizes this Bin as Days of cover instead of a literal capacity, naming the basket that empties it and the profile that says how many Days. Changing what the basket uses moves every Bin sized from it. Refused beside capacity, and on a money Bin.
+
 **`resource`** · *quoted string*
 
 Which Resource this Bin holds, naming a [[resource]]. One Bin per Resource per kind.
+
+---
+
+## `[[building]] bins reserve`
+
+*An array of tables — a file may declare this more than once.*
+
+**`basket`** · *quoted string*
+
+Which [[basket]] this Bin empties into, naming the daily use that the Days multiply. The basket must name this Bin's Resource and belong to the same owner.
+
+**`days`** · *whole number*
+
+Holds this one Bin for a different number of Days than its profile states. It is an exception in Days and not in units, so a change to the basket still moves it; removing the key returns the Bin to the profile.
+
+**`profile`** · *quoted string*
+
+Which [[reserve]] supplies the Days this Bin holds. Every Bin naming it moves together when its Days change.
 
 ---
 
@@ -539,6 +590,28 @@ Which side it arrives at — typically global, the treasury.
 
 ---
 
+## `[[reserve]]`
+
+*An array of tables — a file may declare this more than once.*
+
+**`days`** · *whole number*
+
+How many Days of a basket's use a Bin sized from this profile holds. It is the shared number; a Bin may state its own days to hold a different span.
+
+**`id`** · *quoted string*
+
+Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.
+
+**`label`** · *quoted string*
+
+The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.
+
+**`name`** · *quoted string*
+
+What this reserve is called. A Bin's reserve profile names it by this.
+
+---
+
 ## `[[resource]]`
 
 *An array of tables — a file may declare this more than once.*
@@ -572,6 +645,10 @@ Which Household Need this Resource feeds when it is consumed. Only sustenance an
 **`apply`** · *inline table*
 
 How many times the Rule's terms are applied on one firing: either a band, or a count derived from a Readout. Never both — below a band's minimum is a failure and a derived zero is a success, so the two have colliding failure semantics.
+
+**`basket`** · *quoted string*
+
+Takes this Rule's inputs from a shared [[basket]] instead of listing them, at the basket's daily rate. Refused beside inputs or outputs, and requires a fixed apply count of one, because a daily quantity is spent once per firing.
 
 **`fills`** · *inline table*
 
@@ -612,6 +689,10 @@ What the Rule produces on each application, into a Bin or onto a Map Layer.
 **`rate`** · *whole number*
 
 How often a Rule Instance re-arms, in Ticks — its reschedule interval. Distinct from the sweep interval a Zone Rule or a Policy states: a Bin Rule is armed per Building on the Event Wheel, not swept over the city.
+
+**`recipe`** · *quoted string*
+
+Names a shared [[recipe]] supplying this Rule's inputs and outputs together. Refused: this build resolves a basket only.
 
 **`reports`** · *quoted string*
 

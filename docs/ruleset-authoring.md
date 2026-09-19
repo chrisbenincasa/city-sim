@@ -11,8 +11,10 @@ captures manifests, frames bundle identity, collects typed declarations with loc
 and resolves them deterministically by lowering into the single-file reader. `RulesetBundle` writes
 and reads the stored bundle described below. Both hosts load a package through `RulesetSource`, and
 CitySave envelope version 2 stores its bundle, so a package city saves and reloads without its
-source directory. Shared baskets, recipe references and reserve selections are refused as
-unimplemented. The disposable prototype demonstrates
+source directory. `[[basket]]` and `[[reserve]]` are implemented: a Rule's `basket` supplies its
+input terms at a daily rate, a Bin's `reserve` derives its capacity, and `rulesets/stocked.toml`
+demonstrates both against a quantity that does not divide evenly across firings. `[[recipe]]` and a
+Rule's `recipe` reference are still refused as unimplemented. The disposable prototype demonstrates
 shared maintenance and impact reports; the factored representation and bakery contract establish
 bounded design evidence. They are not production loaders or substitutes for Core mechanics.
 [Plan 0077](../plans/0077-ruleset-source-loading.md) captures loader and guide implementation;
@@ -197,7 +199,7 @@ All resulting capacities must fit existing Core bounds. Literal capacities remai
 Do not silently deduplicate an explicit consumption Rule and a basket Rule: existing conflicts
 are refusals and the impact report shows every actual Rule attachment.
 
-For example, these are proposed source v1 declarations, **not runnable with today's loader**:
+For example, these declarations load today. `rulesets/stocked.toml` is the shipped demonstration:
 
 ```toml
 [[basket]]

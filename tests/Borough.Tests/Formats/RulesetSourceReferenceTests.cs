@@ -1,3 +1,4 @@
+using Borough.Core.Rules;
 using Borough.Formats;
 using static Borough.Tests.Formats.SourcePackage;
 
@@ -127,6 +128,72 @@ public sealed class RulesetSourceReferenceTests
             "dwelling.toml:8:5: [[building]] 'dwelling': ",
             refusal.ToString(),
             StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A shared definition is a member like any other: a Rule and a Bin in one file resolve into a
+    /// basket and a reserve declared in another, whichever order the members sort in.
+    /// </summary>
+    private const string SharedDefinitions = """
+        [[basket]]
+        id = "basic"
+        label = "Weekly basics"
+        owner = "occupant"
+        use_per_day = { sundries = 250 }
+
+        [[reserve]]
+        id = "standard"
+        days = 3
+        """;
+
+    private const string SizedDwelling = """
+        [[building]]
+        id = "dwelling"
+        houses = true
+        premises = true
+        bins = [
+          { resource = "sundries", reserve = { profile = "standard", basket = "basic" }, owner = "occupant" },
+          { resource = "repairs",  capacity = 4 },
+        ]
+
+        [[rule]]
+        id     = "consume"
+        kind   = "dwelling"
+        rate   = 32
+        apply  = { min = 1, max = 1 }
+        basket = "basic"
+        """;
+
+    [Fact]
+    public void A_basket_and_a_reserve_resolve_across_members()
+    {
+        RulesetSourceResult result = Accepted(
+            ("dwelling.toml", SizedDwelling),
+            ("goods.toml", Goods),
+            ("shared.toml", SharedDefinitions));
+
+        Assert.Equal(750, result.Ruleset!.BinsOf(1)[0].Capacity.Units);
+        Assert.True(result.Ruleset.Inputs(new RuleId(1))[0].PerDay);
+
+        // The label reaches the shell's names, and the id never does.
+        Assert.Contains(
+            result.Declarations, d => d.Section == "basket" && d.Id == "basic");
+    }
+
+    [Theory]
+    [InlineData("\nbasket = \"basic\"", "\nbasket = \"pantry\"", "basket")]
+    [InlineData("profile = \"standard\"", "profile = \"deep\"", "reserve")]
+    public void A_shared_definition_reference_names_its_own_section(
+        string written, string broken, string target)
+    {
+        RulesetDiagnostic refusal = Refused(
+            RulesetDiagnosticCode.Reference,
+            ("dwelling.toml", SizedDwelling.Replace(written, broken, StringComparison.Ordinal)),
+            ("goods.toml", Goods),
+            ("shared.toml", SharedDefinitions));
+
+        Assert.Equal("dwelling.toml", refusal.Path);
+        Assert.Contains($"no [[{target}]]", refusal.Reason, StringComparison.Ordinal);
     }
 
     /// <summary>
