@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Borough.Core/Borough.Core.csproj" />
+    <ProjectReference Include="../../src/Borough.Formats/Borough.Formats.csproj" />
+    <Compile Include="../../src/Borough.Godot/CitySave.cs" Link="CitySave.cs" />
+  </ItemGroup>
+</Project>

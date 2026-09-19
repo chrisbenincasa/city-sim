@@ -615,6 +615,13 @@ public partial class Main
                     RestoreInspectionScroll(_roadScroll);
                     break;
                 }
+                if (!_selectedHousehold.IsNone && !_world.Buildings.Rows.IsValid(_selectedBuilding))
+                {
+                    CloseInspection();
+                    Ui("city refresh");
+                    Ui("city on");
+                    break;
+                }
                 _selectedHousehold = default;
                 _inspectionSignature = string.Empty;
                 RefreshInspection(true);
@@ -686,17 +693,22 @@ public partial class Main
                 RestoreInspectionScroll(0);
                 break;
             case "household" when words.Length == 2 && ulong.TryParse(words[1], out ulong id):
-                if (!_world.Buildings.Rows.IsValid(_selectedBuilding)) break;
-                foreach (Handle<Household> household in Evidence.OfBuilding(_world, _selectedBuilding).Occupants.Span)
-                {
-                    if (RowId(_world.Households.Rows, household) != id) continue;
-                    if (_selectedHousehold.IsNone) _buildingScroll = _inspectionScroll.ScrollVertical;
-                    _selectedHousehold = household;
-                    _inspectionSignature = string.Empty;
-                    RefreshInspection(true);
-                    RestoreInspectionScroll(0);
-                    break;
-                }
+                var household = InformationHandle(_world.Households.Rows, id);
+                if (household.IsNone) break;
+                int householdSlot = _world.Households.Rows.Resolve(household);
+                if (_selectedHousehold.IsNone) _buildingScroll = _inspectionScroll.ScrollVertical;
+                _selectedHousehold = household;
+                if (_selectedBuilding != _world.Households.Dwelling[householdSlot]) _roadParent = default;
+                _selectedBuilding = _world.Households.Dwelling[householdSlot];
+                _selectedBusiness = default;
+                _selectedRoad = default;
+                _healthInspection = false;
+                _selectedGround ??= Aim() ?? (new Tiles(0), new Tiles(0));
+                _cityShown = false;
+                _inspectionSignature = string.Empty;
+                RefreshInspection(true);
+                RestoreInspectionScroll(0);
+                LayoutInformation();
                 break;
             case "stocks" or "finances" when words.Length == 1:
                 _expanded[SectionKey(words[0])] = true;
@@ -936,6 +948,8 @@ public partial class Main
         var sections = new List<InformationSection>();
         string title, identity;
         _inspectionBack.Visible = !_selectedBusiness.IsNone || !_selectedHousehold.IsNone || !_roadParent.IsNone;
+        if (!_selectedHousehold.IsNone && _world.Households.Rows.TryResolve(_selectedHousehold, out int selectedRow))
+            _selectedBuilding = _world.Households.Dwelling[selectedRow];
         if (!_selectedBusiness.IsNone)
             BusinessInformation(sections, out title, out identity);
         else if (_healthInspection)
@@ -976,7 +990,7 @@ public partial class Main
         _inspectionCondition.Text = sections.FirstOrDefault(s => s.Key == "summary")?.Rows.FirstOrDefault()?.Text ?? "";
         _inspectionCondition.TooltipText = _inspectionCondition.Text;
         _inspectionBack.Text = _world.Buildings.Rows.IsValid(_selectedBuilding)
-            ? $"‹ Building {RowId(_world.Buildings.Rows, _selectedBuilding)}" : "‹ Former Building";
+            ? $"‹ Building {RowId(_world.Buildings.Rows, _selectedBuilding)}" : !_selectedHousehold.IsNone ? "‹ City Evidence" : "‹ Former Building";
         if (_selectedBusiness.IsNone && _selectedHousehold.IsNone && !_roadParent.IsNone)
             _inspectionBack.Text = $"‹ Road Segment {RowId(_world.Roads.Segments.Rows, _roadParent)}";
         if (!_selectedBusiness.IsNone && !_selectedHousehold.IsNone)
@@ -1142,6 +1156,17 @@ public partial class Main
         return new("stocks", onlyHousehold ? "Household stocks" : "Stocks", false, rows);
     }
 
+    private static string HousingSearchSummary(HousingSearchReading reading) => reading.Current switch
+    {
+        HousingSearchReason.Capacity => "No available home has room for this Household.",
+        HousingSearchReason.Affordability => "Available homes are beyond this Household's budget.",
+        HousingSearchReason.Suitable => "Existing vacancies still count as options. Waiting for a placement search.",
+        HousingSearchReason.Preference when reading.Persistent => "Available homes consistently fall short of this Household's preferences. A suitable addition can now be considered.",
+        HousingSearchReason.Preference => "Affordable vacancies fall short of this Household's preferences. Waiting for repeated searches over time.",
+        HousingSearchReason.CoverageLimit => "The housing search cannot cover all current homes within its limits.",
+        _ => "No construction assessment is available under this Ruleset.",
+    };
+
     private void HouseholdInformation(List<InformationSection> sections, out string title, out string identity)
     {
         identity = "HOUSEHOLD";
@@ -1163,6 +1188,25 @@ public partial class Main
             sections.Add(Attention(evidence, _selectedHousehold, true));
             sections.Add(Attention(evidence, _selectedHousehold, true, true));
             sections.Add(Stocks(evidence, _selectedHousehold, true));
+        }
+        if (!housed)
+        {
+            for (int i = 0; i < _world.UnplacedPool.Count; i++)
+            {
+                if (_world.UnplacedPool.At(i) != _selectedHousehold) continue;
+                var reading = HousingSearchEvidence.Read(_world, i);
+                var rows = new List<InformationRow> { new(HousingSearchSummary(reading)) };
+                if (reading.Current == HousingSearchReason.Preference)
+                    rows.Add(new("Rent and location are compared with this Household's Outside option."));
+                if (reading.Current == HousingSearchReason.Preference && reading.Observed)
+                {
+                    rows.Add(new($"Observed for {reading.ElapsedTicks:N0} of {reading.RequiredTicks:N0} Ticks · last checked at Tick {reading.LastObserved:N0}."));
+                    rows.Add(new(reading.Fresh ? "Recent search evidence." : "Evidence is stale; another search must restart the wait."));
+                }
+                rows.Add(new("Construction also needs permitted land and a suitable Building that fits."));
+                sections.Add(new("housing-search", "Looking for a home", true, rows));
+                break;
+            }
         }
         if (_world.Rules.Needs.Runs)
         {
@@ -1367,6 +1411,14 @@ public partial class Main
                 Read = _cityRead,
                 ReadAt = _cityRead ? _cityReading.ReadAt.Raw : 0,
                 BuildingsRead = _cityRead ? _cityReading.BuildingsRead : 0,
+                SeekingHouseholds = _cityRead ? _housingCount : 0,
+                HousingFrom = _housingFrom,
+                Housing = _cityRead ? _housingReading.Select(seeker => new
+                {
+                    seeker.Id,
+                    Summary = HousingSearchSummary(seeker.Reading),
+                    seeker.Reading,
+                }).ToArray() : [],
                 OpenGroup = _cityGroup,
                 From = _cityFrom,
                 Groups = _cityRead

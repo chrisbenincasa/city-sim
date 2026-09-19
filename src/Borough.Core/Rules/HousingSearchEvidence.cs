@@ -6,9 +6,29 @@ namespace Borough.Core.Rules;
 
 public enum HousingSearchReason : byte { None, CoverageLimit, Capacity, Affordability, Suitable, Preference }
 
+/// <summary>A read-only current comparison and the saved observation interval.</summary>
+public readonly record struct HousingSearchReading(HousingSearchReason Current, bool Observed,
+    bool Fresh, bool Persistent, ulong ElapsedTicks, ulong RequiredTicks, ulong LastObserved);
+
 /// <summary>Bounded observations of current homes, separate from read-only construction matching.</summary>
 public static class HousingSearchEvidence
 {
+    public static HousingSearchReading Read(World world, int position)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(position);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(position, world.UnplacedPool.Count);
+        var pool = world.UnplacedPool;
+        ulong first = pool.MismatchSince[position], last = pool.MismatchObserved[position];
+        bool observed = pool.SearchReason[position] == (byte)HousingSearchReason.Preference;
+        bool fresh = observed && first <= last && last <= world.Tick.Raw
+            && world.Rules.HousingConstruction is { } rules
+            && world.Tick.Raw - last <= (ulong)rules.PreferenceFreshnessTicks;
+        var current = Current(world, world.Key, position);
+        return new(current, observed, fresh, current == HousingSearchReason.Preference && Persistent(world, position),
+            observed && first <= last ? last - first : 0,
+            (ulong)(world.Rules.HousingConstruction?.PreferencePersistenceTicks ?? 0), last);
+    }
+
     internal static HousingSearchReason Current(World world, WorldKey key, int position)
     {
         if (world.Rules.HousingConstruction is not { } rules) { return HousingSearchReason.None; }

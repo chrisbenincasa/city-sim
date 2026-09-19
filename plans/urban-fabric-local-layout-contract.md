@@ -399,5 +399,7 @@ stale gap. The focused demonstration compresses these to 8, 4 and 0.10 to exerci
 
 The [construction validation](evidence/urban-fabric/housing-construction.md) records capacity-shortage
 coverage. The [preference validation](evidence/urban-fabric/preference-mismatch.md) covers the new
-saved episodes and continued automatic construction. Numeric intensity caps, larger arrangements,
-District trade assembly and shell controls remain separate follow-ups.
+saved episodes and continued automatic construction. The [playable neighbourhood](../examples/UrbanNeighbourhood/README.md)
+exposes current comparisons and saved episodes in City Evidence and individual Household inspection.
+Numeric intensity caps, larger arrangements, District trade assembly and intensity/form controls
+remain separate follow-ups.

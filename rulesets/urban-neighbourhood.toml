@@ -1,0 +1,98 @@
+# Playable housing demonstration, not a balanced economy. Export with examples/UrbanNeighbourhood.
+# Two resident Households and two arriving Households share one street. Existing rents are
+# affordable but worse than Outside; the permitted new terrace offers a lower rent.
+# Provisional timing: 256 Ticks of repeated failed searches, 64-Tick freshness. High choice
+# sensitivity makes this controlled contrast reliable; it is not proposed game balance.
+[[resource]]
+name = "sundries"
+family = "good"
+[[resource]]
+name = "money"
+family = "money"
+[[building]]
+name = "dwelling"
+houses = true
+bins = [{ resource = "sundries", capacity = 48 }]
+[roads]
+block_tiles = 64
+arterial_count = 0
+arterial_junction_tiles = 512
+foot_crossing_every = 4
+foot_paths_per_thousand_blocks = 40
+street_speed_kph = 50
+arterial_speed_kph = 90
+walk_speed_kph = 5
+street_capacity_per_hour = 3600
+arterial_capacity_per_hour = 12000
+foot_path_capacity_per_hour = 1000
+[lots]
+lots_per_segment = 5
+setback_tiles = 2
+[capacity]
+floor_tiles_per_occupant = 128
+floor_tiles_per_job = 1
+floor_tiles_per_parking_space = 6
+[housing_construction]
+preference_persistence_ticks = 256
+preference_freshness_ticks = 64
+preference_margin_percent = 10
+max_seekers = 16
+max_building_slots = 4096
+max_lot_slots = 4096
+max_sources = 3
+max_candidates = 32
+surplus_percent = 0
+max_surplus = 0
+alignment_bonus = 2
+same_form_bonus = 1
+[[housing_form]]
+name = "terrace"
+pattern = 2
+min_frontage_tiles = 12
+max_frontage_tiles = 12
+min_depth_tiles = 16
+max_depth_tiles = 16
+storeys = 2
+setback_tiles = 0
+weight = 4
+[[housing_form]]
+name = "courtyard"
+pattern = 3
+min_frontage_tiles = 24
+max_frontage_tiles = 24
+min_depth_tiles = 16
+max_depth_tiles = 16
+storeys = 2
+setback_tiles = 0
+weight = 4
+
+[[zone_rule]]
+name = "housing"
+kind = "dwelling"
+zone = 0
+interval = 1
+revisit_ticks = 1
+
+[[building]]
+name = "existing homes"
+houses = true
+rent = 50
+bins = [{ resource = "sundries", capacity = 48 }]
+[[building]]
+name = "arrival gate"
+arrivals_per_day = 2
+[placement]
+interval = 8
+revisit_ticks = 8
+candidates = 3
+gives_up_after_days = 20
+mu_percent = 10000
+centrality_tiles_per_unit = 2048
+rent_per_unit = 120
+moving_costs_rent = 0
+[[hinterland]]
+edge = "west"
+rent = 25
+centrality_tiles = 0
+emigrant_balance_min = 100
+emigrant_balance_max = 100

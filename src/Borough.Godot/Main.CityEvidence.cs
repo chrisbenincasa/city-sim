@@ -19,6 +19,8 @@ public partial class Main
     private bool _cityShown;
     private CityEvidence _cityReading;
     private bool _cityRead;
+    private readonly List<(ulong Id, HousingSearchReading Reading)> _housingReading = [];
+    private int _housingFrom, _housingCount;
     private int _cityGroup = -1, _cityFrom;
     private CityCause? _cityCause;
     private string _citySignature = string.Empty;
@@ -80,6 +82,11 @@ public partial class Main
     private void ReadCity()
     {
         _cityReading = Evidence.OfCity(_world);
+        _housingReading.Clear();
+        _housingCount = _world.UnplacedPool.Count;
+        _housingFrom = Math.Min(_housingFrom, Math.Max(0, _housingCount - 1));
+        for (int i = _housingFrom; i < Math.Min(_housingFrom + CityPage, _housingCount); i++)
+            _housingReading.Add((RowId(_world.Households.Rows, _world.UnplacedPool.At(i)), HousingSearchEvidence.Read(_world, i)));
         _cityRead = true;
         _citySignature = string.Empty;
         _cityGroup = -1;
@@ -233,7 +240,7 @@ public partial class Main
         if (!_cityShown) return;
 
         string signature =
-            $"{_cityRead}|{_cityReading.ReadAt.Raw}|{_cityGroup}|{_cityFrom}|{_textPercent}|{_washing}";
+            $"{_cityRead}|{_cityReading.ReadAt.Raw}|{_cityGroup}|{_cityFrom}|{_housingFrom}|{_textPercent}|{_washing}";
         if (signature == _citySignature) return;
         _citySignature = signature;
 
@@ -254,7 +261,7 @@ public partial class Main
         var head = new HBoxContainer();
         head.AddChild(Fixed(
             _cityRead
-                ? $"{attention:N0} subjects need attention · {_cityReading.BuildingsRead:N0} Buildings read"
+                ? $"Building activity: {attention:N0} need attention · {_cityReading.BuildingsRead:N0} Buildings read"
                 : "Nothing read yet",
             SecondaryPoints));
         head.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
@@ -266,9 +273,24 @@ public partial class Main
             SecondaryPoints));
         _cityBody.AddChild(head);
 
+        if (_cityRead)
+        {
+            _cityBody.AddChild(Filled($"Looking for a home · {_housingCount:N0} Households", InformationUi.BodyPoints));
+            for (int i = 0; i < _housingReading.Count; i++)
+            {
+                var seeker = _housingReading[i];
+                _cityBody.AddChild(InformationButton($"Household {seeker.Id} →", () => Ui($"household {seeker.Id}")));
+                _cityBody.AddChild(Filled(HousingSearchSummary(seeker.Reading)));
+            }
+            if (_housingFrom > 0)
+                _cityBody.AddChild(InformationButton("Previous Households", () => Ui($"city housing {Math.Max(0, _housingFrom - CityPage)}")));
+            if (_housingFrom + CityPage < _housingCount)
+                _cityBody.AddChild(InformationButton("More Households", () => Ui($"city housing {_housingFrom + CityPage}")));
+        }
+
         if (_cityRead && groups.Length == 0)
         {
-            _cityBody.AddChild(Filled("Nothing in the city is stopped."));
+            _cityBody.AddChild(Filled("No Building activity is stopped."));
             return;
         }
 
@@ -369,6 +391,10 @@ public partial class Main
                 _cityFrom = 0;
                 _citySignature = string.Empty;
                 Retrouble();
+                return true;
+            case "housing" when words.Length == 3 && int.TryParse(words[2], out int housingFrom):
+                _housingFrom = Math.Clamp(housingFrom, 0, Math.Max(0, _housingCount - 1));
+                ReadCity();
                 return true;
             case "from" when words.Length == 3 && int.TryParse(words[2], out int from):
                 _cityFrom = Math.Max(0, from);
