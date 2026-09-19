@@ -1078,6 +1078,10 @@ public static class SyntheticCity
         // so on this path a Household target and a Lot target are the same number.
         if (blocks <= 0 || !world.Rules.Lots.Runs)
         {
+            int completeRows = IntegerMath.FloorDiv(wanted, LotsPerRow);
+            if (completeRows > 0) { world.PaintUsePermissions(new LandRectangle(0, 0, LotsPerRow, completeRows), Housing); }
+            int remainder = wanted % LotsPerRow;
+            if (remainder > 0) { world.PaintUsePermissions(new LandRectangle(0, completeRows, remainder, 1), Housing); }
             for (int i = 0; i < wanted; i++)
             {
                 world.Lots.Create(

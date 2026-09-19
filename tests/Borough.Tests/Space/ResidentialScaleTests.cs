@@ -130,7 +130,8 @@ public sealed class ResidentialScaleTests
         int painted = Enumerable.Range(0, world.Lots.Rows.SlotCount)
             .Count(i => world.Lots.Rows.IsLive(i) && world.Lots.Zone[i] == LotTable.Housing);
         Assert.Equal(1, painted);
-        Assert.True(world.Lots.Rows.LiveCount > 1);
+        Assert.Equal(1, world.Lots.Rows.LiveCount);
+        Assert.Equal((ushort)0, world.LandPermissions.At(39, 35).Uses);
         ulong hash = world.HashState();
         Assert.Equal(0, LotSubdivider.PaintParcelAt(world, new Tiles(35), new Tiles(35), LotTable.Housing));
         Assert.Equal(0, LotSubdivider.PaintParcelAt(world, new Tiles(48), new Tiles(48), LotTable.Housing));

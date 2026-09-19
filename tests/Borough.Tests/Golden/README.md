@@ -712,3 +712,12 @@ the baseline Ruleset content hashes and hash algorithm/seed do not change. The n
 state, refusal/no-op identity, rebuilt links and continued allocation after load are exercised by
 `LandPermissionTests` and the derived rebuild audit. Gameplay paint still uses the legacy path
 until the reader migration slice.
+
+
+### Geographic permission reader migration (2026-09-18)
+
+Both traces deliberately changed: permission paint now owns saved geographic rectangles, Lot/Block
+masks are derived, and standing-housing searches draw live declared housing Buildings in monotonic
+id order rather than future-housing-painted Lots. Empty land no longer consumes housing attempts.
+The hand-built golden world explicitly paints its ground. Ruleset files and the hash seed are
+unchanged; the Core save version is 8 because saved column disposition changed.

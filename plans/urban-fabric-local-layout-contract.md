@@ -153,75 +153,45 @@ through a blanket replacement of every zone lookup.
 
 ## Permission-reader migration audit
 
-Traced at `ebab65f`. Searched direct Lot/Block zone and band access, permission setters, band
-admission and all `LotsAdmitting` consumers across Core, Godot and Headless. This is a migration
-map for this slice, not a new backlog. The findings below are code traces; the suggested fixes are
-not implemented.
+The migration below is implemented. Geographic permissions are authoritative; Lot and Block masks
+are derived summaries. Saved realised Lot geometry remains authoritative after local assembly.
 
-| Reader or writer | Meaning and required migration |
+| Reader or writer | Contract |
 |---|---|
-| `ZoneRuleEngine.Admits`, `World.BandAdmitting` | Future construction. Replace Lot/block summaries with complete proposed-site permission checks. Keep Zone Rule sampling independent of admission, so repainting cannot prevent an existing Building's decline assessment. |
-| `PlacementEngine.TryHouse` | Standing housing search. Stop deriving eligibility from future-development paint; discover actual declared housing Buildings, then apply current capacity, abandonment, affordability and preference checks. |
-| `PlacementEngine.ProspectCrosses(int, int, Ticks)` and `Compare(ArrivalProspect, ...)` | Both legacy gate admission and current prospect comparisons sample housing-painted Lots. Migrate both to the same standing-housing discovery contract; neither should advertise empty zoned ground as a home. |
+| `ZoneRuleEngine.Admits`, `World.BandAdmitting` | Future construction. Uses complete-site permission checks. Keep Zone Rule sampling independent of admission, so repainting cannot prevent an existing Building's decline assessment. |
+| `PlacementEngine.TryHouse` | Standing housing search. Discovers actual declared housing Buildings, then applies current capacity, abandonment, affordability and preference checks. |
+| `PlacementEngine.ProspectCrosses(int, int, Ticks)` and `Compare(ArrivalProspect, ...)` | Both paths use standing-housing discovery; neither advertises empty zoned ground as a home. |
 | `PlacementEngine.PrefersSomewhereElse` | Moves by already-housed Households. Although excluded from the initial construction signal, this existing search must use actual housing availability rather than future land permission. |
 | `PlacementEngine.Tenant`, `World.HasRoomForPremises`, `World.HasRoomForHousehold` | Existing Building use. The Business search already samples Lots and checks the standing Building's declared capability/capacity without a zone gate. Preserve that separation for both kinds of occupant. |
-| `ZonedLots`, `World.RebuildDerived` and invalidation sites | Currently a cache of painted Lots, including empty ones. Keep any land-discovery cache separate from a standing-housing index. Define rebuild/invalidation for construction, destruction, abandonment, changed kind declarations and capacity changes according to what the new index stores. |
+| `ZonedLots`, `World.RebuildDerived` and invalidation sites | A cache of derived common-use summaries, including vacant Lots. Keep any land-discovery cache separate from a standing-housing index. Define rebuild/invalidation for construction, destruction, abandonment, changed kind declarations and capacity changes according to what the new index stores. |
 | `LotSubdivider.PaintAt`, `PaintParcelAt`, `World.ZoneBlock`, `BandBlock` | Write geographic permissions through one authority. Painting must not rewrite realised geometry or invalidate standing housing solely because paint changed. Whole-block operations and fixture setup use the same permission write contract. |
 | `LotSubdivider.Preview`, `SubdivideBlock`, `RecarveBlock`, `Resubdivide` | Geometry and future permission are currently combined through one block pattern. Preview realised Lots; initial carving and local assembly query actual ground. Road edits preserve permissions where empty Lots disappear. |
 | `DistrictWatershed.HeldForTrade`, `ComponentOf`, `WorldInvariants.HoldsGroundForTrade` | Actual future-land meaning: vacant trade Lots contribute to District formation near built ground and supply a road component. Migrate the operator and invariant together, preserving this deliberate vacant-trade behaviour. Do not replace it with standing Businesses alone. |
 | `Evidence.AdmittedByAnyRule`, `Evidence.Lot`, `LotEvidence` | Future-construction explanations. Share the read-only permission refusal logic with construction rather than duplicate a weaker check. Describe mixed geographic permissions without implying one mask fully represents the site. |
-| `Main.Zoning` overlay and brush previews, `Main.Readout` | Draw/read geographic permission independently of realised Lot and Building geometry. Current overlay falls back to block paint where no fronted Lots exist; that must become actual painted ground. Parcel selection uses current parcel bounds. Requires a driven visual check when implemented. |
+| `Main.Zoning` overlay and brush previews, `Main.Readout` | Draw/read geographic permission independently of realised Lot and Building geometry. The overlay draws actual geographic permission rectangles. Parcel selection uses current parcel bounds. Verified with the driven demonstration below. |
 | `KindDump` painted-mask aggregation and `ZoneDump` Lot output | Diagnostics of future permission, not proof that a standing kind is unusable. Keep the meaning explicit and represent mixed ground without substituting a permissive union for site admission. |
 | `SyntheticCity` initial housing selection and band/zone setup | Fixture construction intent. Populate geographic permissions before creating Lots/Buildings; distinguish deliberate fixture construction from an automatic development decision. Preserve explicit setup paths and re-record deliberate behaviour changes. |
 | `Simulation.RefuseService`, `RefuseGate`, `World.CreateBuilding` | Separate explicit player-placement paths use kind, vacancy, budget and gate-edge checks, not Zone Rule admission today. Do not add a generic zoning gate to `CreateBuilding` and silently change those command contracts. New form/intensity controls must define their applicability before shell integration. |
 
-### Confirmed couplings and omissions
+### District land accounting
 
-**Repaint can hide a standing home from search.** `PaintAt`/`PaintParcelAt` change `Lots.Zone` and
-invalidate `LotsAdmitting`; `ZonedLots.Rebuild` indexes only the new painted bits. All four Household
-search paths above draw from its Housing list. `Consider` would still admit a declared, affordable
-home with capacity, but never sees it if the new paint excludes housing. Existing repaint tests
-assert that Buildings remain and that the painted index updates; they do not assert that the
-standing homes remain discoverable. This is current behaviour, not just a hypothetical migration
-risk. Keep the correction within this slice and add direct placement/arrival/reassessment checks.
-
-**Vacancy explanations use a weaker permission check.** `Evidence.AdmittedByAnyRule` checks only
-`Lots.Zone & ZoneRule.Admits`; construction also checks `World.BandAdmitting`. The current evidence
-test covers an unpainted use bit, not a use allowed by paint but refused by its band. Add that case
-before extending the explanation to form restrictions. This identifies an omitted refusal reason,
-not a claim that every band-refused Lot is currently labelled healthy or built.
-
-**Parcel counts have a District consequence.** `HeldForTrade` increments once per vacant trade Lot,
-not per area of painted land. Local merging/splitting can therefore change this signal without
-changing the ground's permission. The first housing-only geometry demonstration does not settle
-trade redevelopment. Preserve the current signal during the permission-storage migration and
-explicitly resolve its geometric meaning before admitting trade-site assembly; do not silently
-switch to Tile counts, which would change the field's units and tuning.
+`HeldForTrade` still increments once per vacant trade Lot, using its derived common-use mask.
+Operator and invariant retain the same units. Housing-only assembly does not settle trade
+redevelopment: resolve how trade merging/splitting should affect that field before enabling it.
 
 ### Standing-housing discovery contract
 
-Prefer a derived list of live, declared housing Buildings, independent of future paint. Keep the
-existing per-candidate capacity, abandonment, balance and preference checks in one shared path.
-Whether abandoned/full Buildings remain in that list affects search sampling, so define membership
-and sampling order explicitly rather than claiming this index substitution preserves behaviour.
-Use deterministic ordering and maintain/rebuild the index from actual Building state and Ruleset
-declarations. Household placement, both arrival comparisons and relocation use it consistently.
+`StandingHousing` indexes live declared housing Buildings in ascending monotonic Building-id order.
+Full and abandoned Buildings remain candidates; the existing shared capacity, abandonment, balance
+and preference checks decide availability. Creation, destruction and Ruleset adoption invalidate the
+index; save/load rebuilds it. Repaint does not change membership. Household placement, both arrival
+comparisons and relocation all use this index. Vacant zoned Lots no longer consume housing attempts.
+This deliberately changes individual draws and replay hashes even without repainting.
 
-Tests must cover a partially occupied housing Building repainted to trade and to unzoned land:
-the Building and existing occupants remain, a new seeker can still consider a vacant tenancy,
-while new housing construction on that ground is refused. Also cover absent, non-housing, full,
-unaffordable and abandoned Buildings, Ruleset reload, demolition, and save/load. Do not turn every
-occupied Lot into a housing candidate or treat losing frontage as a new permission restriction.
-
-This change deliberately alters candidate populations and therefore may change draws and State
-Hashes even without repainting: empty zoned Lots previously consumed search attempts. Existing
-`PlacementTests.A_city_of_mostly_empty_lots_houses_slowly` specifically exercises that behaviour.
-Review that expectation and resulting placement pace; preserve bounded individual sampling rather
-than claim that all historical test expectations remain applicable. Re-record golden behaviour
-deliberately after the chosen index contract is implemented.
-
-The reader audit is complete for the direct accesses and index consumers above. The geographic
-storage and local assembly foundations are implemented; reader migration remains the next work.
+Tests cover repaint to trade and unzoned ground with an existing resident and a remaining tenancy,
+both arrival comparisons, identical relocation choices, demolition, shared form/intensity refusal,
+save/load and derived rebuild.
+Existing capacity, abandonment, affordability and reassessment tests remain active.
 
 ## Implemented geographic storage foundation
 
@@ -245,25 +215,15 @@ is allocation headroom, not saved state; existing high-water capacity is retaine
 The [C# measurement](evidence/urban-fabric/permission-storage-csharp.md) records actual allocated
 memory and the additional staging/growth costs.
 
-Core save format is now **7**; earlier versions are explicitly refused, with no inferred migration
+Core save format is now **8** (Lot/Block permission summaries are derived); earlier versions are explicitly refused, with no inferred migration
 from block/Lot paint. The Formats CitySave envelope stays unchanged. Appending the permission table
 intentionally changes State Hash composition; the three golden outputs are re-recorded under the
 existing procedure. The hash algorithm/seed and baseline Ruleset content hashes are unchanged.
 
-This is an isolated Core foundation: existing Block/Lot paint, gameplay permission readers,
-standing-housing sampling, Input commands and shell controls still use their prior contracts.
-They must move together to the geographic authority before this API becomes playable zoning;
-there is no automatic copying between competing sources. Automatic housing selection remains a
-later integration slice. The next step is the audited reader and road-edit migration above.
-
-Baseline verification on 2026-09-18 at `ebab65f`: 57 tests passed with
-`scripts/test.sh --filter '(FullyQualifiedName~PlacementTests|FullyQualifiedName~PlacementChoiceTests|FullyQualifiedName~BandAdmissionTests|FullyQualifiedName~ZonedLotsTests)&tier!=instrument'`;
-26 passed with
-`scripts/test.sh --filter '(FullyQualifiedName~ZoningPaintTests|FullyQualifiedName~EvidenceTests.A_lot_the_assembler_calls_unzoned_is_a_lot_nothing_builds_on|FullyQualifiedName~DistrictWatershedTests)&tier!=instrument'`.
-These exercise existing behaviour. No production code or regression tests were changed for this
-audit; the repaint/search and band-explanation findings follow from the traced predicates, not a
-new end-to-end reproduction. The migration checks above still need implementation.
-
+Existing gameplay paint now uses this authority. `PaintUsePermissions` and `PaintBandPermissions`
+preserve the other attributes; block painting preflights before allocating a Block. Command refusal
+and application share the same read-only preflight. Abstract worlds without a Street lattice retain
+their existing no-op block-paint behavior.
 
 ## Implemented read-only evaluation and local assembly
 
@@ -272,8 +232,7 @@ rectangular contiguous site along one Street face, vacancy (including the author
 references), depth, access, overlap and Address uniqueness. The entire site must admit housing and
 the requested form under one intensity band. Floor area uses `BuildingPlan.TryFloorTiles`; housing
 capacity subtracts the kind's own Business tenancy when one will actually be fitted. This initial
-operation supports housing kinds only. Broader trade construction and District land accounting
-remain part of the permission-reader migration before gameplay integration.
+operation supports housing kinds only. Trade-site assembly remains deferred until its District land-accounting meaning is resolved.
 
 The immutable proposal captures source identities and geometry, Street identity/epoch, Ruleset,
 Tick, realised plan and capacity. `Simulation.CommitLocalLayout` is an internal Commit-phase
@@ -288,12 +247,13 @@ allocation failure still has the repository's crash semantics. Source Lots retir
 order. The new Lot retains the oldest source's Address, receives saved parcel/footprint/form/storeys,
 and enters `World.CreateBuilding`. Frontage is rebuilt and admission invalidated; the common creation
 path maintains Building residency, fitted contents, access and sealing. Ground permissions are never
-collapsed into the merged Lot. Its legacy Zone is a housing discovery summary only.
+collapsed into the merged Lot. Its Zone is the derived intersection of geographic uses, never standing-housing eligibility.
 
 The existing severable condemnation-history reference stays stale after retirement, even if its slot
-is reused. Normal save/load preserves realised geometry without any new saved columns or format
-revision. The explicit `RebuildParcels`, generated previews and road-edit subdivision still require
-the next migration; the internal assembly path is not yet exposed to those gameplay flows.
+is reused. Normal save/load preserves realised geometry. Preview, parcel selection and painting use those
+saved bounds. Street edits remove vacant unfronted Lots, preserve occupied Lots and their geometry,
+and carve only genuinely free painted ground. Restoring a Street never repaints land or overlaps
+standing merged sites. `RebuildParcels` now rebuilds frontage only. Assembly remains an internal API.
 
 `LocalLayoutTests` makes both walkthrough branches executable. On a 64-Tile Street, five adjacent
 12-by-16 parcels leave W/E standing. Two storeys give a terrace (`BackToBack`) 320 floor Tiles;
@@ -309,3 +269,57 @@ Validation on 2026-09-18: `scripts/test.sh -- -m:1 --no-restore` passed 3,801 te
 cases), log `/tmp/borough-test-20260918-200244.log`. The working lane includes persistence, replay,
 golden and route-worker equivalence coverage; no golden outputs changed. Formatting passed with
 `scripts/format.sh --check -- --no-restore`. The instrument tier was not run for this slice.
+
+
+## Implemented permission and realised-geometry readers
+
+Construction and `Evidence.OfLot` share `World.ConstructionPermission`: the full saved parcel must
+admit the use and realised form under a uniform admitting band. `LandPermissionSummary` separates
+common uses from the diagnostic union and identifies mixed permissions/intensity. Headless CSV
+appends those distinctions; the existing Godot zoning overlay draws actual permission rectangles.
+The existing parcel brush selects saved merged sites. The permission-table allocation layout is
+unchanged from the C# memory measurement; the separate standing-home index is bounded by the live
+Building high-water mark. No new intensity/form controls or automatic
+seeker-driven assembly are included.
+
+The standing-home population change intentionally re-records both golden replay traces. The golden
+world fixture now paints geographic ground explicitly. Save format 8 removes saved Lot/Block masks;
+old-format saves are refused rather than inventing geographic permission from realised geometry.
+
+Long-run findings: the 524,288-Tick market fixture now reaches a later Building high-water mark
+(187 to 203) and a late rise in unpremised Businesses (tail-half means 0.1 to 15.9). It drains cash
+into the treasury and does not establish equilibrium. Its checks now bound Building storage by Lot
+storage and unpremised storage by Business storage, retaining per-reading invariants, conservation,
+Bin/Rule peak checks and market-row tail checks. The evidence fixture's former 33-Day tail showed a
+2.2 rise in worst reach-failure history against a 2.1 three-sigma band. Extending observation to 129
+Days passed with the same 32-Day settling period and three-sigma threshold; this is behavioral
+verification, not a quiet-machine performance claim.
+
+Driven demonstration: `plans/evidence/urban-fabric/readers.drive` on `minimal.toml`, empty world,
+1,000 fixture Citizens, start Tick 256, Debug Godot with a real display. Paint one frontage parcel,
+populate, erase future paint, remove its Street, then restore it. Draw lists show one permission
+rectangle becoming zero while the same Building id, transform and colour remain identical; Street count goes 1 → 0 → 1. The first
+attempt at Tile (8, 8) selected open interior ground and correctly refused; Tile (8, 2) is on a
+frontage parcel. Captures and readouts are in `/tmp/urban-reader-demo`. The dawn capture was too dark,
+so the retained script uses daytime. Core tests separately exercise merged-site geometry and repeated
+road restoration without overlaps or allocator growth.
+
+Next: connect bounded individual housing evidence to candidate site/form evaluation and atomic
+assembly. Keep explicit full-site permissions and occupied-neighbor preservation; trade assembly
+and new shell intensity/form controls remain separate follow-ups.
+
+
+Reader-migration validation on 2026-09-18: all **3,814 working-lane tests passed** with
+`scripts/test.sh -- -m:1 --no-restore --no-build --logger 'console;verbosity=normal'`, log
+`/tmp/borough-test-20260918-214702.log`. This includes replay/golden, save/load, derived rebuild,
+route-worker equivalence, invariants and long-run assertions. Debug Godot built without warnings;
+repository formatting and the final relocation-test whitespace check passed. The broader instrument
+run exposed `ParkingScarcityTests` expecting the obsolete literal `parking = 8` in its unchanged
+fixture, before it starts a simulation. That separate fixture repair is recorded on the backlog.
+
+The pre-fix unfiltered run was stopped after 3,843 passes and five failures: four fixture/contract
+failures subsequently covered by the clean working lane, plus the unrelated parking fixture above.
+It is not a completed or green full-instrument result. The two relevant permission-allocation
+instruments were then run on the committed code and both passed, reproducing **47,188,128 bytes**
+at the record budget and **1,048,600 bytes** for oversized refusal without mutation; log
+`/tmp/borough-test-20260918-215645.log`.

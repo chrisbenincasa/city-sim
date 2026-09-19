@@ -1,3 +1,4 @@
+using Borough.Core;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
@@ -99,6 +100,25 @@ public sealed class ProspectAdmissionTests
                 world.UnplacedPool.Count,
                 world.Households.Rows.LiveCount,
                 world.Citizens.Rows.LiveCount);
+    }
+
+    [Fact]
+    public void Future_paint_does_not_change_either_arrival_comparison()
+    {
+        World world = Attracted();
+        var simulation = new Simulation(world, Key);
+        int gate = GateOn(world, MapEdge.West);
+        var handle = world.Buildings.Rows.At(gate);
+        var prospect = Present(world, MapEdge.West, stage: 1, identity: 0x5EED);
+        var before = simulation.Placement.Compare(prospect, handle, Ticks.Zero);
+        bool legacy = simulation.Placement.ProspectCrosses(gate, 1, Ticks.Zero);
+        int candidates = world.HousingBuildings.Count(world);
+        Assert.True(candidates > 0);
+        for (int i = 0; i < candidates; i++)
+            world.PaintUsePermissions(world.LotGround(world.HousingBuildings.Nth(world, i)), 0);
+        Assert.Equal(before, simulation.Placement.Compare(prospect, handle, Ticks.Zero));
+        Assert.Equal(legacy, simulation.Placement.ProspectCrosses(gate, 1, Ticks.Zero));
+        Assert.Equal(candidates, world.HousingBuildings.Count(world));
     }
 
     /// <summary>The purse that was compared is the purse that arrives.</summary>

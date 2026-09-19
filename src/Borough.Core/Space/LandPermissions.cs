@@ -16,7 +16,7 @@ public readonly record struct GroundPermissions(ushort Uses, byte Band, bool Res
     internal ulong Packed => Uses | ((ulong)Band << 16)
         | (RestrictsForms ? (1UL << 24) | ((ulong)Forms << 25) : 0);
 
-    internal static GroundPermissions Unpack(ulong value) => new(
+    public static GroundPermissions Unpack(ulong value) => new(
         (ushort)value, (byte)(value >> 16), (value & (1UL << 24)) != 0, (ushort)(value >> 25));
 }
 
@@ -30,6 +30,7 @@ public enum PermissionRefusal : byte
     Form,
     MixedIntensity,
     InvalidForm,
+    Intensity,
 }
 
 /// <summary>
@@ -107,13 +108,59 @@ public sealed class LandPermissions
     }
 
     public PermissionRefusal Paint(LandRectangle area, GroundPermissions permission, int recordLimit) =>
-        Paint(area, permission, recordLimit, formsOnly: false);
+        Paint(area, permission, recordLimit, mask: ulong.MaxValue);
 
     /// <summary>Changes only form restrictions, including on otherwise unzoned ground.</summary>
     public PermissionRefusal PaintForms(LandRectangle area, bool restricted, ushort forms, int recordLimit) =>
-        Paint(area, new GroundPermissions(0, 0, restricted, forms), recordLimit, formsOnly: true);
+        Paint(area, new GroundPermissions(0, 0, restricted, forms), recordLimit, mask: ~0xFFFFFFUL);
 
-    private PermissionRefusal Paint(LandRectangle area, GroundPermissions permission, int limit, bool formsOnly)
+    public PermissionRefusal CanPaintUses(LandRectangle area, ushort uses, int recordLimit) =>
+        Paint(area, new GroundPermissions(uses, 0), recordLimit, 0xFFFFUL, apply: false);
+
+    public PermissionRefusal PaintUses(LandRectangle area, ushort uses, int recordLimit) =>
+        Paint(area, new GroundPermissions(uses, 0), recordLimit, 0xFFFFUL);
+
+    public PermissionRefusal PaintBand(LandRectangle area, byte band, int recordLimit) =>
+        Paint(area, new GroundPermissions(0, band), recordLimit, 0xFF0000UL);
+
+    /// <summary>Common uses are conservative; the union is for discovery/display only.</summary>
+    public LandPermissionSummary Summary(LandRectangle site)
+    {
+        if (!site.IsValid) { return default; }
+        int covered = 0;
+        ushort common = ushort.MaxValue, any = 0;
+        GroundPermissions first = default;
+        bool seen = false, mixed = false, mixedBand = false;
+        for (int py = PageAxis(site.Y); py <= PageAxis(site.Y + site.Height - 1); py++)
+        {
+            for (int px = PageAxis(site.X); px <= PageAxis(site.X + site.Width - 1); px++)
+            {
+                for (int link = _heads[py * PagesAcross + px]; link != 0; link = _table.Next[link - 1])
+                {
+                    int row = link - 1;
+                    int left = Max(site.X, _table.X[row]), top = Max(site.Y, _table.Y[row]);
+                    int right = Min(site.X + site.Width, _table.X[row] + _table.Width[row]);
+                    int bottom = Min(site.Y + site.Height, _table.Y[row] + _table.Height[row]);
+                    if (right <= left || bottom <= top) { continue; }
+                    GroundPermissions permission = GroundPermissions.Unpack(_table.Permission[row]);
+                    covered += (right - left) * (bottom - top);
+                    common &= permission.Uses; any |= permission.Uses;
+                    mixed |= seen && first != permission;
+                    mixedBand |= seen && first.Band != permission.Band;
+                    if (!seen) { first = permission; seen = true; }
+                }
+            }
+        }
+        if (covered != site.Width * site.Height)
+        {
+            common = 0;
+            mixed |= seen;
+            mixedBand |= seen && first.Band != 0;
+        }
+        return new(common, any, first.Band, mixedBand, mixed);
+    }
+
+    private PermissionRefusal Paint(LandRectangle area, GroundPermissions permission, int limit, ulong mask, bool apply = true)
     {
         if (!area.IsValid) { return PermissionRefusal.InvalidBounds; }
         if (limit < 8 || _table.Rows.SlotCount > limit) { return PermissionRefusal.RecordLimit; }
@@ -129,7 +176,7 @@ public sealed class LandPermissions
         {
             int px = firstX + page % across, py = firstY + IntegerMath.FloorDiv(page, across);
             int oldCount = Decode(px, py, tiles);
-            if (!Edit(px, py, tiles, area, permission, formsOnly)) { counts[page] = -1; continue; }
+            if (!Edit(px, py, tiles, area, permission, mask)) { counts[page] = -1; continue; }
             int count = Encode(px, py, tiles, rectangles);
             counts[page] = count;
             stagedCount += count;
@@ -138,6 +185,7 @@ public sealed class LandPermissions
 
         // A later page's compaction may pay for an earlier page's growth.
         if (finalCount > limit) { return PermissionRefusal.RecordLimit; }
+        if (!apply) { return PermissionRefusal.None; }
         if (stagedCount == 0 && finalCount == _table.Rows.LiveCount) { return PermissionRefusal.None; }
         var staged = new Rectangle[stagedCount];
         int offset = 0;
@@ -146,7 +194,7 @@ public sealed class LandPermissions
             if (counts[page] < 0) { continue; }
             int px = firstX + page % across, py = firstY + IntegerMath.FloorDiv(page, across);
             Decode(px, py, tiles);
-            Edit(px, py, tiles, area, permission, formsOnly);
+            Edit(px, py, tiles, area, permission, mask);
             int count = Encode(px, py, tiles, rectangles);
             rectangles[..count].CopyTo(staged.AsSpan(offset));
             offset += count;
@@ -278,7 +326,7 @@ public sealed class LandPermissions
         return count;
     }
 
-    private static bool Edit(int px, int py, Span<ulong> tiles, LandRectangle area, GroundPermissions permission, bool formsOnly)
+    private static bool Edit(int px, int py, Span<ulong> tiles, LandRectangle area, GroundPermissions permission, ulong mask)
     {
         bool changed = false;
         for (int y = Max(area.Y, py * Side); y < Min(area.Y + area.Height, (py + 1) * Side); y++)
@@ -287,7 +335,7 @@ public sealed class LandPermissions
             {
                 int at = (y - py * Side) * Side + x - px * Side;
                 ulong value = permission.Packed;
-                if (formsOnly) { value = (tiles[at] & 0xFFFFFFUL) | (value & ~0xFFFFFFUL); }
+                value = (tiles[at] & ~mask) | (value & mask);
                 changed |= tiles[at] != value;
                 tiles[at] = value;
             }
@@ -336,3 +384,6 @@ public sealed class LandPermissions
     private static int Max(int a, int b) => a > b ? a : b;
     private readonly record struct Rectangle(int X, int Y, int Width, int Height, ulong Permission);
 }
+
+/// <summary>Spatial summary; only a complete Check can authorise construction.</summary>
+public readonly record struct LandPermissionSummary(ushort CommonUses, ushort AnyUses, byte Band, bool MixedIntensity, bool MixedPermissions);

@@ -215,7 +215,7 @@ public sealed class CrashArtifactTests
         Builder()
             .Append(new Ticks(1), new Command(CommandKind.Zone, new Tiles(0), new Tiles(0), 1))
             .Append(new Ticks(9), new Command(CommandKind.Zone, new Tiles(4), new Tiles(2), 3))
-            .Append(new Ticks(9), new Command(CommandKind.Zone, new Tiles(-7), new Tiles(5), 2))
+            .Append(new Ticks(9), new Command(CommandKind.Zone, new Tiles(7), new Tiles(5), 2))
             .Build();
 
     /// <summary>Through the format and back, which is the only way these assertions are worth making.</summary>

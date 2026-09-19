@@ -345,7 +345,7 @@ public sealed class LocalLayoutTests
         return hash;
     }
 
-    private static LocalLayoutProposal Evaluate(World world, Handle<Lot>[] lots, BlockPattern form)
+    internal static LocalLayoutProposal Evaluate(World world, Handle<Lot>[] lots, BlockPattern form)
     {
         var check = LocalLayout.Evaluate(world, lots, Plan(world, lots, form), out var proposal);
         Assert.True(check.Accepted, check.ToString());
@@ -360,7 +360,7 @@ public sealed class LocalLayoutTests
         return new(1, form, new(x, y, end - x, top - y), 2);
     }
 
-    private static (World World, Handle<Lot>[] Lots) Fixture(bool mixed = false, BlockFace face = BlockFace.South)
+    internal static (World World, Handle<Lot>[] Lots) Fixture(bool mixed = false, BlockFace face = BlockFace.South)
     {
         var loaded = RulesetLoader.Parse(mixed ? MixedToml : Toml, "local-layout.toml");
         Assert.True(loaded.Ok, loaded.Describe());

@@ -219,7 +219,7 @@ public sealed class ReplayTests
 
             if (i == mutateAfterSample)
             {
-                simulation.World.Lots.Zone[0] += 1;
+                simulation.World.PaintUsePermissions(new LandRectangle(0, 0, 1, 1), 255);
             }
         }
 

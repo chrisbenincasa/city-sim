@@ -574,6 +574,7 @@ internal static class GoldenFixtures
         for (int i = 0; i < lots.Length; i++)
         {
             lots[i] = world.Lots.Create(new Tiles(i * 3), new Tiles(i * 5), zone: (byte)(1 + (i % 4)));
+            world.PaintUsePermissions(world.LotGround(world.Lots.Rows.Resolve(lots[i])), (ushort)(1 + (i % 4)));
         }
 
         var buildings = new Handle<Building>[4];

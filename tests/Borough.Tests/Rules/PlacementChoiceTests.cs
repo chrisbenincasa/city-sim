@@ -117,6 +117,39 @@ public sealed class PlacementChoiceTests
         return world;
     }
 
+    [Fact]
+    public void Future_paint_does_not_change_moves_between_standing_homes()
+    {
+        static (long Moves, ulong[] Homes) RunPainted(bool erase)
+        {
+            var world = new World(1_000, Settled(0), Key);
+            var simulation = new Simulation(world, Key);
+            SyntheticCity.PopulateInto(world, Key, Core.Quantities.Ticks.Zero);
+            if (erase)
+            {
+                int count = world.HousingBuildings.Count(world);
+                for (int i = 0; i < count; i++)
+                    world.PaintUsePermissions(world.LotGround(world.HousingBuildings.Nth(world, i)), 0);
+            }
+            long moves = 0;
+            for (int tick = 0; tick < 2_048; tick++)
+            {
+                simulation.Step(default);
+                moves += simulation.Placement.Drain().PreferredMoves.Sum;
+            }
+            var homes = new ulong[world.Households.Rows.SlotCount];
+            for (int slot = 0; slot < homes.Length; slot++)
+                if (world.Households.Rows.IsLive(slot) && world.Buildings.Rows.TryResolve(world.Households.Dwelling[slot], out int building))
+                    homes[slot] = world.Buildings.Rows.IdAt(building);
+            return (moves, homes);
+        }
+        var painted = RunPainted(false);
+        var erased = RunPainted(true);
+        Assert.True(painted.Moves > 0);
+        Assert.Equal(painted.Moves, erased.Moves);
+        Assert.Equal(painted.Homes, erased.Homes);
+    }
+
     /// <summary>
     /// The mean walk to the centre over the Households that want to be near it.
     /// </summary>

@@ -36,7 +36,7 @@ internal static class LocalLayoutCommit
         world.Lots.Storeys[row] = proposal.Building.Storeys;
         world.Lots.Pattern[row] = (byte)((int)proposal.Building.Form + 1);
         world.Frontage.Rebuild(world.Lots, world.Roads.Streets);
-        world.LotsAdmitting.Invalidate();
+        world.RefreshPermissionSummaries(site);
         building = world.CreateBuilding(lot, proposal.Building.Kind, world.Tick, key);
         return default;
     }

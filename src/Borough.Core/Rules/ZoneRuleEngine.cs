@@ -597,7 +597,7 @@ public sealed class ZoneRuleEngine
     /// </para>
     /// </remarks>
     private bool Admits(ZoneRuleDefinition definition, int lot) =>
-        (_world.Lots.Zone[lot] & definition.Admits & _world.BandAdmitting(lot)) != 0;
+        _world.ConstructionPermission(lot, definition.Admits) == Space.PermissionRefusal.None;
 
 
     /// <summary>

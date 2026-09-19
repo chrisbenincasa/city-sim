@@ -109,6 +109,8 @@ public sealed class ZoneRuleCreateTests
             world.Lots.Create(new Tiles(i), new Tiles(1), zone);
         }
 
+        world.PaintUsePermissions(new LandRectangle(0, 0, Math.Max(1, seeking), 1), zone);
+        world.PaintUsePermissions(new LandRectangle(0, 1, Math.Max(1, vacant), 1), zone);
         return (world, simulation);
     }
 

@@ -181,10 +181,8 @@ public sealed class SaveHashTests(ITestOutputHelper output)
         // the same flipped byte started addressing a freed slot, and this went red for a reason
         // that had nothing to do with saving. Routed to plans/0003 rather than worked around.
         //
-        // `zone` is a value column nothing dereferences: World.RebuildDerived buckets it by bit
-        // (ZonedLots) and any bit pattern is a legal input to that, so the fold is reached and the
-        // refusal below is the one adr/0112 describes.
-        bytes[ByteIn(world, "lot", "zone", slot: 0)] ^= 0xFF;
+        // Storeys is a saved scalar; changing it reaches the hash comparison without corrupting a handle.
+        bytes[ByteIn(world, "lot", "storeys", slot: 0)] ^= 0x01;
 
         var corrupt = new MemorySave();
         corrupt.Write(bytes);

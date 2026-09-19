@@ -62,13 +62,21 @@ Behavioral checks cover:
 - reload/load refusal below saved high-water, invalid saved geometry/packing, and rebuilt links;
 - nonempty permission state in both the derived rebuild and save-column corruption audits.
 
-Core save version 7 refuses earlier saves. The new table intentionally moves all three golden
-hash outputs even when empty. Baseline Ruleset hashes and the hash algorithm stay unchanged.
-Gameplay paint/readers, local assembly, automatic housing selection and shell integration are
-outside this storage measurement and remain subsequent slices.
+The storage foundation in `5e3a2b3` used Core save version 7 and deliberately moved all three golden
+hash outputs even when the new table was empty. Baseline Ruleset hashes and the hash algorithm
+were unchanged. These measurements isolate permission storage; they exclude gameplay readers,
+local assembly and shell drawing. The [current contract](../../urban-fabric-local-layout-contract.md)
+records the subsequent reader migration and save version 8. The permission-table allocation layout
+is unchanged.
 
 Validation: the working lane passed **3,766 tests** with
 `scripts/test.sh -- -m:1 --no-restore` (log `/tmp/borough-test-20260918-140427.log`), including
 persistence/Factorio coverage, replay and the existing long-run assertions. The two allocation
 instruments passed separately. `scripts/format.sh --check -- --no-restore` and
 `npx --yes @taplo/cli lint 'rulesets/*.toml'` passed. The entire instrument suite was not run.
+
+
+Rechecked after the reader migration on the same machine/runtime, Release, one calling thread:
+both allocation instruments passed with exactly the same **47,188,128-byte** full-budget allocation
+and **1,048,600-byte** oversized-refusal allocation. Command as above with `--no-build`; log
+`/tmp/borough-test-20260918-215645.log`. This remains an allocation measurement, not a timing claim.

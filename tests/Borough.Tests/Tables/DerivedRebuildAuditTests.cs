@@ -49,6 +49,7 @@ public sealed class DerivedRebuildAuditTests
         var world = new World(0, GoldenFixtures.Rules());
         world.PaintPermissions(new LandRectangle(0, 0, 32, 32), new GroundPermissions(1, 2));
         world.PaintFormPermissions(new LandRectangle(1, 1, 1, 1), true, 0);
+        world.BandBlock(0, 0, 2);
         return world;
     }
 
@@ -255,7 +256,8 @@ public sealed class DerivedRebuildAuditTests
         // insert is ordered by slot, so the round-robin over an edge's gates reads an order a rebuild
         // reproduces rather than the order the player happened to build them in.
         // Geographic permission page links are populated by PaintedGround.
-        Assert.Equal(48, all.Length);
+        // Lot use and block use/band summaries are rebuilt from geographic permissions.
+        Assert.Equal(51, all.Length);
         Assert.Single(ScratchColumns(Stepped(0)));
     }
 

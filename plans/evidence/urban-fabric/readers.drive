@@ -1,0 +1,23 @@
+256 pause
+256 focus 16 8 220
+256 hold street
+256 click 16 0
+256 resume
+258 hold zone 0
+258 click 8 2
+260 people
+262 shoot /tmp/urban-reader-demo/housing.png
+262 draw /tmp/urban-reader-demo/housing.tsv
+263 hold erase
+263 click 8 2
+265 shoot /tmp/urban-reader-demo/erased.png
+265 draw /tmp/urban-reader-demo/erased.tsv
+266 hold street
+266 click 16 0 shift
+268 shoot /tmp/urban-reader-demo/street-removed.png
+268 draw /tmp/urban-reader-demo/street-removed.tsv
+269 hold street
+269 click 16 0
+271 shoot /tmp/urban-reader-demo/restored.png
+271 draw /tmp/urban-reader-demo/restored.tsv
+272 quit
