@@ -144,6 +144,31 @@ below.
   survive it, and a dial on a commented line reads back without its comment. A tuned Ruleset is
   written out beside the Input Log — one file for a single-file Ruleset, a directory for a package — and the reproduce line
   names it.
+- **Dependency edges.** `RulesetSourceResult.References` carries every reference the resolver
+  matched — the declaring section and id, the key path, the target section and id, and the key's
+  own location. `ResolveReferences` already walked them and threw them away. They are sorted by
+  what they say rather than by where they were found, so a different member enumeration yields the
+  same list, and they are empty for a single file and for a package refused before references
+  resolve.
+- **The impact preview.** `RulesetImpact.Between` compares two resolved candidates and reports what
+  replacing one with the other would do. `--against PATH` is the third world-free runner mode and
+  needs exactly one `--ruleset`.
+  ⚠ **It compares the resolved Rulesets, not the authored text, and that is forced.** A
+  `[[basket]]`, `[[recipe]]` and `[[reserve]]` expand inside `RulesetLoader` rather than in the
+  package resolver, so two candidates can carry identical source for a Rule and still give it
+  different terms. A text comparison would be blind to exactly the case the acceptance check names.
+  `RulesetFields` flattens a Ruleset to its stored values by reflection, which is confined to this
+  authoring path and never runs during a Tick; the walker `SourcePackage.AssertSameFields` already
+  held is now that one implementation. Values are addressed by their owning declaration's typed
+  source id, because a dense id moves when a declaration is inserted. Term and Bin pools are re-read
+  through their owners and the offsets addressing them are suppressed, for the same reason: a pool
+  index is not stable across an edit. Values belonging to no one declaration — a Resource's Need,
+  import price and ceiling live in world-level tables rather than on the Resource — are reported
+  against their field path rather than dropped.
+  ⚠ **The old/new id-key collision refusal is written and unexercised.** A 64-bit
+  `ContentHash.Of(UTF8(id))` collision is not constructible, so the guard has no test firing it;
+  what is tested is that one id in two sections is two declarations and not a collision, which is
+  `adr/0048`'s namespace separation.
 - **Loading limits.** A manifest lists at most 256 members and neither a manifest nor a member may
   exceed 4 MiB, refused as `limit` during capture, so the bundle codec inherits the same bounds. An
   oversize member on disk is refused from its length, before its bytes are read.
@@ -160,8 +185,10 @@ Remaining work and dependencies, in addition to the sequence below:
    and are covered by test as well.
 2. Refusals the single-file reader raises on the lowered text still carry a line without a column and
    say `name` where a member writes `id`. The reader keeps every value check, shape check and
-   `on_fail` cycle; the resolver has taken only the references. Provenance/dependency edges,
-   expansion counts, impact previews and old/new id-key collision refusal are not built.
+   `on_fail` cycle; the resolver has taken only the references. The preview reports no migration
+   consequence, because it holds no world: stock, occupancy, jobs, governed values and Rule rearming
+   are all unreported, and that half waits on a registered in-session reload having somewhere to
+   run.
 3. Shared baskets, recipe references and reserve derivation (step 2) are implemented under
    [the runtime factoring plan](ruleset-runtime-factoring.md), on the saved fractional consumption
    progress that plan scoped. Integrated execution must still replace the lowering before the first

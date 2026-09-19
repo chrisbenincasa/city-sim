@@ -15,6 +15,19 @@ namespace Borough.Formats;
 public sealed record RulesetSourceDeclaration(
     string Section, string? Id, string? Label, long Order, RulesetSourceLocation Location);
 
+/// <summary>One resolved reference: which declaration names which, and where it says so.</summary>
+/// <param name="Section">The declaring section, which owns nested tables under its own name.</param>
+/// <param name="Id">The declaring typed id, or null for a singleton section.</param>
+/// <param name="Reference">The key that holds the id, and the section it resolves into.</param>
+/// <param name="TargetId">The typed id named, which a declaration of the target section carries.</param>
+/// <param name="Location">The key holding the id.</param>
+public sealed record RulesetSourceEdge(
+    string Section,
+    string? Id,
+    RulesetSourceReference Reference,
+    string TargetId,
+    RulesetSourceLocation Location);
+
 /// <summary>
 /// A resolved candidate: its capture, the Ruleset and display names, or located diagnostics.
 /// </summary>
@@ -22,15 +35,21 @@ public sealed class RulesetSourceResult
 {
     private readonly RulesetLoadResult? _loaded;
 
+    private readonly RulesetNames? _ids;
+
     internal RulesetSourceResult(
         RulesetCapture? capture,
         RulesetLoadResult? loaded,
         RulesetSourceDeclaration[] declarations,
-        RulesetDiagnostic[] diagnostics)
+        RulesetSourceEdge[] references,
+        RulesetDiagnostic[] diagnostics,
+        RulesetNames? ids = null)
     {
         Capture = capture;
         _loaded = loaded;
+        _ids = ids;
         Declarations = declarations;
+        References = references;
         Diagnostics = diagnostics;
     }
 
@@ -43,8 +62,20 @@ public sealed class RulesetSourceResult
     /// <summary>Display names for the Ruleset's ids: source labels for a package.</summary>
     public RulesetNames Names => _loaded?.Names ?? RulesetNames.None;
 
+    /// <summary>
+    /// The typed source ids behind the Ruleset's dense ids, which is what identifies a declaration
+    /// across two candidates. A single file's ids are the names it authored.
+    /// </summary>
+    public RulesetNames Ids => _ids ?? Names;
+
     /// <summary>A package's top-level declarations in resolution order. Empty for a single file.</summary>
     public IReadOnlyList<RulesetSourceDeclaration> Declarations { get; }
+
+    /// <summary>
+    /// Every reference one declaration makes to another, sorted. Empty for a single file, and empty
+    /// for a package refused before references resolve.
+    /// </summary>
+    public IReadOnlyList<RulesetSourceEdge> References { get; }
 
     /// <summary>Every reason the candidate was refused, sorted. Empty on success.</summary>
     public IReadOnlyList<RulesetDiagnostic> Diagnostics { get; }
@@ -110,7 +141,7 @@ public static class RulesetSource
 
         return captured.Capture is { } capture
             ? Resolve(capture)
-            : new RulesetSourceResult(null, null, [], [.. captured.Diagnostics]);
+            : new RulesetSourceResult(null, null, [], [], [.. captured.Diagnostics]);
     }
 
     /// <inheritdoc cref="Resolve(RulesetCapture, LayerConstants)"/>
@@ -120,7 +151,7 @@ public static class RulesetSource
 
         return captured.Capture is { } capture
             ? Resolve(capture, frozen)
-            : new RulesetSourceResult(null, null, [], [.. captured.Diagnostics]);
+            : new RulesetSourceResult(null, null, [], [], [.. captured.Diagnostics]);
     }
 
     /// <summary>Resolves a capture for a world that does not exist yet.</summary>
@@ -141,7 +172,7 @@ public static class RulesetSource
             RulesetLoadResult legacy =
                 read(RulesetCapture.DecodeAsSingleFile(capture.Entry), capture.EntryName);
 
-            return new RulesetSourceResult(capture, legacy, [], RulesetDiagnostic.Sorted(
+            return new RulesetSourceResult(capture, legacy, [], [], RulesetDiagnostic.Sorted(
                 legacy.Refusals.Select(r => new RulesetDiagnostic(
                     r.File, r.Line, 0, RulesetDiagnosticCode.Ruleset, null, r.Rule, r.Reason))));
         }
@@ -150,11 +181,13 @@ public static class RulesetSource
         collection.Collect();
 
         RulesetSourceDeclaration[] declarations = collection.Declarations();
+        RulesetSourceEdge[] references = collection.References();
 
         if (collection.Diagnostics.Count > 0)
         {
             return new RulesetSourceResult(
-                capture, null, declarations, RulesetDiagnostic.Sorted(collection.Diagnostics));
+                capture, null, declarations, references,
+                RulesetDiagnostic.Sorted(collection.Diagnostics));
         }
 
         Lowering lowering = collection.Lower();
@@ -162,7 +195,7 @@ public static class RulesetSource
 
         if (lowered.Ruleset is null)
         {
-            return new RulesetSourceResult(capture, null, declarations,
+            return new RulesetSourceResult(capture, null, declarations, references,
                 RulesetDiagnostic.Sorted(lowered.Refusals.Select(lowering.Map)));
         }
 
@@ -170,7 +203,9 @@ public static class RulesetSource
             capture,
             RulesetLoadResult.Accepted(lowered.Ruleset, lowered.Names.Relabelled(collection.LabelOf)),
             declarations,
-            []);
+            references,
+            [],
+            lowered.Names);
     }
 
     /// <summary>The declarations of one package, collected before anything is resolved.</summary>
@@ -178,6 +213,7 @@ public static class RulesetSource
     {
         private readonly List<Declared> _declared = [];
         private readonly Dictionary<(string Section, string Id), string> _labels = [];
+        private readonly List<RulesetSourceEdge> _edges = [];
 
         public List<RulesetDiagnostic> Diagnostics { get; } = [];
 
@@ -225,6 +261,28 @@ public static class RulesetSource
         public RulesetSourceDeclaration[] Declarations() =>
             [.. Ordered().Select(d => new RulesetSourceDeclaration(
                 d.Section, d.Id, d.IsArray ? d.Label ?? d.Id : null, d.Order, d.Location))];
+
+        /// <summary>
+        /// The matched references, sorted by what they say rather than by where they were found, so
+        /// a different member enumeration yields the same list.
+        /// </summary>
+        public RulesetSourceEdge[] References()
+        {
+            var sorted = new List<RulesetSourceEdge>(_edges);
+
+            sorted.Sort(static (a, b) =>
+            {
+                int at = string.CompareOrdinal(a.Section, b.Section);
+                at = at != 0 ? at : string.CompareOrdinal(a.Id ?? "", b.Id ?? "");
+                at = at != 0 ? at : string.CompareOrdinal(a.Reference.Section, b.Reference.Section);
+                at = at != 0 ? at : string.CompareOrdinal(a.Reference.Key, b.Reference.Key);
+                at = at != 0 ? at : string.CompareOrdinal(a.TargetId, b.TargetId);
+
+                return at != 0 ? at : CompareLocations(a.Location, b.Location);
+            });
+
+            return [.. sorted];
+        }
 
         public Lowering Lower()
         {
@@ -536,7 +594,7 @@ public static class RulesetSource
 
                     foreach (RulesetSourceReference reference in RulesetSourceReferences.For(section))
                     {
-                        Descend(ids, declared, table, reference.Key.Split('.'), 0, reference.Target);
+                        Descend(ids, declared, table, reference, reference.Key.Split('.'), 0);
                     }
                 }
             }
@@ -546,9 +604,9 @@ public static class RulesetSource
             HashSet<(string Section, string Id)> ids,
             Declared declared,
             SyntaxNode holder,
+            RulesetSourceReference reference,
             string[] path,
-            int depth,
-            string target)
+            int depth)
         {
             string segment = path[depth];
             bool repeated = segment.EndsWith("[]", StringComparison.Ordinal);
@@ -561,7 +619,7 @@ public static class RulesetSource
 
             if (depth == path.Length - 1)
             {
-                Match(ids, declared, entry, target);
+                Match(ids, declared, entry, reference);
             }
             else if (repeated && value is ArraySyntax array)
             {
@@ -569,13 +627,13 @@ public static class RulesetSource
                 {
                     if (item.Value is InlineTableSyntax element)
                     {
-                        Descend(ids, declared, element, path, depth + 1, target);
+                        Descend(ids, declared, element, reference, path, depth + 1);
                     }
                 }
             }
             else if (!repeated && value is InlineTableSyntax inline)
             {
-                Descend(ids, declared, inline, path, depth + 1, target);
+                Descend(ids, declared, inline, reference, path, depth + 1);
             }
         }
 
@@ -583,18 +641,25 @@ public static class RulesetSource
             HashSet<(string Section, string Id)> ids,
             Declared declared,
             KeyValueSyntax entry,
-            string target)
+            RulesetSourceReference reference)
         {
-            if (entry.Value is not StringValueSyntax { Value: { } id } || ids.Contains((target, id)))
+            if (entry.Value is not StringValueSyntax { Value: { } id })
             {
                 return;
             }
 
-            Refuse(RulesetSourceLocation.Of(declared.Source.Path, entry),
-                RulesetDiagnosticCode.Reference, declared.Section, declared.Id,
-                $"{RulesetCapture.NameOf(entry.Key)} names '{id}', and no [[{target}]] in this "
-                + "package declares that id. A reference is matched against the target section's "
-                + "ids alone, exactly and case-sensitively.");
+            RulesetSourceLocation at = RulesetSourceLocation.Of(declared.Source.Path, entry);
+
+            if (ids.Contains((reference.Target, id)))
+            {
+                _edges.Add(new RulesetSourceEdge(declared.Section, declared.Id, reference, id, at));
+                return;
+            }
+
+            Refuse(at, RulesetDiagnosticCode.Reference, declared.Section, declared.Id,
+                $"{RulesetCapture.NameOf(entry.Key)} names '{id}', and no [[{reference.Target}]] in "
+                + "this package declares that id. A reference is matched against the target "
+                + "section's ids alone, exactly and case-sensitively.");
         }
 
         private static KeyValueSyntax? Field(SyntaxNode holder, string key)

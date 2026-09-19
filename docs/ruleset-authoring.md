@@ -562,6 +562,54 @@ identity. A reload is a transition in the Input Log, so a replay of that log nee
 its catalogue. ⚠ The Godot shell's tuner does not do this — it **regenerates** the city from edited
 bytes held in memory, which is a new world rather than a Ruleset swap.
 
+### Previewing an edit before running it
+
+`--against` resolves two Rulesets and reports what replacing the first with the second would do.
+It builds no world, so it answers in seconds and says nothing about a city already running.
+
+```sh
+sed 's/use_per_day = { sundries = 250 }/use_per_day = { sundries = 300 }/' \
+  rulesets/stocked.toml > /tmp/stocked-300.toml
+
+dotnet run --project src/Borough.Headless -- \
+  --ruleset rulesets/stocked.toml --against /tmp/stocked-300.toml
+```
+
+```text
+changed
+  [[building]] dwelling  changed
+    bins[0].Capacity.Units                   750 -> 900
+  [[rule]] consume  changed
+    inputs[0].Amount                         250 -> 300
+  (7 declaration(s) unchanged)
+```
+
+One edited number moves two declarations, and neither of them states it. The `consume` Rule names
+the basket instead of listing an input, and the larder's ceiling is `use_per_day × days`. That is
+what a shared definition is for, and reading it out of a run means noticing that two numbers moved
+together for a reason.
+
+The comparison is of **effective** values, so it sees through a shared definition. Comparing the
+two files as text would show one line moving and say nothing about what it reaches.
+
+A package also reports which declarations depend on each shared definition, including the ones the
+edit left alone:
+
+```text
+shared
+  [[basket]] basic
+    building/dwelling                via bins[].reserve.basket    changed
+    rule/consume                     via basket                   changed
+  [[recipe]] maintain
+    rule/upkeep                      via recipe                   unchanged
+```
+
+An unchanged dependant is the half a run cannot show. A city that behaves as expected after an edit
+does not tell you whether the edit missed something it should have reached.
+
+⚠ **A preview binds to the two content identities it printed.** Editing either file afterwards
+invalidates the report rather than changing what a later run would put in force.
+
 ### Saving and resuming
 
 ```sh
@@ -584,8 +632,12 @@ replay depends on.
 
 ### What this build does not do yet
 
-- **There is no impact preview.** Nothing reports before/after values, affected and unchanged
-  dependants or expansion counts, so the effect of an edit is read from a run.
+- **An impact preview has no world in it.** `--against` compares two Rulesets and reports what
+  moves. It cannot say what an edit would do to a city already running: stock, occupancy, jobs,
+  governed values and Rule rearming are all unreported, and no migration is attempted.
+- **A preview lists dependants only for a package.** The dependant list is built from the
+  resolver's references, which a single-file Ruleset does not produce. A single file still gets
+  every before/after value; it gets no `declared` counts and no `shared` section.
 - **A refusal the single-file reader raises still describes the lowered text.** The resolver owns
   every reference a declaration makes to another, so those name the key, the column and the section.
   Everything else — a value out of range, a wrong shape, an `on_fail` cycle — comes from the reader,
@@ -605,8 +657,7 @@ replay depends on.
 
 Keep this document current as the loader ships. The walkthrough above covers what this build can
 do: membership, identity and order, located diagnostics, an in-session change and a package city
-that saves and resumes. What it still cannot walk through is introducing and removing an
-exception, and evolving an inhabited city. The impact report has no implementation to show.
+that saves and resumes. What it still cannot walk through is evolving an inhabited city.
 Adding a Good and a recipe, referencing a shared basket and choosing a reserve all load today and
 are owed walkthrough steps. Document which changes are supported, require migration, or require a new
 city, once a reload can tell them apart.

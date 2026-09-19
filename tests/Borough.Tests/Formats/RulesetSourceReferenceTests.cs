@@ -198,6 +198,48 @@ public sealed class RulesetSourceReferenceTests
             result.Declarations, d => d.Section == "basket" && d.Id == "basic");
     }
 
+    [Fact]
+    public void A_resolved_reference_is_reported_with_the_declarations()
+    {
+        RulesetSourceResult result = Accepted(
+            ("dwelling.toml", SizedDwelling),
+            ("goods.toml", Goods),
+            ("shared.toml", SharedDefinitions));
+
+        RulesetSourceEdge bin = Assert.Single(
+            result.References, e => e.Reference.Key == "bins[].reserve.basket");
+
+        Assert.Equal("building", bin.Section);
+        Assert.Equal("dwelling", bin.Id);
+        Assert.Equal("basket", bin.Reference.Target);
+        Assert.Equal("basic", bin.TargetId);
+        Assert.Equal("dwelling.toml", bin.Location.Path);
+        Assert.Equal(6, bin.Location.Line);
+
+        // Both Rules and the Bin depend on the one basket, which is what a dependant list is for.
+        Assert.Equal(
+            ["building/dwelling", "rule/consume"],
+            result.References
+                .Where(e => e.Reference.Target == "basket" && e.TargetId == "basic")
+                .Select(e => $"{e.Section}/{e.Id}")
+                .ToArray());
+    }
+
+    [Fact]
+    public void Member_enumeration_does_not_move_a_reference()
+    {
+        (string Path, string Text)[] members =
+            [("dwelling.toml", SizedDwelling), ("goods.toml", Goods), ("shared.toml", SharedDefinitions)];
+
+        string Rendered(RulesetSourceResult result) => string.Join(
+            "\n", result.References.Select(e => $"{e.Section}/{e.Id} {e.Reference.Key} -> "
+                + $"{e.Reference.Target}/{e.TargetId} @{e.Location.Path}:{e.Location.Line}"));
+
+        Assert.Equal(
+            Rendered(Accepted(members)),
+            Rendered(Accepted([.. members.Reverse()])));
+    }
+
     [Theory]
     [InlineData("\nbasket = \"basic\"", "\nbasket = \"pantry\"", "basket")]
     [InlineData("profile = \"standard\"", "profile = \"deep\"", "reserve")]

@@ -1,4 +1,5 @@
 using System.Text;
+using Borough.Core.Rules;
 using Borough.Formats;
 
 namespace Borough.Tests.Formats;
@@ -87,73 +88,11 @@ internal static class SourcePackage
         return Assert.Single(result.Diagnostics, diagnostic => diagnostic.Code == code);
     }
 
-    /// <summary>Asserts two object graphs hold the same field values, compared field by field.</summary>
-    /// <remarks>
-    /// <c>Assert.Equivalent</c> walks public properties, and a Q16.16 value's properties return the
-    /// same type, so it never terminates on a Ruleset. Fields are the stored state.
-    /// </remarks>
-    public static void AssertSameFields(object? expected, object? actual) =>
-        Assert.Equal(Fields(expected), Fields(actual));
+    /// <summary>Asserts two Rulesets hold the same stored values, compared field by field.</summary>
+    public static void AssertSameFields(Ruleset? expected, Ruleset? actual) =>
+        Assert.Equal(Rendered(expected), Rendered(actual));
 
-    private static List<string> Fields(object? root)
-    {
-        var lines = new List<string>();
-        Walk(root, "ruleset", lines, new HashSet<object>(ReferenceEqualityComparer.Instance));
-        return lines;
-    }
-
-    private static void Walk(object? value, string path, List<string> lines, HashSet<object> seen)
-    {
-        if (value is null)
-        {
-            lines.Add($"{path} = null");
-            return;
-        }
-
-        Type type = value.GetType();
-
-        if (type.IsPrimitive || type.IsEnum || value is string or decimal)
-        {
-            lines.Add(FormattableString.Invariant($"{path} = {value}"));
-            return;
-        }
-
-        if (value is Delegate or System.Reflection.MemberInfo or System.Reflection.Pointer)
-        {
-            lines.Add($"{path} : {type.Name}");
-            return;
-        }
-
-        if (!type.IsValueType && !seen.Add(value))
-        {
-            lines.Add($"{path} = (seen)");
-            return;
-        }
-
-        if (value is Array array)
-        {
-            lines.Add($"{path}.Length = {array.Length}");
-            int index = 0;
-
-            foreach (object? element in array)
-            {
-                Walk(element, $"{path}[{index++}]", lines, seen);
-            }
-
-            return;
-        }
-
-        const System.Reflection.BindingFlags Declared = System.Reflection.BindingFlags.Instance
-            | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic
-            | System.Reflection.BindingFlags.DeclaredOnly;
-
-        for (Type? level = type; level is not null && level != typeof(object) && level != typeof(ValueType);
-            level = level.BaseType)
-        {
-            foreach (System.Reflection.FieldInfo field in level.GetFields(Declared))
-            {
-                Walk(field.GetValue(value), $"{path}.{field.Name}", lines, seen);
-            }
-        }
-    }
+    private static List<string> Rendered(Ruleset? ruleset) => ruleset is null
+        ? ["null"]
+        : [.. RulesetFields.Of(ruleset).Select(f => $"{f.Path} = {f.Value}")];
 }
