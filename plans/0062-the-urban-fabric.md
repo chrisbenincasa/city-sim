@@ -73,8 +73,9 @@ housing selection are implemented. Housing evidence now distinguishes immediate 
 from substantial persistent preference mismatch, using saved elapsed-Tick episodes. The
 [playable neighbourhood](urban-neighbourhood.md) exposes that behaviour for user acceptance.
 
-**Completion requires the outstanding user playtest**, deferred while the user has only remote
-shell access. Revisit when graphical play is possible; record their assessment of clarity and
+**BLOCKED / deferred: completion requires the outstanding user playtest**, which cannot happen
+while the user has only remote shell access. The `next` skill must skip urban fabric and its
+intensity/form follow-ups and select independent, unblocked work. Revisit when graphical play is possible; record their assessment of clarity and
 payoff and resolve acceptance-blocking findings. Automated tests and driven observation do not
 satisfy this requirement. Other work may proceed meanwhile. Numeric intensity caps, larger
 arrangements and further shell controls remain later candidates, informed by the playtest verdict.

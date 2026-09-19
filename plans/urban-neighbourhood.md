@@ -2,14 +2,16 @@
 
 Show the payoff of the existing individual housing decisions before adding intensity caps.
 Owner: `urban-permissions`.
-Status: implementation and automated/driven validation delivered; **user playtest outstanding
-and deferred**. This design is not complete until that playtest and its acceptance review finish.
+Status: **BLOCKED / deferred — required user playtest**. Implementation and automated/driven
+validation are delivered. This design is not complete until that playtest and its acceptance review finish.
 
 ## Required user playtest — deferred
 
 The user currently accesses the session remotely over a shell and cannot playtest. Revisit when
 they have access to the graphical game and can play the [walkthrough](../examples/UrbanNeighbourhood/README.md).
-This deferral blocks completion of the urban-fabric design, not progress on other work.
+The `next` skill must skip urban fabric and its intensity/form follow-ups while this blocker remains.
+Select independent, unblocked work meanwhile. This deferral blocks completion of the urban-fabric
+design, not progress on other work.
 Automated tests and the agent-driven demonstration remain valid evidence but do not replace this
 user acceptance step.
 
