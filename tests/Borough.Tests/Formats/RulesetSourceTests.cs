@@ -271,16 +271,6 @@ public sealed class RulesetSourceTests
         Assert.Equal(("broken.toml", RulesetDiagnosticCode.Syntax, 3), (refused.Path, refused.Code, refused.Line));
     }
 
-    [Theory]
-    [InlineData("[[recipe]]\nid = \"bake\"\n")]
-    [InlineData("[[rule]]\nid = \"bake\"\nkind = \"dwelling\"\nrecipe = \"bake\"\n")]
-    public void Shared_definitions_without_runtime_support_are_refused_by_name(string member)
-    {
-        RulesetDiagnostic refused = Refused(RulesetDiagnosticCode.Unimplemented, [.. Base, ("shared.toml", member)]);
-
-        Assert.Contains("not implement", refused.Reason, StringComparison.Ordinal);
-    }
-
     private static void AssertSameResolution(RulesetSourceResult expected, RulesetSourceResult actual)
     {
         AssertSameFields(expected.Ruleset, actual.Ruleset);

@@ -1,9 +1,16 @@
 # The stocked Ruleset. It models no city, and it exists to make ONE THING VISIBLE.
 #
-# `hungry.toml` WITH ITS CONSUMPTION AND ITS LARDER STATED ONCE, SHARED, and that diff is the whole
-# content. A `[[basket]]` says what one occupant uses in a Day; a `[[reserve]]` says how many Days a
-# Bin sized from that basket holds. The `consume` Rule names the basket instead of listing an input,
-# and the larder names the basket and a profile instead of stating a number.
+# `hungry.toml` REWRITTEN ON SHARED DEFINITIONS. A `[[basket]]` says what one occupant uses in a Day;
+# a `[[reserve]]` says how many Days a Bin sized from that basket holds; a `[[recipe]]` says what one
+# application of a conversion takes and makes. The `consume` Rule names the basket instead of listing
+# an input, the larder names the basket and a profile instead of stating a number, and the premises'
+# `restock`/`upkeep` pair names recipes instead of listing terms.
+#
+# ⚠ THE NUMBERS ARE NOT `hungry.toml`'s AND THE SHAPE IS NOT EITHER. That file consumes 4 sundries a
+# firing behind a ceiling of 48; this one consumes 250 a DAY behind a ceiling DERIVED as 750, and it
+# adds a `repairs` source and sink that file has not got. ***This is not a re-spelling of hungry.toml
+# that produces the same Ruleset.*** The quantities were chosen to make the arithmetic below legible,
+# and nothing here is a claim about that file's balance.
 #
 # WHAT IT EXISTS TO SHOW: a daily quantity that DOES NOT DIVIDE EVENLY across the firings that spend
 # it. `consume` re-arms every 32 Ticks and a Day is 2048, so it fires 64 times a Day; the basket
@@ -22,6 +29,18 @@
 # rate of use to multiply; nothing consumes `repairs` here, so there is no rate and a literal number
 # is the honest statement. Literal capacities remain supported everywhere and this file is not a
 # claim that they are deprecated.
+#
+# THE THIRD SHARED DECLARATION IS `[[recipe]]`, AND IT SHARES THE OTHER HALF. A basket is what one
+# actor consumes in a Day; a recipe is what a firing turns into what. `restock` below states its
+# conversion once and the Rule names it, so a Rule's `inputs` and `outputs` move together with it.
+# ***A recipe's amounts are per APPLICATION and not per Day***, so the `apply` band multiplies them --
+# one to two applications here is one to two `repairs` -- and no Bin carries a remainder for it.
+#
+# ⚠ THE RECIPES MOVE `repairs` AND NOT `sundries`, AND THAT PRESERVES THE STARVATION. `hungry.toml`
+# deletes `restock` so the larder is filled by nothing and `consume` really fails, which is the whole
+# reason that file exists; refilling sundries here would erase it. `restock` and `upkeep` are
+# minimal.toml's pair on the premises' own Good, so `repairs` has a source and a sink and its level
+# stays bounded by the ceiling of 4 rather than by taste.
 #
 # ⚠ A RESERVE IS NOT `CONTEXT` -> Resource's *Storage*. That parameter is whether a Bin carries over
 # between periods, and `RulesetLoader` holds `storage` open as a named hole on `[[resource]]` for it.
@@ -70,6 +89,17 @@ use_per_day = { sundries = 250 }
 name = "standard"
 days = 3
 
+# What one firing turns into what, stated once for every Rule that runs it.
+[[recipe]]
+name    = "restock"
+inputs  = []
+outputs = [ { scope = "local", resource = "repairs", amount = 1 } ]
+
+[[recipe]]
+name    = "maintain"
+inputs  = [ { scope = "local", resource = "repairs", amount = 1 } ]
+outputs = []
+
 [[business]]
 name = "shop"
 shift_start_earliest_hour = 6
@@ -95,6 +125,22 @@ kind    = "dwelling"
 rate    = 32
 apply   = { min = 1, max = 1 }
 basket  = "basic"
+
+# No `inputs` and no `outputs`: the recipe is both, and an apply band is allowed here because a
+# recipe is priced per application rather than per Day.
+[[rule]]
+name    = "restock"
+kind    = "dwelling"
+rate    = 64
+apply   = { min = 1, max = 2 }
+recipe  = "restock"
+
+[[rule]]
+name    = "upkeep"
+kind    = "dwelling"
+rate    = 128
+apply   = { min = 1, max = 1 }
+recipe  = "maintain"
 
 [[zone_rule]]
 name          = "housing"

@@ -140,7 +140,16 @@ internal static class CityTuning
             return false;
         }
 
-        value = line[(equals + 1)..].Trim();
+        int start = equals + 1;
+
+        while (start < line.Length && (line[start] == ' ' || line[start] == '\t'))
+        {
+            start++;
+        }
+
+        // Without the value's own end, a dial on a commented line reads back as "20 # the block"
+        // and writing it again would duplicate the comment.
+        value = line[start..ValueEnd(line, start)];
 
         return true;
     }
@@ -180,16 +189,46 @@ internal static class CityTuning
                 continue;
             }
 
-            // The original indentation is kept because these files are column-aligned by hand and a
-            // rewriter that reflowed them would make every diff unreadable.
+            // Only the value is replaced. Everything around it -- the indentation these files are
+            // column-aligned with, the spacing either side of the '=', a trailing comment and the
+            // line ending -- is the author's, and comments are part of the content identity.
             string line = lines[at];
-            int equals = line.IndexOf('=');
-            string ending = line.EndsWith('\r') ? "\r" : string.Empty;
+            int start = line.IndexOf('=') + 1;
 
-            lines[at] = string.Concat(line.AsSpan(0, equals + 1), " ", to, ending);
+            while (start < line.Length && (line[start] == ' ' || line[start] == '\t'))
+            {
+                start++;
+            }
+
+            lines[at] = string.Concat(line.AsSpan(0, start), to, line.AsSpan(ValueEnd(line, start)));
         }
 
         return string.Join('\n', lines);
+    }
+
+    /// <summary>One past the value beginning at <paramref name="start"/>.</summary>
+    private static int ValueEnd(string line, int start)
+    {
+        if (start < line.Length && (line[start] == '"' || line[start] == '\''))
+        {
+            int close = line.IndexOf(line[start], start + 1);
+
+            return close < 0 ? line.Length : close + 1;
+        }
+
+        int end = start;
+
+        while (end < line.Length && line[end] != '#' && line[end] != '\r')
+        {
+            end++;
+        }
+
+        while (end > start && (line[end - 1] == ' ' || line[end - 1] == '\t'))
+        {
+            end--;
+        }
+
+        return end;
     }
 
     private static (string Text, bool Mark) Decode(ReadOnlyMemory<byte> bytes)

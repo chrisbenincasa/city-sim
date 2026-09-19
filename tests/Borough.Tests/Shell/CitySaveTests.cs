@@ -22,6 +22,9 @@ public sealed class CitySaveTests
     private static RulesetCapture Single(string ruleset) =>
         RulesetCapture.Read(Path.Combine(AppContext.BaseDirectory, "Rulesets", ruleset)).Capture!;
 
+    private static RulesetCapture Packaged() => RulesetCapture.Read(
+        Path.Combine(AppContext.BaseDirectory, "Rulesets", "split", "ruleset.toml")).Capture!;
+
     private static Ruleset Rules(RulesetCapture capture) => RulesetSource.Resolve(capture).Ruleset!;
 
     [Theory]
@@ -151,9 +154,23 @@ public sealed class CitySaveTests
     [InlineData("ruleset.toml")]
     [InlineData("world.save")]
     [InlineData("city.json")]
-    public void Damaged_package_is_refused_without_changing_the_source_city(string entryName)
+    public void Damaged_single_file_save_is_refused_without_changing_the_source_city(string entryName) =>
+        AssertDamageIsRefused(Single("minimal.toml"), entryName);
+
+    /// <summary>
+    /// The package half, which the single-file theory above cannot reach: a v2 save carries the
+    /// manifest and every member, and damaging one member is a damaged Ruleset.
+    /// </summary>
+    [Theory]
+    [InlineData("source.toml")]
+    [InlineData("members/goods.toml")]
+    [InlineData("bundle.json")]
+    [InlineData("world.save")]
+    public void Damaged_package_save_is_refused_without_changing_the_source_city(string entryName) =>
+        AssertDamageIsRefused(Packaged(), entryName);
+
+    private static void AssertDamageIsRefused(RulesetCapture capture, string entryName)
     {
-        RulesetCapture capture = Single("minimal.toml");
         var key = WorldKey.FromSeed(0);
         var world = new World(0, Rules(capture), key);
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".borough-city");
@@ -165,11 +182,18 @@ public sealed class CitySaveTests
             {
                 zip.GetEntry(entryName)!.Delete();
                 using var writer = new StreamWriter(zip.CreateEntry(entryName).Open());
-                writer.Write(entryName == "ruleset.toml"
+                writer.Write(entryName.EndsWith(".toml", StringComparison.Ordinal)
                     ? Encoding.UTF8.GetString(capture.Entry.Span) + "\n# different content\n"
                     : "broken");
             }
-            Assert.ThrowsAny<Exception>(() => CitySave.Read(path));
+
+            // Narrow on purpose: a damaged save is a refusal the shell reports, and a
+            // NullReferenceException passing for one is how a read that crashes reads as a read
+            // that refused.
+            Assert.True(
+                Record.Exception(() => CitySave.Read(path))
+                    is InvalidDataException or InvalidOperationException,
+                "a damaged save was not refused as one.");
             Assert.Equal(before, world.HashState());
         }
         finally { File.Delete(path); }

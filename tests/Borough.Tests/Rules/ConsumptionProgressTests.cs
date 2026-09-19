@@ -6,6 +6,8 @@ using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
 using Borough.Core.Tables;
+using Borough.Core.Arithmetic;
+using Borough.Formats;
 using Borough.Tests.Persistence;
 
 namespace Borough.Tests.Rules;
@@ -261,5 +263,46 @@ public sealed class ConsumptionProgressTests
         (World _, Simulation simulation, Handle<Building> _) = Built(greedy, 100);
 
         Assert.Throws<InvalidOperationException>(() => StepThroughFirings(simulation, 1));
+    }
+
+    /// <summary>
+    /// The arithmetic <c>rulesets/stocked.toml</c>'s header claims, read off that file rather than
+    /// off a fixture shaped like it.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>The shipped file is the demonstration and a comment is not a test.</b> 250 sundries a
+    /// Day over the 64 firings a 32-Tick rate gives is 3.90625 each — so rounding down would take
+    /// 192 and rounding up 256, and the remainder on the Bin is what makes the Day's total 250. The
+    /// larder's ceiling is <c>use_per_day × days</c> and is not a number in the file.
+    /// </remarks>
+    [Fact]
+    public void The_shipped_demonstration_states_what_its_header_claims()
+    {
+        Ruleset stocked = RulesetSource.Load(
+            Path.Combine(AppContext.BaseDirectory, "Rulesets", "stocked.toml")).Ruleset!;
+
+        RuleDefinition consume = stocked.Rule(new RuleId(1));
+        Term daily = Assert.Single(stocked.Inputs(new RuleId(1)).ToArray());
+
+        Assert.True(daily.PerDay);
+        Assert.Equal(250, daily.Amount);
+        Assert.Equal(32u, consume.Rate);
+        Assert.Equal(64u, Ticks.PerDay / consume.Rate);
+        Assert.Equal(750, stocked.BinsOf(1)[0].Capacity.Units);
+
+        // What a Day of firings actually takes, term by term, through the engine's own arithmetic.
+        long taken = 0;
+        int progress = 0;
+
+        for (int firing = 0; firing < 64; firing++)
+        {
+            long scaled = progress + ((long)daily.Amount * consume.Rate);
+
+            taken += IntegerMath.FloorDiv(scaled, Ticks.PerDay);
+            progress = (int)(scaled % Ticks.PerDay);
+        }
+
+        Assert.Equal(250, taken);
+        Assert.Equal(0, progress);
     }
 }

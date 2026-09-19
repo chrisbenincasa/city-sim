@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using Borough.Core;
 using Borough.Core.Determinism;
@@ -17,6 +18,25 @@ namespace Borough.Headless;
 
 internal static class ProfileDump
 {
+    /// <summary>
+    /// A digest over everything the Ruleset is made of, so two packages differing in one member
+    /// differ here. A single file has no members, so its digest is the file's and does not move.
+    /// </summary>
+    private static string Digest(RulesetCapture capture)
+    {
+        using IncrementalHash hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+
+        hash.AppendData(capture.Entry.Span);
+
+        foreach (RulesetMember member in capture.Members)
+        {
+            hash.AppendData(Encoding.UTF8.GetBytes(member.Path));
+            hash.AppendData(member.Content.Span);
+        }
+
+        return Convert.ToHexString(hash.GetHashAndReset());
+    }
+
     internal static int Run(Options options, TextWriter output, TextReader? input = null)
     {
         if (!Session.TryCapture(options.RulesetPath!, out RulesetCapture? captured)
@@ -50,7 +70,7 @@ internal static class ProfileDump
         {
             type = "conditions",
             ruleset = options.RulesetPath,
-            rulesetSha256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(options.RulesetPath!))),
+            rulesetSha256 = Digest(captured),
             options.Seed,
             options.Citizens,
             options.WarmupTicks,

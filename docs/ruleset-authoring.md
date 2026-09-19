@@ -11,12 +11,12 @@ captures manifests, frames bundle identity, collects typed declarations with loc
 and resolves them deterministically by lowering into the single-file reader. `RulesetBundle` writes
 and reads the stored bundle described below. Both hosts load a package through `RulesetSource`, and
 CitySave envelope version 2 stores its bundle, so a package city saves and reloads without its
-source directory. `[[basket]]` and `[[reserve]]` are implemented: a Rule's `basket` supplies its
-input terms at a daily rate, a Bin's `reserve` derives its capacity, and `rulesets/stocked.toml`
-demonstrates both against a quantity that does not divide evenly across firings. `[[recipe]]` and a
-Rule's `recipe` reference are still refused as unimplemented. The disposable prototype demonstrates
-shared maintenance and impact reports; the factored representation and bakery contract establish
-bounded design evidence. They are not production loaders or substitutes for Core mechanics.
+source directory. The three shared definitions are implemented: a Rule's `basket` supplies its
+input terms at a daily rate, a Rule's `recipe` supplies its inputs and outputs together at
+per-application amounts, and a Bin's `reserve` derives its capacity. `rulesets/stocked.toml`
+demonstrates all three, against a daily quantity that does not divide evenly across
+firings. The disposable prototype demonstrates shared maintenance and impact reports; the factored
+representation and bakery contract establish bounded design evidence. They are not production loaders or substitutes for Core mechanics.
 [Plan 0077](../plans/0077-ruleset-source-loading.md) captures loader and guide implementation;
 the [board](../plans/0000-board.md) owns scheduling and the separate runtime/gameplay work.
 
@@ -480,8 +480,7 @@ dotnet run --project src/Borough.Headless -- \
 ```
 
 The manifest is the entry and `--ruleset` takes it exactly as it takes a single file, because
-`[source]` is what selects the package reader. Every runner mode accepts a package this way; none
-of them needed a change for it. The kind dump names the Building `Terraced house`, which is
+`[source]` is what selects the package reader. Every runner mode accepts a package this way. The kind dump names the Building `Terraced house`, which is
 `dwelling.toml`'s `label`, while `rules.toml` refers to the same declaration by its id, `dwelling`.
 
 The Godot shell takes the same path:
@@ -535,11 +534,13 @@ Each of these is one edit to a copy of `rulesets/split/`, and the text is what t
 |---|---|
 | A Bin names a Good nobody declares | `dwelling.toml:13:7: [[building]] 'dwelling': resource names 'repair', and no [[resource]] in this package declares that id. A reference is matched against the target section's ids alone, exactly and case-sensitively.` |
 | Two members declare one id | `goods.toml:15:1: [[resource]] 'sundries': a second [[resource]] has id 'sundries'; the first is at goods.toml:3:1. Duplicate ids are refused even when their values agree.` |
-| A listed member is not on disk | `ruleset.toml:15:42: member 'goods.toml' is missing. A listed member never falls back to another file.` |
+| A listed member is not on disk | `rulesets/split/ruleset.toml:15:42: member 'goods.toml' is missing. A listed member never falls back to another file.` |
 | `order` outside the three ordered families | `dwelling.toml:11:1: [[building]] 'dwelling': order is accepted only on [[policy]], [[rule]], [[zone_rule]]; other declarations are ordered by id.` |
 | `name` where `id` belongs | `dwelling.toml:8:1: [[building]] has no id. Every source declaration is identified by id.` and `dwelling.toml:9:1: name is not a source key on [[building]]. id identifies the declaration and label is its display text.` |
 
 A refusal names the member, the line within it and the column, not an offset into a concatenation.
+A member is named by its path inside the package; the entry is named by the path `--ruleset` was
+given, so the manifest row above carries a directory and the member rows do not.
 The prefix names the declaration in scope by its own section, so a `[[resource]]` reports as one and
 a reference reports against the declaration that states it. ⚠ A refusal with no declaration in scope
 has no prefix — a manifest problem, or one the single-file reader raises against the whole document
@@ -566,7 +567,15 @@ bytes held in memory, which is a new world rather than a Ruleset swap.
 ```sh
 dotnet run --project src/Borough.Headless -- \
   --ruleset rulesets/split/ruleset.toml --citizens 200 --ticks 100 --save /tmp/city.save
+
+dotnet run --project src/Borough.Headless -- \
+  --ruleset rulesets/split/ruleset.toml --load /tmp/city.save --ticks 100
 ```
+
+`--save` writes the world and then reloads and runs both, printing the two hash traces side by side;
+`--load` resumes that save on its own and runs on from the Tick it was taken at. The headless runner
+keeps no bundle, so the resume needs the same `--ruleset`, and the save header refuses a different
+one — the content identity it records is the package's framed identity, not the manifest's bytes.
 
 A city saved from the Godot shell embeds its whole package, so it resumes without the source
 directory and names the Ruleset it was authored under rather than the archive. Comments and
@@ -575,9 +584,6 @@ replay depends on.
 
 ### What this build does not do yet
 
-- **Shared `[[basket]]`, `[[recipe]]` and `[[reserve]]` definitions are refused**, by name, as
-  unimplemented. So are a Rule's `basket`/`recipe` reference and a Bin's `reserve` selection. State
-  a Rule's inputs and outputs directly.
 - **There is no impact preview.** Nothing reports before/after values, affected and unchanged
   dependants or expansion counts, so the effect of an edit is read from a run.
 - **A refusal the single-file reader raises still describes the lowered text.** The resolver owns
@@ -588,6 +594,10 @@ replay depends on.
   holding `--ruleset` and read every `.toml` in it as a separate single-file Ruleset — on
   `rulesets/split/` that is five files, four of which the loader refuses, and the manifest
   contributes a `[source]` section to the output. Generate from `rulesets/minimal.toml`.
+- **A `[[basket]]`'s `use_per_day` gets a reader refusal, not a package one.** Its keys are Good ids
+  the author chose rather than keys of the format, which the resolver's reference list has no way to
+  name. A package basket naming an undeclared Good is refused with a member and a line, without the
+  column and the section a cross-member reference carries.
 - **A manifest gets no editor hints.** `.taplo.toml` associates the schema with `rulesets/*.toml`
   only, because a manifest's filename is not reserved and no glob can tell one from a member.
 
@@ -595,10 +605,10 @@ replay depends on.
 
 Keep this document current as the loader ships. The walkthrough above covers what this build can
 do: membership, identity and order, located diagnostics, an in-session change and a package city
-that saves and resumes. What it still cannot walk through, each waiting on the implementation it
-names, is adding a Good and a recipe, referencing a shared basket, choosing a reserve,
-introducing and removing an exception, and evolving an inhabited city. The impact report has no
-implementation to show. Document which changes are supported, require migration, or require a new
+that saves and resumes. What it still cannot walk through is introducing and removing an
+exception, and evolving an inhabited city. The impact report has no implementation to show.
+Adding a Good and a recipe, referencing a shared basket and choosing a reserve all load today and
+are owed walkthrough steps. Document which changes are supported, require migration, or require a new
 city, once a reload can tell them apart.
 
 ⚠ The walkthrough's commands are not held against the runner by anything. A flag renamed or a mode

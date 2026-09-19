@@ -62,21 +62,54 @@ public sealed class CityTuningTests
         Assert.Equal(before.ContentHash, after.ContentHash);
     }
 
+    /// <summary>
+    /// A turn rewrites one value and copies everything else through, bytes and all.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>The untuned member is the half worth pinning.</b> A mark or a line ending the tuner
+    /// normalised on the way past would move the content identity of a member nobody edited, which
+    /// is a save and a replay refusing over a dial the operator never turned.
+    /// </remarks>
     [Fact]
     public void A_byte_order_mark_and_the_line_endings_survive_a_turn()
     {
         byte[] marked = [.. Encoding.UTF8.Preamble, .. Utf8(Roads.ReplaceLineEndings("\r\n"))];
+        byte[] untouched = [.. Encoding.UTF8.Preamble, .. Utf8(Lots.ReplaceLineEndings("\r\n"))];
+
         RulesetCapture before = RulesetCapture.FromEntries(
             "ruleset.toml",
-            Utf8(Manifest("roads.toml")),
-            [new KeyValuePair<string, byte[]>("roads.toml", marked)]).Capture!;
+            Utf8(Manifest("roads.toml", "lots.toml")),
+            [
+                new KeyValuePair<string, byte[]>("roads.toml", marked),
+                new KeyValuePair<string, byte[]>("lots.toml", untouched),
+            ]).Capture!;
 
         RulesetCapture after = CityTuning.Turned(before, [("[roads]", "block_tiles", "20")]).Capture!;
-        byte[] content = after.Members.Single().Content.ToArray();
+        byte[] content = after.Members.Single(member => member.Path == "roads.toml").Content.ToArray();
 
         Assert.Equal(Encoding.UTF8.Preamble.ToArray(), content[..Encoding.UTF8.Preamble.Length]);
         Assert.Contains("block_tiles = 20\r\n", Encoding.UTF8.GetString(content));
         Assert.DoesNotContain("\n\n", Encoding.UTF8.GetString(content).Replace("\r\n", "\n"));
+        Assert.Equal(
+            untouched, after.Members.Single(member => member.Path == "lots.toml").Content.ToArray());
+    }
+
+    /// <summary>
+    /// The value is replaced where it stands, so whatever spacing the author wrote stays theirs.
+    /// </summary>
+    [Theory]
+    [InlineData("block_tiles=12", "block_tiles=20")]
+    [InlineData("block_tiles   =   12", "block_tiles   =   20")]
+    [InlineData("block_tiles = 12 # the block", "block_tiles = 20 # the block")]
+    public void A_turn_rewrites_the_value_and_not_the_line(string written, string expected)
+    {
+        RulesetCapture before = Package(
+            ("roads.toml", Roads.Replace("block_tiles = 12", written, StringComparison.Ordinal)));
+
+        RulesetCapture after = CityTuning.Turned(before, [("[roads]", "block_tiles", "20")]).Capture!;
+
+        Assert.Contains(expected, Text(after, "roads.toml"), StringComparison.Ordinal);
+        Assert.Equal("20", CityTuning.Stated(after, "[roads]", "block_tiles"));
     }
 
     [Fact]

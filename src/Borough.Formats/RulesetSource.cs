@@ -87,8 +87,7 @@ public sealed class RulesetSourceResult
 /// <c>ContentHash.Of(UTF8(id))</c>), and <c>label</c>/<c>order</c> are blanked. Edits preserve line
 /// structure, and the reader's refusals are mapped back to member lines; their column is unknown.
 /// <c>terrain</c> keeps its closed-enum <c>name</c>; <c>hinterland</c> and <c>lattice</c> are
-/// anonymous in the reader, so their id is not lowered. Shared baskets, recipes and storage
-/// selections are refused until their runtime support exists; they are never approximated here.
+/// anonymous in the reader, so their id is not lowered.
 /// </para>
 /// </remarks>
 public static class RulesetSource
@@ -291,22 +290,24 @@ public static class RulesetSource
 
             foreach (TableSyntaxBase table in document.Tables)
             {
-                string name = RulesetCapture.NameOf(table.Name);
+                string[] parts = RulesetCapture.NameParts(table.Name);
+                string name = string.Join('.', parts);
                 RulesetSourceLocation at = RulesetSourceLocation.Of(source.Path, table);
                 int headerLine = table.Span.Start.Line;
-                int dot = name.IndexOf('.', StringComparison.Ordinal);
+                bool manifest = RulesetCapture.IsSource(table.Name);
+                bool nested = parts.Length > 1 && !manifest;
 
-                if (dot >= 0 && !RulesetCapture.IsSource(name))
+                if (nested)
                 {
                     // A nested table belongs to the declaration above it, in this member only.
-                    if (owner is not null && owner.Section == name[..dot])
+                    if (owner is not null && owner.Section == parts[0])
                     {
                         owner.Tables.Add(table);
                         continue;
                     }
 
                     Refuse(at, RulesetDiagnosticCode.MemberShape, null, null,
-                        $"{Header(table, name)} does not follow a [[{name[..dot]}]] in this member. A "
+                        $"{Header(table, name)} does not follow a [[{parts[0]}]] in this member. A "
                         + "nested table stays with its owning declaration, and a member cannot "
                         + "reopen one declared elsewhere.");
                 }
@@ -314,24 +315,15 @@ public static class RulesetSource
                 Close(owner, headerLine);
                 owner = null;
 
-                if (dot >= 0 && !RulesetCapture.IsSource(name))
+                if (nested)
                 {
                     continue;
                 }
 
-                if (RulesetCapture.IsSource(name))
+                if (manifest)
                 {
                     Refuse(at, RulesetDiagnosticCode.MemberShape, null, null,
                         "a member cannot contain [source]. Only the entry manifest lists members.");
-                    continue;
-                }
-
-                if (table is TableArraySyntax && name == "recipe")
-                {
-                    Refuse(at, RulesetDiagnosticCode.Unimplemented, null, null,
-                        "[[recipe]] is a source v1 shared definition this build does not implement "
-                        + "yet. A recipe shares a Rule's inputs and its outputs together; a "
-                        + "[[basket]] shares what one actor consumes in a Day and is implemented.");
                     continue;
                 }
 
@@ -436,18 +428,6 @@ public static class RulesetSource
                 {
                     declared.Order = number.Value;
                     declared.Edits.Add(Edit.Blank(order));
-                }
-            }
-
-            foreach (KeyValueSyntax item in table.Items)
-            {
-                if (section == "rule" && RulesetCapture.NameOf(item.Key) == "recipe")
-                {
-                    Refuse(RulesetSourceLocation.Of(source.Path, item),
-                        RulesetDiagnosticCode.Unimplemented, section, declared.Id,
-                        "a Rule's recipe reference is not implemented by this build yet. A recipe "
-                        + "supplies inputs and outputs together; state them, or state a basket if "
-                        + "the Rule only consumes.");
                 }
             }
 

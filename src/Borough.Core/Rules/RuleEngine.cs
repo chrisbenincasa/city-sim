@@ -976,9 +976,15 @@ public sealed class RuleEngine
         // because Phase 2 writes nothing (adr/0037) and because the rung that fires is not always
         // the rung first evaluated -- a fallback chain re-checks on the way down, and the last check
         // to succeed is the one whose terms Fire is settling.
-        for (int i = 0; i < _accruedCount; i++)
+        //
+        // ⚠ Zero applications moves no Goods, so it accrues nothing either. Unlike the deltas above,
+        // a remainder is not scaled by the applications and would advance on its own.
+        if (verdict.Applications > 0)
         {
-            _world.Bins.Progress[_accruedBin[i]] = _accruedRemainder[i];
+            for (int i = 0; i < _accruedCount; i++)
+            {
+                _world.Bins.Progress[_accruedBin[i]] = _accruedRemainder[i];
+            }
         }
 
         // DistrictPoolTable.Consumed's FIRST WRITER, and the column shipped at milestone 12 task 6

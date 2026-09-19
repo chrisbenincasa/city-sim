@@ -64,8 +64,18 @@ internal static class CitySave
             ?? throw new InvalidDataException($"Missing {name} in city save.")).Open();
         Metadata metadata;
         using (var entry = Entry("city.json"))
-            metadata = JsonSerializer.Deserialize<Metadata>(entry)
-                ?? throw new InvalidDataException("Missing city metadata.");
+        {
+            try
+            {
+                metadata = JsonSerializer.Deserialize<Metadata>(entry)
+                    ?? throw new InvalidDataException("Missing city metadata.");
+            }
+            catch (JsonException malformed)
+            {
+                throw new InvalidDataException(
+                    "The city metadata is damaged: " + malformed.Message, malformed);
+            }
+        }
         if (metadata.Version is not (1 or Envelope))
             throw new InvalidDataException("Unsupported city save version.");
         RulesetCapture capture = Held(zip, metadata.Version, Entry);
@@ -74,14 +84,30 @@ internal static class CitySave
         using var state = Entry("world.save");
         // Check the content identity before constructing a world under these rules.
         byte[] bytes = new byte[SaveHeader.Bytes];
-        state.ReadExactly(bytes);
+        try
+        {
+            state.ReadExactly(bytes);
+        }
+        catch (EndOfStreamException truncated)
+        {
+            throw new InvalidDataException(
+                $"The saved city is shorter than a {SaveHeader.Bytes}-byte save header.", truncated);
+        }
         SaveHeader header = SaveHeader.Read(bytes);
         if (header.RulesetInForce != capture.ContentHash)
             throw new InvalidDataException("The saved Ruleset does not match the city.");
         if (header.Key != WorldKey.FromSeed(metadata.Seed))
             throw new InvalidDataException("The saved seed does not match the city.");
         using var body = Entry("world.save");
-        World world = SaveFile.Read(new Source(body), resolved.Ruleset, out header);
+        World world;
+        try
+        {
+            world = SaveFile.Read(new Source(body), resolved.Ruleset, out header);
+        }
+        catch (EndOfStreamException truncated)
+        {
+            throw new InvalidDataException("The saved city ends before its body does.", truncated);
+        }
         if (body.ReadByte() != -1) throw new InvalidDataException("Unexpected data after the saved city.");
         return new SavedCity(world, header, capture, resolved.Names, metadata.Seed);
     }

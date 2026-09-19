@@ -144,6 +144,11 @@ public sealed class RulesetSourceReferenceTests
         [[reserve]]
         id = "standard"
         days = 3
+
+        [[recipe]]
+        id = "restock"
+        inputs = []
+        outputs = [ { scope = "local", resource = "repairs", amount = 1 } ]
         """;
 
     private const string SizedDwelling = """
@@ -162,6 +167,13 @@ public sealed class RulesetSourceReferenceTests
         rate   = 32
         apply  = { min = 1, max = 1 }
         basket = "basic"
+
+        [[rule]]
+        id     = "restock"
+        kind   = "dwelling"
+        rate   = 64
+        apply  = { min = 1, max = 2 }
+        recipe = "restock"
         """;
 
     [Fact]
@@ -175,6 +187,12 @@ public sealed class RulesetSourceReferenceTests
         Assert.Equal(750, result.Ruleset!.BinsOf(1)[0].Capacity.Units);
         Assert.True(result.Ruleset.Inputs(new RuleId(1))[0].PerDay);
 
+        Term made = Assert.Single(result.Ruleset.Outputs(new RuleId(2)).ToArray());
+
+        Assert.Equal("repairs", result.Names.Resource(made.Bin.Resource));
+        Assert.Equal(1, made.Amount);
+        Assert.False(made.PerDay);
+
         // The label reaches the shell's names, and the id never does.
         Assert.Contains(
             result.Declarations, d => d.Section == "basket" && d.Id == "basic");
@@ -183,6 +201,7 @@ public sealed class RulesetSourceReferenceTests
     [Theory]
     [InlineData("\nbasket = \"basic\"", "\nbasket = \"pantry\"", "basket")]
     [InlineData("profile = \"standard\"", "profile = \"deep\"", "reserve")]
+    [InlineData("recipe = \"restock\"", "recipe = \"bake\"", "recipe")]
     public void A_shared_definition_reference_names_its_own_section(
         string written, string broken, string target)
     {

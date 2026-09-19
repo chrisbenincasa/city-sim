@@ -95,12 +95,15 @@ Consequences to carry:
 All five points below are implemented and tested. `SharedDefinitionLoadTests` covers the
 single-file reader, `RulesetSourceReferenceTests` covers cross-member resolution in a package, and
 `rulesets/stocked.toml` is the shipped demonstration — 250 sundries a Day over 64 firings, which
-divides badly on purpose, with the larder's ceiling derived rather than stated.
+divides badly on purpose, with the larder's ceiling derived rather than stated, and a shared
+`restock`/`upkeep` pair on the premises' own Good stated as recipes.
 
 1. `[[basket]]` — `id`, `label`, `owner` matching `BinTenancy`, `use_per_day` mapping Resource ids to
-   positive integers. `[[reserve]]` — `id`, `label`, `days`.
-2. A Rule's `basket` reference supplies its input terms. Explicit `inputs`/`outputs` alongside it are
-   refused, as are `basket` and `recipe` together. Fixed apply count one.
+   positive integers. `[[reserve]]` — `id`, `label`, `days`. `[[recipe]]` — `id`, `label`, `inputs`,
+   `outputs`, in a Rule's own term shape.
+2. A Rule's `basket` reference supplies its input terms, and its `recipe` reference supplies both
+   term lists. Explicit `inputs`/`outputs` alongside either are refused, as are `basket` and
+   `recipe` together. A basket requires a fixed apply count of one; a recipe keeps the Rule's own.
 3. A Bin's `reserve` reference derives `capacity = use_per_day × effective days`, with a local `days`
    override replacing the profile's Days and omission restoring inheritance. Money Bins are excluded;
    they are unbounded and already refuse a declared capacity.
@@ -115,9 +118,14 @@ would be refused as an unknown key, and the shipped Rulesets' Goods would be pub
 format. `RulesetSourceReferences` gains `rule.basket`, `building.bins[].reserve.profile` and
 `building.bins[].reserve.basket`.
 
-**Still open.** `[[recipe]]` and a Rule's `recipe` reference stay refused by name; they share
-production rather than consumption and need no fractional progress, so they are cheap and separable.
-A basket's `use_per_day` keys are resolved by the single-file reader with a line, not by the package
+`[[recipe]]` is implemented alongside them: a Rule's `recipe` supplies its inputs and outputs
+together at per-application amounts, `inputs`, `outputs` and `basket` are refused beside it, and a
+recipe that moves nothing is refused at its declaration. It needs no apply-count restriction,
+because per-application amounts are exactly what the engine's multiplication by applications means.
+The count of record moved 365 → 368 on 2026-09-19 and the package resolver has no
+*not implemented* refusal left.
+
+**Still open.** A basket's `use_per_day` keys are resolved by the single-file reader with a line, not by the package
 resolver — `RulesetSourceReference` has no syntax for *every key of this inline table*, so a package
 naming an undeclared Good there gets the reader's refusal rather than a located package diagnostic.
 
@@ -130,8 +138,11 @@ naming an undeclared Good there gets the reader's refusal rather than a located 
 - Save and reload mid-fraction continues identically. Replay and thread-count equivalence hold.
 - A starved actor accrues nothing while blocked and does not catch up on recovery. Demonstrate a
   shortage and a player-led recovery, not only uninterrupted totals.
-- A shipped Ruleset converted to baskets produces the same Ruleset field-for-field as its literal form,
-  where the quantities are equivalent.
+- A shipped Ruleset converted to **recipes** produces the same Ruleset field-for-field as its literal
+  form, because a recipe's terms are the Rule's own terms shared. ⚠ **A basket conversion cannot meet
+  that bar and the wording was wrong.** A basket term carries `Term.PerDay` and a literal term does
+  not, so the two arrays differ by construction; what a basket conversion can be held to is the
+  behaviour and the derived ceiling, which is what `SharedDefinitionLoadTests` asserts.
 - Existing single-file content and golden identities remain supported. Re-record once, deliberately.
 
 ## Boundaries

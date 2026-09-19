@@ -235,6 +235,30 @@ public static class RulesetKeyNotes
             "How many Days of a basket's use a Bin sized from this profile holds. It is the shared "
             + "number; a Bin may state its own days to hold a different span.",
 
+        // ---- [[recipe]] -----------------------------------------------------------------------
+        ["[[recipe]] name"] =
+            "What this conversion is called. A Rule's recipe names it by this.",
+        ["[[recipe]] inputs"] =
+            "The Goods each application of this recipe takes, in the same shape a Rule's own inputs "
+            + "take. Amounts are per application, so a Rule applying the recipe four times takes "
+            + "four times these.",
+        ["[[recipe]] inputs resource"] =
+            "Which Resource this term draws, naming a [[resource]].",
+        ["[[recipe]] inputs amount"] =
+            "How much of it one application draws.",
+        ["[[recipe]] inputs scope"] =
+            "Where the term draws from, as a Rule's own inputs scope does: local, pool or global.",
+        ["[[recipe]] outputs"] =
+            "The Goods each application of this recipe makes, in the same shape a Rule's own "
+            + "outputs take, including map emissions.",
+        ["[[recipe]] outputs resource"] =
+            "Which Resource this term deposits, naming a [[resource]].",
+        ["[[recipe]] outputs amount"] =
+            "How much of it one application deposits.",
+        ["[[recipe]] outputs scope"] =
+            "Where the term deposits, as a Rule's own outputs scope does: local, pool, global or "
+            + "map.",
+
         // ---- [[business]] ---------------------------------------------------------------------
         ["[[business]] name"] =
             "What this trade is called. [[building]] business names it.",
@@ -284,8 +308,9 @@ public static class RulesetKeyNotes
             + "basket's daily rate. Refused beside inputs or outputs, and requires a fixed apply "
             + "count of one, because a daily quantity is spent once per firing.",
         ["[[rule]] recipe"] =
-            "Names a shared [[recipe]] supplying this Rule's inputs and outputs together. Refused: "
-            + "this build resolves a basket only.",
+            "Takes this Rule's inputs and outputs from a shared [[recipe]] instead of listing "
+            + "them. Refused beside inputs, outputs or a basket. The recipe's amounts are per "
+            + "application, so this Rule's apply count still multiplies them.",
         ["[[rule]] kind"] =
             "Which [[building]] kind this Rule runs on. Whether it is the premises' Rule or its "
             + "tenant's is derived from the Bins its terms reach, never authored.",

@@ -31,9 +31,17 @@ public sealed class SharedDefinitionLoadTests
         family = "money"
         """;
 
-    /// <summary>A basket of one Good and three Days of cover, as <c>rulesets/stocked.toml</c>.</summary>
+    private const string Makes =
+        "outputs = [ { scope = \"local\", resource = \"repairs\", amount = 1 } ]";
+
+    /// <summary>
+    /// A basket of one Good, three Days of cover and a conversion, as <c>rulesets/stocked.toml</c>.
+    /// </summary>
     private static string Shared(
-        string owner = "owner = \"occupant\"", string use = "sundries = 250", int days = 3) =>
+        string owner = "owner = \"occupant\"",
+        string use = "sundries = 250",
+        int days = 3,
+        string makes = Makes) =>
         $$"""
         [[basket]]
         name = "basic"
@@ -43,6 +51,11 @@ public sealed class SharedDefinitionLoadTests
         [[reserve]]
         name = "standard"
         days = {{days}}
+
+        [[recipe]]
+        name = "restock"
+        inputs = []
+        {{makes}}
         """;
 
     /// <summary>
@@ -97,6 +110,32 @@ public sealed class SharedDefinitionLoadTests
         Assert.False(result.Ok, "the Ruleset was accepted.");
 
         return result.Refusals[0].Reason;
+    }
+
+    /// <summary>
+    /// One mistake gets one sentence (<c>adr/0048</c>). A Rule and a Bin naming a basket whose own
+    /// declaration was refused say nothing further about it.
+    /// </summary>
+    [Theory]
+    [InlineData("flour = 4")]
+    [InlineData("sundries = 0")]
+    [InlineData("money = 250")]
+    public void A_refused_basket_is_reported_once(string use)
+    {
+        RulesetLoadResult result =
+            RulesetLoader.Parse(File(shared: Shared(use: use)), "test.toml");
+
+        Assert.False(result.Ok, "the Ruleset was accepted.");
+        Assert.Single(result.Refusals);
+    }
+
+    [Fact]
+    public void A_refused_reserve_is_reported_once()
+    {
+        RulesetLoadResult result = RulesetLoader.Parse(File(shared: Shared(days: 0)), "test.toml");
+
+        Assert.False(result.Ok, "the Ruleset was accepted.");
+        Assert.Single(result.Refusals);
     }
 
     [Fact]
@@ -277,13 +316,35 @@ public sealed class SharedDefinitionLoadTests
             StringComparison.Ordinal);
 
     /// <summary>
-    /// A recipe shares inputs and outputs together and is not resolved by this build, so it is
-    /// refused by name rather than read as an unknown key.
+    /// A recipe's amounts are per application, so nothing it supplies carries <c>Term.PerDay</c> and
+    /// the Rule keeps whatever apply band it states.
     /// </summary>
     [Fact]
-    public void A_recipe_is_refused_by_name() =>
-        Assert.Contains("states a recipe",
-            Refused(File(Dwelling(terms: "recipe = \"bake\""))), StringComparison.Ordinal);
+    public void A_recipe_supplies_both_term_lists_at_per_application_amounts()
+    {
+        Ruleset ruleset = Accepted(File(
+            Dwelling(terms: "recipe = \"restock\"", apply: "{ min = 1, max = 4 }")));
+
+        Assert.Empty(ruleset.Inputs(new RuleId(1)).ToArray());
+
+        Term made = Assert.Single(ruleset.Outputs(new RuleId(1)).ToArray());
+
+        Assert.Equal((2, 1), ((int)made.Bin.Resource.Raw, made.Amount));
+        Assert.False(made.PerDay);
+    }
+
+    [Theory]
+    [InlineData("recipe = \"bake\"", "not a declared [[recipe]]")]
+    [InlineData("recipe = \"restock\"\ninputs  = []", "both a recipe and inputs")]
+    [InlineData("recipe = \"restock\"\noutputs = []", "both a recipe and outputs")]
+    [InlineData("recipe = \"restock\"\nbasket  = \"basic\"", "both a basket and a recipe")]
+    public void A_rules_recipe_is_resolved_and_stands_alone(string terms, string reason) =>
+        Assert.Contains(reason, Refused(File(Dwelling(terms: terms))), StringComparison.Ordinal);
+
+    [Fact]
+    public void A_recipe_moves_something() =>
+        Assert.Contains("moves nothing",
+            Refused(File(shared: Shared(makes: "outputs = []"))), StringComparison.Ordinal);
 
     /// <summary>
     /// A basket's Goods are named by the author, so they are neither refused as unknown keys nor

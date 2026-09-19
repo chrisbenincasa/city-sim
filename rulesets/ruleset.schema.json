@@ -1074,6 +1074,68 @@
         }
       }
     },
+    "recipe": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.",
+            "type": "string"
+          },
+          "inputs": {
+            "description": "The Goods each application of this recipe takes, in the same shape a Rule's own inputs take. Amounts are per application, so a Rule applying the recipe four times takes four times these.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "amount": {
+                  "description": "How much of it one application draws.",
+                  "type": "integer"
+                },
+                "resource": {
+                  "description": "Which Resource this term draws, naming a [[resource]].",
+                  "type": "string"
+                },
+                "scope": {
+                  "description": "Where the term draws from, as a Rule's own inputs scope does: local, pool or global.",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "label": {
+            "description": "The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.",
+            "type": "string"
+          },
+          "name": {
+            "description": "What this conversion is called. A Rule's recipe names it by this.",
+            "type": "string"
+          },
+          "outputs": {
+            "description": "The Goods each application of this recipe makes, in the same shape a Rule's own outputs take, including map emissions.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "amount": {
+                  "description": "How much of it one application deposits.",
+                  "type": "integer"
+                },
+                "resource": {
+                  "description": "Which Resource this term deposits, naming a [[resource]].",
+                  "type": "string"
+                },
+                "scope": {
+                  "description": "Where the term deposits, as a Rule's own outputs scope does: local, pool, global or map.",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "reserve": {
       "type": "array",
       "items": {
@@ -1288,7 +1350,7 @@
             "type": "integer"
           },
           "recipe": {
-            "description": "Names a shared [[recipe]] supplying this Rule's inputs and outputs together. Refused: this build resolves a basket only.",
+            "description": "Takes this Rule's inputs and outputs from a shared [[recipe]] instead of listing them. Refused beside inputs, outputs or a basket. The recipe's amounts are per application, so this Rule's apply count still multiplies them.",
             "type": "string"
           },
           "reports": {

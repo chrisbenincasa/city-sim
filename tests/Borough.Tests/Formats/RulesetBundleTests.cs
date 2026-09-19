@@ -216,6 +216,74 @@ public sealed class RulesetBundleTests
         Assert.Equal("source.toml", read.Capture!.EntryName);
     }
 
+    /// <summary>
+    /// A member list names members; the order it names them in is the author's manifest order, and
+    /// the capture's is sorted.
+    /// </summary>
+    [Fact]
+    public void A_recorded_member_list_is_read_by_what_it_names_and_not_by_its_order()
+    {
+        List<KeyValuePair<string, byte[]>> entries = Bundled();
+        string identity = Envelope(entries).GetProperty("Identity").GetString()!;
+
+        entries[0] = new KeyValuePair<string, byte[]>("bundle.json", Utf8(
+            $$"""
+            {"Version":1,"Mode":"source","Identity":"{{identity}}","Source":1,"Resolver":1,
+             "Members":["rules.toml","dwelling.toml","goods.toml"],"Name":"ruleset.toml"}
+            """));
+
+        RulesetCaptureResult read = RulesetBundle.Read(entries);
+
+        Assert.True(read.Ok, read.Capture is null ? read.Diagnostics[0].ToString() : string.Empty);
+    }
+
+    /// <summary>
+    /// A bundle is read from whatever a host hands over, so a malformed container is refused rather
+    /// than thrown out of.
+    /// </summary>
+    [Fact]
+    public void An_entry_with_no_name_is_refused_rather_than_thrown_on()
+    {
+        List<KeyValuePair<string, byte[]>> entries = Bundled();
+
+        entries.Add(new KeyValuePair<string, byte[]>(null!, []));
+
+        Assert.Contains("no name or no content", Refusal(entries).Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_envelope_and_the_entry_count_are_bounded()
+    {
+        List<KeyValuePair<string, byte[]>> oversized = Bundled();
+
+        oversized[0] = new KeyValuePair<string, byte[]>(
+            "bundle.json", new byte[RulesetCapture.ByteLimit + 1]);
+
+        List<KeyValuePair<string, byte[]>> crowded = Bundled();
+
+        for (int i = 0; i < RulesetCapture.MemberLimit; i++)
+        {
+            crowded.Add(new KeyValuePair<string, byte[]>(
+                $"members/filler-{i}.toml", Utf8("# nothing\n")));
+        }
+
+        Assert.Equal(RulesetDiagnosticCode.Limit, Refusal(oversized).Code);
+        Assert.Equal(RulesetDiagnosticCode.Limit, Refusal(crowded).Code);
+    }
+
+    /// <summary>
+    /// A host may supply any entry name, and a name a read would refuse is refused where it is
+    /// written rather than at the resume that needs it.
+    /// </summary>
+    [Fact]
+    public void A_name_no_read_would_accept_is_refused_at_the_write()
+    {
+        RulesetCapture captured = RulesetCapture.FromEntries(
+            new string('r', 256) + ".toml", Utf8(Manifest()), []).Capture!;
+
+        Assert.Throws<ArgumentException>(() => RulesetBundle.Write(captured));
+    }
+
     private static List<KeyValuePair<string, byte[]>> Bundled() =>
         [.. RulesetBundle.Write(Capture(Manifest([.. Base.Select(member => member.Path)]), Base).Capture!)];
 

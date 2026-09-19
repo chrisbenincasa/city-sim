@@ -68,8 +68,8 @@ below.
   labels reach only `RulesetNames`. Enumeration permutations of the same capture give identical
   hashes, Rulesets and reports; moved declarations and reordered membership give identical
   Rulesets under different identities.
-- **Typed references.** `RulesetSourceReferences` names the sixteen places one declaration states
-  another's id, each with the section it resolves into, and `RulesetSource` matches every one across
+- **Typed references.** `RulesetSourceReferences` names every place one declaration states
+  another's id — twenty-two of them, each with the section it resolves into, and `RulesetSource` matches every one across
   the whole package before lowering. A refusal names the key, the id, the target section and the
   column, so a Bin naming a Good nobody declares reports at the `resource` key rather than at the
   enclosing inline table. Resolution is a third stage and runs only on a package that collected
@@ -78,7 +78,11 @@ below.
   walked, so `[[hinterland.population]] stage` resolves and reports against its owning
   `[[hinterland]]`. `RulesetSourceReferenceTests` holds the list against `RulesetLoader.KeySurface`;
   a Rule's `fills` resource is held by name instead, because no shipped Ruleset writes it and the
-  surface records only what a file asks for.
+  surface records only what a file asks for. ⚠ **One reference the list cannot express is a
+  `[[basket]]`'s `use_per_day`**, whose keys are Resource ids chosen by the author rather than keys
+  of the format. `RulesetSourceReference` has no syntax for *every key of this inline table*, so a
+  package naming an undeclared Good there gets the reader's line-only refusal instead of a located
+  package diagnostic with a column.
 - **The section in a refusal.** `RulesetRefusal` carries an optional section and column, so
   `ToLoadResult` no longer drops what the source diagnostic knew and a `[[resource]]` duplicate stops
   reporting as `rule '<id>'`. The reader's own refusals record neither and keep their existing text
@@ -88,8 +92,9 @@ below.
   line-preserving `id`→`name` and blanked `label`/`order` edits, so every existing field keeps its
   validation. Reader refusals map to member lines. `terrain` keeps its enum `name`; `hinterland`
   and `lattice` ids are collected but not lowered, and a test keeps that list aligned with the
-  reader's key surface. `[[basket]]`, `[[recipe]]`, `[[reserve]]`, Rule `basket`/`recipe` and Bin
-  `reserve` selections are refused as unimplemented.
+  reader's key surface. The three shared definitions are resolved rather than
+  lowered: `[[basket]]`, `[[recipe]]` and `[[reserve]]` become term arrays and Bin ceilings in
+  Formats, so nothing about them reaches the reader as a new key.
 - **Legacy compatibility.** Every shipped Ruleset resolves through `RulesetSource.Load` with its
   existing hash, refusal text and field-for-field Ruleset, and returns the reader's own result.
 - **Bundle codec.** `RulesetBundle.Write` and `.Read` carry a capture as an entry-name/byte
@@ -134,8 +139,10 @@ below.
   saves still read, under their legacy hash. `CityTuning` offers every dial to every member, so a
   package keeps live tuning without knowing which member owns a key: a member that does not state
   the table comes back byte-identical, and a byte order mark and each line's own ending survive, so
-  an untuned member cannot move the bundle identity. A tuned Ruleset is written out beside the Input
-  Log — one file for a single-file Ruleset, a directory for a package — and the reproduce line
+  an untuned member cannot move the bundle identity. A turn rewrites the value alone; the
+  indentation, the spacing either side of the `=` and any trailing comment are the author's and
+  survive it, and a dial on a commented line reads back without its comment. A tuned Ruleset is
+  written out beside the Input Log — one file for a single-file Ruleset, a directory for a package — and the reproduce line
   names it.
 - **Loading limits.** A manifest lists at most 256 members and neither a manifest nor a member may
   exceed 4 MiB, refused as `limit` during capture, so the bundle codec inherits the same bounds. An
@@ -147,15 +154,18 @@ Remaining work and dependencies, in addition to the sequence below:
    shell's regenerating tuner is not: `Main.Panels.Regenerate` builds a fresh `Simulation` and a
    fresh `InputLogBuilder`, so a shell session only ever references one bundle and a multi-bundle
    store has no producer. `RulesetBundle` also writes fixed entry names, so a second bundle in one
-   save needs a codec change and a CitySave envelope 3. The drive channel has no verb for the tuner
-   or for save and load, so those two paths are covered by test rather than by a driven run.
+   save needs a codec change and a CitySave envelope 3. The drive channel has no verb named for the
+   tuner or for save and load, but its generic `ui key` verb synthesizes any key the shell binds,
+   and the tuner, regenerate and record paths all dispatch from keys — so those paths are drivable
+   and are covered by test as well.
 2. Refusals the single-file reader raises on the lowered text still carry a line without a column and
    say `name` where a member writes `id`. The reader keeps every value check, shape check and
    `on_fail` cycle; the resolver has taken only the references. Provenance/dependency edges,
    expansion counts, impact previews and old/new id-key collision refusal are not built.
-3. Shared baskets, recipe references and reserve derivation (step 2) wait on the saved fractional
-   consumption progress scoped in [the runtime factoring plan](ruleset-runtime-factoring.md).
-   Integrated execution must replace the lowering before the first usable release.
+3. Shared baskets, recipe references and reserve derivation (step 2) are implemented under
+   [the runtime factoring plan](ruleset-runtime-factoring.md), on the saved fractional consumption
+   progress that plan scoped. Integrated execution must still replace the lowering before the first
+   usable release.
 4. Excluding special files such as FIFOs is deferred to Ruleset sharing and modding, which is where
    a package from outside the player's own checkout first arrives. .NET reports a FIFO as an
    existing regular file of length zero, with the same attributes and Unix mode as a plain file, so

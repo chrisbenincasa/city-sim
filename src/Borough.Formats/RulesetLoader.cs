@@ -249,9 +249,11 @@ public static class RulesetLoader
         private readonly List<TableSyntaxBase> _zoneRuleTables = [];
 
         private readonly Dictionary<string, ushort> _baskets = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, ushort> _recipes = new(StringComparer.Ordinal);
         private readonly Dictionary<string, ushort> _reserves = new(StringComparer.Ordinal);
 
         private readonly List<TableSyntaxBase> _basketTables = [];
+        private readonly List<TableSyntaxBase> _recipeTables = [];
         private readonly List<TableSyntaxBase> _reserveTables = [];
 
         private readonly List<TableSyntaxBase> _bandTables = [];
@@ -359,10 +361,11 @@ public static class RulesetLoader
             // it decides whether a shift band and a wage are owed. It reads no other table.
             CapacityRuleset capacity = ReadCapacity();
 
-            // Before the Rules and the kinds, which resolve into them. A basket names Resources and
-            // a reserve names nothing, so neither points forward.
+            // Before the Rules and the kinds, which resolve into them. A basket and a recipe name
+            // Resources and a reserve names nothing, so none of the three points forward.
             ReadBaskets();
             ReadReserves();
+            ReadRecipes();
 
             RuleDefinition[] rules = ReadRules(out Term[] inputs, out Term[] outputs,
                 out MapEmission[] emissions);
@@ -613,6 +616,11 @@ public static class RulesetLoader
                     case "basket":
                         _basketTables.Add(table);
                         Register(_baskets, table, "basket", (ushort)(_baskets.Count + 1));
+                        break;
+
+                    case "recipe":
+                        _recipeTables.Add(table);
+                        Register(_recipes, table, "recipe", (ushort)(_recipes.Count + 1));
                         break;
 
                     case "reserve":
@@ -998,7 +1006,7 @@ public static class RulesetLoader
                             $"'{section}' is not a Ruleset section. The sections are "
                             + "[needs], "
                             + "[[resource]], [[building]], [[business]], [[rule]], [[basket]], "
-                            + "[[reserve]], [[zone_rule]], "
+                            + "[[recipe]], [[reserve]], [[zone_rule]], "
                             + "[[policy]], [[hinterland]], [[lattice]], [[terrain]], [layers], "
                             + "[placement], [roads], [lots], [trips], [jobs], [households], "
                             + "[traffic], [parking], [water], [districts], [market], "
@@ -1037,7 +1045,12 @@ public static class RulesetLoader
         /// A named daily consumption basket: whose Bins it draws on, and the slice of
         /// <see cref="_basketUses"/> holding its Goods.
         /// </summary>
-        private readonly record struct BasketDefinition(BinTenancy Owner, int First, int Count);
+        /// <param name="Sound">
+        /// Whether the declaration itself was accepted. A Rule or a Bin naming a refused basket
+        /// stays silent, because one mistake gets one sentence.
+        /// </param>
+        private readonly record struct BasketDefinition(
+            BinTenancy Owner, int First, int Count, bool Sound);
 
         private BasketDefinition[] _basketDefinitions = [];
         private readonly List<BasketUse> _basketUses = [];
@@ -1074,9 +1087,11 @@ public static class RulesetLoader
                     : null;
 
                 BinTenancy owner = BinTenancy.Premises;
+                bool sound;
 
                 if (Find(table, "owner", RulesetKeyKind.Quoted) is null)
                 {
+                    sound = false;
                     Refuse(LineOf(table), name,
                         "this basket declares no owner. A basket is what one actor uses in a Day, so "
                         + "it has to say which actor: premises, occupant or business. The Bins it "
@@ -1084,18 +1099,18 @@ public static class RulesetLoader
                 }
                 else
                 {
-                    TryTenancy(table, name, out owner);
+                    sound = TryTenancy(table, name, out owner);
                 }
 
                 int first = _basketUses.Count;
-                ReadUsePerDay(table, name, first);
+                sound &= ReadUsePerDay(table, name, first);
 
                 _basketDefinitions[i] = new BasketDefinition(
-                    owner, first, _basketUses.Count - first);
+                    owner, first, _basketUses.Count - first, sound);
             }
         }
 
-        private void ReadUsePerDay(TableSyntaxBase table, string? name, int first)
+        private bool ReadUsePerDay(TableSyntaxBase table, string? name, int first)
         {
             KeyValueSyntax? entry = Find(table, "use_per_day", RulesetKeyKind.Table);
 
@@ -1105,14 +1120,16 @@ public static class RulesetLoader
                     "this basket names no Goods. use_per_day maps a Good to the whole units one "
                     + "actor uses of it per Day, and a basket of nothing sizes no Bin and feeds no "
                     + "Rule.");
-                return;
+                return false;
             }
 
             if (entry.Value is not InlineTableSyntax inline)
             {
                 Refuse(LineOf(entry), name, "use_per_day must be an inline table.");
-                return;
+                return false;
             }
+
+            bool sound = true;
 
             foreach (InlineTableItemSyntax item in inline.Items)
             {
@@ -1125,6 +1142,7 @@ public static class RulesetLoader
 
                 if (!_resources.TryGetValue(good, out ushort raw))
                 {
+                    sound = false;
                     Refuse(LineOf(pair), name,
                         $"'{good}' is not a declared [[resource]].");
                     continue;
@@ -1134,6 +1152,7 @@ public static class RulesetLoader
 
                 if (_families[raw - 1] == ResourceFamily.Money)
                 {
+                    sound = false;
                     Refuse(LineOf(pair), name,
                         $"'{good}' is money, and a basket is a daily consumption of Goods. Money "
                         + "leaves an actor through a price or a wage rather than through a rate of "
@@ -1143,12 +1162,14 @@ public static class RulesetLoader
 
                 if (pair.Value is not IntegerValueSyntax number)
                 {
+                    sound = false;
                     Refuse(LineOf(pair), name, $"{good} must be a whole number.");
                     continue;
                 }
 
                 if (number.Value < 1 || number.Value > int.MaxValue)
                 {
+                    sound = false;
                     Refuse(LineOf(pair), name,
                         $"{good} is {number.Value} a Day. A basket states what an actor uses, so a "
                         + "Good it does not use is a Good it does not name rather than a rate of "
@@ -1160,6 +1181,8 @@ public static class RulesetLoader
             }
 
             _basketUses.Sort(first, _basketUses.Count - first, BasketUseOrder.ByResource);
+
+            return sound;
         }
 
         private sealed class BasketUseOrder : IComparer<BasketUse>
@@ -1212,6 +1235,69 @@ public static class RulesetLoader
         /// </summary>
         private const int MaximumReserveDays = 100_000;
 
+        /// <summary>
+        /// A named conversion: the slices of <see cref="_recipeInputs"/>,
+        /// <see cref="_recipeOutputs"/> and <see cref="_recipeEmissions"/> a Rule naming it takes.
+        /// </summary>
+        private readonly record struct RecipeDefinition(
+            int InputFirst, int InputCount,
+            int OutputFirst, int OutputCount,
+            int EmissionFirst, int EmissionCount);
+
+        private RecipeDefinition[] _recipeDefinitions = [];
+        private readonly List<Term> _recipeInputs = [];
+        private readonly List<Term> _recipeOutputs = [];
+        private readonly List<MapEmission> _recipeEmissions = [];
+
+        /// <summary>
+        /// Reads every <c>[[recipe]]</c>, whose terms become the inputs and outputs of each Rule
+        /// naming it.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>A recipe's amounts are per application, exactly as a Rule's own terms are.</b> It
+        /// shares what a trade turns into what, and that is already a per-firing statement, so
+        /// nothing here carries <see cref="Term.PerDay"/> and no Bin accrues a remainder for it.
+        /// </para>
+        /// <para>
+        /// <b>Authored order is kept.</b> The declaration is an array rather than a map, so its
+        /// order is the designer's and two files that list the same terms differently are two
+        /// different statements.
+        /// </para>
+        /// </remarks>
+        private void ReadRecipes()
+        {
+            _recipeDefinitions = new RecipeDefinition[_recipeTables.Count];
+
+            for (int i = 0; i < _recipeTables.Count; i++)
+            {
+                TableSyntaxBase table = _recipeTables[i];
+                string? name = TryString(table, "name", out string? found, required: false)
+                    ? found
+                    : null;
+
+                int inputFirst = _recipeInputs.Count;
+                int outputFirst = _recipeOutputs.Count;
+                int emissionFirst = _recipeEmissions.Count;
+
+                ReadTerms(table, "inputs", name, _recipeInputs, emissions: null);
+                ReadTerms(table, "outputs", name, _recipeOutputs, _recipeEmissions);
+
+                _recipeDefinitions[i] = new RecipeDefinition(
+                    inputFirst, _recipeInputs.Count - inputFirst,
+                    outputFirst, _recipeOutputs.Count - outputFirst,
+                    emissionFirst, _recipeEmissions.Count - emissionFirst);
+
+                if (_recipeDefinitions[i] is { InputCount: 0, OutputCount: 0, EmissionCount: 0 })
+                {
+                    Refuse(LineOf(table), name,
+                        "this recipe moves nothing. A recipe is the Goods a Rule takes and the "
+                        + "Goods it makes, so it states inputs, outputs or both -- a recipe of "
+                        + "neither leaves every Rule naming it doing nothing.");
+                }
+            }
+        }
+
         // ---- rules ----------------------------------------------------------------------------
 
         private RuleDefinition[] ReadRules(
@@ -1241,6 +1327,8 @@ public static class RulesetLoader
                 ApplyCount apply = ReadApply(table, name);
 
                 int inputFirst = allInputs.Count;
+                int outputFirst = allOutputs.Count;
+                int emissionFirst = allEmissions.Count;
 
                 if (TryReadBasket(table, name, apply, out int basket))
                 {
@@ -1254,14 +1342,23 @@ public static class RulesetLoader
                             new BinRef(Scope.Local, use.Resource), use.UsePerDay) { PerDay = true });
                     }
                 }
+                else if (TryReadRecipe(table, name, out int recipe))
+                {
+                    RecipeDefinition definition = _recipeDefinitions[recipe];
+
+                    allInputs.AddRange(
+                        _recipeInputs.GetRange(definition.InputFirst, definition.InputCount));
+                    allOutputs.AddRange(
+                        _recipeOutputs.GetRange(definition.OutputFirst, definition.OutputCount));
+                    allEmissions.AddRange(
+                        _recipeEmissions.GetRange(
+                            definition.EmissionFirst, definition.EmissionCount));
+                }
                 else
                 {
                     ReadTerms(table, "inputs", name, allInputs, emissions: null);
+                    ReadTerms(table, "outputs", name, allOutputs, allEmissions);
                 }
-
-                int outputFirst = allOutputs.Count;
-                int emissionFirst = allEmissions.Count;
-                ReadTerms(table, "outputs", name, allOutputs, allEmissions);
 
                 definitions[i] = new RuleDefinition(
                     Kind: kind,
@@ -1308,18 +1405,20 @@ public static class RulesetLoader
         {
             basket = -1;
 
-            if (Find(table, "recipe", RulesetKeyKind.Quoted) is not null)
-            {
-                Refuse(LineOf(table), name,
-                    "this Rule states a recipe. A shared recipe supplies a Rule's inputs and its "
-                    + "outputs together, and this build resolves a basket only -- state the Rule's "
-                    + "inputs and outputs, or its basket if it only consumes.");
-                return false;
-            }
-
             if (Find(table, "basket", RulesetKeyKind.Quoted) is null)
             {
                 return false;
+            }
+
+            bool sound = true;
+
+            if (Find(table, "recipe", RulesetKeyKind.Quoted) is not null)
+            {
+                sound = false;
+                Refuse(LineOf(table), name,
+                    "this Rule states both a basket and a recipe. A basket is what one actor "
+                    + "consumes in a Day and a recipe is what a trade turns into what, so a Rule "
+                    + "naming both states its Goods twice under two different meanings.");
             }
 
             if (!TryString(table, "basket", out string? reference, required: true, name))
@@ -1334,7 +1433,11 @@ public static class RulesetLoader
                 return false;
             }
 
-            bool sound = true;
+            // Its own declaration already said what is wrong with it.
+            if (!_basketDefinitions[raw - 1].Sound)
+            {
+                return false;
+            }
 
             foreach (string key in new[] { "inputs", "outputs" })
             {
@@ -1366,6 +1469,70 @@ public static class RulesetLoader
             }
 
             basket = raw - 1;
+            return true;
+        }
+
+        /// <summary>
+        /// Resolves a Rule's <c>recipe</c>, whose terms become its inputs and its outputs together.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>A recipe replaces both term lists, on <see cref="TryReadBasket"/>'s argument.</b> It
+        /// is one statement of what a trade turns into what, so a list beside it is a second answer
+        /// that nothing keeps in step with the shared one.
+        /// </para>
+        /// <para>
+        /// <b>The Rule keeps its own apply count, rate and fills.</b> A recipe's amounts are per
+        /// application and the engine already multiplies every delta by the applications it
+        /// settled on, so applying a recipe four times is four times the recipe and needs no
+        /// refusal.
+        /// </para>
+        /// </remarks>
+        private bool TryReadRecipe(TableSyntaxBase table, string? name, out int recipe)
+        {
+            recipe = -1;
+
+            // A Rule naming both was already refused as a basket Rule.
+            if (Find(table, "recipe", RulesetKeyKind.Quoted) is null
+                || Find(table, "basket", RulesetKeyKind.Quoted) is not null)
+            {
+                return false;
+            }
+
+            if (!TryString(table, "recipe", out string? reference, required: true, name))
+            {
+                return false;
+            }
+
+            if (!_recipes.TryGetValue(reference!, out ushort raw))
+            {
+                Refuse(LineOf(table), name,
+                    $"recipe '{reference}' is not a declared [[recipe]].");
+                return false;
+            }
+
+            bool sound = true;
+
+            foreach (string key in new[] { "inputs", "outputs" })
+            {
+                if (Find(table, key, RulesetKeyKind.Array) is null)
+                {
+                    continue;
+                }
+
+                sound = false;
+                Refuse(LineOf(table), name,
+                    $"this Rule states both a recipe and {key}. A recipe is the Goods this Rule "
+                    + "moves, so a second list beside it is a second answer to one question -- and "
+                    + "the two would drift apart the first time the shared recipe changed.");
+            }
+
+            if (!sound)
+            {
+                return false;
+            }
+
+            recipe = raw - 1;
             return true;
         }
 
@@ -4415,6 +4582,13 @@ public static class RulesetLoader
             }
 
             BasketDefinition definition = _basketDefinitions[basketRaw - 1];
+
+            // Both declarations already said what is wrong with them. A reserve whose days were
+            // refused holds zero, which no accepted [[reserve]] does.
+            if (!definition.Sound || _reserveDays[profileRaw - 1] == 0)
+            {
+                return false;
+            }
 
             if (definition.Owner != tenancy)
             {
@@ -10800,7 +10974,7 @@ public static class RulesetLoader
             }
         }
 
-        private static string NameOf(KeySyntax? key) => key?.ToString().Trim() ?? string.Empty;
+        private static string NameOf(KeySyntax? key) => RulesetCapture.NameOf(key);
 
         private static int LineOf(SyntaxNodeBase node) => node.Span.Start.Line + 1;
 

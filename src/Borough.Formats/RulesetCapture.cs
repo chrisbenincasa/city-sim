@@ -152,6 +152,16 @@ public sealed class RulesetCapture
         {
             ArgumentNullException.ThrowIfNull(member.Value);
 
+            // Measured before it is copied, so an oversized member costs a length rather than its
+            // own size again.
+            if (member.Value.Length > ByteLimit)
+            {
+                diagnostics.Add(new RulesetDiagnostic(member.Key, 0, 0,
+                    RulesetDiagnosticCode.Limit, null, null,
+                    $"holds {member.Value.Length} bytes; the limit is {ByteLimit}."));
+                continue;
+            }
+
             if (!supplied.TryAdd(member.Key, [.. member.Value]))
             {
                 diagnostics.Add(new RulesetDiagnostic(member.Key, 0, 0,
@@ -214,10 +224,38 @@ public sealed class RulesetCapture
         }
     }
 
-    internal static string NameOf(KeySyntax? key) => key?.ToString().Trim() ?? string.Empty;
+    internal static string NameOf(KeySyntax? key) => string.Join('.', NameParts(key));
 
-    internal static bool IsSource(string name) =>
-        name == "source" || name.StartsWith("source.", StringComparison.Ordinal);
+    /// <summary>
+    /// The key's parts with their TOML spelling resolved, so <c>["source"]</c> and <c>[source]</c>
+    /// are one name.
+    /// </summary>
+    internal static string[] NameParts(KeySyntax? key)
+    {
+        if (key is null)
+        {
+            return [];
+        }
+
+        var parts = new List<string>(1 + key.DotKeys.ChildrenCount) { PartOf(key.Key) };
+
+        foreach (DottedKeyItemSyntax item in key.DotKeys)
+        {
+            parts.Add(PartOf(item.Key));
+        }
+
+        return [.. parts];
+    }
+
+    private static string PartOf(BareKeyOrStringValueSyntax? part) => part switch
+    {
+        BareKeySyntax bare => bare.Key?.Text ?? string.Empty,
+        StringValueSyntax text => text.Value ?? string.Empty,
+        _ => part?.ToString().Trim() ?? string.Empty,
+    };
+
+    /// <summary>Whether a table or key declares the manifest, by its first resolved part.</summary>
+    internal static bool IsSource(KeySyntax? key) => NameParts(key) is ["source", ..];
 
     /// <summary>
     /// Why <paramref name="path"/> is outside the portable member path vocabulary, or null.
@@ -296,8 +334,21 @@ public sealed class RulesetCapture
         IReadOnlyCollection<string> supplied,
         string? self)
     {
-        DocumentSyntax probe = SyntaxParser.Parse(DecodeAsSingleFile(entry), entryName, validate: true);
         var diagnostics = new List<RulesetDiagnostic>();
+
+        // Before the mode is chosen, because the mode is read out of the decoded text: bytes that
+        // decode to a replacement character inside the [source] token would make a manifest look
+        // like a single file and load none of its members.
+        if (!TryDecodeUtf8(entry, out string text))
+        {
+            diagnostics.Add(new RulesetDiagnostic(entryName, 0, 0, RulesetDiagnosticCode.Utf8, null,
+                null, "the entry is not valid UTF-8. A TOML document is UTF-8 by definition, so "
+                + "this is refused rather than decoded with replacement characters."));
+
+            return RulesetCaptureResult.Refused(diagnostics);
+        }
+
+        DocumentSyntax probe = SyntaxParser.Parse(text, entryName, validate: true);
 
         if (!DeclaresSource(probe))
         {
@@ -321,23 +372,14 @@ public sealed class RulesetCapture
             return RulesetCaptureResult.Refused(diagnostics);
         }
 
-        if (!TryDecodeUtf8(entry, out string text))
-        {
-            diagnostics.Add(new RulesetDiagnostic(entryName, 0, 0, RulesetDiagnosticCode.Utf8, null,
-                null, "the manifest is not valid UTF-8."));
+        AddSyntax(diagnostics, entryName, probe);
 
-            return RulesetCaptureResult.Refused(diagnostics);
-        }
-
-        DocumentSyntax manifest = SyntaxParser.Parse(text, entryName, validate: true);
-        AddSyntax(diagnostics, entryName, manifest);
-
-        if (manifest.HasErrors)
+        if (probe.HasErrors)
         {
             return RulesetCaptureResult.Refused(diagnostics);
         }
 
-        List<Listed> listed = ReadManifest(manifest, entryName, self, diagnostics);
+        List<Listed> listed = ReadManifest(probe, entryName, self, diagnostics);
         var members = new List<RulesetMember>(listed.Count);
 
         foreach (Listed item in listed)
@@ -396,7 +438,7 @@ public sealed class RulesetCapture
     {
         foreach (TableSyntaxBase table in document.Tables)
         {
-            if (IsSource(NameOf(table.Name)))
+            if (IsSource(table.Name))
             {
                 return true;
             }
@@ -404,7 +446,7 @@ public sealed class RulesetCapture
 
         foreach (KeyValueSyntax pair in document.KeyValues)
         {
-            if (IsSource(NameOf(pair.Key)))
+            if (IsSource(pair.Key))
             {
                 return true;
             }

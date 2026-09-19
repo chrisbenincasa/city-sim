@@ -27,7 +27,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-46 sections, 317 keys.
+49 sections, 328 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
@@ -43,6 +43,9 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[[policy]]`](#policy) — 12 keys
 - [`[[policy]] apply`](#policy-apply) — 4 keys
 - [`[[policy]] transfer`](#policy-transfer) — 4 keys
+- [`[[recipe]]`](#recipe) — 5 keys
+- [`[[recipe]] inputs`](#recipe-inputs) — 3 keys
+- [`[[recipe]] outputs`](#recipe-outputs) — 3 keys
 - [`[[reserve]]`](#reserve) — 4 keys
 - [`[[resource]]`](#resource) — 5 keys
 - [`[[rule]]`](#rule) — 14 keys
@@ -590,6 +593,68 @@ Which side it arrives at — typically global, the treasury.
 
 ---
 
+## `[[recipe]]`
+
+*An array of tables — a file may declare this more than once.*
+
+**`id`** · *quoted string*
+
+Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.
+
+**`inputs`** · *array of inline tables*
+
+The Goods each application of this recipe takes, in the same shape a Rule's own inputs take. Amounts are per application, so a Rule applying the recipe four times takes four times these.
+
+**`label`** · *quoted string*
+
+The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.
+
+**`name`** · *quoted string*
+
+What this conversion is called. A Rule's recipe names it by this.
+
+**`outputs`** · *array of inline tables*
+
+The Goods each application of this recipe makes, in the same shape a Rule's own outputs take, including map emissions.
+
+---
+
+## `[[recipe]] inputs`
+
+*An array of tables — a file may declare this more than once.*
+
+**`amount`** · *whole number*
+
+How much of it one application draws.
+
+**`resource`** · *quoted string*
+
+Which Resource this term draws, naming a [[resource]].
+
+**`scope`** · *quoted string*
+
+Where the term draws from, as a Rule's own inputs scope does: local, pool or global.
+
+---
+
+## `[[recipe]] outputs`
+
+*An array of tables — a file may declare this more than once.*
+
+**`amount`** · *whole number*
+
+How much of it one application deposits.
+
+**`resource`** · *quoted string*
+
+Which Resource this term deposits, naming a [[resource]].
+
+**`scope`** · *quoted string*
+
+Where the term deposits, as a Rule's own outputs scope does: local, pool, global or map.
+
+---
+
 ## `[[reserve]]`
 
 *An array of tables — a file may declare this more than once.*
@@ -692,7 +757,7 @@ How often a Rule Instance re-arms, in Ticks — its reschedule interval. Distinc
 
 **`recipe`** · *quoted string*
 
-Names a shared [[recipe]] supplying this Rule's inputs and outputs together. Refused: this build resolves a basket only.
+Takes this Rule's inputs and outputs from a shared [[recipe]] instead of listing them. Refused beside inputs, outputs or a basket. The recipe's amounts are per application, so this Rule's apply count still multiplies them.
 
 **`reports`** · *quoted string*
 

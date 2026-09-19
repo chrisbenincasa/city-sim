@@ -54,6 +54,9 @@ public static class RulesetBundle
 
     private const int NameLimit = 255;
 
+    /// <summary>The envelope, the manifest and a full complement of members.</summary>
+    private const int EntryLimit = RulesetCapture.MemberLimit + 2;
+
     private static readonly char[] Separators = ['/', '\\'];
 
     private static readonly JsonSerializerOptions Spelling = new()
@@ -107,8 +110,13 @@ public static class RulesetBundle
     private static string Named(string entryName)
     {
         int cut = entryName.LastIndexOfAny(Separators);
+        string name = cut < 0 ? entryName : entryName[(cut + 1)..];
 
-        return cut < 0 ? entryName : entryName[(cut + 1)..];
+        // What Write records, Read has to accept. A host may supply any entry name, and a bundle
+        // that refuses its own name on the way back in would fail at the resume rather than here.
+        return NameProblem(name) is null ? name : throw new ArgumentException(
+            $"'{entryName}' has no file name a bundle can record: {NameProblem(name)}",
+            nameof(entryName));
     }
 
     /// <summary>Recaptures the Ruleset held in <paramref name="entries"/>, or says why it cannot.</summary>
@@ -121,7 +129,21 @@ public static class RulesetBundle
 
         foreach (KeyValuePair<string, byte[]> entry in entries)
         {
-            ArgumentNullException.ThrowIfNull(entry.Value);
+            if (entry.Key is null || entry.Value is null)
+            {
+                diagnostics.Add(Problem(MetadataEntry,
+                    "the bundle holds an entry with no name or no content."));
+                continue;
+            }
+
+            if (held.Count == EntryLimit)
+            {
+                diagnostics.Add(new RulesetDiagnostic(MetadataEntry, 0, 0,
+                    RulesetDiagnosticCode.Limit, null, null,
+                    $"the bundle holds more than {EntryLimit} entries, which is a manifest, its "
+                    + $"members and the envelope at the {RulesetCapture.MemberLimit}-member limit."));
+                break;
+            }
 
             if (!held.TryAdd(entry.Key, entry.Value))
             {
@@ -137,6 +159,14 @@ public static class RulesetBundle
         if (!held.Remove(MetadataEntry, out byte[]? metadata))
         {
             return Refuse(Problem(MetadataEntry, $"the bundle has no {MetadataEntry}."));
+        }
+
+        if (metadata.Length > RulesetCapture.ByteLimit)
+        {
+            return Refuse(new RulesetDiagnostic(MetadataEntry, 0, 0, RulesetDiagnosticCode.Limit,
+                null, null,
+                $"the envelope holds {metadata.Length} bytes; the limit is "
+                + $"{RulesetCapture.ByteLimit}."));
         }
 
         Envelope? envelope;
@@ -249,7 +279,11 @@ public static class RulesetBundle
             return captured;
         }
 
-        return capture.Members.Select(member => member.Path).SequenceEqual(envelope.Members, StringComparer.Ordinal)
+        // Sorted rather than as written: the manifest lists members in the author's order and the
+        // capture sorts them, so a list that names the same members is the same list.
+        string[] listed = [.. envelope.Members.Order(StringComparer.Ordinal)];
+
+        return capture.Members.Select(member => member.Path).SequenceEqual(listed, StringComparer.Ordinal)
             ? Verify(captured, recorded)
             : Refuse(Problem(MetadataEntry,
                 "the recorded member list does not match the members the manifest lists."));
