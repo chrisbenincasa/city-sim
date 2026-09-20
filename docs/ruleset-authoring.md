@@ -803,8 +803,11 @@ replay depends on.
   the author chose rather than keys of the format, which the resolver's reference list has no way to
   name. A package basket naming an undeclared Good is refused with a member and a line, without the
   column and the section a cross-member reference carries.
-- **A manifest gets no editor hints.** `.taplo.toml` associates the schema with `rulesets/*.toml`
-  only, because a manifest's filename is not reserved and no glob can tell one from a member.
+- **A manifest gets editor hints only when it is named `ruleset.toml`.** `.taplo.toml` gives
+  `rulesets/*/*.toml` the Ruleset schema and `rulesets/*/ruleset.toml` the manifest schema, and
+  Taplo applies the last matching rule. The loader reserves no filename, so a package whose entry
+  file is called something else is completed as a Ruleset and shows errors on `[source]`. That
+  costs autocomplete only; the resolver reads the file the same way.
 
 ## Delivering the production authoring guide
 
@@ -820,8 +823,11 @@ removed leaves them stale and silent. `ExamplePackageTests` pins the package its
 resolves, and the label and ids the walkthrough quotes — which is the half that a test can hold.
 
 Update schema/completion and the generated key reference with the implementation. `RulesetKeyNotes`
-describes the keys a reader asks for and `RulesetSourceKeys` the three a declaration states; the
-manifest has neither a schema nor a glob that could find one. Keep conceptual authoring instructions
+describes the keys a reader asks for and `RulesetSourceKeys` the three a declaration states. The
+manifest's two keys are in `rulesets/manifest.schema.json`, which is hand-written rather than
+generated, because `[source]` accepts exactly `version` and `members` and a generator over a two-key
+list would re-render it rather than derive it. `RulesetManifestSchemaTests` drives each key through
+the resolver. Keep conceptual authoring instructions
 here, field-level contracts in the generated reference, and bounded evidence in the investigation.
 Documentation and a designer handoff are acceptance requirements of the loader work, not an
 optional follow-up after a parser lands. See [0077](../plans/0077-ruleset-source-loading.md).

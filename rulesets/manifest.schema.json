@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/chrisbenincasa/city-sim/rulesets/manifest.schema.json",
+  "title": "Borough Ruleset source manifest",
+  "description": "The entry file of a source v1 package. It holds [source] and nothing else: declarations live in the members it lists. Unlike rulesets/ruleset.schema.json this one is hand-written and closed, because the surface is two keys and RulesetCapture.ReadManifest accepts no others -- there is no larger set it could be an incomplete view of. RulesetManifestSchemaTests drives every key here through the resolver and fails when the two disagree.",
+  "type": "object",
+  "properties": {
+    "source": {
+      "description": "Declares the file a package is assembled from. A Ruleset holding this table is read as a manifest and may hold no other table.",
+      "type": "object",
+      "properties": {
+        "version": {
+          "description": "States which source format the package is written in. This build reads version 1, and any other number is refused rather than guessed at, so an older reader meeting a newer package says so instead of misreading it.",
+          "type": "integer",
+          "const": 1
+        },
+        "members": {
+          "description": "Lists every file the package is assembled from, as quoted paths relative to this manifest. Nothing is found by scanning: a file not listed here is not part of the package. Paths go downward only and use forward slashes, the manifest may not list itself, and a path listed twice is refused. Order sets the order declarations are read in, which is what dense ids are allocated from.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 256
+        }
+      },
+      "required": [
+        "version",
+        "members"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "source"
+  ],
+  "additionalProperties": false
+}

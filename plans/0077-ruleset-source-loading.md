@@ -201,16 +201,20 @@ Remaining work and dependencies, in addition to the sequence below:
    a package from outside the player's own checkout first arrives. .NET reports a FIFO as an
    existing regular file of length zero, with the same attributes and Unix mode as a plain file, so
    refusing one needs `stat` through P/Invoke and an `adr/0018` exception; without it a member that
-   is a FIFO blocks the read until a writer opens the pipe. The manifest has no schema of its own:
-   the generator writes one root document, and a manifest's filename is not reserved, so no
-   `.taplo.toml` glob can tell a manifest from a member. `.taplo.toml` therefore still associates
-   the schema with `rulesets/*.toml` only, and package members get no editor hints; widening that
-   glob waits on a manifest schema, which needs a second mode and a second committed file. The
-   authoring walkthrough covers what this build does — loading a package from either host,
-   membership, identity and order, the five common refusals, `--reload-at` and a package city that
-   saves and resumes — and names what it cannot yet walk through. Adding a Good and a recipe, a
-   shared basket, a reserve, an exception, an inhabited city's evolution and the impact report all
-   wait on the implementation each names. The designer handoff remains.
+   is a FIFO blocks the read until a writer opens the pipe. `.taplo.toml` now gives package
+   members the Ruleset schema through `rulesets/*/*.toml` and a manifest the hand-written
+   `rulesets/manifest.schema.json` through `rulesets/*/ruleset.toml`, resolved by Taplo's
+   last-match rule. ⚠ A manifest's filename is not reserved, so that association is a convention
+   and a package entry file named otherwise is completed as a Ruleset. The schema is authored
+   rather than generated, because `[source]` accepts exactly `version` and `members` and a
+   generator over two keys re-renders the list rather than deriving it;
+   `RulesetManifestSchemaTests` drives each key, the version constant and the member limit through
+   the resolver. The authoring walkthrough covers what this build does — loading a package from
+   either host, membership, identity and order, the five common refusals, `--reload-at`, the impact
+   preview, adding a Good and a recipe, sharing a basket, sizing a Bin from a reserve, making an
+   exception, and a package city that saves and resumes. What it still cannot walk through is an
+   inhabited city's evolution, which waits on a reload that reports what a transition would do to
+   one. The designer handoff remains.
 
 ## Implementation sequence
 
