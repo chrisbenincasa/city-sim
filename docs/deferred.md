@@ -431,3 +431,53 @@ rather than a subscription, so the per-occasion step already *is* the per-Day ra
   nothing sizes a payroll from one. *Unbuilt.*
 - **The drop-off is unbuilt.** `adr/0032` puts a child who cannot walk on a parent's commute; only the
   walk is built, so a car-owning family is under-served in a way the design says it should not be.
+
+---
+
+## Waste as a Resource that moves
+
+**Status:** deferred while scoping *Private production and labour*, 2026-09-20. Spoiled stock is
+counted and discarded; nothing accumulates it.
+**Retrofit cost:** Moderate, and the expensive half is not the connection. Spoilage already has a
+hook and already reports a quantity, so a future collection system reads a number that exists. What
+is absent is the system itself: a Resource, a vehicle, a disposal Building kind and a routing
+consequence when collection fails.
+
+### What it is
+
+A Good that spoils becomes trash rather than vanishing. Trash accumulates at the premises, is
+collected, moves to a facility, and imposes a consequence when it is not collected.
+
+### Why it's parked
+
+**Trash needs a sink, and without one it defeats the mechanism it came from.** A trash Bin fills,
+and a full output Bin makes its Rule fail on Space. Spoilage would then stop happening at exactly
+the premises with the most spoiled stock, so old stock would sit unbounded — the accumulation that
+shelf life exists to prevent, reintroduced by the thing meant to model it.
+
+**It makes the bucket shift fallible.** Dropping the oldest bucket cannot fail. Depositing its
+contents somewhere can. A spoilage step that sometimes does not happen is much harder to reason
+about, and every invariant asserting bounded quantities would have to account for it.
+
+**Its movement is real, so admitting it commits to the haulage.** `docs/04-economy-and-goods.md`
+refuses labour as a Good because trucking consulting hours is a fiction. Garbage is the opposite
+case, which is why it cannot be added as a Resource and left there.
+
+**Most waste is domestic.** Households generate far more than spoiled shop stock does. A city where
+the fishmonger produces refuse and ten thousand homes produce none is more conspicuous than a city
+with no refuse at all, so the honest version of this feature starts larger than the spoilage hook
+that would introduce it.
+
+### What would trigger revisiting
+
+- Sanitation wanted as a city system in its own right, rather than as a consequence of spoilage.
+- Waste counts showing that over-ordering needs a spatial consequence rather than a reported number.
+- Household waste becoming wanted, which is the larger half and would carry the collection system
+  on its own.
+
+### What it would look like
+
+Trash as a Resource with no market row, produced by spoilage and by Households, drawn by a
+collection vehicle against a disposal Building, with uncollected quantity feeding a local
+desirability penalty. The spoilage counter shipped with shelf life is the quantity it consumes, so
+the connection is a term rather than a redesign.
