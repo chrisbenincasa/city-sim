@@ -3,7 +3,7 @@
 ## Outcome
 
 A production Rule's throughput depends on the workers actually present at its premises. Labour is a
-Bin the Business spends, deposited by present workers and expiring at the end of the shift. A bakery
+Bin the Business spends, deposited by present workers and expiring within an hour or two. A bakery
 with four bakers and a warehouse of flour bakes four bakers' worth of bread.
 
 Shelf life generalises out of labour's expiry: a Resource may declare one, held as a small fixed set
@@ -22,9 +22,11 @@ the founding loop and for the full Goods tree.
 | A production Rule states labour among its inputs | Greedy apply already takes `min(band ceiling, every affordable)`, so staffing bounds output with no new engine arithmetic. This is the whole answer to *why not bake the entire warehouse at once* |
 | The authored apply-band `max` stays as the equipment ceiling | Four bakers and one oven is a different limit from four bakers. Both are real, both are expressible, neither replaces the other |
 | Labour expires rather than accumulating | Nothing else bounds it. An idle Business would bank a week of labour and spend it in one firing the moment its inputs arrived |
-| Shelf life is a property of a Resource, not a special case for labour | Labour's shelf life is one shift and fish is days. One mechanism is cheaper than two, and labour is its degenerate case |
+| Shelf life is a property of a Resource, not a special case for labour | Labour's shelf life is an hour or two and fish is days. One mechanism is cheaper than two, and labour is its shortest-lived case |
 | Age buckets are a fixed small count in the row; the Resource declares the cycle | `shelf life = cycle × buckets` expresses any duration at constant storage. Precision error is a constant fraction of shelf life, so an hour matters on bread and a month does not on flour |
 | Buckets shift lazily on write, never on a sweep | There is no Resource-to-Bin index — Bins are reached through their owner's list — so a per-Resource sweep would scan the whole table at every cycle boundary |
+| Labour's shelf life is an hour or two, far shorter than a shift | A Resource's cycle is global but shift start is drawn per-Business, so a daily labour cycle would evaporate half a night shift's labour at midnight. Making expiry much finer than a shift dissolves the mismatch with no per-owner offset. It is also what happens — a worker present at 9am supplies an hour of work at 9am, and an idle hour cannot be banked for the evening |
+| A Rule whose `rate` exceeds its labour input's shelf life is refused at load | Short-lived labour makes a slow Rule starve itself: a bakery firing daily would see only the last hour's work and waste the rest. The engine is right and the content is wrong, so the loader says so with a file and a line |
 | Spoiled stock is counted, not converted | [Waste as a Resource that moves](../docs/deferred.md#waste-as-a-resource-that-moves) |
 | The posted wage stays out of scope | `adr/0026`'s fill-rate wage is unbuilt, and `adr/0070` says an unbuilt mechanism is not a design constraint. The flat `wage_per_day` that exists is enough to demonstrate payroll against production |
 
@@ -56,10 +58,10 @@ beside the wage accrual. Amount per Tick is graded by Skill Tier and Experience,
 into quantity — a skilled worker deposits more labour than a novice, and greedy apply then scales
 throughput with experience without reading experience anywhere.
 
-Because labour accrues through the shift rather than arriving at its start, a Rule firing early in
-the day sees a few hours' worth and one firing late sees nearly a full day. Production spreads
-across the day rather than dumping at once, which falls out of the deposit shape rather than needing
-a rate.
+Because labour expires far faster than a shift, the Bin holds roughly the last hour or two of work
+rather than an accumulating total. A Rule therefore fires against **who is present now**, not
+against who has been present today. Production tracks the working day, drops when a shift ends, and
+rises again when the next one starts, none of which needs a rate to express.
 
 **3. Age buckets on `BinTable`.** A fixed inline array of N counters plus the Tick the Bin last
 shifted. The live level is a pure function of the stored buckets and the elapsed cycles.
@@ -112,12 +114,14 @@ Behaviour, in one Core world:
 2. Half staffing halves output.
 3. Output accrues across the working day rather than in one firing.
 4. A worker whose commute fails deposits nothing, and that premises' production falls the same day.
-5. Labour does not survive the shift. An idle Business does not bank it.
+5. Labour does not survive its shelf life. An idle Business banks nothing, and a busy one late in
+   the day holds no more than a busy one early in it.
 6. A Resource with a declared shelf life spoils on schedule, and the discarded quantity is reported.
 7. A Bin untouched across many cycles reads the same live level as one touched every cycle.
 8. Save and reload mid-cycle preserves the buckets and the shift clock, and the resumed world hashes
    identically.
-9. Paid local input, output purchases, payroll, staff loss and recovery, all in the same world.
+9. A Rule whose rate outruns its labour's shelf life is refused at load, with the file and line.
+10. Paid local input, output purchases, payroll, staff loss and recovery, all in the same world.
 
 ## Open questions
 
