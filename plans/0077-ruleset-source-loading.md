@@ -216,6 +216,26 @@ Remaining work and dependencies, in addition to the sequence below:
    inhabited city's evolution, which waits on a reload that reports what a transition would do to
    one. The designer handoff remains.
 
+## The last step needs a person
+
+Everything an agent can finish is finished. What is left is acceptance step 4 and its acceptance
+check — a designer works the walkthrough from a clean checkout, on a machine that runs the headless
+runner and the Godot shell, while someone watches. No agent can stand in for that. The point is to
+find where the guide misleads, and an agent that already knows the answer cannot be misled by it.
+
+Rules for that session:
+
+- The designer drives. Do not complete their edit, do not correct their wording, do not answer a
+  question the guide should have answered. Note the question and let them keep going.
+- Record the friction as it happens: which step they stalled on, what they expected, what the runner
+  said instead, and how long each step took.
+- A refusal they could not act on is a defect in the message, not in the designer.
+- Fix the guide afterwards, not during.
+
+Hold the plan open until that session has run. `WalkthroughEditTests` holds the numbers the guide
+quotes, so a stale number fails the suite, but nothing holds the commands or the prose. That is the
+gap a person closes.
+
 ## Implementation sequence
 
 1. Add the Formats source-set loader: collect declarations, resolve typed cross-file references,
