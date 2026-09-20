@@ -1,0 +1,8 @@
+# Pause before loading the neighbourhood through Menu > Load city.
+1 pause
+1 ui size 1400 900
+1 focus 30 12 380
+1 tilt 55
+1 ui menu on
+1 ui menu load
+1 ui menu discard

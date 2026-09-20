@@ -283,6 +283,15 @@ public sealed class RefusalTests
                     return (simulation, Case(refusal, simulation, world));
                 }
 
+            case Refusal.ZoneRecordLimit:
+                {
+                    var world = new World(0, Parse(Schooled + "\n[land_permissions]\nmax_records = 8\n"));
+                    var simulation = new Simulation(world, WorldKey.FromSeed(Seed));
+                    world.Roads.LayStreet(0, 0, StreetAxis.East);
+                    world.PaintPermissions(new LandRectangle(0, 0, 256, 32), new GroundPermissions(1, 0));
+                    return (simulation, Case(refusal, simulation, world));
+                }
+
             case Refusal.GateTreasuryCannotPay:
                 {
                     // No shipped Ruleset prices a door, so the world states one. The treasury opens
@@ -305,6 +314,9 @@ public sealed class RefusalTests
     /// <summary>The command itself, once the world it is refused in stands.</summary>
     private static Command Case(Refusal refusal, Simulation simulation, World world) => refusal switch
     {
+        Refusal.ZoneNoParcel => new Command(CommandKind.ZoneParcel, new Tiles(9000), new Tiles(9000), 1),
+        Refusal.ZoneInvalidBounds => new Command(CommandKind.Zone, new Tiles(-1), Tiles.Zero, 1),
+        Refusal.ZoneRecordLimit => new Command(CommandKind.Zone, new Tiles(320), Tiles.Zero, 1),
         Refusal.None => new Command(CommandKind.Zone, new Tiles(9_000), new Tiles(9_000), 1),
 
         Refusal.VerbNotApplied => new Command(CommandKind.None, default, default),

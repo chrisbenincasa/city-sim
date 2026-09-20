@@ -340,42 +340,45 @@ public sealed class PlacementTests
             + "that looks at more places finds one sooner, which is what candidates means.");
     }
 
-    /// <summary>
-    /// A look that lands on a vacant Lot found nothing, and that is the model rather than a miss.
-    /// </summary>
-    /// <remarks>
-    /// <b>The draw is over Lots and not over Buildings.</b> A Lot is a place in the city; the Building
-    /// table's slot count is a recycling table's, whose freed rows are an artefact of storage. Drawing
-    /// over Buildings made <c>candidates</c> mean something the file could not state, because the
-    /// fraction of freed slots moves with the demolition rate.
-    /// </remarks>
     [Fact]
-    public void A_city_of_mostly_empty_lots_houses_slowly()
+    public void Empty_lots_do_not_consume_standing_housing_search_attempts()
     {
-        var world = new World(1_000, Housing(1, Placing(candidates: 1)));
-        var simulation = new Simulation(world, Key);
-
-        Handle<Lot> seed = world.Lots.Create(new Tiles(0), new Tiles(0), zone: 1);
-        Handle<Building> shelter = world.CreateBuilding(seed, House, Ticks.Zero, Key);
-
-        for (int i = 0; i < 16; i++)
+        static Simulation Fixture(int emptyLots)
         {
-            world.Unplace(world.CreateHousehold(shelter, lifeStage: 0));
+            var world = new World(1_000, Housing(1, Placing(candidates: 1)));
+            var simulation = new Simulation(world, Key);
+            Handle<Lot> seed = world.Lots.Create(new Tiles(0), new Tiles(0), zone: 1, wide: new Tiles(16), deep: new Tiles(1));
+            Handle<Building> shelter = world.CreateBuilding(seed, House, Ticks.Zero, Key);
+            for (int i = 0; i < 16; i++) world.Unplace(world.CreateHousehold(shelter, lifeStage: 0));
+            for (int i = 0; i < emptyLots; i++) world.Lots.Create(new Tiles(i), new Tiles(1), zone: 1);
+            return simulation;
         }
 
-        // 64 Lots, one of them built on -- so a single look finds a dwelling one time in 64.
-        for (int i = 0; i < 63; i++)
-        {
-            world.Lots.Create(new Tiles(i), new Tiles(1), zone: 1);
-        }
+        Simulation bare = Fixture(0);
+        Simulation painted = Fixture(63);
+        PlacementActivity activity = Run(bare, 4);
+        Assert.True(activity.Placed.Sum > 0);
+        Assert.Equal(activity, Run(painted, 4));
+        Assert.Equal(bare.World.UnplacedPool.Count, painted.World.UnplacedPool.Count);
+    }
 
-        Run(simulation, 4);
-
-        Assert.True(
-            world.UnplacedPool.Count >= 15,
-            $"{16 - world.UnplacedPool.Count} of 16 were housed in one trigger against a city that "
-            + "is 63 parts empty ground to one part dwelling. A single look cannot do better than "
-            + "one in 64 unless the draw is skipping the empty Lots.");
+    [Theory]
+    [InlineData(0)]
+    [InlineData(2)]
+    public void Repainting_a_partly_occupied_home_preserves_its_remaining_tenancy(ushort uses)
+    {
+        var (world, simulation) = City(Housing(2, Placing()), buildings: 1, seeking: 1, occupants: 2);
+        int lot = world.HousingBuildings.Nth(world, 0);
+        var building = world.Buildings.Rows.At(world.Lots.BuildingOn(lot));
+        var resident = world.CreateHousehold(building, lifeStage: 0);
+        world.PaintUsePermissions(world.LotGround(lot), uses);
+        Assert.NotEqual(Borough.Core.Space.PermissionRefusal.None, world.ConstructionPermission(lot, 1));
+        Run(simulation, 64);
+        Assert.Equal(0, world.UnplacedPool.Count);
+        Assert.Equal(building, world.Households.Dwelling[world.Households.Rows.Resolve(resident)]);
+        Assert.Equal(2, world.Occupants.Length(world.Buildings.Rows.Resolve(building)));
+        world.DestroyBuilding(building, Ticks.Zero);
+        Assert.Equal(0, world.HousingBuildings.Count(world));
     }
 
     // ---- determinism ------------------------------------------------------------------------------

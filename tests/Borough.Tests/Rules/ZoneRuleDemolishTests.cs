@@ -142,6 +142,7 @@ public sealed class ZoneRuleDemolishTests
         for (int i = 0; i < houses; i++)
         {
             Handle<Lot> lot = world.Lots.Create(new Tiles(i), new Tiles(0), Housing);
+            world.PaintUsePermissions(world.LotGround(world.Lots.Rows.Resolve(lot)), Housing);
             Handle<Building> building = world.CreateBuilding(
                 lot, House, Ticks.Zero, simulation.Key);
 

@@ -1,0 +1,1219 @@
+{
+  "environment": "Godot 4.7.2 Mono; Debug; Intel UHD 630; Vulkan; 1400x900; shared busy machine; no performance claim",
+  "seed": 62002,
+  "actions": [
+    "load exported city at Tick 512",
+    "open Evidence, click Household 3",
+    "run to Tick 650 and pause",
+    "run to Tick 902 and pause",
+    "hold zone 0; click 20 10; click 32 10; click 44 10",
+    "hold look; run to Tick 952 and pause",
+    "run to Tick 1402 and pause; back to Building; refresh Evidence"
+  ],
+  "frames": [
+    {
+      "name": "list",
+      "tick": 512,
+      "hash": "A6AF5BE2C15D3442",
+      "caption": "tick 512\nurban-neighbourhood.borough-city   Tick 512   Day 0   Monday   11:00\nCitizens 6   Buildings 3 (2 drawn)   vacant Lots 3   travelling 0\nspeed paused   mode look   [ ] speed, space pause, w write log, g roads, c cells, tab tune\nclick acts   right-drag or two-finger scroll pans   edge of screen pans   pinch or -/= zooms   q/e turns   r/f tilts   l lens   o overlay\nhover \u2014\nOpen ground \u00b7 ordinary \u2014 click to inspect\ndebug \u2014\nTile (35, 3)    Cell (1, 0)\nexisting homes \u2014 1 of 2 occupied, 20 Tiles off\nLot 5, future uses 0x0000 across the whole site\nground: ordinary\npollution 0    land value 0    sealing 192\ninspector \u2014\nclosed\nui theme=dark debug=False visible=False scroll=0\ninspector (970, 104), (406, 177) min=(125, 177)\nbody (970, 104), (0, 0) min=(0, 0)\nscroll (970, 104), (0, 0) min=(0, 0)\nhover (40, 815), (908, 49) debug (24, 264), (840, 36) console (24, 739), (940, 137)\n",
+      "housing": [
+        {
+          "Id": 3,
+          "Summary": "Affordable vacancies fall short of this Household's preferences. Waiting for repeated searches over time.",
+          "Reading": {
+            "Current": 5,
+            "Observed": false,
+            "Fresh": false,
+            "Persistent": false,
+            "ElapsedTicks": 0,
+            "RequiredTicks": 256,
+            "LastObserved": 0
+          }
+        },
+        {
+          "Id": 4,
+          "Summary": "Affordable vacancies fall short of this Household's preferences. Waiting for repeated searches over time.",
+          "Reading": {
+            "Current": 5,
+            "Observed": false,
+            "Fresh": false,
+            "Persistent": false,
+            "ElapsedTicks": 0,
+            "RequiredTicks": 256,
+            "LastObserved": 0
+          }
+        }
+      ],
+      "seeking": 2,
+      "inspector": "closed",
+      "layers": [
+        {
+          "layer": "ground",
+          "instances": 1,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "hazard",
+          "instances": 0,
+          "capacity": 0,
+          "visible": false
+        },
+        {
+          "layer": "water",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "flood",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "road",
+          "instances": 2,
+          "capacity": 32,
+          "visible": true
+        },
+        {
+          "layer": "footway",
+          "instances": 6,
+          "capacity": 80,
+          "visible": true
+        },
+        {
+          "layer": "kerb",
+          "instances": 18,
+          "capacity": 80,
+          "visible": true
+        },
+        {
+          "layer": "cell",
+          "instances": 5,
+          "capacity": 48,
+          "visible": false
+        },
+        {
+          "layer": "plot",
+          "instances": 3,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "zone",
+          "instances": 0,
+          "capacity": 0,
+          "visible": false
+        },
+        {
+          "layer": "cursor",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "building",
+          "instances": 8,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "roof",
+          "instances": 8,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "hip",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "paired-roof",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "parapet",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "yard",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "tree",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "rock",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "traveller",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "car",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        }
+      ]
+    },
+    {
+      "name": "waiting",
+      "tick": 650,
+      "hash": "8CEBB7C5DB17AC41",
+      "caption": "tick 650\nurban-neighbourhood.borough-city   Tick 650   Day 0   Monday   12:37\nCitizens 6   Buildings 3 (2 drawn)   vacant Lots 3   travelling 0\nspeed paused   mode look   [ ] speed, space pause, w write log, g roads, c cells, tab tune\nclick acts   right-drag or two-finger scroll pans   edge of screen pans   pinch or -/= zooms   q/e turns   r/f tilts   l lens   o overlay\nhover \u2014\nOpen ground \u00b7 ordinary \u2014 click to inspect\ndebug \u2014\nTile (35, 3)    Cell (1, 0)\nexisting homes \u2014 1 of 2 occupied, 20 Tiles off\nLot 5, future uses 0x0000 across the whole site\nground: ordinary\npollution 0    land value 0    sealing 192\ninspector \u2014\nHousehold 3\nHOUSEHOLD\nCurrent condition\nNo current home\nLooking for a home\nAffordable vacancies fall short of this Household's preferences. Waiting for repeated searches over time.\nRent and location are compared with this Household's Outside option.\nObserved for 136 of 256 Ticks \u00b7 last checked at Tick 648.\nRecent search evidence.\nConstruction also needs permitted land and a suitable Building that fits.\nCitizens\nCitizen 3\nNo current Trip\nNo Workplace\nCitizen 4\nNo current Trip\nNo Workplace\nFinances\nHousehold balance: 100 money units\nui theme=dark debug=False visible=True scroll=0\ninspector (970, 104), (406, 611) min=(125, 177)\nbody (990, 265), (358, 9437) min=(50, 649)\nscroll (990, 265), (366, 434) min=(58, 0)\nhover (40, 815), (908, 49) debug (24, 264), (840, 36) console (24, 739), (940, 137)\n",
+      "housing": [
+        {
+          "Id": 3,
+          "Summary": "Affordable vacancies fall short of this Household's preferences. Waiting for repeated searches over time.",
+          "Reading": {
+            "Current": 5,
+            "Observed": true,
+            "Fresh": true,
+            "Persistent": false,
+            "ElapsedTicks": 136,
+            "RequiredTicks": 256,
+            "LastObserved": 648
+          }
+        },
+        {
+          "Id": 4,
+          "Summary": "Affordable vacancies fall short of this Household's preferences. Waiting for repeated searches over time.",
+          "Reading": {
+            "Current": 5,
+            "Observed": true,
+            "Fresh": true,
+            "Persistent": false,
+            "ElapsedTicks": 128,
+            "RequiredTicks": 256,
+            "LastObserved": 648
+          }
+        }
+      ],
+      "seeking": 2,
+      "inspector": "Household 3\nHOUSEHOLD\nCurrent condition\nNo current home\nLooking for a home\nAffordable vacancies fall short of this Household's preferences. Waiting for repeated searches over time.\nRent and location are compared with this Household's Outside option.\nObserved for 136 of 256 Ticks \u00b7 last checked at Tick 648.\nRecent search evidence.\nConstruction also needs permitted land and a suitable Building that fits.\nCitizens\nCitizen 3\nNo current Trip\nNo Workplace\nCitizen 4\nNo current Trip\nNo Workplace\nFinances\nHousehold balance: 100 money units",
+      "layers": [
+        {
+          "layer": "ground",
+          "instances": 1,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "hazard",
+          "instances": 0,
+          "capacity": 0,
+          "visible": false
+        },
+        {
+          "layer": "water",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "flood",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "road",
+          "instances": 2,
+          "capacity": 32,
+          "visible": true
+        },
+        {
+          "layer": "footway",
+          "instances": 6,
+          "capacity": 80,
+          "visible": true
+        },
+        {
+          "layer": "kerb",
+          "instances": 18,
+          "capacity": 80,
+          "visible": true
+        },
+        {
+          "layer": "cell",
+          "instances": 5,
+          "capacity": 48,
+          "visible": false
+        },
+        {
+          "layer": "plot",
+          "instances": 3,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "zone",
+          "instances": 0,
+          "capacity": 0,
+          "visible": false
+        },
+        {
+          "layer": "cursor",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "building",
+          "instances": 8,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "roof",
+          "instances": 8,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "hip",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "paired-roof",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "parapet",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "yard",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "tree",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "rock",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "traveller",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "car",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        }
+      ]
+    },
+    {
+      "name": "qualified",
+      "tick": 902,
+      "hash": "EE29A889D4287D1E",
+      "caption": "tick 902\nurban-neighbourhood.borough-city   Tick 902   Day 0   Monday   15:34\nCitizens 6   Buildings 3 (2 drawn)   vacant Lots 3   travelling 0\nspeed paused   mode look   [ ] speed, space pause, w write log, g roads, c cells, tab tune\nclick acts   right-drag or two-finger scroll pans   edge of screen pans   pinch or -/= zooms   q/e turns   r/f tilts   l lens   o overlay\nhover \u2014\nOpen ground \u00b7 ordinary \u2014 click to inspect\ndebug \u2014\nTile (35, 3)    Cell (1, 0)\nexisting homes \u2014 1 of 2 occupied, 20 Tiles off\nLot 5, future uses 0x0000 across the whole site\nground: ordinary\npollution 0    land value 0    sealing 192\ninspector \u2014\nHousehold 3\nHOUSEHOLD\nCurrent condition\nNo current home\nLooking for a home\nAvailable homes consistently fall short of this Household's preferences. A suitable addition can now be considered.\nRent and location are compared with this Household's Outside option.\nObserved for 376 of 256 Ticks \u00b7 last checked at Tick 888.\nRecent search evidence.\nConstruction also needs permitted land and a suitable Building that fits.\nCitizens\nCitizen 3\nNo current Trip\nNo Workplace\nCitizen 4\nNo current Trip\nNo Workplace\nFinances\nHousehold balance: 100 money units\nui theme=dark debug=False visible=True scroll=0\ninspector (970, 104), (406, 611) min=(125, 177)\nbody (990, 265), (358, 9671) min=(50, 649)\nscroll (990, 265), (366, 434) min=(58, 0)\nhover (40, 815), (908, 49) debug (24, 264), (840, 36) console (24, 739), (940, 137)\n",
+      "housing": [
+        {
+          "Id": 3,
+          "Summary": "Available homes consistently fall short of this Household's preferences. A suitable addition can now be considered.",
+          "Reading": {
+            "Current": 5,
+            "Observed": true,
+            "Fresh": true,
+            "Persistent": true,
+            "ElapsedTicks": 376,
+            "RequiredTicks": 256,
+            "LastObserved": 888
+          }
+        },
+        {
+          "Id": 4,
+          "Summary": "Available homes consistently fall short of this Household's preferences. A suitable addition can now be considered.",
+          "Reading": {
+            "Current": 5,
+            "Observed": true,
+            "Fresh": true,
+            "Persistent": true,
+            "ElapsedTicks": 376,
+            "RequiredTicks": 256,
+            "LastObserved": 896
+          }
+        }
+      ],
+      "seeking": 2,
+      "inspector": "Household 3\nHOUSEHOLD\nCurrent condition\nNo current home\nLooking for a home\nAvailable homes consistently fall short of this Household's preferences. A suitable addition can now be considered.\nRent and location are compared with this Household's Outside option.\nObserved for 376 of 256 Ticks \u00b7 last checked at Tick 888.\nRecent search evidence.\nConstruction also needs permitted land and a suitable Building that fits.\nCitizens\nCitizen 3\nNo current Trip\nNo Workplace\nCitizen 4\nNo current Trip\nNo Workplace\nFinances\nHousehold balance: 100 money units",
+      "layers": [
+        {
+          "layer": "ground",
+          "instances": 1,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "hazard",
+          "instances": 0,
+          "capacity": 0,
+          "visible": false
+        },
+        {
+          "layer": "water",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "flood",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "road",
+          "instances": 2,
+          "capacity": 32,
+          "visible": true
+        },
+        {
+          "layer": "footway",
+          "instances": 6,
+          "capacity": 80,
+          "visible": true
+        },
+        {
+          "layer": "kerb",
+          "instances": 18,
+          "capacity": 80,
+          "visible": true
+        },
+        {
+          "layer": "cell",
+          "instances": 5,
+          "capacity": 48,
+          "visible": false
+        },
+        {
+          "layer": "plot",
+          "instances": 3,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "zone",
+          "instances": 0,
+          "capacity": 0,
+          "visible": false
+        },
+        {
+          "layer": "cursor",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "building",
+          "instances": 8,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "roof",
+          "instances": 8,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "hip",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "paired-roof",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "parapet",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "yard",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "tree",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "rock",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "traveller",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "car",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        }
+      ]
+    },
+    {
+      "name": "permitted",
+      "tick": 905,
+      "hash": "A173E193FA1ABC68",
+      "caption": "tick 905\nurban-neighbourhood.borough-city   Tick 905   Day 0   Monday   15:36\nCitizens 6   Buildings 4 (3 drawn)   vacant Lots 2   travelling 0\nspeed paused   mode housing   [ ] speed, space pause, w write log, g roads, c cells, tab tune\nclick acts   right-drag or two-finger scroll pans   edge of screen pans   pinch or -/= zooms   q/e turns   r/f tilts   l lens   o overlay\nhover \u2014\nhousing \u00b7 click a parcel or drag an area\ndebug \u2014\nTile (44, 10)    Cell (1, 0)\nexisting homes \u2014 1 of 2 occupied, 15 Tiles off\nLot 5, future uses 0x0000 across the whole site\nground: ordinary\npollution 0    land value 0    sealing 192\nparcel 48 \u00d7 64 m \u2014 housing\ninspector \u2014\nHousehold 3\nHOUSEHOLD\nCurrent condition\nNo current home\nLooking for a home\nExisting vacancies still count as options. Waiting for a placement search.\nConstruction also needs permitted land and a suitable Building that fits.\nCitizens\nCitizen 3\nNo current Trip\nNo Workplace\nCitizen 4\nNo current Trip\nNo Workplace\nFinances\nHousehold balance: 100 money units\nui theme=dark debug=False visible=True scroll=0\ninspector (970, 104), (406, 577) min=(125, 177)\nbody (990, 265), (358, 478) min=(50, 478)\nscroll (990, 265), (366, 400) min=(58, 0)\nhover (40, 824), (991, 40) debug (24, 264), (840, 36) console (24, 705), (1023, 171)\n",
+      "housing": [
+        {
+          "Id": 3,
+          "Summary": "Existing vacancies still count as options. Waiting for a placement search.",
+          "Reading": {
+            "Current": 4,
+            "Observed": false,
+            "Fresh": false,
+            "Persistent": false,
+            "ElapsedTicks": 0,
+            "RequiredTicks": 256,
+            "LastObserved": 0
+          }
+        },
+        {
+          "Id": 4,
+          "Summary": "Existing vacancies still count as options. Waiting for a placement search.",
+          "Reading": {
+            "Current": 4,
+            "Observed": true,
+            "Fresh": true,
+            "Persistent": false,
+            "ElapsedTicks": 376,
+            "RequiredTicks": 256,
+            "LastObserved": 896
+          }
+        }
+      ],
+      "seeking": 2,
+      "inspector": "Household 3\nHOUSEHOLD\nCurrent condition\nNo current home\nLooking for a home\nExisting vacancies still count as options. Waiting for a placement search.\nConstruction also needs permitted land and a suitable Building that fits.\nCitizens\nCitizen 3\nNo current Trip\nNo Workplace\nCitizen 4\nNo current Trip\nNo Workplace\nFinances\nHousehold balance: 100 money units",
+      "layers": [
+        {
+          "layer": "ground",
+          "instances": 1,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "hazard",
+          "instances": 0,
+          "capacity": 0,
+          "visible": false
+        },
+        {
+          "layer": "water",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "flood",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "road",
+          "instances": 2,
+          "capacity": 32,
+          "visible": true
+        },
+        {
+          "layer": "footway",
+          "instances": 6,
+          "capacity": 80,
+          "visible": true
+        },
+        {
+          "layer": "kerb",
+          "instances": 18,
+          "capacity": 80,
+          "visible": true
+        },
+        {
+          "layer": "cell",
+          "instances": 5,
+          "capacity": 48,
+          "visible": false
+        },
+        {
+          "layer": "plot",
+          "instances": 2,
+          "capacity": 16,
+          "visible": false
+        },
+        {
+          "layer": "zone",
+          "instances": 2,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "cursor",
+          "instances": 1,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "building",
+          "instances": 12,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "roof",
+          "instances": 12,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "hip",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "paired-roof",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "parapet",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "yard",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "tree",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "rock",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "traveller",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "car",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        }
+      ]
+    },
+    {
+      "name": "housed",
+      "tick": 952,
+      "hash": "27E75264EEDB2750",
+      "caption": "tick 952\nurban-neighbourhood.borough-city   Tick 952   Day 0   Monday   16:09\nCitizens 6   Buildings 4 (3 drawn)   vacant Lots 2   travelling 0\nspeed paused   mode look   [ ] speed, space pause, w write log, g roads, c cells, tab tune\nclick acts   right-drag or two-finger scroll pans   edge of screen pans   pinch or -/= zooms   q/e turns   r/f tilts   l lens   o overlay\nhover \u2014\nOpen ground \u00b7 ordinary \u2014 click to inspect\ndebug \u2014\nTile (44, 10)    Cell (1, 0)\nexisting homes \u2014 1 of 2 occupied, 15 Tiles off\nLot 5, future uses 0x0000 across the whole site\nground: ordinary\npollution 0    land value 0    sealing 192\ninspector \u2014\nHousehold 3\nHOUSEHOLD\nCurrent condition\nNo supply shortfalls reported\nHome: Building 4\nWhat needs attention\nNo supply shortfalls reported.\nActivities\nNo other activities reported.\nHousehold stocks\nNo stocks reported.\nCitizens\nCitizen 3\nNo current Trip\nNo Workplace\nCitizen 4\nNo current Trip\nNo Workplace\nFinances\nHousehold balance: 100 money units\nui theme=dark debug=False visible=True scroll=0\ninspector (970, 104), (406, 611) min=(125, 177)\nbody (990, 265), (358, 569) min=(50, 569)\nscroll (990, 265), (366, 434) min=(58, 0)\nhover (40, 815), (908, 49) debug (24, 264), (840, 36) console (24, 739), (940, 137)\n",
+      "housing": [],
+      "seeking": 0,
+      "inspector": "Household 3\nHOUSEHOLD\nCurrent condition\nNo supply shortfalls reported\nHome: Building 4\nWhat needs attention\nNo supply shortfalls reported.\nActivities\nNo other activities reported.\nHousehold stocks\nNo stocks reported.\nCitizens\nCitizen 3\nNo current Trip\nNo Workplace\nCitizen 4\nNo current Trip\nNo Workplace\nFinances\nHousehold balance: 100 money units",
+      "layers": [
+        {
+          "layer": "ground",
+          "instances": 1,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "hazard",
+          "instances": 0,
+          "capacity": 0,
+          "visible": false
+        },
+        {
+          "layer": "water",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "flood",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "road",
+          "instances": 2,
+          "capacity": 32,
+          "visible": true
+        },
+        {
+          "layer": "footway",
+          "instances": 6,
+          "capacity": 80,
+          "visible": true
+        },
+        {
+          "layer": "kerb",
+          "instances": 18,
+          "capacity": 80,
+          "visible": true
+        },
+        {
+          "layer": "cell",
+          "instances": 5,
+          "capacity": 48,
+          "visible": false
+        },
+        {
+          "layer": "plot",
+          "instances": 2,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "zone",
+          "instances": 2,
+          "capacity": 16,
+          "visible": false
+        },
+        {
+          "layer": "cursor",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "building",
+          "instances": 12,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "roof",
+          "instances": 12,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "hip",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "paired-roof",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "parapet",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "yard",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "tree",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "rock",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "traveller",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "car",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        }
+      ]
+    },
+    {
+      "name": "settled",
+      "tick": 1402,
+      "hash": "F486C362A2C0B4C6",
+      "caption": "tick 1402\nurban-neighbourhood.borough-city   Tick 1,402   Day 0   Monday   21:25\nCitizens 6   Buildings 4 (3 drawn)   vacant Lots 2   travelling 0\nspeed paused   mode look   [ ] speed, space pause, w write log, g roads, c cells, tab tune\nclick acts   right-drag or two-finger scroll pans   edge of screen pans   pinch or -/= zooms   q/e turns   r/f tilts   l lens   o overlay\nhover \u2014\nOpen ground \u00b7 ordinary \u2014 click to inspect\ndebug \u2014\nTile (44, 10)    Cell (1, 0)\nexisting homes \u2014 1 of 2 occupied, 15 Tiles off\nLot 5, future uses 0x0000 across the whole site\nground: ordinary\npollution 0    land value 0    sealing 192\ninspector \u2014\nHousehold 3\nHOUSEHOLD\nCurrent condition\nNo supply shortfalls reported\nHome: Building 4\nWhat needs attention\nNo supply shortfalls reported.\nActivities\nNo other activities reported.\nHousehold stocks\nNo stocks reported.\nCitizens\nCitizen 3\nNo current Trip\nNo Workplace\nCitizen 4\nNo current Trip\nNo Workplace\nFinances\nHousehold balance: 100 money units\nui theme=dark debug=False visible=True scroll=0\ninspector (970, 104), (406, 611) min=(125, 177)\nbody (990, 265), (358, 569) min=(50, 569)\nscroll (990, 265), (366, 434) min=(58, 0)\nhover (40, 815), (908, 49) debug (24, 264), (840, 36) console (24, 739), (940, 137)\n",
+      "housing": [],
+      "seeking": 0,
+      "inspector": "Household 3\nHOUSEHOLD\nCurrent condition\nNo supply shortfalls reported\nHome: Building 4\nWhat needs attention\nNo supply shortfalls reported.\nActivities\nNo other activities reported.\nHousehold stocks\nNo stocks reported.\nCitizens\nCitizen 3\nNo current Trip\nNo Workplace\nCitizen 4\nNo current Trip\nNo Workplace\nFinances\nHousehold balance: 100 money units",
+      "layers": [
+        {
+          "layer": "ground",
+          "instances": 1,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "hazard",
+          "instances": 0,
+          "capacity": 0,
+          "visible": false
+        },
+        {
+          "layer": "water",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "flood",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "road",
+          "instances": 2,
+          "capacity": 32,
+          "visible": true
+        },
+        {
+          "layer": "footway",
+          "instances": 6,
+          "capacity": 80,
+          "visible": true
+        },
+        {
+          "layer": "kerb",
+          "instances": 18,
+          "capacity": 80,
+          "visible": true
+        },
+        {
+          "layer": "cell",
+          "instances": 5,
+          "capacity": 48,
+          "visible": false
+        },
+        {
+          "layer": "plot",
+          "instances": 2,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "zone",
+          "instances": 2,
+          "capacity": 16,
+          "visible": false
+        },
+        {
+          "layer": "cursor",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "building",
+          "instances": 12,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "roof",
+          "instances": 12,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "hip",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "paired-roof",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "parapet",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "yard",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "tree",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "rock",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "traveller",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "car",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        }
+      ]
+    },
+    {
+      "name": "building",
+      "tick": 1402,
+      "hash": "F486C362A2C0B4C6",
+      "caption": "tick 1402\nurban-neighbourhood.borough-city   Tick 1,402   Day 0   Monday   21:25\nCitizens 6   Buildings 4 (3 drawn)   vacant Lots 2   travelling 0\nspeed paused   mode look   [ ] speed, space pause, w write log, g roads, c cells, tab tune\nclick acts   right-drag or two-finger scroll pans   edge of screen pans   pinch or -/= zooms   q/e turns   r/f tilts   l lens   o overlay\nhover \u2014\nOpen ground \u00b7 ordinary \u2014 click to inspect\ndebug \u2014\nTile (44, 10)    Cell (1, 0)\nexisting homes \u2014 1 of 2 occupied, 15 Tiles off\nLot 5, future uses 0x0000 across the whole site\nground: ordinary\npollution 0    land value 0    sealing 192\ninspector \u2014\ndwelling\nSELECTED BUILDING \u00b7 4\nCurrent condition\nNo supply shortfalls reported\nOccupied places: 2 / 2\nWhat needs attention\nNo supply shortfalls reported.\nActivities\nNo other activities reported.\nHouseholds \u00b7 2\nHousehold 3 \u2192\nHousehold 4 \u2192\nWorkers \u00b7 0\nNo workers.\nStocks\nPremises \u00b7 sundries\n0 / 48 units\nui theme=dark debug=False visible=True scroll=0\ninspector (970, 104), (406, 508) min=(125, 130)\nbody (990, 218), (366, 378) min=(50, 378)\nscroll (990, 218), (366, 378) min=(50, 0)\nhover (40, 815), (908, 49) debug (24, 264), (840, 36) console (24, 739), (940, 137)\n",
+      "housing": [],
+      "seeking": 0,
+      "inspector": "dwelling\nSELECTED BUILDING \u00b7 4\nCurrent condition\nNo supply shortfalls reported\nOccupied places: 2 / 2\nWhat needs attention\nNo supply shortfalls reported.\nActivities\nNo other activities reported.\nHouseholds \u00b7 2\nHousehold 3 \u2192\nHousehold 4 \u2192\nWorkers \u00b7 0\nNo workers.\nStocks\nPremises \u00b7 sundries\n0 / 48 units",
+      "layers": [
+        {
+          "layer": "ground",
+          "instances": 1,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "hazard",
+          "instances": 0,
+          "capacity": 0,
+          "visible": false
+        },
+        {
+          "layer": "water",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "flood",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "road",
+          "instances": 2,
+          "capacity": 32,
+          "visible": true
+        },
+        {
+          "layer": "footway",
+          "instances": 6,
+          "capacity": 80,
+          "visible": true
+        },
+        {
+          "layer": "kerb",
+          "instances": 18,
+          "capacity": 80,
+          "visible": true
+        },
+        {
+          "layer": "cell",
+          "instances": 5,
+          "capacity": 48,
+          "visible": false
+        },
+        {
+          "layer": "plot",
+          "instances": 2,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "zone",
+          "instances": 2,
+          "capacity": 16,
+          "visible": false
+        },
+        {
+          "layer": "cursor",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "building",
+          "instances": 12,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "roof",
+          "instances": 12,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "hip",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "paired-roof",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "parapet",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "yard",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "tree",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "rock",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "traveller",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "car",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        }
+      ]
+    },
+    {
+      "name": "satisfied",
+      "tick": 1402,
+      "hash": "F486C362A2C0B4C6",
+      "caption": "tick 1402\nurban-neighbourhood.borough-city   Tick 1,402   Day 0   Monday   21:25\nCitizens 6   Buildings 4 (3 drawn)   vacant Lots 2   travelling 0\nspeed paused   mode look   [ ] speed, space pause, w write log, g roads, c cells, tab tune\nclick acts   right-drag or two-finger scroll pans   edge of screen pans   pinch or -/= zooms   q/e turns   r/f tilts   l lens   o overlay\nhover \u2014\nOpen ground \u00b7 ordinary \u2014 click to inspect\ndebug \u2014\nTile (44, 10)    Cell (1, 0)\nexisting homes \u2014 1 of 2 occupied, 15 Tiles off\nLot 5, future uses 0x0000 across the whole site\nground: ordinary\npollution 0    land value 0    sealing 192\ninspector \u2014\ndwelling\nSELECTED BUILDING \u00b7 4\nCurrent condition\nNo supply shortfalls reported\nOccupied places: 2 / 2\nWhat needs attention\nNo supply shortfalls reported.\nActivities\nNo other activities reported.\nHouseholds \u00b7 2\nHousehold 3 \u2192\nHousehold 4 \u2192\nWorkers \u00b7 0\nNo workers.\nStocks\nPremises \u00b7 sundries\n0 / 48 units\nui theme=dark debug=False visible=True scroll=0\ninspector (970, 104), (406, 508) min=(125, 130)\nbody (990, 218), (366, 378) min=(50, 378)\nscroll (990, 218), (366, 378) min=(50, 0)\nhover (40, 815), (908, 49) debug (24, 264), (840, 36) console (24, 739), (940, 137)\n",
+      "housing": [],
+      "seeking": 0,
+      "inspector": "dwelling\nSELECTED BUILDING \u00b7 4\nCurrent condition\nNo supply shortfalls reported\nOccupied places: 2 / 2\nWhat needs attention\nNo supply shortfalls reported.\nActivities\nNo other activities reported.\nHouseholds \u00b7 2\nHousehold 3 \u2192\nHousehold 4 \u2192\nWorkers \u00b7 0\nNo workers.\nStocks\nPremises \u00b7 sundries\n0 / 48 units",
+      "layers": [
+        {
+          "layer": "ground",
+          "instances": 1,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "hazard",
+          "instances": 0,
+          "capacity": 0,
+          "visible": false
+        },
+        {
+          "layer": "water",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "flood",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "road",
+          "instances": 2,
+          "capacity": 32,
+          "visible": true
+        },
+        {
+          "layer": "footway",
+          "instances": 6,
+          "capacity": 80,
+          "visible": true
+        },
+        {
+          "layer": "kerb",
+          "instances": 18,
+          "capacity": 80,
+          "visible": true
+        },
+        {
+          "layer": "cell",
+          "instances": 5,
+          "capacity": 48,
+          "visible": false
+        },
+        {
+          "layer": "plot",
+          "instances": 2,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "zone",
+          "instances": 2,
+          "capacity": 16,
+          "visible": false
+        },
+        {
+          "layer": "cursor",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "building",
+          "instances": 12,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "roof",
+          "instances": 12,
+          "capacity": 16,
+          "visible": true
+        },
+        {
+          "layer": "hip",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "paired-roof",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "parapet",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "yard",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "tree",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "rock",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "traveller",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        },
+        {
+          "layer": "car",
+          "instances": 0,
+          "capacity": 0,
+          "visible": true
+        }
+      ]
+    }
+  ]
+}

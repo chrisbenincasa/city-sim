@@ -670,6 +670,35 @@ public abstract class Rows
         }
     }
 
+    /// <summary>Required high-water slots after allocations and known retirements, without mutation.</summary>
+    internal bool AllocationSlots(int additional, int retiring, out int slots)
+    {
+        slots = _slotCount;
+        if (additional < 0 || retiring < 0 || retiring > _liveCount
+            || (ulong)additional > ulong.MaxValue - _nextId) { return false; }
+        long needed = (long)_liveCount - retiring + additional;
+        if (needed > int.MaxValue) { return false; }
+        if (needed > slots) { slots = (int)needed; }
+        return true;
+    }
+
+    /// <summary>Allocates column headroom without changing saved allocator state.</summary>
+    internal void PrepareCapacity(int slots, int maximum)
+    {
+        if (slots < 0 || slots > maximum || _slotCount > maximum)
+        {
+            throw new ArgumentOutOfRangeException(nameof(slots));
+        }
+        if (slots <= _capacity) { return; }
+        int capacity = _capacity;
+        while (capacity < slots)
+        {
+            capacity = capacity > maximum - capacity ? maximum : capacity * 2;
+        }
+        foreach (Column column in _columns) { column.Grow(capacity); }
+        _capacity = capacity;
+    }
+
     /// <summary>Restores exact storage unless the table opts into the allocator's growth headroom.</summary>
     private void GrowTo(int slots)
     {

@@ -407,6 +407,9 @@ public partial class Main
     /// </remarks>
     private string Sentence(Refusal refusal, Command command) => refusal switch
     {
+        Refusal.ZoneNoParcel => "Choose a parcel beside a Street or an existing Building.",
+        Refusal.ZoneRecordLimit => "This paint is too complex for the city's permission limit. Existing permissions stay; simplify or erase some paint first.",
+        Refusal.ZoneInvalidBounds => "Choose ground inside the editable map.",
         Refusal.ConnectRoadKindIsNotStreet =>
             "only a Street can be laid by hand — an Arterial is a route rather than one click.",
 

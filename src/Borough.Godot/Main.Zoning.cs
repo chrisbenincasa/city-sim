@@ -25,25 +25,17 @@ public partial class Main
 
     private System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where, Color What)> ZonedBlocks()
     {
-        var lots = _world.Lots;
-        var occupied = new System.Collections.Generic.HashSet<(int, int)>();
-        for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
+        var paint = _world.PermissionRectangles;
+        for (int slot = 0; slot < paint.Rows.SlotCount; slot++)
         {
-            if (!lots.Rows.IsLive(slot) || !lots.HasFrontage(slot)) continue;
-            if (Frontage.BlockOf(_world.Roads.Streets, lots.East[slot], lots.North[slot],
-                (StreetSide)lots.Side[slot], out int c, out int r)) occupied.Add((c, r));
-            if (lots.Zone[slot] == 0 || lots.ParcelWide[slot].Raw <= 0 || lots.ParcelDeep[slot].Raw <= 0) continue;
-            yield return (lots.Rows.IdAt(slot), ParcelTransform(lots.ParcelEast[slot].Raw,
-                lots.ParcelNorth[slot].Raw, lots.ParcelWide[slot].Raw, lots.ParcelDeep[slot].Raw),
-                ZoneColour(lots.Zone[slot]).SrgbToLinear());
+            if (!paint.Rows.IsLive(slot)) continue;
+            ushort uses = GroundPermissions.Unpack(paint.Permission[slot]).Uses;
+            if (uses == 0) continue;
+            yield return (paint.Rows.IdAt(slot), ParcelTransform(paint.X[slot], paint.Y[slot],
+                paint.Width[slot], paint.Height[slot]), ZoneColour(uses).SrgbToLinear());
         }
-        var blocks = _world.Blocks;
-        for (int slot = 0; slot < blocks.Rows.SlotCount; slot++)
-            if (blocks.Rows.IsLive(slot) && blocks.Zone[slot] != 0
-                && !occupied.Contains((blocks.LatticeColumn[slot], blocks.LatticeRow[slot]))
-                && ZoneInterior(blocks.LatticeColumn[slot], blocks.LatticeRow[slot]) is { } interior)
-                yield return (blocks.Rows.IdAt(slot), interior, ZoneColour(blocks.Zone[slot]).SrgbToLinear());
     }
+
     private string _zoneFeedback = string.Empty;
 
     private ushort ZonePermission() => _zoneErase || _world.Rules.ZoneRules.Length == 0
@@ -102,22 +94,11 @@ public partial class Main
         int count = 0, unchanged = 0;
         bool canSkip = _queued.Count == 0;
         ushort permission = ZonePermission();
-        int width = bounds.East - bounds.West + 1;
-        var different = new bool[width * (bounds.North - bounds.South + 1)];
-        for (int slot = 0; slot < _world.Lots.Rows.SlotCount; slot++)
-        {
-            if (!_world.Lots.Rows.IsLive(slot) || _world.Lots.Zone[slot] == permission
-                || !Frontage.BlockOf(streets, _world.Lots.East[slot], _world.Lots.North[slot],
-                    (StreetSide)_world.Lots.Side[slot], out int c, out int r)
-                || c < bounds.West || c > bounds.East || r < bounds.South || r > bounds.North) continue;
-            different[(r - bounds.South) * width + c - bounds.West] = true;
-        }
         for (int row = bounds.South; row <= bounds.North; row++)
             for (int column = bounds.West; column <= bounds.East; column++)
             {
-                int block = _world.BlockIndex.Contains(column, row) ? _world.BlockIndex.Slot(column, row) : Rows.NoSlot;
-                ushort previous = block == Rows.NoSlot ? (ushort)0 : _world.Blocks.Zone[block];
-                if (canSkip && previous == permission && !different[(row - bounds.South) * width + column - bounds.West])
+                var previous = _world.LandPermissions.Summary(_world.BlockGroundRectangle(column, row));
+                if (canSkip && previous.CommonUses == permission && previous.AnyUses == permission)
                 { unchanged++; continue; }
                 var tile = streets.IntersectionTile(column, row);
                 if (Send(new Command(CommandKind.Zone, tile.East, tile.North, ZonePermission()))) count++;
@@ -185,10 +166,12 @@ public partial class Main
         int south = Math.Min(start.North.Raw, at.North.Raw), north = Math.Max(start.North.Raw, at.North.Raw);
         var bounds = ZoneBounds(at);
         var streets = _world.Roads.Streets;
-        var buffer = new Parcel[_world.Rules.Lots.ParcelCeiling(BlockGround.Square(streets.Lattice.Widest))];
+        Parcel[] buffer = [];
         for (int row = Math.Max(0, bounds.South); row <= Math.Min(streets.Blocks - 1, bounds.North); row++)
             for (int column = Math.Max(0, bounds.West); column <= Math.Min(streets.Blocks - 1, bounds.East); column++)
             {
+                int capacity = LotSubdivider.PreviewCapacity(_world, column, row);
+                if (buffer.Length < capacity) buffer = new Parcel[capacity];
                 int count = LotSubdivider.Preview(_world, column, row, buffer);
                 for (int i = 0; i < count; i++)
                 {

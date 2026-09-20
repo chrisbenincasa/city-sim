@@ -705,3 +705,41 @@ the 4,096-Tick one. `GoldenFixtures.Build()` never steps, so all twenty-seven of
 zeroes and its hash moved on the declaration set alone — *a baseline that covers a column's existence
 reads exactly like one that covers its behaviour*, which is this directory's standing finding and is
 why the sessions carry this one.
+
+The geographic permission foundation appends `land_permission` to the saved table composition
+and advances Core save format 6 → 7. Its empty allocator state moves all three golden outputs;
+the baseline Ruleset content hashes and hash algorithm/seed do not change. The nonempty geographic
+state, refusal/no-op identity, rebuilt links and continued allocation after load are exercised by
+`LandPermissionTests` and the derived rebuild audit. Gameplay paint still uses the legacy path
+until the reader migration slice.
+
+
+### Geographic permission reader migration (2026-09-18)
+
+Both traces deliberately changed: permission paint now owns saved geographic rectangles, Lot/Block
+masks are derived, and standing-housing searches draw live declared housing Buildings in monotonic
+id order rather than future-housing-painted Lots. Empty land no longer consumes housing attempts.
+The hand-built golden world explicitly paints its ground. Ruleset files and the hash seed are
+unchanged; the Core save version is 8 because saved column disposition changed.
+
+### Persistent housing preference evidence (2026-09-19)
+
+The Unplaced Pool gains a saved search reason and first/latest mismatch-observation Ticks, advancing
+Core save format 8 → 9. The second half of `session-trace.txt` changes because its Pool slots hash
+the extra columns. Both traces were regenerated with the commands above; the driving trace and
+hand-built world hash are unchanged. Baseline Ruleset content and hash seed are unchanged. Those
+worlds do not opt into local housing construction, so `HousingConstructionTests` covers the nonzero
+episodes, their lifetime and continued automatic construction after save/load.
+
+### Fractional consumption meets the urban fabric (2026-09-20)
+
+Merging `main` into `ruleset-package-in-the-shell` puts two independent saved-column changes into one
+declaration set, so Core save format is **10**: the branch's Bin consumption progress on top of main's
+geographic permission, housing search reason and preference episode clocks. All three artefacts moved.
+Both traces and `world-hash.txt` were regenerated with the commands above. Baseline Ruleset content
+hashes and the hash seed are unchanged; no shipped Ruleset was edited.
+
+⚠ **Neither side's recorded numbers survive the merge, and neither was wrong.** The branch re-recorded
+against format 7 and main re-recorded twice against 8 and 9, each correctly. A merged hash is not
+either parent's hash and cannot be checked against one, so the numbers here are a fresh recording
+rather than a reconciliation of two.

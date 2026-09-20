@@ -33,7 +33,7 @@ using Borough.Core.Tables;
 /// building it twice.
 /// </para>
 /// </remarks>
-public sealed class World
+public sealed partial class World
 {
     public WorldChanges? Changes { get; set; }
 
@@ -158,6 +158,8 @@ public sealed class World
         // ⚠ It is a capacity and not a bound on the world: the lattice has Span^2 squares and this
         // table holds only the ones somebody has zoned.
         Blocks = new BlockTable(PerThousand(citizens, 32));
+        PermissionRectangles = new Space.LandPermissionTable();
+        LandPermissions = new Space.LandPermissions(PermissionRectangles);
 
         Buildings = new BuildingTable(PerThousand(citizens, 150), Lots);
 
@@ -491,7 +493,7 @@ public sealed class World
 
             // Save Outside stock and its population account alongside the city tables.
             Hinterlands.Rows, HinterlandPopulation.Rows, HinterlandQueue.Rows,
-            PopulationLedger.Rows,
+            PopulationLedger.Rows, PermissionRectangles.Rows,
         ];
 
         // The same list minus the tables no Tick phase can write, for the Decide guard alone. See
@@ -915,6 +917,7 @@ public sealed class World
     /// over one road edit.
     /// </remarks>
     public ZonedLots LotsAdmitting { get; } = new();
+    public StandingHousing HousingBuildings { get; } = new();
 
     /// <summary>
     /// The city's Districts — a centre and the basin that drains to it, <c>adr/0134</c>.
@@ -1378,6 +1381,10 @@ public sealed class World
                 + "mint into a city that has already spent what it was founded with.");
         }
 
+        if (rules.PermissionRecordLimit < PermissionRectangles.Rows.SlotCount)
+        {
+            throw new InvalidOperationException("Permission record limit is below the saved slot high-water mark.");
+        }
         RefuseIncompatibleOutside(rules);
 
         RulesetChange change = RulesetShape.Compare(Rules, rules);
@@ -1403,6 +1410,9 @@ public sealed class World
         Layers.Adopt(rules.Layers);
         Roads.Adopt(rules.Roads);
         Rules = rules;
+        HousingBuildings.Invalidate();
+        // Old observations were made under different rents, preferences or evidence thresholds.
+        for (int position = 0; position < UnplacedPool.Count; position++) { UnplacedPool.ClearSearch(position); }
 
         RescaleOutsideFractions(outside);
 
@@ -1641,6 +1651,10 @@ public sealed class World
 
         return dropped;
     }
+
+    /// <summary>Saved geographic permission rectangles, independent of Lots.</summary>
+    public Space.LandPermissionTable PermissionRectangles { get; }
+    public Space.LandPermissions LandPermissions { get; }
 
     /// <summary>Every table, in the declaration order the hash folds them in.</summary>
     public ReadOnlySpan<Rows> Tables => _tables;
@@ -4173,6 +4187,7 @@ public sealed class World
     /// </remarks>
     public void RebuildDerived()
     {
+        LandPermissions.Rebuild();
         Layers.RebuildDerived();
         Roads.RebuildDerived();
 
@@ -4467,10 +4482,10 @@ public sealed class World
         // path that ever rebuilds it after world creation. plans/0045 row 12.
         FloodInCells.Rebuild(Flood);
 
-        // The zoned draw space, from the Lots' own saved Zones. A counting sort in slot order, so a
-        // load reproduces the runs exactly rather than plausibly -- which is what makes a candidate
-        // draw over it stable across save and reload.
+        // Geographic paint owns permission. Rebuild land summaries and standing housing separately.
+        RefreshPermissionSummaries();
         LotsAdmitting.Rebuild(Lots);
+        HousingBuildings.Rebuild(this);
 
         // The Cell-to-District index, from the membership rows' own saved coordinates. NOT a
         // re-evaluation: the watershed does not run here and must not, because a load restores the
@@ -4498,148 +4513,8 @@ public sealed class World
         // method -- which is a list of columns -- cannot reach them.
         Commutes.Rebuild(Citizens, Buildings, Businesses, Rules, Key);
     }
-    /// <summary>
-    /// Rebuilds every Lot's parcel from the block it stands on and the pattern that block was carved
-    /// with.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <b><c>plans/0052</c> stage 1's other half.</b> ⚠ <b><c>Rows.Derived</c> ALLOCATES a column; it
-    /// does not make anything rebuild it</b> — the trap <c>DerivedRebuildAuditTests</c> exists to
-    /// catch, and which it caught on milestone 7's <c>car_park.segment_next</c>. Four columns
-    /// declared and nothing populating them would load a world whose every Building covered nothing.
-    /// </para>
-    /// <para>
-    /// <b>A Lot is matched to its parcel by FACE and OFFSET, which identify it uniquely.</b> Two
-    /// parcels on one face never share an offset, because an offset comes from
-    /// <see cref="Space.Frontage.OffsetOf"/> and that is injective in the index. ***So this is a
-    /// lookup rather than a re-derivation of the carve's decisions.***
-    /// </para>
-    /// <para>
-    /// <b>The carve is cached against the last block seen, and that is not a micro-optimisation.</b>
-    /// A block's Lots are created together, so slot order and block order agree until the table
-    /// churns — and re-carving per Lot rather than per block would multiply the work by the Lots a
-    /// block carries. ⚠ <b>It stays correct when the order is broken</b>; only the cost changes.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>A Lot with no Address gets no parcel and is cleared rather than left</b>, which is
-    /// <c>adr/0079</c> read across: the Building stands, the Address is gone, and ground with no
-    /// Address on it is ground this table cannot name.
-    /// </para>
-    /// </remarks>
-    /// <remarks>
-    /// ⚠ <b>Public because it is MEASURED, and <see cref="RebuildDerived"/> is its only caller in
-    /// the build</b> — the same bargain <c>Frontage.Rebuild</c> already had.
-    /// <c>FrontageRebuildCostTests</c> prices it against the whole pass, which is what
-    /// <c>plans/0052</c> <b>Q3</b> asked for on both halves.
-    /// </remarks>
-    public void RebuildParcels()
-    {
-        int blockTiles = Roads.Streets.BlockTiles;
-        int ceiling = Rules.Lots.ParcelCeiling(Space.BlockGround.Square(Roads.Lattice.Widest));
-
-        Span<Space.Parcel> parcels = ceiling <= 0
-            ? []
-            : ceiling <= 64 ? stackalloc Space.Parcel[64] : new Space.Parcel[ceiling];
-
-        // The cached carve: which block it is for, and how many parcels it holds.
-        int atColumn = int.MinValue;
-        int atRow = int.MinValue;
-        int count = 0;
-        Space.BlockPattern atPattern = Space.BlockPattern.Detached;
-
-        for (int slot = 0; slot < Lots.Rows.SlotCount; slot++)
-        {
-            if (!Lots.Rows.IsLive(slot))
-            {
-                continue;
-            }
-
-            // 🔴 AN UNFRONTED LOT IS LEFT ALONE RATHER THAN CLEARED, and the distinction is the
-            // whole of why this test sits before the zeroing rather than after it. Frontage is the
-            // input this derivation runs on -- no frontage, no block, no parcel -- so a walk that
-            // zeroed first would not be *recomputing* such a Lot's ground, it would be *deleting*
-            // it, which is the opposite of what a rebuild is for. A Lot with frontage and no
-            // matching parcel still clears below, because there the derivation ran and answered
-            // nothing.
-            //
-            // ⚠ WHAT THIS COSTS IS HONEST AND SMALL: these columns are Derived, so an unfronted
-            // Lot's ground does not survive a save -- exactly as its Address does not (adr/0079).
-            // The subdivider never makes one; LotTable.Create does, for fixtures, and plans/0053
-            // gave that ground a consumer when occupancy started dividing it.
-            if (ceiling <= 0 || !Lots.HasFrontage(slot))
-            {
-                continue;
-            }
-
-            Lots.ParcelEast[slot] = Quantities.Tiles.Zero;
-            Lots.ParcelNorth[slot] = Quantities.Tiles.Zero;
-            Lots.ParcelWide[slot] = Quantities.Tiles.Zero;
-            Lots.ParcelDeep[slot] = Quantities.Tiles.Zero;
-            Lots.FootprintEast[slot] = Quantities.Tiles.Zero;
-            Lots.FootprintNorth[slot] = Quantities.Tiles.Zero;
-            Lots.FootprintWide[slot] = Quantities.Tiles.Zero;
-            Lots.FootprintDeep[slot] = Quantities.Tiles.Zero;
-            Lots.Storeys[slot] = 0;
-            Lots.Pattern[slot] = 0;
-
-            if (!Space.Frontage.BlockOf(
-                    Roads.Streets, Lots.East[slot], Lots.North[slot], (Space.StreetSide)Lots.Side[slot],
-                    out int column, out int row, out Space.BlockFace face)
-                || !BlockIndex.Contains(column, row))
-            {
-                continue;
-            }
-
-            if (column != atColumn || row != atRow)
-            {
-                int blockSlot = BlockIndex.Slot(column, row);
-
-                Space.BlockPattern pattern = blockSlot == Space.BlockResidency.NotResident
-                    ? Space.BlockPattern.Detached
-                    : PatternOf(blockSlot, out _);
-
-                count = blockSlot == Space.BlockResidency.NotResident
-                    ? 0
-                    : Rules.Lots.Carve(Key, pattern,
-                        Space.BlockGround.At(Roads.Streets.Lattice, column, row), parcels);
-
-                atPattern = pattern;
-                atColumn = column;
-                atRow = row;
-            }
-
-            for (int i = 0; i < count; i++)
-            {
-                if (parcels[i].Face != face || parcels[i].Offset != Lots.FrontageOffset[slot])
-                {
-                    continue;
-                }
-
-                Lots.ParcelEast[slot] = parcels[i].East;
-                Lots.ParcelNorth[slot] = parcels[i].North;
-                Lots.ParcelWide[slot] = parcels[i].Wide;
-                Lots.ParcelDeep[slot] = parcels[i].Deep;
-
-                // The footprint is derived from the parcel and never stored separately, so the two
-                // cannot part company across a save -- which is the failure the parcel itself was
-                // built to end, arriving one level in.
-                (Quantities.Tiles east, Quantities.Tiles north, Quantities.Tiles wide,
-                    Quantities.Tiles deep) = Rules.Lots.Footprint(
-                        Key, parcels[i], Space.BlockGround.At(Roads.Streets.Lattice, column, row), atPattern);
-
-                Lots.FootprintEast[slot] = east;
-                Lots.FootprintNorth[slot] = north;
-                Lots.FootprintWide[slot] = wide;
-                Lots.FootprintDeep[slot] = deep;
-                Lots.Storeys[slot] = Rules.Lots.Height(Key, parcels[i], atPattern, blockTiles);
-                Lots.Pattern[slot] = (byte)((byte)atPattern + 1);
-
-                break;
-            }
-        }
-    }
-
+    /// <summary>Realised parcels are saved state. Rebuilding only restores their access.</summary>
+    public void RebuildParcels() => Frontage.Rebuild(Lots, Roads.Streets);
 
     /// <summary>
     /// Rebuilds <see cref="BlockIndex"/> from the Blocks' saved lattice positions.
@@ -4680,77 +4555,23 @@ public sealed class World
         }
     }
 
-    /// <summary>
-    /// Records that a lattice square carries <paramref name="zone"/>, creating its row if it has none.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <b>This is what makes a block remember.</b> Before it, a block's Zone was read back off
-    /// whichever Lots survived on it — so a block that lost every Lot had forgotten it was ever zoned,
-    /// and a Street run back through it yielded nothing until the player zoned again.
-    /// <c>LotSubdivider.Relot</c> names that limitation in its own remarks; this is the fact that
-    /// outlives the Lots.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>Re-zoning OVERWRITES rather than accumulating.</b> A Zone is a permission set and the
-    /// verb's payload is the whole of it, so painting a block twice leaves it holding the second
-    /// answer — which is what the player did — rather than the union, which is what nobody asked for.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>It leaves <see cref="BlockTable.Band"/> and <see cref="BlockTable.Pattern"/> at zero</b>,
-    /// which is <c>plans/0053</c> steps 2 and 4 and not this one. A zero band is *the band a world with
-    /// no bands has*, and nothing reads either column yet.
-    /// </para>
-    /// </remarks>
-    /// <returns>The Block's slot, or <see cref="Rows.NoSlot"/> if the square is off the lattice.</returns>
+    /// <summary>Paints geographic uses across the block, preserving intensity and form restrictions.</summary>
     public int ZoneBlock(int column, int row, ushort zone)
     {
+        LandRectangle area = BlockGroundRectangle(column, row);
+        if (!area.IsValid || PaintUsePermissions(area, zone) != PermissionRefusal.None) { return Rows.NoSlot; }
         int slot = EnsureBlock(column, row);
-
-        if (slot == Rows.NoSlot)
-        {
-            return Rows.NoSlot;
-        }
-
-        Blocks.Zone[slot] = zone;
-
+        RefreshBlockPermissions(slot);
         return slot;
     }
 
-    /// <summary>
-    /// Records that a lattice square carries density band <paramref name="band"/>, creating its row
-    /// if it has none.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <b><c>adr/0025</c>'s cap, and it is a separate act from zoning because the player makes it
-    /// separately.</b> Banding land nobody has zoned is coherent — it is a ceiling on what may ever be
-    /// built there — so this allocates a row on <see cref="ZoneBlock"/>'s terms rather than requiring
-    /// one.
-    /// </para>
-    /// <para>
-    /// 🔴 ⚠ <b>NOTHING IN A TICK MAY CALL THIS.</b> <c>adr/0025</c> rejects the road-derived cap
-    /// specifically — <em>"a road-derived cap would pre-empt the lesson the engine exists to
-    /// teach"</em> — and deriving a band from land value instead of road tier does not change the
-    /// objection. ***A generator painting an initial value is the same act as a generator zoning land;
-    /// a Rule writing this column would be the rejected design arriving by the back door.***
-    /// </para>
-    /// <para>
-    /// ⚠ <b>Band <c>0</c> means NO BAND and is the permissive state</b>, not the restrictive one — see
-    /// <see cref="Rules.Ruleset.Band"/>. It is what every block in a world with no <c>[[band]]</c>
-    /// holds, and it admits everything, because the mechanism is subtractive.
-    /// </para>
-    /// </remarks>
-    /// <returns>The Block's slot, or <see cref="Rows.NoSlot"/> if the square is off the lattice.</returns>
+    /// <summary>Paints geographic intensity across the block, preserving uses and form restrictions.</summary>
     public int BandBlock(int column, int row, byte band)
     {
+        LandRectangle area = BlockGroundRectangle(column, row);
+        if (!area.IsValid || PaintBandPermissions(area, band) != PermissionRefusal.None) { return Rows.NoSlot; }
         int slot = EnsureBlock(column, row);
-
-        if (slot != Rows.NoSlot)
-        {
-            Blocks.Band[slot] = band;
-        }
-
+        RefreshBlockPermissions(slot);
         return slot;
     }
 
@@ -4805,51 +4626,11 @@ public sealed class World
         return chosen ? (Space.BlockPattern)(stored - 1) : Space.BlockPattern.Detached;
     }
 
-    /// <summary>
-    /// Which zone bits the density band over a Lot lets it keep — <c>adr/0025</c>'s cap, read.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <b>A band expresses itself as which kinds a Lot permits</b>, which is
-    /// <c>adr/0025</c>'s own sentence, so the cap is a mask intersected with the Lot's permission set
-    /// and never a separate predicate. ***A band can only ever take a permission away.***
-    /// </para>
-    /// <para>
-    /// ⚠ <b>Every absence is permissive here and every one of them is a different absence.</b> A Lot
-    /// off the lattice, a Lot on a square with no Block row, a block carrying band <c>0</c>, and a
-    /// Ruleset declaring no <c>[[band]]</c> at all each return all-bits-set. They agree because a cap
-    /// applied by intersection has all-bits-set as its identity — <b>the restrictive reading would
-    /// give every Lot in every bandless world a permission set of zero and build no city at all.</b>
-    /// </para>
-    /// <para>
-    /// <b>It allocates nothing</b>, unlike <see cref="ZoneBlock"/> and <see cref="BandBlock"/>. This
-    /// is called from inside a Tick and a read must not create a row.
-    /// </para>
-    /// </remarks>
+    /// <summary>Returns admission for a uniform geographic intensity band, or zero for mixed bands.</summary>
     public ushort BandAdmitting(int lot)
     {
-        if (!Lots.Rows.IsLive(lot))
-        {
-            return ushort.MaxValue;
-        }
-
-        if (!Space.Frontage.BlockOf(
-                Roads.Streets, Lots.East[lot], Lots.North[lot], (Space.StreetSide)Lots.Side[lot],
-                out int column, out int row))
-        {
-            return ushort.MaxValue;
-        }
-
-        if (!BlockIndex.Contains(column, row))
-        {
-            return ushort.MaxValue;
-        }
-
-        int slot = BlockIndex.Slot(column, row);
-
-        return slot == Space.BlockResidency.NotResident
-            ? ushort.MaxValue
-            : Rules.Band(Blocks.Band[slot]).Admits;
+        LandPermissionSummary summary = LandPermissions.Summary(LotGround(lot));
+        return summary.MixedIntensity ? (ushort)0 : Rules.Band(summary.Band).Admits;
     }
 
     /// <summary>The Block's slot at a lattice square, allocating a row if there is none.</summary>
@@ -4858,7 +4639,7 @@ public sealed class World
     /// one square</b> — so a block zoned and then banded has one row and not two, which is what
     /// <see cref="Space.BlockResidency.Occupy"/> refuses outright rather than allowing silently.
     /// </remarks>
-    private int EnsureBlock(int column, int row)
+    internal int EnsureBlock(int column, int row)
     {
         // The lattice's extent is not known until there are roads, and it becomes known DURING
         // generation -- RoadGenerator.LayInto and then LotSubdivider, with no RebuildDerived between
@@ -5096,6 +4877,7 @@ public sealed class World
             lotSlot);
 
         Handle<Building> building = Buildings.Create(Lots, lot, kind);
+        HousingBuildings.Invalidate();
 
         BuildingsInCells.Add(Buildings, Lots, Buildings.Rows.Resolve(building));
 
@@ -8704,6 +8486,7 @@ public sealed class World
     /// </remarks>
     public void DestroyBuilding(Handle<Building> building, Ticks tick)
     {
+        HousingBuildings.Invalidate();
         int slot = Buildings.Rows.Resolve(building);
 
         EmptyPremises(slot, tick);

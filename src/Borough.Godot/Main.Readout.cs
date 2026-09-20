@@ -264,7 +264,9 @@ public partial class Main
             }
         }
 
-        said.Add($"Lot {lots.Rows.IdAt(onLot):N0}, zone 0x{lots.Zone[onLot]:X4}");
+        var permission = _world.LandPermissions.Summary(_world.LotGround(onLot));
+        said.Add($"Lot {lots.Rows.IdAt(onLot):N0}, future uses 0x{permission.CommonUses:X4} across the whole site"
+            + (permission.MixedPermissions ? $"; mixed permissions (union 0x{permission.AnyUses:X4})" : string.Empty));
     }
 
     /// <summary>What the ground under the cursor is, and only what it actually has a row for.</summary>

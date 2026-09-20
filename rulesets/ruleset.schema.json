@@ -550,6 +550,111 @@
         }
       }
     },
+    "housing_construction": {
+      "type": "object",
+      "properties": {
+        "alignment_bonus": {
+          "description": "Added draw weight for matching an immediate standing neighbour's Street wall; 0..1000. Applies only among equally useful arrangements.",
+          "type": "integer"
+        },
+        "max_building_slots": {
+          "description": "Complete standing-home coverage budget, including dead Building slots. Exceeding it refuses construction; 1..1048576.",
+          "type": "integer"
+        },
+        "max_candidates": {
+          "description": "Maximum form/site attempts, including failed checks; 1..64. Compare one or two Buildings, committing only the first.",
+          "type": "integer"
+        },
+        "max_lot_slots": {
+          "description": "Complete Lot geometry coverage budget, including dead slots. Exceeding it refuses construction; 1..1048576.",
+          "type": "integer"
+        },
+        "max_seekers": {
+          "description": "Maximum distinct current unplaced Households assessed; 1..256. Samples are never extrapolated.",
+          "type": "integer"
+        },
+        "max_sources": {
+          "description": "Maximum adjacent whole vacant Lots in the local comparison window; 1..16.",
+          "type": "integer"
+        },
+        "max_surplus": {
+          "description": "Absolute cap on surplus tenancies per proposed arrangement; 0..256. Zero seekers never supports construction.",
+          "type": "integer"
+        },
+        "preference_freshness_ticks": {
+          "description": "Maximum Tick gap between qualifying observations and maximum age at construction; positive. A larger gap restarts the episode. Tune against placement revisit_ticks and sampling coverage.",
+          "type": "integer"
+        },
+        "preference_margin_percent": {
+          "description": "Minimum utility gap below the Household's Outside for every affordable available home, in hundredths of a utility unit; 1..10000. Rounded up in Q16.16; neither random rejection nor a minor improvement qualifies.",
+          "type": "integer"
+        },
+        "preference_persistence_ticks": {
+          "description": "Elapsed Ticks from first to latest qualifying search observation required for preference mismatch; positive. Waiting without observations does not qualify.",
+          "type": "integer"
+        },
+        "same_form_bonus": {
+          "description": "Additional weight for the same form at a matching Street wall; 0..alignment_bonus. No permanent founding identity is stored.",
+          "type": "integer"
+        },
+        "surplus_percent": {
+          "description": "Permitted capacity surplus above distinct uncovered seekers, rounded up, and capped by max_surplus; 0..100.",
+          "type": "integer"
+        }
+      }
+    },
+    "housing_form": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.",
+            "type": "string"
+          },
+          "label": {
+            "description": "The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.",
+            "type": "string"
+          },
+          "max_depth_tiles": {
+            "description": "Maximum whole-site depth behind its Street, in Tiles.",
+            "type": "integer"
+          },
+          "max_frontage_tiles": {
+            "description": "Maximum whole-site frontage for this form, in Tiles. Maximum capacity must be earnable within max_seekers and the surplus bound.",
+            "type": "integer"
+          },
+          "min_depth_tiles": {
+            "description": "Minimum whole-site depth behind its Street, in Tiles.",
+            "type": "integer"
+          },
+          "min_frontage_tiles": {
+            "description": "Minimum whole-site frontage for this form, in Tiles.",
+            "type": "integer"
+          },
+          "name": {
+            "description": "Unique authored name for this housing form envelope. Package declarations lower their id to this name.",
+            "type": "string"
+          },
+          "pattern": {
+            "description": "Built form: 0 Detached, 1 Perimeter, 2 BackToBack, 3 Courtyard, 4 Slab, 5 Tower. Independent of intensity.",
+            "type": "integer"
+          },
+          "setback_tiles": {
+            "description": "Inset on every side of the site, in Tiles; must leave a positive footprint.",
+            "type": "integer"
+          },
+          "storeys": {
+            "description": "Realised storeys of this authored form; 1..255.",
+            "type": "integer"
+          },
+          "weight": {
+            "description": "Relative deterministic draw weight among equally useful first Buildings; 1..1000. Surplus capacity adds no usefulness.",
+            "type": "integer"
+          }
+        }
+      }
+    },
     "immigration": {
       "type": "object",
       "properties": {
@@ -641,6 +746,15 @@
           "items": {
             "type": "integer"
           }
+        }
+      }
+    },
+    "land_permissions": {
+      "type": "object",
+      "properties": {
+        "max_records": {
+          "description": "Maximum geographic permission records. Provisional default: 1048576; minimum: 8. Paint exceeding the final count is refused without mutation. Reload cannot lower this below the saved slot high-water mark.",
+          "type": "integer"
         }
       }
     },

@@ -168,7 +168,7 @@ internal static class ZoneDump
 
         if (csv)
         {
-            output.WriteLine("east,north,zone,building");
+            output.WriteLine("east,north,zone,building,any_uses,mixed_permissions,band,mixed_intensity");
 
             for (int slot = 0; slot < slots; slot++)
             {
@@ -178,10 +178,11 @@ internal static class ZoneDump
                 }
 
                 int building = lots.BuildingOn(slot);
+                LandPermissionSummary permission = world.LandPermissions.Summary(world.LotGround(slot));
 
                 output.WriteLine(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"{lots.East[slot].Raw},{lots.North[slot].Raw},{lots.Zone[slot]},{building}"));
+                    $"{lots.East[slot].Raw},{lots.North[slot].Raw},{permission.CommonUses},{building},{permission.AnyUses},{permission.MixedPermissions},{permission.Band},{permission.MixedIntensity}"));
             }
 
             return;

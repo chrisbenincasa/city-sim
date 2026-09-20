@@ -8,14 +8,9 @@ using Borough.Core.Tables;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Four columns, and each one arrived when a mechanism read it.</b> `CONTEXT` → Unplaced Pool
-/// describes four entry routes, recorded refusal reasons, a give-up counter and a Departure; this
-/// table held a membership and nothing else until milestone 11 task 4, on <c>adr/0054</c>'s rule that
-/// naming the rest before there is a reader is the trespass. <see cref="Gate"/> came with the arrival
-/// door at task 4; <see cref="Since"/> and <see cref="Considered"/> came with the Departure at task 7.
-/// <b>The refusal reasons still have no reader and are milestone 16's</b>, with the comparison
-/// (<c>adr/0128</c>) — <c>PlacementEngine</c> never refuses anything, it fails to find room, so a
-/// refusal count would be identically zero.
+/// Search evidence belongs to this spell in the Pool. Preference mismatch records elapsed
+/// Ticks between fresh observations; neither time waiting unsampled nor a random choice loss
+/// establishes persistence. All episode columns move with membership and are saved and hashed.
 /// </para>
 /// <para>
 /// <b><see cref="Gate"/> is on the membership rather than on the Household, and the placement is
@@ -71,6 +66,10 @@ public sealed class UnplacedTable
         Gate = _rows.SavedHandle("gate", buildings.Rows);
         Since = _rows.Saved<int>("since");
         Considered = _rows.Saved<int>("considered");
+
+        SearchReason = _rows.Saved<byte>("search_reason");
+        MismatchSince = _rows.Saved<ulong>("mismatch_since");
+        MismatchObserved = _rows.Saved<ulong>("mismatch_observed");
 
         _rows.Seal();
     }
@@ -142,6 +141,20 @@ public sealed class UnplacedTable
     /// </remarks>
     public Column<int> Considered { get; }
 
+    /// <summary>The last housing search assessment, encoded as HousingSearchReason.</summary>
+    public Column<byte> SearchReason { get; }
+    /// <summary>First qualifying Tick of the current preference mismatch episode.</summary>
+    public Column<ulong> MismatchSince { get; }
+    /// <summary>Last qualifying Tick; a stale gap restarts the episode.</summary>
+    public Column<ulong> MismatchObserved { get; }
+
+    internal void ClearSearch(int position)
+    {
+        SearchReason[position] = 0;
+        MismatchSince[position] = 0;
+        MismatchObserved[position] = 0;
+    }
+
     /// <summary>
     /// How many Households are in the Pool, which is also the exclusive bound on a position.
     /// </summary>
@@ -201,6 +214,7 @@ public sealed class UnplacedTable
         // years into a run has not been looking for years.
         Since[position] = (int)now.Raw;
         Considered[position] = 0;
+        ClearSearch(position);
 
         households.EnterPool(households.Rows.Resolve(household), position);
 
@@ -239,6 +253,9 @@ public sealed class UnplacedTable
         Gate[position] = Gate[last];
         Since[position] = Since[last];
         Considered[position] = Considered[last];
+        SearchReason[position] = SearchReason[last];
+        MismatchSince[position] = MismatchSince[last];
+        MismatchObserved[position] = MismatchObserved[last];
         _rows.Free(_rows.At(last));
 
         // Clear the leaver first, then re-point the mover. Reversed, a Household leaving from the

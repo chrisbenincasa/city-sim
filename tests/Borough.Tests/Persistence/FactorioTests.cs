@@ -236,6 +236,11 @@ public sealed class FactorioTests(ITestOutputHelper output)
         for (int tick = 0; tick < 512; tick++) careSimulation.Step(default);
         Scan(careWorld, reached, []);
 
+        var painted = new World(0, GoldenFixtures.Rules());
+        painted.PaintPermissions(new LandRectangle(30, 30, 5, 5), new GroundPermissions(1, 2));
+        painted.PaintFormPermissions(new LandRectangle(31, 31, 2, 2), true, 0);
+        Scan(painted, reached, []);
+
         List<string> unreachable = [.. every.Where(name => !reached.Contains(name))];
 
         _output.WriteLine($"{reached.Count} of {every.Count} columns corrupted and observed");

@@ -247,3 +247,9 @@ candidates    = 3
 shift_hours_min = 6
 shift_hours_max = 10
 arrive_early_max_minutes = 15
+
+# Provisional geographic permission complexity budget. This Core storage API is not yet
+# connected to gameplay painting. Clearing/simplifying paint reclaims records; no-op paint
+# preserves identity. Reload refuses a limit below the saved slot high-water mark.
+[land_permissions]
+max_records = 1048576

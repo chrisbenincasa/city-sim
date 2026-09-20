@@ -1196,4 +1196,10 @@ public enum Invariant
     /// Reconciles city and Outside people against founding baselines and classified external flows.
     /// </remarks>
     TheCityAndItsOutsideBalance = 64,
+
+    /// <summary>Geographic permissions are bounded, page-contained, disjoint and indexed exactly once.</summary>
+    LandPermissionsAreWellFormed = 65,
+
+    /// <summary>Preference episode clocks are ordered and only a mismatch retains them.</summary>
+    HousingSearchEvidenceIsWellFormed = 66,
 }

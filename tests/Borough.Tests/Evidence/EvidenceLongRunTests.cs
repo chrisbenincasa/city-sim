@@ -61,22 +61,12 @@ using LotEvidence = Borough.Core.Evidence.LotEvidence;
 /// </remarks>
 public sealed class EvidenceLongRunTests(ITestOutputHelper output)
 {
-    /// <summary>Sixty-five whole Days — the settle window doubled and the tail kept its length.</summary>
-    /// <remarks>
-    /// <para>
-    /// <b>Whole Days rather than a round 100,000</b>, on <c>TrafficLongRunTests</c>' correction: the
-    /// commute empties and refills the city once a Day, so a window that is not a whole number of them
-    /// reads two different cities at its two ends.
-    /// </para>
-    /// <para>
-    /// 🔴 <b>FORTY-NINE UNTIL <c>plans/0053</c>, and it moved because <see cref="SettleDays"/> did.</b>
-    /// The tail is what the flatness band is computed over, and halving it would have widened the
-    /// band by making each half's variance noisier — ***a longer transient must not be paid for out
-    /// of the assertion's strength.*** Thirty-three Days of tail remain, which is what remained at
-    /// 49 and 16.
-    /// </para>
-    /// </remarks>
-    private const int Days = 65;
+    /// <summary>
+    /// 129 whole Days retains the 32-Day settling period and measures a 97-Day tail. Standing-home
+    /// discovery changes individual draws: the former 33-Day tail showed a 2.2 rise in worst history
+    /// against a 2.1 three-sigma band; doubling the observation horizon tests whether that rise persists.
+    /// </summary>
+    private const int Days = 129;
 
     /// <summary>The golden fixture's population.</summary>
     private const int Population = 4_000;

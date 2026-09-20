@@ -5,57 +5,10 @@ using Borough.Core.Tables;
 namespace Borough.Core.Space;
 
 /// <summary>
-/// Which live Lots admit a given use. The draw space for anybody looking for somewhere to be.
+/// Derived land-discovery buckets over Lots' common geographic use bits, in ascending slot order.
+/// This is not a housing search index and never authorises construction; complete site checks do.
+/// Rebuild after permission or Lot changes. Membership is bounded by live Lots times use bits.
 /// </summary>
-/// <remarks>
-/// <para>
-/// <b>It exists because <c>adr/0165</c>'s land-use split broke a meaning
-/// <see cref="Rules.PlacementEngine"/> had already argued for at length.</b> That engine draws a
-/// seeker's candidates over <em>Lots</em> rather than over Buildings, and its own remarks say why:
-/// over Buildings, <c>candidates</c> meant something the Ruleset could not state, because roughly
-/// 55% of Building slots stand freed at any instant and *"lowering the demolition rate would have
-/// silently raised the effective candidate count."* Painting one block in eight commercial does the
-/// same thing in the other direction — a look landing on trade land buys nothing, so three looks
-/// bought about 2.6, and the land-use share silently became a placement tuning knob. Measured on
-/// <c>GoldenFixtures</c> at 1,000 Citizens over 100,000 Ticks: vacancy 18.5% → 26% against an
-/// unchanged capacity of ~188, which is fourteen dwellings nobody found.
-/// </para>
-/// <para>
-/// <b>⚠ The dead look it removes is not the dead look the engine defends.</b> That remark keeps *"a
-/// look that lands on a vacant one found nothing, which is a thing that happens to somebody looking
-/// for somewhere to live"* — and it still does. A vacant Lot that <em>admits</em> a dwelling is a
-/// home not yet built, and looking at it is a real disappointment. A Lot that admits only a trade is
-/// not a home at all, and nobody flat-hunting ever viewed a shopfront. The first stays a wasted look
-/// and the second stops being one.
-/// </para>
-/// <para>
-/// <b>A bucket per permission <em>bit</em>, and a Lot appears once per bit it carries.</b>
-/// <c>CONTEXT.md</c> → Zone is a permission set, and it says mixed use *"needs no machinery: it is a
-/// permission set with more than one entry"* — so a bucketing that assumed one use per Lot would
-/// make mixed use unrepresentable in exactly the structure that decides who may live where. The
-/// entry count is therefore the sum of the set bits over live Lots, which is the Lot count today
-/// because the generator paints one bit, and grows with mixed use rather than being refused by it.
-/// </para>
-/// <para>
-/// <b>⚠ <c>(derived AND rebuilt)</c>, and rebuilt whole rather than maintained.</b> Unlike
-/// <see cref="BuildingResidency"/> this keeps no incremental <c>Add</c>/<c>Remove</c>, because the
-/// membership only ever changes where the <em>Lot set</em> does — <see cref="LotTable.Create"/> is
-/// the only writer of <see cref="LotTable.Zone"/> in the core, and there are exactly two frees. A
-/// demolition <see cref="LotTable.Vacate"/>s and keeps the parcel, so the ordinary churn of a city
-/// does not touch this at all: what is indexed is <em>permission</em>, and occupancy is asked
-/// separately through <see cref="LotTable.BuildingOn"/>. Subdivision creates Lots in bulk, so an
-/// eager rebuild per <c>Create</c> would be quadratic over a road edit; instead every writer calls
-/// <see cref="Invalidate"/> and the next query pays one <c>O(n)</c> pass.
-/// </para>
-/// <para>
-/// <b>The rebuild is a counting sort, so its order is recoverable from saved state.</b> That is
-/// <c>05 §3</c>'s test for the classification and the one <see cref="BuildingResidency"/> records:
-/// entries land in ascending Lot-slot order within each bucket regardless of the order Lots were
-/// created, so a load reproduces this <em>exactly</em> rather than plausibly. A draw over it is
-/// therefore stable across save and reload, which a creation-ordered structure would not be the
-/// moment the free list recycled a slot.
-/// </para>
-/// </remarks>
 public sealed class ZonedLots
 {
     /// <summary>Start of each bit's run in <see cref="_entries"/>, plus a terminator.</summary>

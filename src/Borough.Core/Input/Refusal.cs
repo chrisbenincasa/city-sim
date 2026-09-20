@@ -279,4 +279,10 @@ public enum Refusal : ushort
     /// Uses the same treasury placement charge as other placed Buildings.
     /// </remarks>
     GateTreasuryCannotPay = 41,
+    /// <summary>No realised or proposed parcel at the selected Tile.</summary>
+    ZoneNoParcel = 42,
+    /// <summary>The complete paint would exceed the Ruleset's permission record limit.</summary>
+    ZoneRecordLimit = 43,
+    /// <summary>The requested ground lies outside the editable lattice.</summary>
+    ZoneInvalidBounds = 44,
 }

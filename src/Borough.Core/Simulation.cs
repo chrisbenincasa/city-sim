@@ -376,6 +376,25 @@ public sealed class Simulation
     /// <summary>The phase last entered. For the crash artifact, which reports where a panic landed.</summary>
     public TickPhase Phase => _phase;
 
+    /// <summary>Internal integration boundary for synchronous local construction proposals.</summary>
+    internal LocalLayoutCheck CommitLocalLayout(LocalLayoutProposal proposal, out Handle<Building> building)
+    {
+        ArgumentNullException.ThrowIfNull(proposal);
+        building = default;
+        return _phase == TickPhase.Commit
+            ? LocalLayoutCommit.Apply(_world, proposal, _key, out building)
+            : new LocalLayoutCheck(LocalLayoutRefusal.WrongPhase);
+    }
+
+    internal LocalLayoutCheck CommitHousingLayout(LocalLayoutProposal proposal, out Handle<Building> building)
+    {
+        ArgumentNullException.ThrowIfNull(proposal);
+        building = default;
+        return _phase == TickPhase.Commit
+            ? HousingConstruction.Commit(_world, _key, proposal, out building)
+            : new LocalLayoutCheck(LocalLayoutRefusal.WrongPhase);
+    }
+
     /// <summary>
     /// Whether to prove, every Tick, that <see cref="TickPhase.Decide"/> wrote nothing.
     /// </summary>
@@ -561,19 +580,11 @@ public sealed class Simulation
         switch (command.Kind)
         {
             case CommandKind.ZoneParcel:
+                if (RefuseZone(command) is var parcelRefusal && parcelRefusal != Refusal.None) { throw new InvalidOperationException(Explain(parcelRefusal, command)); }
                 LotSubdivider.PaintParcelAt(_world, command.East, command.North, command.Zone);
                 break;
             case CommandKind.Zone:
-                // 02 §2.2: Lots are **generated, not painted**. Until 5a-bis this line created exactly
-                // one Lot at the command's coordinates, and said so -- there was no Street network to
-                // carve against, so painting a *region* would have stood in for more of 5a than
-                // painting one did, and every Lot it invented would have been one the real subdivider
-                // would have refused.
-                //
-                // Now the verb zones the **block** the named Tile falls in, and the subdivider carves
-                // it against its own four faces. A block with no Street on any face yields **no Lots
-                // at all**, which is that section's third rule and the whole of what makes a bad
-                // street layout punish the player mechanically rather than through a penalty number.
+                if (RefuseZone(command) is var zoneRefusal && zoneRefusal != Refusal.None) { throw new InvalidOperationException(Explain(zoneRefusal, command)); }
                 LotSubdivider.PaintAt(_world, command.East, command.North, command.Zone);
                 break;
 
@@ -718,7 +729,8 @@ public sealed class Simulation
     /// </remarks>
     public Refusal Refuses(Command command) => command.Kind switch
     {
-        CommandKind.Zone or CommandKind.ZoneParcel or CommandKind.Populate => Refusal.None,
+        CommandKind.Zone or CommandKind.ZoneParcel => RefuseZone(command),
+        CommandKind.Populate => Refusal.None,
         CommandKind.Connect => RefuseConnect(command, out _),
         CommandKind.Trip => RefuseTrip(command, out _, out _, out _),
         CommandKind.Arrive => RefuseArrive(command, out _),
@@ -731,6 +743,29 @@ public sealed class Simulation
         CommandKind.People => RefusePeople(),
         _ => Refusal.VerbNotApplied,
     };
+
+    private Refusal RefuseZone(Command command)
+    {
+        LandRectangle area;
+        if (command.Kind == CommandKind.ZoneParcel)
+        {
+            if (!LotSubdivider.ParcelAt(_world, command.East, command.North, out Parcel parcel)) { return Refusal.ZoneNoParcel; }
+            area = new(parcel.East.Raw, parcel.North.Raw, parcel.Wide.Raw, parcel.Deep.Raw);
+        }
+        else
+        {
+            if (command.East.Raw < 0 || command.North.Raw < 0 || command.East.Raw >= CellGrid.WorldTiles || command.North.Raw >= CellGrid.WorldTiles) { return Refusal.ZoneInvalidBounds; }
+            // Compatibility for abstract worlds: block paint has always been a no-op without a lattice.
+            if (_world.Roads.Streets.Blocks <= 0) { return Refusal.None; }
+            area = _world.BlockGroundRectangle(_world.Roads.Lattice.LineAt(command.East.Raw), _world.Roads.Lattice.LineAt(command.North.Raw));
+        }
+        return _world.LandPermissions.CanPaintUses(area, command.Zone, _world.Rules.PermissionRecordLimit) switch
+        {
+            PermissionRefusal.None => Refusal.None,
+            PermissionRefusal.RecordLimit => Refusal.ZoneRecordLimit,
+            _ => Refusal.ZoneInvalidBounds,
+        };
+    }
 
     /// <inheritdoc cref="ApplyConnect"/>
     private Refusal RefuseConnect(Command command, out ConnectPayload payload)
@@ -1112,6 +1147,9 @@ public sealed class Simulation
     /// </remarks>
     private string Explain(Refusal refusal, Command command) => refusal switch
     {
+        Refusal.ZoneNoParcel => "zone-parcel names no saved or proposed frontage parcel.",
+        Refusal.ZoneRecordLimit => "zone would exceed the geographic permission record limit.",
+        Refusal.ZoneInvalidBounds => "zone names ground outside the editable lattice.",
         Refusal.VerbNotApplied =>
             $"command kind {(ushort)command.Kind} is declared but not applied in this slice.",
 

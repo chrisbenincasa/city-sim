@@ -185,6 +185,11 @@ public sealed class PlacementEngine
                 continue;
             }
 
+            // Only an actual failed search can contribute evidence. Full bounded coverage keeps
+            // an unlucky candidate sample or probabilistic loss from inventing a mismatch.
+            if (_world.Rules.HousingConstruction is { } housing && i < housing.MaxSeekers)
+            { HousingSearchEvidence.Observe(_world, _key, position, tick); }
+
             // The bound is tested AFTER the attempt, not before it. A Household past its duration
             // that would have found a home this occasion is housed rather than sent away -- "failed
             // repeatedly, gave up" is the channel's own wording, and giving up in front of an empty
@@ -322,72 +327,21 @@ public sealed class PlacementEngine
     }
 
     /// <summary>
-    /// Looks at <c>candidates</c> Buildings and moves <paramref name="seeker"/> into the first with
-    /// room.
+    /// Samples live declared housing Buildings in monotonic-id order, independently of future paint.
+    /// Full homes cost a look; abandoned shells retain the bounded redraw contract.
     /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <b>First rather than best, and that is the whole of the choice model there is.</b> With no
-    /// rent, no commute and no tolerance every candidate with room scores identically, so a ranking
-    /// would be a sort over equal keys — which is a hash-bearing tie-break nobody has argued. When
-    /// <c>02 §5.4</c> arrives it replaces this line and the candidate list stays.
-    /// </para>
-    /// <para>
-    /// <b>The draw is over <em>Lots that admit a dwelling</em> rather than over Buildings, and
-    /// neither half of that is cosmetic.</b> A Lot is a place in the city; the Building table is a
-    /// <em>recycling</em> table whose freed slots are an artefact of storage. Drawing over Buildings made <c>candidates</c> mean something the file could not
-    /// state — under the shipped Ruleset roughly 55% of Building slots stand freed at any instant, so
-    /// three looks bought about 1.3 real ones, and lowering the demolition rate would have silently
-    /// raised the effective candidate count. Over Lots, a look that lands on a vacant one found
-    /// nothing, which is a thing that happens to somebody looking for somewhere to live.
-    /// </para>
-    /// <para>
-    /// <b>⚠ And the draw space is <see cref="ZonedLots"/> rather than the whole Lot table, because
-    /// <c>adr/0165</c>'s land-use split would otherwise have done the same silent thing from the
-    /// other side.</b> Once one block in eight admits only a trade, a uniform draw over all Lots
-    /// spends a look on land that will never hold a home — so three looks bought about 2.6, and the
-    /// commercial share became a placement tuning knob nobody had argued. Measured on
-    /// <c>GoldenFixtures</c>: vacancy 18.5% → 26% at an unchanged capacity, which is fourteen
-    /// dwellings nobody found. <b>The dead look above survives</b> — a vacant Lot that admits a
-    /// dwelling is a home not yet built — and the one that never was a home does not.
-    /// </para>
-    /// </remarks>
     private bool TryHouse(Handle<Household> seeker, int slot, Ticks tick)
     {
         int candidates = _world.Rules.Placement.Candidates;
-        int lots = _world.LotsAdmitting.Count(_world.Lots, LotTable.Housing);
+        int lots = _world.HousingBuildings.Count(_world);
 
         if (lots == 0)
         {
             return false;
         }
 
-        // ⚠ DRAWS AND LOOKS ARE DIFFERENT THINGS, AND A SHELL IS THE REASON.
-        //
-        // `candidates` is the Ruleset's number and it means LOOKS AT SOMEWHERE ONE COULD LIVE. An
-        // abandoned Building is not one: adr/0091 leaves the shell standing on its Lot, and
-        // World.HasRoom refuses it unconditionally, so a draw that lands on one can never house
-        // anybody however the rest of the city is doing. Spending a look on it made `candidates`
-        // mean `candidates x (1 - blight)` -- which is EXACTLY the defect adr/0165 removed when it
-        // moved this draw from Buildings to Lots, arriving from the other direction. That remark is
-        // worth reading beside this one: *"lowering the demolition rate would have silently raised
-        // the effective candidate count."* Raising the ABANDONMENT rate silently lowered it.
-        //
-        // Measured on declining.toml at 1,000 Citizens: 44% of standing Buildings are shells at
-        // steady state, so three looks bought about 1.7.
-        //
-        // ⚠ THE VACANT LOT STAYS A LOOK AND THAT IS NOT AN INCONSISTENCY. ZonedLots draws the line
-        // and this side of it is unchanged: a vacant Lot that admits a dwelling is *a home not yet
-        // built*, and viewing one is a real disappointment a seeker really has. A shell is not a home
-        // at all -- it is the ruin of one, and it cannot become a home again until it collapses and
-        // the Lot returns to vacant. Nobody flat-hunting ever viewed a demolition site.
-        //
-        // 🔴 THE REDRAW BUDGET REUSES `candidates` RATHER THAN INTRODUCING A NUMBER. A bound is
-        // needed at all because a city can be almost entirely shells, and an unbounded skip would be
-        // an unbounded loop in the hot path. Doubling is the weakest bound that leaves `candidates`
-        // meaning what the Ruleset says in any city where shells are the minority, and it is chosen
-        // rather than derived -- filed in plans/0002 as a work bound owed a ratifier, NOT as a design
-        // number, because it cannot change who gets housed until a world is more than half derelict.
+        // Keep the existing bounded redraw allowance for abandoned shells. Empty land is not a home
+        // and never enters this draw space; construction and destruction invalidate its membership.
         int budget = candidates * 2;
 
         // Read once, above the loop, and it stays valid for the whole call: the Pool only churns
@@ -471,8 +425,8 @@ public sealed class PlacementEngine
             ulong value = Randomness.Draw(_key, entity, tick, PurposeTag.PlacementCandidate);
 
             // No liveness test: the draw space holds live Lots only, and a freed Lot invalidates it.
-            int lot = _world.LotsAdmitting.Nth(
-                _world.Lots, LotTable.Housing, (int)(value % (ulong)(uint)lots));
+            int lot = _world.HousingBuildings.Nth(
+                _world, (int)(value % (ulong)(uint)lots));
 
             int building = Consider(lot, _world.BalanceOf(seeker), out bool costsALook, out bool shown);
 
@@ -606,8 +560,7 @@ public sealed class PlacementEngine
             return Rows.NoSlot;
         }
 
-        // A vacant Lot is a look that found nothing, which is a real thing to happen to somebody
-        // looking for somewhere to live and is why the draw is over Lots at all.
+        // Defensive against a stale caller; the standing-housing index never includes empty land.
         if (building == Rows.NoSlot)
         {
             return Rows.NoSlot;
@@ -674,7 +627,7 @@ public sealed class PlacementEngine
             return true;
         }
 
-        int lots = _world.LotsAdmitting.Count(_world.Lots, LotTable.Housing);
+        int lots = _world.HousingBuildings.Count(_world);
 
         if (lots == 0)
         {
@@ -695,8 +648,8 @@ public sealed class PlacementEngine
             ulong entity = Randomness.Mix(id ^ ((ulong)(uint)draw << 32));
             ulong value = Randomness.Draw(_key, entity, tick, PurposeTag.PlacementCandidate);
 
-            int lot = _world.LotsAdmitting.Nth(
-                _world.Lots, LotTable.Housing, (int)(value % (ulong)(uint)lots));
+            int lot = _world.HousingBuildings.Nth(
+                _world, (int)(value % (ulong)(uint)lots));
 
             int building = Consider(lot, purse, out _, out _);
 
@@ -772,7 +725,7 @@ public sealed class PlacementEngine
             + placement.StayingPut);
 
         int found = 1;
-        int lots = _world.LotsAdmitting.Count(_world.Lots, LotTable.Housing);
+        int lots = _world.HousingBuildings.Count(_world);
 
         // No gate or feasible Lot means no city alternative in this sample.
         if (lots > 0 && _world.Buildings.Rows.TryResolve(gate, out _))
@@ -784,8 +737,8 @@ public sealed class PlacementEngine
                 ulong entity = Randomness.Mix(prospect.Identity ^ ((ulong)(uint)draw << 32));
                 ulong value = Randomness.Draw(_key, entity, tick, PurposeTag.PlacementCandidate);
 
-                int lot = _world.LotsAdmitting.Nth(
-                    _world.Lots, LotTable.Housing, (int)(value % (ulong)(uint)lots));
+                int lot = _world.HousingBuildings.Nth(
+                    _world, (int)(value % (ulong)(uint)lots));
 
                 int building = Consider(lot, prospect.Purse, out bool costsALook, out _);
 
@@ -855,48 +808,8 @@ public sealed class PlacementEngine
     /// twice on the reassessment path and once on nobody's behalf here.
     /// </para>
     /// </remarks>
-    private bool TryOutside(int position, long weight, int rentWeightPercent, out int worth)
-    {
-        worth = 0;
-
-        if (!TryOutsideEdge(position, out MapEdge edge)
-            || !_world.Rules.TryHinterland(edge, out HinterlandDefinition hinterland))
-        {
-            return false;
-        }
-
-        worth = HousingUtility.Worth(
-            _world.Rules.Placement,
-            hinterland.CentralityTiles,
-            weight,
-            hinterland.Rent,
-            rentWeightPercent);
-
-        return true;
-    }
-
-    /// <summary>Which Outside the family at <paramref name="position"/> is comparing the city with.</summary>
-    /// <remarks>
-    /// Use the origin gate when live, otherwise the saved arrival edge. Local families may have
-    /// neither.
-    /// </remarks>
-    private bool TryOutsideEdge(int position, out MapEdge edge)
-    {
-        if (_world.Buildings.Rows.TryResolve(_world.UnplacedPool.GateAt(position), out int gate)
-            && _world.Lots.Rows.TryResolve(_world.Buildings.Lot[gate], out int lot))
-        {
-            edge = _world.EdgeOf(lot);
-            return edge != MapEdge.None;
-        }
-
-        int slot = _world.Households.Rows.Resolve(_world.UnplacedPool.At(position));
-
-        edge = _world.Households.Arrived[slot] == 0
-            ? MapEdge.None
-            : (MapEdge)_world.Households.ArrivalEdge[slot];
-
-        return edge != MapEdge.None;
-    }
+    private bool TryOutside(int position, long weight, int rentWeightPercent, out int worth) =>
+        HousingUtility.TryOutside(_world, position, weight, rentWeightPercent, out worth);
 
     /// <summary>Sizes the candidate buffers to one occasion's looks.</summary>
     private void Retain(int candidates)
@@ -973,33 +886,7 @@ public sealed class PlacementEngine
     /// wrong half of this method.***
     /// </para>
     /// </remarks>
-    private long Distance(int lot)
-    {
-        LatticeDefinition[] lattices = _world.Rules.Lattices;
-        long east = _world.Lots.East[lot].Raw;
-        long north = _world.Lots.North[lot].Raw;
-
-        if (lattices.Length == 0)
-        {
-            return (east < 0 ? -east : east) + (north < 0 ? -north : north);
-        }
-
-        long nearest = long.MaxValue;
-
-        for (int at = 0; at < lattices.Length; at++)
-        {
-            long sideways = east - lattices[at].OriginEastTiles;
-            long up = north - lattices[at].OriginNorthTiles;
-            long walked = (sideways < 0 ? -sideways : sideways) + (up < 0 ? -up : up);
-
-            if (walked < nearest)
-            {
-                nearest = walked;
-            }
-        }
-
-        return nearest;
-    }
+    private long Distance(int lot) => HousingUtility.Distance(_world, lot);
 
     /// <summary>
     /// Whether the member at <paramref name="position"/> has been looking longer than it will look.
@@ -1516,7 +1403,7 @@ public sealed class PlacementEngine
             return false;
         }
 
-        int lots = _world.LotsAdmitting.Count(_world.Lots, LotTable.Housing);
+        int lots = _world.HousingBuildings.Count(_world);
 
         if (lots == 0 || !_world.Lots.Rows.TryResolve(_world.Buildings.Lot[building], out int home))
         {
@@ -1549,8 +1436,8 @@ public sealed class PlacementEngine
             ulong entity = Randomness.Mix(id ^ ((ulong)(uint)draw << 32));
             ulong value = Randomness.Draw(_key, entity, tick, PurposeTag.PlacementCandidate);
 
-            int lot = _world.LotsAdmitting.Nth(
-                _world.Lots, LotTable.Housing, (int)(value % (ulong)(uint)lots));
+            int lot = _world.HousingBuildings.Nth(
+                _world, (int)(value % (ulong)(uint)lots));
 
             int alternative = Consider(
                 lot, _world.BalanceOf(household), out bool costsALook, out _);

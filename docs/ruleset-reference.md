@@ -27,7 +27,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-49 sections, 328 keys.
+52 sections, 352 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
@@ -38,6 +38,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[[hinterland.population]]`](#hinterlandpopulation) — 5 keys
 - [`[[hinterland]]`](#hinterland) — 8 keys
 - [`[[hinterland]] prices`](#hinterland-prices) — 2 keys
+- [`[[housing_form]]`](#housing_form) — 11 keys
 - [`[[lattice]]`](#lattice) — 4 keys
 - [`[[life_stage]]`](#life_stage) — 16 keys
 - [`[[policy]]`](#policy) — 12 keys
@@ -61,9 +62,11 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[districts]`](#districts) — 4 keys
 - [`[founding]`](#founding) — 2 keys
 - [`[households]`](#households) — 3 keys
+- [`[housing_construction]`](#housing_construction) — 12 keys
 - [`[immigration]`](#immigration) — 4 keys
 - [`[income_tax]`](#income_tax) — 4 keys
 - [`[jobs]`](#jobs) — 11 keys
+- [`[land_permissions]`](#land_permissions) — 1 key
 - [`[layers]`](#layers) — 20 keys
 - [`[lots]`](#lots) — 10 keys
 - [`[market]`](#market) — 2 keys
@@ -400,6 +403,56 @@ The import price, which becomes the ceiling on what that Good can cost inside th
 **`resource`** · *quoted string*
 
 Which Good is being priced, naming a [[resource]]. Only a good may be — a utility is not stocked, and money is what a price is denominated in rather than a thing that has one.
+
+---
+
+## `[[housing_form]]`
+
+*An array of tables — a file may declare this more than once.*
+
+**`id`** · *quoted string*
+
+Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.
+
+**`label`** · *quoted string*
+
+The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.
+
+**`max_depth_tiles`** · *whole number*
+
+Maximum whole-site depth behind its Street, in Tiles.
+
+**`max_frontage_tiles`** · *whole number*
+
+Maximum whole-site frontage for this form, in Tiles. Maximum capacity must be earnable within max_seekers and the surplus bound.
+
+**`min_depth_tiles`** · *whole number*
+
+Minimum whole-site depth behind its Street, in Tiles.
+
+**`min_frontage_tiles`** · *whole number*
+
+Minimum whole-site frontage for this form, in Tiles.
+
+**`name`** · *quoted string*
+
+Unique authored name for this housing form envelope. Package declarations lower their id to this name.
+
+**`pattern`** · *whole number*
+
+Built form: 0 Detached, 1 Perimeter, 2 BackToBack, 3 Courtyard, 4 Slab, 5 Tower. Independent of intensity.
+
+**`setback_tiles`** · *whole number*
+
+Inset on every side of the site, in Tiles; must leave a positive footprint.
+
+**`storeys`** · *whole number*
+
+Realised storeys of this authored form; 1..255.
+
+**`weight`** · *whole number*
+
+Relative deterministic draw weight among equally useful first Buildings; 1..1000. Surplus capacity adds no usefulness.
 
 ---
 
@@ -1103,6 +1156,58 @@ The least money a Household is created with at world creation.
 
 ---
 
+## `[housing_construction]`
+
+**`alignment_bonus`** · *whole number*
+
+Added draw weight for matching an immediate standing neighbour's Street wall; 0..1000. Applies only among equally useful arrangements.
+
+**`max_building_slots`** · *whole number*
+
+Complete standing-home coverage budget, including dead Building slots. Exceeding it refuses construction; 1..1048576.
+
+**`max_candidates`** · *whole number*
+
+Maximum form/site attempts, including failed checks; 1..64. Compare one or two Buildings, committing only the first.
+
+**`max_lot_slots`** · *whole number*
+
+Complete Lot geometry coverage budget, including dead slots. Exceeding it refuses construction; 1..1048576.
+
+**`max_seekers`** · *whole number*
+
+Maximum distinct current unplaced Households assessed; 1..256. Samples are never extrapolated.
+
+**`max_sources`** · *whole number*
+
+Maximum adjacent whole vacant Lots in the local comparison window; 1..16.
+
+**`max_surplus`** · *whole number*
+
+Absolute cap on surplus tenancies per proposed arrangement; 0..256. Zero seekers never supports construction.
+
+**`preference_freshness_ticks`** · *whole number*
+
+Maximum Tick gap between qualifying observations and maximum age at construction; positive. A larger gap restarts the episode. Tune against placement revisit_ticks and sampling coverage.
+
+**`preference_margin_percent`** · *whole number*
+
+Minimum utility gap below the Household's Outside for every affordable available home, in hundredths of a utility unit; 1..10000. Rounded up in Q16.16; neither random rejection nor a minor improvement qualifies.
+
+**`preference_persistence_ticks`** · *whole number*
+
+Elapsed Ticks from first to latest qualifying search observation required for preference mismatch; positive. Waiting without observations does not qualify.
+
+**`same_form_bonus`** · *whole number*
+
+Additional weight for the same form at a matching Street wall; 0..alignment_bonus. No permanent founding identity is stored.
+
+**`surplus_percent`** · *whole number*
+
+Permitted capacity surplus above distinct uncovered seekers, rounded up, and capped by max_surplus; 0..100.
+
+---
+
 ## `[immigration]`
 
 **`queue_reconsider_days`** · *whole number*
@@ -1188,6 +1293,14 @@ What one Day worked is worth to a Citizen who missed schooling, as a percent of 
 **`wage_tier_percent`** · *array of whole numbers*
 
 What each of the three Skill Tiers is paid, as a percent of the trade's posted rate — exactly three entries, the first of which restates the posted rate and can only be 100. Absent means every tier is paid the same.
+
+---
+
+## `[land_permissions]`
+
+**`max_records`** · *whole number*
+
+Maximum geographic permission records. Provisional default: 1048576; minimum: 8. Paint exceeding the final count is refused without mutation. Reload cannot lower this below the saved slot high-water mark.
 
 ---
 

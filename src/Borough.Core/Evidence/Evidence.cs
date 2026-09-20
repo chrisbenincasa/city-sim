@@ -496,7 +496,8 @@ public static class Evidence
 
         return new LotEvidence(
             lot,
-            world.Lots.Zone[slot],
+            world.LandPermissions.Summary(world.LotGround(slot)),
+            ConstructionRefusal(world, slot),
             vacant,
             world.Lots.AddressOf(slot),
             reason,
@@ -581,31 +582,21 @@ public static class Evidence
         };
     }
 
-    /// <summary>
-    /// Whether any <c>[[zone_rule]]</c> in the Ruleset in force admits this Lot's zone bits.
-    /// </summary>
-    /// <remarks>
-    /// ⚠ <b>The predicate is re-expressed here rather than called</b>, because
-    /// <c>ZoneRuleEngine.Create</c> is private and mutates — it raises a Building and bumps a counter
-    /// — so there is nothing to call. The clause copied is
-    /// <c>(Lots.Zone[lot] &amp; definition.Admits) == 0</c>, and it is a pure column read that touches
-    /// no randomness. <b>A copied predicate is a second copy of a fact</b>
-    /// (<c>plans/0012</c> <em>Cause 1</em>), so a test asserts the two agree rather than this comment
-    /// asserting it.
-    /// </remarks>
-    private static bool AdmittedByAnyRule(World world, int lotSlot)
-    {
-        ushort zone = world.Lots.Zone[lotSlot];
+    private static bool AdmittedByAnyRule(World world, int lotSlot) =>
+        ConstructionRefusal(world, lotSlot) == Space.PermissionRefusal.None;
 
+    /// <summary>Uses the construction predicate, including band, form and complete ground coverage.</summary>
+    private static Space.PermissionRefusal ConstructionRefusal(World world, int lotSlot)
+    {
+        Space.PermissionRefusal first = Space.PermissionRefusal.Use;
+        bool seen = false;
         foreach (ZoneRuleDefinition definition in world.Rules.ZoneRules)
         {
-            if ((zone & definition.Admits) != 0)
-            {
-                return true;
-            }
+            Space.PermissionRefusal refusal = world.ConstructionPermission(lotSlot, definition.Admits);
+            if (refusal == Space.PermissionRefusal.None) { return refusal; }
+            if (!seen) { first = refusal; seen = true; }
         }
-
-        return false;
+        return first;
     }
 
     /// <summary>

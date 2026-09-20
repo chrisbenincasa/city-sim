@@ -124,21 +124,27 @@ public static class BuildingPlan
     }
 
     /// <summary>The floor carried by all storeys of a block form.</summary>
-    public static int FloorTiles(BlockPattern pattern, int wide, int deep, int storeys)
+    public static int FloorTiles(BlockPattern pattern, int wide, int deep, int storeys) =>
+        TryFloorTiles(pattern, wide, deep, storeys, out int floor)
+            ? floor : throw new ArgumentOutOfRangeException(nameof(storeys), "Floor area exceeds Int32 storage.");
+
+    /// <summary>Calculates the shared plan without overflowing a proposed floor area.</summary>
+    public static bool TryFloorTiles(BlockPattern pattern, int wide, int deep, int storeys, out int floor)
     {
-        if (wide < 1 || deep < 1 || storeys < 1)
+        floor = 0;
+        if (wide < 1 || deep < 1 || storeys < 1) { return true; }
+        if ((long)wide * deep > int.MaxValue) { return false; }
+        long total;
+        if (pattern == BlockPattern.Tower)
         {
-            return 0;
+            TowerForm form = Tower(wide, deep, storeys);
+            total = ((long)wide * deep * form.PodiumStoreys)
+                + ((long)form.ShaftWide * form.ShaftDeep * form.ShaftStoreys);
         }
-
-        if (pattern != BlockPattern.Tower)
-        {
-            return HabitableTiles(pattern, wide, deep) * storeys;
-        }
-
-        TowerForm form = Tower(wide, deep, storeys);
-        return (wide * deep * form.PodiumStoreys)
-            + (form.ShaftWide * form.ShaftDeep * form.ShaftStoreys);
+        else { total = (long)HabitableTiles(pattern, wide, deep) * storeys; }
+        if (total > int.MaxValue) { return false; }
+        floor = (int)total;
+        return true;
     }
 
     /// <summary>

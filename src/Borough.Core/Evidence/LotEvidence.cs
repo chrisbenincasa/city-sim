@@ -62,16 +62,7 @@ public enum VacancyReason
     /// </remarks>
     NobodySeeking = 2,
 
-    /// <summary>
-    /// No <c>[[zone_rule]]</c> in the Ruleset in force admits this Lot's zone bits.
-    /// </summary>
-    /// <remarks>
-    /// The other clause of <c>ZoneRuleEngine.Create</c>'s predicate,
-    /// <c>(Lots.Zone[lot] &amp; definition.Admits) == 0</c>, quantified over every declared Zone Rule.
-    /// <b>Not one of <c>02 §9</c>'s four</b>, and included because it is the commonest honest answer
-    /// on a map the player has not zoned — the question is <em>why is nothing building here</em>, and
-    /// <em>you have not asked for anything to</em> is a complete answer to it.
-    /// </remarks>
+    /// <summary>No declared Zone Rule passes the full site's use, intensity and form permissions.</summary>
     NotZoned = 4,
 }
 
@@ -113,7 +104,8 @@ public readonly struct LotEvidence
 {
     internal LotEvidence(
         Handle<Lot> lot,
-        ushort zone,
+        LandPermissionSummary permissions,
+        PermissionRefusal permissionRefusal,
         bool vacant,
         Address address,
         VacancyReason reason,
@@ -121,7 +113,9 @@ public readonly struct LotEvidence
         Handle<Building> building)
     {
         Lot = lot;
-        Zone = zone;
+        Zone = permissions.CommonUses;
+        Permissions = permissions;
+        PermissionRefusal = permissionRefusal;
         IsVacant = vacant;
         Address = address;
         Reason = reason;
@@ -134,6 +128,8 @@ public readonly struct LotEvidence
 
     /// <summary>The Lot's permission set — one bit per admitted Building kind.</summary>
     public ushort Zone { get; }
+    public LandPermissionSummary Permissions { get; }
+    public PermissionRefusal PermissionRefusal { get; }
 
     /// <summary>Whether anything stands here.</summary>
     public bool IsVacant { get; }

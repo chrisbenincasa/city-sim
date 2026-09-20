@@ -63,13 +63,22 @@ The construction trace below establishes Zone Rules as the existing automatic co
 The [worked redevelopment example](urban-fabric-redevelopment-walkthrough.md) follows incremental terrace
 construction and a courtyard assembled from adjoining parcels, then save/load and changed conditions.
 It defines the first Core slice: local assembly on a partially occupied block, preserving geographic
-permissions and realised geometry. The [local layout contract](urban-fabric-local-layout-contract.md) proposes
+permissions and realised geometry. The [local layout contract](urban-fabric-local-layout-contract.md) defines
 independent geographic permission records and read-only evaluation followed by a validated local
 commit. Its reader audit identifies standing-housing search, District trade-land counting and
 permission explanations as distinct migration paths. The [storage-sizing model](evidence/urban-fabric/permission-storage.md)
 supplies bounded page normalisation, a provisional record budget and refusal-before-mutation.
-Next implement geographic permission storage and queries with Core persistence/refusal checks;
-automatic housing evidence and form selection follow as a separate integration slice.
+Geographic permission storage, local assembly, reader/road-edit migration and bounded automatic
+housing selection are implemented. Housing evidence now distinguishes immediate capacity shortage
+from substantial persistent preference mismatch, using saved elapsed-Tick episodes. The
+[playable neighbourhood](urban-neighbourhood.md) exposes that behaviour for user acceptance.
+
+**BLOCKED / deferred: completion requires the outstanding user playtest**, which cannot happen
+while the user has only remote shell access. The `next` skill must skip urban fabric and its
+intensity/form follow-ups and select independent, unblocked work. Revisit when graphical play is possible; record their assessment of clarity and
+payoff and resolve acceptance-blocking findings. Automated tests and driven observation do not
+satisfy this requirement. Other work may proceed meanwhile. Numeric intensity caps, larger
+arrangements and further shell controls remain later candidates, informed by the playtest verdict.
 
 ## Decisions still needed
 
@@ -77,15 +86,9 @@ automatic housing evidence and form selection follow as a separate integration s
   built form, and how the first development chooses where there are no neighbours. Today's
   `BlockPatterns.ForBand` selects a pattern from a density-ranked ladder; it is not an independent
   form-selection mechanism.
-- How a proposed development resolves permissions across its whole site, including mixed form
-  restrictions within a block. Today's saved `BlockPattern` chooses a subdivision for the whole
-  block; painting finer permissions must not silently replace neighbours' permissions or assume
-  that mixed built forms are already supported by that representation.
-- How to assemble adjacent vacant parcels, preserve neighbouring access and permissions, and
-  distinguish cleared ground from an unoccupied standing Building requiring demolition. Today's
-  `LotSubdivider.RecarveBlock` requires a vacant block and permits only an increase in pattern rank;
-  local redevelopment needs a replacement for both constraints and saved geometry that survives
-  rebuilding derived state.
+- How the legacy preview, painting, subdivision and road-edit paths adopt realised local layouts.
+  Geographic site checks and atomic whole-vacant-Lot assembly are implemented; existing gameplay
+  still uses block patterns. Road edits must preserve occupied merged sites and their access.
 - Saved intensity and form permissions versus the saved pattern and storeys already realised;
   floor-area limits, capacity and drawing must agree.
 
@@ -245,11 +248,12 @@ Acceptance examples for the eventual algorithm:
 New housing may be justified alongside existing vacancies when repeated unsuccessful searches
 establish a substantial, persistent mismatch with the available homes. This direction is agreed.
 A minor preference improvement alone is insufficient, and the proposed home must be affordable.
-The numerical preference margin and persistence duration remain tuning/design work. Actual
+The Ruleset now supplies the preference margin, persistence duration and freshness limit; their
+provisional values still need calibration in playable content. Actual
 placement remains probabilistic where enabled; construction evidence does not turn its estimates
 into mandatory Household choices.
 
-### Persistence — recommended mechanics
+### Persistence — implemented mechanics
 
 Measure elapsed Ticks between qualifying observations, not a count of searches. The current
 `UnplacedTable.Since` records entry into the Pool and `Considered` counts existing Buildings shown;
@@ -260,8 +264,9 @@ A qualifying observation must distinguish capacity shortage, affordability and a
 preference mismatch. Start an episode on the first such observation, and require later evidence
 of the same reason plus a current comparison before it can justify construction. Merely losing a
 probabilistic choice draw is insufficient. A large gap without observations must not certify
-continuous mismatch: define a freshness limit consistent with the sampling cadence. Proposed
-duration, freshness and preference-margin tuning belongs in the Ruleset.
+continuous mismatch: define a freshness limit consistent with the sampling cadence. Duration, freshness and preference-margin tuning belongs in the Ruleset; the
+[implemented contract](urban-fabric-local-layout-contract.md#persistent-preference-mismatch) states
+the current Outside-relative comparison and observation bounds.
 
 End or restart an episode when the relevant reason changes, when an assessment finds suitable
 available capacity, or when the Household leaves the Pool. A later construction proposal still
@@ -448,6 +453,13 @@ all three surfaces separately before changing one.
 
 ## Implemented so far
 
+The `urban-permissions` branch adds geographic permission storage, atomic whole-Lot assembly,
+saved-layout readers and opt-in housing selection for capacity shortage and persistent preference mismatch. See the
+[local contract](urban-fabric-local-layout-contract.md#capacity-shortage-integration) for implemented
+bounds and the saved elapsed-Tick preference episodes. New housing forms have
+independent authored envelopes; the legacy initial-subdivision band ladder remains for existing
+fixtures. The earlier drawing work below is separate from that construction integration.
+
 - `--morphology` now reports parcel, potential-footprint and standing-footprint coverage by the
   saved pattern on each Lot. At 10,000 Citizens, the old Tower measured 25.0%, 17.1% and 8.0%.
 - A Tower now owns its full block. Its shared `BuildingPlan` is a two-storey, near-full-site podium
@@ -463,3 +475,13 @@ all three surfaces separately before changing one.
 Steps 1, 4 and 5 are implemented and verified. The Tower now demonstrates the geometric half of
 step 2, but its intensity is still inferred from the selected pattern. Step 3—and the saved
 intensity/form separation it requires—remains deliberately separate from this geometry change.
+
+The geographic permission storage foundation is implemented in the `urban-permissions` worktree:
+exact bounded painting and ground queries, saved/hash-bearing rows, load/reload refusal and a C#
+memory measurement. See the [local contract](urban-fabric-local-layout-contract.md#implemented-geographic-storage-foundation).
+Gameplay reader migration, automatic selection and shell integration remain.
+
+The local assembly foundation now evaluates explicit housing proposals without mutation and commits
+one Building through an internal simulation boundary. See the [implemented contract](urban-fabric-local-layout-contract.md#implemented-read-only-evaluation-and-local-assembly)
+for scope, walkthrough dimensions and checks. Reader/road-edit migration precedes gameplay exposure;
+automatic housing choice and shell integration remain later work.

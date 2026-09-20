@@ -388,6 +388,25 @@ public sealed class EvidenceTests
     /// reachable only in a city somebody zoned, which is to say only under <c>CommandKind.Zone</c>.
     /// </para>
     /// </remarks>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Construction_and_evidence_share_intensity_and_form_refusals(bool form)
+    {
+        var (world, simulation, admitted, _) = Zoning();
+        foreach (var lot in admitted)
+        {
+            int row = world.Lots.Rows.Resolve(lot);
+            if (form) world.PaintFormPermissions(world.LotGround(row), true, 0);
+            else world.PaintBandPermissions(world.LotGround(row), 1);
+            var evidence = Core.Evidence.Evidence.OfLot(world, lot);
+            Assert.Equal(form ? Borough.Core.Space.PermissionRefusal.Form : Borough.Core.Space.PermissionRefusal.Intensity, evidence.PermissionRefusal);
+            Assert.True(evidence.Reason.HasFlag(VacancyReason.NotZoned));
+        }
+        for (int i = 0; i < 512; i++) simulation.Step(TickInput.Empty);
+        Assert.All(admitted, lot => Assert.True(world.Lots.IsVacant(world.Lots.Rows.Resolve(lot))));
+    }
+
     [Fact]
     public void A_lot_the_assembler_calls_unzoned_is_a_lot_nothing_builds_on()
     {
@@ -843,7 +862,8 @@ public sealed class EvidenceTests
             emissions: [],
             bins: [],
             kindRules: [],
-            zoneRules: [new ZoneRuleDefinition(House, 0, 4, 4)]);
+            zoneRules: [new ZoneRuleDefinition(House, 0, 4, 4)])
+        { Bands = [new BandDefinition { Admits = Elsewhere }] };
 
         var world = new World(1_000, ruleset);
         var simulation = new Simulation(world, WorldKey.FromSeed(0xE71D_E0CE_0000_0005UL));
@@ -865,6 +885,8 @@ public sealed class EvidenceTests
             refused[i] = world.Lots.Create(new Tiles(i), new Tiles(2), Elsewhere);
         }
 
+        world.PaintUsePermissions(new Borough.Core.Space.LandRectangle(0, 0, 8, 2), Housing);
+        world.PaintUsePermissions(new Borough.Core.Space.LandRectangle(0, 2, 8, 1), Elsewhere);
         return (world, simulation, admitted, refused);
     }
 

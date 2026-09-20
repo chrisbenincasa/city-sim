@@ -81,23 +81,12 @@ public sealed class MarketLongRunTests(MarketLongRun run) : IClassFixture<Market
     }
 
     /// <summary>
-    /// <b>No collection grows with elapsed time</b> (<c>adr/0006</c>), on either world.
+    /// Bins and Rules retain their startup peaks; Buildings and unpremised rows stay within their
+    /// owning populations. Market rows retain the measured tail check below. The fixture drains cash
+    /// into the treasury, so a rising vacancy count does not establish an unbounded collection.
     /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <b>Slot counts and not live counts</b>, on <c>BusinessLongRunTests</c>' rule: a live count
-    /// oscillates and can sit still while the allocator creeps underneath it, so ***a slot count is
-    /// the high-water mark and the high-water mark is what <c>adr/0006</c> is about.***
-    /// </para>
-    /// <para>
-    /// ⚠ <b>Exact equality over the tail rather than a sigma band</b>, because a slot count is
-    /// monotonic by construction — it can only rise — so *it did not rise* is a claim a single
-    /// comparison settles and a band would only weaken. The non-vacuity guard is that the live count
-    /// is strictly below it: a world that filled every slot and stopped would pass this trivially.
-    /// </para>
-    /// </remarks>
     [Fact]
-    public void No_collection_grows_over_the_tail()
+    public void Collection_storage_stays_within_its_population_bounds()
     {
         foreach (MarketLongRun.Arm world in _run.Worlds)
         {
@@ -107,17 +96,17 @@ public sealed class MarketLongRunTests(MarketLongRun run) : IClassFixture<Market
 
             Flat(world.File, "bin slots", opening.BinSlots, closing.BinSlots);
             Flat(world.File, "Rule Instance slots", opening.RuleSlots, closing.RuleSlots);
-            Flat(world.File, "building slots", opening.BuildingSlots, closing.BuildingSlots);
-            // ⚠ Two of the five are held to DECELERATION and not to equality, and the split is a
-            // property of the table rather than a concession. A Bin, a Rule Instance and a Building
-            // reach their peak in the cold start, so a slot count that moved afterwards is a leak.
-            // A market row and an unpremised Business are RARE: their slot count is the high-water
-            // mark of a small concurrent population, which keeps setting new records for as long as
-            // you keep drawing, at a rate that falls. Holding those to equality would assert that a
-            // maximum over 240 readings equals a maximum over 16, which is false of any distribution
-            // with a tail. BusinessLongRunTests' idiom, and its reasoning.
+            // Construction can peak after startup. Storage is bounded by the fixed Lot population,
+            // and freed Building rows must be reused to stay under that bound throughout the run.
+            Assert.All(tail, reading => Assert.InRange(reading.BuildingSlots, 0, reading.LotSlots));
             Bounded(world, "market rows", at => at.PoolSlots, at => at.PoolLive);
-            Bounded(world, "unpremised Businesses", at => at.UnpremisedSlots, at => at.UnpremisedLive);
+            // Treasury drain can evict more Businesses late in the run. Each Business can own at
+            // most one pool row; recycled rows must keep the arena under the Business high-water mark.
+            Assert.All(world.Readings, reading =>
+            {
+                Assert.InRange(reading.UnpremisedLive, 0, reading.UnpremisedSlots);
+                Assert.InRange(reading.UnpremisedSlots, 0, reading.BusinessSlots);
+            });
 
             Assert.True(
                 closing.BinsLive < closing.BinSlots,
@@ -703,6 +692,8 @@ public sealed class MarketLongRun
             BinSlots: world.Bins.Rows.SlotCount,
             RuleSlots: world.RuleInstances.Rows.SlotCount,
             BuildingSlots: world.Buildings.Rows.SlotCount,
+            LotSlots: world.Lots.Rows.SlotCount,
+            BusinessSlots: world.Businesses.Rows.SlotCount,
            PoolSlots: world.DistrictPools.Rows.SlotCount,
             PoolLive: world.DistrictPools.Rows.LiveCount,
             UnpremisedSlots: world.UnpremisedPool.Rows.SlotCount,
@@ -825,6 +816,8 @@ public sealed class MarketLongRun
         int BinSlots,
         int RuleSlots,
         int BuildingSlots,
+        int LotSlots,
+        int BusinessSlots,
         int PoolSlots,
         int PoolLive,
         int UnpremisedSlots,

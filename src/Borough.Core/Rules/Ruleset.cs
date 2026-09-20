@@ -4112,6 +4112,28 @@ public sealed class Ruleset
     /// <summary>The <c>[capacity]</c> table — how much floor one tenancy, job or car takes.</summary>
     public CapacityRuleset Capacity { get; init; } = CapacityRuleset.None;
 
+    /// <summary>Optional bounded automatic local housing construction.</summary>
+    public HousingConstructionRuleset? HousingConstruction { get; init; }
+
+    /// <summary>Provisional default for [land_permissions] max_records when omitted.</summary>
+    public const int DefaultPermissionRecordLimit = 1_048_576;
+
+    private int _permissionRecordLimit = DefaultPermissionRecordLimit;
+
+    /// <summary>Provisional world-wide geographic permission record budget, [land_permissions] max_records.</summary>
+    public int PermissionRecordLimit
+    {
+        get => _permissionRecordLimit;
+        init
+        {
+            if (value < 8 || value > CellGrid.WorldTiles * CellGrid.WorldTiles)
+            {
+                throw new ArgumentOutOfRangeException(nameof(value));
+            }
+            _permissionRecordLimit = value;
+        }
+    }
+
     /// <summary>
     /// The <c>[[band]]</c> tables in declaration order — <b>the density bands</b> (<c>adr/0025</c>).
     /// </summary>
@@ -4921,6 +4943,8 @@ public sealed class Ruleset
             Districts = Districts,
             Lots = Lots,
             Capacity = Capacity,
+            PermissionRecordLimit = PermissionRecordLimit,
+            HousingConstruction = HousingConstruction,
             Bands = Bands,
             Trips = Trips,
             Jobs = Jobs,
