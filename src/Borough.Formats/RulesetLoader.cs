@@ -1362,7 +1362,8 @@ public static class RulesetLoader
                         BasketUse use = _basketUses[definition.First + u];
 
                         allInputs.Add(new Term(
-                            new BinRef(Scope.Local, use.Resource), use.UsePerDay) { PerDay = true });
+                            new BinRef(Scope.Local, use.Resource), use.UsePerDay)
+                        { PerDay = true });
                     }
                 }
                 else if (TryReadRecipe(table, name, out int recipe))
