@@ -18,11 +18,42 @@ namespace Borough.Formats;
 /// <param name="Reason">What is wrong, in a sentence.</param>
 public sealed record RulesetRefusal(string File, int Line, string? Rule, string Reason)
 {
+    /// <summary>
+    /// The declaration section <see cref="Rule"/> belongs to, or null where none was recorded.
+    /// </summary>
+    /// <remarks>
+    /// <b>A package's resolver knows the section and the single-file reader does not.</b> The reader
+    /// keeps one name for whatever declaration is in scope, so its refusals say <c>rule</c> whatever
+    /// they are reading; that spelling stays here, because it is honest about what the reader knows.
+    /// A resolved package carries the section, so a <c>[[resource]]</c> reports as one.
+    /// </remarks>
+    public string? Section { get; init; }
+
+    /// <summary>The one-based column, or zero where the position is a line alone.</summary>
+    /// <remarks>
+    /// Only a package's resolver reports one. The reader locates a refusal by the key's line and the
+    /// column is left out of the sentence rather than printed as zero.
+    /// </remarks>
+    public int Column { get; init; }
+
     /// <inheritdoc/>
-    public override string ToString() =>
-        string.Create(
-            CultureInfo.InvariantCulture,
-            $"{File}:{Line}: {(Rule is null ? string.Empty : $"rule '{Rule}': ")}{Reason}");
+    public override string ToString()
+    {
+        string declaration = (Section, Rule) switch
+        {
+            (null, null) => string.Empty,
+            (null, { } name) => $"rule '{name}': ",
+            ({ } section, null) => $"[{section}]: ",
+            ({ } section, { } id) => $"[[{section}]] '{id}': ",
+        };
+
+        string at = Column == 0
+            ? string.Empty
+            : string.Create(CultureInfo.InvariantCulture, $":{Column}");
+
+        return string.Create(
+            CultureInfo.InvariantCulture, $"{File}:{Line}{at}: {declaration}{Reason}");
+    }
 }
 
 /// <summary>

@@ -6,22 +6,43 @@
 # "an absolute URI to the JSON schema" -- so a working entry has to name /home/somebody, which is
 # not a thing a repository may commit. A Taplo config file takes paths relative to itself.
 #
-# The schema is GENERATED from RulesetLoader and must not be hand-edited:
+# The Ruleset schema is GENERATED from RulesetLoader and must not be hand-edited:
 #
 #   dotnet run --project src/Borough.Headless -- --schema \
 #     --ruleset rulesets/minimal.toml > rulesets/ruleset.schema.json
 #
 # The loader derives its permitted key set from the readers that ask for each key, so it already
 # owns this and a hand-written schema would be a second copy. RulesetSchemaTests fails when the
-# committed file drifts from it.
+# committed file drifts from it. A declaration's id, label and order come from RulesetSourceKeys
+# instead: the resolver lowers them away before the loader sees a package member.
 #
 # ⚠ The schema leaves unknown keys PERMITTED on purpose. The loader refuses them at the parse site
 # with a spelling suggestion and the full key list for that table, which is a better message than a
 # schema produces -- this is autocomplete, and the loader is the authority.
+#
+# A source package is a folder one level down. Its members take the Ruleset schema and its manifest
+# takes rulesets/manifest.schema.json, which is hand-written and closed because [source] accepts
+# exactly two keys.
+#
+# ⚠ THE MANIFEST RULE MATCHES A FILENAME THE LOADER DOES NOT RESERVE. A manifest is an ordinary
+# .toml holding [source] alone and may be called anything; ruleset.toml is the convention this
+# association needs, not a rule. A package whose entry file is named otherwise gets the Ruleset
+# schema and sees spurious errors, which costs autocomplete and nothing else. The resolver reads
+# the file the same way either way.
+#
+# ⚠ TAPLO APPLIES THE LAST MATCHING RULE, so the manifest rule must stay below the member rule.
+# Swapping them silently gives every manifest the Ruleset schema.
 
 [[rule]]
-include = ["rulesets/*.toml"]
+include = ["rulesets/*.toml", "rulesets/*/*.toml"]
 
 [rule.schema]
 path = "rulesets/ruleset.schema.json"
+enabled = true
+
+[[rule]]
+include = ["rulesets/*/ruleset.toml"]
+
+[rule.schema]
+path = "rulesets/manifest.schema.json"
 enabled = true

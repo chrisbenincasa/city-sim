@@ -201,6 +201,63 @@ public static class RulesetKeyNotes
             "Whose Bin this is: the premises', or the tenant's. It is what makes a Rule over this "
             + "Bin the tenant's Rule rather than the Building's, and a tenant's Bins live exactly as "
             + "long as the tenancy. Absent means the premises own it.",
+        ["[[building]] bins reserve"] =
+            "Sizes this Bin as Days of cover instead of a literal capacity, naming the basket that "
+            + "empties it and the profile that says how many Days. Changing what the basket uses "
+            + "moves every Bin sized from it. Refused beside capacity, and on a money Bin.",
+        ["[[building]] bins reserve profile"] =
+            "Which [[reserve]] supplies the Days this Bin holds. Every Bin naming it moves together "
+            + "when its Days change.",
+        ["[[building]] bins reserve basket"] =
+            "Which [[basket]] this Bin empties into, naming the daily use that the Days multiply. "
+            + "The basket must name this Bin's Resource and belong to the same owner.",
+        ["[[building]] bins reserve days"] =
+            "Holds this one Bin for a different number of Days than its profile states. It is an "
+            + "exception in Days and not in units, so a change to the basket still moves it; "
+            + "removing the key returns the Bin to the profile.",
+
+        // ---- [[basket]] -----------------------------------------------------------------------
+        ["[[basket]] name"] =
+            "What this basket is called. A Rule's basket and a Bin's reserve name it by this.",
+        ["[[basket]] owner"] =
+            "Which actor's daily use this describes: the premises, the occupant Household or the "
+            + "business tenanting them. A Bin sized from this basket must belong to the same one.",
+        ["[[basket]] use_per_day"] =
+            "The Goods this basket covers and the whole units one actor uses of each per Day, "
+            + "keyed by [[resource]] name. A Rule naming the basket consumes these at that rate "
+            + "however often it fires, so a daily quantity need not divide evenly across firings. "
+            + "Money is refused here.",
+
+        // ---- [[reserve]] ----------------------------------------------------------------------
+        ["[[reserve]] name"] =
+            "What this reserve is called. A Bin's reserve profile names it by this.",
+        ["[[reserve]] days"] =
+            "How many Days of a basket's use a Bin sized from this profile holds. It is the shared "
+            + "number; a Bin may state its own days to hold a different span.",
+
+        // ---- [[recipe]] -----------------------------------------------------------------------
+        ["[[recipe]] name"] =
+            "What this conversion is called. A Rule's recipe names it by this.",
+        ["[[recipe]] inputs"] =
+            "The Goods each application of this recipe takes, in the same shape a Rule's own inputs "
+            + "take. Amounts are per application, so a Rule applying the recipe four times takes "
+            + "four times these.",
+        ["[[recipe]] inputs resource"] =
+            "Which Resource this term draws, naming a [[resource]].",
+        ["[[recipe]] inputs amount"] =
+            "How much of it one application draws.",
+        ["[[recipe]] inputs scope"] =
+            "Where the term draws from, as a Rule's own inputs scope does: local, pool or global.",
+        ["[[recipe]] outputs"] =
+            "The Goods each application of this recipe makes, in the same shape a Rule's own "
+            + "outputs take, including map emissions.",
+        ["[[recipe]] outputs resource"] =
+            "Which Resource this term deposits, naming a [[resource]].",
+        ["[[recipe]] outputs amount"] =
+            "How much of it one application deposits.",
+        ["[[recipe]] outputs scope"] =
+            "Where the term deposits, as a Rule's own outputs scope does: local, pool, global or "
+            + "map.",
 
         // ---- [[business]] ---------------------------------------------------------------------
         ["[[business]] name"] =
@@ -246,6 +303,14 @@ public static class RulesetKeyNotes
         // ---- [[rule]] -------------------------------------------------------------------------
         ["[[rule]] name"] =
             "What this Rule is called. on_fail names another Rule by this.",
+        ["[[rule]] basket"] =
+            "Takes this Rule's inputs from a shared [[basket]] instead of listing them, at the "
+            + "basket's daily rate. Refused beside inputs or outputs, and requires a fixed apply "
+            + "count of one, because a daily quantity is spent once per firing.",
+        ["[[rule]] recipe"] =
+            "Takes this Rule's inputs and outputs from a shared [[recipe]] instead of listing "
+            + "them. Refused beside inputs, outputs or a basket. The recipe's amounts are per "
+            + "application, so this Rule's apply count still multiplies them.",
         ["[[rule]] kind"] =
             "Which [[building]] kind this Rule runs on. Whether it is the premises' Rule or its "
             + "tenant's is derived from the Bins its terms reach, never authored.",

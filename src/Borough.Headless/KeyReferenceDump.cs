@@ -66,7 +66,7 @@ internal static class KeyReferenceDump
             {
                 keys++;
 
-                if (RulesetKeyNotes.For(section.Key, key) is not null)
+                if (Note(section.Key, key) is not null)
                 {
                     explained++;
                 }
@@ -155,7 +155,62 @@ internal static class KeyReferenceDump
             }
         }
 
+        // The source keys no reader asks for, on SchemaDump.Declarations' reasoning: RulesetSource
+        // lowers id, label and order away before the loader runs, so the surface cannot hold them
+        // and a page built from it alone documents the lowered `name` and not the key that replaced
+        // it. A dotted or spaced context is a nested table or an inline one, neither of which is a
+        // declaration.
+        foreach (string section in surface.Keys)
+        {
+            if (Bare(section) is not { } name)
+            {
+                continue;
+            }
+
+            foreach (RulesetSourceKey key in RulesetSourceKeys.For(name))
+            {
+                if (!surface[section].TryGetValue(key.Name, out RulesetKeyKind already)
+                    || already == RulesetKeyKind.Unknown)
+                {
+                    surface[section][key.Name] = key.Kind;
+                }
+            }
+        }
+
         return surface;
+    }
+
+    /// <summary>The bare name where <paramref name="section"/> heads a top-level array of tables.</summary>
+    private static string? Bare(string section) =>
+        section.StartsWith("[[", StringComparison.Ordinal)
+        && section.EndsWith("]]", StringComparison.Ordinal)
+        && !section.Contains(' ', StringComparison.Ordinal)
+        && !section.Contains('.', StringComparison.Ordinal)
+            ? section[2..^2]
+            : null;
+
+    /// <summary>The sentence for a key, whether a reader asks for it or the resolver reads it.</summary>
+    private static string? Note(string section, string key)
+    {
+        if (RulesetKeyNotes.For(section, key) is { } authored)
+        {
+            return authored;
+        }
+
+        if (Bare(section) is not { } name)
+        {
+            return null;
+        }
+
+        foreach (RulesetSourceKey declared in RulesetSourceKeys.For(name))
+        {
+            if (declared.Name == key)
+            {
+                return declared.Note;
+            }
+        }
+
+        return null;
     }
 
     private static string Render(
@@ -171,16 +226,22 @@ internal static class KeyReferenceDump
         page.Append(
             "```\ndotnet run --project src/Borough.Headless -- \\\n"
             + "  --key-reference --ruleset rulesets/minimal.toml > docs/ruleset-reference.md\n```\n\n");
+        page.Append(
+            "Each array-of-tables section also lists `id`, `label` and, for the three ordered "
+            + "families, `order`. Those come from `RulesetSourceKeys`: a source package states them "
+            + "on a declaration and the resolver lowers them away before the loader reads the "
+            + "member, so a single-file Ruleset writes `name` and none of the three.\n\n");
 
         page.Append("---\n\n");
 
         page.Append(
             "## What this is, and what it is not\n\n"
             + "**The key set is derived and the sentences are authored.** Which keys exist comes "
-            + "from the loader's own record of what its readers asked for, so this page cannot "
-            + "list a key the loader does not read. What each key *does* is written by hand in "
-            + "`src/Borough.Formats/RulesetKeyNotes.cs`, and a test refuses both a key with no "
-            + "sentence and a sentence with no key.\n\n"
+            + "from the loader's own record of what its readers asked for, together with the "
+            + "declaration keys `RulesetSourceKeys` publishes — so every key here is read by "
+            + "something. What each key *does* is written by hand in "
+            + "`src/Borough.Formats/RulesetKeyNotes.cs` and `RulesetSourceKeys`, and a test refuses "
+            + "both a key with no sentence and a sentence with no key.\n\n"
             + "⚠ **It states no values, no defaults and no ranges.** The loader carries the range "
             + "and delivers it in the refusal, at the moment an author is wrong, which is the only "
             + "moment it helps. Each file in `rulesets/` carries its own header saying what that "
@@ -222,7 +283,7 @@ internal static class KeyReferenceDump
             {
                 page.Append($"**`{key.Key}`** · *{Named(key.Value)}*\n\n");
                 page.Append(
-                    RulesetKeyNotes.For(section.Key, key.Key)
+                    Note(section.Key, key.Key)
                     ?? "*(no note authored — `RulesetKeyNoteTests` should have caught this)*")
                     .Append("\n\n");
             }

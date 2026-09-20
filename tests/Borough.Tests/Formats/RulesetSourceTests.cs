@@ -188,8 +188,9 @@ public sealed class RulesetSourceTests
     [Fact]
     public void A_refusal_from_the_single_file_reader_is_reported_at_its_member_line()
     {
-        string misspelt = Consumption.Replace("kind    = \"dwelling\"\nrate    = 64",
-            "kind    = \"dwelinng\"\nrate    = 64", StringComparison.Ordinal);
+        // A scope is a closed set the reader parses, not a reference the resolver can match.
+        string misspelt = Consumption.Replace("\"local\", resource = \"sundries\"",
+            "\"locall\", resource = \"sundries\"", StringComparison.Ordinal);
 
         RulesetSourceResult result = Resolve(
             ("dwelling.toml", Dwelling), ("goods.toml", Goods), ("rules.toml", misspelt));
@@ -268,20 +269,6 @@ public sealed class RulesetSourceTests
         RulesetDiagnostic refused = Assert.Single(result.Diagnostics);
 
         Assert.Equal(("broken.toml", RulesetDiagnosticCode.Syntax, 3), (refused.Path, refused.Code, refused.Line));
-    }
-
-    [Theory]
-    [InlineData("[[basket]]\nid = \"basic\"\n")]
-    [InlineData("[[recipe]]\nid = \"bake\"\n")]
-    [InlineData("[[storage]]\nid = \"reserve\"\n")]
-    [InlineData("[[rule]]\nid = \"eat\"\nkind = \"dwelling\"\nbasket = \"basic\"\n")]
-    [InlineData("[[rule]]\nid = \"bake\"\nkind = \"dwelling\"\nrecipe = \"bake\"\n")]
-    [InlineData("[[building]]\nid = \"flat\"\nbins = [ { resource = \"repairs\", storage = { profile = \"reserve\", basket = \"basic\" } } ]\n")]
-    public void Shared_definitions_without_runtime_support_are_refused_by_name(string member)
-    {
-        RulesetDiagnostic refused = Refused(RulesetDiagnosticCode.Unimplemented, [.. Base, ("shared.toml", member)]);
-
-        Assert.Contains("not implement", refused.Reason, StringComparison.Ordinal);
     }
 
     private static void AssertSameResolution(RulesetSourceResult expected, RulesetSourceResult actual)

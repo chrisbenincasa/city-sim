@@ -657,8 +657,8 @@ public partial class Main : Node3D
 
     private Label _tunerStatus = null!;
 
-    /// <summary>The Ruleset's TEXT, kept because the tuner rewrites text and re-parses it.</summary>
-    private string _toml = string.Empty;
+    /// <summary>The Ruleset in force: its captured bytes, members and content identity.</summary>
+    private RulesetCapture _capture = null!;
 
     private int _citizens;
 
@@ -913,7 +913,15 @@ public partial class Main : Node3D
     private int _resume = DesignSpeed;
     /// <summary>Frames drawn since the shell opened. Read only by the screenshot trigger.</summary>
     private int _frame;
+    /// <summary>The Ruleset this run booted from. A resumed city is not loaded from a path.</summary>
     private string _rulesetPath = "rulesets/neighbourhood.toml";
+
+    /// <summary>What the readout and a driven run's <c>draw</c> file call the Ruleset in force.</summary>
+    /// <remarks>
+    /// The capture carries the name, because a resumed city has no Ruleset path: its content comes
+    /// out of the save, and <see cref="RulesetBundle"/> restores the file name the save recorded.
+    /// </remarks>
+    private string RulesetName() => System.IO.Path.GetFileName(_capture.EntryName);
 
     /// <summary>The script this run is driven by, in Tick order. Empty when nobody is driving.</summary>
     private DriveCommand[] _drive = [];
@@ -1090,9 +1098,7 @@ public partial class Main : Node3D
             return;
         }
 
-        _toml = File.ReadAllText(path);
-
-        RulesetLoadResult loaded = RulesetLoader.Parse(_toml, Path.GetFileName(path));
+        RulesetSourceResult loaded = RulesetSource.Load(path);
 
         if (loaded.Ruleset is null)
         {
@@ -1102,6 +1108,7 @@ public partial class Main : Node3D
             return;
         }
 
+        _capture = loaded.Capture!;
         _names = loaded.Names;
         _citizens = citizens;
         _seed = 0;
@@ -1758,7 +1765,7 @@ public partial class Main : Node3D
         int minute = Ticks.MinuteOfDay(tick);
 
         _readout.Text =
-            $"{System.IO.Path.GetFileName(_rulesetPath)}   Tick {tick:N0}   "
+            $"{RulesetName()}   Tick {tick:N0}   "
             + $"Day {tick / (ulong)Ticks.PerDay}   {Weekday(tick)}   "
             + $"{minute / 60:00}:{minute % 60:00}\n"
             + $"Citizens {_world.Citizens.Rows.LiveCount:N0}   Buildings {Counted(drawn)}   "

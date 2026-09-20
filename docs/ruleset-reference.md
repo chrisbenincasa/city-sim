@@ -7,11 +7,13 @@ dotnet run --project src/Borough.Headless -- \
   --key-reference --ruleset rulesets/minimal.toml > docs/ruleset-reference.md
 ```
 
+Each array-of-tables section also lists `id`, `label` and, for the three ordered families, `order`. Those come from `RulesetSourceKeys`: a source package states them on a declaration and the resolver lowers them away before the loader reads the member, so a single-file Ruleset writes `name` and none of the three.
+
 ---
 
 ## What this is, and what it is not
 
-**The key set is derived and the sentences are authored.** Which keys exist comes from the loader's own record of what its readers asked for, so this page cannot list a key the loader does not read. What each key *does* is written by hand in `src/Borough.Formats/RulesetKeyNotes.cs`, and a test refuses both a key with no sentence and a sentence with no key.
+**The key set is derived and the sentences are authored.** Which keys exist comes from the loader's own record of what its readers asked for, together with the declaration keys `RulesetSourceKeys` publishes — so every key here is read by something. What each key *does* is written by hand in `src/Borough.Formats/RulesetKeyNotes.cs` and `RulesetSourceKeys`, and a test refuses both a key with no sentence and a sentence with no key.
 
 ⚠ **It states no values, no defaults and no ranges.** The loader carries the range and delivers it in the refusal, at the moment an author is wrong, which is the only moment it helps. Each file in `rulesets/` carries its own header saying what that file demonstrates. [`plans/0002`](../plans/0002-open-questions.md) §D carries whether a number is ratified — and **nearly every number in this design is not**.
 
@@ -25,28 +27,34 @@ dotnet run --project src/Borough.Headless -- \
 
 ## The sections
 
-46 sections, 299 keys.
+52 sections, 352 keys.
 
-- [`[[band]]`](#band) — 2 keys
-- [`[[building]]`](#building) — 20 keys
-- [`[[building]] bins`](#building-bins) — 3 keys
-- [`[[business]]`](#business) — 12 keys
+- [`[[band]]`](#band) — 4 keys
+- [`[[basket]]`](#basket) — 5 keys
+- [`[[building]]`](#building) — 22 keys
+- [`[[building]] bins`](#building-bins) — 4 keys
+- [`[[building]] bins reserve`](#building-bins-reserve) — 3 keys
+- [`[[business]]`](#business) — 14 keys
 - [`[[hinterland.population]]`](#hinterlandpopulation) — 5 keys
-- [`[[hinterland]]`](#hinterland) — 6 keys
+- [`[[hinterland]]`](#hinterland) — 8 keys
 - [`[[hinterland]] prices`](#hinterland-prices) — 2 keys
-- [`[[housing_form]]`](#housing_form) — 9 keys
-- [`[[lattice]]`](#lattice) — 2 keys
-- [`[[life_stage]]`](#life_stage) — 14 keys
-- [`[[policy]]`](#policy) — 9 keys
+- [`[[housing_form]]`](#housing_form) — 11 keys
+- [`[[lattice]]`](#lattice) — 4 keys
+- [`[[life_stage]]`](#life_stage) — 16 keys
+- [`[[policy]]`](#policy) — 12 keys
 - [`[[policy]] apply`](#policy-apply) — 4 keys
 - [`[[policy]] transfer`](#policy-transfer) — 4 keys
-- [`[[resource]]`](#resource) — 3 keys
-- [`[[rule]]`](#rule) — 9 keys
+- [`[[recipe]]`](#recipe) — 5 keys
+- [`[[recipe]] inputs`](#recipe-inputs) — 3 keys
+- [`[[recipe]] outputs`](#recipe-outputs) — 3 keys
+- [`[[reserve]]`](#reserve) — 4 keys
+- [`[[resource]]`](#resource) — 5 keys
+- [`[[rule]]`](#rule) — 14 keys
 - [`[[rule]] apply`](#rule-apply) — 4 keys
 - [`[[rule]] inputs`](#rule-inputs) — 3 keys
 - [`[[rule]] outputs`](#rule-outputs) — 4 keys
-- [`[[terrain]]`](#terrain) — 3 keys
-- [`[[zone_rule]]`](#zone_rule) — 7 keys
+- [`[[terrain]]`](#terrain) — 5 keys
+- [`[[zone_rule]]`](#zone_rule) — 10 keys
 - [`[business_tax]`](#business_tax) — 3 keys
 - [`[capacity]`](#capacity) — 4 keys
 - [`[care]`](#care) — 25 keys
@@ -84,9 +92,43 @@ dotnet run --project src/Borough.Headless -- \
 
 Which permission bits a Lot in this band may keep -- a list of bit indices, not a mask. It is a CAP applied by intersection against the Lot's own permission set, so a band can only ever take a permission away. Bands are ordered by declaration, least intense first, and a band nobody declared admits everything.
 
+**`id`** · *quoted string*
+
+Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.
+
+**`label`** · *quoted string*
+
+The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.
+
 **`name`** · *quoted string*
 
 What this density band is called.
+
+---
+
+## `[[basket]]`
+
+*An array of tables — a file may declare this more than once.*
+
+**`id`** · *quoted string*
+
+Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.
+
+**`label`** · *quoted string*
+
+The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.
+
+**`name`** · *quoted string*
+
+What this basket is called. A Rule's basket and a Bin's reserve name it by this.
+
+**`owner`** · *quoted string*
+
+Which actor's daily use this describes: the premises, the occupant Household or the business tenanting them. A Bin sized from this basket must belong to the same one.
+
+**`use_per_day`** · *inline table*
+
+The Goods this basket covers and the whole units one actor uses of each per Day, keyed by [[resource]] name. A Rule naming the basket consumes these at that rate however often it fires, so a daily quantity need not divide evenly across firings. Money is refused here.
 
 ---
 
@@ -138,6 +180,14 @@ How many Days the premises' own Rules may starve continuously before the Buildin
 
 Whether a HOUSEHOLD may take a tenancy in a Building of this kind. It says whether and never how many: the count is the Building's own floor area over [capacity] floor_tiles_per_occupant, so two Buildings of one kind on differently-sized ground hold different numbers. Households and Businesses share the one ceiling, and this is one of the two permissions over it — see premises, which does not follow from this one. Absent means no Household may live here, which is what most kinds are.
 
+**`id`** · *quoted string*
+
+Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.
+
+**`label`** · *quoted string*
+
+The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.
+
 **`level`** · *whole number*
 
 Which school level a kind serving education teaches: 1 primary, 2 secondary, 3 university. Refused on any kind that does not serve education. Required of an education kind exactly where the file also states [schooling]; absent otherwise means an undifferentiated school every family matches.
@@ -188,9 +238,31 @@ How much of that Resource the Bin holds when full. Refused on a money Bin, which
 
 Whose Bin this is: the premises', or the tenant's. It is what makes a Rule over this Bin the tenant's Rule rather than the Building's, and a tenant's Bins live exactly as long as the tenancy. Absent means the premises own it.
 
+**`reserve`** · *inline table*
+
+Sizes this Bin as Days of cover instead of a literal capacity, naming the basket that empties it and the profile that says how many Days. Changing what the basket uses moves every Bin sized from it. Refused beside capacity, and on a money Bin.
+
 **`resource`** · *quoted string*
 
 Which Resource this Bin holds, naming a [[resource]]. One Bin per Resource per kind.
+
+---
+
+## `[[building]] bins reserve`
+
+*An array of tables — a file may declare this more than once.*
+
+**`basket`** · *quoted string*
+
+Which [[basket]] this Bin empties into, naming the daily use that the Days multiply. The basket must name this Bin's Resource and belong to the same owner.
+
+**`days`** · *whole number*
+
+Holds this one Bin for a different number of Days than its profile states. It is an exception in Days and not in units, so a change to the basket still moves it; removing the key returns the Bin to the profile.
+
+**`profile`** · *quoted string*
+
+Which [[reserve]] supplies the Days this Bin holds. Every Bin naming it moves together when its Days change.
 
 ---
 
@@ -205,6 +277,14 @@ The daily closing hour; purchases arriving at or after closing fail.
 **`goes_bankrupt_after_short_paydays`** · *whole number*
 
 How many paydays running this trade may fail to pay its workers in full before it is wound up: the staff are dismissed and the premises are left standing and empty. A payroll met in full resets the count. Absent means it never goes bankrupt.
+
+**`id`** · *quoted string*
+
+Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.
+
+**`label`** · *quoted string*
+
+The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.
 
 **`name`** · *quoted string*
 
@@ -294,6 +374,14 @@ The most. Stated as a band rather than one figure, because a single figure gives
 
 The least money a Household arriving from this Hinterland brings with it.
 
+**`id`** · *quoted string*
+
+Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.
+
+**`label`** · *quoted string*
+
+The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.
+
 **`prices`** · *array of inline tables*
 
 What this Hinterland will sell each Good for, one entry per Good. These are the only authored anchor under every price in the design: a District's Pool may charge up to the cheapest declared Hinterland price and no more.
@@ -321,6 +409,14 @@ Which Good is being priced, naming a [[resource]]. Only a good may be — a util
 ## `[[housing_form]]`
 
 *An array of tables — a file may declare this more than once.*
+
+**`id`** · *quoted string*
+
+Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.
+
+**`label`** · *quoted string*
+
+The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.
 
 **`max_depth_tiles`** · *whole number*
 
@@ -363,6 +459,14 @@ Relative deterministic draw weight among equally useful first Buildings; 1..1000
 ## `[[lattice]]`
 
 *An array of tables — a file may declare this more than once.*
+
+**`id`** · *quoted string*
+
+Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.
+
+**`label`** · *quoted string*
+
+The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.
 
 **`origin_east_tiles`** · *whole number*
 
@@ -414,6 +518,14 @@ The fewest children a Household bears on leaving this stage. Zero is the answer 
 
 The fewest Days a Household spends in this stage before its countdown comes due.
 
+**`id`** · *quoted string*
+
+Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.
+
+**`label`** · *quoted string*
+
+The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.
+
 **`name`** · *quoted string*
 
 What this stage of a Household's life is called. next, childless and children_become name a stage by this.
@@ -448,13 +560,25 @@ How many times the transfer is applied to each member on one sweep: a band, or a
 
 The most a subsidy may pay out in one Day, rationed across every claimant at once rather than paid in slot order until the money runs out. Only a subsidy has one, and a subsidy states it: a grant with no bound is an entitlement. A stated zero is a subsidy shipped switched off, which the player raises through the governing panel.
 
+**`id`** · *quoted string*
+
+Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.
+
 **`interval`** · *whole number*
 
 How many Ticks between sweeps of this Policy over that population.
 
+**`label`** · *quoted string*
+
+The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.
+
 **`name`** · *quoted string*
 
 What this Policy is called. The player's governing panel addresses a Policy by this and by nothing else, so an unnamed one is unaddressable rather than addressable by position.
+
+**`order`** · *whole number*
+
+Places this declaration in execution order ahead of a higher one. A package member states it, and declarations sharing an order or stating none fall back to id order. A single-file Ruleset orders these by declaration position instead.
 
 **`relief_percent`** · *whole number*
 
@@ -522,6 +646,90 @@ Which side it arrives at — typically global, the treasury.
 
 ---
 
+## `[[recipe]]`
+
+*An array of tables — a file may declare this more than once.*
+
+**`id`** · *quoted string*
+
+Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.
+
+**`inputs`** · *array of inline tables*
+
+The Goods each application of this recipe takes, in the same shape a Rule's own inputs take. Amounts are per application, so a Rule applying the recipe four times takes four times these.
+
+**`label`** · *quoted string*
+
+The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.
+
+**`name`** · *quoted string*
+
+What this conversion is called. A Rule's recipe names it by this.
+
+**`outputs`** · *array of inline tables*
+
+The Goods each application of this recipe makes, in the same shape a Rule's own outputs take, including map emissions.
+
+---
+
+## `[[recipe]] inputs`
+
+*An array of tables — a file may declare this more than once.*
+
+**`amount`** · *whole number*
+
+How much of it one application draws.
+
+**`resource`** · *quoted string*
+
+Which Resource this term draws, naming a [[resource]].
+
+**`scope`** · *quoted string*
+
+Where the term draws from, as a Rule's own inputs scope does: local, pool or global.
+
+---
+
+## `[[recipe]] outputs`
+
+*An array of tables — a file may declare this more than once.*
+
+**`amount`** · *whole number*
+
+How much of it one application deposits.
+
+**`resource`** · *quoted string*
+
+Which Resource this term deposits, naming a [[resource]].
+
+**`scope`** · *quoted string*
+
+Where the term deposits, as a Rule's own outputs scope does: local, pool, global or map.
+
+---
+
+## `[[reserve]]`
+
+*An array of tables — a file may declare this more than once.*
+
+**`days`** · *whole number*
+
+How many Days of a basket's use a Bin sized from this profile holds. It is the shared number; a Bin may state its own days to hold a different span.
+
+**`id`** · *quoted string*
+
+Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.
+
+**`label`** · *quoted string*
+
+The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.
+
+**`name`** · *quoted string*
+
+What this reserve is called. A Bin's reserve profile names it by this.
+
+---
+
 ## `[[resource]]`
 
 *An array of tables — a file may declare this more than once.*
@@ -529,6 +737,14 @@ Which side it arrives at — typically global, the treasury.
 **`family`** · *quoted string*
 
 Which of the three kinds of thing this is: a good moves as a Shipment on the Road Graph and shows up in the traffic, a utility flows along the District adjacency graph, and money is conserved and does not move at all. The family decides transport and whether a Bin holding it has a ceiling, so there is no default.
+
+**`id`** · *quoted string*
+
+Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.
+
+**`label`** · *quoted string*
+
+The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.
 
 **`name`** · *quoted string*
 
@@ -548,9 +764,17 @@ Which Household Need this Resource feeds when it is consumed. Only sustenance an
 
 How many times the Rule's terms are applied on one firing: either a band, or a count derived from a Readout. Never both — below a band's minimum is a failure and a derived zero is a success, so the two have colliding failure semantics.
 
+**`basket`** · *quoted string*
+
+Takes this Rule's inputs from a shared [[basket]] instead of listing them, at the basket's daily rate. Refused beside inputs or outputs, and requires a fixed apply count of one, because a daily quantity is spent once per firing.
+
 **`fills`** · *inline table*
 
 Which Bin a fallback link is relieving, so a chain can be answered as one mechanism. The map scope is refused: nothing ever waits on a Layer, so nothing can rescue a wait on one.
+
+**`id`** · *quoted string*
+
+Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.
 
 **`inputs`** · *array of inline tables*
 
@@ -560,6 +784,10 @@ What the Rule consumes on each application. A term that cannot be drawn is what 
 
 Which [[building]] kind this Rule runs on. Whether it is the premises' Rule or its tenant's is derived from the Bins its terms reach, never authored.
 
+**`label`** · *quoted string*
+
+The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.
+
 **`name`** · *quoted string*
 
 What this Rule is called. on_fail names another Rule by this.
@@ -568,6 +796,10 @@ What this Rule is called. on_fail names another Rule by this.
 
 Another Rule to try when this one's inputs cannot be met — a source ladder over one Bin. A Rule named here is a link rather than a head, so it is reached by walking a failed chain and is never armed on its own rate.
 
+**`order`** · *whole number*
+
+Places this declaration in execution order ahead of a higher one. A package member states it, and declarations sharing an order or stating none fall back to id order. A single-file Ruleset orders these by declaration position instead.
+
 **`outputs`** · *array of inline tables*
 
 What the Rule produces on each application, into a Bin or onto a Map Layer.
@@ -575,6 +807,10 @@ What the Rule produces on each application, into a Bin or onto a Map Layer.
 **`rate`** · *whole number*
 
 How often a Rule Instance re-arms, in Ticks — its reschedule interval. Distinct from the sweep interval a Zone Rule or a Policy states: a Bin Rule is armed per Building on the Event Wheel, not swept over the city.
+
+**`recipe`** · *quoted string*
+
+Takes this Rule's inputs and outputs from a shared [[recipe]] instead of listing them. Refused beside inputs, outputs or a basket. The recipe's amounts are per application, so this Rule's apply count still multiplies them.
 
 **`reports`** · *quoted string*
 
@@ -652,6 +888,14 @@ Where the term deposits: local, pool, global, or map. The map scope is write-onl
 
 The ceiling this ground's Fertility starts at, as a percentage of fully fertile. 100 is the top of the scale rather than a tuning choice.
 
+**`id`** · *quoted string*
+
+Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.
+
+**`label`** · *quoted string*
+
+The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.
+
 **`name`** · *quoted string*
 
 Which of the five terrain types this table prices: ordinary, rock, floodplain, marsh or thin_soil. The set is closed — this selects a type the generator already places rather than declaring one. A file prices all five or none.
@@ -674,6 +918,10 @@ How much unmet demand, in household-Days, must accumulate in a District before t
 
 How many Days a District waits after raising a Building of this kind before it may raise another — what damps the response to the demand signal. Requires build_threshold_days, since a Rule reading no demand has nothing to damp.
 
+**`id`** · *quoted string*
+
+Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.
+
 **`interval`** · *whole number*
 
 How many Ticks between sweeps of this Rule over the city. Distinct from a Bin Rule's rate: a Zone Rule sweeps, it is not armed per Lot.
@@ -682,9 +930,17 @@ How many Ticks between sweeps of this Rule over the city. Distinct from a Bin Ru
 
 Which [[building]] kind this Rule raises on a Lot it accepts.
 
+**`label`** · *quoted string*
+
+The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.
+
 **`name`** · *quoted string*
 
 What this Zone Rule is called.
+
+**`order`** · *whole number*
+
+Places this declaration in execution order ahead of a higher one. A package member states it, and declarations sharing an order or stating none fall back to id order. A single-file Ruleset orders these by declaration position instead.
 
 **`revisit_ticks`** · *whole number*
 

@@ -67,9 +67,9 @@ public readonly struct SaveHeader : IEquatable<SaveHeader>
     /// new table exists is short by a table and needs a migration; the hash it was written at was never
     /// wrong.
     /// </remarks>
-    // Version 9 adds per-Pool-membership housing search reasons and preference episode clocks.
-    // Older declaration sets are refused before their body is read.
-    public const int Current = 9;
+    // Version 10 adds a Bin's consumption progress, the remainder of a per-Day quantity that has
+    // not yet reached a whole unit. Older declaration sets are refused before their body is read.
+    public const int Current = 10;
 
     private const ulong ByteOrderSentinel = 0x0102_0304_0506_0708UL;
 

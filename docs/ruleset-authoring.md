@@ -9,20 +9,25 @@ the loader resolves references, derives quantities and reports consequences.
 still need design. The source format is only partly implemented.** `RulesetSource` in Formats
 captures manifests, frames bundle identity, collects typed declarations with located diagnostics
 and resolves them deterministically by lowering into the single-file reader. `RulesetBundle` writes
-and reads the stored bundle described below. The headless runner loads a package through
-`RulesetSource`; the Godot shell does not, no host stores a bundle yet, and shared baskets, recipe
-references and storage selections are refused as unimplemented. The hosts' loader currently reads a single execution-oriented TOML document. The disposable prototype demonstrates
-shared maintenance and impact reports; the factored representation and bakery contract establish
-bounded design evidence. They are not production loaders or substitutes for Core mechanics.
+and reads the stored bundle described below. Both hosts load a package through `RulesetSource`, and
+CitySave envelope version 2 stores its bundle, so a package city saves and reloads without its
+source directory. The three shared definitions are implemented: a Rule's `basket` supplies its
+input terms at a daily rate, a Rule's `recipe` supplies its inputs and outputs together at
+per-application amounts, and a Bin's `reserve` derives its capacity. `rulesets/stocked.toml`
+demonstrates all three, against a daily quantity that does not divide evenly across
+firings. The disposable prototype demonstrates shared maintenance and impact reports; the factored
+representation and bakery contract establish bounded design evidence. They are not production loaders or substitutes for Core mechanics.
 [Plan 0077](../plans/0077-ruleset-source-loading.md) captures loader and guide implementation;
 the [board](../plans/0000-board.md) owns scheduling and the separate runtime/gameplay work.
 
 ## First usable release
 
 The loader and runtime factoring can be developed as separate tasks. Their integration is a
-requirement of the first usable authoring release: demonstrate shared behaviour and distinct
-saved storage selections together, including sparse exceptions and replay/save-load equivalence,
-without manufacturing kinds for profiles. Parsing, diagnostics and bundle retention can start
+requirement of the first usable authoring release: demonstrate shared behaviour and derived reserve
+capacities together, including sparse exceptions and replay/save-load equivalence. Saved
+per-instance selections are **not** part of that release; a reserve difference between two
+otherwise identical premises is expressed as a second kind until the separate per-instance
+parameter variation work lands. Parsing, diagnostics and bundle retention can start
 independently. Work-dependent production remains separate gameplay work. Daily consumption accepts
 quantities that do not divide evenly across firings, using deterministic fractional progress.
 Explicit membership and portable filenames remain engineering constraints. The first release
@@ -34,15 +39,15 @@ mappings are deferred. Structural conversions must not infer mappings or silentl
 | Intent | Author once | Derive or share |
 |---|---|---|
 | Household consumption | A named basket's Goods and daily quantities | Behaviour wherever that basket is referenced |
-| Supply storage | Days of consumption or nominal production | Integer Bin capacities; make the throughput basis explicit |
+| Supply reserve | Days of consumption or nominal production | Integer Bin capacities; make the throughput basis explicit |
 | A deliberate exception | An explicit local override | Unrelated kinds continue inheriting; omission restores inheritance |
 | Production | A recipe's actual input/output edges | Businesses referencing that recipe share its meaning |
-| Different premises | The relevant geometry/tenancy and storage choices | Posts derive from floor allocation; a storage choice does not copy the whole kind |
+| Different premises | The relevant geometry/tenancy and reserve choices | Posts derive from floor allocation; a reserve choice does not copy the whole kind |
 | Employment and funding | Work/pay terms and distinct funding choices | Payroll needs and funding coverage, without forcing them to be equal |
 | Economic connectivity | Owners, suppliers, buyers and payment counterparties | Missing-link diagnostics and a dependency/impact report |
 
-A kind's identity, shared behaviour, storage selection and appearance are separate concerns.
-Do not manufacture another behavioural kind merely to express a storage or cosmetic difference.
+A kind's identity, shared behaviour, reserve selection and appearance are separate concerns.
+Do not manufacture another behavioural kind merely to express a cosmetic difference.
 Keep individual Citizen decisions and actual per-entity stock: factoring definitions does not
 remove the work needed to simulate actual relationships.
 
@@ -76,7 +81,7 @@ base-game/
   consumption.toml
   recipes.toml
   businesses.toml
-  storage.toml
+  reserves.toml
   services.toml
 ```
 
@@ -119,7 +124,7 @@ performs no filesystem discovery or TOML parsing. Both hosts must use the same l
    override precedence; do not use last-file-wins or a generic deep merge. Explicit domain
    overrides remain local. Reject unknown keys and unresolved references with source locations.
 4. **Typed derivation.** Resolve quantities with units, ownership and a declared basis. Show how
-   storage follows consumption or nominal throughput. Refuse unsupported/unrepresentable
+   a reserve follows consumption or nominal throughput. Refuse unsupported/unrepresentable
    semantics rather than substitute a superficially similar mechanism. Validate cycles according
    to their meaning; a legitimate recycling recipe graph is not an inheritance cycle.
 5. **Deterministic assembly.** Produce stable definition ordering and runtime references independent
@@ -162,9 +167,9 @@ candidate. Add these shallow shared definitions:
 |---|---|---|
 | `[[basket]]` | `owner`, `use_per_day` | `owner` is `premises`, `occupant` or `business`, matching Bin tenancy (`occupant` means Household stock). `use_per_day` maps Good Resource ids to positive integer units per actor per Day. |
 | `[[recipe]]` | `inputs`, `outputs` | Existing typed Rule term arrays, amounts per application; retain scope and ownership/payment validation. Neither field implies free supply or labour. |
-| `[[storage]]` | `days` | Positive integer Days of an explicitly selected consumption basis. A flat reusable definition; no parent profiles. |
+| `[[reserve]]` | `days` | Positive integer Days of an explicitly selected consumption basis. A flat reusable definition; no parent profiles. |
 | `[[rule]]` addition | `basket` or `recipe` | A typed reference. A basket supplies local consumption inputs; a recipe supplies its input/output terms. Keep the Rule's existing kind, rate, apply, failure and emission fields. |
-| Building Bin addition | `storage` | An inline table `{ profile = "reserve", basket = "basic", days = 5 }`. `profile` and `basket` are required typed references; `days` is an optional local override. This replaces that Bin's literal `capacity`. |
+| Building Bin addition | `reserve` | An inline table `{ profile = "standard", basket = "basic", days = 5 }`. `profile` and `basket` are required typed references; `days` is an optional local override. This replaces that Bin's literal `capacity`. |
 
 For a basket Rule, explicit `inputs` and `outputs` are refused; for a recipe Rule, explicit
 `inputs`/`outputs` are refused. `basket` and `recipe` are mutually exclusive. A basket Rule uses
@@ -194,7 +199,7 @@ All resulting capacities must fit existing Core bounds. Literal capacities remai
 Do not silently deduplicate an explicit consumption Rule and a basket Rule: existing conflicts
 are refusals and the impact report shows every actual Rule attachment.
 
-For example, these are proposed source v1 declarations, **not runnable with today's loader**:
+For example, these declarations load today. `rulesets/stocked.toml` is the shipped demonstration:
 
 ```toml
 [[basket]]
@@ -202,19 +207,25 @@ id = "basic"
 owner = "occupant"
 use_per_day = { food = 32, fuel = 16 }
 
-[[storage]]
-id = "reserve"
+[[reserve]]
+id = "standard"
 days = 3
 ```
 
-An occupant Food Bin using `storage = { profile = "reserve", basket = "basic" }` has capacity
+An occupant Food Bin using `reserve = { profile = "standard", basket = "basic" }` has capacity
 96. Adding `days = 5` there gives that Bin capacity 160; changing the shared profile no longer
 changes that Bin. Changing basic Food use to 48 changes these capacities to 144 and 240:
 the exception preserves Days, not a hidden absolute capacity.
 
-Nominal production storage and saved instance profile selections require the separate runtime
-factoring work; the first usable release must integrate saved selections as specified above.
-Their source schema must be completed with that runtime contract before release. Work-dependent
+⚠ **A reserve is Days of cover and is not `CONTEXT` → Resource's *Storage*.** That parameter is
+whether a Bin carries over between periods — zero for Power, filling for Waste — and `RulesetLoader`
+holds `storage` open as a named hole on `[[resource]]` for it. The two are different fields and the
+word is not reused. A Household's Life-Stage-sized money buffer is also called a reserve in
+`CONTEXT`; that one is Money and is unrelated to this.
+
+Nominal production reserves require the separate runtime factoring work. Saved per-instance profile
+selections are deferred beyond the first usable release and their source schema is not settled;
+until then a `profile` names a reserve every instance of that kind shares. Work-dependent
 recipes remain separate gameplay work. Until implemented, requests for these semantics must be
 refused with the missing capability named; the research bakery's `work` or `selection` tables
 must not parse as ignored metadata.
@@ -255,9 +266,8 @@ instead of separately reading, hashing and parsing files.
 
 During implementation, source sharing may lower into existing Rule and Bin declarations, once per actual kind
 attachment. Report that duplication and enforce the existing limits before publication. Do not
-create another kind for a storage choice or emit a kind × profile product. The separate runtime
-factoring item owns shared execution and saved selections; integration must replace this lowering
-before the first usable authoring release. Develop the integrated resolver
+emit a kind × profile product. The separate runtime factoring item owns shared execution;
+integration must replace this lowering before the first usable authoring release. Develop the integrated resolver
 behind the same typed source boundary, with explicit format/resolver versioning and equivalence
 checks. Preserve each actor, Rule family, cadence, fallback and transaction scope.
 
@@ -316,13 +326,16 @@ version or refuse it explicitly. Retaining bytes alone is not an interpreter com
 
 ### CitySave and replay integration
 
-Introduce CitySave envelope version 2 in the shell, keeping `world.save` owned by Core. Its
-`city.json` records seed, active content identity and the content catalogue entries. Store each
-Formats bundle under `content/<16-digit-lower-case-hash>/`; the bundle codec defines its internal
-layout. Verify metadata, bundle identities and `SaveHeader.RulesetInForce` agree before building
-the world. Read version 1 saves through their existing `ruleset.toml` path and hash rules. Write
-new saves as version 2, including when the active source is legacy. Do not rewrite old artifacts
-or change Core's binary save schema merely to package sources.
+CitySave envelope version 2 is in the shell, keeping `world.save` owned by Core. Its `city.json`
+records the envelope version and seed; the active bundle's entries sit at the archive root, where
+the bundle codec owns their layout. The bundle's recomputed identity and `SaveHeader.RulesetInForce`
+must agree before the world is built. Version 1 saves read through their existing `ruleset.toml`
+path and hash rules. New saves are version 2, including when the active source is legacy. Old
+artifacts are not rewritten and Core's binary save schema is unchanged.
+
+A content catalogue under `content/<16-digit-lower-case-hash>/` holding several bundles arrives with
+registered in-session reloads, which need an opening bundle and one per transition. The shell's
+tuner regenerates rather than reloading, so a session holds one Ruleset and stores one bundle.
 
 A save containing a checkpoint needs the active bundle for continuation. Retain other bundles
 referenced by an included Input Log from that checkpoint onward, plus its opening bundle. A
@@ -379,9 +392,9 @@ whole-game usability or balance result.
 
 The initial expansion exceeded Core's 254-kind limit at 83 consumer kinds with three variants.
 The [factoring/bakery study](../plans/evidence/ruleset-authoring/scaling-and-bakery.md) preserves
-storage differences through separate selections and shares behaviour definitions in research
+reserve differences through separate selections and shares behaviour definitions in research
 code. Native Core integration, saved selection state and migration remain development work.
-The isolated bakery keeps recipe/work/storage/supply/sales edits local, but a native probe produces
+The isolated bakery keeps recipe/work/reserve/supply/sales edits local, but a native probe produces
 Food with zero workers. Core needs work-dependent production; its `jobs` Readout counts declared
 posts and must not stand in for workers present. Existing Pool purchases already exchange Goods
 and Money with local sellers.
@@ -408,8 +421,8 @@ an explicit founding scenario decision before they become claims in playable con
 | Authored intent | Values to check together |
 |---|---|
 | Consumption per Day | Rule input amount, `apply`, `rate` (Ticks), Bin capacity; shopping derives daily use from the net local consumption Rules |
-| Days of shopping stock | Consumption above, `low_days`, `target_days`, carry/storage capacity and shop opening times |
-| Production throughput | Input/output amounts, `apply`, `rate`, available inputs and output storage; fixed-count production has no automatic staffing factor |
+| Days of shopping stock | Consumption above, `low_days`, `target_days`, carry and Bin capacity, and shop opening times |
+| Production throughput | Input/output amounts, `apply`, `rate`, available inputs and output Bin space; fixed-count production has no automatic staffing factor |
 | Paid public jobs | Trade `wage_per_day`, `pay_period_days`, Policy `interval`, grant `amount`, `apply = { derived = "jobs" }` and wage tier/experience settings if enabled |
 | Building capacity | Geometry and occupied floor share, `floor_tiles_per_occupant`, `floor_tiles_per_job`, `floor_tiles_per_place`; service places also depend on staffing |
 | A Good in a District market | Resource, ownership of declared Bins, supply/consumption Rules, reachable seller and Hinterland price declarations |
@@ -452,16 +465,369 @@ Use a fresh run for changes to frozen world geometry/layer contracts. For suppor
 retain every exact Ruleset used: comments and whitespace affect the content hash. Read
 [the golden procedure](../tests/Borough.Tests/Golden/README.md) before changing golden inputs.
 
+## Walking through the example package
+
+`rulesets/split/` is the runnable example: `minimal.toml`'s content across four members. It
+demonstrates explicit membership, cross-member forward references and explicit Rule order. It
+models no city and makes no balance claim; `minimal.toml` carries the reasoning behind every
+number in it. Every command below runs from a clean checkout.
+
+### Loading it
+
+```sh
+dotnet run --project src/Borough.Headless -- \
+  --ruleset rulesets/split/ruleset.toml --citizens 200 --ticks 200 --kinds
+```
+
+The manifest is the entry and `--ruleset` takes it exactly as it takes a single file, because
+`[source]` is what selects the package reader. Every runner mode accepts a package this way. The kind dump names the Building `Terraced house`, which is
+`dwelling.toml`'s `label`, while `rules.toml` refers to the same declaration by its id, `dwelling`.
+
+The Godot shell takes the same path:
+
+```sh
+godot --path src/Borough.Godot -- --ruleset rulesets/split/ruleset.toml --citizens 400
+```
+
+### Membership is explicit
+
+The manifest lists its members and nothing else finds them:
+
+```toml
+[source]
+version = 1
+members = ["city.toml", "dwelling.toml", "goods.toml", "rules.toml"]
+```
+
+⚠ **A `.toml` file in the directory that the manifest does not list is not part of the package, and
+nothing says so.** Only listed members participate, so a new member is two edits — write the file,
+then list it. Forgetting the second edit loads the package without it, and the failure arrives later
+as a missing declaration rather than as a missing file.
+
+A member the manifest lists and the disk does not have is refused, because that is the case the
+loader can tell apart from a deliberate omission.
+
+### Identity, display text and order
+
+| Key | What it does | Where |
+|---|---|---|
+| `id` | Identifies the declaration across the package. Other members refer to it by this | Every `[[section]]` |
+| `label` | Display text the shell shows a player. Moves no reference | Every `[[section]]`, optional |
+| `order` | Places a declaration ahead of a higher one; ties fall back to id order | `[[policy]]`, `[[rule]]`, `[[zone_rule]]` |
+
+A package member states `id` where a single-file Ruleset states `name`, and stating both is refused.
+Renaming a `label` renames what a player reads and moves nothing else. Declarations order by id
+unless they carry an explicit `order`, so `rules.toml`'s sequence survives a member being split or
+moved — which is the reason position in a file means nothing here.
+
+Cross-member references need no ordering. `dwelling.toml`'s Bins name Goods that `goods.toml`
+declares, and `goods.toml` sorts after it.
+
+The generated [key reference](ruleset-reference.md) lists these three on every array-of-tables
+section, alongside the keys a reader asks for.
+
+### Reading a refusal
+
+Each of these is one edit to a copy of `rulesets/split/`, and the text is what the runner prints.
+
+| The mistake | What you get |
+|---|---|
+| A Bin names a Good nobody declares | `dwelling.toml:13:7: [[building]] 'dwelling': resource names 'repair', and no [[resource]] in this package declares that id. A reference is matched against the target section's ids alone, exactly and case-sensitively.` |
+| Two members declare one id | `goods.toml:15:1: [[resource]] 'sundries': a second [[resource]] has id 'sundries'; the first is at goods.toml:3:1. Duplicate ids are refused even when their values agree.` |
+| A listed member is not on disk | `rulesets/split/ruleset.toml:15:42: member 'goods.toml' is missing. A listed member never falls back to another file.` |
+| `order` outside the three ordered families | `dwelling.toml:11:1: [[building]] 'dwelling': order is accepted only on [[policy]], [[rule]], [[zone_rule]]; other declarations are ordered by id.` |
+| `name` where `id` belongs | `dwelling.toml:8:1: [[building]] has no id. Every source declaration is identified by id.` and `dwelling.toml:9:1: name is not a source key on [[building]]. id identifies the declaration and label is its display text.` |
+
+A refusal names the member, the line within it and the column, not an offset into a concatenation.
+A member is named by its path inside the package; the entry is named by the path `--ruleset` was
+given, so the manifest row above carries a directory and the member rows do not.
+The prefix names the declaration in scope by its own section, so a `[[resource]]` reports as one and
+a reference reports against the declaration that states it. ⚠ A refusal with no declaration in scope
+has no prefix — a manifest problem, or one the single-file reader raises against the whole document
+rather than against a member's line. Nothing is loaded when a package is refused, so a refused edit
+leaves the previous Ruleset in force.
+
+### Changing a value in a running city
+
+Register both versions and name the Tick the change lands on:
+
+```sh
+dotnet run --project src/Borough.Headless -- \
+  --ruleset rulesets/split/ruleset.toml --ruleset /tmp/split-v2/ruleset.toml \
+  --reload-at 100 --citizens 200 --ticks 200 --hash-every 100
+```
+
+The trace reports `1 reload(s)`, and the header's `ruleset` line carries the opening content
+identity. A reload is a transition in the Input Log, so a replay of that log needs both packages in
+its catalogue. ⚠ The Godot shell's tuner does not do this — it **regenerates** the city from edited
+bytes held in memory, which is a new world rather than a Ruleset swap.
+
+### Previewing an edit before running it
+
+`--against` resolves two Rulesets and reports what replacing the first with the second would do.
+It builds no world, so it answers in seconds and says nothing about a city already running.
+
+```sh
+sed 's/use_per_day = { sundries = 250 }/use_per_day = { sundries = 300 }/' \
+  rulesets/stocked.toml > /tmp/stocked-300.toml
+
+dotnet run --project src/Borough.Headless -- \
+  --ruleset rulesets/stocked.toml --against /tmp/stocked-300.toml
+```
+
+```text
+changed
+  [[building]] dwelling  changed
+    bins[0].Capacity.Units                   750 -> 900
+  [[rule]] consume  changed
+    inputs[0].Amount                         250 -> 300
+  (7 declaration(s) unchanged)
+```
+
+One edited number moves two declarations, and neither of them states it. The `consume` Rule names
+the basket instead of listing an input, and the larder's ceiling is `use_per_day × days`. That is
+what a shared definition is for, and reading it out of a run means noticing that two numbers moved
+together for a reason.
+
+The comparison is of **effective** values, so it sees through a shared definition. Comparing the
+two files as text would show one line moving and say nothing about what it reaches.
+
+A package also reports which declarations depend on each shared definition, including the ones the
+edit left alone:
+
+```text
+shared
+  [[basket]] basic
+    building/dwelling                via bins[].reserve.basket    changed
+    rule/consume                     via basket                   changed
+  [[recipe]] maintain
+    rule/upkeep                      via recipe                   unchanged
+```
+
+An unchanged dependant is the half a run cannot show. A city that behaves as expected after an edit
+does not tell you whether the edit missed something it should have reached.
+
+⚠ **A preview binds to the two content identities it printed.** Editing either file afterwards
+invalidates the report rather than changing what a later run would put in force.
+
+### Adding a Good and a recipe
+
+`rules.toml` says nothing produces `repairs`, so every dwelling in the example declines. Fixing that
+takes a Good, a recipe that makes `repairs` out of it, a Bin to hold it and a Rule to run the
+recipe. Write a new member and list it:
+
+```toml
+# shared.toml
+[[recipe]]
+id      = "mend"
+inputs  = [ { scope = "local", resource = "timber",  amount = 1 } ]
+outputs = [ { scope = "local", resource = "repairs", amount = 4 } ]
+```
+
+```toml
+# ruleset.toml
+members = ["city.toml", "dwelling.toml", "goods.toml", "rules.toml", "shared.toml"]
+```
+
+Then `timber` in `goods.toml`, a `timber` Bin on the dwelling, and a Rule naming the recipe:
+
+```toml
+# rules.toml
+[[rule]]
+id     = "mend"
+order  = 4
+kind   = "dwelling"
+rate   = 64
+apply  = { min = 1, max = 2 }
+recipe = "mend"
+```
+
+A recipe Rule states neither `inputs` nor `outputs`, because the recipe is both. `apply` may carry a
+band here, unlike a basket Rule, because a recipe is priced per application rather than per Day.
+
+```text
+declared
+  recipe           0 -> 1
+  resource         3 -> 4
+  rule             3 -> 4
+
+changed
+  [[rule]] mend  added
+    Kind                                     - -> dwelling
+    Rate                                     - -> 64
+    inputs[0].Bin.Resource.Raw               - -> timber
+    inputs[0].Amount                         - -> 1
+    outputs[0].Bin.Resource.Raw              - -> repairs
+    outputs[0].Amount                        - -> 4
+```
+
+The recipe's terms are reported against the Rule that runs them, not against the recipe, because
+that is where they end up. `[[recipe]] mend added` carries no values of its own for the same reason.
+
+### Sharing a daily basket and sizing a Bin from it
+
+A `[[basket]]` says what one occupant uses in a Day. A `[[reserve]]` says how many Days of it a Bin
+holds. Naming both puts the rate and the ceiling in one place:
+
+```toml
+# shared.toml
+[[basket]]
+id          = "basic"
+owner       = "occupant"
+use_per_day = { sundries = 128 }
+
+[[reserve]]
+id   = "standard"
+days = 3
+```
+
+The Bin names them instead of stating a capacity, and the Rule names the basket instead of listing
+an input:
+
+```toml
+{ resource = "sundries", reserve = { profile = "standard", basket = "basic" }, owner = "occupant" },
+```
+
+```toml
+[[rule]]
+id      = "consume"
+order   = 2
+kind    = "dwelling"
+rate    = 32
+apply   = { min = 1, max = 1 }
+basket  = "basic"
+```
+
+```text
+changed
+  [[basket]] basic  added
+  [[building]] dwelling  changed
+    bins[0].Capacity.Units                   48 -> 384
+  [[reserve]] standard  added
+  [[rule]] consume  changed
+    inputs[0].Amount                         4 -> 128
+    inputs[0].PerDay                         False -> True
+
+shared
+  [[basket]] basic
+    building/dwelling                via bins[].reserve.basket    changed
+    rule/consume                     via basket                   changed
+  [[reserve]] standard
+    building/dwelling                via bins[].reserve.profile   changed
+```
+
+The capacity is `use_per_day × days`, so 128 × 3 = 384. The Rule's term becomes a daily quantity —
+`PerDay` turns true — which is what lets one basket serve a Rule firing 64 times a Day and a Bin
+sized in Days of cover. A basket Rule applies exactly once per firing, because a daily quantity is
+spent once. Giving it a band is refused:
+
+> `rules.toml:13:0: [[rule]] 'consume': this Rule states a basket under an apply count that is not
+> fixed at one. A daily quantity is spent once per firing, so a Rule free to apply twice would take
+> twice the Day's amount while the Bin's progress advanced once. Drop the apply band, or state the
+> Rule's inputs literally.`
+
+### Making an exception and what it preserves
+
+A Bin that needs more cover than the shared profile gives states `days` locally:
+
+```toml
+{ resource = "sundries", reserve = { profile = "standard", basket = "basic", days = 5 }, owner = "occupant" },
+```
+
+```text
+changed
+  [[building]] dwelling  changed
+    bins[0].Capacity.Units                   384 -> 640
+
+shared
+  [[basket]] basic
+    building/dwelling                via bins[].reserve.basket    changed
+    rule/consume                     via basket                   unchanged
+```
+
+The Rule is listed and unchanged, which is the point of listing it. An exception on the Bin's Days
+does not touch the Rule that spends the basket.
+
+⚠ **An exception preserves Days, not a capacity.** Moving the shared basket to 160 afterwards moves
+the excepted Bin too:
+
+```text
+changed
+  [[building]] dwelling  changed
+    bins[0].Capacity.Units                   640 -> 800
+  [[rule]] consume  changed
+    inputs[0].Amount                         128 -> 160
+```
+
+640 was 128 × 5 and 800 is 160 × 5. A Bin that wanted a frozen number wants a literal `capacity`
+instead; `repairs` keeps one in the example for exactly that reason. Deleting the local `days`
+restores inheritance and the Bin follows the profile again.
+
+### Saving and resuming
+
+```sh
+dotnet run --project src/Borough.Headless -- \
+  --ruleset rulesets/split/ruleset.toml --citizens 200 --ticks 100 --save /tmp/city.save
+
+dotnet run --project src/Borough.Headless -- \
+  --ruleset rulesets/split/ruleset.toml --load /tmp/city.save --ticks 100
+```
+
+`--save` writes the world and then reloads and runs both, printing the two hash traces side by side;
+`--load` resumes that save on its own and runs on from the Tick it was taken at. The headless runner
+keeps no bundle, so the resume needs the same `--ruleset`, and the save header refuses a different
+one — the content identity it records is the package's framed identity, not the manifest's bytes.
+
+A city saved from the Godot shell embeds its whole package, so it resumes without the source
+directory and names the Ruleset it was authored under rather than the archive. Comments and
+whitespace are part of the content identity, so retain the exact bytes of any Ruleset a save or a
+replay depends on.
+
+### What this build does not do yet
+
+- **An impact preview has no world in it.** `--against` compares two Rulesets and reports what
+  moves. It cannot say what an edit would do to a city already running: stock, occupancy, jobs,
+  governed values and Rule rearming are all unreported, and no migration is attempted.
+- **A preview lists dependants only for a package.** The dependant list is built from the
+  resolver's references, which a single-file Ruleset does not produce. A single file still gets
+  every before/after value; it gets no `declared` counts and no `shared` section.
+- **A refusal the single-file reader raises still describes the lowered text.** The resolver owns
+  every reference a declaration makes to another, so those name the key, the column and the section.
+  Everything else — a value out of range, a wrong shape, an `on_fail` cycle — comes from the reader,
+  which reports a line without a column and says `name` where a member writes `id`.
+- 🔴 **Do not point `--schema` or `--key-reference` at a package directory.** Both take the folder
+  holding `--ruleset` and read every `.toml` in it as a separate single-file Ruleset — on
+  `rulesets/split/` that is five files, four of which the loader refuses, and the manifest
+  contributes a `[source]` section to the output. Generate from `rulesets/minimal.toml`.
+- **A `[[basket]]`'s `use_per_day` gets a reader refusal, not a package one.** Its keys are Good ids
+  the author chose rather than keys of the format, which the resolver's reference list has no way to
+  name. A package basket naming an undeclared Good is refused with a member and a line, without the
+  column and the section a cross-member reference carries.
+- **A manifest gets editor hints only when it is named `ruleset.toml`.** `.taplo.toml` gives
+  `rulesets/*/*.toml` the Ruleset schema and `rulesets/*/ruleset.toml` the manifest schema, and
+  Taplo applies the last matching rule. The loader reserves no filename, so a package whose entry
+  file is called something else is completed as a Ruleset and shows errors on `[source]`. That
+  costs autocomplete only; the resolver reads the file the same way.
+
 ## Delivering the production authoring guide
 
-Keep this document current as the loader ships. Turn the reviewed source v1 syntax into runnable
-examples for a small connected package, then walk through adding a Good/recipe, referencing a
-shared basket, choosing storage, introducing/removing an exception and evolving an inhabited
-city. Show the impact report and source-located diagnostics for common mistakes. Document which
-changes are supported, require migration, or require a new city.
+Keep this document current as the loader ships. The walkthrough above covers what this build can
+do: membership, identity and order, located diagnostics, an in-session change, an impact preview,
+adding a Good and a recipe, sharing a basket, sizing a Bin from a reserve, making an exception, and
+a package city that saves and resumes. What it still cannot walk through is evolving an inhabited
+city, because no reload yet reports what a transition would do to one. Document which changes are
+supported, require migration, or require a new city, once a reload can tell them apart.
 
-Update schema/completion and the generated key reference with the implementation, using
-`RulesetKeyNotes.cs` as the description source. Keep conceptual authoring instructions here,
-field-level contracts in the generated reference, and bounded evidence in the investigation.
+⚠ The walkthrough's commands are not held against the runner by anything. A flag renamed or a mode
+removed leaves them stale and silent. `ExamplePackageTests` pins the package itself — that it
+resolves, and the label and ids the walkthrough quotes — which is the half that a test can hold.
+
+Update schema/completion and the generated key reference with the implementation. `RulesetKeyNotes`
+describes the keys a reader asks for and `RulesetSourceKeys` the three a declaration states. The
+manifest's two keys are in `rulesets/manifest.schema.json`, which is hand-written rather than
+generated, because `[source]` accepts exactly `version` and `members` and a generator over a two-key
+list would re-render it rather than derive it. `RulesetManifestSchemaTests` drives each key through
+the resolver. Keep conceptual authoring instructions
+here, field-level contracts in the generated reference, and bounded evidence in the investigation.
 Documentation and a designer handoff are acceptance requirements of the loader work, not an
 optional follow-up after a parser lands. See [0077](../plans/0077-ruleset-source-loading.md).

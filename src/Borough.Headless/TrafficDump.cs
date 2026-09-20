@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using Borough.Core;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
@@ -202,15 +203,49 @@ internal static class TrafficDump
     /// function reports on a generated city. ***A control that silently equals its treatment is
     /// indistinguishable from a null result.***
     /// </para>
+    /// <para>
+    /// <b>The surgery goes through the capture rather than the path</b>, so a package is stripped
+    /// member by member. Reading the entry as one file would strip a manifest, which declares no
+    /// tables, and leave the <c>[traffic]</c> a member states standing — the control would then fail
+    /// to build on every package, which is the refusal above rather than a wrong number.
+    /// </para>
     /// </remarks>
     private static bool TryFreeFlow(string path, out Ruleset control)
     {
         control = Ruleset.Empty;
 
+        if (RulesetCapture.Read(path).Capture is not { } captured)
+        {
+            return false;
+        }
+
+        RulesetCaptureResult stripped = RulesetCapture.FromEntries(
+            captured.EntryName,
+            WithoutTraffic(captured.Entry.Span),
+            [.. captured.Members.Select(member => new KeyValuePair<string, byte[]>(
+                member.Path, WithoutTraffic(member.Content.Span)))]);
+
+        RulesetSourceResult resolved = RulesetSource.Resolve(stripped);
+
+        if (resolved.Ruleset is null || resolved.Ruleset.Traffic.Runs)
+        {
+            return false;
+        }
+
+        control = resolved.Ruleset;
+
+        return true;
+    }
+
+    private static byte[] WithoutTraffic(ReadOnlySpan<byte> bytes)
+    {
+        ReadOnlySpan<byte> preamble = Encoding.UTF8.Preamble;
+        string text = Encoding.UTF8.GetString(bytes.StartsWith(preamble) ? bytes[preamble.Length..] : bytes);
+
         var kept = new List<string>();
         bool inTraffic = false;
 
-        foreach (string line in File.ReadAllLines(path))
+        foreach (string line in text.Split('\n'))
         {
             string trimmed = line.TrimStart();
 
@@ -225,16 +260,7 @@ internal static class TrafficDump
             }
         }
 
-        RulesetLoadResult result = RulesetLoader.Parse(string.Join('\n', kept), path);
-
-        if (result.Ruleset is null || result.Ruleset.Traffic.Runs)
-        {
-            return false;
-        }
-
-        control = result.Ruleset;
-
-        return true;
+        return Encoding.UTF8.GetBytes(string.Join('\n', kept));
     }
 
     // ---- the run --------------------------------------------------------------------------------

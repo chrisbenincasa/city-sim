@@ -730,3 +730,16 @@ the extra columns. Both traces were regenerated with the commands above; the dri
 hand-built world hash are unchanged. Baseline Ruleset content and hash seed are unchanged. Those
 worlds do not opt into local housing construction, so `HousingConstructionTests` covers the nonzero
 episodes, their lifetime and continued automatic construction after save/load.
+
+### Fractional consumption meets the urban fabric (2026-09-20)
+
+Merging `main` into `ruleset-package-in-the-shell` puts two independent saved-column changes into one
+declaration set, so Core save format is **10**: the branch's Bin consumption progress on top of main's
+geographic permission, housing search reason and preference episode clocks. All three artefacts moved.
+Both traces and `world-hash.txt` were regenerated with the commands above. Baseline Ruleset content
+hashes and the hash seed are unchanged; no shipped Ruleset was edited.
+
+⚠ **Neither side's recorded numbers survive the merge, and neither was wrong.** The branch re-recorded
+against format 7 and main re-recorded twice against 8 and 9, each correctly. A merged hash is not
+either parent's hash and cannot be checked against one, so the numbers here are a fresh recording
+rather than a reconciliation of two.

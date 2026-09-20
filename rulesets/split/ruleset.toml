@@ -1,0 +1,15 @@
+# A source v1 package: minimal.toml's content split across four members, and the worked example the
+# authoring guide walks through. It demonstrates explicit membership, cross-member references and
+# explicit Rule order. dwelling.toml's Bins name Goods that goods.toml declares, and goods.toml
+# sorts after it, so those are forward references across members.
+#
+# It models no city and makes no balance claim. minimal.toml explains the shared keys and carries
+# the reasoning behind every number here.
+#
+# It lives in a subdirectory because the test project copies rulesets/*.toml by a flat glob and
+# several tests assert every file that glob finds is a single-file Ruleset. A manifest among them
+# would arrive without its members.
+
+[source]
+version = 1
+members = ["city.toml", "dwelling.toml", "goods.toml", "rules.toml"]

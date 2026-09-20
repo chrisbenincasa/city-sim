@@ -124,11 +124,9 @@ public partial class Main
         // every run -- and an exception out of Quit does not end the process, it leaves the frame loop
         // turning, so `w` and BOROUGH_LOG looked like a hang rather than a failure. Boot has resolved
         // this same path through Globalize since it was added; this one line did not.
-        if (RulesetFile.HashOfContent(System.Text.Encoding.UTF8.GetBytes(_toml))
-            != RulesetFile.HashOf(Globalize(_rulesetPath)))
+        if (RulesetCapture.Read(Globalize(_rulesetPath)).Capture?.ContentHash != _capture.ContentHash)
         {
-            rules = Path.ChangeExtension(path, ".toml");
-            File.WriteAllText(rules, _toml);
+            rules = CityTuning.WriteBeside(_capture, path);
             GD.Print($"the Ruleset in force is tuned and is not {_rulesetPath}; wrote {rules}");
         }
 

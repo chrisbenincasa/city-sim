@@ -212,6 +212,14 @@ public sealed class RuleEngine
     // global term pays one enum comparison per term and never touches a column.
     private bool[] _touchedTreasury = new bool[8];
 
+    // The consumption remainders a per-Day input term would leave on its Bin, computed by Check and
+    // banked by Fire. Held rather than written where they are computed because Phase 2 writes
+    // nothing (adr/0037) and because a Rule that is checked and then blocked must accrue nothing:
+    // forfeit while starved is the shape, not a case.
+    private int[] _accruedBin = new int[4];
+    private int[] _accruedRemainder = new int[4];
+    private int _accruedCount;
+
     // The pool draws of the Rule currently being checked, per application: which market row and how
     // much. Read by Fire to post DistrictPoolTable.Consumed, which is the tatonnement's numerator
     // and had no writer at all before this. Term structure, which the netted deltas above have lost.
@@ -562,11 +570,22 @@ public sealed class RuleEngine
         _touchedCount = 0;
         _boughtCount = 0;
         _tradeCount = 0;
+        _accruedCount = 0;
 
         foreach (Term term in _world.Rules.Inputs(rule))
         {
             if (term.Bin.Scope == Scope.Pool)
             {
+                if (term.PerDay)
+                {
+                    throw new InvalidOperationException(
+                        $"rule {rule.Raw} states a per-Day quantity on a pool term for Resource "
+                        + $"{term.Bin.Resource.Raw}. A purchase settles three deltas against a market "
+                        + "row rather than drawing one Bin down, so there is no Bin to carry the "
+                        + "remainder. The refusal belongs at load, with a file and a line; it is here "
+                        + "because the loader has no such check yet.");
+                }
+
                 // A purchase is one term and three deltas, so it cannot go through Touch(Bin(...)).
                 // It also fails BEFORE the affordability walk when no seller can cover a batch, which
                 // is a district-wide shortage rather than one Bin being short.
@@ -591,11 +610,22 @@ public sealed class RuleEngine
                 continue;
             }
 
-            Touch(Bin(_world, instance, term.Bin, rule), -term.Amount, IsTreasuryMoney(term.Bin));
+            int drawn = Bin(_world, instance, term.Bin, rule);
+
+            Touch(drawn, -PerFiring(drawn, term, rule, definition), IsTreasuryMoney(term.Bin));
         }
 
         foreach (Term term in _world.Rules.Outputs(rule))
         {
+            if (term.PerDay)
+            {
+                throw new InvalidOperationException(
+                    $"rule {rule.Raw} states a per-Day quantity on an output term for Resource "
+                    + $"{term.Bin.Resource.Raw}. The remainder column is consumption progress and a "
+                    + "Bin carries one, so production cannot share it. The refusal belongs at load, "
+                    + "with a file and a line; it is here because the loader has no such check yet.");
+            }
+
             Touch(Bin(_world, instance, term.Bin, rule), term.Amount, IsTreasuryMoney(term.Bin));
         }
 
@@ -938,6 +968,22 @@ public sealed class RuleEngine
                 {
                     _tickToTreasury += delta;
                 }
+            }
+        }
+
+        // The part of a per-Day quantity that did not reach a whole unit, banked HERE and nowhere
+        // else, so a Rule that was checked and then blocked accrues nothing. Check holds these
+        // because Phase 2 writes nothing (adr/0037) and because the rung that fires is not always
+        // the rung first evaluated -- a fallback chain re-checks on the way down, and the last check
+        // to succeed is the one whose terms Fire is settling.
+        //
+        // ⚠ Zero applications moves no Goods, so it accrues nothing either. Unlike the deltas above,
+        // a remainder is not scaled by the applications and would advance on its own.
+        if (verdict.Applications > 0)
+        {
+            for (int i = 0; i < _accruedCount; i++)
+            {
+                _world.Bins.Progress[_accruedBin[i]] = _accruedRemainder[i];
             }
         }
 
@@ -1678,6 +1724,83 @@ public sealed class RuleEngine
         // Rule that was evaluated and then blocked has emitted nothing -- recording there would
         // count evaluations rather than emissions.
         _world.Buildings.Emit(building, BusinessAccounts.DayOf(tick), emitted);
+    }
+
+    /// <summary>
+    /// The whole units an input term takes on this firing, which is its amount unless the amount is
+    /// stated per Day.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A Rule firing every <c>rate</c> Ticks covers <c>rate</c> Ticks of the Day, so a daily
+    /// quantity earns <c>amount × rate</c> Tick-units per firing and <see cref="Ticks.PerDay"/> of
+    /// them make a unit.</b> The part below a whole unit stays on the Bin, so three a Day over eight
+    /// firings takes three rather than zero or eight. It is
+    /// <c>CitizenTable.WageRemainder</c>'s arithmetic with the firing in the Tick's place.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Nothing is written here.</b> Phase 2 writes nothing (<c>adr/0037</c>), the re-check in
+    /// Phase 3 runs this again against the same Bin, and a Rule that never reaches
+    /// <see cref="Fire"/> must leave the Bin's progress where it was. The remainder is held until
+    /// the firing is settled.
+    /// </para>
+    /// <para>
+    /// <b>A second per-Day term on one Bin continues from the first's remainder rather than from the
+    /// column</b>, so two terms naming one Bin take the same total as one term for their sum.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A fixed apply count of one is required, and refused rather than assumed.</b> Check
+    /// multiplies every delta by the applications it settled on, which would take a multiple of a
+    /// daily quantity while advancing the remainder once.
+    /// </para>
+    /// </remarks>
+    private long PerFiring(int bin, in Term term, RuleId rule, in RuleDefinition definition)
+    {
+        if (!term.PerDay)
+        {
+            return term.Amount;
+        }
+
+        if (!definition.Apply.Derived.IsNone || definition.Apply.Min != 1 || definition.Apply.Max != 1)
+        {
+            throw new InvalidOperationException(
+                $"rule {rule.Raw} states a per-Day quantity for Resource {term.Bin.Resource.Raw} "
+                + "under an apply count that is not fixed at one. A daily quantity is spent once per "
+                + "firing, so a Rule free to apply twice would take twice the Day's amount. The "
+                + "refusal belongs at load, with a file and a line; it is here because the loader has "
+                + "no such check yet.");
+        }
+
+        int at = -1;
+
+        for (int i = 0; i < _accruedCount; i++)
+        {
+            if (_accruedBin[i] == bin)
+            {
+                at = i;
+                break;
+            }
+        }
+
+        long scaled = (at >= 0 ? _accruedRemainder[at] : _world.Bins.Progress[bin])
+            + ((long)term.Amount * definition.Rate);
+        int remainder = (int)(scaled % Ticks.PerDay);
+
+        if (at >= 0)
+        {
+            _accruedRemainder[at] = remainder;
+        }
+        else
+        {
+            Grow(ref _accruedBin, _accruedCount + 1);
+            Grow(ref _accruedRemainder, _accruedCount + 1);
+
+            _accruedBin[_accruedCount] = bin;
+            _accruedRemainder[_accruedCount] = remainder;
+            _accruedCount++;
+        }
+
+        return IntegerMath.FloorDiv(scaled, Ticks.PerDay);
     }
 
     /// <summary>Accumulates a delta against a Bin, merging a Bin already named by this Rule.</summary>

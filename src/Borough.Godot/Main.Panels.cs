@@ -136,82 +136,6 @@ public partial class Main
         new("[households]", "car_ownership_percent", "car_ownership_percent"),
     ];
 
-    /// <summary>
-    /// Reads the value a key currently carries, or <c>null</c> when the file does not state it.
-    /// </summary>
-    private static string? Stated(string toml, string table, string key)
-    {
-        string? here = null;
-
-        foreach (string line in toml.Split('\n'))
-        {
-            string trimmed = line.Trim();
-
-            if (trimmed.StartsWith('['))
-            {
-                here = trimmed;
-
-                continue;
-            }
-
-            if (here == table && Names(trimmed, key, out string value))
-            {
-                return value;
-            }
-        }
-
-        return null;
-    }
-
-    /// <summary>Whether a line assigns <paramref name="key"/>, and what it assigns.</summary>
-    private static bool Names(string line, string key, out string value)
-    {
-        value = string.Empty;
-
-        int equals = line.IndexOf('=');
-
-        if (equals < 0 || line.StartsWith('#') || line[..equals].Trim() != key)
-        {
-            return false;
-        }
-
-        value = line[(equals + 1)..].Trim();
-
-        return true;
-    }
-
-    /// <summary>
-    /// The Ruleset text with one key rewritten <b>inside its own table and nowhere else</b>.
-    /// </summary>
-    private static string Turned(string toml, string table, string key, string to)
-    {
-        string[] lines = toml.Split('\n');
-        string? here = null;
-
-        for (int at = 0; at < lines.Length; at++)
-        {
-            string trimmed = lines[at].Trim();
-
-            if (trimmed.StartsWith('['))
-            {
-                here = trimmed;
-
-                continue;
-            }
-
-            if (here == table && Names(trimmed, key, out _))
-            {
-                // The original indentation is kept because these files are column-aligned by hand
-                // and a rewriter that reflowed them would make every diff unreadable.
-                int equals = lines[at].IndexOf('=');
-
-                lines[at] = string.Concat(lines[at].AsSpan(0, equals + 1), " ", to);
-            }
-        }
-
-        return string.Join('\n', lines);
-    }
-
     /// <summary>Builds the panel. One row per <see cref="Dials"/> entry, hidden until asked for.</summary>
     private void Tuner(CanvasLayer layer)
     {
@@ -250,7 +174,7 @@ public partial class Main
 
             string? stated = Dials[at].Table.Length == 0
                 ? Own(Dials[at].Key)
-                : Stated(_toml, Dials[at].Table, Dials[at].Key);
+                : CityTuning.Stated(_capture, Dials[at].Table, Dials[at].Key);
 
             var field = new LineEdit
             {
@@ -955,9 +879,9 @@ public partial class Main
     /// </remarks>
     private void Regenerate()
     {
-        string toml = _toml;
         int citizens = _citizens;
         ulong seed = _seed;
+        var edits = new List<(string Table, string Key, string To)>();
 
         for (int at = 0; at < Dials.Length; at++)
         {
@@ -982,10 +906,10 @@ public partial class Main
                 continue;
             }
 
-            toml = Turned(toml, Dials[at].Table, Dials[at].Key, typed);
+            edits.Add((Dials[at].Table, Dials[at].Key, typed));
         }
 
-        RulesetLoadResult loaded = RulesetLoader.Parse(toml, Path.GetFileName(_rulesetPath));
+        RulesetSourceResult loaded = RulesetSource.Resolve(CityTuning.Turned(_capture, edits));
 
         if (loaded.Ruleset is null)
         {
@@ -998,7 +922,7 @@ public partial class Main
 
         PrepareCity(loaded.Ruleset, citizens, seed, 1, simulation =>
         {
-            _toml = toml;
+            _capture = loaded.Capture!;
             _names = loaded.Names;
             _citizens = citizens;
             _seed = seed;

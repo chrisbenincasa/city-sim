@@ -1,0 +1,36 @@
+# Rules order by `(order, id)` rather than by file position, so the sequence survives a member being
+# split or moved. Nothing here produces `repairs`, so every dwelling declines; minimal.toml says why.
+
+[[rule]]
+id      = "restock"
+order   = 1
+kind    = "dwelling"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = []
+outputs = [ { scope = "local", resource = "sundries", amount = 4 } ]
+
+[[rule]]
+id      = "consume"
+order   = 2
+kind    = "dwelling"
+rate    = 32
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "sundries", amount = 4 } ]
+outputs = []
+
+[[rule]]
+id      = "upkeep"
+order   = 3
+kind    = "dwelling"
+rate    = 16
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "repairs", amount = 4 } ]
+outputs = []
+
+[[zone_rule]]
+id            = "housing"
+kind          = "dwelling"
+zone          = 0
+interval      = 32
+revisit_ticks = 2048

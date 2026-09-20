@@ -177,6 +177,66 @@ public sealed class RulesetCaptureTests
         Assert.Equal(RulesetDiagnosticCode.Utf8, Assert.Single(badManifest.Diagnostics).Code);
     }
 
+    /// <summary>
+    /// <c>["source"]</c> is the same table as <c>[source]</c>, so it captures the same package.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>A manifest read as a single file loads NOTHING and says nothing.</b> Every member would
+    /// be ignored and the entry would reach the reader alone, where <c>version</c> and
+    /// <c>members</c> refuse as unknown keys — a refusal that describes neither the mistake nor the
+    /// package. Key names are therefore resolved to their TOML spelling rather than compared as
+    /// written.
+    /// </remarks>
+    [Theory]
+    [InlineData("[\"source\"]")]
+    [InlineData("[ source ]")]
+    [InlineData("['source']")]
+    public void A_quoted_source_table_is_the_same_manifest(string header)
+    {
+        string manifest = Manifest("goods.toml", "dwelling.toml", "rules.toml");
+
+        RulesetCapture quoted =
+            Capture(manifest.Replace("[source]", header, StringComparison.Ordinal), Base).Capture!;
+
+        Assert.Equal(RulesetSourceMode.Source, quoted.Mode);
+        Assert.Equal(3, quoted.Members.Count);
+    }
+
+    /// <summary>
+    /// A bundle's bytes are its identity, so a different spelling of one header is a different
+    /// Ruleset even though it resolves to the same one.
+    /// </summary>
+    [Fact]
+    public void A_quoted_source_table_is_not_the_same_bytes()
+    {
+        string manifest = Manifest("goods.toml", "dwelling.toml", "rules.toml");
+
+        Assert.NotEqual(
+            Capture(manifest, Base).Capture!.ContentHash,
+            Capture(manifest.Replace("[source]", "[\"source\"]", StringComparison.Ordinal), Base)
+                .Capture!.ContentHash);
+    }
+
+    /// <summary>
+    /// Invalid bytes are refused before the mode is chosen, because the mode is read out of the
+    /// decoded text.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Decoding permissively first would downgrade a manifest to a single file.</b> A bad byte
+    /// inside the <c>[source]</c> token becomes a replacement character, the token stops matching,
+    /// and the package loads none of its members instead of being refused.
+    /// </remarks>
+    [Fact]
+    public void A_bad_byte_inside_the_source_token_is_refused_rather_than_downgraded()
+    {
+        byte[] entry = [.. "[sou"u8, 0xFF, .. "rce]\nversion = 1\nmembers = []\n"u8];
+
+        RulesetCaptureResult captured = RulesetCapture.FromEntries("ruleset.toml", entry, []);
+
+        Assert.False(captured.Ok);
+        Assert.Equal(RulesetDiagnosticCode.Utf8, Assert.Single(captured.Diagnostics).Code);
+    }
+
     [Fact]
     public void A_package_loads_from_a_directory_without_depending_on_where_it_is()
     {
@@ -276,6 +336,60 @@ public sealed class RulesetCaptureTests
         BinaryPrimitives.WriteUInt64LittleEndian(length, (ulong)value.Length);
         frame.AddRange(length);
         frame.AddRange(value);
+    }
+
+    /// <summary>
+    /// A capture is read from the entry once, and everything downstream works from those bytes.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Reading the path a second time would let an edit between the two reads register one
+    /// content identity against different Rules</b>, which a save header and a replay transition
+    /// both read as provenance. Rewriting the files under a capture that already exists is the
+    /// sharpest way to state it.
+    /// </remarks>
+    [Fact]
+    public void A_capture_resolves_from_its_own_bytes_and_never_from_the_path_again()
+    {
+        using var directory = new Directory();
+
+        directory.Write("goods.toml", Goods);
+        string entry = directory.Write("ruleset.toml", Manifest("goods.toml"));
+
+        RulesetCapture capture = RulesetCapture.Read(entry).Capture!;
+        ulong identity = capture.ContentHash;
+
+        directory.Write("goods.toml", Goods + "\n[[resource]]\nid = \"flour\"\nfamily = \"good\"\n");
+        directory.Write("ruleset.toml", Manifest("goods.toml") + "\n# edited\n");
+
+        RulesetSourceResult resolved = RulesetSource.Resolve(capture);
+
+        Assert.True(resolved.Ok, resolved.Describe());
+        Assert.Equal(identity, capture.ContentHash);
+        Assert.DoesNotContain(resolved.Declarations, d => d.Id == "flour");
+        Assert.NotEqual(identity, RulesetCapture.Read(entry).Capture!.ContentHash);
+    }
+
+    /// <summary>
+    /// The member limit is a count, so the accepted and refused sides are one member apart.
+    /// </summary>
+    [Fact]
+    public void The_member_limit_is_read_at_its_own_boundary()
+    {
+        (string, string)[] members =
+            [.. Enumerable.Range(0, RulesetCapture.MemberLimit + 1)
+                .Select(i => ($"m{i:0000}.toml", "# nothing\n"))];
+
+        string[] paths = [.. members.Select(member => member.Item1)];
+
+        RulesetCaptureResult full = Capture(Manifest(paths[..RulesetCapture.MemberLimit]),
+            members[..RulesetCapture.MemberLimit]);
+
+        RulesetCaptureResult over = Capture(Manifest(paths), members);
+
+        Assert.True(full.Ok, full.Ok ? string.Empty : full.Diagnostics[0].ToString());
+        Assert.Equal(RulesetCapture.MemberLimit, full.Capture!.Members.Count);
+        Assert.False(over.Ok);
+        Assert.Equal(RulesetDiagnosticCode.Limit, over.Diagnostics[0].Code);
     }
 
     private sealed class Directory : IDisposable

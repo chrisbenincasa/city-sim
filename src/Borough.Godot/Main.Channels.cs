@@ -557,7 +557,7 @@ public partial class Main
         text.Append(CultureInfo.InvariantCulture, $"tick\t{_world.Tick.Raw}\n");
         text.Append(
             CultureInfo.InvariantCulture,
-            $"ruleset\t{Path.GetFileName(_rulesetPath)}\n");
+            $"ruleset\t{RulesetName()}\n");
         text.Append(CultureInfo.InvariantCulture, $"{Ruler()}\n");
         if (System.Environment.GetEnvironmentVariable("BOROUGH_RENDER_PROFILE") is not null)
         {

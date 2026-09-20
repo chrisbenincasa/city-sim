@@ -95,6 +95,7 @@ public sealed class BinTable
         SpaceTail = _rows.Saved<int>("space_wait_tail", Touch.PerTick);
         BinNext = _rows.Derived<int>("bin_next");
         OwnerNext = _rows.SavedHandle("owner_next", _rows);
+        Progress = _rows.Saved<int>("consumption_progress", Touch.PerTick);
 
         _rows.Seal();
     }
@@ -206,6 +207,31 @@ public sealed class BinTable
     /// </para>
     /// </remarks>
     public HandleColumn<Bin> OwnerNext { get; }
+
+    /// <summary>
+    /// The part of a per-Day consumption quantity this Bin has accrued without yet reaching a whole
+    /// unit, in Tick-units and always in <c>[0, Ticks.PerDay)</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Saved, because a daily quantity that does not divide across a Rule's firings is otherwise
+    /// rounded to zero or up to a whole unit every firing.</b> <see cref="RuleEngine"/> adds
+    /// <c>use_per_day × rate</c> here and takes <c>FloorDiv(_, Ticks.PerDay)</c> as the units this
+    /// firing moves, leaving the remainder. It is <c>CitizenTable.WageRemainder</c>'s arithmetic
+    /// applied per firing rather than per Tick.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It moves on a successful firing and on nothing else.</b> A blocked Rule does not fire, so
+    /// a starved actor accrues nothing while it waits and does not catch up when supply returns —
+    /// forfeit falls out of the shape rather than needing a case of its own.
+    /// </para>
+    /// <para>
+    /// <b>One writer per row per firing, which is what keeps it safe under parallel evaluation.</b>
+    /// It is written in the serial apply phase, keyed by the row being processed, and never
+    /// accumulated into from a shared aggregate.
+    /// </para>
+    /// </remarks>
+    public Column<int> Progress { get; }
 
     /// <summary>How much is in the Bin. Read freely; a read cannot forget to wake anybody.</summary>
     public long LevelAt(int slot) => _level[slot];
@@ -332,7 +358,9 @@ public sealed class BinTable
     /// freed a Bin, so the omission cost nothing. Demolition is what makes it reachable: the next
     /// Building raised on a cleared Lot would open its doors with whatever the condemned one still had
     /// in store, which is goods created from nothing and would read as a generous city rather than as
-    /// a defect. The wait-list columns need no such line — <see cref="IndexList"/> encodes an empty
+    /// a defect. <see cref="Progress"/> is written for the same reason: a part-accrued unit
+    /// belonging to the condemned Building would otherwise be the next one's opening balance. The
+    /// wait-list columns need no such line — <see cref="IndexList"/> encodes an empty
     /// list as zero, so a fresh slot is already empty and a drained one is empty again.
     /// </remarks>
     internal Handle<Bin> Create(Handle<Building> owner, ResourceId resource, long capacity)
@@ -346,6 +374,7 @@ public sealed class BinTable
         Capacity[slot] = capacity;
         _level[slot] = 0;
         _cost[slot] = 0;
+        Progress[slot] = 0;
 
         return handle;
     }
@@ -370,6 +399,7 @@ public sealed class BinTable
         Capacity[slot] = capacity;
         _level[slot] = 0;
         _cost[slot] = 0;
+        Progress[slot] = 0;
 
         return handle;
     }

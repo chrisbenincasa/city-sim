@@ -15,6 +15,19 @@ namespace Borough.Formats;
 public sealed record RulesetSourceDeclaration(
     string Section, string? Id, string? Label, long Order, RulesetSourceLocation Location);
 
+/// <summary>One resolved reference: which declaration names which, and where it says so.</summary>
+/// <param name="Section">The declaring section, which owns nested tables under its own name.</param>
+/// <param name="Id">The declaring typed id, or null for a singleton section.</param>
+/// <param name="Reference">The key that holds the id, and the section it resolves into.</param>
+/// <param name="TargetId">The typed id named, which a declaration of the target section carries.</param>
+/// <param name="Location">The key holding the id.</param>
+public sealed record RulesetSourceEdge(
+    string Section,
+    string? Id,
+    RulesetSourceReference Reference,
+    string TargetId,
+    RulesetSourceLocation Location);
+
 /// <summary>
 /// A resolved candidate: its capture, the Ruleset and display names, or located diagnostics.
 /// </summary>
@@ -22,15 +35,21 @@ public sealed class RulesetSourceResult
 {
     private readonly RulesetLoadResult? _loaded;
 
+    private readonly RulesetNames? _ids;
+
     internal RulesetSourceResult(
         RulesetCapture? capture,
         RulesetLoadResult? loaded,
         RulesetSourceDeclaration[] declarations,
-        RulesetDiagnostic[] diagnostics)
+        RulesetSourceEdge[] references,
+        RulesetDiagnostic[] diagnostics,
+        RulesetNames? ids = null)
     {
         Capture = capture;
         _loaded = loaded;
+        _ids = ids;
         Declarations = declarations;
+        References = references;
         Diagnostics = diagnostics;
     }
 
@@ -43,8 +62,20 @@ public sealed class RulesetSourceResult
     /// <summary>Display names for the Ruleset's ids: source labels for a package.</summary>
     public RulesetNames Names => _loaded?.Names ?? RulesetNames.None;
 
+    /// <summary>
+    /// The typed source ids behind the Ruleset's dense ids, which is what identifies a declaration
+    /// across two candidates. A single file's ids are the names it authored.
+    /// </summary>
+    public RulesetNames Ids => _ids ?? Names;
+
     /// <summary>A package's top-level declarations in resolution order. Empty for a single file.</summary>
     public IReadOnlyList<RulesetSourceDeclaration> Declarations { get; }
+
+    /// <summary>
+    /// Every reference one declaration makes to another, sorted. Empty for a single file, and empty
+    /// for a package refused before references resolve.
+    /// </summary>
+    public IReadOnlyList<RulesetSourceEdge> References { get; }
 
     /// <summary>Every reason the candidate was refused, sorted. Empty on success.</summary>
     public IReadOnlyList<RulesetDiagnostic> Diagnostics { get; }
@@ -57,8 +88,7 @@ public sealed class RulesetSourceResult
     /// result unchanged; a package's refusals carry member paths and lines.
     /// </summary>
     public RulesetLoadResult ToLoadResult() =>
-        _loaded ?? RulesetLoadResult.Refused(
-            [.. Diagnostics.Select(d => new RulesetRefusal(d.Path, d.Line, d.Id, d.Reason))]);
+        _loaded ?? RulesetLoadResult.Refused([.. Diagnostics.Select(d => d.ToRefusal())]);
 
     /// <summary>Every diagnostic, one per line.</summary>
     public string Describe() => string.Join(Environment.NewLine, Diagnostics);
@@ -88,8 +118,7 @@ public sealed class RulesetSourceResult
 /// <c>ContentHash.Of(UTF8(id))</c>), and <c>label</c>/<c>order</c> are blanked. Edits preserve line
 /// structure, and the reader's refusals are mapped back to member lines; their column is unknown.
 /// <c>terrain</c> keeps its closed-enum <c>name</c>; <c>hinterland</c> and <c>lattice</c> are
-/// anonymous in the reader, so their id is not lowered. Shared baskets, recipes and storage
-/// selections are refused until their runtime support exists; they are never approximated here.
+/// anonymous in the reader, so their id is not lowered.
 /// </para>
 /// </remarks>
 public static class RulesetSource
@@ -112,7 +141,7 @@ public static class RulesetSource
 
         return captured.Capture is { } capture
             ? Resolve(capture)
-            : new RulesetSourceResult(null, null, [], [.. captured.Diagnostics]);
+            : new RulesetSourceResult(null, null, [], [], [.. captured.Diagnostics]);
     }
 
     /// <inheritdoc cref="Resolve(RulesetCapture, LayerConstants)"/>
@@ -122,7 +151,7 @@ public static class RulesetSource
 
         return captured.Capture is { } capture
             ? Resolve(capture, frozen)
-            : new RulesetSourceResult(null, null, [], [.. captured.Diagnostics]);
+            : new RulesetSourceResult(null, null, [], [], [.. captured.Diagnostics]);
     }
 
     /// <summary>Resolves a capture for a world that does not exist yet.</summary>
@@ -143,7 +172,7 @@ public static class RulesetSource
             RulesetLoadResult legacy =
                 read(RulesetCapture.DecodeAsSingleFile(capture.Entry), capture.EntryName);
 
-            return new RulesetSourceResult(capture, legacy, [], RulesetDiagnostic.Sorted(
+            return new RulesetSourceResult(capture, legacy, [], [], RulesetDiagnostic.Sorted(
                 legacy.Refusals.Select(r => new RulesetDiagnostic(
                     r.File, r.Line, 0, RulesetDiagnosticCode.Ruleset, null, r.Rule, r.Reason))));
         }
@@ -152,11 +181,13 @@ public static class RulesetSource
         collection.Collect();
 
         RulesetSourceDeclaration[] declarations = collection.Declarations();
+        RulesetSourceEdge[] references = collection.References();
 
         if (collection.Diagnostics.Count > 0)
         {
             return new RulesetSourceResult(
-                capture, null, declarations, RulesetDiagnostic.Sorted(collection.Diagnostics));
+                capture, null, declarations, references,
+                RulesetDiagnostic.Sorted(collection.Diagnostics));
         }
 
         Lowering lowering = collection.Lower();
@@ -164,7 +195,7 @@ public static class RulesetSource
 
         if (lowered.Ruleset is null)
         {
-            return new RulesetSourceResult(capture, null, declarations,
+            return new RulesetSourceResult(capture, null, declarations, references,
                 RulesetDiagnostic.Sorted(lowered.Refusals.Select(lowering.Map)));
         }
 
@@ -172,7 +203,9 @@ public static class RulesetSource
             capture,
             RulesetLoadResult.Accepted(lowered.Ruleset, lowered.Names.Relabelled(collection.LabelOf)),
             declarations,
-            []);
+            references,
+            [],
+            lowered.Names);
     }
 
     /// <summary>The declarations of one package, collected before anything is resolved.</summary>
@@ -180,6 +213,7 @@ public static class RulesetSource
     {
         private readonly List<Declared> _declared = [];
         private readonly Dictionary<(string Section, string Id), string> _labels = [];
+        private readonly List<RulesetSourceEdge> _edges = [];
 
         public List<RulesetDiagnostic> Diagnostics { get; } = [];
 
@@ -205,6 +239,13 @@ public static class RulesetSource
 
             RefuseDuplicates();
 
+            // References resolve against collected ids, so a declaration whose own id was refused
+            // would draw a second refusal from every member naming it.
+            if (Diagnostics.Count == 0)
+            {
+                ResolveReferences();
+            }
+
             foreach (Declared declared in _declared)
             {
                 if (declared is { Valid: true, IsArray: true, Id: { } id })
@@ -220,6 +261,28 @@ public static class RulesetSource
         public RulesetSourceDeclaration[] Declarations() =>
             [.. Ordered().Select(d => new RulesetSourceDeclaration(
                 d.Section, d.Id, d.IsArray ? d.Label ?? d.Id : null, d.Order, d.Location))];
+
+        /// <summary>
+        /// The matched references, sorted by what they say rather than by where they were found, so
+        /// a different member enumeration yields the same list.
+        /// </summary>
+        public RulesetSourceEdge[] References()
+        {
+            var sorted = new List<RulesetSourceEdge>(_edges);
+
+            sorted.Sort(static (a, b) =>
+            {
+                int at = string.CompareOrdinal(a.Section, b.Section);
+                at = at != 0 ? at : string.CompareOrdinal(a.Id ?? "", b.Id ?? "");
+                at = at != 0 ? at : string.CompareOrdinal(a.Reference.Section, b.Reference.Section);
+                at = at != 0 ? at : string.CompareOrdinal(a.Reference.Key, b.Reference.Key);
+                at = at != 0 ? at : string.CompareOrdinal(a.TargetId, b.TargetId);
+
+                return at != 0 ? at : CompareLocations(a.Location, b.Location);
+            });
+
+            return [.. sorted];
+        }
 
         public Lowering Lower()
         {
@@ -285,21 +348,24 @@ public static class RulesetSource
 
             foreach (TableSyntaxBase table in document.Tables)
             {
-                string name = RulesetCapture.NameOf(table.Name);
+                string[] parts = RulesetCapture.NameParts(table.Name);
+                string name = string.Join('.', parts);
                 RulesetSourceLocation at = RulesetSourceLocation.Of(source.Path, table);
                 int headerLine = table.Span.Start.Line;
-                int dot = name.IndexOf('.', StringComparison.Ordinal);
+                bool manifest = RulesetCapture.IsSource(table.Name);
+                bool nested = parts.Length > 1 && !manifest;
 
-                if (dot >= 0 && !RulesetCapture.IsSource(name))
+                if (nested)
                 {
                     // A nested table belongs to the declaration above it, in this member only.
-                    if (owner is not null && owner.Section == name[..dot])
+                    if (owner is not null && owner.Section == parts[0])
                     {
+                        owner.Tables.Add(table);
                         continue;
                     }
 
                     Refuse(at, RulesetDiagnosticCode.MemberShape, null, null,
-                        $"{Header(table, name)} does not follow a [[{name[..dot]}]] in this member. A "
+                        $"{Header(table, name)} does not follow a [[{parts[0]}]] in this member. A "
                         + "nested table stays with its owning declaration, and a member cannot "
                         + "reopen one declared elsewhere.");
                 }
@@ -307,24 +373,15 @@ public static class RulesetSource
                 Close(owner, headerLine);
                 owner = null;
 
-                if (dot >= 0 && !RulesetCapture.IsSource(name))
+                if (nested)
                 {
                     continue;
                 }
 
-                if (RulesetCapture.IsSource(name))
+                if (manifest)
                 {
                     Refuse(at, RulesetDiagnosticCode.MemberShape, null, null,
                         "a member cannot contain [source]. Only the entry manifest lists members.");
-                    continue;
-                }
-
-                if (table is TableArraySyntax && name is "basket" or "recipe" or "storage")
-                {
-                    Refuse(at, RulesetDiagnosticCode.Unimplemented, null, null,
-                        $"[[{name}]] is a source v1 shared definition this build does not implement "
-                        + "yet. Shared baskets need saved fractional consumption progress in Core, "
-                        + "and derived storage needs them; neither is approximated by the loader.");
                     continue;
                 }
 
@@ -332,6 +389,7 @@ public static class RulesetSource
                     ? CollectArray(source, table, name, at)
                     : new Declared(source, name, false, at, headerLine);
 
+                owner.Tables.Add(table);
                 _declared.Add(owner);
             }
 
@@ -383,10 +441,13 @@ public static class RulesetSource
             if (name is not null && lowersId)
             {
                 declared.Valid = false;
-                Refuse(RulesetSourceLocation.Of(source.Path, name), RulesetDiagnosticCode.Id, section,
-                    declared.Id,
-                    "name is not a source key here: id identifies the declaration and label is its "
-                    + "display text.");
+
+                // No section without an id: a diagnostic naming one and no id reads as a singleton,
+                // and this declaration is an array member whose id is exactly what is missing.
+                Refuse(RulesetSourceLocation.Of(source.Path, name), RulesetDiagnosticCode.Id,
+                    declared.Id is null ? null : section, declared.Id,
+                    $"name is not a source key on [[{section}]]. id identifies the declaration and "
+                    + "label is its display text.");
             }
 
             if (label is not null)
@@ -406,13 +467,14 @@ public static class RulesetSource
 
             if (order is not null)
             {
-                if (section is not ("rule" or "policy" or "zone_rule"))
+                if (!RulesetSourceKeys.Orders(section))
                 {
                     declared.Valid = false;
                     Refuse(RulesetSourceLocation.Of(source.Path, order), RulesetDiagnosticCode.Order,
                         section, declared.Id,
-                        "order is accepted only on [[rule]], [[policy]] and [[zone_rule]]; other "
-                        + "declarations are ordered by id.");
+                        "order is accepted only on "
+                        + string.Join(", ", RulesetSourceKeys.Ordered.Select(name => $"[[{name}]]"))
+                        + "; other declarations are ordered by id.");
                 }
                 else if (order.Value is not IntegerValueSyntax { Value: >= 0 } number)
                 {
@@ -427,47 +489,7 @@ public static class RulesetSource
                 }
             }
 
-            foreach (KeyValueSyntax item in table.Items)
-            {
-                string key = RulesetCapture.NameOf(item.Key);
-
-                if (section == "rule" && key is "basket" or "recipe")
-                {
-                    Refuse(RulesetSourceLocation.Of(source.Path, item),
-                        RulesetDiagnosticCode.Unimplemented, section, declared.Id,
-                        $"a Rule's {key} reference is not implemented by this build yet. State the "
-                        + "Rule's inputs and outputs.");
-                }
-                else if (section == "building" && key == "bins" && item.Value is ArraySyntax bins)
-                {
-                    RefuseStorageSelections(source, bins, declared.Id);
-                }
-            }
-
             return declared;
-        }
-
-        private void RefuseStorageSelections(Source source, ArraySyntax bins, string? id)
-        {
-            foreach (ArrayItemSyntax bin in bins.Items)
-            {
-                if (bin.Value is not InlineTableSyntax fields)
-                {
-                    continue;
-                }
-
-                foreach (InlineTableItemSyntax field in fields.Items)
-                {
-                    if (field.KeyValue is { } pair && RulesetCapture.NameOf(pair.Key) == "storage")
-                    {
-                        Refuse(RulesetSourceLocation.Of(source.Path, pair),
-                            RulesetDiagnosticCode.Unimplemented, "building", id,
-                            "a Bin storage selection is not implemented by this build yet: it derives "
-                            + "capacity from a shared basket and saved selections need runtime "
-                            + "support. State the Bin's capacity.");
-                    }
-                }
-            }
         }
 
         private void RefuseDuplicates()
@@ -537,6 +559,133 @@ public static class RulesetSource
                         + "section has one owning member, and even disjoint fragments are refused.");
                 }
             }
+        }
+
+        /// <summary>Matches every typed reference against the ids collected across the package.</summary>
+        /// <remarks>
+        /// <para>
+        /// <b>The third stage, and it runs only on a package that collected cleanly.</b> A reference
+        /// is matched against ids, so a declaration whose own id was refused would draw a second
+        /// refusal from every member that names it — one mistake reported once by the declaration
+        /// and again by each of its readers.
+        /// </para>
+        /// <para>
+        /// A value that is not a quoted string is left alone. The reader owns the shape of every key
+        /// it reads, and its sentence for a wrong shape is the one a designer should get.
+        /// </para>
+        /// </remarks>
+        private void ResolveReferences()
+        {
+            var ids = new HashSet<(string Section, string Id)>();
+
+            foreach (Declared declared in _declared)
+            {
+                if (declared.Id is { } id)
+                {
+                    ids.Add((declared.Section, id));
+                }
+            }
+
+            foreach (Declared declared in _declared)
+            {
+                foreach (TableSyntaxBase table in declared.Tables)
+                {
+                    string section = RulesetCapture.NameOf(table.Name);
+
+                    foreach (RulesetSourceReference reference in RulesetSourceReferences.For(section))
+                    {
+                        Descend(ids, declared, table, reference, reference.Key.Split('.'), 0);
+                    }
+                }
+            }
+        }
+
+        private void Descend(
+            HashSet<(string Section, string Id)> ids,
+            Declared declared,
+            SyntaxNode holder,
+            RulesetSourceReference reference,
+            string[] path,
+            int depth)
+        {
+            string segment = path[depth];
+            bool repeated = segment.EndsWith("[]", StringComparison.Ordinal);
+            KeyValueSyntax? entry = Field(holder, repeated ? segment[..^2] : segment);
+
+            if (entry?.Value is not { } value)
+            {
+                return;
+            }
+
+            if (depth == path.Length - 1)
+            {
+                Match(ids, declared, entry, reference);
+            }
+            else if (repeated && value is ArraySyntax array)
+            {
+                foreach (ArrayItemSyntax item in array.Items)
+                {
+                    if (item.Value is InlineTableSyntax element)
+                    {
+                        Descend(ids, declared, element, reference, path, depth + 1);
+                    }
+                }
+            }
+            else if (!repeated && value is InlineTableSyntax inline)
+            {
+                Descend(ids, declared, inline, reference, path, depth + 1);
+            }
+        }
+
+        private void Match(
+            HashSet<(string Section, string Id)> ids,
+            Declared declared,
+            KeyValueSyntax entry,
+            RulesetSourceReference reference)
+        {
+            if (entry.Value is not StringValueSyntax { Value: { } id })
+            {
+                return;
+            }
+
+            RulesetSourceLocation at = RulesetSourceLocation.Of(declared.Source.Path, entry);
+
+            if (ids.Contains((reference.Target, id)))
+            {
+                _edges.Add(new RulesetSourceEdge(declared.Section, declared.Id, reference, id, at));
+                return;
+            }
+
+            Refuse(at, RulesetDiagnosticCode.Reference, declared.Section, declared.Id,
+                $"{RulesetCapture.NameOf(entry.Key)} names '{id}', and no [[{reference.Target}]] in "
+                + "this package declares that id. A reference is matched against the target "
+                + "section's ids alone, exactly and case-sensitively.");
+        }
+
+        private static KeyValueSyntax? Field(SyntaxNode holder, string key)
+        {
+            if (holder is TableSyntaxBase table)
+            {
+                foreach (KeyValueSyntax item in table.Items)
+                {
+                    if (RulesetCapture.NameOf(item.Key) == key)
+                    {
+                        return item;
+                    }
+                }
+            }
+            else if (holder is InlineTableSyntax inline)
+            {
+                foreach (InlineTableItemSyntax item in inline.Items)
+                {
+                    if (item.KeyValue is { } pair && RulesetCapture.NameOf(pair.Key) == key)
+                    {
+                        return pair;
+                    }
+                }
+            }
+
+            return null;
         }
 
         private void Refuse(
@@ -647,6 +796,9 @@ public static class RulesetSource
         public bool Valid { get; set; } = true;
 
         public List<Edit> Edits { get; } = [];
+
+        /// <summary>The declaration's own table, then the nested tables that stayed with it.</summary>
+        public List<TableSyntaxBase> Tables { get; } = [];
 
         /// <summary>The declaration's lines with its edits applied; line structure is unchanged.</summary>
         public string Render()

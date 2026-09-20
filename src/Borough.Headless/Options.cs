@@ -67,6 +67,18 @@ internal enum Mode
     /// </remarks>
     KeyReference,
 
+    /// <summary>
+    /// Report what replacing the Ruleset with another one would do, before anything runs.
+    /// </summary>
+    /// <remarks>
+    /// <b>The third mode that never makes a world</b>, and the reason it does not is the point
+    /// rather than an economy: the answer is a property of two Rulesets, so a run would only put a
+    /// city between the designer and the comparison. It resolves both candidates and reports
+    /// effective values, so an edit to a shared definition shows up against every declaration it
+    /// reaches.
+    /// </remarks>
+    Preview,
+
     /// <summary>Build a synthetic city and print what is in it. Slice 4's artefact.</summary>
     Report,
 
@@ -347,6 +359,11 @@ internal sealed class Options
     public string? RulesetPath => RulesetPaths.Count == 0 ? null : RulesetPaths[0];
 
     /// <summary>
+    /// The replacement Ruleset a preview compares <see cref="RulesetPath"/> against, or null.
+    /// </summary>
+    public string? AgainstPath { get; private init; }
+
+    /// <summary>
     /// The Ticks a fresh session reloads on, one per Ruleset after the first.
     /// </summary>
     /// <remarks>
@@ -538,6 +555,7 @@ internal sealed class Options
         complaint = null;
 
         string? log = null;
+        string? against = null;
         List<string> rulesets = [];
         List<ulong> reloadAt = [];
         string? output = null;
@@ -868,6 +886,17 @@ internal sealed class Options
                     rulesets.Add(value);
                     break;
 
+                case "--against":
+                    if (against is not null)
+                    {
+                        complaint = "--against names one replacement Ruleset, and it was given "
+                                  + "twice. A preview compares two candidates.";
+                        return false;
+                    }
+
+                    against = value;
+                    break;
+
                 case "--reload-at":
                     if (!TryNumber(value, out ulong at) || at == 0)
                     {
@@ -1062,6 +1091,14 @@ internal sealed class Options
                           + "reloads in the order it runs, and a Tick carries exactly one Ruleset.";
                 return false;
             }
+        }
+
+        if (against is not null && rulesets.Count != 1)
+        {
+            complaint = "--against PATH needs exactly one --ruleset PATH to compare it with. A "
+                      + "preview reports what replacing the one Ruleset with the other would do, "
+                      + "so a session that names several has no single candidate to compare.";
+            return false;
         }
 
         if (rulesets.Count > 1 && reloadAt.Count == 0 && log is null)
@@ -1636,6 +1673,7 @@ internal sealed class Options
                  : shopping ? Mode.Shopping
                  : keyReference ? Mode.KeyReference
                  : schema ? Mode.Schema
+                 : against is not null ? Mode.Preview
                  : day ? Mode.Day
                  : watch ? Mode.Watch
                  : school ? Mode.School
@@ -1663,6 +1701,7 @@ internal sealed class Options
             Csv = csv,
             LogPath = log,
             RulesetPaths = rulesets,
+            AgainstPath = against,
             ReloadTicks = reloadAt,
             OutPath = output,
             Seed = seed,
@@ -1842,6 +1881,18 @@ internal sealed class Options
                                 happens to demonstrate. The loader stays the authority --
                                 the schema is autocomplete, and unknown keys stay permitted
                                 because a refusal at the parse site carries a better message
+          --against PATH        report what replacing --ruleset with this Ruleset would do, and
+                                run nothing. The THIRD world-free mode, and it is world-free on
+                                purpose rather than to save time: the answer is a property of two
+                                Rulesets, so a city between the designer and the comparison would
+                                only be in the way. Both candidates are resolved and their
+                                EFFECTIVE values compared, so an edit to a shared [[basket]],
+                                [[recipe]] or [[reserve]] is reported against every Rule and Bin it
+                                reaches -- and against the ones it leaves alone, which is the half
+                                a run cannot show. Needs exactly one --ruleset. It compares two
+                                Rulesets and never a world, so it makes no claim about a running
+                                city's stock, occupancy or solvency
+
           --key-reference       write the Ruleset key surface to stdout as a reference page,
                                 one section at a time, each key with a sentence saying what
                                 it DOES. --schema's twin: same source, same folder rule, same

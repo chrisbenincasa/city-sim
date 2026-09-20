@@ -3,6 +3,7 @@ using Borough.Core.Input;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Examples;
+using Borough.Formats;
 using Borough.Shell;
 
 namespace Borough.Tests.Rules;
@@ -14,8 +15,9 @@ public sealed class UrbanNeighbourhoodTests
     [InlineData(true)]
     public void Permission_then_sustained_mismatch_builds_one_home_and_save_continues_identically(bool earlyPermission)
     {
-        string toml = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "urban-neighbourhood.toml"));
-        var world = UrbanNeighbourhood.Create(toml);
+        string source = Path.Combine(AppContext.BaseDirectory, "Rulesets", "urban-neighbourhood.toml");
+        RulesetCapture capture = RulesetCapture.Read(source).Capture!;
+        var world = UrbanNeighbourhood.Create(File.ReadAllText(source));
         var simulation = new Simulation(world, world.Key) { VerifyDecideWritesNothing = true };
         Assert.Equal(6, world.Citizens.Rows.LiveCount);
         Assert.Equal(2, world.UnplacedPool.Count);
@@ -33,7 +35,7 @@ public sealed class UrbanNeighbourhoodTests
         string path = Path.Combine(Path.GetTempPath(), $"urban-neighbourhood-{Guid.NewGuid():N}.borough-city");
         try
         {
-            CitySave.Write(path, world, toml, UrbanNeighbourhood.Seed);
+            CitySave.Write(path, world, capture, UrbanNeighbourhood.Seed);
             var restored = CitySave.Read(path).World;
             var resumed = new Simulation(restored, restored.Key) { VerifyDecideWritesNothing = true, RouteWorkerCount = 2 };
             Assert.Equal(reading, HousingSearchEvidence.Read(restored, 0));

@@ -231,6 +231,40 @@ internal static class Session
                 : F($"⚠ {disagreements} of {unbroken.Count} samples DIVERGED."));
     }
 
+    /// <summary>The header alone, which is the first <see cref="SaveHeader.Bytes"/> of the file.</summary>
+    private static bool TryPeek(string path, out SaveHeader header)
+    {
+        header = default;
+
+        try
+        {
+            using FileStream stream = File.OpenRead(path);
+
+            var bytes = new byte[SaveHeader.Bytes];
+
+            stream.ReadExactly(bytes);
+            header = SaveHeader.Read(bytes);
+
+            return true;
+        }
+        catch (Exception refusal)
+            when (refusal is InvalidOperationException or IOException or EndOfStreamException)
+        {
+            Console.Error.WriteLine(F($"{path} cannot be resumed: {refusal.Message}"));
+
+            return false;
+        }
+    }
+
+    private static void RefuseMismatch(Options options, ulong saved, ulong supplied)
+    {
+        Console.Error.WriteLine(F(
+            $"{options.LoadPath} was saved under Ruleset {saved:X16} and {options.RulesetPaths[0]} hashes to {supplied:X16}."));
+        Console.Error.WriteLine(
+            "A city resumed under different Rules is a different city; --force-ruleset runs it "
+            + "anyway and marks the trace hash-broken.");
+    }
+
     /// <summary>
     /// Resumes a save and runs on. <c>05 §7</c>'s <em>replay from save</em>, as a thing to type.
     /// </summary>
@@ -257,6 +291,22 @@ internal static class Session
     {
         if (!TrySupplied(options.RulesetPaths, out Supplied[] supplied))
         {
+            return Refused;
+        }
+
+        // The mismatch before the parse, on Run's ordering and for its reason: given both a wrong
+        // Ruleset and a malformed one, "you supplied a different Ruleset" is the more actionable
+        // sentence and the one that explains why the other refusals look unfamiliar. Only the
+        // header is read here, which needs no Ruleset.
+        if (!TryPeek(options.LoadPath!, out SaveHeader peeked))
+        {
+            return Refused;
+        }
+
+        if (peeked.RulesetInForce != supplied[0].Hash && !options.ForceRuleset)
+        {
+            RefuseMismatch(options, peeked.RulesetInForce, supplied[0].Hash);
+
             return Refused;
         }
 
@@ -294,11 +344,7 @@ internal static class Session
 
         if (hashBroken && !options.ForceRuleset)
         {
-            Console.Error.WriteLine(F(
-                $"{options.LoadPath} was saved under Ruleset {header.RulesetInForce:X16} and {options.RulesetPaths[0]} hashes to {rulesets.OpeningHash:X16}."));
-            Console.Error.WriteLine(
-                "A city resumed under different Rules is a different city; --force-ruleset runs it "
-                + "anyway and marks the trace hash-broken.");
+            RefuseMismatch(options, header.RulesetInForce, rulesets.OpeningHash);
 
             return Refused;
         }
@@ -532,7 +578,8 @@ internal static class Session
 
         if (captured.Capture is null)
         {
-            Console.Error.WriteLine(string.Join(Environment.NewLine, captured.Diagnostics));
+            Console.Error.WriteLine(string.Join(
+                Environment.NewLine, captured.Diagnostics.Select(d => d.ToRefusal())));
             Console.Error.WriteLine(
                 $"{captured.Diagnostics.Count} refusal(s). The Ruleset was not loaded and nothing ran.");
 

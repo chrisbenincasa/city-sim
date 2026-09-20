@@ -1,0 +1,60 @@
+# The singleton sections. Each owns its whole table: a singleton declared in two members is refused.
+
+[placement]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+
+[layers]
+noise_range_metres            = 300
+noise_intensity_percent       = 400
+desirability_pollution_percent = 100
+desirability_noise_percent     = 100
+pollution_period      = 64
+pollution_offset      = 0
+land_value_period     = 256
+land_value_offset     = 16
+kernel_metres         = 1024
+pollution_decay_ticks = 2048
+land_value_tau        = 8
+
+[roads]
+block_tiles                    = 32
+arterial_count                 = 0
+arterial_junction_tiles        = 512
+foot_crossing_every            = 4
+foot_paths_per_thousand_blocks = 40
+street_speed_kph               = 50
+arterial_speed_kph             = 90
+walk_speed_kph                 = 5
+street_capacity_per_hour       = 3600
+arterial_capacity_per_hour     = 12000
+foot_path_capacity_per_hour    = 1000
+
+[lots]
+street_half_width_tiles = 1
+lots_per_segment = 5
+setback_tiles = 2
+
+[capacity]
+floor_tiles_per_occupant      = 25
+floor_tiles_per_job           = 3
+floor_tiles_per_parking_space = 12
+
+[parking]
+radius_metres = 400
+shed_keeps = 24
+
+[trips]
+crossing_seconds = 30
+commute_fast_minutes = 20
+commute_moderate_minutes = 40
+commute_budget_minutes = 50
+
+[jobs]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+shift_hours_min = 6
+shift_hours_max = 10
+arrive_early_max_minutes = 15
