@@ -28,6 +28,7 @@ the founding loop and for the full Goods tree.
 | Labour's shelf life is an hour or two, far shorter than a shift | A Resource's cycle is global but shift start is drawn per-Business, so a daily labour cycle would evaporate half a night shift's labour at midnight. Making expiry much finer than a shift dissolves the mismatch with no per-owner offset. It is also what happens — a worker present at 9am supplies an hour of work at 9am, and an idle hour cannot be banked for the evening |
 | A Rule whose `rate` exceeds its labour input's shelf life is refused at load | Short-lived labour makes a slow Rule starve itself: a bakery firing daily would see only the last hour's work and waste the rest. The engine is right and the content is wrong, so the loader says so with a file and a line |
 | The labour Bin is uncapped, like a money Bin | There is no physical container — the unused worker-time at a premises is just who is standing there and for how long. The cap that matters already exists upstream, because `floor_tiles_per_job` derives posts from floor area and a Business cannot employ more workers than its posts allow. Capping the Bin applies the same limit twice, and the second application is the one that fails silently. Shelf life is what keeps the quantity bounded |
+| Labour's tier and experience grading declares its own percentages rather than reusing the wage's | Pay and productivity are separate causes that coincide today only because the flat `wage_per_day` is a productivity proxy. A designer should be able to say a tier-2 worker is paid 40% more and produces 25% more, which is the ordinary relationship between the two. Two Ruleset keys cost less than a coupling nobody could later explain |
 | Spoiled stock is counted, not converted | [Waste as a Resource that moves](../docs/deferred.md#waste-as-a-resource-that-moves) |
 | The posted wage stays out of scope | `adr/0026`'s fill-rate wage is unbuilt, and `adr/0070` says an unbuilt mechanism is not a design constraint. The flat `wage_per_day` that exists is enough to demonstrate payroll against production |
 
@@ -88,9 +89,10 @@ are re-recorded under the procedure in `tests/Borough.Tests/Golden/README.md`.
   Ruleset boundary are already precedented by `shift_start_earliest_hour`, even though `CONTEXT.md`
   rejects hour as internal vocabulary.
 - A `[[recipe]]` states labour among its inputs, at an amount per application.
-- `[jobs]` gains the per-worker deposit rate and its tier and experience grading. `wage_tier_percent`
-  and `experience_premium_percent` already exist for pay; whether labour reuses them or declares its
-  own is an open question below.
+- `[jobs]` gains the per-worker deposit rate, plus `labour_tier_percent` and
+  `labour_experience_premium_percent` to grade it. Both mirror `wage_tier_percent` and
+  `experience_premium_percent` in shape and are independent of them in value. Per-trade productivity
+  belongs in the `[[recipe]]`'s labour amount rather than in a second base rate.
 - A demonstration Ruleset with a real production chain. `stocked.toml` demonstrates recipe syntax
   with deliberately trivial recipes; `provisioned.toml` has the chain but no labour.
 
@@ -139,12 +141,10 @@ Behaviour, in one Core world:
    outright and gets the wait list, which is the legible behaviour. At `min = 0` it succeeds at zero
    applications and re-arms having done nothing, which is the silent non-event `02 §4.1` names. The
    first looks right; it needs stating rather than assuming.
-4. **Does labour reuse the wage's tier and experience grading, or declare its own?** Reusing couples
-   pay to productivity, which may be exactly right or may be a coincidence worth separating.
-5. **Should a labour-family Resource with a long shelf life be refused at load?** Leaving the Bin
+4. **Should a labour-family Resource with a long shelf life be refused at load?** Leaving the Bin
    uncapped leans on labour expiring quickly. A Ruleset could declare otherwise and accumulate. The
    guard is the same shape as the rate refusal and was not taken when the capacity was decided.
-6. **Where does a Household's labour go?** Only a Business has a labour Bin under this scope. Whether
+5. **Where does a Household's labour go?** Only a Business has a labour Bin under this scope. Whether
    domestic work is modelled at all is unasked.
 
 ## Corpus defects found while scoping
