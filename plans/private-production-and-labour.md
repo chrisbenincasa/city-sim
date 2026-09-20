@@ -27,6 +27,7 @@ the founding loop and for the full Goods tree.
 | Buckets shift lazily on write, never on a sweep | There is no Resource-to-Bin index — Bins are reached through their owner's list — so a per-Resource sweep would scan the whole table at every cycle boundary |
 | Labour's shelf life is an hour or two, far shorter than a shift | A Resource's cycle is global but shift start is drawn per-Business, so a daily labour cycle would evaporate half a night shift's labour at midnight. Making expiry much finer than a shift dissolves the mismatch with no per-owner offset. It is also what happens — a worker present at 9am supplies an hour of work at 9am, and an idle hour cannot be banked for the evening |
 | A Rule whose `rate` exceeds its labour input's shelf life is refused at load | Short-lived labour makes a slow Rule starve itself: a bakery firing daily would see only the last hour's work and waste the rest. The engine is right and the content is wrong, so the loader says so with a file and a line |
+| The labour Bin is uncapped, like a money Bin | There is no physical container — the unused worker-time at a premises is just who is standing there and for how long. The cap that matters already exists upstream, because `floor_tiles_per_job` derives posts from floor area and a Business cannot employ more workers than its posts allow. Capping the Bin applies the same limit twice, and the second application is the one that fails silently. Shelf life is what keeps the quantity bounded |
 | Spoiled stock is counted, not converted | [Waste as a Resource that moves](../docs/deferred.md#waste-as-a-resource-that-moves) |
 | The posted wage stays out of scope | `adr/0026`'s fill-rate wage is unbuilt, and `adr/0070` says an unbuilt mechanism is not a design constraint. The flat `wage_per_day` that exists is enough to demonstrate payroll against production |
 
@@ -75,6 +76,8 @@ Anything asserting bounded quantities must read the live level rather than the s
 will see stock that has notionally already spoiled.
 
 **4. A waste count.** What the shift discards, per Business, reported as Evidence.
+
+A labour Bin is uncapped, so a deposit never fails and no worker's presence is silently dropped. Labour Bins exist only where the premises' kind declares one, as with every other Bin, so a Business with no production Rule carries none and its workers deposit nowhere.
 
 **5. Save format and goldens.** New saved columns, so the format advances and the golden artefacts
 are re-recorded under the procedure in `tests/Borough.Tests/Golden/README.md`.
@@ -138,7 +141,10 @@ Behaviour, in one Core world:
    first looks right; it needs stating rather than assuming.
 4. **Does labour reuse the wage's tier and experience grading, or declare its own?** Reusing couples
    pay to productivity, which may be exactly right or may be a coincidence worth separating.
-5. **Where does a Household's labour go?** Only a Business has a labour Bin under this scope. Whether
+5. **Should a labour-family Resource with a long shelf life be refused at load?** Leaving the Bin
+   uncapped leans on labour expiring quickly. A Ruleset could declare otherwise and accumulate. The
+   guard is the same shape as the rate refusal and was not taken when the capacity was decided.
+6. **Where does a Household's labour go?** Only a Business has a labour Bin under this scope. Whether
    domestic work is modelled at all is unasked.
 
 ## Corpus defects found while scoping
