@@ -24,6 +24,17 @@
       "include": []
     },
     {
+      "path": "rules/quote-globs-in-zsh.md",
+      "hash": "00da29cb43d6e802420e96cc6c10f63bbb9bfa87bf24036defb83156876f0453",
+      "description": "Quote glob arguments; the shell is zsh",
+      "globs": [],
+      "dirs": [],
+      "prompt": [],
+      "priority": 45,
+      "enabled": true,
+      "include": []
+    },
+    {
       "path": "rules/reuse-first.md",
       "hash": "386c02aa614bb13e5c2554e4c5a63634cd7e760888a985e0df324e07057780f7",
       "description": "Reuse-first implementation",
