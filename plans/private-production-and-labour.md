@@ -29,6 +29,8 @@ the founding loop and for the full Goods tree.
 | A Rule whose `rate` exceeds its labour input's shelf life is refused at load | Short-lived labour makes a slow Rule starve itself: a bakery firing daily would see only the last hour's work and waste the rest. The engine is right and the content is wrong, so the loader says so with a file and a line |
 | The labour Bin is uncapped, like a money Bin | There is no physical container — the unused worker-time at a premises is just who is standing there and for how long. The cap that matters already exists upstream, because `floor_tiles_per_job` derives posts from floor area and a Business cannot employ more workers than its posts allow. Capping the Bin applies the same limit twice, and the second application is the one that fails silently. Shelf life is what keeps the quantity bounded |
 | Labour's tier and experience grading declares its own percentages rather than reusing the wage's | Pay and productivity are separate causes that coincide today only because the flat `wage_per_day` is a productivity proxy. A designer should be able to say a tier-2 worker is paid 40% more and produces 25% more, which is the ordinary relationship between the two. Two Ruleset keys cost less than a coupling nobody could later explain |
+| The deposit is denominated against elapsed work, unlike the wage | `WorkSchedule.Accrue` divides `wage_per_day` by the Citizen's own shift length, so pay is a fixed amount per day worked and a ten-hour shift earns what a six-hour one earns. Production must not work that way, because hours at the oven are what bake the bread. `labour_per_day` is instead what a full day of continuous work deposits, accrued per on-duty Tick over `Ticks.PerDay`. The level in a Bin then means the same thing at every Business, so a `[[recipe]]`'s labour amount is portable; under the wage's shape it would vary with the shift length each worker happened to draw |
+| The deposit carries a per-Citizen remainder, as the wage does | `Ticks.PerDay` is 2048, so the per-Tick share is a shift rather than a divide, but tier and experience grading would still die in the truncation without somewhere to keep the fraction. `WageRemainder` is the precedent and the shape |
 | Spoiled stock is counted, not converted | [Waste as a Resource that moves](../docs/deferred.md#waste-as-a-resource-that-moves) |
 | The posted wage stays out of scope | `adr/0026`'s fill-rate wage is unbuilt, and `adr/0070` says an unbuilt mechanism is not a design constraint. The flat `wage_per_day` that exists is enough to demonstrate payroll against production |
 
@@ -56,7 +58,8 @@ has no haulage story, no market row, and cannot appear in a `pool` term. Money i
 precedent for a Resource that is not a Good.
 
 **2. Deposit.** `WorkSchedule.Accrue` already holds the walk and the predicate, so the deposit goes
-beside the wage accrual. Amount per Tick is graded by Skill Tier and Experience, which turns quality
+beside the wage accrual. Each on-duty Tick deposits `labour_per_day` over `Ticks.PerDay`,
+graded by Skill Tier and Experience, which turns quality
 into quantity — a skilled worker deposits more labour than a novice, and greedy apply then scales
 throughput with experience without reading experience anywhere.
 
@@ -89,10 +92,12 @@ are re-recorded under the procedure in `tests/Borough.Tests/Golden/README.md`.
   Ruleset boundary are already precedented by `shift_start_earliest_hour`, even though `CONTEXT.md`
   rejects hour as internal vocabulary.
 - A `[[recipe]]` states labour among its inputs, at an amount per application.
-- `[jobs]` gains the per-worker deposit rate, plus `labour_tier_percent` and
+- `[jobs]` gains `labour_per_day`, plus `labour_tier_percent` and
   `labour_experience_premium_percent` to grade it. Both mirror `wage_tier_percent` and
   `experience_premium_percent` in shape and are independent of them in value. Per-trade productivity
-  belongs in the `[[recipe]]`'s labour amount rather than in a second base rate.
+  belongs in the `[[recipe]]`'s labour amount rather than in a second base rate. `labour_per_day`'s
+  note in `RulesetKeyNotes` states that it counts elapsed work while `wage_per_day` counts a day
+  worked, because the shared suffix otherwise invites the wrong reading.
 - A demonstration Ruleset with a real production chain. `stocked.toml` demonstrates recipe syntax
   with deliberately trivial recipes; `provisioned.toml` has the chain but no labour.
 
@@ -131,7 +136,8 @@ Behaviour, in one Core world:
 ## Open questions
 
 1. **Does the per-Tick labour deposit fit the budget?** `WorkSchedule.Accrue` already walks every
-   Citizen each Tick, but adding a Bin write per on-duty Citizen is new traffic on the hottest table.
+   Citizen each Tick, but adding a Bin write and a remainder write per on-duty Citizen is new traffic
+   on the hottest table.
    Needs measuring against `plans/0013` before the deposit cadence is fixed. The fallback is one
    deposit per Business per Day, which costs the intra-day production curve and the direct link from
    a failed commute to that day's output.
