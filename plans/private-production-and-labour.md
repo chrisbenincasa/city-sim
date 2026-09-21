@@ -33,6 +33,7 @@ the founding loop and for the full Goods tree.
 | The deposit carries a per-Citizen remainder, as the wage does | `Ticks.PerDay` is 2048, so the per-Tick share is a shift rather than a divide, but tier and experience grading would still die in the truncation without somewhere to keep the fraction. `WageRemainder` is the precedent and the shape |
 | A production Rule's apply band states `min = 1` | At `min = 0` the firing never falls below its minimum, so it succeeds at zero applications and re-arms every `rate` Ticks through every closed night — the retry timer `02 §4.1` refuses, paid by every production Business in the city. At `min = 1` the firing fails, sleeps on the labour Bin and does not re-arm, and the morning shift's deposit is the wake it was already waiting for |
 | Short of labour does not start the pressure clock | `[[business]] work_days` is a weekly bit mask and six shipped Rulesets state a five-day week, so a weekday Business starves for about 62 hours between Friday's last shift and Monday's first. Every shipped `tenancy_ends_after_days` and `condemn_after_days` sits inside that, so arming the clock would evict or condemn every weekday Business on its first weekend. A load-time refusal cannot rescue it without forcing every decline threshold above three Days, which destroys their use as a decline signal. `RuleEngine.Stop` already distinguishes two failures where only one starts the clock — short of an input starves, out of space does not — and short of labour is the third case |
+| A labour Resource whose shelf life outlives `shift_hours_min` is refused at load | An uncapped Bin is safe only while labour expires, and nothing otherwise stops a file declaring week-long labour. Labour that survives a shift change can be banked, so a Business shut for a weekend would spend 62 hours of standing around in one Monday firing. The bound is derived from the file rather than stated as an hour figure in the loader, which is a number nobody could ratify. It is deliberately loose — five-hour labour passes against a six-hour shortest shift — because what the design depends on is labour not crossing a shift boundary, not a particular duration. The refusal message says which of the two it is enforcing |
 | Spoiled stock is counted, not converted | [Waste as a Resource that moves](../docs/deferred.md#waste-as-a-resource-that-moves) |
 | The posted wage stays out of scope | `adr/0026`'s fill-rate wage is unbuilt, and `adr/0070` says an unbuilt mechanism is not a design constraint. The flat `wage_per_day` that exists is enough to demonstrate payroll against production |
 
@@ -138,7 +139,8 @@ Behaviour, in one Core world:
 7. A Bin untouched across many cycles reads the same live level as one touched every cycle.
 8. Save and reload mid-cycle preserves the buckets and the shift clock, and the resumed world hashes
    identically.
-9. A Rule whose rate outruns its labour's shelf life is refused at load, with the file and line.
+9. A Rule whose rate outruns its labour's shelf life is refused at load, with the file and line, and
+   so is a labour Resource whose shelf life outlives the shortest shift the file permits.
 10. Paid local input, output purchases, payroll, staff loss and recovery, all in the same world.
 11. A Business on a five-day `work_days` mask crosses its closed weekend accruing no failure
     pressure, keeps its tenancy and is not condemned, and resumes production on the Monday shift.
@@ -153,10 +155,7 @@ Behaviour, in one Core world:
    a failed commute to that day's output.
 2. **What does N cost?** Bucket count against `BinTable`'s current row width and live Bin count in a
    grown city. If it is noise, put the array on every Bin unconditionally and skip the indirection.
-3. **Should a labour-family Resource with a long shelf life be refused at load?** Leaving the Bin
-   uncapped leans on labour expiring quickly. A Ruleset could declare otherwise and accumulate. The
-   guard is the same shape as the rate refusal and was not taken when the capacity was decided.
-4. **Where does a Household's labour go?** Only a Business has a labour Bin under this scope. Whether
+3. **Where does a Household's labour go?** Only a Business has a labour Bin under this scope. Whether
    domestic work is modelled at all is unasked.
 
 ## Corpus defects found while scoping
