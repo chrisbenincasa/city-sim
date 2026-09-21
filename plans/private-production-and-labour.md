@@ -34,6 +34,7 @@ the founding loop and for the full Goods tree.
 | A production Rule's apply band states `min = 1` | At `min = 0` the firing never falls below its minimum, so it succeeds at zero applications and re-arms every `rate` Ticks through every closed night — the retry timer `02 §4.1` refuses, paid by every production Business in the city. At `min = 1` the firing fails, sleeps on the labour Bin and does not re-arm, and the morning shift's deposit is the wake it was already waiting for |
 | Short of labour does not start the pressure clock | `[[business]] work_days` is a weekly bit mask and six shipped Rulesets state a five-day week, so a weekday Business starves for about 62 hours between Friday's last shift and Monday's first. Every shipped `tenancy_ends_after_days` and `condemn_after_days` sits inside that, so arming the clock would evict or condemn every weekday Business on its first weekend. A load-time refusal cannot rescue it without forcing every decline threshold above three Days, which destroys their use as a decline signal. `RuleEngine.Stop` already distinguishes two failures where only one starts the clock — short of an input starves, out of space does not — and short of labour is the third case |
 | A labour Resource whose shelf life outlives `shift_hours_min` is refused at load | An uncapped Bin is safe only while labour expires, and nothing otherwise stops a file declaring week-long labour. Labour that survives a shift change can be banked, so a Business shut for a weekend would spend 62 hours of standing around in one Monday firing. The bound is derived from the file rather than stated as an hour figure in the loader, which is a number nobody could ratify. It is deliberately loose — five-hour labour passes against a six-hour shortest shift — because what the design depends on is labour not crossing a shift boundary, not a particular duration. The refusal message says which of the two it is enforcing |
+| A Household has no labour Bin, and a dwelling produces without staffing | Domestic work appears nowhere in `CONTEXT.md` or the simulation and economy documents, so it is undesigned rather than refused and `adr/0070` says an undesigned absence generates no design position. The consequence is written down rather than closed: a dwelling declares no labour Bin, so its Rules cannot state labour and produce for free, and a designer could put a factory in a house. Refusing production Rules on housing kinds would close it and would also refuse working fixtures. [Domestic labour](../docs/deferred.md#domestic-labour) |
 | Spoiled stock is counted, not converted | [Waste as a Resource that moves](../docs/deferred.md#waste-as-a-resource-that-moves) |
 | The posted wage stays out of scope | `adr/0026`'s fill-rate wage is unbuilt, and `adr/0070` says an unbuilt mechanism is not a design constraint. The flat `wage_per_day` that exists is enough to demonstrate payroll against production |
 
@@ -149,14 +150,14 @@ Behaviour, in one Core world:
 
 1. **Does the per-Tick labour deposit fit the budget?** `WorkSchedule.Accrue` already walks every
    Citizen each Tick, but adding a Bin write and a remainder write per on-duty Citizen is new traffic
-   on the hottest table.
-   Needs measuring against `plans/0013` before the deposit cadence is fixed. The fallback is one
+   on the hottest table. Needs measuring against `plans/0013` before the deposit cadence is fixed.
+   The fallback is one
    deposit per Business per Day, which costs the intra-day production curve and the direct link from
    a failed commute to that day's output.
 2. **What does N cost?** Bucket count against `BinTable`'s current row width and live Bin count in a
    grown city. If it is noise, put the array on every Bin unconditionally and skip the indirection.
-3. **Where does a Household's labour go?** Only a Business has a labour Bin under this scope. Whether
-   domestic work is modelled at all is unasked.
+
+Both are measurements rather than design decisions, and both are owed before implementation.
 
 ## Corpus defects found while scoping
 

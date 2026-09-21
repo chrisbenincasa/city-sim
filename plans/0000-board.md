@@ -128,6 +128,7 @@ scoping entry above, not a new implementation commitment.
 | Work | Revisit trigger |
 |---|---|
 | Waste as a Resource that moves | Sanitation is wanted as a city system in its own right, household waste enters scope, or reported spoilage shows over-ordering needs a spatial consequence rather than a number. |
+| Domestic labour | Household chores, cooking or self-repair are wanted as behaviour rather than free output, a shipped Ruleset uses a dwelling Rule to dodge staffing, or household waste enters scope. |
 | Gravity-fed sewage | Utility plant siting proves to be pure budgeting with no spatial choice. |
 | Water depth, stratification, tides and directional flow | Wind advection is built (directional flow), or distinct Resources require stratification. Depth already represented by capacity is not new work. |
 | Ground-dependent pollution absorption | Greenspace enters scope, or playtests show the global decay model hides meaningful differences in land use. |
