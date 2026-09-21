@@ -31,6 +31,8 @@ the founding loop and for the full Goods tree.
 | Labour's tier and experience grading declares its own percentages rather than reusing the wage's | Pay and productivity are separate causes that coincide today only because the flat `wage_per_day` is a productivity proxy. A designer should be able to say a tier-2 worker is paid 40% more and produces 25% more, which is the ordinary relationship between the two. Two Ruleset keys cost less than a coupling nobody could later explain |
 | The deposit is denominated against elapsed work, unlike the wage | `WorkSchedule.Accrue` divides `wage_per_day` by the Citizen's own shift length, so pay is a fixed amount per day worked and a ten-hour shift earns what a six-hour one earns. Production must not work that way, because hours at the oven are what bake the bread. `labour_per_day` is instead what a full day of continuous work deposits, accrued per on-duty Tick over `Ticks.PerDay`. The level in a Bin then means the same thing at every Business, so a `[[recipe]]`'s labour amount is portable; under the wage's shape it would vary with the shift length each worker happened to draw |
 | The deposit carries a per-Citizen remainder, as the wage does | `Ticks.PerDay` is 2048, so the per-Tick share is a shift rather than a divide, but tier and experience grading would still die in the truncation without somewhere to keep the fraction. `WageRemainder` is the precedent and the shape |
+| A production Rule's apply band states `min = 1` | At `min = 0` the firing never falls below its minimum, so it succeeds at zero applications and re-arms every `rate` Ticks through every closed night — the retry timer `02 §4.1` refuses, paid by every production Business in the city. At `min = 1` the firing fails, sleeps on the labour Bin and does not re-arm, and the morning shift's deposit is the wake it was already waiting for |
+| Short of labour does not start the pressure clock | `[[business]] work_days` is a weekly bit mask and six shipped Rulesets state a five-day week, so a weekday Business starves for about 62 hours between Friday's last shift and Monday's first. Every shipped `tenancy_ends_after_days` and `condemn_after_days` sits inside that, so arming the clock would evict or condemn every weekday Business on its first weekend. A load-time refusal cannot rescue it without forcing every decline threshold above three Days, which destroys their use as a decline signal. `RuleEngine.Stop` already distinguishes two failures where only one starts the clock — short of an input starves, out of space does not — and short of labour is the third case |
 | Spoiled stock is counted, not converted | [Waste as a Resource that moves](../docs/deferred.md#waste-as-a-resource-that-moves) |
 | The posted wage stays out of scope | `adr/0026`'s fill-rate wage is unbuilt, and `adr/0070` says an unbuilt mechanism is not a design constraint. The flat `wage_per_day` that exists is enough to demonstrate payroll against production |
 
@@ -113,6 +115,12 @@ Out of scope, each for a stated reason:
   production, which is correct, but it changes every school in every shipped Ruleset. Named as a
   follow-up rather than carried here. Its derelict-trade fallback is a defect worth fixing whether
   or not the migration happens.
+- **The Business nobody will work at.** Short of labour no longer starts the pressure clock, so a
+  Business with no employees looks exactly like one that is closed, and the player cannot see the
+  difference. That gap is real and it is not this plan's to close: zero employees is a hiring
+  failure, and hiring already has its own machinery in declared posts, `adr/0026`'s fill rate and
+  `plans/0065`'s staff loss. Reading it off a production Rule's starvation clock would detect it in
+  the wrong place.
 - **Per-instance parameter variation.** Already scoped out of the runtime factoring plan.
 
 ## Acceptance checks
@@ -132,6 +140,8 @@ Behaviour, in one Core world:
    identically.
 9. A Rule whose rate outruns its labour's shelf life is refused at load, with the file and line.
 10. Paid local input, output purchases, payroll, staff loss and recovery, all in the same world.
+11. A Business on a five-day `work_days` mask crosses its closed weekend accruing no failure
+    pressure, keeps its tenancy and is not condemned, and resumes production on the Monday shift.
 
 ## Open questions
 
@@ -143,14 +153,10 @@ Behaviour, in one Core world:
    a failed commute to that day's output.
 2. **What does N cost?** Bucket count against `BinTable`'s current row width and live Bin count in a
    grown city. If it is noise, put the array on every Bin unconditionally and skip the indirection.
-3. **What is `min` on a production Rule's apply band?** At `min = 1` an understaffed bakery fails
-   outright and gets the wait list, which is the legible behaviour. At `min = 0` it succeeds at zero
-   applications and re-arms having done nothing, which is the silent non-event `02 §4.1` names. The
-   first looks right; it needs stating rather than assuming.
-4. **Should a labour-family Resource with a long shelf life be refused at load?** Leaving the Bin
+3. **Should a labour-family Resource with a long shelf life be refused at load?** Leaving the Bin
    uncapped leans on labour expiring quickly. A Ruleset could declare otherwise and accumulate. The
    guard is the same shape as the rate refusal and was not taken when the capacity was decided.
-5. **Where does a Household's labour go?** Only a Business has a labour Bin under this scope. Whether
+4. **Where does a Household's labour go?** Only a Business has a labour Bin under this scope. Whether
    domestic work is modelled at all is unasked.
 
 ## Corpus defects found while scoping
