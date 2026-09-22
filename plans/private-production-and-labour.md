@@ -146,18 +146,30 @@ Behaviour, in one Core world:
 11. A Business on a five-day `work_days` mask crosses its closed weekend accruing no failure
     pressure, keeps its tenancy and is not condemned, and resumes production on the Monday shift.
 
-## Open questions
+## Measurement results and implementation choices
 
-1. **Does the per-Tick labour deposit fit the budget?** `WorkSchedule.Accrue` already walks every
-   Citizen each Tick, but adding a Bin write and a remainder write per on-duty Citizen is new traffic
-   on the hottest table. Needs measuring against `plans/0013` before the deposit cadence is fixed.
-   The fallback is one
-   deposit per Business per Day, which costs the intra-day production curve and the direct link from
-   a failed commute to that day's output.
-2. **What does N cost?** Bucket count against `BinTable`'s current row width and live Bin count in a
-   grown city. If it is noise, put the array on every Bin unconditionally and skip the indirection.
+The [2026-09-21 measurement report](evidence/private-production-and-labour/README.md) contains the
+Release comparisons, raw paired samples, machine/load conditions, actual Bin census and
+reproducible isolated prototype. Production code and golden fixtures are unchanged.
 
-Both are measurements rather than design decisions, and both are owed before implementation.
+1. **Per-Tick deposits have a material cost.** The prototype adds independent productivity grading,
+   a per-Citizen remainder and a deposit through the existing Bin door; its expiry variant also
+   ages four buckets. Large-world costs cannot be inferred from the small-world per-worker cost.
+   These are desktop diagnostics with recorded background activity, not a quiet-machine claim that
+   a complete Tick fits the 15.6 ms target. Compare the measured deltas before fixing the deposit
+   implementation. A next candidate is combining deposits per Business within each Tick while
+   preserving individual accrual and wake timing; a per-Day fallback would change the intended
+   response to attendance and is not adopted by this measurement.
+2. **Buckets on every Bin are not negligible.** Four buckets and a clock add 40 bytes against the
+   current 83-byte row. The generated million-Citizen world has 900,000 allocated Bin slots;
+   one new labour Bin per Business crosses a capacity boundary and, with remainders, adds
+   147.53 MiB under the current allocator. That is an explicit content scenario, not an assumed
+   final number of producing Businesses. Compare expiry storage only for expiring Bins and
+   appropriate initial capacity sizing before choosing the layout. Bucket count also determines
+   expiry precision; memory alone cannot select it.
+
+The two measurements are recorded. Deposit implementation and expiry-storage layout still need
+choices based on that evidence; the prototype is not completion of the acceptance checks above.
 
 ## Corpus defects found while scoping
 

@@ -1,0 +1,1133 @@
+[
+  {
+    "capture": "aged-10000",
+    "roster": "observed",
+    "citizens": 10000,
+    "onDuty": 1974,
+    "tick": 15360,
+    "iterations": 200,
+    "verification": "wages match; fractional deposit and bucket totals checked",
+    "prototypeBuckets": 4,
+    "cycleTicks": 32,
+    "baselineMedianMs": 0.291781935,
+    "baselineMinMaxMs": [
+      0.287859735,
+      0.30400354
+    ],
+    "modes": {
+      "clone-control": {
+        "medianMs": 0.29576282,
+        "pairedDeltaMedianMs": 0.005984590000000012,
+        "pairedDeltaMinMaxMs": [
+          0.001528724999999953,
+          0.031054740000000025
+        ],
+        "pairedDeltaMs": [
+          0.0038708849999999906,
+          0.0019435600000000108,
+          0.005984590000000012,
+          0.001528724999999953,
+          0.008548649999999991,
+          0.0061288949999999676,
+          0.006580590000000053,
+          0.031054740000000025,
+          0.0033163549999999375
+        ],
+        "budgetPercent": 0.038362756410256486,
+        "nsPerOnDutyWorker": 3.03170719351571
+      },
+      "deposit": {
+        "medianMs": 0.36240935999999996,
+        "pairedDeltaMedianMs": 0.07181871000000001,
+        "pairedDeltaMinMaxMs": [
+          0.06690417499999995,
+          0.12466189999999994
+        ],
+        "pairedDeltaMs": [
+          0.07014580999999998,
+          0.068766135,
+          0.07181871000000001,
+          0.06690417499999995,
+          0.12466189999999994,
+          0.07230183499999998,
+          0.07566723000000003,
+          0.097833785,
+          0.07030779999999992
+        ],
+        "budgetPercent": 0.4603763461538462,
+        "nsPerOnDutyWorker": 36.38232522796353
+      },
+      "deposit-expiry": {
+        "medianMs": 0.37558095,
+        "pairedDeltaMedianMs": 0.08434565499999996,
+        "pairedDeltaMinMaxMs": [
+          0.07318042499999994,
+          0.08671995999999998
+        ],
+        "pairedDeltaMs": [
+          0.08434565499999996,
+          0.08308744000000001,
+          0.08671995999999998,
+          0.08091463999999998,
+          0.07318042499999994,
+          0.08505225999999999,
+          0.08542039500000004,
+          0.08649909499999997,
+          0.08347938999999999
+        ],
+        "budgetPercent": 0.5406772756410254,
+        "nsPerOnDutyWorker": 42.72829533941235
+      }
+    },
+    "maxAllocatedBytes": 0,
+    "collections": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "capture": "aged-10000",
+    "roster": "controlled-0",
+    "citizens": 10000,
+    "onDuty": 0,
+    "tick": 1024,
+    "iterations": 200,
+    "verification": "wages match; fractional deposit and bucket totals checked",
+    "prototypeBuckets": 4,
+    "cycleTicks": 32,
+    "baselineMedianMs": 0.01992331,
+    "baselineMinMaxMs": [
+      0.01956159,
+      0.020846754999999998
+    ],
+    "modes": {
+      "clone-control": {
+        "medianMs": 0.0198172,
+        "pairedDeltaMedianMs": -4.848999999999826e-05,
+        "pairedDeltaMinMaxMs": [
+          -0.000846195000000001,
+          0.00048122000000000095
+        ],
+        "pairedDeltaMs": [
+          0.00048122000000000095,
+          -0.00029875499999999777,
+          -0.000846195000000001,
+          -2.380999999999911e-05,
+          -3.252000000000116e-05,
+          -0.00017282499999999798,
+          -4.848999999999826e-05,
+          0.0003440050000000014,
+          -0.00016684999999999964
+        ],
+        "budgetPercent": -0.00031083333333332215,
+        "nsPerOnDutyWorker": null
+      },
+      "deposit": {
+        "medianMs": 0.01976847,
+        "pairedDeltaMedianMs": -0.00012294999999999667,
+        "pairedDeltaMinMaxMs": [
+          -0.0008886949999999984,
+          0.0002147000000000017
+        ],
+        "pairedDeltaMs": [
+          0.0002147000000000017,
+          5.80100000000007e-05,
+          -0.0008886949999999984,
+          4.1764999999999164e-05,
+          -5.780000000000368e-06,
+          -0.00028700999999999727,
+          -0.00022070000000000076,
+          -0.00012294999999999667,
+          -0.0001795050000000034
+        ],
+        "budgetPercent": -0.0007881410256410044,
+        "nsPerOnDutyWorker": null
+      },
+      "deposit-expiry": {
+        "medianMs": 0.019825634999999998,
+        "pairedDeltaMedianMs": -9.767500000000193e-05,
+        "pairedDeltaMinMaxMs": [
+          -0.0009518099999999974,
+          0.0007277300000000028
+        ],
+        "pairedDeltaMs": [
+          0.0007277300000000028,
+          0.00013153000000000123,
+          -0.0009518099999999974,
+          4.606999999999875e-05,
+          7.590000000000027e-05,
+          -0.00031708999999999904,
+          -9.767500000000193e-05,
+          -0.0001938849999999978,
+          -0.0003324599999999997
+        ],
+        "budgetPercent": -0.0006261217948718073,
+        "nsPerOnDutyWorker": null
+      }
+    },
+    "maxAllocatedBytes": 0,
+    "collections": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "capture": "aged-10000",
+    "roster": "controlled-25",
+    "citizens": 10000,
+    "onDuty": 647,
+    "tick": 1024,
+    "iterations": 200,
+    "verification": "wages match; fractional deposit and bucket totals checked",
+    "prototypeBuckets": 4,
+    "cycleTicks": 32,
+    "baselineMedianMs": 0.26718883000000004,
+    "baselineMinMaxMs": [
+      0.265510545,
+      0.27749633500000004
+    ],
+    "modes": {
+      "clone-control": {
+        "medianMs": 0.270876925,
+        "pairedDeltaMedianMs": 0.003572329999999957,
+        "pairedDeltaMinMaxMs": [
+          -0.0033228349999999685,
+          0.010020964999999993
+        ],
+        "pairedDeltaMs": [
+          0.003605305000000003,
+          0.0024646899999999916,
+          0.004446879999999986,
+          0.0028483400000000048,
+          0.003572329999999957,
+          -0.0033228349999999685,
+          0.010020964999999993,
+          -2.6550000000014062e-05,
+          0.00800526500000004
+        ],
+        "budgetPercent": 0.022899551282051005,
+        "nsPerOnDutyWorker": 5.521375579598079
+      },
+      "deposit": {
+        "medianMs": 0.29643769,
+        "pairedDeltaMedianMs": 0.028149554999999993,
+        "pairedDeltaMinMaxMs": [
+          0.023253725000000003,
+          0.05003258999999999
+        ],
+        "pairedDeltaMs": [
+          0.05003258999999999,
+          0.023253725000000003,
+          0.02649396000000004,
+          0.023828385000000007,
+          0.02348719499999996,
+          0.03287700500000007,
+          0.02832422499999998,
+          0.028149554999999993,
+          0.031820175000000006
+        ],
+        "budgetPercent": 0.18044586538461532,
+        "nsPerOnDutyWorker": 43.507812982998445
+      },
+      "deposit-expiry": {
+        "medianMs": 0.296554365,
+        "pairedDeltaMedianMs": 0.030068655,
+        "pairedDeltaMinMaxMs": [
+          0.017253079999999976,
+          0.04725918500000004
+        ],
+        "pairedDeltaMs": [
+          0.033111785000000005,
+          0.02784276499999999,
+          0.030068655,
+          0.029901244999999965,
+          0.028300009999999987,
+          0.041091175000000035,
+          0.04725918500000004,
+          0.017253079999999976,
+          0.047173760000000065
+        ],
+        "budgetPercent": 0.19274778846153845,
+        "nsPerOnDutyWorker": 46.473964451313755
+      }
+    },
+    "maxAllocatedBytes": 0,
+    "collections": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "capture": "aged-10000",
+    "roster": "controlled-50",
+    "citizens": 10000,
+    "onDuty": 1253,
+    "tick": 1024,
+    "iterations": 200,
+    "verification": "wages match; fractional deposit and bucket totals checked",
+    "prototypeBuckets": 4,
+    "cycleTicks": 32,
+    "baselineMedianMs": 0.514994155,
+    "baselineMinMaxMs": [
+      0.505343285,
+      0.549607345
+    ],
+    "modes": {
+      "clone-control": {
+        "medianMs": 0.517514575,
+        "pairedDeltaMedianMs": 0.005540814999999921,
+        "pairedDeltaMinMaxMs": [
+          -0.025137844999999936,
+          0.015706039999999977
+        ],
+        "pairedDeltaMs": [
+          0.0029502850000000524,
+          0.0060156299999999385,
+          0.015706039999999977,
+          -0.025137844999999936,
+          -0.008401880000000084,
+          0.006419275000000058,
+          -0.0037103899999999523,
+          0.005540814999999921,
+          0.00884737999999996
+        ],
+        "budgetPercent": 0.03551804487179437,
+        "nsPerOnDutyWorker": 4.4220391061451885
+      },
+      "deposit": {
+        "medianMs": 0.56624036,
+        "pairedDeltaMedianMs": 0.04625161499999997,
+        "pairedDeltaMinMaxMs": [
+          0.022442809999999924,
+          0.06395521000000004
+        ],
+        "pairedDeltaMs": [
+          0.05149018999999999,
+          0.05335604999999999,
+          0.05533826499999994,
+          0.03097296999999999,
+          0.022442809999999924,
+          0.06395521000000004,
+          0.04145002500000006,
+          0.04582229999999998,
+          0.04625161499999997
+        ],
+        "budgetPercent": 0.29648471153846134,
+        "nsPerOnDutyWorker": 36.91270151636071
+      },
+      "deposit-expiry": {
+        "medianMs": 0.579801985,
+        "pairedDeltaMedianMs": 0.05900565499999999,
+        "pairedDeltaMinMaxMs": [
+          0.02210279500000001,
+          0.08091748500000007
+        ],
+        "pairedDeltaMs": [
+          0.05641747500000005,
+          0.06830303999999998,
+          0.06396825499999992,
+          0.02210279500000001,
+          0.06300419999999995,
+          0.08091748500000007,
+          0.046745570000000014,
+          0.05626626999999995,
+          0.05900565499999999
+        ],
+        "budgetPercent": 0.37824137820512815,
+        "nsPerOnDutyWorker": 47.09150438946528
+      }
+    },
+    "maxAllocatedBytes": 0,
+    "collections": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "capture": "aged-10000",
+    "roster": "controlled-100",
+    "citizens": 10000,
+    "onDuty": 2532,
+    "tick": 1024,
+    "iterations": 200,
+    "verification": "wages match; fractional deposit and bucket totals checked",
+    "prototypeBuckets": 4,
+    "cycleTicks": 32,
+    "baselineMedianMs": 1.020868415,
+    "baselineMinMaxMs": [
+      0.98769328,
+      1.050637555
+    ],
+    "modes": {
+      "clone-control": {
+        "medianMs": 1.038478255,
+        "pairedDeltaMedianMs": 0.015778145000000077,
+        "pairedDeltaMinMaxMs": [
+          -0.014221594999999976,
+          0.04951249999999996
+        ],
+        "pairedDeltaMs": [
+          0.042030310000000126,
+          0.01119437500000009,
+          -0.014221594999999976,
+          0.016735064999999993,
+          0.014033474999999962,
+          0.015778145000000077,
+          0.04951249999999996,
+          0.024424624999999978,
+          0.014238935000000064
+        ],
+        "budgetPercent": 0.10114195512820562,
+        "nsPerOnDutyWorker": 6.23149486571883
+      },
+      "deposit": {
+        "medianMs": 1.11759353,
+        "pairedDeltaMedianMs": 0.09764374000000009,
+        "pairedDeltaMinMaxMs": [
+          0.038874459999999944,
+          0.14474628499999997
+        ],
+        "pairedDeltaMs": [
+          0.06962036000000005,
+          0.09764374000000009,
+          0.038874459999999944,
+          0.10163686499999991,
+          0.11883876999999998,
+          0.09620825499999985,
+          0.14474628499999997,
+          0.09774313499999998,
+          0.09335420999999999
+        ],
+        "budgetPercent": 0.6259214102564108,
+        "nsPerOnDutyWorker": 38.56387835703005
+      },
+      "deposit-expiry": {
+        "medianMs": 1.126377425,
+        "pairedDeltaMedianMs": 0.10934406000000019,
+        "pairedDeltaMinMaxMs": [
+          0.05551717499999986,
+          0.18923529500000003
+        ],
+        "pairedDeltaMs": [
+          0.07413476000000019,
+          0.08381542000000008,
+          0.05551717499999986,
+          0.09905995999999995,
+          0.18923529500000003,
+          0.11234700499999994,
+          0.14820402,
+          0.125461225,
+          0.10934406000000019
+        ],
+        "budgetPercent": 0.7009234615384627,
+        "nsPerOnDutyWorker": 43.18485781990529
+      }
+    },
+    "maxAllocatedBytes": 0,
+    "collections": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "capture": "generated-100000",
+    "roster": "controlled-0",
+    "citizens": 100000,
+    "onDuty": 0,
+    "tick": 1024,
+    "iterations": 64,
+    "verification": "wages match; fractional deposit and bucket totals checked",
+    "prototypeBuckets": 4,
+    "cycleTicks": 32,
+    "baselineMedianMs": 0.197678640625,
+    "baselineMinMaxMs": [
+      0.196183078125,
+      0.248165296875
+    ],
+    "modes": {
+      "clone-control": {
+        "medianMs": 0.19745884375,
+        "pairedDeltaMedianMs": -4.195312499999382e-05,
+        "pairedDeltaMinMaxMs": [
+          -0.03664692187499999,
+          0.06433120312500001
+        ],
+        "pairedDeltaMs": [
+          -0.03664692187499999,
+          0.06433120312500001,
+          -4.195312499999382e-05,
+          -0.0002626874999999973,
+          0.00035631250000001113,
+          -0.002647562500000006,
+          -0.0006703593749999848,
+          0.006196843749999986,
+          -3.6390625000021215e-05
+        ],
+        "budgetPercent": -0.00026893028846149884,
+        "nsPerOnDutyWorker": null
+      },
+      "deposit": {
+        "medianMs": 0.19790915625,
+        "pairedDeltaMedianMs": 0.00032181250000001826,
+        "pairedDeltaMinMaxMs": [
+          -0.052371390624999986,
+          0.051180937499999996
+        ],
+        "pairedDeltaMs": [
+          -0.052371390624999986,
+          -0.002112015625000019,
+          0.007269265624999993,
+          0.051180937499999996,
+          0.00032181250000001826,
+          0.0005010156249999898,
+          0.0009140625000000069,
+          -0.0010454687500000004,
+          -0.0005222812500000062
+        ],
+        "budgetPercent": 0.002062900641025758,
+        "nsPerOnDutyWorker": null
+      },
+      "deposit-expiry": {
+        "medianMs": 0.1974805625,
+        "pairedDeltaMedianMs": -0.0004056249999999928,
+        "pairedDeltaMinMaxMs": [
+          -0.039935328125,
+          0.05324159374999998
+        ],
+        "pairedDeltaMs": [
+          -0.039935328125,
+          0.001032453124999999,
+          0.0011330468750000156,
+          -0.001206796874999999,
+          -0.000545624999999994,
+          0.04896078125,
+          -0.0004056249999999928,
+          -0.002263234375000006,
+          0.05324159374999998
+        ],
+        "budgetPercent": -0.0026001602564102106,
+        "nsPerOnDutyWorker": null
+      }
+    },
+    "maxAllocatedBytes": 0,
+    "collections": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "capture": "generated-100000",
+    "roster": "controlled-25",
+    "citizens": 100000,
+    "onDuty": 6488,
+    "tick": 1024,
+    "iterations": 64,
+    "verification": "wages match; fractional deposit and bucket totals checked",
+    "prototypeBuckets": 4,
+    "cycleTicks": 32,
+    "baselineMedianMs": 2.76776703125,
+    "baselineMinMaxMs": [
+      2.720614359375,
+      3.014002390625
+    ],
+    "modes": {
+      "clone-control": {
+        "medianMs": 2.783793359375,
+        "pairedDeltaMedianMs": 0.0017812187500001464,
+        "pairedDeltaMinMaxMs": [
+          -0.31643406249999995,
+          0.07470868749999982
+        ],
+        "pairedDeltaMs": [
+          0.03078635937499996,
+          -0.0519599531249999,
+          0.07236650000000022,
+          0.016395578125000032,
+          -0.029641328124999866,
+          -0.31643406249999995,
+          -0.09450460937499994,
+          0.0017812187500001464,
+          0.07470868749999982
+        ],
+        "budgetPercent": 0.011418068910257349,
+        "nsPerOnDutyWorker": 0.27454049784219275
+      },
+      "deposit": {
+        "medianMs": 3.1579828125,
+        "pairedDeltaMedianMs": 0.410433453125,
+        "pairedDeltaMinMaxMs": [
+          0.07866725000000008,
+          0.49792950000000014
+        ],
+        "pairedDeltaMs": [
+          0.410433453125,
+          0.33214317187499987,
+          0.4341202656250003,
+          0.4373790156249999,
+          0.49792950000000014,
+          0.07866725000000008,
+          0.22860924999999988,
+          0.39649912500000006,
+          0.43190987499999967
+        ],
+        "budgetPercent": 2.6309836738782053,
+        "nsPerOnDutyWorker": 63.260396597564736
+      },
+      "deposit-expiry": {
+        "medianMs": 3.20882203125,
+        "pairedDeltaMedianMs": 0.4590455000000002,
+        "pairedDeltaMinMaxMs": [
+          0.23238393749999986,
+          0.5917041562500001
+        ],
+        "pairedDeltaMs": [
+          0.4394414687500001,
+          0.3945865156249999,
+          0.4673737343750002,
+          0.5917041562500001,
+          0.4590455000000002,
+          0.23238393749999986,
+          0.27695420312499985,
+          0.5802768281250001,
+          0.48274909374999986
+        ],
+        "budgetPercent": 2.9425993589743604,
+        "nsPerOnDutyWorker": 70.75300554870533
+      }
+    },
+    "maxAllocatedBytes": 0,
+    "collections": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "capture": "generated-100000",
+    "roster": "controlled-50",
+    "citizens": 100000,
+    "onDuty": 13015,
+    "tick": 1024,
+    "iterations": 64,
+    "verification": "wages match; fractional deposit and bucket totals checked",
+    "prototypeBuckets": 4,
+    "cycleTicks": 32,
+    "baselineMedianMs": 5.10121215625,
+    "baselineMinMaxMs": [
+      5.05725025,
+      5.35608171875
+    ],
+    "modes": {
+      "clone-control": {
+        "medianMs": 5.1517939375,
+        "pairedDeltaMedianMs": 0.04913571874999967,
+        "pairedDeltaMinMaxMs": [
+          -0.04752515624999987,
+          0.5566063281250004
+        ],
+        "pairedDeltaMs": [
+          0.06808732812500029,
+          0.08433064062499973,
+          -0.04752515624999987,
+          0.04913571874999967,
+          0.007581906250000436,
+          0.09011432812499987,
+          0.04240035937500064,
+          -0.025781859374999883,
+          0.5566063281250004
+        ],
+        "budgetPercent": 0.3149725560897415,
+        "nsPerOnDutyWorker": 3.775314540914304
+      },
+      "deposit": {
+        "medianMs": 6.009101109375,
+        "pairedDeltaMedianMs": 0.8718252187500006,
+        "pairedDeltaMinMaxMs": [
+          0.65041525,
+          0.9797377656249999
+        ],
+        "pairedDeltaMs": [
+          0.8645815937499997,
+          0.9659607187499999,
+          0.8228626718750007,
+          0.8324760625000005,
+          0.9138956562500002,
+          0.8998989999999996,
+          0.8718252187500006,
+          0.65041525,
+          0.9797377656249999
+        ],
+        "budgetPercent": 5.588623197115389,
+        "nsPerOnDutyWorker": 66.98618661160204
+      },
+      "deposit-expiry": {
+        "medianMs": 6.24116653125,
+        "pairedDeltaMedianMs": 1.1350519218750001,
+        "pairedDeltaMinMaxMs": [
+          0.8645250781250002,
+          1.3616096874999997
+        ],
+        "pairedDeltaMs": [
+          1.2529140624999995,
+          1.3518586406249993,
+          0.9398255781250002,
+          1.3616096874999997,
+          1.1119056562500003,
+          1.1350519218750001,
+          1.1688230625000005,
+          0.8645250781250002,
+          0.91317809375
+        ],
+        "budgetPercent": 7.275973858173078,
+        "nsPerOnDutyWorker": 87.21105815405303
+      }
+    },
+    "maxAllocatedBytes": 0,
+    "collections": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "capture": "generated-100000",
+    "roster": "controlled-100",
+    "citizens": 100000,
+    "onDuty": 26285,
+    "tick": 1024,
+    "iterations": 64,
+    "verification": "wages match; fractional deposit and bucket totals checked",
+    "prototypeBuckets": 4,
+    "cycleTicks": 32,
+    "baselineMedianMs": 9.99118190625,
+    "baselineMinMaxMs": [
+      9.96383565625,
+      10.1274193125
+    ],
+    "modes": {
+      "clone-control": {
+        "medianMs": 10.22404446875,
+        "pairedDeltaMedianMs": 0.1856282500000006,
+        "pairedDeltaMinMaxMs": [
+          -0.03593835937500067,
+          1.2123259531249992
+        ],
+        "pairedDeltaMs": [
+          0.046397187500000214,
+          0.34897218750000114,
+          0.0849363125,
+          -0.03593835937500067,
+          0.4625867499999998,
+          0.1856282500000006,
+          0.3235945781249985,
+          0.11622248437500105,
+          1.2123259531249992
+        ],
+        "budgetPercent": 1.1899246794871834,
+        "nsPerOnDutyWorker": 7.062136199353267
+      },
+      "deposit": {
+        "medianMs": 11.79240365625,
+        "pairedDeltaMedianMs": 1.7682036562499999,
+        "pairedDeltaMinMaxMs": [
+          1.5774793281249995,
+          2.6707977187500003
+        ],
+        "pairedDeltaMs": [
+          2.2033165156249996,
+          1.7053347500000005,
+          2.085243109375,
+          1.764884109375,
+          2.1166923906249995,
+          1.721328953125001,
+          1.5774793281249995,
+          1.7682036562499999,
+          2.6707977187500003
+        ],
+        "budgetPercent": 11.334638822115384,
+        "nsPerOnDutyWorker": 67.27044535856952
+      },
+      "deposit-expiry": {
+        "medianMs": 12.253358125,
+        "pairedDeltaMedianMs": 2.2287866093750015,
+        "pairedDeltaMinMaxMs": [
+          2.0268208281250004,
+          3.0003031875
+        ],
+        "pairedDeltaMs": [
+          2.0268208281250004,
+          2.1055991093750013,
+          2.2712221093749996,
+          2.3432903437500006,
+          2.2895224687500004,
+          2.2287866093750015,
+          3.0003031875,
+          2.1238124687499997,
+          2.085952640624999
+        ],
+        "budgetPercent": 14.287093649839754,
+        "nsPerOnDutyWorker": 84.7930990821762
+      }
+    },
+    "maxAllocatedBytes": 0,
+    "collections": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "capture": "generated-1000000",
+    "roster": "controlled-0",
+    "citizens": 1000000,
+    "onDuty": 0,
+    "tick": 1024,
+    "iterations": 64,
+    "verification": "wages match; fractional deposit and bucket totals checked",
+    "prototypeBuckets": 4,
+    "cycleTicks": 32,
+    "baselineMedianMs": 2.011814375,
+    "baselineMinMaxMs": [
+      1.98755253125,
+      2.100283203125
+    ],
+    "modes": {
+      "clone-control": {
+        "medianMs": 2.023532296875,
+        "pairedDeltaMedianMs": -0.0009615625000001238,
+        "pairedDeltaMinMaxMs": [
+          -0.03816632812499998,
+          0.08480276562500011
+        ],
+        "pairedDeltaMs": [
+          -0.03184962499999999,
+          -7.968749999998082e-05,
+          -0.03816632812499998,
+          -0.02945553125,
+          0.08480276562500011,
+          0.017122828124999767,
+          0.0010926250000000692,
+          -0.0101034375000002,
+          -0.0009615625000001238
+        ],
+        "budgetPercent": -0.006163862179487972,
+        "nsPerOnDutyWorker": null
+      },
+      "deposit": {
+        "medianMs": 2.01062453125,
+        "pairedDeltaMedianMs": -0.0046326718750000495,
+        "pairedDeltaMinMaxMs": [
+          -0.10621365625000001,
+          0.08214907812500005
+        ],
+        "pairedDeltaMs": [
+          -0.10621365625000001,
+          0.011372062500000002,
+          -0.042153296875000024,
+          -0.011226109374999904,
+          0.08214907812500005,
+          0.008091078125000095,
+          -0.01343099999999997,
+          -0.0011898437500001968,
+          -0.0046326718750000495
+        ],
+        "budgetPercent": -0.029696614583333652,
+        "nsPerOnDutyWorker": null
+      },
+      "deposit-expiry": {
+        "medianMs": 2.009165875,
+        "pairedDeltaMedianMs": -0.005350874999999977,
+        "pairedDeltaMinMaxMs": [
+          -0.04099309375000004,
+          0.02163584374999994
+        ],
+        "pairedDeltaMs": [
+          -0.04099309375000004,
+          0.012240187499999777,
+          -0.03902654687500018,
+          -0.03618578124999994,
+          0.02163584374999994,
+          0.0016863593749998351,
+          -0.0020444062500000193,
+          -0.01142025000000002,
+          -0.005350874999999977
+        ],
+        "budgetPercent": -0.034300480769230625,
+        "nsPerOnDutyWorker": null
+      }
+    },
+    "maxAllocatedBytes": 0,
+    "collections": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "capture": "generated-1000000",
+    "roster": "controlled-25",
+    "citizens": 1000000,
+    "onDuty": 64673,
+    "tick": 1024,
+    "iterations": 64,
+    "verification": "wages match; fractional deposit and bucket totals checked",
+    "prototypeBuckets": 4,
+    "cycleTicks": 32,
+    "baselineMedianMs": 32.429139671875,
+    "baselineMinMaxMs": [
+      31.764845640625,
+      32.837641328125
+    ],
+    "modes": {
+      "clone-control": {
+        "medianMs": 32.208578734375,
+        "pairedDeltaMedianMs": -0.04110337499999872,
+        "pairedDeltaMinMaxMs": [
+          -1.0129155937500016,
+          1.1897140468749967
+        ],
+        "pairedDeltaMs": [
+          -0.4327597499999989,
+          -1.0129155937500016,
+          -0.04110337499999872,
+          -0.11278704687499896,
+          0.022059625000000693,
+          -0.6451946093750003,
+          0.059547671875002095,
+          0.9583611406249979,
+          1.1897140468749967
+        ],
+        "budgetPercent": -0.2634831730769149,
+        "nsPerOnDutyWorker": -0.6355569557620447
+      },
+      "deposit": {
+        "medianMs": 39.694831890625,
+        "pairedDeltaMedianMs": 7.299155249999998,
+        "pairedDeltaMinMaxMs": [
+          6.316103624999997,
+          8.846038874999998
+        ],
+        "pairedDeltaMs": [
+          6.930304781250001,
+          6.316103624999997,
+          7.909364750000002,
+          7.299155249999998,
+          7.749594921874998,
+          6.928416671874999,
+          8.846038874999998,
+          7.024705078124999,
+          8.185498484374996
+        ],
+        "budgetPercent": 46.78945673076922,
+        "nsPerOnDutyWorker": 112.86248125183613
+      },
+      "deposit-expiry": {
+        "medianMs": 43.92914278125,
+        "pairedDeltaMedianMs": 11.650244906250002,
+        "pairedDeltaMinMaxMs": [
+          9.667440140624997,
+          12.398286406249998
+        ],
+        "pairedDeltaMs": [
+          11.651301125000003,
+          9.667440140624997,
+          11.650244906250002,
+          10.609313921875,
+          11.983905812500002,
+          10.545412078124997,
+          10.808425781250001,
+          12.398286406249998,
+          12.368895406249997
+        ],
+        "budgetPercent": 74.68105709134618,
+        "nsPerOnDutyWorker": 180.14078373123255
+      }
+    },
+    "maxAllocatedBytes": 0,
+    "collections": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "capture": "generated-1000000",
+    "roster": "controlled-50",
+    "citizens": 1000000,
+    "onDuty": 129427,
+    "tick": 1024,
+    "iterations": 64,
+    "verification": "wages match; fractional deposit and bucket totals checked",
+    "prototypeBuckets": 4,
+    "cycleTicks": 32,
+    "baselineMedianMs": 59.715368578125,
+    "baselineMinMaxMs": [
+      58.58394278125,
+      60.9491245
+    ],
+    "modes": {
+      "clone-control": {
+        "medianMs": 59.62217503125,
+        "pairedDeltaMedianMs": 0.22298357812499603,
+        "pairedDeltaMinMaxMs": [
+          -2.268278359375003,
+          1.1260172968749984
+        ],
+        "pairedDeltaMs": [
+          0.5595950781249996,
+          0.08946139062500436,
+          -2.268278359375003,
+          0.4762494531249999,
+          0.04124442187499966,
+          1.1260172968749984,
+          -0.09319354687499981,
+          0.22298357812499603,
+          0.3021553906249963
+        ],
+        "budgetPercent": 1.4293819110576669,
+        "nsPerOnDutyWorker": 1.7228520951964894
+      },
+      "deposit": {
+        "medianMs": 71.67530978125,
+        "pairedDeltaMedianMs": 12.644707234375005,
+        "pairedDeltaMinMaxMs": [
+          10.631528421874997,
+          14.133264828125
+        ],
+        "pairedDeltaMs": [
+          14.133264828125,
+          12.447158765624998,
+          10.631528421874997,
+          13.09047590625,
+          12.644707234375005,
+          13.038076937499994,
+          11.959941203124991,
+          13.632534125,
+          11.706011578125
+        ],
+        "budgetPercent": 81.05581560496799,
+        "nsPerOnDutyWorker": 97.69759968457127
+      },
+      "deposit-expiry": {
+        "medianMs": 80.118993640625,
+        "pairedDeltaMedianMs": 20.798458515625,
+        "pairedDeltaMinMaxMs": [
+          18.681103874999998,
+          23.202154
+        ],
+        "pairedDeltaMs": [
+          22.814035234375005,
+          21.623053234375,
+          18.681103874999998,
+          23.202154,
+          19.507880546875,
+          20.353373937499995,
+          20.888297140624992,
+          20.378598593750006,
+          20.798458515625
+        ],
+        "budgetPercent": 133.3234520232372,
+        "nsPerOnDutyWorker": 160.6964429031423
+      }
+    },
+    "maxAllocatedBytes": 0,
+    "collections": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "capture": "generated-1000000",
+    "roster": "controlled-100",
+    "citizens": 1000000,
+    "onDuty": 259340,
+    "tick": 1024,
+    "iterations": 64,
+    "verification": "wages match; fractional deposit and bucket totals checked",
+    "prototypeBuckets": 4,
+    "cycleTicks": 32,
+    "baselineMedianMs": 109.551344671875,
+    "baselineMinMaxMs": [
+      109.199698,
+      112.015088
+    ],
+    "modes": {
+      "clone-control": {
+        "medianMs": 111.87685,
+        "pairedDeltaMedianMs": 1.9954647343749912,
+        "pairedDeltaMinMaxMs": [
+          1.187191171875,
+          3.0659869375
+        ],
+        "pairedDeltaMs": [
+          2.285128874999998,
+          1.6005358593750003,
+          1.187191171875,
+          3.0659869375,
+          1.9954647343749912,
+          1.4508050000000026,
+          2.8341913124999962,
+          1.4443422031249895,
+          2.067272109374997
+        ],
+        "budgetPercent": 12.791440604967894,
+        "nsPerOnDutyWorker": 7.694396292029734
+      },
+      "deposit": {
+        "medianMs": 135.3479468125,
+        "pairedDeltaMedianMs": 25.999364078124998,
+        "pairedDeltaMinMaxMs": [
+          24.225598171874992,
+          27.040211781249994
+        ],
+        "pairedDeltaMs": [
+          26.19304048437499,
+          24.225598171874992,
+          25.256190328124987,
+          26.069257265625012,
+          26.825949312499986,
+          25.796602140624998,
+          25.999364078124998,
+          27.040211781249994,
+          25.653771109374986
+        ],
+        "budgetPercent": 166.662590244391,
+        "nsPerOnDutyWorker": 100.25204009456696
+      },
+      "deposit-expiry": {
+        "medianMs": 150.166340921875,
+        "pairedDeltaMedianMs": 40.81833373437499,
+        "pairedDeltaMinMaxMs": [
+          38.151252921874985,
+          45.003621656250004
+        ],
+        "pairedDeltaMs": [
+          45.003621656250004,
+          40.81833373437499,
+          38.151252921874985,
+          40.821503593749995,
+          41.31981723437501,
+          40.47117028125001,
+          39.95850154687501,
+          41.11851648437498,
+          40.655809250000004
+        ],
+        "budgetPercent": 261.65598547676274,
+        "nsPerOnDutyWorker": 157.39312768710954
+      }
+    },
+    "maxAllocatedBytes": 0,
+    "collections": [
+      0,
+      0,
+      0
+    ]
+  }
+]

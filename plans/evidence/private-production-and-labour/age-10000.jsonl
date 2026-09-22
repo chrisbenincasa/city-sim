@@ -1,0 +1,14 @@
+{"type":"conditions","mode":"age","population":10000,"seed":0,"runtime":".NET 10.0.12","cpuCount":1,"serverGc":false,"configuration":"Release","threads":1,"affinity":4,"coreSha256":"2924E5B46E1CCCF3A8F74C44CF113EB33DBE2DB4D239C584D4252986D3F2CF5C","rulesetSha256":"2DE63BECD3932F2BBBBA77163F32B2CA4CDE0DFFC688A95F0DED9676F52914B8"}
+{"type":"age","tick":2048,"citizens":10000}
+{"type":"age","tick":4096,"citizens":10000}
+{"type":"age","tick":6144,"citizens":10000}
+{"type":"age","tick":8192,"citizens":10000}
+{"type":"age","tick":10240,"citizens":10000}
+{"type":"age","tick":12288,"citizens":10000}
+{"type":"age","tick":14336,"citizens":10000}
+{"type":"census","label":"aged","tick":15360,"citizens":10000,"citizenCapacity":10000,"businesses":869,"liveBins":8985,"binSlots":8985,"binCapacity":9000,"businessBins":885,"goodsBins":4515,"binWidth":83,"savedBinWidth":71,"tablePayloadBytes":66829559,"columns":[{"Name":"id","BytesPerRow":8,"disposition":"Saved"},{"Name":"generation","BytesPerRow":4,"disposition":"Saved"},{"Name":"free_next","BytesPerRow":4,"disposition":"Saved"},{"Name":"owner_kind","BytesPerRow":1,"disposition":"Saved"},{"Name":"owner","BytesPerRow":8,"disposition":"Saved"},{"Name":"resource","BytesPerRow":2,"disposition":"Saved"},{"Name":"level","BytesPerRow":8,"disposition":"Saved"},{"Name":"cost","BytesPerRow":8,"disposition":"Saved"},{"Name":"capacity","BytesPerRow":8,"disposition":"Derived"},{"Name":"supply_wait_head","BytesPerRow":4,"disposition":"Saved"},{"Name":"supply_wait_tail","BytesPerRow":4,"disposition":"Saved"},{"Name":"space_wait_head","BytesPerRow":4,"disposition":"Saved"},{"Name":"space_wait_tail","BytesPerRow":4,"disposition":"Saved"},{"Name":"bin_next","BytesPerRow":4,"disposition":"Derived"},{"Name":"owner_next","BytesPerRow":8,"disposition":"Saved"},{"Name":"consumption_progress","BytesPerRow":4,"disposition":"Saved"}]}
+{"type":"memory","label":"aged","buckets":2,"addedWidth":24,"payloadBytes":216000,"measuredArrayAllocationBytes":216048,"savedSlotBytes":215640,"remainderBytes":80000,"addedBinsForLabour":869,"addedLabourBinPayload":92983}
+{"type":"memory","label":"aged","buckets":4,"addedWidth":40,"payloadBytes":360000,"measuredArrayAllocationBytes":360048,"savedSlotBytes":359400,"remainderBytes":80000,"addedBinsForLabour":869,"addedLabourBinPayload":106887}
+{"type":"memory","label":"aged","buckets":8,"addedWidth":72,"payloadBytes":648000,"measuredArrayAllocationBytes":648048,"savedSlotBytes":646920,"remainderBytes":80000,"addedBinsForLabour":869,"addedLabourBinPayload":134695}
+{"type":"memory","label":"aged","buckets":16,"addedWidth":136,"payloadBytes":1224000,"measuredArrayAllocationBytes":1224048,"savedSlotBytes":1221960,"remainderBytes":80000,"addedBinsForLabour":869,"addedLabourBinPayload":190311}
+{"type":"validated","hash":"47B065FBF0FBD7CA","invariants":"passed"}
