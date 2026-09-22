@@ -22,6 +22,7 @@ internal static class Program
 
     private static void Main(string[] args)
     {
+        if (args[0] == "combined") { Followup.Run(args); return; }
         var source = RulesetSource.Load("rulesets/stress-shopping.toml");
         var rules = source.Ruleset ?? throw new InvalidOperationException("Ruleset failed");
         var key = WorldKey.FromSeed(0);

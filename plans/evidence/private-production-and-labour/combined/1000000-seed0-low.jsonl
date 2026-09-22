@@ -1,0 +1,46 @@
+{"type":"wake-probe","blocking":"supply","directAwake":2,"unguardedAwake":1,"guardedAwake":2,"guardedHashMatches":true,"consequence":"unconditional combining changes wake admission; guarded path preserves individual writes when either queue is nonempty"}
+{"type":"wake-probe","blocking":"space","directAwake":2,"unguardedAwake":1,"guardedAwake":2,"guardedHashMatches":true,"consequence":"unconditional combining changes wake admission; guarded path preserves individual writes when either queue is nonempty"}
+{"type":"conditions","population":1000000,"seed":0,"rate":16,"atWorkPercent":50,"checkpoint":null,"runtime":".NET 10.0.12","threads":1,"affinity":4,"coreSha256":"66F4CD5CDC629311F76D3E5E18DCF2088CC70AA5D92F03A743BCD64BF75243D9","harnessSha256":"8B324CEAEC55FC7DC56881E91253281F954849E682FF15652779EE96688FD3FD"}
+{"type":"workload","citizens":1000000,"onDuty":129427,"workingBusinesses":56403,"maxWorkersPerBusiness":7,"businesses":84670,"goodsBins":446926,"originalCapacity":900000,"originalSlots":891597,"binCapacity":1800000,"binSlots":976267,"clock":1024}
+{"type":"memory","denseBytes":72000000,"sparseRowWidth":64,"sparseLive":84670,"sparseCapacity":131072,"sparseIndexBytes":7200000,"sparseBytes":15588608,"combinedScratchBytes":1800000,"sharedBinHandleBytes":1200000,"sharedWasteBytes":1200000,"sharedRemainderBytes":8000000,"representation":"sparse row: 16 allocator \u002B 8 Bin owner handle \u002B 32 buckets \u002B 8 clock; derived int Bin-to-row index"}
+{"type":"storage-sensitivity","goodsExpiringPercent":0,"expiringBins":84670,"sparseCapacity":131072,"sparseBytes":15588608,"denseBytes":72000000,"provenance":"calculated from measured widths and counts; not a perishable-content observation"}
+{"type":"storage-sensitivity","goodsExpiringPercent":25,"expiringBins":196401,"sparseCapacity":262144,"sparseBytes":23977216,"denseBytes":72000000,"provenance":"calculated from measured widths and counts; not a perishable-content observation"}
+{"type":"storage-sensitivity","goodsExpiringPercent":50,"expiringBins":308133,"sparseCapacity":524288,"sparseBytes":40754432,"denseBytes":72000000,"provenance":"calculated from measured widths and counts; not a perishable-content observation"}
+{"type":"storage-sensitivity","goodsExpiringPercent":100,"expiringBins":531596,"sparseCapacity":1048576,"sparseBytes":74308864,"denseBytes":72000000,"provenance":"calculated from measured widths and counts; not a perishable-content observation"}
+{"type":"deposit-counts","passes":32,"directCalls":40519,"combinedCalls":40519,"scope":"derived outside timing from the same initial remainders and grading; timed proxy queues are empty"}
+{"type":"verification","results":"all four variants match Core hash, wages, worker fractions, levels, expiry clocks, buckets and waste"}
+{"type":"timing","pair":0,"mode":"baseline","iterations":32,"msPerPass":57.76535175,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":0,"mode":"direct-dense","iterations":32,"msPerPass":60.88648553125,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":0,"mode":"combined-dense","iterations":32,"msPerPass":60.31139559375,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":0,"mode":"direct-sparse","iterations":32,"msPerPass":61.46255315625,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":0,"mode":"combined-sparse","iterations":32,"msPerPass":62.162487375,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":1,"mode":"combined-sparse","iterations":32,"msPerPass":60.8960089375,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":1,"mode":"direct-sparse","iterations":32,"msPerPass":61.04500725,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":1,"mode":"combined-dense","iterations":32,"msPerPass":62.800075625,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":1,"mode":"direct-dense","iterations":32,"msPerPass":60.4146685,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":1,"mode":"baseline","iterations":32,"msPerPass":57.89740746875,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":2,"mode":"baseline","iterations":32,"msPerPass":58.05495175,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":2,"mode":"direct-dense","iterations":32,"msPerPass":61.06198478125,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":2,"mode":"combined-dense","iterations":32,"msPerPass":61.9129755625,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":2,"mode":"direct-sparse","iterations":32,"msPerPass":61.01233696875,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":2,"mode":"combined-sparse","iterations":32,"msPerPass":60.9593758125,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":3,"mode":"combined-sparse","iterations":32,"msPerPass":60.59263584375,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":3,"mode":"direct-sparse","iterations":32,"msPerPass":61.70272284375,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":3,"mode":"combined-dense","iterations":32,"msPerPass":60.4848925,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":3,"mode":"direct-dense","iterations":32,"msPerPass":62.705602375,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":3,"mode":"baseline","iterations":32,"msPerPass":59.18360540625,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":4,"mode":"baseline","iterations":32,"msPerPass":57.86978853125,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":4,"mode":"direct-dense","iterations":32,"msPerPass":60.75318434375,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":4,"mode":"combined-dense","iterations":32,"msPerPass":60.83391153125,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":4,"mode":"direct-sparse","iterations":32,"msPerPass":60.714177625,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":4,"mode":"combined-sparse","iterations":32,"msPerPass":61.57768234375,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":5,"mode":"combined-sparse","iterations":32,"msPerPass":61.24111321875,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":5,"mode":"direct-sparse","iterations":32,"msPerPass":62.10291571875,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":5,"mode":"combined-dense","iterations":32,"msPerPass":61.57103025,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":5,"mode":"direct-dense","iterations":32,"msPerPass":62.13971375,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":5,"mode":"baseline","iterations":32,"msPerPass":59.55258809375,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":6,"mode":"baseline","iterations":32,"msPerPass":58.9566870625,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":6,"mode":"direct-dense","iterations":32,"msPerPass":61.3852650625,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":6,"mode":"combined-dense","iterations":32,"msPerPass":62.44501778125,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":6,"mode":"direct-sparse","iterations":32,"msPerPass":62.436199375,"allocated":0,"collections":[0,0,0]}
+{"type":"timing","pair":6,"mode":"combined-sparse","iterations":32,"msPerPass":60.9839085625,"allocated":0,"collections":[0,0,0]}

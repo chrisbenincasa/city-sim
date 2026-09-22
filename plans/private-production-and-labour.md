@@ -148,28 +148,37 @@ Behaviour, in one Core world:
 
 ## Measurement results and implementation choices
 
-The [2026-09-21 measurement report](evidence/private-production-and-labour/README.md) contains the
-Release comparisons, raw paired samples, machine/load conditions, actual Bin census and
-reproducible isolated prototype. Production code and golden fixtures are unchanged.
+The [first report](evidence/private-production-and-labour/README.md) prices individual deposits
+and unconditional expiry storage. The [2026-09-22 follow-up](evidence/private-production-and-labour/combined/README.md)
+compares guarded per-Business combining and storage allocated only for expiring Bins, with raw
+Release samples, machine/load conditions and reproducible prototypes. Core, Rulesets, save schema
+and golden fixtures are unchanged.
 
-1. **Per-Tick deposits have a material cost.** The prototype adds independent productivity grading,
-   a per-Citizen remainder and a deposit through the existing Bin door; its expiry variant also
-   ages four buckets. Large-world costs cannot be inferred from the small-world per-worker cost.
-   These are desktop diagnostics with recorded background activity, not a quiet-machine claim that
-   a complete Tick fits the 15.6 ms target. Compare the measured deltas before fixing the deposit
-   implementation. A next candidate is combining deposits per Business within each Tick while
-   preserving individual accrual and wake timing; a per-Day fallback would change the intended
-   response to attendance and is not adopted by this measurement.
-2. **Buckets on every Bin are not negligible.** Four buckets and a clock add 40 bytes against the
-   current 83-byte row. The generated million-Citizen world has 900,000 allocated Bin slots;
-   one new labour Bin per Business crosses a capacity boundary and, with remainders, adds
-   147.53 MiB under the current allocator. That is an explicit content scenario, not an assumed
-   final number of producing Businesses. Compare expiry storage only for expiring Bins and
-   appropriate initial capacity sizing before choosing the layout. Bucket count also determines
-   expiry precision; memory alone cannot select it.
+1. **Combine only when both wait lists are empty.** Actual Core probes show individual writes of
+   6 then 1 can wake two waiters needing 6 each, while a combined 7 wakes only one. A guarded path
+   retains individual writes when Supply or Space waiters are present and matches the individual
+   path's State Hash. In two high-rate million-Citizen controls, combining saves 6.71 / 6.19 ms
+   against individual+dense. Including compact storage leaves 13.35 / 13.82 ms of additional work
+   above the existing wage pass. These are empty-queue desktop diagnostics, not whole-Tick capacity
+   certification. The lower-rate control adds about 2.9 ms and has no same-Business writes to merge
+   within a Tick, so it establishes no combining speed-up. Keep individual fractional accrual and
+   per-Tick response; a per-Day fallback is not adopted.
+2. **Compact expiry saves memory for the labour-focused case.** Its measured row is 64 bytes,
+   including allocator fields and a saved Bin handle, plus a derived 4-byte reverse index on every
+   allocated Bin slot. At one million Citizens with one labour Bin per Business, it uses 14.87 MiB
+   versus 68.66 MiB of dense expiry storage; combining adds 1.72 MiB of scratch. The underlying Bin
+   allocator's capacity doubling remains a separate cost. If every existing Good in that fixture
+   also expires, compact storage crosses another capacity boundary and slightly exceeds dense
+   storage. Bucket precision and authored work units remain content/design choices; the measurements
+   do not select them merely by cost.
 
-The two measurements are recorded. Deposit implementation and expiry-storage layout still need
-choices based on that evidence; the prototype is not completion of the acceptance checks above.
+**Next:** use guarded combining and compact expiry as candidates for the integrated production
+slice. Verify actual Rule-generated queues and wake timing, bounded row removal/reuse, fractional
+progress, expiry and save/replay equivalence, and price the real authored rate in the
+acceptance world. The existing wage-only pass
+already exceeds the 15.6 ms whole-Tick target in the constructed million-Citizen controls; these component savings
+cannot settle the complete city's Tick budget. Both measurement steps are complete; the prototypes
+do not complete the gameplay acceptance checks above.
 
 ## Corpus defects found while scoping
 

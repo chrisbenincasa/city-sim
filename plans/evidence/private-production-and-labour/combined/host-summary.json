@@ -1,0 +1,138 @@
+[
+  {
+    "capture": "100000-seed0-high-host",
+    "command": [
+      "taskset",
+      "-c",
+      "2",
+      "env",
+      "DOTNET_TieredCompilation=0",
+      "dotnet",
+      "spikes/LabourCost/bin/Release/net10.0/LabourCost.dll",
+      "combined",
+      "100000",
+      "0",
+      "4097",
+      "50"
+    ],
+    "startUtc": "2026-09-22T11:51:26.828742+00:00",
+    "endUtc": "2026-09-22T11:51:36.832681+00:00",
+    "cpu2MeanBusyPercent": 98.5979797979798,
+    "sibling8MeanBusyPercent": 2.1021814426340595,
+    "otherCpuMeanBusyPercent": 4.8898017148653645,
+    "sampledFrequencyKhzMinMax": [
+      2479549,
+      4097673
+    ],
+    "scope": "entire process including setup; unweighted mean of roughly one-second intervals"
+  },
+  {
+    "capture": "1000000-seed0-high-host",
+    "command": [
+      "taskset",
+      "-c",
+      "2",
+      "env",
+      "DOTNET_TieredCompilation=0",
+      "dotnet",
+      "spikes/LabourCost/bin/Release/net10.0/LabourCost.dll",
+      "combined",
+      "1000000",
+      "0",
+      "4097",
+      "50"
+    ],
+    "startUtc": "2026-09-22T11:51:36.833608+00:00",
+    "endUtc": "2026-09-22T11:54:28.904876+00:00",
+    "cpu2MeanBusyPercent": 99.61046395337208,
+    "sibling8MeanBusyPercent": 4.183317109594205,
+    "otherCpuMeanBusyPercent": 4.510665632264836,
+    "sampledFrequencyKhzMinMax": [
+      800000,
+      4100024
+    ],
+    "scope": "entire process including setup; unweighted mean of roughly one-second intervals"
+  },
+  {
+    "capture": "1000000-seed0-low-host",
+    "command": [
+      "taskset",
+      "-c",
+      "2",
+      "env",
+      "DOTNET_TieredCompilation=0",
+      "dotnet",
+      "spikes/LabourCost/bin/Release/net10.0/LabourCost.dll",
+      "combined",
+      "1000000",
+      "0",
+      "16",
+      "50"
+    ],
+    "startUtc": "2026-09-22T11:57:16.977623+00:00",
+    "endUtc": "2026-09-22T11:59:49.041277+00:00",
+    "cpu2MeanBusyPercent": 99.7209595959596,
+    "sibling8MeanBusyPercent": 4.576299963508704,
+    "otherCpuMeanBusyPercent": 4.409286174970277,
+    "sampledFrequencyKhzMinMax": [
+      3999974,
+      4100047
+    ],
+    "scope": "entire process including setup; unweighted mean of roughly one-second intervals"
+  },
+  {
+    "capture": "1000000-seed1-high-host",
+    "command": [
+      "taskset",
+      "-c",
+      "2",
+      "env",
+      "DOTNET_TieredCompilation=0",
+      "dotnet",
+      "spikes/LabourCost/bin/Release/net10.0/LabourCost.dll",
+      "combined",
+      "1000000",
+      "1",
+      "4097",
+      "50"
+    ],
+    "startUtc": "2026-09-22T11:54:28.905904+00:00",
+    "endUtc": "2026-09-22T11:57:16.976740+00:00",
+    "cpu2MeanBusyPercent": 99.73479490806224,
+    "sibling8MeanBusyPercent": 3.7193982075443386,
+    "otherCpuMeanBusyPercent": 4.663547302737606,
+    "sampledFrequencyKhzMinMax": [
+      800000,
+      4107999
+    ],
+    "scope": "entire process including setup; unweighted mean of roughly one-second intervals"
+  },
+  {
+    "capture": "aged-10000-host",
+    "command": [
+      "taskset",
+      "-c",
+      "2",
+      "env",
+      "DOTNET_TieredCompilation=0",
+      "dotnet",
+      "spikes/LabourCost/bin/Release/net10.0/LabourCost.dll",
+      "combined",
+      "10000",
+      "0",
+      "4097",
+      "-1",
+      "/tmp/labour-followup-aged.borough"
+    ],
+    "startUtc": "2026-09-22T11:51:24.826925+00:00",
+    "endUtc": "2026-09-22T11:51:26.827749+00:00",
+    "cpu2MeanBusyPercent": 76.50990099009901,
+    "sibling8MeanBusyPercent": 1.0101010101010102,
+    "otherCpuMeanBusyPercent": 3.221353972131907,
+    "sampledFrequencyKhzMinMax": [
+      3999973,
+      4002782
+    ],
+    "scope": "entire process including setup; unweighted mean of roughly one-second intervals"
+  }
+]

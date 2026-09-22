@@ -9,3 +9,7 @@ source = source.replace('public static class WorkSchedule', 'public static class
 source = source.replace(needle, needle + '\n            LabourCost.Probe.Deposit(world, citizen, job, tick);')
 (root / 'spikes/LabourCost/WorkScheduleLabour.g.cs').write_text(source)
 print(hashlib.sha256(source.encode()).hexdigest())
+
+combined = source.replace('WorkScheduleLabour', 'WorkScheduleCombined').replace('LabourCost.Probe.Deposit', 'LabourCost.Followup.Deposit').replace('PayrollStage', 'CombinedPayrollStage')
+(root / 'spikes/LabourCost/WorkScheduleCombined.g.cs').write_text(combined)
+print(hashlib.sha256(combined.encode()).hexdigest())

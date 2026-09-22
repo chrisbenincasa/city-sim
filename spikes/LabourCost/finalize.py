@@ -4,9 +4,12 @@ import gzip
 import hashlib
 import json
 import statistics
+import sys
 
 root = Path(__file__).resolve().parents[2]
 out = root / 'plans/evidence/private-production-and-labour'
+if len(sys.argv) > 1:
+    out /= sys.argv[1]
 summary = [] if list(out.glob('*-host.jsonl')) else json.loads((out / 'host-summary.json').read_text())
 for path in sorted(out.glob('*-host.jsonl')):
     rows = [json.loads(s) for s in path.read_text().splitlines()]
@@ -37,7 +40,7 @@ for path in sorted(out.glob('*-host.jsonl')):
     path.unlink()
 (out / 'host-summary.json').write_text(json.dumps(summary, indent=2) + '\n')
 checkpoint = Path('/tmp/labour-aged.borough')
-if checkpoint.exists():
+if len(sys.argv) == 1 and checkpoint.exists():
     (out / 'aged-10000.borough.gz').write_bytes(gzip.compress(checkpoint.read_bytes(), mtime=0))
 for path in out.glob('*.stderr.txt'):
     if not path.stat().st_size:

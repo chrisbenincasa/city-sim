@@ -78,3 +78,26 @@ labour Bins are added; quoting just `liveBins × bucketWidth` understates that a
 No shipped Resource currently declares expiry. Goods and Business Bin counts are sensitivity
 inputs for future content, not measured counts of perishable stock. The aged 10,000-Citizen fixture
 and generated larger worlds cannot establish a balanced million-Citizen city's Resource mix.
+
+## Guarded combination and compact expiry follow-up
+
+The [follow-up report](../../plans/evidence/private-production-and-labour/combined/README.md)
+compares fresh baseline, individual/combined deposits and dense/compact expiry storage. `prepare.py`
+also generates `WorkScheduleCombined.g.cs`. The original four-mode command remains available;
+use revision `e25cacc` for the exact first instrument source.
+
+```sh
+python3 spikes/LabourCost/prepare.py
+dotnet build spikes/LabourCost -c Release --no-restore --nologo -m:1 -nr:false
+python3 spikes/LabourCost/capture_followup.py
+python3 spikes/LabourCost/summarize_followup.py
+python3 spikes/LabourCost/render_followup.py
+python3 spikes/LabourCost/finalize.py combined
+```
+
+Follow-up captures go into `combined/`; they never replace the original evidence. The capture
+script restores the checked-in aged checkpoint and runs the observed small world, a 100,000-Citizen
+control, two million-Citizen seeds and a lower deposit-rate control. Timings include the flush and
+all queue checks. State comparisons include bucket boundaries and long untouched intervals; Supply
+and Space probes demonstrate why unconditional combination is not equivalent. Compact storage uses
+actual Rows columns, including saved Bin handles and allocator fields, with a rebuilt reverse index.

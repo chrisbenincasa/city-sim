@@ -1,0 +1,1622 @@
+[
+  {
+    "capture": "100000-seed0-high",
+    "conditions": {
+      "type": "conditions",
+      "population": 100000,
+      "seed": 0,
+      "rate": 4097,
+      "atWorkPercent": 50,
+      "checkpoint": null,
+      "runtime": ".NET 10.0.12",
+      "threads": 1,
+      "affinity": 4,
+      "coreSha256": "66F4CD5CDC629311F76D3E5E18DCF2088CC70AA5D92F03A743BCD64BF75243D9",
+      "harnessSha256": "8B324CEAEC55FC7DC56881E91253281F954849E682FF15652779EE96688FD3FD"
+    },
+    "workload": {
+      "type": "workload",
+      "citizens": 100000,
+      "onDuty": 13015,
+      "workingBusinesses": 5726,
+      "maxWorkersPerBusiness": 7,
+      "businesses": 8481,
+      "goodsBins": 44722,
+      "originalCapacity": 90000,
+      "originalSlots": 89204,
+      "binCapacity": 180000,
+      "binSlots": 97685,
+      "clock": 1024
+    },
+    "memory": {
+      "type": "memory",
+      "denseBytes": 7200000,
+      "sparseRowWidth": 64,
+      "sparseLive": 8481,
+      "sparseCapacity": 16384,
+      "sparseIndexBytes": 720000,
+      "sparseBytes": 1768576,
+      "combinedScratchBytes": 180000,
+      "sharedBinHandleBytes": 120000,
+      "sharedWasteBytes": 120000,
+      "sharedRemainderBytes": 800000,
+      "representation": "sparse row: 16 allocator + 8 Bin owner handle + 32 buckets + 8 clock; derived int Bin-to-row index"
+    },
+    "deposit-counts": {
+      "type": "deposit-counts",
+      "passes": 32,
+      "directCalls": 416480,
+      "combinedCalls": 183232,
+      "scope": "derived outside timing from the same initial remainders and grading; timed proxy queues are empty"
+    },
+    "storageSensitivity": [
+      {
+        "type": "storage-sensitivity",
+        "goodsExpiringPercent": 0,
+        "expiringBins": 8481,
+        "sparseCapacity": 16384,
+        "sparseBytes": 1768576,
+        "denseBytes": 7200000,
+        "provenance": "calculated from measured widths and counts; not a perishable-content observation"
+      },
+      {
+        "type": "storage-sensitivity",
+        "goodsExpiringPercent": 25,
+        "expiringBins": 19661,
+        "sparseCapacity": 32768,
+        "sparseBytes": 2817152,
+        "denseBytes": 7200000,
+        "provenance": "calculated from measured widths and counts; not a perishable-content observation"
+      },
+      {
+        "type": "storage-sensitivity",
+        "goodsExpiringPercent": 50,
+        "expiringBins": 30842,
+        "sparseCapacity": 32768,
+        "sparseBytes": 2817152,
+        "denseBytes": 7200000,
+        "provenance": "calculated from measured widths and counts; not a perishable-content observation"
+      },
+      {
+        "type": "storage-sensitivity",
+        "goodsExpiringPercent": 100,
+        "expiringBins": 53203,
+        "sparseCapacity": 65536,
+        "sparseBytes": 4914304,
+        "denseBytes": 7200000,
+        "provenance": "calculated from measured widths and counts; not a perishable-content observation"
+      }
+    ],
+    "modes": {
+      "baseline": {
+        "medianMs": 5.12996196875,
+        "rangeMs": [
+          5.01844475,
+          5.2198395
+        ],
+        "vsBaseline": {
+          "medianMs": 0.0,
+          "rangeMs": [
+            0.0,
+            0.0
+          ],
+          "pairedMs": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "vsDirectDense": {
+          "medianMs": -1.0560789375000006,
+          "rangeMs": [
+            -1.1504193437499994,
+            -0.8912074062500004
+          ],
+          "pairedMs": [
+            -0.8953272812500002,
+            -0.8912074062500004,
+            -1.0309031874999999,
+            -1.1504193437499994,
+            -1.107398625,
+            -1.0560789375000006,
+            -1.06262171875
+          ]
+        }
+      },
+      "direct-dense": {
+        "medianMs": 6.14698959375,
+        "rangeMs": [
+          6.021169375,
+          6.30590025
+        ],
+        "vsBaseline": {
+          "medianMs": 1.0560789375000006,
+          "rangeMs": [
+            0.8912074062500004,
+            1.1504193437499994
+          ],
+          "pairedMs": [
+            0.8953272812500002,
+            0.8912074062500004,
+            1.0309031874999999,
+            1.1504193437499994,
+            1.107398625,
+            1.0560789375000006,
+            1.06262171875
+          ]
+        },
+        "vsDirectDense": {
+          "medianMs": 0.0,
+          "rangeMs": [
+            0.0,
+            0.0
+          ],
+          "pairedMs": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "combined-dense": {
+        "medianMs": 5.92040453125,
+        "rangeMs": [
+          5.8673810625,
+          6.4956779375
+        ],
+        "vsBaseline": {
+          "medianMs": 0.7859616562500005,
+          "rangeMs": [
+            0.6835701875000009,
+            1.3935428749999996
+          ],
+          "pairedMs": [
+            0.7003664374999996,
+            0.7904425625,
+            0.7538706250000002,
+            1.3935428749999996,
+            0.6835701875000009,
+            0.9941240625000001,
+            0.7859616562500005
+          ]
+        },
+        "vsDirectDense": {
+          "medianMs": -0.19496084375000056,
+          "rangeMs": [
+            -0.4238284374999992,
+            0.2431235312500002
+          ],
+          "pairedMs": [
+            -0.19496084375000056,
+            -0.10076484375000039,
+            -0.27703256249999964,
+            0.2431235312500002,
+            -0.4238284374999992,
+            -0.06195487500000052,
+            -0.2766600624999995
+          ]
+        },
+        "vsMatchingDirect": {
+          "medianMs": -0.19496084375000056,
+          "rangeMs": [
+            -0.4238284374999992,
+            0.2431235312500002
+          ],
+          "pairedMs": [
+            -0.19496084375000056,
+            -0.10076484375000039,
+            -0.27703256249999964,
+            0.2431235312500002,
+            -0.4238284374999992,
+            -0.06195487500000052,
+            -0.2766600624999995
+          ]
+        }
+      },
+      "direct-sparse": {
+        "medianMs": 6.2115005,
+        "rangeMs": [
+          6.07573103125,
+          6.7508898125
+        ],
+        "vsBaseline": {
+          "medianMs": 0.9916609999999997,
+          "rangeMs": [
+            0.9012481250000004,
+            1.7324450625
+          ],
+          "pairedMs": [
+            0.9424745312500002,
+            1.1303049375,
+            0.9596446250000001,
+            1.5816296874999995,
+            0.9012481250000004,
+            1.7324450625,
+            0.9916609999999997
+          ]
+        },
+        "vsDirectDense": {
+          "medianMs": 0.047147250000000085,
+          "rangeMs": [
+            -0.20615049999999968,
+            0.6763661249999995
+          ],
+          "pairedMs": [
+            0.047147250000000085,
+            0.23909753124999966,
+            -0.07125856249999973,
+            0.4312103437500001,
+            -0.20615049999999968,
+            0.6763661249999995,
+            -0.07096071875000032
+          ]
+        }
+      },
+      "combined-sparse": {
+        "medianMs": 6.00203228125,
+        "rangeMs": [
+          5.8216385625,
+          6.216460125
+        ],
+        "vsBaseline": {
+          "medianMs": 0.8560406562500003,
+          "rangeMs": [
+            0.6017990624999996,
+            1.0864981562500002
+          ],
+          "pairedMs": [
+            0.8350176562499998,
+            1.0864981562500002,
+            0.8560406562500003,
+            0.9729045312499993,
+            0.71332015625,
+            1.0236637500000008,
+            0.6017990624999996
+          ]
+        },
+        "vsDirectDense": {
+          "medianMs": -0.17486253124999962,
+          "rangeMs": [
+            -0.4608226562500004,
+            0.19529074999999985
+          ],
+          "pairedMs": [
+            -0.060309625000000366,
+            0.19529074999999985,
+            -0.17486253124999962,
+            -0.17751481250000012,
+            -0.3940784687500001,
+            -0.03241518749999983,
+            -0.4608226562500004
+          ]
+        },
+        "vsMatchingDirect": {
+          "medianMs": -0.1879279687500004,
+          "rangeMs": [
+            -0.7087813124999993,
+            -0.043806781249999815
+          ],
+          "pairedMs": [
+            -0.10745687500000045,
+            -0.043806781249999815,
+            -0.10360396874999989,
+            -0.6087251562500002,
+            -0.1879279687500004,
+            -0.7087813124999993,
+            -0.3898619375000001
+          ]
+        }
+      }
+    },
+    "maxAllocatedBytes": 0,
+    "collections": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "capture": "1000000-seed0-high",
+    "conditions": {
+      "type": "conditions",
+      "population": 1000000,
+      "seed": 0,
+      "rate": 4097,
+      "atWorkPercent": 50,
+      "checkpoint": null,
+      "runtime": ".NET 10.0.12",
+      "threads": 1,
+      "affinity": 4,
+      "coreSha256": "66F4CD5CDC629311F76D3E5E18DCF2088CC70AA5D92F03A743BCD64BF75243D9",
+      "harnessSha256": "8B324CEAEC55FC7DC56881E91253281F954849E682FF15652779EE96688FD3FD"
+    },
+    "workload": {
+      "type": "workload",
+      "citizens": 1000000,
+      "onDuty": 129427,
+      "workingBusinesses": 56403,
+      "maxWorkersPerBusiness": 7,
+      "businesses": 84670,
+      "goodsBins": 446926,
+      "originalCapacity": 900000,
+      "originalSlots": 891597,
+      "binCapacity": 1800000,
+      "binSlots": 976267,
+      "clock": 1024
+    },
+    "memory": {
+      "type": "memory",
+      "denseBytes": 72000000,
+      "sparseRowWidth": 64,
+      "sparseLive": 84670,
+      "sparseCapacity": 131072,
+      "sparseIndexBytes": 7200000,
+      "sparseBytes": 15588608,
+      "combinedScratchBytes": 1800000,
+      "sharedBinHandleBytes": 1200000,
+      "sharedWasteBytes": 1200000,
+      "sharedRemainderBytes": 8000000,
+      "representation": "sparse row: 16 allocator + 8 Bin owner handle + 32 buckets + 8 clock; derived int Bin-to-row index"
+    },
+    "deposit-counts": {
+      "type": "deposit-counts",
+      "passes": 32,
+      "directCalls": 4141664,
+      "combinedCalls": 1804896,
+      "scope": "derived outside timing from the same initial remainders and grading; timed proxy queues are empty"
+    },
+    "storageSensitivity": [
+      {
+        "type": "storage-sensitivity",
+        "goodsExpiringPercent": 0,
+        "expiringBins": 84670,
+        "sparseCapacity": 131072,
+        "sparseBytes": 15588608,
+        "denseBytes": 72000000,
+        "provenance": "calculated from measured widths and counts; not a perishable-content observation"
+      },
+      {
+        "type": "storage-sensitivity",
+        "goodsExpiringPercent": 25,
+        "expiringBins": 196401,
+        "sparseCapacity": 262144,
+        "sparseBytes": 23977216,
+        "denseBytes": 72000000,
+        "provenance": "calculated from measured widths and counts; not a perishable-content observation"
+      },
+      {
+        "type": "storage-sensitivity",
+        "goodsExpiringPercent": 50,
+        "expiringBins": 308133,
+        "sparseCapacity": 524288,
+        "sparseBytes": 40754432,
+        "denseBytes": 72000000,
+        "provenance": "calculated from measured widths and counts; not a perishable-content observation"
+      },
+      {
+        "type": "storage-sensitivity",
+        "goodsExpiringPercent": 100,
+        "expiringBins": 531596,
+        "sparseCapacity": 1048576,
+        "sparseBytes": 74308864,
+        "denseBytes": 72000000,
+        "provenance": "calculated from measured widths and counts; not a perishable-content observation"
+      }
+    ],
+    "modes": {
+      "baseline": {
+        "medianMs": 59.289608375,
+        "rangeMs": [
+          57.92879446875,
+          60.112219125
+        ],
+        "vsBaseline": {
+          "medianMs": 0.0,
+          "rangeMs": [
+            0.0,
+            0.0
+          ],
+          "pairedMs": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "vsDirectDense": {
+          "medianMs": -18.530426687499997,
+          "rangeMs": [
+            -20.054913374999998,
+            -16.729496218749993
+          ],
+          "pairedMs": [
+            -17.615638906250005,
+            -18.6755310625,
+            -18.530426687499997,
+            -19.47121659375,
+            -16.729496218749993,
+            -18.226418531250005,
+            -20.054913374999998
+          ]
+        }
+      },
+      "direct-dense": {
+        "medianMs": 77.82280196875,
+        "rangeMs": [
+          76.4231989375,
+          78.76082496875
+        ],
+        "vsBaseline": {
+          "medianMs": 18.530426687499997,
+          "rangeMs": [
+            16.729496218749993,
+            20.054913374999998
+          ],
+          "pairedMs": [
+            17.615638906250005,
+            18.6755310625,
+            18.530426687499997,
+            19.47121659375,
+            16.729496218749993,
+            18.226418531250005,
+            20.054913374999998
+          ]
+        },
+        "vsDirectDense": {
+          "medianMs": 0.0,
+          "rangeMs": [
+            0.0,
+            0.0
+          ],
+          "pairedMs": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "combined-dense": {
+        "medianMs": 70.485406875,
+        "rangeMs": [
+          69.6337279375,
+          74.342193875
+        ],
+        "vsBaseline": {
+          "medianMs": 11.45418753125,
+          "rangeMs": [
+            10.019340687499998,
+            15.049818593750004
+          ],
+          "pairedMs": [
+            11.677846843749997,
+            10.716210625000002,
+            15.049818593750004,
+            10.344119562499998,
+            10.019340687499998,
+            11.45418753125,
+            13.455679531249999
+          ]
+        },
+        "vsDirectDense": {
+          "medianMs": -6.710155531249995,
+          "rangeMs": [
+            -9.127097031250003,
+            -3.480608093749993
+          ],
+          "pairedMs": [
+            -5.937792062500009,
+            -7.959320437499997,
+            -3.480608093749993,
+            -9.127097031250003,
+            -6.710155531249995,
+            -6.772231000000005,
+            -6.5992338437499996
+          ]
+        },
+        "vsMatchingDirect": {
+          "medianMs": -6.710155531249995,
+          "rangeMs": [
+            -9.127097031250003,
+            -3.480608093749993
+          ],
+          "pairedMs": [
+            -5.937792062500009,
+            -7.959320437499997,
+            -3.480608093749993,
+            -9.127097031250003,
+            -6.710155531249995,
+            -6.772231000000005,
+            -6.5992338437499996
+          ]
+        }
+      },
+      "direct-sparse": {
+        "medianMs": 81.30201340625,
+        "rangeMs": [
+          79.89463353125,
+          83.82820825
+        ],
+        "vsBaseline": {
+          "medianMs": 22.009638124999995,
+          "rangeMs": [
+            20.042027093749994,
+            24.8561295625
+          ],
+          "pairedMs": [
+            21.087073499999995,
+            20.042027093749994,
+            22.009638124999995,
+            23.870041781249995,
+            21.518993687499993,
+            24.8561295625,
+            22.206754562499995
+          ]
+        },
+        "vsDirectDense": {
+          "medianMs": 3.4792114374999983,
+          "rangeMs": [
+            1.3664960312499943,
+            6.629711031249997
+          ],
+          "pairedMs": [
+            3.47143459374999,
+            1.3664960312499943,
+            3.4792114374999983,
+            4.398825187499995,
+            4.78949746875,
+            6.629711031249997,
+            2.151841187499997
+          ]
+        }
+      },
+      "combined-sparse": {
+        "medianMs": 71.63133778125,
+        "rangeMs": [
+          71.077797125,
+          73.79716884375
+        ],
+        "vsBaseline": {
+          "medianMs": 13.352123343749994,
+          "rangeMs": [
+            11.196456875000003,
+            14.989608812500002
+          ],
+          "pairedMs": [
+            14.989608812500002,
+            13.452840781250003,
+            14.23917075,
+            12.341729406249996,
+            11.196456875000003,
+            12.105718437500002,
+            13.352123343749994
+          ]
+        },
+        "vsDirectDense": {
+          "medianMs": -5.533039343749991,
+          "rangeMs": [
+            -7.129487187500004,
+            -2.6260300937500034
+          ],
+          "pairedMs": [
+            -2.6260300937500034,
+            -5.222690281249996,
+            -4.291255937499997,
+            -7.129487187500004,
+            -5.533039343749991,
+            -6.120700093750003,
+            -6.702790031250004
+          ]
+        },
+        "vsMatchingDirect": {
+          "medianMs": -8.85463121875,
+          "rangeMs": [
+            -12.750411125,
+            -6.097464687499993
+          ],
+          "pairedMs": [
+            -6.097464687499993,
+            -6.58918631249999,
+            -7.7704673749999955,
+            -11.528312374999999,
+            -10.32253681249999,
+            -12.750411125,
+            -8.85463121875
+          ]
+        }
+      }
+    },
+    "maxAllocatedBytes": 0,
+    "collections": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "capture": "1000000-seed0-low",
+    "conditions": {
+      "type": "conditions",
+      "population": 1000000,
+      "seed": 0,
+      "rate": 16,
+      "atWorkPercent": 50,
+      "checkpoint": null,
+      "runtime": ".NET 10.0.12",
+      "threads": 1,
+      "affinity": 4,
+      "coreSha256": "66F4CD5CDC629311F76D3E5E18DCF2088CC70AA5D92F03A743BCD64BF75243D9",
+      "harnessSha256": "8B324CEAEC55FC7DC56881E91253281F954849E682FF15652779EE96688FD3FD"
+    },
+    "workload": {
+      "type": "workload",
+      "citizens": 1000000,
+      "onDuty": 129427,
+      "workingBusinesses": 56403,
+      "maxWorkersPerBusiness": 7,
+      "businesses": 84670,
+      "goodsBins": 446926,
+      "originalCapacity": 900000,
+      "originalSlots": 891597,
+      "binCapacity": 1800000,
+      "binSlots": 976267,
+      "clock": 1024
+    },
+    "memory": {
+      "type": "memory",
+      "denseBytes": 72000000,
+      "sparseRowWidth": 64,
+      "sparseLive": 84670,
+      "sparseCapacity": 131072,
+      "sparseIndexBytes": 7200000,
+      "sparseBytes": 15588608,
+      "combinedScratchBytes": 1800000,
+      "sharedBinHandleBytes": 1200000,
+      "sharedWasteBytes": 1200000,
+      "sharedRemainderBytes": 8000000,
+      "representation": "sparse row: 16 allocator + 8 Bin owner handle + 32 buckets + 8 clock; derived int Bin-to-row index"
+    },
+    "deposit-counts": {
+      "type": "deposit-counts",
+      "passes": 32,
+      "directCalls": 40519,
+      "combinedCalls": 40519,
+      "scope": "derived outside timing from the same initial remainders and grading; timed proxy queues are empty"
+    },
+    "storageSensitivity": [
+      {
+        "type": "storage-sensitivity",
+        "goodsExpiringPercent": 0,
+        "expiringBins": 84670,
+        "sparseCapacity": 131072,
+        "sparseBytes": 15588608,
+        "denseBytes": 72000000,
+        "provenance": "calculated from measured widths and counts; not a perishable-content observation"
+      },
+      {
+        "type": "storage-sensitivity",
+        "goodsExpiringPercent": 25,
+        "expiringBins": 196401,
+        "sparseCapacity": 262144,
+        "sparseBytes": 23977216,
+        "denseBytes": 72000000,
+        "provenance": "calculated from measured widths and counts; not a perishable-content observation"
+      },
+      {
+        "type": "storage-sensitivity",
+        "goodsExpiringPercent": 50,
+        "expiringBins": 308133,
+        "sparseCapacity": 524288,
+        "sparseBytes": 40754432,
+        "denseBytes": 72000000,
+        "provenance": "calculated from measured widths and counts; not a perishable-content observation"
+      },
+      {
+        "type": "storage-sensitivity",
+        "goodsExpiringPercent": 100,
+        "expiringBins": 531596,
+        "sparseCapacity": 1048576,
+        "sparseBytes": 74308864,
+        "denseBytes": 72000000,
+        "provenance": "calculated from measured widths and counts; not a perishable-content observation"
+      }
+    ],
+    "modes": {
+      "baseline": {
+        "medianMs": 58.05495175,
+        "rangeMs": [
+          57.76535175,
+          59.55258809375
+        ],
+        "vsBaseline": {
+          "medianMs": 0.0,
+          "rangeMs": [
+            0.0,
+            0.0
+          ],
+          "pairedMs": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "vsDirectDense": {
+          "medianMs": -2.883395812499998,
+          "rangeMs": [
+            -3.5219969687499955,
+            -2.4285779999999946
+          ],
+          "pairedMs": [
+            -3.121133781250002,
+            -2.517261031249994,
+            -3.007033031249996,
+            -3.5219969687499955,
+            -2.883395812499998,
+            -2.587125656249995,
+            -2.4285779999999946
+          ]
+        }
+      },
+      "direct-dense": {
+        "medianMs": 61.06198478125,
+        "rangeMs": [
+          60.4146685,
+          62.705602375
+        ],
+        "vsBaseline": {
+          "medianMs": 2.883395812499998,
+          "rangeMs": [
+            2.4285779999999946,
+            3.5219969687499955
+          ],
+          "pairedMs": [
+            3.121133781250002,
+            2.517261031249994,
+            3.007033031249996,
+            3.5219969687499955,
+            2.883395812499998,
+            2.587125656249995,
+            2.4285779999999946
+          ]
+        },
+        "vsDirectDense": {
+          "medianMs": 0.0,
+          "rangeMs": [
+            0.0,
+            0.0
+          ],
+          "pairedMs": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "combined-dense": {
+        "medianMs": 61.57103025,
+        "rangeMs": [
+          60.31139559375,
+          62.800075625
+        ],
+        "vsBaseline": {
+          "medianMs": 2.9641230000000007,
+          "rangeMs": [
+            1.3012870937499983,
+            4.9026681562499945
+          ],
+          "pairedMs": [
+            2.546043843749999,
+            4.9026681562499945,
+            3.858023812500001,
+            1.3012870937499983,
+            2.9641230000000007,
+            2.0184421562499963,
+            3.4883307187499994
+          ]
+        },
+        "vsDirectDense": {
+          "medianMs": 0.08072718750000263,
+          "rangeMs": [
+            -2.220709874999997,
+            2.3854071250000004
+          ],
+          "pairedMs": [
+            -0.5750899375000031,
+            2.3854071250000004,
+            0.8509907812500046,
+            -2.220709874999997,
+            0.08072718750000263,
+            -0.5686834999999988,
+            1.0597527187500049
+          ]
+        },
+        "vsMatchingDirect": {
+          "medianMs": 0.08072718750000263,
+          "rangeMs": [
+            -2.220709874999997,
+            2.3854071250000004
+          ],
+          "pairedMs": [
+            -0.5750899375000031,
+            2.3854071250000004,
+            0.8509907812500046,
+            -2.220709874999997,
+            0.08072718750000263,
+            -0.5686834999999988,
+            1.0597527187500049
+          ]
+        }
+      },
+      "direct-sparse": {
+        "medianMs": 61.46255315625,
+        "rangeMs": [
+          60.714177625,
+          62.436199375
+        ],
+        "vsBaseline": {
+          "medianMs": 2.957385218749998,
+          "rangeMs": [
+            2.5191174375000003,
+            3.6972014062500023
+          ],
+          "pairedMs": [
+            3.6972014062500023,
+            3.147599781249994,
+            2.957385218749998,
+            2.5191174375000003,
+            2.844389093749996,
+            2.550327624999994,
+            3.479512312499999
+          ]
+        },
+        "vsDirectDense": {
+          "medianMs": -0.03679803125000092,
+          "rangeMs": [
+            -1.0028795312499952,
+            1.0509343125000044
+          ],
+          "pairedMs": [
+            0.5760676250000003,
+            0.63033875,
+            -0.04964781249999817,
+            -1.0028795312499952,
+            -0.03900671875000228,
+            -0.03679803125000092,
+            1.0509343125000044
+          ]
+        }
+      },
+      "combined-sparse": {
+        "medianMs": 60.9839085625,
+        "rangeMs": [
+          60.59263584375,
+          62.162487375
+        ],
+        "vsBaseline": {
+          "medianMs": 2.9044240624999986,
+          "rangeMs": [
+            1.4090304375000002,
+            4.397135624999997
+          ],
+          "pairedMs": [
+            4.397135624999997,
+            2.998601468749996,
+            2.9044240624999986,
+            1.4090304375000002,
+            3.7078938124999965,
+            1.6885251249999982,
+            2.027221499999996
+          ]
+        },
+        "vsDirectDense": {
+          "medianMs": -0.10260896874999759,
+          "rangeMs": [
+            -2.1129665312499952,
+            1.2760018437499951
+          ],
+          "pairedMs": [
+            1.2760018437499951,
+            0.4813404375000019,
+            -0.10260896874999759,
+            -2.1129665312499952,
+            0.8244979999999984,
+            -0.898600531249997,
+            -0.40135649999999856
+          ]
+        },
+        "vsMatchingDirect": {
+          "medianMs": -0.14899831249999806,
+          "rangeMs": [
+            -1.452290812500003,
+            0.8635047187500007
+          ],
+          "pairedMs": [
+            0.6999342187499948,
+            -0.14899831249999806,
+            -0.05296115624999942,
+            -1.110087,
+            0.8635047187500007,
+            -0.861802499999996,
+            -1.452290812500003
+          ]
+        }
+      }
+    },
+    "maxAllocatedBytes": 0,
+    "collections": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "capture": "1000000-seed1-high",
+    "conditions": {
+      "type": "conditions",
+      "population": 1000000,
+      "seed": 1,
+      "rate": 4097,
+      "atWorkPercent": 50,
+      "checkpoint": null,
+      "runtime": ".NET 10.0.12",
+      "threads": 1,
+      "affinity": 4,
+      "coreSha256": "66F4CD5CDC629311F76D3E5E18DCF2088CC70AA5D92F03A743BCD64BF75243D9",
+      "harnessSha256": "8B324CEAEC55FC7DC56881E91253281F954849E682FF15652779EE96688FD3FD"
+    },
+    "workload": {
+      "type": "workload",
+      "citizens": 1000000,
+      "onDuty": 130242,
+      "workingBusinesses": 56684,
+      "maxWorkersPerBusiness": 7,
+      "businesses": 84748,
+      "goodsBins": 447090,
+      "originalCapacity": 900000,
+      "originalSlots": 891839,
+      "binCapacity": 1800000,
+      "binSlots": 976587,
+      "clock": 1024
+    },
+    "memory": {
+      "type": "memory",
+      "denseBytes": 72000000,
+      "sparseRowWidth": 64,
+      "sparseLive": 84748,
+      "sparseCapacity": 131072,
+      "sparseIndexBytes": 7200000,
+      "sparseBytes": 15588608,
+      "combinedScratchBytes": 1800000,
+      "sharedBinHandleBytes": 1200000,
+      "sharedWasteBytes": 1200000,
+      "sharedRemainderBytes": 8000000,
+      "representation": "sparse row: 16 allocator + 8 Bin owner handle + 32 buckets + 8 clock; derived int Bin-to-row index"
+    },
+    "deposit-counts": {
+      "type": "deposit-counts",
+      "passes": 32,
+      "directCalls": 4167744,
+      "combinedCalls": 1813888,
+      "scope": "derived outside timing from the same initial remainders and grading; timed proxy queues are empty"
+    },
+    "storageSensitivity": [
+      {
+        "type": "storage-sensitivity",
+        "goodsExpiringPercent": 0,
+        "expiringBins": 84748,
+        "sparseCapacity": 131072,
+        "sparseBytes": 15588608,
+        "denseBytes": 72000000,
+        "provenance": "calculated from measured widths and counts; not a perishable-content observation"
+      },
+      {
+        "type": "storage-sensitivity",
+        "goodsExpiringPercent": 25,
+        "expiringBins": 196520,
+        "sparseCapacity": 262144,
+        "sparseBytes": 23977216,
+        "denseBytes": 72000000,
+        "provenance": "calculated from measured widths and counts; not a perishable-content observation"
+      },
+      {
+        "type": "storage-sensitivity",
+        "goodsExpiringPercent": 50,
+        "expiringBins": 308293,
+        "sparseCapacity": 524288,
+        "sparseBytes": 40754432,
+        "denseBytes": 72000000,
+        "provenance": "calculated from measured widths and counts; not a perishable-content observation"
+      },
+      {
+        "type": "storage-sensitivity",
+        "goodsExpiringPercent": 100,
+        "expiringBins": 531838,
+        "sparseCapacity": 1048576,
+        "sparseBytes": 74308864,
+        "denseBytes": 72000000,
+        "provenance": "calculated from measured widths and counts; not a perishable-content observation"
+      }
+    ],
+    "modes": {
+      "baseline": {
+        "medianMs": 58.4776233125,
+        "rangeMs": [
+          57.83381221875,
+          59.5077453125
+        ],
+        "vsBaseline": {
+          "medianMs": 0.0,
+          "rangeMs": [
+            0.0,
+            0.0
+          ],
+          "pairedMs": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "vsDirectDense": {
+          "medianMs": -19.537760718749993,
+          "rangeMs": [
+            -22.029401625,
+            -18.23477540625
+          ],
+          "pairedMs": [
+            -22.029401625,
+            -20.28732375,
+            -18.23477540625,
+            -19.209687718750004,
+            -20.897104250000005,
+            -19.30979371875,
+            -19.537760718749993
+          ]
+        }
+      },
+      "direct-dense": {
+        "medianMs": 77.74252071875,
+        "rangeMs": [
+          77.34176875,
+          81.08032440625
+        ],
+        "vsBaseline": {
+          "medianMs": 19.537760718749993,
+          "rangeMs": [
+            18.23477540625,
+            22.029401625
+          ],
+          "pairedMs": [
+            22.029401625,
+            20.28732375,
+            18.23477540625,
+            19.209687718750004,
+            20.897104250000005,
+            19.30979371875,
+            19.537760718749993
+          ]
+        },
+        "vsDirectDense": {
+          "medianMs": 0.0,
+          "rangeMs": [
+            0.0,
+            0.0
+          ],
+          "pairedMs": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "combined-dense": {
+        "medianMs": 71.774493125,
+        "rangeMs": [
+          70.75327165625,
+          72.77003509375
+        ],
+        "vsBaseline": {
+          "medianMs": 13.569288718749995,
+          "rangeMs": [
+            12.045300062499997,
+            14.738060062499997
+          ],
+          "pairedMs": [
+            12.335903843749996,
+            12.91945943750001,
+            12.045300062499997,
+            14.253865125000004,
+            13.569288718749995,
+            14.738060062499997,
+            13.672839031250007
+          ]
+        },
+        "vsDirectDense": {
+          "medianMs": -6.189475343750004,
+          "rangeMs": [
+            -9.693497781250002,
+            -4.571733656250004
+          ],
+          "pairedMs": [
+            -9.693497781250002,
+            -7.367864312499989,
+            -6.189475343750004,
+            -4.95582259375,
+            -7.32781553125001,
+            -4.571733656250004,
+            -5.8649216874999865
+          ]
+        },
+        "vsMatchingDirect": {
+          "medianMs": -6.189475343750004,
+          "rangeMs": [
+            -9.693497781250002,
+            -4.571733656250004
+          ],
+          "pairedMs": [
+            -9.693497781250002,
+            -7.367864312499989,
+            -6.189475343750004,
+            -4.95582259375,
+            -7.32781553125001,
+            -4.571733656250004,
+            -5.8649216874999865
+          ]
+        }
+      },
+      "direct-sparse": {
+        "medianMs": 80.892980625,
+        "rangeMs": [
+          80.0837491875,
+          83.015991625
+        ],
+        "vsBaseline": {
+          "medianMs": 22.861005593750008,
+          "rangeMs": [
+            21.606125875000004,
+            25.18217940625
+          ],
+          "pairedMs": [
+            23.831505187499992,
+            25.18217940625,
+            23.139114093750003,
+            21.606125875000004,
+            21.708213500000006,
+            22.861005593750008,
+            22.049675906250002
+          ]
+        },
+        "vsDirectDense": {
+          "medianMs": 2.5119151875000085,
+          "rangeMs": [
+            0.8111092500000012,
+            4.904338687500001
+          ],
+          "pairedMs": [
+            1.802103562499994,
+            4.894855656250002,
+            4.904338687500001,
+            2.3964381562499995,
+            0.8111092500000012,
+            3.551211875000007,
+            2.5119151875000085
+          ]
+        }
+      },
+      "combined-sparse": {
+        "medianMs": 72.303562125,
+        "rangeMs": [
+          70.98789303125,
+          73.50470265625
+        ],
+        "vsBaseline": {
+          "medianMs": 13.815801718750002,
+          "rangeMs": [
+            12.064141437500005,
+            15.670890437500006
+          ],
+          "pairedMs": [
+            12.383812593750001,
+            15.670890437500006,
+            12.064141437500005,
+            13.825938812499999,
+            13.815801718750002,
+            12.955917999999997,
+            14.657309062500005
+          ]
+        },
+        "vsDirectDense": {
+          "medianMs": -6.170633968749996,
+          "rangeMs": [
+            -9.645589031249997,
+            -4.616433312499993
+          ],
+          "pairedMs": [
+            -9.645589031249997,
+            -4.616433312499993,
+            -6.170633968749996,
+            -5.3837489062500055,
+            -7.081302531250003,
+            -6.353875718750004,
+            -4.8804516562499884
+          ]
+        },
+        "vsMatchingDirect": {
+          "medianMs": -9.511288968749994,
+          "rangeMs": [
+            -11.447692593749991,
+            -7.392366843749997
+          ],
+          "pairedMs": [
+            -11.447692593749991,
+            -9.511288968749994,
+            -11.074972656249997,
+            -7.780187062500005,
+            -7.892411781250004,
+            -9.905087593750011,
+            -7.392366843749997
+          ]
+        }
+      }
+    },
+    "maxAllocatedBytes": 0,
+    "collections": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "capture": "aged-10000",
+    "conditions": {
+      "type": "conditions",
+      "population": 10000,
+      "seed": 0,
+      "rate": 4097,
+      "atWorkPercent": -1,
+      "checkpoint": "/tmp/labour-followup-aged.borough",
+      "runtime": ".NET 10.0.12",
+      "threads": 1,
+      "affinity": 4,
+      "coreSha256": "66F4CD5CDC629311F76D3E5E18DCF2088CC70AA5D92F03A743BCD64BF75243D9",
+      "harnessSha256": "8B324CEAEC55FC7DC56881E91253281F954849E682FF15652779EE96688FD3FD"
+    },
+    "workload": {
+      "type": "workload",
+      "citizens": 10000,
+      "onDuty": 1974,
+      "workingBusinesses": 629,
+      "maxWorkersPerBusiness": 11,
+      "businesses": 869,
+      "goodsBins": 4515,
+      "originalCapacity": 8985,
+      "originalSlots": 8985,
+      "binCapacity": 17970,
+      "binSlots": 9854,
+      "clock": 15360
+    },
+    "memory": {
+      "type": "memory",
+      "denseBytes": 718800,
+      "sparseRowWidth": 64,
+      "sparseLive": 869,
+      "sparseCapacity": 1024,
+      "sparseIndexBytes": 71880,
+      "sparseBytes": 137416,
+      "combinedScratchBytes": 10428,
+      "sharedBinHandleBytes": 6952,
+      "sharedWasteBytes": 6952,
+      "sharedRemainderBytes": 80000,
+      "representation": "sparse row: 16 allocator + 8 Bin owner handle + 32 buckets + 8 clock; derived int Bin-to-row index"
+    },
+    "deposit-counts": {
+      "type": "deposit-counts",
+      "passes": 32,
+      "directCalls": 63168,
+      "combinedCalls": 20128,
+      "scope": "derived outside timing from the same initial remainders and grading; timed proxy queues are empty"
+    },
+    "storageSensitivity": [
+      {
+        "type": "storage-sensitivity",
+        "goodsExpiringPercent": 0,
+        "expiringBins": 869,
+        "sparseCapacity": 1024,
+        "sparseBytes": 137416,
+        "denseBytes": 718800,
+        "provenance": "calculated from measured widths and counts; not a perishable-content observation"
+      },
+      {
+        "type": "storage-sensitivity",
+        "goodsExpiringPercent": 25,
+        "expiringBins": 1997,
+        "sparseCapacity": 2048,
+        "sparseBytes": 202952,
+        "denseBytes": 718800,
+        "provenance": "calculated from measured widths and counts; not a perishable-content observation"
+      },
+      {
+        "type": "storage-sensitivity",
+        "goodsExpiringPercent": 50,
+        "expiringBins": 3126,
+        "sparseCapacity": 4096,
+        "sparseBytes": 334024,
+        "denseBytes": 718800,
+        "provenance": "calculated from measured widths and counts; not a perishable-content observation"
+      },
+      {
+        "type": "storage-sensitivity",
+        "goodsExpiringPercent": 100,
+        "expiringBins": 5384,
+        "sparseCapacity": 8192,
+        "sparseBytes": 596168,
+        "denseBytes": 718800,
+        "provenance": "calculated from measured widths and counts; not a perishable-content observation"
+      }
+    ],
+    "modes": {
+      "baseline": {
+        "medianMs": 0.2855675,
+        "rangeMs": [
+          0.28453396875,
+          0.29157459375
+        ],
+        "vsBaseline": {
+          "medianMs": 0.0,
+          "rangeMs": [
+            0.0,
+            0.0
+          ],
+          "pairedMs": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "vsDirectDense": {
+          "medianMs": -0.09498328125,
+          "rangeMs": [
+            -0.10166900000000001,
+            -0.08497596875000002
+          ],
+          "pairedMs": [
+            -0.09316203125,
+            -0.09518928125000004,
+            -0.0961220625,
+            -0.08497596875000002,
+            -0.09122365625000001,
+            -0.10166900000000001,
+            -0.09498328125
+          ]
+        }
+      },
+      "direct-dense": {
+        "medianMs": 0.38075678125,
+        "rangeMs": [
+          0.375757625,
+          0.3868071875
+        ],
+        "vsBaseline": {
+          "medianMs": 0.09498328125,
+          "rangeMs": [
+            0.08497596875000002,
+            0.10166900000000001
+          ],
+          "pairedMs": [
+            0.09316203125,
+            0.09518928125000004,
+            0.0961220625,
+            0.08497596875000002,
+            0.09122365625000001,
+            0.10166900000000001,
+            0.09498328125
+          ]
+        },
+        "vsDirectDense": {
+          "medianMs": 0.0,
+          "rangeMs": [
+            0.0,
+            0.0
+          ],
+          "pairedMs": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "combined-dense": {
+        "medianMs": 0.34755525,
+        "rangeMs": [
+          0.34615815625,
+          0.35000953125
+        ],
+        "vsBaseline": {
+          "medianMs": 0.06080278124999999,
+          "rangeMs": [
+            0.057230781249999974,
+            0.06547556250000003
+          ],
+          "pairedMs": [
+            0.06316046874999998,
+            0.06059065625000004,
+            0.06070321875000001,
+            0.057230781249999974,
+            0.06547556250000003,
+            0.06241706250000001,
+            0.06080278124999999
+          ]
+        },
+        "vsDirectDense": {
+          "medianMs": -0.0341805,
+          "rangeMs": [
+            -0.0392519375,
+            -0.02574809374999998
+          ],
+          "pairedMs": [
+            -0.030001562500000023,
+            -0.034598624999999994,
+            -0.035418843749999984,
+            -0.027745187500000046,
+            -0.02574809374999998,
+            -0.0392519375,
+            -0.0341805
+          ]
+        },
+        "vsMatchingDirect": {
+          "medianMs": -0.0341805,
+          "rangeMs": [
+            -0.0392519375,
+            -0.02574809374999998
+          ],
+          "pairedMs": [
+            -0.030001562500000023,
+            -0.034598624999999994,
+            -0.035418843749999984,
+            -0.027745187500000046,
+            -0.02574809374999998,
+            -0.0392519375,
+            -0.0341805
+          ]
+        }
+      },
+      "direct-sparse": {
+        "medianMs": 0.3864060625,
+        "rangeMs": [
+          0.385234125,
+          0.4010285
+        ],
+        "vsBaseline": {
+          "medianMs": 0.10109062500000005,
+          "rangeMs": [
+            0.099379,
+            0.114223625
+          ],
+          "pairedMs": [
+            0.10149771874999997,
+            0.10108171875000005,
+            0.114223625,
+            0.10570159374999999,
+            0.10070015625,
+            0.10109062500000005,
+            0.099379
+          ]
+        },
+        "vsDirectDense": {
+          "medianMs": 0.008335687499999966,
+          "rangeMs": [
+            -0.0005783749999999643,
+            0.02072562499999997
+          ],
+          "pairedMs": [
+            0.008335687499999966,
+            0.005892437500000014,
+            0.0181015625,
+            0.02072562499999997,
+            0.009476499999999999,
+            -0.0005783749999999643,
+            0.0043957187499999995
+          ]
+        }
+      },
+      "combined-sparse": {
+        "medianMs": 0.3508095,
+        "rangeMs": [
+          0.34629325,
+          0.35258428125
+        ],
+        "vsBaseline": {
+          "medianMs": 0.06400462499999998,
+          "rangeMs": [
+            0.05471865625,
+            0.06682915625000002
+          ],
+          "pairedMs": [
+            0.06639809375,
+            0.06359653125000003,
+            0.06400462499999998,
+            0.05471865625,
+            0.06369406250000004,
+            0.06682915625000002,
+            0.06619903125000004
+          ]
+        },
+        "vsDirectDense": {
+          "medianMs": -0.030257312500000022,
+          "rangeMs": [
+            -0.03483984374999999,
+            -0.0267639375
+          ],
+          "pairedMs": [
+            -0.0267639375,
+            -0.03159275,
+            -0.03211743750000001,
+            -0.030257312500000022,
+            -0.02752959374999997,
+            -0.03483984374999999,
+            -0.028784249999999956
+          ]
+        },
+        "vsMatchingDirect": {
+          "medianMs": -0.03700609374999997,
+          "rangeMs": [
+            -0.05098293749999999,
+            -0.033179968749999955
+          ],
+          "pairedMs": [
+            -0.03509962499999997,
+            -0.03748518750000002,
+            -0.050219000000000014,
+            -0.05098293749999999,
+            -0.03700609374999997,
+            -0.034261468750000024,
+            -0.033179968749999955
+          ]
+        }
+      }
+    },
+    "maxAllocatedBytes": 0,
+    "collections": [
+      0,
+      0,
+      0
+    ]
+  }
+]
