@@ -1202,4 +1202,7 @@ public enum Invariant
 
     /// <summary>Preference episode clocks are ordered and only a mismatch retains them.</summary>
     HousingSearchEvidenceIsWellFormed = 66,
+
+    /// <summary>Every expiry row ages a live Bin of a spoiling Resource, is indexed from it, and its buckets sum to its level.</summary>
+    AgesMatchTheirBins = 67,
 }

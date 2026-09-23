@@ -225,6 +225,7 @@ public static class RulesetLoader
         // section 1 pairs the Good with the Need -- Food feeds Sustenance, Consumer Goods feed
         // Satisfaction -- so the thing consumed decides, not the Rule consuming it.
         private readonly List<Need> _resourceNeeds = [];
+        private readonly List<ShelfLife> _shelfLives = [];
         private readonly Dictionary<string, byte> _kinds = new(StringComparer.Ordinal);
 
         // A SECOND kind namespace, not a widening of the first (adr/0141). The premises and the trade
@@ -526,6 +527,7 @@ public static class RulesetLoader
                 School = school,
                 Care = care,
                 ResourceNeeds = [.. _resourceNeeds],
+                ResourceShelfLives = [.. _shelfLives],
                 Founding = founding,
                 ResourceKeys = Keys(_resources),
                 KindKeys = Keys(_kinds),
@@ -558,6 +560,7 @@ public static class RulesetLoader
                         Register(_resources, table, "resource", (ushort)(_resources.Count + 1));
                         _families.Add(ReadFamily(table));
                         _resourceNeeds.Add(ReadNeed(table));
+                        _shelfLives.Add(ReadShelfLife(table, _families[^1]));
                         RefuseStorage(table);
                         break;
 
@@ -2338,6 +2341,36 @@ public static class RulesetLoader
                         + "is no default.");
                     return ResourceFamily.None;
             }
+        }
+
+        /// <summary>
+        /// A Resource's optional shelf life: stock older than <c>shelf_life_cycles</c> cycles of
+        /// <c>shelf_life_cycle_minutes</c> in-world minutes is discarded at a cycle boundary.
+        /// </summary>
+        private ShelfLife ReadShelfLife(TableSyntaxBase table, ResourceFamily family)
+        {
+            const int MinutesPerYear = 60 * 24 * 365;
+            bool statesCycles = Find(table, "shelf_life_cycles") is not null;
+            bool statesMinutes = Find(table, "shelf_life_cycle_minutes") is not null;
+
+            if (!statesCycles && !statesMinutes)
+            {
+                return default;
+            }
+
+            if (statesCycles != statesMinutes || family == ResourceFamily.Money)
+            {
+                Refuse(LineOf(table), null,
+                    "a shelf life needs both shelf_life_cycles and shelf_life_cycle_minutes, and money "
+                    + "does not spoil");
+                return default;
+            }
+
+            int cycles = CivicInt(table, "shelf_life_cycles", 1, ShelfLife.MaxCycles);
+            int minutes = CivicInt(table, "shelf_life_cycle_minutes", 1, MinutesPerYear);
+            long ticks = IntegerMath.FloorDiv((long)minutes * Ticks.PerDay, 24L * 60);
+
+            return new ShelfLife((ulong)(ticks < 1 ? 1 : ticks), cycles);
         }
 
         /// <summary>

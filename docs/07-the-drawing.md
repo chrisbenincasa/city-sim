@@ -85,8 +85,8 @@ a shape nobody in the city can perceive is not one.
 An appearance family costs a mesh; a building costs a transform. `FAST ITERATION`
 
 One MultiMesh per kind of thing, with per-instance transform, colour and custom data. This is why
-241 Buildings and 150 gables cost two draw calls, and it is the only reason a million of them is
-arguable at all.
+241 Buildings and 150 gables cost two draw calls, and it is the only reason ~120,000 of them, a 1M-Citizen city by
+[`plans/0013`](../plans/0013-tick-budget.md), is arguable at all.
 
 ⚠ **This is a constraint and not a preference**, and it is the one that decides pipeline questions
 before taste does. A hand-authored library is not refused because it looks worse — it looks better —
@@ -157,8 +157,9 @@ shader's bay is 3.6, so one authored piece is a panel that tiles in both directi
 ### 3.2 The cost of the kit, and why it threatens nothing
 
 🔴 **Instance count, and it does not scale.** Today 241 Buildings is ~400 instances in two draw
-calls. Under a kit it is ~3,600 instances across ~15 meshes — and at a million Buildings that is
-15M instances, which is not a thing to do.
+calls. Under a kit it is ~3,600 instances across ~15 meshes — and at ~120,000 Buildings, a 1M-Citizen city by
+[`plans/0013`](../plans/0013-tick-budget.md), that is ~1.8M instances and ~144 MB of instance data.
+That is affordable in the near band around the camera and not city-wide, so the kit stays near-band only.
 
 ✅ **Which is why the kit is a near LOD and today's shader box is the far one, and the far one is
 already shipped.** The wall shader fades its openings out past 500 m by distance; the kit stops
@@ -227,10 +228,10 @@ ends up with assets for a system nobody built.
 | **Zone** | A Lot carries one and only vacant Lots show anything |
 | **Kind identity** | `serves` and `[[business]]` both exist; a school, a shop and a house are one box. ⚠ **A Building is no longer ALWAYS one box** — [`plans/0053`](../plans/0053-the-block.md) step 4 draws a footprint the daylight bound hollows as **four wings round a courtyard**, off `BuildingPlan.Hollow`, which is the same call the capacity subtracts. ***That is form derived from the ground and not identity***: the ring says the plot is big, never that the building is a school |
 | **The street** | ✅ **DRAWN, [`plans/0049`](../plans/0049-visuals.md) row 8, all four steps.** The three `RoadKind`s draw apart; a Segment carrying feet *and* cars draws a **footway** either side, off the mode mask rather than the kind, so an Arterial gets none and **Severance is on the ground**; the footway carries a **kerb** band, **dropped** wherever a Lot's Address meets it; and each strip stops at the **junction** on a mitre against whatever actually meets the Segment there, so it runs through where nothing crosses, turns the corner, and dead-ends flush against an Arterial. ⚠ **A dropped kerb is the first time an ADDRESS has been drawn at all** — `FrontageOffset` plus `Side`, which is `CONTEXT.md` → Address's own *a distance along a street plus an odd or even side*. ⚠ **A crossing is a whole Street kept for feet and not a stripe over a road**, so it has been drawn since step 1 and there was never anything to invent — row 8's **F62**, closing **F58** and **F51**. ⚠ **The head of a dead end is a CAP and not a mitre**, so it is a second shape — a bar across the end closing the kerb's U inside the pavement's, at the **12** Street stubs `severance.toml`'s Arterials cut off and the **0** on `pictured.toml` |
-| **Travellers** | One cube for a driver and a walker alike, when Mode and the Fidelity tier are both held |
+| **Travellers** | Mode is drawn: a walker is a figure with torso, head and legs, and a driver is a car (`Main.Assets.cs` `WalkerMesh`, `CarMesh`), on separate layers. Nothing yet draws the Fidelity tier |
 | **Car Park** | Capacity is a Building's floor over `[capacity] floor_tiles_per_parking_space` ([`plans/0053`](../plans/0053-the-block.md) step 3) and nothing is drawn. ⚠ **This row said *declared per kind* until then**, which was the retired `[[building]] parking` |
 | **District** | `DistrictTable` has rows and no boundary is drawn |
-| **Sealing** | 🔴 **THIS ROW CONTRADICTS *The overlays* FOUR ROWS ABOVE IT**, which records Sealing as one of the three drawn overlays. It is on the ground and it is in the readout; what this row still names correctly is that it is **per Cell** and nothing draws it at the grain a Building has. Owed to [`plans/0012`](../plans/0012-corpus-audit.md) — noticed at `plans/0053` step 4 and not caused by it |
+| **Sealing** | Drawn per Cell as one of the three overlays (see *The overlays* above) and shown in the readout. Nothing draws it at the grain of a Building |
 | **Needs** | Four, saved and hashed, read by a panel |
 | **Night** | ✅ **DRAWN as of [`plans/0051`](../plans/0051-the-four-pillars-and-a-city-to-photograph.md)** — the sun is on the clock, and a window's own two hours decide when its lamp is lit. ⚠ **Left in this table rather than struck from it**, because what is drawn is a *dwelling* at night: nothing distinguishes a shop, a school or a street at that hour, and a city whose only night-time mark is a bedroom window is still silent about most of itself |
 | **Evidence** | ***The pillar-4 mechanism is a UI element***, and arguably the most important graphical thing in the game |

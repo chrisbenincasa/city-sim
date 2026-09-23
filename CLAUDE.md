@@ -100,7 +100,3 @@ hashes. Use that procedure rather than copying hash values by hand.
 `src/Borough.Formats/RulesetKeyNotes.cs`; regenerate with headless `--key-reference`.
 Regenerate the schema with `--schema` and check TOML with `npx @taplo/cli lint 'rulesets/*.toml'`
 when its contract changes. `Options.Usage` owns the full list of runner modes and flags.
-
-# Agent Rules <!-- tessl-managed -->
-
-@.tessl/RULES.md follow the [instructions](.tessl/RULES.md)

@@ -362,6 +362,7 @@ public sealed class RulesetImpact
     [
         ("_resources", "resource"),
         ("ResourceNeeds", "resource"),
+        ("ResourceShelfLives", "resource"),
         ("ResourceKeys", "resource"),
         ("_rules", "rule"),
         ("_kinds", "building"),

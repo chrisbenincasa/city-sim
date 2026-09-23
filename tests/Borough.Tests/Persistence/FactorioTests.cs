@@ -241,6 +241,8 @@ public sealed class FactorioTests(ITestOutputHelper output)
         painted.PaintFormPermissions(new LandRectangle(31, 31, 2, 2), true, 0);
         Scan(painted, reached, []);
 
+        Scan(Borough.Tests.Rules.ExpiryTests.Spoiling(), reached, []);
+
         List<string> unreachable = [.. every.Where(name => !reached.Contains(name))];
 
         _output.WriteLine($"{reached.Count} of {every.Count} columns corrupted and observed");

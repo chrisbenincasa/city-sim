@@ -35,6 +35,26 @@ public static class WorldInvariants
             Invariant.LandPermissionsAreWellFormed, row);
     }
 
+    internal static void AgesMatchTheirBins(World world, InvariantRegistry report)
+    {
+        ExpiryTable ages = world.Expiries;
+
+        for (int row = 0; row < ages.Rows.SlotCount; row++)
+        {
+            if (!ages.Rows.IsLive(row))
+            {
+                continue;
+            }
+
+            bool matches = world.Bins.Rows.TryResolve(ages.Bin[row], out int bin)
+                && ages.RowOf(world.Bins, bin) == row
+                && world.Rules.ShelfLifeOf(world.Bins.Resource[bin]).Expires
+                && ages.Total(row) == world.Bins.LevelAt(bin);
+
+            report.Require(matches, Invariant.AgesMatchTheirBins, row);
+        }
+    }
+
     /// <summary>Registers every check this slice can make.</summary>
     public static void RegisterAll(InvariantRegistry invariants)
     {
@@ -46,6 +66,7 @@ public static class WorldInvariants
 
         invariants.Register(InvariantTier.EndOfRun, EveryHandleResolves);
         invariants.Register(InvariantTier.EndOfRun, LandPermissionsAreWellFormed);
+        invariants.Register(InvariantTier.EndOfRun, AgesMatchTheirBins);
         invariants.Register(InvariantTier.EndOfRun, EveryoneIsInExactlyOnePlace);
         invariants.Register(InvariantTier.EndOfRun, MoneyIsRepresentable);
 

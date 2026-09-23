@@ -1,0 +1,23 @@
+lane:   tier!=instrument
+tree:   e25cacc-dirty on private-production-and-labour
+log:    /tmp/borough-test-20260922-080113.log
+
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Borough.Analysers -> /home/christian/Code/city-sim/src/Borough.Analysers/bin/Release/netstandard2.0/Borough.Analysers.dll
+  Borough.Core -> /home/christian/Code/city-sim/src/Borough.Core/bin/Release/net10.0/Borough.Core.dll
+  Borough.Formats -> /home/christian/Code/city-sim/src/Borough.Formats/bin/Release/net10.0/Borough.Formats.dll
+  Borough.Headless -> /home/christian/Code/city-sim/src/Borough.Headless/bin/Release/net10.0/Borough.Headless.dll
+  Borough.Tests -> /home/christian/Code/city-sim/tests/Borough.Tests/bin/Release/net10.0/Borough.Tests.dll
+Test run for /home/christian/Code/city-sim/tests/Borough.Tests/bin/Release/net10.0/Borough.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.2 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:  3969, Skipped:     0, Total:  3969, Duration: 4 m 47 s - Borough.Tests.dll (net10.0)
+
+───────────────────────────────────────────────────────────
+full output: /tmp/borough-test-20260922-080113.log
+tree:        e25cacc-dirty on private-production-and-labour
+collected:   3969 tests

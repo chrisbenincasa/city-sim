@@ -1,0 +1,75 @@
+[
+  {
+    "capture": "aged-10000-host",
+    "command": [
+      "taskset",
+      "-c",
+      "2",
+      "env",
+      "DOTNET_TieredCompilation=0",
+      "dotnet",
+      "spikes/LabourCost/bin/Release/net10.0/LabourCost.dll",
+      "load",
+      "10000",
+      "/tmp/labour-aged.borough"
+    ],
+    "startUtc": "2026-09-22T02:08:17.132948+00:00",
+    "endUtc": "2026-09-22T02:08:37.141068+00:00",
+    "cpu2MeanBusyPercent": 95.69949494949495,
+    "sibling8MeanBusyPercent": 6.984537165056712,
+    "otherCpuMeanBusyPercent": 7.142568512231726,
+    "sampledFrequencyKhzMinMax": [
+      3999964,
+      4100025
+    ],
+    "scope": "entire process including setup; unweighted mean of roughly one-second intervals"
+  },
+  {
+    "capture": "generated-100000-host",
+    "command": [
+      "taskset",
+      "-c",
+      "2",
+      "env",
+      "DOTNET_TieredCompilation=0",
+      "dotnet",
+      "spikes/LabourCost/bin/Release/net10.0/LabourCost.dll",
+      "generated",
+      "100000"
+    ],
+    "startUtc": "2026-09-22T02:08:37.142097+00:00",
+    "endUtc": "2026-09-22T02:09:31.164838+00:00",
+    "cpu2MeanBusyPercent": 98.56041159671523,
+    "sibling8MeanBusyPercent": 6.6811279767432525,
+    "otherCpuMeanBusyPercent": 6.541816129796606,
+    "sampledFrequencyKhzMinMax": [
+      800455,
+      4100039
+    ],
+    "scope": "entire process including setup; unweighted mean of roughly one-second intervals"
+  },
+  {
+    "capture": "generated-1000000-host",
+    "command": [
+      "taskset",
+      "-c",
+      "2",
+      "env",
+      "DOTNET_TieredCompilation=0",
+      "dotnet",
+      "spikes/LabourCost/bin/Release/net10.0/LabourCost.dll",
+      "generated",
+      "1000000"
+    ],
+    "startUtc": "2026-09-22T02:09:31.169440+00:00",
+    "endUtc": "2026-09-22T02:20:45.458563+00:00",
+    "cpu2MeanBusyPercent": 99.95994065281899,
+    "sibling8MeanBusyPercent": 4.411180370096081,
+    "otherCpuMeanBusyPercent": 5.231423643382207,
+    "sampledFrequencyKhzMinMax": [
+      800000,
+      4289893
+    ],
+    "scope": "entire process including setup; unweighted mean of roughly one-second intervals"
+  }
+]

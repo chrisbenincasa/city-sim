@@ -431,3 +431,107 @@ rather than a subscription, so the per-occasion step already *is* the per-Day ra
   nothing sizes a payroll from one. *Unbuilt.*
 - **The drop-off is unbuilt.** `adr/0032` puts a child who cannot walk on a parent's commute; only the
   walk is built, so a car-owning family is under-served in a way the design says it should not be.
+
+---
+
+## Waste as a Resource that moves
+
+**Status:** deferred while scoping *Private production and labour*, 2026-09-20. Spoiled stock is
+counted and discarded; nothing accumulates it.
+**Retrofit cost:** Moderate, and the expensive half is not the connection. Spoilage already has a
+hook and already reports a quantity, so a future collection system reads a number that exists. What
+is absent is the system itself: a Resource, a vehicle, a disposal Building kind and a routing
+consequence when collection fails.
+
+### What it is
+
+A Good that spoils becomes trash rather than vanishing. Trash accumulates at the premises, is
+collected, moves to a facility, and imposes a consequence when it is not collected.
+
+### Why it's parked
+
+**Trash needs a sink, and without one it defeats the mechanism it came from.** A trash Bin fills,
+and a full output Bin makes its Rule fail on Space. Spoilage would then stop happening at exactly
+the premises with the most spoiled stock, so old stock would sit unbounded — the accumulation that
+shelf life exists to prevent, reintroduced by the thing meant to model it.
+
+**It makes the bucket shift fallible.** Dropping the oldest bucket cannot fail. Depositing its
+contents somewhere can. A spoilage step that sometimes does not happen is much harder to reason
+about, and every invariant asserting bounded quantities would have to account for it.
+
+**Its movement is real, so admitting it commits to the haulage.** `docs/04-economy-and-goods.md`
+refuses labour as a Good because trucking consulting hours is a fiction. Garbage is the opposite
+case, which is why it cannot be added as a Resource and left there.
+
+**Most waste is domestic.** Households generate far more than spoiled shop stock does. A city where
+the fishmonger produces refuse and ten thousand homes produce none is more conspicuous than a city
+with no refuse at all, so the honest version of this feature starts larger than the spoilage hook
+that would introduce it.
+
+### What would trigger revisiting
+
+- Sanitation wanted as a city system in its own right, rather than as a consequence of spoilage.
+- Waste counts showing that over-ordering needs a spatial consequence rather than a reported number.
+- Household waste becoming wanted, which is the larger half and would carry the collection system
+  on its own.
+
+### What it would look like
+
+Trash as a Resource with no market row, produced by spoilage and by Households, drawn by a
+collection vehicle against a disposal Building, with uncollected quantity feeding a local
+desirability penalty. The spoilage counter shipped with shelf life is the quantity it consumes, so
+the connection is a term rather than a redesign.
+
+---
+
+## Domestic labour
+
+**Status:** deferred while scoping *Private production and labour*, 2026-09-21. Only a Business has
+a labour Bin. A Citizen at home deposits nowhere, and a dwelling's Rules produce without staffing.
+**Retrofit cost:** ✅ **Low.** The deposit already walks every Citizen each Tick and already tests a
+predicate, so a second predicate and a second Bin owner are the whole connection. What makes it
+larger is content rather than code, because no shipped dwelling Rule states labour and adding the
+mechanism changes nothing until they do.
+
+### What it is
+
+A Household holds a labour Bin. Residents who are at home and awake deposit into it, and a
+dwelling's own Rules — upkeep, repairs, cooking — spend it. A household whose adults all work a full
+shift has little left for its own maintenance.
+
+### Why it's parked
+
+**Nothing in the corpus specifies it.** `CONTEXT.md`, `02-simulation-model.md` and
+`04-economy-and-goods.md` are silent on domestic work, and `deferred.md` mentions it only to observe
+that most waste is domestic. Under [`adr/0070`](adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md)
+an undesigned absence generates no design position, so building against it now would be inventing
+the specification and the mechanism together.
+
+**It buys nothing until content asks for it.** Four dwelling Rules ship across all Rulesets. Every
+one would need a labour term added before the Bin changed any behaviour, so the mechanism would
+arrive inert.
+
+**It needs a second deposit predicate on the hottest walk.** `WorkSchedule.Accrue` tests on duty and
+at work. Depositing for Citizens who are neither means a second test per Citizen per Tick, against a
+budget the labour deposit is already spending.
+
+### What it would trigger, and the hole it leaves open
+
+⚠ **A dwelling is the one place production costs no labour.** A dwelling declares no labour Bin, so
+its Rules cannot state labour as an input. `thinned.toml`'s `restock` already manufactures sundries
+out of nothing every 8 Ticks with nobody present. That is a fixture convenience and it is fine as
+one, but once labour is what makes production cost something, a designer can put a factory in a
+house and pay no staffing for it. Refusing production Rules on housing kinds would close it and
+would also refuse working fixtures, so the hole stays open and stays written down.
+
+Revisit when:
+
+- Household chores, cooking or self-repair are wanted as behaviour rather than as free output.
+- A shipped Ruleset uses a dwelling Rule to dodge staffing, rather than for fixture convenience.
+- Household waste enters scope, since it is generated by the same domestic activity.
+
+### What it would look like
+
+A labour Bin with `owner = "occupant"`, deposited by residents at home, spent by dwelling Rules that
+state labour among their inputs. The grading keys, the shelf life and the bucket shift are all
+already built by then, so the addition is an owner and a predicate.

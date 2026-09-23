@@ -2195,6 +2195,9 @@ public sealed class Simulation
     {
         _phase = TickPhase.Growth;
 
+        // First, so a deposit on a boundary Tick lands in the fresh newest bucket.
+        _world.SpoilExpired(tick);
+
         // adr/0069, and the ORDER is the decision rather than the presence. 02 §1.1 calls the phase
         // ordering the determinism contract, and this line is inside a phase rather than beside it:
         // placement drains the Pool into standing vacancy first, so the Pool a Zone Rule then reads is

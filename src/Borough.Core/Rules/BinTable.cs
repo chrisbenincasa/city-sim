@@ -96,6 +96,7 @@ public sealed class BinTable
         BinNext = _rows.Derived<int>("bin_next");
         OwnerNext = _rows.SavedHandle("owner_next", _rows);
         Progress = _rows.Saved<int>("consumption_progress", Touch.PerTick);
+        ExpiryRow = _rows.Derived<int>("expiry_row", Touch.PerTick);
 
         _rows.Seal();
     }
@@ -232,6 +233,11 @@ public sealed class BinTable
     /// </para>
     /// </remarks>
     public Column<int> Progress { get; }
+
+    /// <summary>
+    /// The <see cref="ExpiryTable"/> row ageing this Bin, as slot plus one, or zero when it has none.
+    /// </summary>
+    public Column<int> ExpiryRow { get; }
 
     /// <summary>How much is in the Bin. Read freely; a read cannot forget to wake anybody.</summary>
     public long LevelAt(int slot) => _level[slot];
@@ -375,6 +381,7 @@ public sealed class BinTable
         _level[slot] = 0;
         _cost[slot] = 0;
         Progress[slot] = 0;
+        ExpiryRow[slot] = 0;
 
         return handle;
     }
@@ -400,6 +407,7 @@ public sealed class BinTable
         _level[slot] = 0;
         _cost[slot] = 0;
         Progress[slot] = 0;
+        ExpiryRow[slot] = 0;
 
         return handle;
     }
