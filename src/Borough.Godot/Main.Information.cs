@@ -574,6 +574,9 @@ public partial class Main
             case "render-probe" when words.Length == 2:
                 RenderProbe(words[1]);
                 break;
+            case "shell-band":
+                ShellBand(words);
+                break;
             case "health" when words.Length == 1:
                 _selectedBusiness = default;
                 _healthInspection = true;

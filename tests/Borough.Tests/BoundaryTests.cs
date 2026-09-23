@@ -185,4 +185,18 @@ public class BoundaryTests
             $"Borough.Formats references {string.Join(", ", offenders)}. adr/0039: a log written " +
             "by the game must replay in the headless runner, which cannot load Godot.");
     }
+
+    /// <summary>The Appearance Family choice must run in the headless runner, which cannot load Godot.</summary>
+    [Fact]
+    public void Appearance_does_not_reference_Godot()
+    {
+        var offenders = typeof(Borough.Appearance.ShellBuilder).Assembly.GetReferencedAssemblies()
+            .Where(a => a.Name!.StartsWith("Godot", StringComparison.Ordinal))
+            .Select(a => a.Name!)
+            .ToList();
+
+        Assert.True(offenders.Count == 0,
+            $"Borough.Appearance references {string.Join(", ", offenders)}. The headless runner " +
+            "reports fallback Appearance Family use and cannot load Godot.");
+    }
 }

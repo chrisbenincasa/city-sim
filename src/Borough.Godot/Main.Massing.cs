@@ -718,7 +718,7 @@ public partial class Main
 
         foreach (Massing one in massing)
         {
-            if (bodies == 0 || one.Id != last)
+            if (buildings == 0 || one.Id != last)
             {
                 buildings++;
                 last = one.Id;
@@ -726,6 +726,7 @@ public partial class Main
 
             FoliageFootprint(one.Body, footprints++);
             if (one.Outhoused) FoliageFootprint(one.Yard, footprints++);
+            if (_shelled.Contains(one.Id)) continue;
             _buildings.Multimesh.Identity(bodies, one.Id);
             _buildingIds.Add(one.Id);
             _buildings.Multimesh.SetInstanceTransform(bodies, one.Body);

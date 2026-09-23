@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Shell-side appearance: Building geometry and, later, Appearance Family selection. It never
+    references Godot, so the headless runner can call it (procedural-buildings session, Q5), and
+    it never enters Borough.Core or the State Hash (adr/0150). Floating point is allowed here.
+  -->
+
+</Project>

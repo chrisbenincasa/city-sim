@@ -1,0 +1,16 @@
+# Procedural Buildings — Optimisation Notes
+
+Optimisation opportunities found while taking the REPORT §3 measurements. Each entry states what
+the code does today, what it costs, and the candidate change. None is implemented unless it says so.
+
+| # | Where | Today | Candidate | Evidence |
+|---|---|---|---|---|
+| 1 | `InstanceLayer.DetailDistance`, `Main.cs` Building layers | Every Building body and roof chunk is resident and submitted at every camera distance. Only trees use `DetailDistance` | Give Buildings the same chunk residency. The far band still needs every Building, so the saving is in the near and mid layers that the generator adds | Code reading |
+| 2 | `Main.Rendering.cs` `FlushInstances` | Instance uploads share a fixed 8 MB-per-frame allowance marked provisional | Set the allowance from the measured upload cost (§3 measurement 2), and give generated shells their own budget so a burst of edits cannot starve instance updates | Code reading |
+| 3 | Chunked instance layers (`InstanceLayer`, 256 m chunks) | The whole-city opening camera runs at 12.9 fps with boxes alone: 54.6 ms render CPU, 20.6 ms GPU. The city holds about 100,000 chunk nodes: 55,006 tree, 10,033 rock, about 7,000 each for road, kerb and footway, 3,200 per Building layer | Likely cause is per-node culling and draw submission, since render CPU dominates and sun shadows barely change it. Candidates: coarser chunks or merged far chunks, `DetailDistance` on trees, rocks and street furniture that actually empties far chunks, and one far layer per kind. Untested; profile first | Measured frame cost; cause is a hypothesis |
+| 4 | Sun shadows | 2.0 ms GPU at the street view, 2.4 ms at the district view, 3.9 ms at the opening view | Shadow reach per quality preset. Shells add only 0.1–0.3 ms of it at 500 m, so shell casting is a low-priority lever | Measured |
+| 5 | Shell upload path (`Main.ShellBand.cs`) | Workers build `System.Numerics` arrays, copy them into Godot arrays, and the main thread packs them through `ArrayMesh.AddSurfaceFromArrays`: 80–90 ns per vertex | Emit Godot's vertex layout directly on the worker and upload with `RenderingServer.MeshAddSurface` from prebuilt byte buffers, which removes two copies and the packing step. Compress normals and UVs to Godot's octahedral and half-float formats | Measured cost; saving untested |
+| 6 | First shell upload | 7.4 ms on first use, 0.8–1 ms thereafter | Warm the shell and kit materials at load so the first redevelopment does not hitch | Measured |
+| 7 | Near-band node granularity | One node per Building uploads 16% slower and draws 0.25 ms slower than one per 64 m chunk | Chunk shells, and redraw a whole small chunk on an edit. At 0.3 ms per Building a 64 m chunk rebuild stays inside a 2 ms frame budget | Measured |
+| 8 | Band sizing | A full 500 m band takes 97 ms to upload. At a 2 ms per-frame budget that is about 50 frames | Rank pending uploads by distance so the nearest shells appear first, and keep boxes until each shell lands | Measured |
+| 9 | Box shader cost | Replacing boxes with plain-material shells lowered GPU time (5.86 → 4.59 ms at the street view) | `buildings.gdshader` is 913 lines of painted windows. When shells carry real windows, the far-band shader can drop its window painting inside the near band | Measured, confounded by material |

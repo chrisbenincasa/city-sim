@@ -125,6 +125,8 @@ public partial class Main
         text.Append($"render_probe\t{_renderProbe}\n");
         text.Append(CultureInfo.InvariantCulture, $"render_work\t{_fullBuildingPasses}\t{_buildingEdits}\t{_movementIndexVisits}\t{_movementQueries}\n");
         text.Append(CultureInfo.InvariantCulture, $"render_frames\t{_frameCount}\t{_frameMilliseconds:F3}\t{_frameMaximum:F3}\n");
+        text.Append("# shell_band\tradius\tchunk\tkit\tshadows\tbuildings\tchunks\tvertices\ttriangles\tkit_pieces\tcollect_ms\tgenerate_ms\tupload_ms\tslowest_upload_ms\n");
+        text.Append(_shellBandReport);
         text.Append("# render\tlayer\tbatches\tuploads\tuploaded_instances\tuploaded_bytes\tupload_ms\tpending\n");
         foreach (var layer in Layers())
         {

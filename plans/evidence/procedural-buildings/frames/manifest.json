@@ -1,0 +1,47 @@
+{
+  "command": [
+    "godot",
+    "--path",
+    "/home/christian/Code/city-sim/src/Borough.Godot",
+    "--disable-vsync",
+    "--max-fps",
+    "0",
+    "--",
+    "--ruleset",
+    "rulesets/stress-shopping.toml",
+    "--citizens",
+    "1000000",
+    "--start-at",
+    "600",
+    "--drive",
+    "/home/christian/Code/city-sim/plans/evidence/procedural-buildings/frames/boot.drive",
+    "--listen",
+    "/run/user/1000/borough-band-112900.sock"
+  ],
+  "revision": "3ad76f893d8c63e15c695ceb5c4dd74b1fb787fb",
+  "dirty": true,
+  "assembly_sha256": "f0fda293cbd4c6a457bc006298f15202688944a09cfca1a77568a4f39ff35577",
+  "gpu": "NVIDIA GeForce GTX 1080, 580.178.04",
+  "warmup_seconds": 4,
+  "sample_seconds": 8,
+  "statistic": "median of one-second samples",
+  "load_average_at_start": [
+    1.7021484375,
+    2.18505859375,
+    2.306640625
+  ],
+  "rendering": {
+    "Probe": "baseline",
+    "ChunkMetres": 256,
+    "Scale": 1,
+    "FrameLimit": 0,
+    "Vsync": "Disabled",
+    "Shadow16Bits": true,
+    "Configuration": "Release"
+  },
+  "load_average_at_end": [
+    1.61962890625,
+    1.65185546875,
+    1.9921875
+  ]
+}

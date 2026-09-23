@@ -167,3 +167,13 @@ All four were corrected on 2026-09-23.
 | Main-thread upload cost per shell | Sets how many edits appear per frame | Driven shell run with a per-frame budget |
 | Frame cost of the near band at a dense street view | Sets band distances and chunk size | Driven capture, named machine and world |
 | Shadow cost with shells versus boxes | CS2 lost ~40 ms here | Same capture, shadows toggled per band |
+
+Taken 2026-09-23 on the dev machine, not quiet, so upper bounds. Full conditions in
+[the evidence](../../plans/evidence/procedural-buildings/README.md).
+
+| Question | Result |
+|---|---|
+| Generation | About 10 ns per vertex on one thread: 7.8 µs for a house, 196 µs for a 20-storey tower |
+| Upload | 80–90 ns per vertex on the main thread, about 0.3 ms per Building in a low-rise 1M-Citizen city. The first upload costs 7 ms |
+| Near band | Shells out to 500 m (327 Buildings, 1.1M vertices) add 0.25 ms per frame at a street view. The whole-city opening camera already runs at 12.9 fps with boxes alone |
+| Shadows | Sun shadows cost 2.0–2.4 ms GPU. Shells casting them add 0.1–0.3 ms |
