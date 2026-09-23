@@ -296,6 +296,10 @@ It may hold Bins its Occupants draw from, one Access Point they all share, and o
 
 **How many it *employs* is declared the same way and is a separate number** (`[[building]] jobs`, milestone 5b-bis). A workplace houses nobody and employs a hundred, a dwelling the reverse, and a mixed-use Building both — so employment is a fourth key on the kind rather than a reading of occupancy. It follows the ceiling's disposition exactly: derived from the Ruleset in force, never saved, and a Building standing over a lowered one **dismisses** the overflow. The reason is occupancy's rather than an analogy — a Bin over its ceiling is left to drain because a Bin has a consumer, and a job has a holder and no consumer, so nothing would ever spend the surplus down. **It counts Citizens and never Households**: employment sits on the person, beside Experience and Skill Tier, and two adults in one Household working opposite sides of the city is the case a per-Household count could not express.
 
+**Appearance Family**
+An authored architectural style a Building is drawn in, such as a brick terrace house or a board school. A Building kind maps to one or more Appearance Families, and each Building is drawn in exactly one. It belongs to the drawing and never to the simulation.
+*Avoid*: family (taken by Resource and Rule families), style, building type, mesh
+
 **Failure Pressure**
 What a Building accumulates when the city stops working for it. Three sources: **Trips to or from it failing**, **its Rules repeatedly reaching a reporting terminal**, and **local conditions falling below its Occupants' tolerance**. Past a threshold it loses occupancy and quality; past a further one it is **abandoned**, its Occupants are evicted into the Unplaced Pool, and its Lot returns to vacant.
 
