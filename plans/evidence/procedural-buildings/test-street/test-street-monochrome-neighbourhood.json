@@ -118,6 +118,29 @@
       ],
       "triangles": 1472,
       "surfaces": 8
+    },
+    {
+      "asset": "a2-stair-range",
+      "palette": "original",
+      "anchor": false,
+      "position": [
+        120,
+        0,
+        -9
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -16.5,
+        0,
+        -7.4
+      ],
+      "boundsSize": [
+        33,
+        11.8662815,
+        14.5
+      ],
+      "triangles": 2578,
+      "surfaces": 7
     }
   ],
   "brickScale": 1,
@@ -133,8 +156,8 @@
   "taa": true,
   "exposure": 1,
   "light": "noon",
-  "triangles": 9196,
-  "surfaces": 39,
+  "triangles": 11774,
+  "surfaces": 46,
   "tick": null,
   "population": null,
   "godot": "4.7.2-stable (official)",

@@ -3,7 +3,8 @@ using Godot;
 namespace Borough.Shell;
 
 /// <summary>
-/// The procedural-buildings test street: pass 03's five bodies on its 80 x 64 m study site.
+/// The procedural-buildings test street: pass 03's five bodies on its 80 x 64 m study site, and the
+/// A2 alternative on its own pad east of the side street.
 /// </summary>
 /// <remarks>
 /// Site x runs along the public street and site y runs into the block, so a site point (x, y) is
@@ -21,6 +22,14 @@ public partial class ExpandedStudy
         ("neighbourhood", new(130, 70, 60), new(40, 0, -30)),
         ("plan", new(40, 170, -30), new(40, 0, -32)),
         ("city-distance", new(230, 165, 175), new(40, 0, -30)),
+        .. MatchedViews("a1", new(40, 0, -11)),
+        .. MatchedViews("a2", new(120, 0, -9)),
+    ];
+
+    private static (string, Vector3, Vector3)[] MatchedViews(string body, Vector3 centre) =>
+    [
+        ($"{body}-front", centre + new Vector3(18, 14, 30), centre + new Vector3(0, 5, 0)),
+        ($"{body}-garden", centre + new Vector3(-18, 16, -26), centre + new Vector3(0, 5, 0)),
     ];
 
     private void TestStreet()
@@ -49,5 +58,14 @@ public partial class ExpandedStudy
         Body("m1-corner", 56, 0, 24, 16);
         Body("w1-workplace", 0, 40, 36, 20);
         Body("w2-workshop", 44, 43, 32, 16);
+
+        Ground("A2 pad", 98, 142, -12, 30, "d6d5cc", .1f);
+        Ground("A2 pavement", 98, 142, -3, 0, "b9b8b0", .16f);
+        Ground("A2 carriageway", 98, 142, -9, -3, "6b6e6f");
+        Ground("A2 far pavement", 98, 142, -12, -9, "b9b8b0", .16f);
+        Ground("A2 gardens", 100, 140, 15, 28, "c4c5b8", .11f);
+        foreach (float x in new[] { 111f, 127f })
+            Ground("A2 stair path", x, x + 2, 0, 3, "a9a9a2", .14f);
+        Body("a2-stair-range", 104, 3, 32, 12);
     }
 }

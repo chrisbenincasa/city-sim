@@ -52,6 +52,31 @@
       "geometry_sha256": "051fe26485a22bf4a4c032299c7d65c4fa8ec1092211b6e4de40b27459cdcebb"
     },
     {
+      "body": "a2-stair-range",
+      "vertices": 3802,
+      "faces": 1288,
+      "bounds_min": [
+        -16.5,
+        -7.1,
+        0.0
+      ],
+      "bounds_max": [
+        16.5,
+        7.4,
+        11.866
+      ],
+      "materials": [
+        "wall",
+        "trim",
+        "door",
+        "glass",
+        "plinth",
+        "membrane",
+        "metal"
+      ],
+      "geometry_sha256": "d192eb34202e43ed6067a1d8bcbd64d2488bbd19c51276b510325dd2e1e5c2d7"
+    },
+    {
       "body": "m1-corner",
       "vertices": 4080,
       "faces": 1340,

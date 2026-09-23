@@ -167,7 +167,7 @@ GPU times were 5–10 ms high and it was discarded. The script now records other
 
 ## First test street (`test-street/`)
 
-Pass 03's five bodies as monochrome Blender blockouts on its 80 × 64 m study site. Source is
+Pass 03's five bodies as monochrome Blender blockouts on its 80 × 64 m study site, plus the A2 alternative. Source is
 `scripts/art/test-street.py`; editable `.blend` files are in `art/test-street/`. Rebuild and capture with
 `BLENDER_BIN=… scripts/art/review.sh test-street`; browse with `open-test-street`. Blender 5.2.1, Godot 4.7.2,
 Debug build, `ExpandedStudy --test-street`.
@@ -177,9 +177,10 @@ Debug build, `ExpandedStudy --test-street`.
 | H1 attached range | 24 × 12 m, 2 × 3.2 m, four 6 m modules, 18° roof across the depth | 2 × 3.5 m, party-wall upstands, distinct end walls, street doors and rear garden doors | 2,100 |
 | A1 apartment | 24 × 16 m, 3 × 3.2 m, corridor, two stairs, parapeted membrane roof | 3 × 3.5 m, one central entrance, stair glazing and doors on both end walls | 2,688 |
 | M1 corner | 24 × 16 m, 3 × 3.2 m, two shops, core on the side street, rear receiving | 3 × 3.5 m, shopfront in 3 m bays, residential door and stair on the side street, roller door and scuppers at the back, plant curb | 4,080 |
+| A2 stair-access range, on its own pad | 32 × 12 m, 3 × 3.2 m, two stair stacks serving two flats a floor, no corridor, 11° membrane gable | 3 × 3.5 m, two stair entrances with stair glazing, garden doors and balconies, exposed eaves and verges | 3,802 |
 | W1 workplace (G001) | 36 × 20 m, 2 × 3.5 m, six 6 m bays, receiving behind | As briefed, pilasters on the 6 m grid, two receiving doors, crickets, scuppers and overflows | 2,138 |
 | W2 workshop | 32 × 16 m, 2 × 3.2 m, 8 m grid, 3.5 m receiving door | 2 × 3.5 m, 6° metal roof with rooflights, panel joints on the grid | 1,782 |
 
-- Every storey is 3.5 m, the simulation's storey height. The briefs propose 3.2 m, so H1, A1, M1 and W2 are taller than briefed.
-- A2, the Danish-informed alternative range, is not built. It sits outside the US-sourced street.
+- Every storey is 3.5 m, the simulation's storey height. The briefs propose 3.2 m, so H1, A1, A2, M1 and W2 are taller than briefed.
+- A2 sits on its own pad east of the side street, as the brief asks. The `a1-front`/`a2-front` and `a1-garden`/`a2-garden` views use matched camera offsets for the unlabelled comparison.
 - The street is a study fixture. No body is a simulation Building, and nothing is tied to a Lot or an Appearance Family yet.

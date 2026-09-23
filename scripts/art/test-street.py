@@ -1,4 +1,4 @@
-"""The first procedural-buildings test street: pass 03's five bodies as monochrome blockouts.
+"""The first procedural-buildings test street: pass 03's five bodies and the A2 alternative as monochrome blockouts.
 
 Run with Blender in the background:
   blender --background --factory-startup --python-exit-code 1 --python scripts/art/test-street.py
@@ -171,11 +171,11 @@ def flat_roof(width, depth, height, parapet=.7):
     box('coping right', (x - .3, -y + .3, top), (x + .05, y - .3, top + .08), 'trim')
 
 
-def gable(width, depth, height, pitch, eaves=.4, material='roof'):
+def gable(width, depth, height, pitch, eaves=.4, material='roof', verge=None):
     """A pitched roof whose rafters span the depth, so the ridge runs along the street.
     Returns a function giving the roof's top surface height at a distance from the ridge."""
     slope = math.tan(math.radians(pitch))
-    x, y, t = width / 2 + eaves * .5, depth / 2 + eaves, .2
+    x, y, t = width / 2 + (eaves * .5 if verge is None else verge), depth / 2 + eaves, .2
     low, top = height - eaves * slope, height + depth / 2 * slope
     prism('pitched roof', [(-y, low), (-y, low + t), (0, top + t), (y, low + t), (y, low), (0, top)][::-1],
           -x, x, material)
@@ -227,6 +227,39 @@ def a1():
     box('roof hatch', (-1.0, 1.0, height), (1.0, 2.2, height + .5), 'metal')
     for x in (-8.0, 8.0):
         box('rooftop vent', (x - .4, 3.0, height), (x + .4, 3.8, height + .9), 'metal')
+
+
+def a2():
+    """Stair-access range: 32 x 12 m, three storeys, two stair stacks each serving two flats a floor,
+    no corridor, 11 degree membrane gable with exposed eaves, balconies to the garden."""
+    width, depth, height = 32.0, 12.0, 3 * STOREY
+    front = []
+    for stair in (6.0, 22.0):
+        front += [(stair + 1.0, .3, 2.0, 2.4, 'door'), (stair + 1.0, STOREY + 1.2, 2.0, 2.6, 'stair'),
+                  (stair + 1.0, 2 * STOREY + 1.2, 2.0, 2.0, 'stair')]
+    flats = [1.8, 4.3, 11.7, 14.3, 17.7, 20.3, 27.7, 30.2]
+    front += bays(flats, .95, 1.4, 1.7) + upper(3, flats)
+    back = []
+    for flat in (4.0, 12.0, 20.0, 28.0):
+        back += [(flat - 2.7, .3, 2.4, 2.3, 'door'), (flat + 1.5, .95, 1.4, 1.7, 'window')]
+        back += [(flat - 2.7, s * STOREY + .15, 2.4, 2.3, 'door') for s in (1, 2)]
+        back += [(flat + 1.5, s * STOREY + .95, 1.4, 1.7, 'window') for s in (1, 2)]
+    end = [(x, s * STOREY + .95, 1.2, 1.5, 'window') for s in range(3) for x in (3.4, 7.4)]
+    faces = walls(width, depth, height, front, back, end, end)
+    plinth(width, depth)
+    gable(width, depth, height, 11, eaves=.6, material='membrane', verge=.5)
+    for stair in (6.0, 22.0):
+        x = -width / 2 + stair + 2.0
+        box('entrance canopy', (x - 1.4, -depth / 2 - 1.1, 2.85), (x + 1.4, -depth / 2, 3.0), 'trim')
+    garden = faces['back']
+    for flat in (4.0, 12.0, 20.0, 28.0):
+        u0, u1 = flat - 3.0, flat
+        for s in (1, 2):
+            v = s * STOREY
+            garden.slab('balcony slab', u0, u1, v - .05, v + .15, -1.4, 0, 'trim')
+            garden.slab('balcony rail', u0, u1, v + .15, v + 1.1, -1.4, -1.35, 'metal')
+            for u in (u0, u1 - .05):
+                garden.slab('balcony side', u, u + .05, v + .15, v + 1.1, -1.35, 0, 'metal')
 
 
 def m1():
@@ -311,7 +344,7 @@ def w2():
         faces[name].slab('floor band', 0, width, STOREY - .1, STOREY + .1, -.06, 0, 'wall-end')
 
 
-BODIES = [('h1-attached-range', h1), ('a1-apartment', a1), ('m1-corner', m1), ('w1-workplace', w1), ('w2-workshop', w2)]
+BODIES = [('h1-attached-range', h1), ('a1-apartment', a1), ('a2-stair-range', a2), ('m1-corner', m1), ('w1-workplace', w1), ('w2-workshop', w2)]
 
 
 def export(name, build):

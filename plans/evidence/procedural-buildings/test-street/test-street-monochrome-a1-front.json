@@ -1,7 +1,7 @@
 {
   "subject": "test-street",
   "palette": "monochrome",
-  "view": "rears",
+  "view": "a1-front",
   "comparison": "test-street-1",
   "instances": [
     {
@@ -144,8 +144,8 @@
     }
   ],
   "brickScale": 1,
-  "camera": "(40, 26, -50)",
-  "target": "(40, 3, -12)",
+  "camera": "(58, 14, 19)",
+  "target": "(40, 5, -11)",
   "fov": 40,
   "viewport": "(1440, 960)",
   "sunRotation": "(-61.999992, -27.999998, 0)",
