@@ -25,7 +25,6 @@
 
   <ItemGroup>
     <Compile Include="../../examples/UrbanNeighbourhood/UrbanNeighbourhood.cs" Link="Examples/UrbanNeighbourhood.cs" />
-    <Compile Include="../../src/Borough.Godot/CitySave.cs" Link="Shell/CitySave.cs" />
     <Compile Include="../../src/Borough.Godot/CityTuning.cs" Link="Shell/CityTuning.cs" />
     <Compile Include="../../src/Borough.Godot/CityPreparation.cs" Link="Shell/CityPreparation.cs" />
     <Compile Include="../../src/Borough.Godot/SimulationThread.cs" Link="Shell/SimulationThread.cs" />

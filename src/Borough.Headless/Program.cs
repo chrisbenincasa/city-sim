@@ -120,6 +120,9 @@ internal static class Program
                 case Mode.KeyReference:
                     return KeyReferenceDump.Print(options);
 
+                case Mode.SaveKey:
+                    return Session.PrintSaveKey(options);
+
                 case Mode.Preview:
                     return PreviewDump.Print(options);
 

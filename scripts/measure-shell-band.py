@@ -1,7 +1,10 @@
 """Measure generated Building shells, or profile the opening camera, in the shell.
 
 The band suite takes research/procedural-buildings REPORT §3 measurements 2-4. The opening suite
-hides layer groups at the whole-city camera to attribute its cost. Build the shell in Release first:
+hides layer groups at the whole-city camera to attribute its cost. The ready suite only times the
+launch. The shell opens a cached city save made by headless --save-city, keyed by Ruleset content
+hash, save format, Citizens and Tick; --simulate steps from Tick 0 instead. Build the shell in
+Release first:
   dotnet build src/Borough.Godot -c Release -p:OutputPath=$PWD/src/Borough.Godot/.godot/mono/temp/bin/Debug/
 """
 import argparse
@@ -46,7 +49,7 @@ SUITES = {'band': [
     ('opening', None, [BAND[0], BAND[1]]),
     ('street', 'focus 1781 1656 150', BAND),
     ('district', 'focus 1781 1656 600', [BAND[0], BAND[1], BAND[3], BAND[4], BAND[6], BAND[7]]),
-], 'opening': [('opening', None, OPENING)]}
+], 'opening': [('opening', None, OPENING)], 'ready': []}
 
 parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
 parser.add_argument('--output', type=Path, required=True)
@@ -57,16 +60,40 @@ parser.add_argument('--warmup', type=int, default=4)
 parser.add_argument('--seconds', type=int, default=8)
 parser.add_argument('--suite', choices=SUITES, default='band')
 parser.add_argument('--chunk-metres', choices=['256', '512', '1024'], default='256')
+parser.add_argument('--simulate', action='store_true', help='step to --start-at instead of opening a save')
+parser.add_argument('--fresh', action='store_true', help='rebuild the cached city save')
+parser.add_argument('--cache', type=Path, default=Path.home() / '.cache/borough/cities')
 args = parser.parse_args()
 
 root = Path(__file__).resolve().parents[1]
 output = args.output.resolve()
 output.mkdir(parents=True, exist_ok=True)
 (output / 'boot.drive').write_text(f'{args.start_at} pause\n')
+
+
+def headless(*arguments):
+    return subprocess.check_output(['dotnet', 'run', '--project', str(root / 'src/Borough.Headless'), '-c', 'Release',
+                                    '--', '--ruleset', args.ruleset, *arguments], cwd=root, text=True)
+
+
+def city():
+    """A save of the city at --start-at, built by headless on a cache miss."""
+    ruleset_hash, save_format = headless('--save-key').split()
+    path = args.cache / f'{ruleset_hash}-f{save_format}-c{args.citizens}-s0-t{args.start_at}.borough-city'
+    if args.fresh or not path.exists():
+        args.cache.mkdir(parents=True, exist_ok=True)
+        building = path.with_suffix('.building')
+        headless('--citizens', str(args.citizens), '--ticks', str(args.start_at), '--no-decide-guard',
+                 '--hash-every', str(args.start_at), '--save-city', str(building))
+        building.replace(path)
+    return path
+
+
+world = (['--ruleset', args.ruleset, '--citizens', str(args.citizens), '--start-at', str(args.start_at)]
+         if args.simulate else ['--load', str(city())])
 address = str(Path(os.environ.get('XDG_RUNTIME_DIR', '/tmp')) / f'borough-band-{os.getpid()}.sock')
 command = [os.environ.get('GODOT_BIN', 'godot'), '--path', str(root / 'src/Borough.Godot'),
-           '--disable-vsync', '--max-fps', '0', '--', '--ruleset', args.ruleset,
-           '--citizens', str(args.citizens), '--start-at', str(args.start_at),
+           '--disable-vsync', '--max-fps', '0', '--', *world,
            '--drive', str(output / 'boot.drive'), '--listen', address]
 env = dict(os.environ, BOROUGH_RENDER_PROFILE='1', BOROUGH_RENDER_CHUNK_METRES=args.chunk_metres,
            BOROUGH_PERFORMANCE_LOG=str(output / 'samples.csv'))
@@ -131,6 +158,7 @@ def profile(path):
 
 results = []
 with (output / 'game.log').open('w') as log:
+    launched = time.monotonic()
     process = subprocess.Popen(command, cwd=root, env=env, stdout=log, stderr=subprocess.STDOUT)
     try:
         deadline = time.monotonic() + 120
@@ -144,7 +172,9 @@ with (output / 'game.log').open('w') as log:
             wire = connection.makefile('rwb', buffering=0)
 
             while f'Tick {args.start_at} ' not in send(''):
-                time.sleep(5)
+                time.sleep(1)
+            manifest['launch_to_ready_seconds'] = round(time.monotonic() - launched, 1)
+            print(json.dumps({'launch_to_ready_seconds': manifest['launch_to_ready_seconds']}), flush=True)
             initial = state(output / 'initial.json')
             manifest['rendering'] = initial['Rendering']
             assert initial['Rendering']['Configuration'] == 'Release', 'Build the shell in Release'

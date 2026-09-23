@@ -1062,10 +1062,10 @@ public partial class Main : Node3D
 
     public override void _Ready()
     {
-        (_rulesetPath, int citizens, ulong startAt, bool govern, _empty, string? drive,
-            ulong quitAt, string? listen, string? record) = Arguments();
+        (_rulesetPath, int citizens, ulong? startAt, bool govern, _empty, string? drive,
+            ulong quitAt, string? listen, string? record, string? load) = Arguments();
 
-        if (!ThreadArguments() || !Driven(drive, quitAt))
+        if (!ThreadArguments() || !Driven(drive, quitAt) || !Loadable(load))
         {
             Stop(2);
 
@@ -1082,6 +1082,20 @@ public partial class Main : Node3D
         if (listen is not null && !Listen(Globalize(listen)))
         {
             Stop(2);
+
+            return;
+        }
+
+        if (load is not null)
+        {
+            string city = Globalize(load);
+
+            PrepareSavedCity(city, startAt, (simulation, preparation) =>
+            {
+                InstallSavedCity(simulation, preparation.City!, preparation.SavedTick, city);
+                FinishReady(govern);
+                _sceneReady = true;
+            });
 
             return;
         }
@@ -1113,7 +1127,7 @@ public partial class Main : Node3D
         _citizens = citizens;
         _seed = 0;
 
-        PrepareCity(loaded.Ruleset, citizens, _seed, startAt, simulation =>
+        PrepareCity(loaded.Ruleset, citizens, _seed, startAt ?? (ulong)Ticks.AtClock(8), simulation =>
         {
             InstallCity(simulation);
             FinishReady(govern);
@@ -1572,15 +1586,16 @@ public partial class Main : Node3D
     /// <summary>
     /// <c>--ruleset PATH</c>, <c>--citizens N</c>, <c>--start-at TICK</c>, <c>--govern</c>,
     /// <c>--empty</c>, <c>--drive PATH</c>, <c>--quit-at TICK</c>, <c>--listen PATH</c> and
-    /// <c>--record PATH</c>, <c>--route-workers 1..8</c> and <c>--main-thread-sim</c>, after Godot's <c>--</c>.
+    /// <c>--record PATH</c>, <c>--load PATH</c>, <c>--route-workers 1..8</c> and <c>--main-thread-sim</c>,
+    /// after Godot's <c>--</c>.
     /// </summary>
     /// <remarks>
     /// ⚠ <b>A shell reads the command line and the core does not.</b> Every string here is this
     /// project's (<c>adr/0002</c>), and a bad one is reported rather than defaulted, because a
     /// silently-substituted world is a picture of somewhere else.
     /// </remarks>
-    private static (string Ruleset, int Citizens, ulong StartAt, bool Govern, bool Empty,
-        string? Drive, ulong QuitAt, string? Listen, string? Record) Arguments()
+    private static (string Ruleset, int Citizens, ulong? StartAt, bool Govern, bool Empty,
+        string? Drive, ulong QuitAt, string? Listen, string? Record, string? Load) Arguments()
     {
         string ruleset = "rulesets/neighbourhood.toml";
         int citizens = 1_000;
@@ -1604,11 +1619,12 @@ public partial class Main : Node3D
         //
         // ⚠ It steps the world 256 Ticks at boot rather than jumping. --start-at skips nothing,
         // and a world jumped to is a different world.
-        ulong startAt = (ulong)Ticks.AtClock(8);
+        ulong? startAt = null;
         string? drive = null;
         ulong quitAt = 0;
         string? listen = null;
         string? record = null;
+        string? load = null;
         string[] given = OS.GetCmdlineUserArgs();
 
         // ⚠ A FLAG AND NOT A PAIR, so it is read over the whole array rather than inside the loop
@@ -1653,9 +1669,27 @@ public partial class Main : Node3D
             {
                 record = given[at + 1];
             }
+            else if (given[at] == "--load")
+            {
+                load = given[at + 1];
+            }
         }
 
-        return (ruleset, citizens, startAt, govern, empty, drive, quitAt, listen, record);
+        return (ruleset, citizens, startAt, govern, empty, drive, quitAt, listen, record, load);
+    }
+
+    private static readonly string[] SettledBySave = ["--ruleset", "--citizens", "--empty"];
+
+    /// <summary>Refuses a saved city named with options the save already settles.</summary>
+    private static bool Loadable(string? load)
+    {
+        if (load is null) return true;
+        string[] given = OS.GetCmdlineUserArgs();
+        string[] settled = [.. SettledBySave.Where(option => Array.IndexOf(given, option) >= 0)];
+        if (settled.Length == 0) return true;
+        GD.PrintErr($"--load cannot be combined with {string.Join(", ", settled)}: "
+            + "a saved city carries its own Ruleset, Citizens and seed.");
+        return false;
     }
 
     /// <summary>

@@ -67,6 +67,9 @@ internal enum Mode
     /// </remarks>
     KeyReference,
 
+    /// <summary>Print the Ruleset content hash and save format version that identify a city save.</summary>
+    SaveKey,
+
     /// <summary>
     /// Report what replacing the Ruleset with another one would do, before anything runs.
     /// </summary>
@@ -532,6 +535,10 @@ internal sealed class Options
     /// </remarks>
     public string? LoadPath { get; private init; }
 
+    /// <summary>Where to write a city save (Ruleset, seed and world) at the end of the run, or null.</summary>
+    /// <remarks>The shell opens it with <c>--load</c> and from its menu.</remarks>
+    public string? SaveCityPath { get; private init; }
+
     /// <summary>Which Map Layer to dump, in <see cref="Mode.Layer"/>.</summary>
     public Layer Layer { get; private init; }
 
@@ -562,6 +569,8 @@ internal sealed class Options
         string? crash = null;
         string? save = null;
         string? load = null;
+        string? saveCity = null;
+        bool saveKey = false;
         ulong seed = 0;
         int citizens = DefaultPopulation;
         ulong ticks = 1_024;
@@ -820,6 +829,10 @@ internal sealed class Options
                     keyReference = true;
                     continue;
 
+                case "--save-key":
+                    saveKey = true;
+                    continue;
+
                 // A run, for the same reason --census is: the guard is a property of stepping a world,
                 // and the report never steps one.
                 case "--schema":
@@ -922,6 +935,11 @@ internal sealed class Options
                 // resumes at one, so neither means anything to the report.
                 case "--save":
                     save = value;
+                    session = true;
+                    break;
+
+                case "--save-city":
+                    saveCity = value;
                     session = true;
                     break;
 
@@ -1612,6 +1630,19 @@ internal sealed class Options
             return false;
         }
 
+        if (saveCity is not null && (load is not null || rulesets.Count == 0))
+        {
+            complaint = "--save-city needs --ruleset PATH and refuses --load. A city save carries "
+                      + "the Ruleset the run started from, and a resumed bare save has no seed.";
+            return false;
+        }
+
+        if (saveKey && rulesets.Count != 1)
+        {
+            complaint = "--save-key needs exactly one --ruleset PATH.";
+            return false;
+        }
+
         if (keyReference && rulesets.Count == 0)
         {
             complaint = "--key-reference needs --ruleset PATH, and it reads the whole FOLDER that "
@@ -1672,6 +1703,7 @@ internal sealed class Options
                  : care ? Mode.Care
                  : shopping ? Mode.Shopping
                  : keyReference ? Mode.KeyReference
+                 : saveKey ? Mode.SaveKey
                  : schema ? Mode.Schema
                  : against is not null ? Mode.Preview
                  : day ? Mode.Day
@@ -1719,6 +1751,7 @@ internal sealed class Options
             DecideGuard = decideGuard,
             SavePath = save,
             LoadPath = load,
+            SaveCityPath = saveCity,
         };
 
         return true;
@@ -1785,6 +1818,12 @@ internal sealed class Options
                                 by side. A save that is never loaded demonstrates
                                 nothing, so the round trip is what this prints.
                                 Needs --ruleset
+          --save-city PATH      also write a city save at the end of the run: the
+                                Ruleset, seed and world in one file, which the shell
+                                opens with --load. Needs --ruleset, refuses --load
+          --save-key            print the Ruleset content hash and the save format
+                                version, which together say whether a city save is
+                                current. Needs one --ruleset; makes no world
           --load PATH           resume a save written by --save and run --ticks more.
                                 Starts at the Tick the save was taken at, with no
                                 commands: a save is a world, not a session. Needs

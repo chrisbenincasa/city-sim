@@ -99,6 +99,11 @@ internal static class Session
                 Replay.Trace(simulation, log, new Ticks(1), options.HashEvery, hashes, census);
             }
 
+            if (options.SaveCityPath is not null)
+            {
+                SaveCity(options.SaveCityPath, simulation, supplied, log.Seed);
+            }
+
             // 02 §10's end-of-run tier, on every run rather than behind a flag. It is O(world) once,
             // so it costs nothing against a run of any length, and a check that is off by default is
             // a check that is off. The trace is written first so a violation does not cost the
@@ -589,6 +594,29 @@ internal static class Session
 
         capture = captured.Capture;
         return true;
+    }
+
+    /// <summary>Writes the world under the Ruleset in force, with the seed, as one city save.</summary>
+    private static void SaveCity(string path, Simulation simulation, Supplied[] supplied, ulong seed)
+    {
+        Supplied inForce = supplied.First(entry => entry.Hash == simulation.RulesetInForce);
+        CitySave.Write(path, simulation.World, inForce.Capture, seed);
+        Console.Error.WriteLine(F(
+            $"Saved city at Tick {simulation.Tick.Raw}, Ruleset {inForce.Hash:X16}, save format {SaveHeader.Current}, to {path}"));
+    }
+
+    /// <summary>Prints the Ruleset content hash and the save format version on one line.</summary>
+    public static int PrintSaveKey(Options options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (!TryCapture(options.RulesetPaths[0], out RulesetCapture? capture))
+        {
+            return Refused;
+        }
+
+        Console.Out.WriteLine(F($"{capture.ContentHash:X16} {SaveHeader.Current}"));
+        return 0;
     }
 
     /// <summary>Every Ruleset the operator named, each with its content identity.</summary>
