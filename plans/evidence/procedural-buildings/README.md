@@ -95,3 +95,40 @@ Main-thread upload, from the same runs (`ArrayMesh.AddSurfaceFromArrays`, node c
 - The 15 placeholder kit pieces are single boxes. Real kit meshes carry more vertices and materials.
 - The shell material is not the production façade material, so GPU comparisons between shells and boxes are indicative only.
 - Each case ran once on a machine that was not quiet.
+
+## Opening-camera profile (`opening/`)
+
+Same world, machine and build. Load average 0.9–3.2, so still upper bounds. `chunk-N/` runs the
+opening suite with `BOROUGH_RENDER_CHUNK_METRES=N`. `band-chunk-1024/` reruns the full band suite
+at 1024 m. Reproduce with `scripts/measure-shell-band.py --suite opening --chunk-metres N --output DIR`.
+Draw calls are Godot's visible-pass count for the last frame.
+
+| Case | Draws, 256 m | Render CPU ms | GPU ms | Draws, 1024 m | Render CPU ms | GPU ms | FPS, 1024 m |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Everything | 32,184 | 55.2 | 20.7 | 2,694 | 3.4 | 14.7 | 67.4 |
+| Sun shadows off | 32,184 | 54.3 | 16.8 | 2,694 | 3.1 | 10.9 | 83.8 |
+| Trees and rocks hidden | 32,184 | 54.3 | 20.6 | 2,694 | 2.7 | 14.6 | 68.0 |
+| Streets hidden | 18,665 | 32.5 | 15.3 | 1,714 | 1.6 | 11.5 | 85.8 |
+| Buildings hidden | 14,862 | 20.5 | 10.8 | 1,259 | 1.1 | 8.5 | 113.8 |
+| Ground layers hidden | 32,038 | 50.5 | 21.1 | 2,656 | 2.6 | 14.5 | 68.3 |
+| All instance layers hidden | 1,197 | 1.0 | 4.7 | 241 | 0.3 | 4.5 | 135.3 |
+
+512 m chunks give 9,374 draws, 13.9 ms render CPU and 39.6 fps.
+
+| View | FPS, 256 m | FPS, 1024 m | GPU ms, 256 → 1024 | Render CPU ms, 256 → 1024 |
+|---|---:|---:|---|---|
+| Opening, boxes | 12.9 | 67.3 | 20.6 → 14.6 | 54.6 → 2.8 |
+| Street, boxes | 116.5 | 127.9 | 5.86 → 6.15 | 0.83 → 0.36 |
+| Street, shells to 500 m | 113.2 | 126.9 | 4.59 → 4.88 | 0.98 → 0.55 |
+| District, boxes | 70.6 | 105.2 | 8.50 → 9.25 | 4.61 → 0.74 |
+
+### Findings
+
+| # | Finding |
+|---|---|
+| 9 | Render CPU at the opening camera tracks draw calls at about 1.7 µs each. 256 m chunks give 32,184 draws. Every instance layer keeps every chunk resident, so the whole city is one draw per chunk per layer |
+| 10 | Trees and rocks cost nothing at the opening camera. Their `DetailDistance` already empties far chunks. Building layers (body, four roof families, yards) cost the most: 17,322 draws and 35 ms. Streets come next: 13,519 draws and 23 ms |
+| 11 | 1024 m chunks cut draws 12× and raise the opening camera to 67 fps, which meets the 60 fps target. The street and district views also get faster. Coarser culling costs 0.3–0.7 ms more GPU there. 1024 m is the default after this profile |
+| 12 | At 1024 m the opening camera is GPU-bound at 14.6 ms, drawing 5.5M primitives. Building layers account for 3.5M of them. That leaves about 2 ms of GPU headroom for the far band's real materials and landmark pieces |
+| 13 | Godot reports zero shadow-pass objects even while sun shadows cost 3.8–4 ms of GPU. The shadow counter does not appear to cover directional shadows, so shadow cost is only visible by toggling |
+| 14 | A Building edit re-uploads its whole chunk. At 1024 m that is about 540 Buildings in the densest part of this city, or roughly 43 KB per layer, well inside the 8 MB per-frame allowance |

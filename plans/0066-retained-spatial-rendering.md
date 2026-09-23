@@ -107,6 +107,17 @@ The paired images were inspected; no geometry or material simplification was app
 GPU-readback checks and the large-world count/upload/camera checks passed. Smaller batches trade
 tighter culling for more nodes; larger-world throughput and memory still need comparison.
 
+## Chunk size in a large world, 2026-09-23
+
+`InstanceLayer.ChunkMetres` defaults to 1024 m again. On the i5-10400 and GTX 1080 dev machine,
+Godot 4.7.2 Vulkan Forward+, Release, `stress-shopping.toml`, seed 0, 1,000,000 Citizens and
+86,924 Buildings paused at Tick 600, 256 m chunks drew 32,184 nodes at the whole-city opening
+camera and spent 55 ms of render CPU on them (12.9 fps). 1024 m chunks drew 2,694 nodes and
+reached 67 fps. The 150 m street view rose from 116.5 to 127.9 fps and the 600 m district view
+from 70.6 to 105.2 fps. Coarser culling added 0.3–0.7 ms of GPU there. The machine was not quiet,
+so the figures are upper bounds. Moving Travellers were not exercised, because every capture was
+paused. Evidence: [`evidence/procedural-buildings/`](evidence/procedural-buildings/README.md#opening-camera-profile-opening).
+
 With the original batches, isolated resolution and shadow-removal experiments improved throughput;
 shrinking the atlas and reducing foliage range bought much less. These quality reductions remain
 diagnostic probes rather than defaults. The early probes accidentally changed shadow depth precision;
