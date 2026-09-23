@@ -132,3 +132,35 @@ Draw calls are Godot's visible-pass count for the last frame.
 | 12 | At 1024 m the opening camera is GPU-bound at 14.6 ms, drawing 5.5M primitives. Building layers account for 3.5M of them. That leaves about 2 ms of GPU headroom for the far band's real materials and landmark pieces |
 | 13 | Godot reports zero shadow-pass objects even while sun shadows cost 3.8–4 ms of GPU. The shadow counter does not appear to cover directional shadows, so shadow cost is only visible by toggling |
 | 14 | A Building edit re-uploads its whole chunk. At 1024 m that is about 540 Buildings in the densest part of this city, or roughly 43 KB per layer, well inside the 8 MB per-frame allowance |
+
+## Moving city (`moving/`)
+
+Same world, machine and Release build, taken 2026-09-23 on a free GPU (`other_gpu_users` empty in
+both manifests). Load average 1.3–4.0, so still upper bounds. Each view is paused, then the clock is
+set to 1× and 4×. Reproduce with `scripts/measure-shell-band.py --suite moving --chunk-metres N --output DIR`.
+Uploads and queries are totals over each 8 s window; the other columns are medians of one-second samples.
+
+| View | Clock | FPS, 256 m | FPS, 1024 m | Render CPU ms, 256 → 1024 | Mover uploads, 256 → 1024 | Mover upload ms, 256 → 1024 | Movement queries, 256 → 1024 |
+|---|---|---:|---:|---|---|---|---|
+| Opening | Paused | 12.6 | 67.5 | 55.0 → 2.8 | – | – | – |
+| Opening | 1× | 12.2 | 65.1 | 57.3 → 3.4 | 0 → 0 | – | 0 → 0 |
+| Opening | 4× | 12.0 | 63.5 | 56.9 → 3.3 | 0 → 0 | – | 0 → 0 |
+| Street | Paused | 109.1 | 126.4 | 0.86 → 0.37 | – | – | – |
+| Street | 1× | 125.7 | 134.7 | 1.08 → 0.49 | 1,001 → 445 | 8.7 → 5.4 | 1,274 → 2,399 |
+| Street | 4× | 126.7 | 135.2 | 1.08 → 0.46 | 1,611 → 454 | 11.3 → 6.4 | 2,482 → 3,830 |
+| District | Paused | 71.5 | 106.2 | 4.56 → 0.65 | – | – | – |
+| District | 1× | 81.4 | 87.7 | 5.78 → 0.82 | 11,685 → 2,858 | 83.2 → 66.3 | 30,596 → 92,020 |
+| District | 4× | 67.5 | 94.1 | 5.93 → 0.81 | 16,272 → 2,301 | 122.1 → 50.3 | 47,347 → 47,745 |
+
+An earlier pair of runs overlapped another session's 1M-Citizen Godot capture on the same GPU. Its
+GPU times were 5–10 ms high and it was discarded. The script now records other GPU users.
+
+### Findings
+
+| # | Finding |
+|---|---|
+| 15 | 1024 m chunks hold with the city moving. The opening camera keeps 64–65 fps at 1× and 4×, against 12 fps at 256 m. Street and district views stay above 87 fps, faster than 256 m at every clock setting |
+| 16 | Larger chunks upload Traveller and car instances less often: 2–5× fewer chunk uploads and 20–60% less main-thread upload time per window. Each upload is bigger, but the total cost falls |
+| 17 | The movement index tests 1.5–3× more candidates at 1024 m, because a visible chunk holds more movers. Shell CPU per frame still falls, so the extra tests cost less than the uploads saved |
+| 18 | The clock cannot reach 4× in this world. The simulation delivers 5–8 Ticks per second at both 1× and 4×, and about 90% of frames wait on it. A 4× figure is a 1× figure with a longer backlog |
+| 19 | Paused frames spend 6–11 ms of shell CPU against 1–3 ms when moving, at every view and chunk size. The cause is unknown. It does not cap the paused frame rate here, but see `optimizations.md` #12 |
