@@ -987,7 +987,7 @@ public sealed class RunnerTests
     public void A_save_that_cannot_be_read_is_refused_rather_than_thrown()
     {
         string path = Path.Combine(
-            Path.GetTempPath(), "borough-runner-tests-not-a-save.borough");
+            Path.GetTempPath(), $"borough-runner-tests-not-a-save-{Guid.NewGuid():N}.borough");
 
         File.WriteAllText(path, "this is not a borough save.");
 

@@ -95,7 +95,15 @@ public sealed class RouteWorkerTests
             if (worker == 0) { Assert.True(lastCompleted.Wait(TimeSpan.FromSeconds(15))); }
         };
         batch.WorkerCompleted = worker => { if (worker == 7) { lastCompleted.Set(); } };
-        batch.Run();
+
+        // Worker 0 blocks until worker 7 finishes, so worker 7 needs a thread of its own at once.
+        // A pool already busy with other tests adds threads slowly, and that delay alone can outlast
+        // the wait; raising the minimum makes the pool create them on demand.
+
+        ThreadPool.GetMinThreads(out int minWorkers, out int minPorts);
+        ThreadPool.SetMinThreads(Math.Max(minWorkers, ThreadPool.ThreadCount + 8), minPorts);
+        try { batch.Run(); }
+        finally { ThreadPool.SetMinThreads(minWorkers, minPorts); }
         Assert.True(threads.Count > 1);
         var scratch = new WalkScratch();
         var cost = WalkRouting.Cost(graph, TravelMode.Foot, from, to, TravelTime.Zero, scratch, recordPath: true);
