@@ -163,7 +163,7 @@ Settled decisions that bound the project. Full rationale lives in the ADRs.
 
 | | |
 |---|---|
-| **Setting** | Single modern era. Progression through unlocks, not through time periods. |
+| **Setting** | Single modern era, with no time periods. The map is open from the first second and land is never unlocked ([`adr/0090`](adr/0090-the-generator-makes-land-and-the-player-makes-every-road.md)). How play changes as a city grows is undecided; the backlog's progression row owns it. |
 | **Scale** | **10,000 Citizens is the first hour**, and it sets the responsiveness bar. **1,000,000 is the floor the simulation is designed against** — *at least* a million, on a fully-developed 4096² map. It is a benchmark the design measures itself by, never a cap, a goal, or a number the player is aiming at. Sizing is expressed as a derivation so it stays correct if the map changes. See [`05` — the budget](05-technical-architecture.md). |
 | **Goods** | Between three and eight, with real production chains. Adding one is a design decision, not content. |
 | **Roads** | Grid-snapped streets, plus a small number of freeform arterials using authored junction pieces. |

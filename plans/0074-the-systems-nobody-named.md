@@ -327,12 +327,9 @@ routing analogy and nothing has ever proposed it as a system.
 
 **Attaches to.** `CONTEXT.md` → Utility.
 
-**Class.** *undesigned*, and this entry expects it to become **refused**. A Networked Service with no
-storage and no scarcity is a Utility whose single distinguishing parameter is zero, which makes it a
-line item rather than a decision.
-
-**What would settle it.** Whether it would ever produce a **spatial** choice. If not, it fails
-`00-vision`'s own test and should be refused rather than built.
+**Class.** *refused* (2026-09-22). A Networked Service with no storage and no scarcity is a Utility
+whose single distinguishing parameter is zero, which makes it a line item rather than a decision. It
+produces no spatial choice, so it fails `00-vision`'s own test.
 
 ### Modding
 

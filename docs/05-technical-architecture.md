@@ -34,7 +34,7 @@ target = map_area × mature_density × buildable_fraction
 
 ~~⚠ **The constant has not moved.** `CellGrid.WorldCells` is still 128, gated on road generation being scoped to developed land — `RoadGenerator` currently paves the whole map, which is the one place `adr/0021`'s *developed area, not map area* is false. See `plans/0002` ledger #2.~~ ✅ **BOTH HALVES ARE STALE — corrected 2026-08-16 by session T.** `CellGrid.WorldCells = 512` in `src/Borough.Core/Space/CellGrid.cs`, and the gate cleared first: `plans/0003` queue item 6 scoped `RoadGenerator.LayInto` to an extent in Tiles derived from `World`'s own 225 Lots per 1,000 Citizens, shipping **2026-08-13**, and the map flip landed the same day. ⚠ **The sentence complied with [`adr/0093`](adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md) and went stale anyway** — it names a **symbol** rather than a time, so one lookup settles it. ***Naming a symbol makes a claim checkable; it does not make anybody check it.***
 
-**What makes a map this large survivable is decided elsewhere and is load-bearing here:** progressive unlock by serviceability plus `adr/0021`'s sparse Chunks mean unbuilt land costs nothing, so map size is decoupled from early-game sparsity. Without both, 4096² would be an unplayable first hour.
+**What makes a map this large survivable is decided elsewhere and is load-bearing here:** `adr/0021`'s sparse Chunks plus `adr/0090`'s generator, which paves no roads and leaves the player to lay every Segment, mean unbuilt land costs nothing, so map size is decoupled from early-game sparsity. Without both, 4096² would be an unplayable first hour.
 
 **Two consequences that this figure, and only this figure, creates:**
 
