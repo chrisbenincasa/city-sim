@@ -198,7 +198,8 @@ proportions still need review; neither primitive shapes nor procedural tiles are
 The follow-up rejected the general roof art despite improved overlays. The
 [proportion comparison](../artifacts/visual-study/roof-proportions/index.html) pairs the same city
 camera with smaller roof spans, a short-ridge hip, wall-coloured gable ends and photographed slates.
-`RoofMaterials` uses Poly Haven's source scale; `material-study/roof-sources.json` records provenance.
+`RoofMaterials` now draws baked asphalt shingles at true scale; `roofing/asphalt-shingles.json` records
+the tile's scale, course count and provenance.
 `RoofStudy` includes enlarged tiles and human-height references. Footprints remain simulation-owned;
 the comparison separates their scale from the former oversized roof volumes. No roof art is accepted.
 

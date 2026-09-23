@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b44f3hu24mo27"
-path="res://.godot/imported/roof-slates-roughness.jpg-d3bda3cae2c89da9db07554eaa0af317.ctex"
+uid="uid://ihf1jctbs8i"
+path="res://.godot/imported/asphalt-shingles-albedo.png-55faccc6d620e6e89ed06813c60b2805.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/city/material-study/roof-slates-roughness.jpg"
-dest_files=["res://.godot/imported/roof-slates-roughness.jpg-d3bda3cae2c89da9db07554eaa0af317.ctex"]
+source_file="res://assets/city/roofing/asphalt-shingles-albedo.png"
+dest_files=["res://.godot/imported/asphalt-shingles-albedo.png-55faccc6d620e6e89ed06813c60b2805.ctex"]
 
 [params]
 

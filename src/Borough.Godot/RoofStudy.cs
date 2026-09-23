@@ -75,7 +75,7 @@ public partial class RoofStudy : Node3D
     private void Configure()
     {
         string[] names = ["Overlay: faces", "Overlay: edges", "Old grid surface", "Procedural courses",
-            "Photographed slates — source scale (3 m repeat)", "Photographed slates — enlarged 2× (6 m repeat)"];
+            "Asphalt shingles — true scale (4 m tile)", "Asphalt shingles — enlarged 2× (8 m tile)"];
         _caption.Text = names[_view]
             + "\nGable · short-ridge hip · paired gables | walls 12 × 18 m, 8 m tall · people 1.75 m";
         _overlay.SetShaderParameter("treatment", _view + 1);
@@ -84,7 +84,7 @@ public partial class RoofStudy : Node3D
             var material = new ShaderMaterial { Shader = GD.Load<Shader>("res://surfaces.gdshader") };
             RoofMaterials.Configure(material);
             material.SetShaderParameter("roof_treatment", _view >= 4 ? 2 : _view == 3 ? 1 : 0);
-            material.SetShaderParameter("roof_texture_metres", _view == 5 ? 6f : 3f);
+            material.SetShaderParameter("shingle_tile_metres", _view == 5 ? 8f : 4f);
             roof.MaterialOverride = _view < 2 ? _overlay : material;
         }
         _frame = 0;

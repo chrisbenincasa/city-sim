@@ -279,18 +279,24 @@ Segment is 8 long and 128 wide fails a test.
 
 ## 6 — Recipes
 
-**Photograph one Tick from two angles.** The same city, two drawings:
+**Photograph the city from two angles.** Give each `shoot` its own Tick:
 
 ```
 # /tmp/run/flood.drive
 6101 pause
 6101 shoot /tmp/run/a.png
-6101 roads off
-6101 turn left
-6101 shoot /tmp/run/b.png
-6101 speed 8
+6101 resume
+6102 pause
+6102 roads off
+6102 turn left
+6102 shoot /tmp/run/b.png
+6102 speed 8
 6400 readout /tmp/run/c.txt
 ```
+
+🔴 **One Tick draws one frame.** Every camera verb on a Tick applies before that frame renders, so
+two `shoot`s on one Tick write one picture of the last camera state, or only the last file.
+Measured 2026-09-23. ⚠ **`focus` takes integer Tiles**, and `215.5` is refused at parse.
 
 **Assert the drawing against the city**, which is the reason to run this at all:
 

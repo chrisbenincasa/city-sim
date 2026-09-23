@@ -74,16 +74,13 @@ public partial class Main
         foreach (var layer in new[] { _roofs, _hips, _pairedRoofs, _parapets, _roads, _footways, _kerbs })
         {
             var material = new ShaderMaterial { Shader = GD.Load<Shader>("res://surfaces.gdshader") };
+            if (layer.Multimesh.Mesh is ArrayMesh) RoofMaterials.Configure(material);
             material.SetShaderParameter("surface_kind",
                 layer == _roads ? 0
                     : layer == _footways || layer == _kerbs ? 1
                     : layer == _parapets ? 3
                     : 2);
-            if (layer.Multimesh.Mesh is ArrayMesh roof)
-            {
-                RoofMaterials.Configure(material);
-                roof.SurfaceSetMaterial(0, material);
-            }
+            if (layer.Multimesh.Mesh is ArrayMesh roof) roof.SurfaceSetMaterial(0, material);
             else ((PrimitiveMesh)layer.Multimesh.Mesh).Material = material;
         }
     }

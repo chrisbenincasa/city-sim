@@ -228,7 +228,7 @@ const vec3 MASONRY_MEAN = vec3(0.1401, 0.0776, 0.0515);
 varying vec3 v_local;
 varying vec3 v_size;
 varying vec3 v_face;
-varying vec4 v_custom;
+varying flat vec4 v_custom;
 varying float v_shop;
 varying float v_ruin;
 

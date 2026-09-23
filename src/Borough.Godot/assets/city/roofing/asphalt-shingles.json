@@ -1,0 +1,58 @@
+{
+  "material": "Laminated asphalt roof shingles",
+  "authority": "scripts/art/asphalt-shingles.py",
+  "blender": "5.2.1 LTS",
+  "licence": "Authored for Borough; no third-party images",
+  "specification": {
+    "product": "US laminated (architectural) asphalt shingle",
+    "exposure_mm": 142.88,
+    "exposure_source": "5 5/8 in exposure, as published for GAF Timberline HDZ and CertainTeed Landmark",
+    "shingle_length_mm": 1000.0,
+    "thickness_mm": 6.0,
+    "bevel_mm": {
+      "butt": 3.0,
+      "tab_side": 1.5
+    },
+    "least_stagger_mm": 150.0
+  },
+  "tile": {
+    "metres": 4.0,
+    "pixels": 2048,
+    "mm_per_pixel": 1.953,
+    "courses": 28,
+    "course_pitch_mm": 142.857,
+    "shingles_per_course": 4,
+    "up_slope": "+V in Blender, image top",
+    "normal_map": "tangent space, OpenGL (+Y up-slope)",
+    "height_map_metres_at_white": 0.016
+  },
+  "albedo_linear_mean_luminance": 0.178157,
+  "measured": {
+    "courses_by_spectrum": 28,
+    "butt_edges_found": 28,
+    "course_pitch_mm_mean": 142.86,
+    "course_pitch_mm_range": [
+      142.58,
+      143.55
+    ]
+  },
+  "seed": 5625,
+  "files": {
+    "albedo": {
+      "file": "src/Borough.Godot/assets/city/roofing/asphalt-shingles-albedo.png",
+      "sha256": "2c5862ae4222fb2d9389e0990a02b9c887e8ff28e3a476ad7966b8d4f1ba06da"
+    },
+    "normal": {
+      "file": "src/Borough.Godot/assets/city/roofing/asphalt-shingles-normal.png",
+      "sha256": "2b9e81ea730fa3b0d37b2f49a6914871eb7811f9a6cbdf8fa22728d242b73632"
+    },
+    "roughness": {
+      "file": "src/Borough.Godot/assets/city/roofing/asphalt-shingles-roughness.png",
+      "sha256": "5181854f769181b299d40b5de3d298796181d825423256c4638b7120f5a2fa00"
+    },
+    "height": {
+      "file": "art/materials/asphalt-shingles-height.png",
+      "sha256": "cfa22cb0731724719ddb23cd7cef115428dcc97c2a722e13b32912a5100f37b2"
+    }
+  }
+}
