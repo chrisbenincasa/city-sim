@@ -169,6 +169,7 @@ public sealed partial class World
         // Buildings per 1,000 Citizens, plus one apiece for the 360 Households and the Businesses.
         // Construction order is not composition order: _tables below is what the State Hash walks.
         Bins = new BinTable(PerThousand(citizens, 450), Buildings);
+        Expiries = new ExpiryTable(Bins);
 
         Households = new HouseholdTable(PerThousand(citizens, 360), Buildings, Bins);
         Layers = new MapLayers(rules.Layers);
@@ -494,6 +495,9 @@ public sealed partial class World
             // Save Outside stock and its population account alongside the city tables.
             Hinterlands.Rows, HinterlandPopulation.Rows, HinterlandQueue.Rows,
             PopulationLedger.Rows, PermissionRectangles.Rows,
+
+            // Appended: the age of stock whose Resource declares a shelf life.
+            Expiries.Rows,
         ];
 
         // The same list minus the tables no Tick phase can write, for the Decide guard alone. See
@@ -1062,6 +1066,9 @@ public sealed partial class World
     /// <summary>The Bins, and their wait lists.</summary>
     public BinTable Bins { get; }
 
+    /// <summary>The age of the stock in every Bin whose Resource spoils.</summary>
+    public ExpiryTable Expiries { get; }
+
     /// <summary>One row per (Building, Bin Rule) — armed, or asleep on a Bin.</summary>
     public RuleInstanceTable RuleInstances { get; }
 
@@ -1429,6 +1436,10 @@ public sealed partial class World
         // creates others, and a rebuild before it would derive ceilings for rows about to move.
         RebuildCapacities();
 
+        // After Migrate, which frees the Bins of Resources that are gone. A Resource that stopped
+        // spoiling keeps its standing stock for ever from here on.
+        CloseUnexpiringAges();
+
         // adr/0114, and it runs for every swap for RebuildCapacities' reason: a Ruleset that adds a
         // conserved Resource is a RulesetChange.None edit if it declares no new kind, so a treasury
         // that was fitted only at world creation would never acquire the Bin. It adds and never
@@ -1640,6 +1651,7 @@ public sealed partial class World
 
             if (becomes.Raw == 0)
             {
+                Expiries.Close(Bins, bin);
                 Bins.Rows.Free(Bins.Rows.At(bin));
                 dropped++;
                 continue;
@@ -3767,6 +3779,7 @@ public sealed partial class World
             Handle<Bin> next = Bins.OwnerNext[binSlot];
 
             WakeAll(binSlot, Tick);
+            Expiries.Close(Bins, binSlot);
             Bins.Rows.Free(owned);
 
             owned = next;
@@ -3995,6 +4008,7 @@ public sealed partial class World
             Handle<Bin> next = Bins.OwnerNext[binSlot];
 
             WakeAll(binSlot, Tick);
+            Expiries.Close(Bins, binSlot);
             Bins.Rows.Free(owned);
 
             owned = next;
@@ -4378,6 +4392,8 @@ public sealed partial class World
         // by design, so a TryResolve alone would drop it exactly as it drops a Bin whose Building is
         // gone -- one is the state being modelled and the other is a broken row, and a walk that could
         // not tell them apart would silently unlink the treasury on every load.
+        Expiries.Rebuild(Bins);
+
         IndexList buildingBins = BuildingBins;
         IndexList treasuryBins = TreasuryBins;
         for (int slot = 0; slot < Bins.Rows.SlotCount; slot++)
@@ -5304,6 +5320,7 @@ public sealed partial class World
             else
             {
                 WakeAll(binSlot, Tick);
+                Expiries.Close(Bins, binSlot);
                 Bins.Rows.Free(at);
             }
 
@@ -5491,6 +5508,7 @@ public sealed partial class World
             else
             {
                 WakeAll(binSlot, Tick);
+                Expiries.Close(Bins, binSlot);
                 Bins.Rows.Free(at);
             }
 
@@ -6162,12 +6180,14 @@ public sealed partial class World
 
                     Bins.Move(bin, -held);
                     Bins.Move(into, held);
+                    MergeAges(bin, into, held);
                 }
 
                 // Before the Free, and it is DestroyBuilding's order rather than a precaution: a
                 // waiter left on a freed Bin is a Rule Instance pointing at a recycled row, and the
                 // only thing that would notice is a whole-world walk long afterwards.
                 WakeAll(bin, Tick);
+                Expiries.Close(Bins, bin);
 
                 Bins.Rows.Free(Bins.Rows.At(bin));
             }
@@ -8337,6 +8357,7 @@ public sealed partial class World
             amount <= Bins.SpaceAt(slot), Invariant.BinLevelIsWithinCapacity, slot, amount);
 
         Bins.Move(slot, amount);
+        AgeDeposit(slot, amount);
         Drain(slot, Blocking.Supply, tick);
         RingMarket(slot, tick);
     }
@@ -8416,7 +8437,127 @@ public sealed partial class World
             amount <= Bins.LevelAt(slot), Invariant.BinLevelIsWithinCapacity, slot, amount);
 
         Bins.Move(slot, -amount);
+
+        int aged = Expiries.RowOf(Bins, slot);
+
+        if (aged != Rows.NoSlot)
+        {
+            Expiries.Take(aged, amount);
+        }
+
         Drain(slot, Blocking.Space, tick);
+    }
+
+    /// <summary>Records a deposit as the newest stock, when the Bin's Resource spoils.</summary>
+    private void AgeDeposit(int slot, long amount)
+    {
+        int row = Expiries.RowOf(Bins, slot);
+
+        if (row != Rows.NoSlot)
+        {
+            Expiries.Add(row, amount);
+        }
+        else if (Rules.ShelfLifeOf(Bins.Resource[slot]).Expires)
+        {
+            Expiries.Open(Bins, slot);
+        }
+    }
+
+    /// <summary>
+    /// Discards the stock that has outlived its Resource's shelf life, at each of that Resource's
+    /// cycle boundaries, and returns how much went.
+    /// </summary>
+    internal long SpoilExpired(Ticks tick)
+    {
+        if (!AnyShelfLifeBoundary(tick))
+        {
+            return 0;
+        }
+
+        long spoiled = 0;
+
+        for (int row = 0; row < Expiries.Rows.SlotCount; row++)
+        {
+            if (!Expiries.Rows.IsLive(row))
+            {
+                continue;
+            }
+
+            int bin = Bins.Rows.Resolve(Expiries.Bin[row]);
+            ShelfLife shelfLife = Rules.ShelfLifeOf(Bins.Resource[bin]);
+
+            if (!shelfLife.IsBoundary(tick))
+            {
+                continue;
+            }
+
+            long discarded = Expiries.Shift(row, shelfLife.Cycles);
+
+            if (discarded > 0)
+            {
+                Bins.Move(bin, -discarded);
+                Drain(bin, Blocking.Space, tick);
+                spoiled += discarded;
+            }
+        }
+
+        return spoiled;
+    }
+
+    private bool AnyShelfLifeBoundary(Ticks tick)
+    {
+        foreach (ShelfLife shelfLife in Rules.ResourceShelfLives)
+        {
+            if (shelfLife.IsBoundary(tick))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void CloseUnexpiringAges()
+    {
+        for (int row = 0; row < Expiries.Rows.SlotCount; row++)
+        {
+            if (!Expiries.Rows.IsLive(row))
+            {
+                continue;
+            }
+
+            int bin = Bins.Rows.Resolve(Expiries.Bin[row]);
+
+            if (!Rules.ShelfLifeOf(Bins.Resource[bin]).Expires)
+            {
+                Expiries.Close(Bins, bin);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Moves the ages of <paramref name="held"/> units from <paramref name="from"/> into
+    /// <paramref name="into"/>, whose levels have already moved.
+    /// </summary>
+    private void MergeAges(int from, int into, long held)
+    {
+        int source = Expiries.RowOf(Bins, from);
+
+        if (source == Rows.NoSlot)
+        {
+            AgeDeposit(into, held);
+            return;
+        }
+
+        int target = Expiries.RowOf(Bins, into);
+
+        if (target == Rows.NoSlot)
+        {
+            target = Expiries.Open(Bins, into);
+            Expiries.Take(target, held);
+        }
+
+        Expiries.Merge(source, target);
     }
 
     /// <summary>
@@ -8663,6 +8804,7 @@ public sealed partial class World
         while (bin != Rows.NoSlot)
         {
             WakeAll(bin, tick);
+            Expiries.Close(Bins, bin);
             Bins.Rows.Free(Bins.Rows.At(bin));
             bin = BuildingBins.PopFront(slot);
         }

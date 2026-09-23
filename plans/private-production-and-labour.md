@@ -24,7 +24,7 @@ the founding loop and for the full Goods tree.
 | Labour expires rather than accumulating | Nothing else bounds it. An idle Business would bank a week of labour and spend it in one firing the moment its inputs arrived |
 | Shelf life is a property of a Resource, not a special case for labour | Labour's shelf life is an hour or two and fish is days. One mechanism is cheaper than two, and labour is its shortest-lived case |
 | Age buckets are a fixed small count in the row; the Resource declares the cycle | `shelf life = cycle × buckets` expresses any duration at constant storage. Precision error is a constant fraction of shelf life, so an hour matters on bread and a month does not on flour |
-| Buckets shift lazily on write, never on a sweep | There is no Resource-to-Bin index — Bins are reached through their owner's list — so a per-Resource sweep would scan the whole table at every cycle boundary |
+| Buckets shift in a Phase 3 sweep of the expiry table at each cycle boundary | The expiry table holds one row per expiring Bin, so the sweep visits only Bins that can spoil. The stored level stays true, so the roughly 60 existing `LevelAt`/`SpaceAt` readers need no Tick-aware read and Phase 2 recomputes nothing. Spoilage moves the level through the ordinary write, so a producer asleep on a full perishable Bin wakes. Shifting lazily on write was the earlier choice; it left every reader seeing spoiled stock and nothing to wake that producer (decided 2026-09-22) |
 | Labour's shelf life is an hour or two, far shorter than a shift | A Resource's cycle is global but shift start is drawn per-Business, so a daily labour cycle would evaporate half a night shift's labour at midnight. Making expiry much finer than a shift dissolves the mismatch with no per-owner offset. It is also what happens — a worker present at 9am supplies an hour of work at 9am, and an idle hour cannot be banked for the evening |
 | A Rule whose `rate` exceeds its labour input's shelf life is refused at load | Short-lived labour makes a slow Rule starve itself: a bakery firing daily would see only the last hour's work and waste the rest. The engine is right and the content is wrong, so the loader says so with a file and a line |
 | The labour Bin is uncapped, like a money Bin | There is no physical container — the unused worker-time at a premises is just who is standing there and for how long. The cap that matters already exists upstream, because `floor_tiles_per_job` derives posts from floor area and a Business cannot employ more workers than its posts allow. Capping the Bin applies the same limit twice, and the second application is the one that fails silently. Shelf life is what keeps the quantity bounded |
@@ -72,16 +72,18 @@ rather than an accumulating total. A Rule therefore fires against **who is prese
 against who has been present today. Production tracks the working day, drops when a shift ends, and
 rises again when the next one starts, none of which needs a rate to express.
 
-**3. Age buckets on `BinTable`.** A fixed inline array of N counters plus the Tick the Bin last
-shifted. The live level is a pure function of the stored buckets and the elapsed cycles.
+**3. Age buckets in an expiry table.** A separate table beside `BinTable`, with one row per
+expiring Bin: a saved handle to the Bin and a fixed inline array of N counters. A derived
+Bin-to-row index finds the row from the Bin. The cycle is global, so each boundary follows from the
+Tick and no per-row clock is stored.
 
-⚠ **The read and the write must be split, or this breaks the phase discipline.** `RuleEngine.Check`
-runs in Phase 2, which must not write — `Simulation.VerifyDecideWritesNothing` enforces it. So Check
-computes the live level and stores nothing; Phase 3 commits the shift. The same arithmetic runs
-twice and one result is discarded.
+At each cycle boundary a Phase 3 sweep walks the expiry table. For each row it discards the oldest
+bucket, moves the Bin's level down by that amount through the ordinary write, and opens an empty
+newest bucket. A deposit adds to the newest bucket. A withdrawal draws the oldest buckets first.
+The stored level therefore always equals the sum of the buckets, and every reader stays correct.
 
-Anything asserting bounded quantities must read the live level rather than the stored one, or it
-will see stock that has notionally already spoiled.
+⚠ **The sweep lands on one Tick per cycle.** Its cost is unmeasured. Measure it at city scale
+before this slice merges. If the spike matters, stagger Bins across the cycle.
 
 **4. A waste count.** What the shift discards, per Business, reported as Evidence.
 
@@ -137,8 +139,9 @@ Behaviour, in one Core world:
 5. Labour does not survive its shelf life. An idle Business banks nothing, and a busy one late in
    the day holds no more than a busy one early in it.
 6. A Resource with a declared shelf life spoils on schedule, and the discarded quantity is reported.
-7. A Bin untouched across many cycles reads the same live level as one touched every cycle.
-8. Save and reload mid-cycle preserves the buckets and the shift clock, and the resumed world hashes
+7. A Bin nobody writes to across many cycles still spoils on schedule, with no write needed to
+   bring its level current.
+8. Save and reload mid-cycle preserves the buckets, and the resumed world hashes
    identically.
 9. A Rule whose rate outruns its labour's shelf life is refused at load, with the file and line, and
    so is a labour Resource whose shelf life outlives the shortest shift the file permits.
@@ -173,7 +176,8 @@ and golden fixtures are unchanged.
    do not select them merely by cost.
 
 **Next:** use guarded combining and compact expiry as candidates for the integrated production
-slice. Verify actual Rule-generated queues and wake timing, bounded row removal/reuse, fractional
+slice. The chosen boundary sweep drops the measured row's 8-byte clock, and neither the sweep nor
+its Tick spike was part of these measurements. Verify actual Rule-generated queues and wake timing, bounded row removal/reuse, fractional
 progress, expiry and save/replay equivalence, and price the real authored rate in the
 acceptance world. The existing wage-only pass
 already exceeds the 15.6 ms whole-Tick target in the constructed million-Citizen controls; these component savings

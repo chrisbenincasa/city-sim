@@ -270,6 +270,27 @@ public enum ResourceFamily : byte
 }
 
 /// <summary>
+/// How long a Resource keeps before it spoils: <see cref="Cycles"/> global cycles of
+/// <see cref="CycleTicks"/> each.
+/// </summary>
+/// <remarks>
+/// A unit deposited during a cycle spoils at the boundary <see cref="Cycles"/> boundaries later, so it
+/// lives between <c>Cycles − 1</c> and <c>Cycles</c> whole cycles. The error is one cycle, a constant
+/// fraction of the shelf life. <c>default</c> means the Resource keeps for ever.
+/// </remarks>
+public readonly record struct ShelfLife(ulong CycleTicks, int Cycles)
+{
+    /// <summary>The most cycles a Resource may declare. Every expiring Bin stores this many buckets.</summary>
+    public const int MaxCycles = 4;
+
+    /// <summary>Whether the Resource spoils at all.</summary>
+    public bool Expires => Cycles > 0;
+
+    /// <summary>Whether <paramref name="tick"/> is one of this Resource's cycle boundaries.</summary>
+    public bool IsBoundary(Ticks tick) => Expires && tick.Raw % CycleTicks == 0;
+}
+
+/// <summary>
 /// The ceiling on a Bin: a finite number of units, or none at all.
 /// </summary>
 /// <remarks>
@@ -4517,6 +4538,15 @@ public sealed class Ruleset
             ? ResourceNeeds[resource.Raw - 1]
             : Need.None;
 
+    /// <summary>Each Resource's shelf life, indexed by <c>resource - 1</c>. Empty means nothing spoils.</summary>
+    public ShelfLife[] ResourceShelfLives { get; init; } = [];
+
+    /// <summary>How long this Resource keeps, or <c>default</c> when it keeps for ever.</summary>
+    public ShelfLife ShelfLifeOf(ResourceId resource) =>
+        resource.Raw >= 1 && resource.Raw <= ResourceShelfLives.Length
+            ? ResourceShelfLives[resource.Raw - 1]
+            : default;
+
     /// <summary>
     /// The <c>[founding]</c> table, or <see cref="FoundingRuleset.None"/> when the file states none —
     /// which is a city in which no Household ever founds a shop.
@@ -4978,6 +5008,7 @@ public sealed class Ruleset
             School = School,
             Care = Care,
             ResourceNeeds = ResourceNeeds,
+            ResourceShelfLives = ResourceShelfLives,
             LifeStages = LifeStages,
         };
 

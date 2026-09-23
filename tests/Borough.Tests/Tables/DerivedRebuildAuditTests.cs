@@ -148,6 +148,7 @@ public sealed class DerivedRebuildAuditTests
             Run(Attracted()),
             Run(Attracted(512)),
             Run(PaintedGround()),
+            Run(Borough.Tests.Rules.ExpiryTests.Spoiling()),
         ];
 
         string[] all = audits[0].Derived;
@@ -257,7 +258,8 @@ public sealed class DerivedRebuildAuditTests
         // reproduces rather than the order the player happened to build them in.
         // Geographic permission page links are populated by PaintedGround.
         // Lot use and block use/band summaries are rebuilt from geographic permissions.
-        Assert.Equal(51, all.Length);
+        // bin.expiry_row is populated by ExpiryTests.Spoiling.
+        Assert.Equal(52, all.Length);
         Assert.Single(ScratchColumns(Stepped(0)));
     }
 
