@@ -346,7 +346,17 @@ public sealed class EvidenceDumpTests
     public void The_finances_panel_separates_destitution_from_a_world_with_no_money()
     {
         string destitute = Dump("diagnosed.toml");
-        string endowed = DumpAt(Endowed());
+        string endowedPath = Endowed();
+        string endowed;
+
+        try
+        {
+            endowed = DumpAt(endowedPath);
+        }
+        finally
+        {
+            File.Delete(endowedPath);
+        }
 
         Assert.Contains("## Household finances", destitute, Ordinal);
         Assert.Contains("DESTITUTION rather than a", destitute, Ordinal);
@@ -435,7 +445,7 @@ public sealed class EvidenceDumpTests
             Anchor + "\ncondemn_after_days = 1\ncollapses_after_days = 1",
             Ordinal);
 
-        string path = Path.Combine(Path.GetTempPath(), "borough-evidence-endowed.toml");
+        string path = Path.Combine(Path.GetTempPath(), $"borough-evidence-endowed-{Guid.NewGuid():N}.toml");
 
         File.WriteAllText(path, text);
 
