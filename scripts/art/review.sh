@@ -109,6 +109,17 @@ case "${1:-capture}" in
     "$godot_bin" --path src/Borough.Godot res://ExpandedStudy.tscn -- --neighbourhood --capture-expanded "$out/neighbourhood" > "$out/neighbourhood-capture.log" 2>&1
     python3 scripts/art/neighbourhood-gallery.py
     ;;
+  test-street)
+    mkdir -p artifacts/test-street
+    "$blender_bin" --background --factory-startup --python-exit-code 1 --python scripts/art/test-street.py > artifacts/test-street/export.log 2>&1
+    "$godot_bin" --headless --path src/Borough.Godot --editor --import > artifacts/test-street/import.log 2>&1
+    dotnet build src/Borough.Godot --no-restore > artifacts/test-street/build.log 2>&1
+    rm -rf artifacts/test-street/capture
+    "$godot_bin" --path src/Borough.Godot res://ExpandedStudy.tscn -- --test-street --capture-expanded "$PWD/artifacts/test-street/capture" > artifacts/test-street/capture.log 2>&1
+    ;;
+  open-test-street)
+    "$godot_bin" --path src/Borough.Godot res://ExpandedStudy.tscn -- --test-street
+    ;;
   open-neighbourhood)
     "$godot_bin" --path src/Borough.Godot res://ExpandedStudy.tscn -- --neighbourhood
     ;;
@@ -136,5 +147,5 @@ case "${1:-capture}" in
   open)
     "$godot_bin" --path src/Borough.Godot res://VisualStudy.tscn
     ;;
-  *) echo 'Usage: scripts/art/review.sh [rebuild|verify|capture|open|material-rich|open-rich|kit|open-kit|extremes|open-extremes|styles|open-styles|models|open-models|palettes|open-palettes|expanded|open-expanded|construction|fidelity|open-fidelity|brick-scale|neighbourhood|open-neighbourhood]' >&2; exit 2 ;;
+  *) echo 'Usage: scripts/art/review.sh [rebuild|verify|capture|open|material-rich|open-rich|kit|open-kit|extremes|open-extremes|styles|open-styles|models|open-models|palettes|open-palettes|expanded|open-expanded|construction|fidelity|open-fidelity|brick-scale|neighbourhood|open-neighbourhood|test-street|open-test-street]' >&2; exit 2 ;;
 esac

@@ -1,0 +1,142 @@
+{
+  "subject": "test-street",
+  "palette": "monochrome",
+  "view": "city-distance",
+  "comparison": "test-street-1",
+  "instances": [
+    {
+      "asset": "h1-attached-range",
+      "palette": "original",
+      "anchor": false,
+      "position": [
+        12,
+        0,
+        -9
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -12.2,
+        0,
+        -6.4
+      ],
+      "boundsSize": [
+        24.4,
+        10.049519,
+        13.4
+      ],
+      "triangles": 1392,
+      "surfaces": 7
+    },
+    {
+      "asset": "a1-apartment",
+      "palette": "original",
+      "anchor": false,
+      "position": [
+        40,
+        0,
+        -11
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -12.5,
+        0,
+        -8.06
+      ],
+      "boundsSize": [
+        25,
+        11.4,
+        17.26
+      ],
+      "triangles": 1824,
+      "surfaces": 7
+    },
+    {
+      "asset": "m1-corner",
+      "palette": "original",
+      "anchor": false,
+      "position": [
+        68,
+        0,
+        -8
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -12.06,
+        0,
+        -8.3
+      ],
+      "boundsSize": [
+        25.060001,
+        12.9,
+        17.6
+      ],
+      "triangles": 2680,
+      "surfaces": 8
+    },
+    {
+      "asset": "w1-workplace",
+      "palette": "original",
+      "anchor": false,
+      "position": [
+        18,
+        0,
+        -50
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -18.2,
+        0,
+        -12.2
+      ],
+      "boundsSize": [
+        36.4,
+        8.5,
+        23.6
+      ],
+      "triangles": 1828,
+      "surfaces": 9
+    },
+    {
+      "asset": "w2-workshop",
+      "palette": "original",
+      "anchor": false,
+      "position": [
+        60,
+        0,
+        -51
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -16.25,
+        0,
+        -8.5
+      ],
+      "boundsSize": [
+        32.5,
+        8.840834,
+        17
+      ],
+      "triangles": 1472,
+      "surfaces": 8
+    }
+  ],
+  "brickScale": 1,
+  "camera": "(230, 165, 175)",
+  "target": "(40, 0, -30)",
+  "fov": 40,
+  "viewport": "(1440, 960)",
+  "sunRotation": "(-61.999992, -27.999998, 0)",
+  "sunEnergy": 1.15,
+  "sunAngularDistance": 0.5,
+  "ambientEnergy": 0.55,
+  "ssao": true,
+  "taa": true,
+  "exposure": 1,
+  "light": "noon",
+  "triangles": 9196,
+  "surfaces": 39,
+  "tick": null,
+  "population": null,
+  "godot": "4.7.2-stable (official)",
+  "renderer": "forward_plus"
+}

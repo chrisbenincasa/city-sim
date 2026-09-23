@@ -164,3 +164,22 @@ GPU times were 5–10 ms high and it was discarded. The script now records other
 | 17 | The movement index tests 1.5–3× more candidates at 1024 m, because a visible chunk holds more movers. Shell CPU per frame still falls, so the extra tests cost less than the uploads saved |
 | 18 | The clock cannot reach 4× in this world. The simulation delivers 5–8 Ticks per second at both 1× and 4×, and about 90% of frames wait on it. A 4× figure is a 1× figure with a longer backlog |
 | 19 | Paused frames spend 6–11 ms of shell CPU against 1–3 ms when moving, at every view and chunk size. The cause is unknown. It does not cap the paused frame rate here, but see `optimizations.md` #12 |
+
+## First test street (`test-street/`)
+
+Pass 03's five bodies as monochrome Blender blockouts on its 80 × 64 m study site. Source is
+`scripts/art/test-street.py`; editable `.blend` files are in `art/test-street/`. Rebuild and capture with
+`BLENDER_BIN=… scripts/art/review.sh test-street`; browse with `open-test-street`. Blender 5.2.1, Godot 4.7.2,
+Debug build, `ExpandedStudy --test-street`.
+
+| Body | Brief | Built | Vertices |
+|---|---|---|---:|
+| H1 attached range | 24 × 12 m, 2 × 3.2 m, four 6 m modules, 18° roof across the depth | 2 × 3.5 m, party-wall upstands, distinct end walls, street doors and rear garden doors | 2,100 |
+| A1 apartment | 24 × 16 m, 3 × 3.2 m, corridor, two stairs, parapeted membrane roof | 3 × 3.5 m, one central entrance, stair glazing and doors on both end walls | 2,688 |
+| M1 corner | 24 × 16 m, 3 × 3.2 m, two shops, core on the side street, rear receiving | 3 × 3.5 m, shopfront in 3 m bays, residential door and stair on the side street, roller door and scuppers at the back, plant curb | 4,080 |
+| W1 workplace (G001) | 36 × 20 m, 2 × 3.5 m, six 6 m bays, receiving behind | As briefed, pilasters on the 6 m grid, two receiving doors, crickets, scuppers and overflows | 2,138 |
+| W2 workshop | 32 × 16 m, 2 × 3.2 m, 8 m grid, 3.5 m receiving door | 2 × 3.5 m, 6° metal roof with rooflights, panel joints on the grid | 1,782 |
+
+- Every storey is 3.5 m, the simulation's storey height. The briefs propose 3.2 m, so H1, A1, M1 and W2 are taller than briefed.
+- A2, the Danish-informed alternative range, is not built. It sits outside the US-sourced street.
+- The street is a study fixture. No body is a simulation Building, and nothing is tied to a Lot or an Appearance Family yet.
