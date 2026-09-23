@@ -373,7 +373,7 @@ public sealed class TerrainRulesetLoadTests
         string directory = Path.Combine(AppContext.BaseDirectory, "Rulesets");
         var priced = new List<string>();
 
-        foreach (string file in Directory.GetFiles(directory, "*.toml"))
+        foreach (string file in Directory.GetFiles(directory, "*.toml").Order(StringComparer.Ordinal))
         {
             RulesetLoadResult result = RulesetLoader.Load(file);
 
