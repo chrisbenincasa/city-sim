@@ -588,7 +588,7 @@ public sealed class ParkingArrivalStreamTests
     {
         // 🔴 ANCHORED ON THE BUILDING'S NAME LINE, AND IT WAS THE SHIFT BAND UNTIL 2026-08-26. The band
         // moved out of [[building]] and into [[business]] with milestone 26 task 2's land-use split
-        // (adr/0149), so a replace-all put `parking` into the TRADE table as well -- where it is not a
+        // (adr/0149), so a replace-all put the parking key into the TRADE table as well -- where it is not a
         // key, and the loader refuses it. Parking is a property of PREMISES, so the building's own name
         // is the line to hang it off, and `name = "workshop_trade"` does not contain it: the closing
         // quote is part of the anchor.
@@ -605,7 +605,7 @@ public sealed class ParkingArrivalStreamTests
             toml.Split(anchor, StringSplitOptions.None).Length - 1);
 
         return Load(
-            toml.Replace(anchor, anchor + "\nparking = 8", StringComparison.Ordinal)
+            toml.Replace(anchor, anchor + "\nparked = true", StringComparison.Ordinal)
             + "\n\n[households]\ncar_ownership_percent = 100\n");
     }
 

@@ -32,8 +32,9 @@ namespace Borough.Tests.Parking;
 /// it.</b> Capacity is per building <b>kind</b> and demand is per <b>Citizen</b>, both sized by
 /// <see cref="SyntheticCity"/> from one population — ***the same number sizes both the demand and the
 /// supply*** — so occupancy is flat at every population and nothing this project generates approaches
-/// 1. What varies it is the one dial that is not derived from the population: <c>[[building]]
-/// parking</c>. The sweep below cuts it, which is <c>rulesets/congested.toml</c>'s method exactly.
+/// 1. What varies it is the one dial that is not derived from the population: <c>[capacity]
+/// floor_tiles_per_parking_space</c>. The sweep below raises it, which cuts the spaces every parking
+/// kind's floor area yields.
 /// </para>
 /// <para>
 /// <b>The reading is a <em>probe</em> and not a harvest of Legs, and that is what makes the rungs
@@ -56,15 +57,20 @@ public sealed class ParkingScarcityTests(ITestOutputHelper output)
     private readonly ITestOutputHelper _output = output;
 
     /// <summary>
-    /// The dial, cut rung by rung. <c>8</c> is what every shipped Ruleset declares.
+    /// Floor Tiles per parking space, raised rung by rung. <c>12</c> is what <c>minimal.toml</c> ships.
     /// </summary>
     /// <remarks>
-    /// <b>Down to 1 rather than to 0, because 0 is a different question.</b> A kind declaring no
-    /// parking has no Car Park at all, so every shed is empty for want of supply rather than for want
-    /// of room — <c>adr/0070</c>'s *unbuilt* wearing the clothes of scarcity, and a rung that would
-    /// report 100% exhaustion while measuring nothing about a shed.
+    /// <para>
+    /// A 102-Tile floor yields 8, 6, 5, 4, 3, 2 and 1 spaces across these rungs.
+    /// </para>
+    /// <para>
+    /// <b>Down to one space rather than none, because none is a different question.</b> A Building
+    /// with no parking has no Car Park at all, so every shed is empty for want of supply rather than
+    /// for want of room — <c>adr/0070</c>'s *unbuilt* wearing the clothes of scarcity, and a rung that
+    /// would report 100% exhaustion while measuring nothing about a shed.
+    /// </para>
     /// </remarks>
-    private static readonly int[] Rungs = [8, 6, 5, 4, 3, 2, 1];
+    private static readonly int[] Rungs = [12, 17, 20, 25, 34, 51, 102];
 
     /// <summary>
     /// Whole Days, past the employment ramp.
@@ -92,12 +98,12 @@ public sealed class ParkingScarcityTests(ITestOutputHelper output)
     {
         _output.WriteLine(
             $"Parking scarcity sweep — {Population} Citizens, {Days} whole Days, minimal.toml with "
-            + "car_ownership_percent = 100 and [[building]] parking cut rung by rung.");
+            + "car_ownership_percent = 100 and floor_tiles_per_parking_space raised rung by rung.");
         _output.WriteLine("");
         _output.WriteLine(
-            "  parking  spaces    held  occupancy   probes  exhausted  past cap   walk p50   walk p90   walk max");
+            "  tiles/sp  spaces    held  occupancy   probes  exhausted  past cap   walk p50   walk p90   walk max");
         _output.WriteLine(
-            "  -------  ------  ------  ---------   ------  ---------  --------   --------   --------   --------");
+            "  --------  ------  ------  ---------   ------  ---------  --------   --------   --------   --------");
 
         var readings = new List<Reading>();
 
@@ -107,7 +113,7 @@ public sealed class ParkingScarcityTests(ITestOutputHelper output)
             readings.Add(reading);
 
             _output.WriteLine(
-                $"  {rung,7}  {reading.Spaces,6}  {reading.Occupied,6}  "
+                $"  {rung,8}  {reading.Spaces,6}  {reading.Occupied,6}  "
                 + $"{Percent(reading.Occupied, reading.Spaces),9}   {reading.Probes,6}  "
                 + $"{Percent(reading.Exhausted, reading.Probes),9}  {reading.BeyondCap,8}   "
                 + $"{Minutes(reading.Percentile(50)),6} min  {Minutes(reading.Percentile(90)),6} min  "
@@ -117,7 +123,7 @@ public sealed class ParkingScarcityTests(ITestOutputHelper output)
         _output.WriteLine("");
         _output.WriteLine(
             $"A walk across the whole shed is {Minutes(Ceiling().Raw)} min at "
-            + $"{Ruleset(8).Parking.RadiusMetres} m — the radius bounds this walk and nothing else "
+            + $"{Ruleset(Rungs[0]).Parking.RadiusMetres} m — the radius bounds this walk and nothing else "
             + "does.");
 
         // The instrument's own control, and the only thing it asserts. If the dial does not move
@@ -126,7 +132,7 @@ public sealed class ParkingScarcityTests(ITestOutputHelper output)
         // this is the axis chosen to escape it.
         Assert.True(
             Share(readings[^1]) > Share(readings[0]),
-            "cutting [[building]] parking did not raise occupancy, so this sweep is one world "
+            "raising floor_tiles_per_parking_space did not raise occupancy, so this sweep is one world "
             + "measured seven times and ratifies nothing.");
     }
 
@@ -268,8 +274,10 @@ public sealed class ParkingScarcityTests(ITestOutputHelper output)
     /// </remarks>
     private const int UncappedKeep = 512;
 
+    private const string ShippedDial = "\nfloor_tiles_per_parking_space = 12\n";
+
     /// <summary>
-    /// <c>minimal.toml</c> with cars, and the parking dial at <paramref name="rung"/>.
+    /// <c>minimal.toml</c> with cars, and floor Tiles per parking space at <paramref name="rung"/>.
     /// </summary>
     /// <remarks>
     /// <b>Built from the shipped file rather than written out here</b>, so the lattice, the Commute
@@ -279,14 +287,14 @@ public sealed class ParkingScarcityTests(ITestOutputHelper output)
     /// </remarks>
     private static Ruleset Ruleset(int rung)
     {
-        string toml = File.ReadAllText(GoldenFixtures.RulesetPath);
+        string toml = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "minimal.toml"));
 
-        Assert.Contains("\nparking = 8\n", toml, StringComparison.Ordinal);
+        Assert.Contains(ShippedDial, toml, StringComparison.Ordinal);
 
         RulesetLoadResult parsed = RulesetLoader.Parse(
             toml.Replace(
-                "\nparking = 8\n",
-                $"\nparking = {rung.ToString(CultureInfo.InvariantCulture)}\n",
+                ShippedDial,
+                $"\nfloor_tiles_per_parking_space = {rung.ToString(CultureInfo.InvariantCulture)}\n",
                 StringComparison.Ordinal)
             + "\n[households]\ncar_ownership_percent = 100\n",
             "scarcity-sweep.toml");
@@ -299,7 +307,7 @@ public sealed class ParkingScarcityTests(ITestOutputHelper output)
     /// <summary>A walk across the whole shed, which is the only ceiling the arrival walk has.</summary>
     private static TravelTime Ceiling()
     {
-        Ruleset rules = Ruleset(8);
+        Ruleset rules = Ruleset(Rungs[0]);
 
         return TravelTime.Over(rules.Parking.Radius, rules.Roads.WalkSpeed);
     }
