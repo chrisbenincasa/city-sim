@@ -1,0 +1,194 @@
+[
+  {
+    "view": "opening",
+    "case": "boxes",
+    "probe": "baseline",
+    "band": "0 0 0 on",
+    "samples": 8,
+    "fps": 67.412,
+    "frame_ms": 14.834154156529994,
+    "gpu_ms": 14.680900000000001,
+    "render_cpu_ms": 3.4048,
+    "upload": null,
+    "counts": {
+      "Visible": {
+        "objects": 2694,
+        "draw_calls": 2694,
+        "primitives": 5540770
+      },
+      "Shadow": {
+        "objects": 0,
+        "draw_calls": 0,
+        "primitives": 0
+      }
+    }
+  },
+  {
+    "view": "opening",
+    "case": "sun-off",
+    "probe": "shadows-off",
+    "band": "0 0 0 on",
+    "samples": 8,
+    "fps": 83.765,
+    "frame_ms": 11.938160329493225,
+    "gpu_ms": 10.94985,
+    "render_cpu_ms": 3.1279500000000002,
+    "upload": null,
+    "counts": {
+      "Visible": {
+        "objects": 2694,
+        "draw_calls": 2694,
+        "primitives": 5540770
+      },
+      "Shadow": {
+        "objects": 0,
+        "draw_calls": 0,
+        "primitives": 0
+      }
+    }
+  },
+  {
+    "view": "opening",
+    "case": "no-3d",
+    "probe": "no-3d",
+    "band": "0 0 0 on",
+    "samples": 8,
+    "fps": 142.4195,
+    "frame_ms": 7.021510397101521,
+    "gpu_ms": 0.0639,
+    "render_cpu_ms": 0.07944999999999999,
+    "upload": null,
+    "counts": {
+      "Visible": {
+        "objects": 0,
+        "draw_calls": 0,
+        "primitives": 0
+      },
+      "Shadow": {
+        "objects": 0,
+        "draw_calls": 0,
+        "primitives": 0
+      }
+    }
+  },
+  {
+    "view": "opening",
+    "case": "hide-trees",
+    "probe": "hide-tree,rock",
+    "band": "0 0 0 on",
+    "samples": 8,
+    "fps": 67.99449999999999,
+    "frame_ms": 14.707071895520963,
+    "gpu_ms": 14.59495,
+    "render_cpu_ms": 2.7113,
+    "upload": null,
+    "counts": {
+      "Visible": {
+        "objects": 2694,
+        "draw_calls": 2694,
+        "primitives": 5540770
+      },
+      "Shadow": {
+        "objects": 0,
+        "draw_calls": 0,
+        "primitives": 0
+      }
+    }
+  },
+  {
+    "view": "opening",
+    "case": "hide-streets",
+    "probe": "hide-road,footway,kerb",
+    "band": "0 0 0 on",
+    "samples": 8,
+    "fps": 85.7795,
+    "frame_ms": 11.65779702609598,
+    "gpu_ms": 11.5351,
+    "render_cpu_ms": 1.63685,
+    "upload": null,
+    "counts": {
+      "Visible": {
+        "objects": 1714,
+        "draw_calls": 1714,
+        "primitives": 3647662
+      },
+      "Shadow": {
+        "objects": 0,
+        "draw_calls": 0,
+        "primitives": 0
+      }
+    }
+  },
+  {
+    "view": "opening",
+    "case": "hide-buildings",
+    "probe": "hide-building,roof,hip,paired-roof,parapet,yard",
+    "band": "0 0 0 on",
+    "samples": 8,
+    "fps": 113.82249999999999,
+    "frame_ms": 8.785609172175976,
+    "gpu_ms": 8.486149999999999,
+    "render_cpu_ms": 1.0752,
+    "upload": null,
+    "counts": {
+      "Visible": {
+        "objects": 1259,
+        "draw_calls": 1259,
+        "primitives": 2053418
+      },
+      "Shadow": {
+        "objects": 0,
+        "draw_calls": 0,
+        "primitives": 0
+      }
+    }
+  },
+  {
+    "view": "opening",
+    "case": "hide-ground",
+    "probe": "hide-ground,hazard,water,flood,cell,plot,zone",
+    "band": "0 0 0 on",
+    "samples": 8,
+    "fps": 68.33449999999999,
+    "frame_ms": 14.633896494450097,
+    "gpu_ms": 14.5226,
+    "render_cpu_ms": 2.58445,
+    "upload": null,
+    "counts": {
+      "Visible": {
+        "objects": 2656,
+        "draw_calls": 2656,
+        "primitives": 5537278
+      },
+      "Shadow": {
+        "objects": 0,
+        "draw_calls": 0,
+        "primitives": 0
+      }
+    }
+  },
+  {
+    "view": "opening",
+    "case": "hide-all",
+    "probe": "hide-tree,rock,road,footway,kerb,building,roof,hip,paired-roof,parapet,yard,ground,hazard,water,flood,cell,plot,zone",
+    "band": "0 0 0 on",
+    "samples": 8,
+    "fps": 135.2665,
+    "frame_ms": 7.392813446049095,
+    "gpu_ms": 4.5472,
+    "render_cpu_ms": 0.309,
+    "upload": null,
+    "counts": {
+      "Visible": {
+        "objects": 241,
+        "draw_calls": 241,
+        "primitives": 156818
+      },
+      "Shadow": {
+        "objects": 0,
+        "draw_calls": 0,
+        "primitives": 0
+      }
+    }
+  }
+]

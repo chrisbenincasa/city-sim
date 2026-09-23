@@ -1,0 +1,29 @@
+render_probe	hide-road,footway,kerb
+render_work	6	0	25767	0
+render_frames	3817	47919.725	7085.200
+# render_info	pass	objects	draw_calls	primitives
+render_info	Visible	5870	5870	3647662
+render_info	Shadow	0	0	0
+# shell_band	radius	chunk	kit	shadows	buildings	chunks	vertices	triangles	kit_pieces	collect_ms	generate_ms	upload_ms	slowest_upload_ms
+# render	layer	batches	uploads	uploaded_instances	uploaded_bytes	upload_ms	pending
+render	ground	1	1	1	768	3.008	0
+render	hazard	0	0	0	0	0.000	0
+render	water	0	0	0	0	0.000	0
+render	flood	0	0	0	0	0.000	0
+render	road	1743	1743	53498	5025792	68.104	0
+render	footway	1803	1803	104908	7009280	118.000	0
+render	kerb	1803	0	0	0	220.857	0
+render	cell	73	73	290	56064	0.892	0
+render	plot	632	632	13068	891904	16.950	0
+render	zone	882	882	12499	903168	18.647	0
+render	cursor	0	0	0	0	0.000	0
+render	building	882	882	86924	7951360	110.251	0
+render	roof	875	875	10413	1303040	22.037	0
+render	hip	760	760	1954	972800	14.961	0
+render	paired-roof	882	882	37337	4006400	72.651	0
+render	parapet	882	882	37220	4003840	52.926	0
+render	yard	882	882	65018	6303744	93.040	0
+render	tree	13824	0	0	0	1494.499	0
+render	rock	2791	0	0	0	80.952	0
+render	traveller	0	0	0	0	0.000	0
+render	car	0	0	0	0	0.000	0

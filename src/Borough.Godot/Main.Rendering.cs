@@ -125,6 +125,16 @@ public partial class Main
         text.Append($"render_probe\t{_renderProbe}\n");
         text.Append(CultureInfo.InvariantCulture, $"render_work\t{_fullBuildingPasses}\t{_buildingEdits}\t{_movementIndexVisits}\t{_movementQueries}\n");
         text.Append(CultureInfo.InvariantCulture, $"render_frames\t{_frameCount}\t{_frameMilliseconds:F3}\t{_frameMaximum:F3}\n");
+        Godot.Rid viewport = GetViewport().GetViewportRid();
+        long Info(Godot.RenderingServer.ViewportRenderInfoType pass, Godot.RenderingServer.ViewportRenderInfo what) =>
+            Godot.RenderingServer.ViewportGetRenderInfo(viewport, pass, what);
+        text.Append("# render_info\tpass\tobjects\tdraw_calls\tprimitives\n");
+        foreach (var pass in new[] { Godot.RenderingServer.ViewportRenderInfoType.Visible, Godot.RenderingServer.ViewportRenderInfoType.Shadow })
+        {
+            text.Append(CultureInfo.InvariantCulture,
+                $"render_info\t{pass}\t{Info(pass, Godot.RenderingServer.ViewportRenderInfo.ObjectsInFrame)}\t{Info(pass, Godot.RenderingServer.ViewportRenderInfo.DrawCallsInFrame)}\t{Info(pass, Godot.RenderingServer.ViewportRenderInfo.PrimitivesInFrame)}\n");
+        }
+
         text.Append("# shell_band\tradius\tchunk\tkit\tshadows\tbuildings\tchunks\tvertices\ttriangles\tkit_pieces\tcollect_ms\tgenerate_ms\tupload_ms\tslowest_upload_ms\n");
         text.Append(_shellBandReport);
         text.Append("# render\tlayer\tbatches\tuploads\tuploaded_instances\tuploaded_bytes\tupload_ms\tpending\n");

@@ -1,0 +1,602 @@
+[
+  {
+    "view": "opening",
+    "case": "boxes",
+    "probe": "baseline",
+    "band": "0 0 0 on",
+    "samples": 8,
+    "fps": 67.328,
+    "frame_ms": 14.852661596958175,
+    "gpu_ms": 14.62365,
+    "render_cpu_ms": 2.8419499999999998,
+    "upload": null,
+    "counts": {
+      "Visible": {
+        "objects": 2695,
+        "draw_calls": 2695,
+        "primitives": 5544866
+      },
+      "Shadow": {
+        "objects": 0,
+        "draw_calls": 0,
+        "primitives": 0
+      }
+    }
+  },
+  {
+    "view": "opening",
+    "case": "boxes-sun-off",
+    "probe": "shadows-off",
+    "band": "0 0 0 on",
+    "samples": 8,
+    "fps": 78.98750000000001,
+    "frame_ms": 12.660231049216646,
+    "gpu_ms": 10.7616,
+    "render_cpu_ms": 2.9543999999999997,
+    "upload": null,
+    "counts": {
+      "Visible": {
+        "objects": 2493,
+        "draw_calls": 2493,
+        "primitives": 5187804
+      },
+      "Shadow": {
+        "objects": 0,
+        "draw_calls": 0,
+        "primitives": 0
+      }
+    }
+  },
+  {
+    "view": "street",
+    "case": "boxes",
+    "probe": "baseline",
+    "band": "0 0 0 on",
+    "samples": 8,
+    "fps": 127.8555,
+    "frame_ms": 7.821329547809832,
+    "gpu_ms": 6.14855,
+    "render_cpu_ms": 0.35509999999999997,
+    "upload": null,
+    "counts": {
+      "Visible": {
+        "objects": 71,
+        "draw_calls": 71,
+        "primitives": 254294
+      },
+      "Shadow": {
+        "objects": 76,
+        "draw_calls": 76,
+        "primitives": 320078
+      }
+    }
+  },
+  {
+    "view": "street",
+    "case": "boxes-sun-off",
+    "probe": "shadows-off",
+    "band": "0 0 0 on",
+    "samples": 8,
+    "fps": 138.7225,
+    "frame_ms": 7.208635945863144,
+    "gpu_ms": 3.9741,
+    "render_cpu_ms": 0.25725,
+    "upload": null,
+    "counts": {
+      "Visible": {
+        "objects": 71,
+        "draw_calls": 71,
+        "primitives": 254294
+      },
+      "Shadow": {
+        "objects": 0,
+        "draw_calls": 0,
+        "primitives": 0
+      }
+    }
+  },
+  {
+    "view": "street",
+    "case": "r150",
+    "probe": "baseline",
+    "band": "150 64 15 on",
+    "samples": 8,
+    "fps": 120.52449999999999,
+    "frame_ms": 8.297068230940598,
+    "gpu_ms": 5.6202000000000005,
+    "render_cpu_ms": 0.40959999999999996,
+    "upload": {
+      "radius": 150.0,
+      "chunk": 64.0,
+      "kit": 15.0,
+      "shadows": "on",
+      "buildings": 25.0,
+      "chunks": 13.0,
+      "vertices": 86058.0,
+      "triangles": 43010.0,
+      "kit_pieces": 375.0,
+      "collect_ms": 93.466,
+      "generate_ms": 24.741,
+      "upload_ms": 13.261,
+      "slowest_upload_ms": 7.305
+    },
+    "counts": {
+      "Visible": {
+        "objects": 81,
+        "draw_calls": 81,
+        "primitives": 272154
+      },
+      "Shadow": {
+        "objects": 121,
+        "draw_calls": 121,
+        "primitives": 409160
+      }
+    }
+  },
+  {
+    "view": "street",
+    "case": "r250",
+    "probe": "baseline",
+    "band": "250 64 15 on",
+    "samples": 8,
+    "fps": 128.993,
+    "frame_ms": 7.752358655120821,
+    "gpu_ms": 5.1917,
+    "render_cpu_ms": 0.43495,
+    "upload": {
+      "radius": 250.0,
+      "chunk": 64.0,
+      "kit": 15.0,
+      "shadows": "on",
+      "buildings": 82.0,
+      "chunks": 44.0,
+      "vertices": 276674.0,
+      "triangles": 138280.0,
+      "kit_pieces": 1230.0,
+      "collect_ms": 70.489,
+      "generate_ms": 16.392,
+      "upload_ms": 22.428,
+      "slowest_upload_ms": 0.903
+    },
+    "counts": {
+      "Visible": {
+        "objects": 106,
+        "draw_calls": 106,
+        "primitives": 315858
+      },
+      "Shadow": {
+        "objects": 209,
+        "draw_calls": 209,
+        "primitives": 558138
+      }
+    }
+  },
+  {
+    "view": "street",
+    "case": "r500",
+    "probe": "baseline",
+    "band": "500 64 15 on",
+    "samples": 8,
+    "fps": 126.9145,
+    "frame_ms": 7.8793203298283485,
+    "gpu_ms": 4.8803,
+    "render_cpu_ms": 0.5496000000000001,
+    "upload": {
+      "radius": 500.0,
+      "chunk": 64.0,
+      "kit": 15.0,
+      "shadows": "on",
+      "buildings": 327.0,
+      "chunks": 175.0,
+      "vertices": 1096992.0,
+      "triangles": 548286.0,
+      "kit_pieces": 4905.0,
+      "collect_ms": 71.391,
+      "generate_ms": 35.848,
+      "upload_ms": 95.361,
+      "slowest_upload_ms": 2.956
+    },
+    "counts": {
+      "Visible": {
+        "objects": 183,
+        "draw_calls": 183,
+        "primitives": 448742
+      },
+      "Shadow": {
+        "objects": 383,
+        "draw_calls": 383,
+        "primitives": 837450
+      }
+    }
+  },
+  {
+    "view": "street",
+    "case": "r250-shells-cast-off",
+    "probe": "baseline",
+    "band": "250 64 15 off",
+    "samples": 8,
+    "fps": 130.7,
+    "frame_ms": 7.651109410864576,
+    "gpu_ms": 4.98205,
+    "render_cpu_ms": 0.39485000000000003,
+    "upload": {
+      "radius": 250.0,
+      "chunk": 64.0,
+      "kit": 15.0,
+      "shadows": "off",
+      "buildings": 82.0,
+      "chunks": 44.0,
+      "vertices": 276674.0,
+      "triangles": 138280.0,
+      "kit_pieces": 1230.0,
+      "collect_ms": 80.042,
+      "generate_ms": 10.354,
+      "upload_ms": 21.933,
+      "slowest_upload_ms": 0.91
+    },
+    "counts": {
+      "Visible": {
+        "objects": 106,
+        "draw_calls": 106,
+        "primitives": 315858
+      },
+      "Shadow": {
+        "objects": 76,
+        "draw_calls": 76,
+        "primitives": 307442
+      }
+    }
+  },
+  {
+    "view": "street",
+    "case": "r500-shells-cast-off",
+    "probe": "baseline",
+    "band": "500 64 15 off",
+    "samples": 8,
+    "fps": 128.8915,
+    "frame_ms": 7.75846351388571,
+    "gpu_ms": 4.5666,
+    "render_cpu_ms": 0.44165,
+    "upload": {
+      "radius": 500.0,
+      "chunk": 64.0,
+      "kit": 15.0,
+      "shadows": "off",
+      "buildings": 327.0,
+      "chunks": 175.0,
+      "vertices": 1096992.0,
+      "triangles": 548286.0,
+      "kit_pieces": 4905.0,
+      "collect_ms": 78.846,
+      "generate_ms": 37.297,
+      "upload_ms": 89.064,
+      "slowest_upload_ms": 3.065
+    },
+    "counts": {
+      "Visible": {
+        "objects": 183,
+        "draw_calls": 183,
+        "primitives": 448742
+      },
+      "Shadow": {
+        "objects": 63,
+        "draw_calls": 63,
+        "primitives": 252668
+      }
+    }
+  },
+  {
+    "view": "street",
+    "case": "r500-sun-off",
+    "probe": "shadows-off",
+    "band": "500 64 15 on",
+    "samples": 8,
+    "fps": 120.7285,
+    "frame_ms": 8.283048327445467,
+    "gpu_ms": 3.14765,
+    "render_cpu_ms": 0.48765000000000003,
+    "upload": {
+      "radius": 500.0,
+      "chunk": 64.0,
+      "kit": 15.0,
+      "shadows": "on",
+      "buildings": 327.0,
+      "chunks": 175.0,
+      "vertices": 1096992.0,
+      "triangles": 548286.0,
+      "kit_pieces": 4905.0,
+      "collect_ms": 71.761,
+      "generate_ms": 32.069,
+      "upload_ms": 90.532,
+      "slowest_upload_ms": 2.938
+    },
+    "counts": {
+      "Visible": {
+        "objects": 183,
+        "draw_calls": 183,
+        "primitives": 448742
+      },
+      "Shadow": {
+        "objects": 0,
+        "draw_calls": 0,
+        "primitives": 0
+      }
+    }
+  },
+  {
+    "view": "street",
+    "case": "r250-per-building",
+    "probe": "baseline",
+    "band": "250 0 15 on",
+    "samples": 8,
+    "fps": 120.186,
+    "frame_ms": 8.320436656515733,
+    "gpu_ms": 5.1541,
+    "render_cpu_ms": 0.64665,
+    "upload": {
+      "radius": 250.0,
+      "chunk": 0.0,
+      "kit": 15.0,
+      "shadows": "on",
+      "buildings": 82.0,
+      "chunks": 82.0,
+      "vertices": 276674.0,
+      "triangles": 138280.0,
+      "kit_pieces": 1230.0,
+      "collect_ms": 74.041,
+      "generate_ms": 10.213,
+      "upload_ms": 27.588,
+      "slowest_upload_ms": 0.522
+    },
+    "counts": {
+      "Visible": {
+        "objects": 131,
+        "draw_calls": 131,
+        "primitives": 305330
+      },
+      "Shadow": {
+        "objects": 310,
+        "draw_calls": 310,
+        "primitives": 532828
+      }
+    }
+  },
+  {
+    "view": "street",
+    "case": "r250-no-kit",
+    "probe": "baseline",
+    "band": "250 64 0 on",
+    "samples": 8,
+    "fps": 128.121,
+    "frame_ms": 7.805121720873236,
+    "gpu_ms": 5.18535,
+    "render_cpu_ms": 0.44355,
+    "upload": {
+      "radius": 250.0,
+      "chunk": 64.0,
+      "kit": 0.0,
+      "shadows": "on",
+      "buildings": 82.0,
+      "chunks": 44.0,
+      "vertices": 276674.0,
+      "triangles": 138280.0,
+      "kit_pieces": 0.0,
+      "collect_ms": 68.028,
+      "generate_ms": 11.254,
+      "upload_ms": 20.722,
+      "slowest_upload_ms": 0.863
+    },
+    "counts": {
+      "Visible": {
+        "objects": 88,
+        "draw_calls": 88,
+        "primitives": 309198
+      },
+      "Shadow": {
+        "objects": 144,
+        "draw_calls": 144,
+        "primitives": 534738
+      }
+    }
+  },
+  {
+    "view": "district",
+    "case": "boxes",
+    "probe": "baseline",
+    "band": "0 0 0 on",
+    "samples": 8,
+    "fps": 105.1905,
+    "frame_ms": 9.50656190435448,
+    "gpu_ms": 9.24685,
+    "render_cpu_ms": 0.74205,
+    "upload": null,
+    "counts": {
+      "Visible": {
+        "objects": 322,
+        "draw_calls": 322,
+        "primitives": 1454612
+      },
+      "Shadow": {
+        "objects": 207,
+        "draw_calls": 207,
+        "primitives": 910082
+      }
+    }
+  },
+  {
+    "view": "district",
+    "case": "boxes-sun-off",
+    "probe": "shadows-off",
+    "band": "0 0 0 on",
+    "samples": 8,
+    "fps": 122.25200000000001,
+    "frame_ms": 8.179825278932041,
+    "gpu_ms": 6.34675,
+    "render_cpu_ms": 0.5809500000000001,
+    "upload": null,
+    "counts": {
+      "Visible": {
+        "objects": 322,
+        "draw_calls": 322,
+        "primitives": 1454612
+      },
+      "Shadow": {
+        "objects": 0,
+        "draw_calls": 0,
+        "primitives": 0
+      }
+    }
+  },
+  {
+    "view": "district",
+    "case": "r250",
+    "probe": "baseline",
+    "band": "250 64 15 on",
+    "samples": 8,
+    "fps": 104.438,
+    "frame_ms": 9.575058886612153,
+    "gpu_ms": 9.308,
+    "render_cpu_ms": 0.7736000000000001,
+    "upload": {
+      "radius": 250.0,
+      "chunk": 64.0,
+      "kit": 15.0,
+      "shadows": "on",
+      "buildings": 0.0,
+      "chunks": 0.0,
+      "vertices": 0.0,
+      "triangles": 0.0,
+      "kit_pieces": 0.0,
+      "collect_ms": 67.52,
+      "generate_ms": 0.004,
+      "upload_ms": 0.0,
+      "slowest_upload_ms": 0.0
+    },
+    "counts": {
+      "Visible": {
+        "objects": 322,
+        "draw_calls": 322,
+        "primitives": 1454612
+      },
+      "Shadow": {
+        "objects": 207,
+        "draw_calls": 207,
+        "primitives": 910082
+      }
+    }
+  },
+  {
+    "view": "district",
+    "case": "r500",
+    "probe": "baseline",
+    "band": "500 64 15 on",
+    "samples": 8,
+    "fps": 107.1135,
+    "frame_ms": 9.335891367568047,
+    "gpu_ms": 9.06235,
+    "render_cpu_ms": 0.9904999999999999,
+    "upload": {
+      "radius": 500.0,
+      "chunk": 64.0,
+      "kit": 15.0,
+      "shadows": "on",
+      "buildings": 174.0,
+      "chunks": 96.0,
+      "vertices": 593002.0,
+      "triangles": 296392.0,
+      "kit_pieces": 2610.0,
+      "collect_ms": 67.715,
+      "generate_ms": 16.322,
+      "upload_ms": 47.948,
+      "slowest_upload_ms": 0.881
+    },
+    "counts": {
+      "Visible": {
+        "objects": 374,
+        "draw_calls": 374,
+        "primitives": 1539346
+      },
+      "Shadow": {
+        "objects": 618,
+        "draw_calls": 618,
+        "primitives": 1606910
+      }
+    }
+  },
+  {
+    "view": "district",
+    "case": "r500-shells-cast-off",
+    "probe": "baseline",
+    "band": "500 64 15 off",
+    "samples": 8,
+    "fps": 108.5865,
+    "frame_ms": 9.209247926768061,
+    "gpu_ms": 8.94695,
+    "render_cpu_ms": 0.80365,
+    "upload": {
+      "radius": 500.0,
+      "chunk": 64.0,
+      "kit": 15.0,
+      "shadows": "off",
+      "buildings": 174.0,
+      "chunks": 96.0,
+      "vertices": 593002.0,
+      "triangles": 296392.0,
+      "kit_pieces": 2610.0,
+      "collect_ms": 73.478,
+      "generate_ms": 17.255,
+      "upload_ms": 47.086,
+      "slowest_upload_ms": 0.873
+    },
+    "counts": {
+      "Visible": {
+        "objects": 374,
+        "draw_calls": 374,
+        "primitives": 1539346
+      },
+      "Shadow": {
+        "objects": 207,
+        "draw_calls": 207,
+        "primitives": 891214
+      }
+    }
+  },
+  {
+    "view": "district",
+    "case": "r500-sun-off",
+    "probe": "shadows-off",
+    "band": "500 64 15 on",
+    "samples": 8,
+    "fps": 120.41,
+    "frame_ms": 8.304958059961798,
+    "gpu_ms": 6.11885,
+    "render_cpu_ms": 0.6411,
+    "upload": {
+      "radius": 500.0,
+      "chunk": 64.0,
+      "kit": 15.0,
+      "shadows": "on",
+      "buildings": 174.0,
+      "chunks": 96.0,
+      "vertices": 593002.0,
+      "triangles": 296392.0,
+      "kit_pieces": 2610.0,
+      "collect_ms": 72.501,
+      "generate_ms": 20.824,
+      "upload_ms": 47.951,
+      "slowest_upload_ms": 0.89
+    },
+    "counts": {
+      "Visible": {
+        "objects": 374,
+        "draw_calls": 374,
+        "primitives": 1539346
+      },
+      "Shadow": {
+        "objects": 0,
+        "draw_calls": 0,
+        "primitives": 0
+      }
+    }
+  }
+]

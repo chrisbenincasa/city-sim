@@ -14,13 +14,15 @@ public partial class Main
             _refused = "Rendering comparisons require BOROUGH_RENDER_PROFILE=1.";
             return;
         }
-        if (name is not ("baseline" or "scale75" or "scale50" or "shadow4096" or "shadows-off"
+        string[] hidden = name.StartsWith("hide-", StringComparison.Ordinal) ? name[5..].Split(',') : [];
+        if (hidden.Length == 0 && name is not ("baseline" or "scale75" or "scale50" or "shadow4096" or "shadows-off"
             or "shadow-low" or "ssao-off" or "foliage-off" or "foliage3000" or "foliage4000"
             or "foliage-shadows-off" or "scale85" or "no-3d"))
         {
             _refused = "Unknown rendering comparison.";
             return;
         }
+        foreach (var layer in Layers()) layer.Layer.Visible = Array.IndexOf(hidden, layer.Name) < 0;
         _renderProbe = name;
         GetViewport().Disable3D = name == "no-3d";
         Input.WarpMouse(GetViewport().GetVisibleRect().Size * .5f);
@@ -31,8 +33,11 @@ public partial class Main
         RenderingServer.DirectionalSoftShadowFilterSetQuality(name == "shadow-low"
             ? RenderingServer.ShadowQuality.SoftLow : RenderingServer.ShadowQuality.SoftMedium);
         _air.SsaoEnabled = name != "ssao-off";
-        _trees.Visible = name != "foliage-off";
-        _rocks.Visible = name != "foliage-off";
+        if (hidden.Length == 0)
+        {
+            _trees.Visible = name != "foliage-off";
+            _rocks.Visible = name != "foliage-off";
+        }
         _trees.DetailDistance = name == "foliage3000" ? 3000f : name == "foliage4000" ? 4000f : 8000f;
         _trees.CastShadow = name == "foliage-shadows-off"
             ? GeometryInstance3D.ShadowCastingSetting.Off : GeometryInstance3D.ShadowCastingSetting.On;

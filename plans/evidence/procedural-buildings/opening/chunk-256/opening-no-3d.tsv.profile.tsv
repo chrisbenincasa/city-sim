@@ -1,0 +1,29 @@
+render_probe	no-3d
+render_work	4	0	25767	0
+render_frames	1906	33313.147	8503.467
+# render_info	pass	objects	draw_calls	primitives
+render_info	Visible	0	0	0
+render_info	Shadow	0	0	0
+# shell_band	radius	chunk	kit	shadows	buildings	chunks	vertices	triangles	kit_pieces	collect_ms	generate_ms	upload_ms	slowest_upload_ms
+# render	layer	batches	uploads	uploaded_instances	uploaded_bytes	upload_ms	pending
+render	ground	1	1	1	768	3.122	0
+render	hazard	0	0	0	0	0.000	0
+render	water	0	0	0	0	0.000	0
+render	flood	0	0	0	0	0.000	0
+render	road	6733	6733	53498	6894592	110.717	0
+render	footway	6966	6966	104908	7133184	165.178	0
+render	kerb	6966	0	0	0	237.790	0
+render	cell	145	145	290	111360	1.496	0
+render	plot	1196	1196	13068	1233920	21.885	0
+render	zone	3210	3210	12499	3287040	57.993	0
+render	cursor	0	0	0	0	0.000	0
+render	building	3200	3200	86924	7452160	141.500	0
+render	roof	3042	3042	10413	3893760	85.216	0
+render	hip	1481	1481	1954	1895680	24.977	0
+render	paired-roof	3200	3200	37337	4533760	101.129	0
+render	parapet	3199	3199	37220	4483840	106.250	0
+render	yard	3200	3200	65018	5784576	144.381	0
+render	tree	55006	0	0	0	1699.803	0
+render	rock	10033	0	0	0	104.927	0
+render	traveller	0	0	0	0	0.000	0
+render	car	0	0	0	0	0.000	0
