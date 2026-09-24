@@ -2,19 +2,19 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dtank526h4bky"
-path="res://.godot/imported/m1-corner_membrane-albedo.jpg-f05a1072cc78d8442497093e2265f333.ctex"
+uid="uid://cdlksmtdq1y15"
+path="res://.godot/imported/w2-workshop_membrane-roughness.jpg-054a3bc2e78e7e5410e1efd797f772cc.ctex"
 metadata={
 "vram_texture": false
 }
 generator_parameters={
-"md5": "b8ad312df9a0a97700d8ca3eb610ab71"
+"md5": "99d298d416fb52ee4a3404075fa8e021"
 }
 
 [deps]
 
-source_file="res://assets/test-street/m1-corner_membrane-albedo.jpg"
-dest_files=["res://.godot/imported/m1-corner_membrane-albedo.jpg-f05a1072cc78d8442497093e2265f333.ctex"]
+source_file="res://assets/test-street/w2-workshop_membrane-roughness.jpg"
+dest_files=["res://.godot/imported/w2-workshop_membrane-roughness.jpg-054a3bc2e78e7e5410e1efd797f772cc.ctex"]
 
 [params]
 

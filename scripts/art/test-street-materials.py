@@ -12,7 +12,7 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageFilter, ImageMath, ImageStat
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / 'art/materials/test-street'
@@ -46,7 +46,7 @@ SURFACES = {
     },
     'membrane': {
         'asset': 'Bitumen', 'publisher': 'Poly Haven', 'url': 'https://polyhaven.com/a/bitumen',
-        'id': 'bitumen', 'metres': [20.0, 20.0], 'paint': False,
+        'id': 'bitumen', 'metres': [20.0, 20.0], 'paint': False, 'flatten_px': 16,
         'measured': 'About 21 roll laps over the image height, roughly 1 m rolls at the stated 20 x 20 m',
     },
 }
@@ -77,6 +77,20 @@ def paintable(image):
     return grey.point([srgb(to_linear[v] * gain) for v in range(256)]).convert('RGB'), mean
 
 
+def flatten(image, radius):
+    """Divides out tonal variation broader than radius, keeping fine grain. Blurs a 3 x 3 tiling so the result still tiles."""
+    width, height = image.size
+    tiled = Image.new('RGB', (3 * width, 3 * height))
+    for i in range(3):
+        for j in range(3):
+            tiled.paste(image, (i * width, j * height))
+    blurred = tiled.convert('L').filter(ImageFilter.GaussianBlur(radius)).crop((width, height, 2 * width, 2 * height))
+    mean = ImageStat.Stat(image.convert('L')).mean[0]
+    channels = [ImageMath.eval('convert(min(float(a) * m / max(float(b), 1.0), 255.0), "L")', a=c, b=blurred, m=mean)
+                for c in image.split()]
+    return Image.merge('RGB', channels)
+
+
 def sha256(data):
     return hashlib.sha256(data).hexdigest()
 
@@ -104,6 +118,9 @@ for name, spec in SURFACES.items():
         if key == 'albedo' and spec['paint']:
             image, mean = paintable(image)
             note = f'greyscale, linear mean luminance {mean:.4f} scaled to {PAINT_MEAN}'
+        if key == 'albedo' and 'flatten_px' in spec:
+            image = flatten(image, spec['flatten_px'])
+            note = f"tonal variation broader than a {spec['flatten_px']} px Gaussian divided out"
         path = OUT / f'{name}-{key}.jpg'
         image.save(path, quality=90)
         files[key] = {'file': str(path.relative_to(ROOT)), 'from': url, 'source_sha256': sha256(data),

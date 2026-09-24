@@ -53,17 +53,17 @@
     },
     {
       "body": "a2-stair-range",
-      "vertices": 3802,
-      "faces": 1288,
+      "vertices": 3856,
+      "faces": 1332,
       "bounds_min": [
-        -16.5,
+        -16.06,
         -7.1,
         0.0
       ],
       "bounds_max": [
-        16.5,
+        16.06,
         7.4,
-        11.866
+        11.28
       ],
       "materials": [
         "wall-render",
@@ -74,7 +74,7 @@
         "membrane-membrane",
         "metal"
       ],
-      "geometry_sha256": "d192eb34202e43ed6067a1d8bcbd64d2488bbd19c51276b510325dd2e1e5c2d7"
+      "geometry_sha256": "53292b6b0076c3cf7238373d727a607ac82a6b380f5156be5b7f1418bda2e482"
     },
     {
       "body": "m1-corner",
@@ -131,17 +131,17 @@
     },
     {
       "body": "w2-workshop",
-      "vertices": 1782,
-      "faces": 735,
+      "vertices": 1932,
+      "faces": 867,
       "bounds_min": [
-        -16.25,
-        -8.5,
+        -16.06,
+        -8.06,
         0.0
       ],
       "bounds_max": [
-        16.25,
-        8.5,
-        8.841
+        16.06,
+        8.06,
+        7.88
       ],
       "materials": [
         "wall-sheet",
@@ -151,10 +151,10 @@
         "glass",
         "frame",
         "plinth",
-        "roof-sheet",
+        "membrane-membrane",
         "wall-end"
       ],
-      "geometry_sha256": "39eab6a6ceb8389462487ca00732602cb14b7a39513a3428110af352c7414f2b"
+      "geometry_sha256": "d5a13d10dcb7a1d21b33ee5bade87a425474fbb9a5de32d9d794fddaa55bb60e"
     }
   ]
 }

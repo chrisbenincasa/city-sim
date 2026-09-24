@@ -151,7 +151,8 @@
           "file": "art/materials/test-street/membrane-albedo.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bitumen/bitumen_diff_1k.jpg",
           "source_sha256": "fa09ed33d59c3bb90ef70d36352207e2e1ca5564cfc61295c0124d1a7d785808",
-          "sha256": "fe8b3efe05d95795c707648879dd47e5f8e5f0a9433132c54607b7b803e789fc"
+          "sha256": "434b787853cddaee7ad753f0c63360e8462c05eb662de977da8e6e18b0e057fa",
+          "transform": "tonal variation broader than a 16 px Gaussian divided out"
         },
         "normal": {
           "file": "art/materials/test-street/membrane-normal.jpg",

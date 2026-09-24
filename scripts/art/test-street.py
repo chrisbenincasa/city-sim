@@ -48,7 +48,7 @@ FINISHES = {
     'a2-stair-range': {'wall': ('render', 'cdc6b6'), 'membrane': ('membrane', None)},
     'm1-corner': {'wall': ('brick', None), 'membrane': ('membrane', None)},
     'w1-workplace': {'wall': ('block', 'c3bcaa'), 'wall-end': ('block', 'ada691'), 'membrane': ('membrane', None)},
-    'w2-workshop': {'wall': ('sheet', '5d6a6e'), 'wall-end': (None, '4f5b5f'), 'roof': ('sheet', 'a3a8a9')},
+    'w2-workshop': {'wall': ('sheet', '5d6a6e'), 'wall-end': (None, '4f5b5f'), 'membrane': ('membrane', None)},
 }
 BOX_FACES = [(0, 3, 2, 1), (4, 5, 6, 7), (0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7)]
 
@@ -266,14 +266,14 @@ def flat_roof(width, depth, height, parapet=.7):
     box('coping right', (x - .3, -y + .3, top), (x + .05, y - .3, top + .08), 'trim')
 
 
-def gable(width, depth, height, pitch, eaves=.4, material='roof', verge=None):
+def gable(width, depth, height, pitch, eaves=.4):
     """A pitched roof whose rafters span the depth, so the ridge runs along the street.
     Returns a function giving the roof's top surface height at a distance from the ridge."""
     slope = math.tan(math.radians(pitch))
-    x, y, t = width / 2 + (eaves * .5 if verge is None else verge), depth / 2 + eaves, .2
+    x, y, t = width / 2 + eaves * .5, depth / 2 + eaves, .2
     low, top = height - eaves * slope, height + depth / 2 * slope
     prism('pitched roof', [(-y, low), (-y, low + t), (0, top + t), (y, low + t), (y, low), (0, top)][::-1],
-          -x, x, material)
+          -x, x, 'roof')
     for sign in (-1, 1):
         gx = sign * width / 2
         vertices = [(gx, -depth / 2, height), (gx, depth / 2, height), (gx, 0, top)]
@@ -326,7 +326,7 @@ def a1():
 
 def a2():
     """Stair-access range: 32 x 12 m, three storeys, two stair stacks each serving two flats a floor,
-    no corridor, 11 degree membrane gable with exposed eaves, balconies to the garden."""
+    no corridor, parapeted membrane roof, balconies to the garden."""
     width, depth, height = 32.0, 12.0, 3 * STOREY
     front = []
     for stair in (6.0, 22.0):
@@ -342,7 +342,7 @@ def a2():
     end = [(x, s * STOREY + .95, 1.2, 1.5, 'window') for s in range(3) for x in (3.4, 7.4)]
     faces = walls(width, depth, height, front, back, end, end)
     plinth(width, depth)
-    gable(width, depth, height, 11, eaves=.6, material='membrane', verge=.5)
+    flat_roof(width, depth, height)
     for stair in (6.0, 22.0):
         x = -width / 2 + stair + 2.0
         box('entrance canopy', (x - 1.4, -depth / 2 - 1.1, 2.85), (x + 1.4, -depth / 2, 3.0), 'trim')
@@ -415,7 +415,7 @@ def w1():
 
 
 def w2():
-    """Workshop: 32 x 16 m, two full floors on an 8 m grid, a 3.5 m receiving door, shallow pitched roof."""
+    """Workshop: 32 x 16 m, two full floors on an 8 m grid, a 3.5 m receiving door, parapeted membrane roof."""
     width, depth, height = 32.0, 16.0, 2 * STOREY
     front = [(2.2, .3, 3.5, 3.0, 'roller'), (9.5, .3, 1.0, 2.3, 'door'), (11.0, 1.0, 4.0, 1.4, 'window')]
     front += [(bay * 8 + 1.5, 1.2, 5.0, 1.2, 'window') for bay in (2, 3)]
@@ -424,15 +424,13 @@ def w2():
     end = [(6.0, .3, 1.0, 2.3, 'door'), (9.5, STOREY + 1.1, 3.0, 1.2, 'window')]
     faces = walls(width, depth, height, front, back, end, end)
     plinth(width, depth)
-    roof = gable(width, depth, height, 6, eaves=.5)
+    flat_roof(width, depth, height, parapet=.8)
     for bay in range(4):
         x = -width / 2 + bay * 8 + 4
-        for sign in (-1, 1):
-            near, far = 2.0, 5.0
-            quad = [(x - 1.2, sign * near, roof(near) + .02), (x + 1.2, sign * near, roof(near) + .02),
-                    (x + 1.2, sign * far, roof(far) + .02), (x - 1.2, sign * far, roof(far) + .02)]
-            mesh('rooflight', quad, [(0, 1, 2, 3) if sign > 0 else (3, 2, 1, 0)], 'glass')
-        box('roof vent', (x - .25, -.25, roof(0) - .2), (x + .25, .25, roof(0) + .8), 'metal')
+        for y in (-3.5, 3.5):
+            box('rooflight curb', (x - 1.3, y - 1.6, height), (x + 1.3, y + 1.6, height + .3), 'metal')
+            box('rooflight', (x - 1.2, y - 1.5, height + .3), (x + 1.2, y + 1.5, height + .4), 'glass')
+        box('roof vent', (x - .25, -.25, height), (x + .25, .25, height + .8), 'metal')
     for name in ('front', 'back'):
         for u in range(0, 33, 8):
             faces[name].slab('panel joint', max(u - .06, 0), min(u + .06, width), .3, height, -.06, 0, 'wall-end')

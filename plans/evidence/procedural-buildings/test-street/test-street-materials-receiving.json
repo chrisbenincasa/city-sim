@@ -107,16 +107,16 @@
       ],
       "yaw": 0,
       "boundsMin": [
-        -16.25,
+        -16.06,
         0,
-        -8.5
+        -8.06
       ],
       "boundsSize": [
-        32.5,
-        8.840834,
-        17
+        32.12,
+        7.88,
+        16.12
       ],
-      "triangles": 1472,
+      "triangles": 1734,
       "surfaces": 9
     },
     {
@@ -130,16 +130,16 @@
       ],
       "yaw": 0,
       "boundsMin": [
-        -16.5,
+        -16.06,
         0,
         -7.4
       ],
       "boundsSize": [
-        33,
-        11.8662815,
+        32.12,
+        11.28,
         14.5
       ],
-      "triangles": 2578,
+      "triangles": 2664,
       "surfaces": 7
     }
   ],
@@ -156,7 +156,7 @@
   "taa": true,
   "exposure": 1,
   "light": "noon",
-  "triangles": 11774,
+  "triangles": 12122,
   "surfaces": 47,
   "tick": null,
   "population": null,
