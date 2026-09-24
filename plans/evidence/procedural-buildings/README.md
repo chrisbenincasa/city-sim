@@ -211,4 +211,16 @@ maps in the GLB. Colours follow the warm-slate palette: warm walls, dark slate-g
 - A2's 11° gable and W2's 6° gable read as flat roofs with a crease, so both are now parapeted flat roofs. Pitched
   roofs are at least 18° ([session Q11](../../../research/procedural-buildings/SESSION.md#decisions)).
 - The ground is still flat colour.
+
+### Variants on the same geometry (`test-street-variants-*`)
+
+The last part of review protocol step 4. Each variant is its own GLB built from the base body's function with one flag, so
+the shared geometry cannot drift. `ExpandedStudy --test-street --variants` swaps them in at the same positions and captures
+the same views. A `houses` view looks at H1's roof from above the side garden in both sets.
+
+| Variant | Base | Change |
+|---|---|---|
+| `h1-reroofed` | H1 | The third house is re-roofed in newer shingles, `4d463f` against the range's `353e44`, split at the party walls |
+| `m1-repaired` | M1 | The west shop has dark-bronze mullions, transom and kickplate, a green sign board and a red fabric awning; the east shop is unchanged |
+| `w1-solar` | W1 | Seven rows of 10° panels, 1.7 × 0.95 m modules on rails, clear of the plant units and crickets |
 - The Godot import extracts each model's maps beside it, so every body carries its own copy.

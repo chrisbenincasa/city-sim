@@ -26,6 +26,7 @@ REVEAL = .18
 COLOURS = {
     'wall': 'd9d8d2', 'wall-end': 'c9c8c1', 'trim': 'f0efe9', 'roof': '85888a', 'membrane': '6f7274',
     'glass': '39454d', 'door': '4f5253', 'frame': 'eeeeea', 'metal': '8d9194', 'plinth': 'a3a29b',
+    'roof-new': '5a524a', 'storefront': '3a342e', 'sign': '2f5446', 'awning': '7e3a2f', 'solar': '1d2733',
 }
 
 FETCHED = json.loads((ROOT / 'art/materials/test-street/materials.json').read_text())
@@ -50,6 +51,9 @@ FINISHES = {
     'w1-workplace': {'wall': ('block', 'c3bcaa'), 'wall-end': ('block', 'ada691'), 'membrane': ('membrane', None)},
     'w2-workshop': {'wall': ('sheet', '5d6a6e'), 'wall-end': (None, '4f5b5f'), 'membrane': ('membrane', None)},
 }
+FINISHES['h1-reroofed'] = FINISHES['h1-attached-range'] | {'roof-new': ('shingles', '4d463f')}
+FINISHES['m1-repaired'] = FINISHES['m1-corner']
+FINISHES['w1-solar'] = FINISHES['w1-workplace']
 BOX_FACES = [(0, 3, 2, 1), (4, 5, 6, 7), (0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7)]
 
 parts = []
@@ -219,11 +223,15 @@ def facade(name, face, width, height, openings, material='wall'):
              'door' if kind in ('door', 'roller') else 'glass')
         if kind == 'window':
             face.slab(f'{name} sill', u - .06, u + w + .06, v - .07, v, -.06, .02, 'trim')
-        if kind in ('shop', 'stair', 'window') and w > 1.6:
+        if kind in ('shop', 'shop-new', 'stair', 'window') and w > 1.6:
             count = round(w / 1.5) - 1
+            frame = 'storefront' if kind == 'shop-new' else 'frame'
             for i in range(1, count + 1):
                 x = u + w * i / (count + 1)
-                face.slab(f'{name} mullion', x - .035, x + .035, v, v + h, depth - .08, depth, 'frame')
+                face.slab(f'{name} mullion', x - .035, x + .035, v, v + h, depth - .08, depth, frame)
+        if kind == 'shop-new':
+            face.slab(f'{name} transom', u, u + w, v + h - .45, v + h - .38, depth - .08, depth, 'storefront')
+            face.slab(f'{name} kickplate', u, u + w, v, v + .35, depth - .1, depth - .02, 'storefront')
         if kind == 'roller':
             for i in range(1, int(h / .5)):
                 face.slab(f'{name} slat', u, u + w, v + i * .5 - .015, v + i * .5 + .015, depth - .03, depth, 'metal')
@@ -266,14 +274,15 @@ def flat_roof(width, depth, height, parapet=.7):
     box('coping right', (x - .3, -y + .3, top), (x + .05, y - .3, top + .08), 'trim')
 
 
-def gable(width, depth, height, pitch, eaves=.4):
+def gable(width, depth, height, pitch, eaves=.4, segments=None):
     """A pitched roof whose rafters span the depth, so the ridge runs along the street.
     Returns a function giving the roof's top surface height at a distance from the ridge."""
     slope = math.tan(math.radians(pitch))
     x, y, t = width / 2 + eaves * .5, depth / 2 + eaves, .2
     low, top = height - eaves * slope, height + depth / 2 * slope
-    prism('pitched roof', [(-y, low), (-y, low + t), (0, top + t), (y, low + t), (y, low), (0, top)][::-1],
-          -x, x, 'roof')
+    profile = [(-y, low), (-y, low + t), (0, top + t), (y, low + t), (y, low), (0, top)][::-1]
+    for x0, x1, material in segments or [(-x, x, 'roof')]:
+        prism('pitched roof', profile, max(x0, -x), min(x1, x), material)
     for sign in (-1, 1):
         gx = sign * width / 2
         vertices = [(gx, -depth / 2, height), (gx, depth / 2, height), (gx, 0, top)]
@@ -281,8 +290,9 @@ def gable(width, depth, height, pitch, eaves=.4):
     return lambda distance: top + t - abs(distance) * slope
 
 
-def h1():
-    """Attached range: four 6 x 12 m house modules, two storeys, 18 degree roof across the depth."""
+def h1(reroofed=False):
+    """Attached range: four 6 x 12 m house modules, two storeys, 18 degree roof across the depth.
+    Reroofed, the third house carries newer shingles in another shade, split at the party walls."""
     width, depth, height = 24.0, 12.0, 2 * STOREY
     front, back = [], []
     for left in (0, 6, 12, 18):
@@ -293,7 +303,8 @@ def h1():
     end = [(3.0, 1.0, .9, 1.4, 'window'), (8.0, STOREY + 1.0, .9, 1.4, 'window')]
     walls(width, depth, height, front, back, end, end, 'wall-end')
     plinth(width, depth)
-    roof = gable(width, depth, height, 18)
+    segments = [(-99, 0, 'roof'), (0, 6, 'roof-new'), (6, 99, 'roof')] if reroofed else None
+    roof = gable(width, depth, height, 18, segments=segments)
     edge = depth / 2 + .15
     for x in (-6.0, 0.0, 6.0):
         profile = [(-edge, height - .3), (edge, height - .3), (edge, roof(edge) + .25), (0, roof(0) + .25),
@@ -357,12 +368,14 @@ def a2():
                 garden.slab('balcony side', u, u + .05, v + .15, v + 1.1, -1.35, 0, 'metal')
 
 
-def m1():
+def m1(repaired=False):
     """Corner mixed use: 24 x 16 m, three storeys, shopfront on the street, residential door and core
-    on the side street (the +X end), receiving at the back, roof falling to the service side."""
+    on the side street (the +X end), receiving at the back, roof falling to the service side.
+    Repaired, the west shop has a new bronze storefront, a sign board and a fabric awning."""
     width, depth, height = 24.0, 16.0, 3 * STOREY
     centres = [1.5 + 3 * i for i in range(8)]
-    front = [(i * 3 + .35, .3, 2.3, 2.6, 'door') if i in (1, 5) else (i * 3 + .35, .6, 2.3, 3.0, 'shop')
+    shop = lambda i: 'shop-new' if repaired and i < 4 else 'shop'
+    front = [(i * 3 + .35, .3, 2.3, 2.6, 'door') if i in (1, 5) else (i * 3 + .35, .6, 2.3, 3.0, shop(i))
              for i in range(8)]
     front += upper(3, centres, w=1.5, h=1.8)
     back = [(2.0, .3, 3.2, 3.0, 'roller'), (7.0, .3, 1.0, 2.2, 'door')] + upper(3, centres, w=1.3, h=1.6)
@@ -376,6 +389,11 @@ def m1():
     box('shop fascia', (-width / 2, -depth / 2 - .25, 3.75), (width / 2 + .25, -depth / 2, 4.3), 'trim')
     box('side fascia', (width / 2, -depth / 2, 3.75), (width / 2 + .25, 0, 4.3), 'trim')
     for sign in (-1, 1):
+        if repaired and sign < 0:
+            y = -depth / 2
+            prism('fabric awning', [(y - 1.3, 3.4), (y, 3.83), (y, 3.95), (y - 1.3, 3.52)], -11.2, -.8, 'awning')
+            box('shop sign', (-11.0, y - .32, 3.86), (-1.0, y - .25, 4.2), 'sign')
+            continue
         box('shop awning', (sign * 6 - 5.2, -depth / 2 - 1.3, 3.62), (sign * 6 + 5.2, -depth / 2, 3.74), 'metal')
     box('residential canopy', (width / 2, 3.8, 2.85), (width / 2 + 1.0, 5.6, 3.0), 'trim')
     box('plant curb', (-6.0, 1.0, height), (2.0, 5.0, height + .35), 'metal')
@@ -387,8 +405,9 @@ def m1():
         box('downpipe', (x - .08, depth / 2, .3), (x + .08, depth / 2 + .16, height + .05), 'metal')
 
 
-def w1():
-    """Workplace, archived G001: 36 x 20 m, two full floors, six 6 m bays, receiving at the back."""
+def w1(solar=False):
+    """Workplace, archived G001: 36 x 20 m, two full floors, six 6 m bays, receiving at the back.
+    With solar, rows of 10 degree panels cover the roof clear of the plant and crickets."""
     width, depth, height = 36.0, 20.0, 2 * STOREY
     front = [(12.8, .3, 2.4, 2.6, 'door'), (15.6, 1.0, 1.6, 1.9, 'shop')]
     front += [(bay * 6 + .8, 1.0, 4.4, 1.9, 'shop') for bay in (0, 1, 3, 4, 5)]
@@ -412,6 +431,15 @@ def w1():
         box('scupper', (x - .2, depth / 2, height + .05), (x + .2, depth / 2 + .3, height + .3), 'metal')
         box('overflow', (x + 1.0, depth / 2, height + .3), (x + 1.3, depth / 2 + .2, height + .5), 'metal')
         box('downpipe', (x - .08, depth / 2, .3), (x + .08, depth / 2 + .16, height + .05), 'metal')
+    if solar:
+        rise = .95 * math.tan(math.radians(10))
+        for y in (-8.6, -7.0, -5.4, -3.8, 4.4, 6.0, 7.6):
+            low = height + .35
+            for module in range(19):
+                x = -16.5 + module * 1.74
+                prism('solar module', [(y, low), (y + .95, low + rise), (y + .95, low + rise + .04), (y, low + .04)],
+                      x, x + 1.7, 'solar')
+            box('solar rail', (-16.5, y + .8, height), (16.5, y + .9, low + rise), 'metal')
 
 
 def w2():
@@ -437,7 +465,8 @@ def w2():
         faces[name].slab('floor band', 0, width, STOREY - .1, STOREY + .1, -.06, 0, 'wall-end')
 
 
-BODIES = [('h1-attached-range', h1), ('a1-apartment', a1), ('a2-stair-range', a2), ('m1-corner', m1), ('w1-workplace', w1), ('w2-workshop', w2)]
+BODIES = [('h1-attached-range', h1), ('a1-apartment', a1), ('a2-stair-range', a2), ('m1-corner', m1), ('w1-workplace', w1), ('w2-workshop', w2),
+          ('h1-reroofed', lambda: h1(reroofed=True)), ('m1-repaired', lambda: m1(repaired=True)), ('w1-solar', lambda: w1(solar=True))]
 
 
 def export(name, build):

@@ -155,6 +155,89 @@
         "wall-end"
       ],
       "geometry_sha256": "d5a13d10dcb7a1d21b33ee5bade87a425474fbb9a5de32d9d794fddaa55bb60e"
+    },
+    {
+      "body": "h1-reroofed",
+      "vertices": 2124,
+      "faces": 708,
+      "bounds_min": [
+        -12.2,
+        -7.0,
+        0.0
+      ],
+      "bounds_max": [
+        12.2,
+        6.4,
+        10.05
+      ],
+      "materials": [
+        "wall-siding",
+        "trim",
+        "door",
+        "glass",
+        "wall-end-siding",
+        "plinth",
+        "roof-shingles",
+        "roof-new-shingles"
+      ],
+      "geometry_sha256": "3ebbdd82bb8faca7d9c63448d70d12ec1e6143b45a6d2b56e6b5684537c45ed3"
+    },
+    {
+      "body": "m1-repaired",
+      "vertices": 4136,
+      "faces": 1382,
+      "bounds_min": [
+        -12.06,
+        -9.3,
+        0.0
+      ],
+      "bounds_max": [
+        13.0,
+        8.3,
+        12.9
+      ],
+      "materials": [
+        "wall-brick",
+        "trim",
+        "glass",
+        "storefront",
+        "door",
+        "frame",
+        "metal",
+        "plinth",
+        "membrane-membrane",
+        "awning",
+        "sign"
+      ],
+      "geometry_sha256": "571041bc6ebfe9523c67cb571d09e5d19d8963217ea1bc56a9192f9973790638"
+    },
+    {
+      "body": "w1-solar",
+      "vertices": 3258,
+      "faces": 1755,
+      "bounds_min": [
+        -18.2,
+        -11.4,
+        0.0
+      ],
+      "bounds_max": [
+        18.2,
+        12.2,
+        8.5
+      ],
+      "materials": [
+        "wall-block",
+        "trim",
+        "door",
+        "glass",
+        "frame",
+        "metal",
+        "plinth",
+        "membrane-membrane",
+        "wall-end-block",
+        "solar"
+      ],
+      "geometry_sha256": "620d56f5ddad33d8a63e77fab170a8a3b3aae90e9ba53150b055f5591f1ec1fd"
     }
   ]
 }
