@@ -19,7 +19,7 @@ uncommitted work or choose an item already being built in another worktree.
 Work comes from two sources, and [PROCESS.md](../../../PROCESS.md) draws the line between them.
 If the user named a lane, use only that one. Otherwise report both.
 
-- **Outcomes:** read [the backlog board](../../../plans/0000-board.md), then only the selected
+- **Systems and features:** read [the backlog board](../../../plans/0000-board.md), then only the selected
   item's plan and relevant code.
 - **Fixes:** run `gh issue list --label ready-for-agent`. Skip issues labelled `in-progress`.
   Before recommending one, confirm the code it names still behaves as described.

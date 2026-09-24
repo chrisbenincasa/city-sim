@@ -1,7 +1,8 @@
 # Backlog
 
-This board lists outcomes that need a plan, a design decision or several PRs. A defect or change that
-one PR closes is a [GitHub issue](https://github.com/chrisbenincasa/city-sim/issues) instead.
+This board lists medium and large game systems and features: work that involves design, studies or
+iteration, usually across several PRs. A defect or change that one PR closes is a
+[GitHub issue](https://github.com/chrisbenincasa/city-sim/issues) instead.
 [PROCESS.md](../PROCESS.md) defines the workflow and the line between the two.
 Check Git and worktrees before choosing an item. Remove a completed entry; its commit or PR keeps
 history. This includes gameplay and all work needed to develop, present, test and deliver the game.

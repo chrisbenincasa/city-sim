@@ -9,7 +9,7 @@ Unfinished work lives in two places, and a session usually works from one of the
 
 | | [The backlog board](plans/0000-board.md) | [GitHub issues](https://github.com/chrisbenincasa/city-sim/issues) |
 |---|---|---|
-| Holds | Outcomes that need a plan, a design decision or several PRs: game systems, capabilities, rendering, delivery | One defect or tightly scoped change that a single PR closes |
+| Holds | Medium and large game systems and features: work that involves design, studies or iteration, usually across several PRs | One defect or tightly scoped change that a single PR closes |
 | Approach | Worked out in the item's plan | Known, or found by reading the code |
 | Choosing | Read the board, then the item's plan and code | List issues labelled `ready-for-agent` |
 | Claiming | The row names its owner or worktree | Add `in-progress` and comment the branch name |
