@@ -535,3 +535,16 @@ Revisit when:
 A labour Bin with `owner = "occupant"`, deposited by residents at home, spent by dwelling Rules that
 state labour among their inputs. The grading keys, the shelf life and the bucket shift are all
 already built by then, so the addition is an owner and a predicate.
+
+---
+
+## Building minor details
+
+**Status:** parked until the procedural Building kit carries materials and its massing is settled.
+**Retrofit cost:** ✅ **Low.** Details are added to the kit and to the generator's placement rules. No simulation state, save or State Hash is involved.
+
+The test street's bodies carry the elements that explain a Building: openings, reveals, doors, stairs, roofs and service equipment. They lack the small elements that make a street feel lived in and maintained. Examples are downpipes and gutters on every elevation, meter boxes, vents and flues, house numbers, mailboxes, light fittings, hose bibs, window trim and sills, flashing, conduit, signage brackets, fences and bins.
+
+These details matter most at street distance and cost triangles everywhere, so the pass has to decide which ones survive at each drawing distance.
+
+Revisit when the material pass on the test street is reviewed and the kit's bodies stop changing shape.

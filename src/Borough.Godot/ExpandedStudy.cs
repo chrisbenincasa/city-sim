@@ -32,10 +32,11 @@ public partial class ExpandedStudy : Node3D
     private bool _construction;
     private bool _fidelity;
     private bool _neighbourhood;
+    private bool _testStreet;
     private float _brickScale = 1;
     private static readonly string[] ConstructionSpecimens = { "attached-townhouse", "small-shop", "factory-with-office" };
-    private int SpecimenPages => _neighbourhood ? 0 : _fidelity ? 4 : _construction ? 12 : 52;
-    private int Pages => _neighbourhood ? 6 : SpecimenPages + (_construction ? 0 : 5);
+    private int SpecimenPages => _neighbourhood || _testStreet ? 0 : _fidelity ? 4 : _construction ? 12 : 52;
+    private int Pages => _testStreet ? TestStreetViews.Length : _neighbourhood ? 6 : SpecimenPages + (_construction ? 0 : 5);
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
     public override void _Ready()
@@ -48,6 +49,7 @@ public partial class ExpandedStudy : Node3D
                 else if (args[i] == "--construction") _construction = true;
                 else if (args[i] == "--fidelity") { _fidelity = true; _construction = true; }
                 else if (args[i] == "--neighbourhood") { _neighbourhood = true; _fidelity = true; }
+                else if (args[i] == "--test-street") _testStreet = true;
                 else if (args[i] == "--brick-scale") _brickScale = float.Parse(args[++i], System.Globalization.CultureInfo.InvariantCulture);
             if (!float.IsFinite(_brickScale) || _brickScale < .5f || _brickScale > 2) throw new ArgumentOutOfRangeException("brick-scale");
             _colors = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, string>>>(File.ReadAllText(ProjectSettings.GlobalizePath("res://../../art/visual-study/palettes.json")))!;
@@ -87,6 +89,7 @@ public partial class ExpandedStudy : Node3D
     {
         string path = anchor ? $"res://assets/visual-study/kit/models/{asset}.glb" : $"res://assets/visual-study/{(_fidelity ? "fidelity" : _construction ? "construction" : "expanded")}/{asset}.glb";
         if (_neighbourhood && !anchor && asset != "attached-townhouse") path = $"res://assets/visual-study/neighbourhood/{asset}.glb";
+        if (_testStreet) path = $"res://assets/test-street/{asset}.glb";
         if (!_scenes.TryGetValue(path, out PackedScene? scene)) { scene = GD.Load<PackedScene>(path); _scenes.Add(path, scene); }
         var instance = scene.Instantiate<Node3D>();
         Aabb? bounds = null;
@@ -170,7 +173,12 @@ public partial class ExpandedStudy : Node3D
     {
         _content?.Free(); _content = new Node3D(); AddChild(_content); _instances.Clear(); _triangles = 0; _surfaces = 0;
         Vector3 eye;
-        if (_neighbourhood)
+        if (_testStreet)
+        {
+            TestStreet(); _subject = "test-street"; _palette = "monochrome";
+            (_view, eye, _target) = TestStreetViews[_page];
+        }
+        else if (_neighbourhood)
         {
             Neighbourhood(); _subject = "neighbourhood"; _palette = "mixed-approved";
             (_view, eye, _target) = _page switch
@@ -230,6 +238,7 @@ public partial class ExpandedStudy : Node3D
         if (_fidelity) _caption.Text = $"0063 / FIDELITY PILOT / {_subject.ToUpperInvariant()} / {_palette.ToUpperInvariant()} / {_view.ToUpperInvariant()}\nBrick material · sash windows and curtains · cornices · entrance courts · matched camera and noon light";
         if (_fidelity && _brickScale != 1) _caption.Text = $"0063 / BRICK SCALE / {_brickScale:0.00}× / {_palette.ToUpperInvariant()} / {_view.ToUpperInvariant()}\nSame geometry and texture images · diffuse, normal and roughness scaled together · matched camera and light";
         if (_neighbourhood) _caption.Text = $"0063 / NEIGHBOURHOOD FIDELITY / {_view.ToUpperInvariant()}\nAuthored street corner · warm material families · static daylight study · Left/Right browse · Escape closes";
+        if (_testStreet) _caption.Text = $"PROCEDURAL BUILDINGS / TEST STREET / {_view.ToUpperInvariant()}\nPass 03 bodies H1 A1 M1 W1 W2, A2 apart · 3.5 m storeys · monochrome blockout · noon · Left/Right browse · Escape closes";
         GD.Print($"EXPANDED_IMPORT_OK {_subject} {_palette} {_view} instances={_instances.Count} triangles={_triangles}");
     }
 
@@ -256,7 +265,7 @@ public partial class ExpandedStudy : Node3D
                 subject = _subject,
                 palette = _palette,
                 view = _view,
-                comparison = _neighbourhood ? "neighbourhood-1" : _fidelity ? "fidelity-1" : _construction ? "construction-study-1" : "expanded-kit-1",
+                comparison = _testStreet ? "test-street-1" : _neighbourhood ? "neighbourhood-1" : _fidelity ? "fidelity-1" : _construction ? "construction-study-1" : "expanded-kit-1",
                 instances = _instances,
                 brickScale = _brickScale,
                 camera = _camera.Position.ToString(),

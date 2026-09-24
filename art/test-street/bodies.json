@@ -1,0 +1,159 @@
+{
+  "storey_metres": 3.5,
+  "bodies": [
+    {
+      "body": "h1-attached-range",
+      "vertices": 2100,
+      "faces": 692,
+      "bounds_min": [
+        -12.2,
+        -7.0,
+        0.0
+      ],
+      "bounds_max": [
+        12.2,
+        6.4,
+        10.05
+      ],
+      "materials": [
+        "wall",
+        "trim",
+        "door",
+        "glass",
+        "wall-end",
+        "plinth",
+        "roof"
+      ],
+      "geometry_sha256": "a23b94f896b5a95734673d147ccf9d425d37413ac0974900b1d7d01acd18f6e0"
+    },
+    {
+      "body": "a1-apartment",
+      "vertices": 2688,
+      "faces": 912,
+      "bounds_min": [
+        -12.5,
+        -9.2,
+        0.0
+      ],
+      "bounds_max": [
+        12.5,
+        8.06,
+        11.4
+      ],
+      "materials": [
+        "wall",
+        "trim",
+        "glass",
+        "door",
+        "plinth",
+        "membrane",
+        "metal"
+      ],
+      "geometry_sha256": "051fe26485a22bf4a4c032299c7d65c4fa8ec1092211b6e4de40b27459cdcebb"
+    },
+    {
+      "body": "a2-stair-range",
+      "vertices": 3802,
+      "faces": 1288,
+      "bounds_min": [
+        -16.5,
+        -7.1,
+        0.0
+      ],
+      "bounds_max": [
+        16.5,
+        7.4,
+        11.866
+      ],
+      "materials": [
+        "wall",
+        "trim",
+        "door",
+        "glass",
+        "plinth",
+        "membrane",
+        "metal"
+      ],
+      "geometry_sha256": "d192eb34202e43ed6067a1d8bcbd64d2488bbd19c51276b510325dd2e1e5c2d7"
+    },
+    {
+      "body": "m1-corner",
+      "vertices": 4080,
+      "faces": 1340,
+      "bounds_min": [
+        -12.06,
+        -9.3,
+        0.0
+      ],
+      "bounds_max": [
+        13.0,
+        8.3,
+        12.9
+      ],
+      "materials": [
+        "wall",
+        "trim",
+        "glass",
+        "frame",
+        "door",
+        "metal",
+        "plinth",
+        "membrane"
+      ],
+      "geometry_sha256": "99f18b3949e27acdfd7b548ea720862cfd4e5b537a747b569812f5ed15d57bcb"
+    },
+    {
+      "body": "w1-workplace",
+      "vertices": 2138,
+      "faces": 915,
+      "bounds_min": [
+        -18.2,
+        -11.4,
+        0.0
+      ],
+      "bounds_max": [
+        18.2,
+        12.2,
+        8.5
+      ],
+      "materials": [
+        "wall",
+        "trim",
+        "door",
+        "glass",
+        "frame",
+        "metal",
+        "plinth",
+        "membrane",
+        "wall-end"
+      ],
+      "geometry_sha256": "a4ca8a2f6351e0a0b5d15b63619ccbb6c6c23b0c8db96230ca211cc1c25c7077"
+    },
+    {
+      "body": "w2-workshop",
+      "vertices": 1782,
+      "faces": 735,
+      "bounds_min": [
+        -16.25,
+        -8.5,
+        0.0
+      ],
+      "bounds_max": [
+        16.25,
+        8.5,
+        8.841
+      ],
+      "materials": [
+        "wall",
+        "trim",
+        "door",
+        "metal",
+        "glass",
+        "frame",
+        "plinth",
+        "wall-end"
+      ],
+      "geometry_sha256": "39eab6a6ceb8389462487ca00732602cb14b7a39513a3428110af352c7414f2b"
+    }
+  ]
+}

@@ -1,0 +1,380 @@
+[
+  {
+    "view": "opening",
+    "case": "paused",
+    "probe": "baseline",
+    "band": "0 0 0 on",
+    "samples": 8,
+    "fps": 67.50649999999999,
+    "frame_ms": 14.81338834038204,
+    "gpu_ms": 14.6735,
+    "render_cpu_ms": 2.82275,
+    "shell_ms": 6.665633088235294,
+    "ticks_per_s": 0.0,
+    "step_ms_per_s": 0.0,
+    "busy_frames": 0.0,
+    "upload": null,
+    "counts": {
+      "Visible": {
+        "objects": 2694,
+        "draw_calls": 2694,
+        "primitives": 5540770
+      },
+      "Shadow": {
+        "objects": 0,
+        "draw_calls": 0,
+        "primitives": 0
+      }
+    },
+    "movers": {
+      "index_visits": 0,
+      "queries": 0,
+      "traveller": {
+        "uploads": 0,
+        "bytes": 0,
+        "upload_ms": 0.0
+      },
+      "car": {
+        "uploads": 0,
+        "bytes": 0,
+        "upload_ms": 0.0
+      }
+    }
+  },
+  {
+    "view": "opening",
+    "case": "1x",
+    "probe": "baseline",
+    "band": "0 0 0 on",
+    "samples": 8,
+    "fps": 65.0755,
+    "frame_ms": 15.36676629453481,
+    "gpu_ms": 15.2008,
+    "render_cpu_ms": 3.37045,
+    "shell_ms": 1.2162901515151514,
+    "ticks_per_s": 7.434298390776204,
+    "step_ms_per_s": 608.4141478042666,
+    "busy_frames": 0.8787878787878788,
+    "upload": null,
+    "counts": {
+      "Visible": {
+        "objects": 2694,
+        "draw_calls": 2694,
+        "primitives": 5540770
+      },
+      "Shadow": {
+        "objects": 0,
+        "draw_calls": 0,
+        "primitives": 0
+      }
+    },
+    "movers": {
+      "index_visits": 1314117,
+      "queries": 0,
+      "traveller": {
+        "uploads": 0,
+        "bytes": 0,
+        "upload_ms": 0.0
+      },
+      "car": {
+        "uploads": 0,
+        "bytes": 0,
+        "upload_ms": 0.0
+      }
+    }
+  },
+  {
+    "view": "opening",
+    "case": "4x",
+    "probe": "baseline",
+    "band": "0 0 0 on",
+    "samples": 10,
+    "fps": 63.531000000000006,
+    "frame_ms": 15.740347232059937,
+    "gpu_ms": 15.35585,
+    "render_cpu_ms": 3.3340500000000004,
+    "shell_ms": 1.7832554086538461,
+    "ticks_per_s": 7.929568146138951,
+    "step_ms_per_s": 795.2825379653457,
+    "busy_frames": 0.8769230769230769,
+    "upload": null,
+    "counts": {
+      "Visible": {
+        "objects": 2694,
+        "draw_calls": 2694,
+        "primitives": 5540770
+      },
+      "Shadow": {
+        "objects": 0,
+        "draw_calls": 0,
+        "primitives": 0
+      }
+    },
+    "movers": {
+      "index_visits": 1649088,
+      "queries": 0,
+      "traveller": {
+        "uploads": 0,
+        "bytes": 0,
+        "upload_ms": 0.0
+      },
+      "car": {
+        "uploads": 0,
+        "bytes": 0,
+        "upload_ms": 0.0
+      }
+    }
+  },
+  {
+    "view": "street",
+    "case": "paused",
+    "probe": "baseline",
+    "band": "0 0 0 on",
+    "samples": 8,
+    "fps": 126.411,
+    "frame_ms": 7.910703973546606,
+    "gpu_ms": 6.2343,
+    "render_cpu_ms": 0.36825,
+    "shell_ms": 6.856272047244095,
+    "ticks_per_s": 0.0,
+    "step_ms_per_s": 0.0,
+    "busy_frames": 0.0,
+    "upload": null,
+    "counts": {
+      "Visible": {
+        "objects": 78,
+        "draw_calls": 78,
+        "primitives": 256884
+      },
+      "Shadow": {
+        "objects": 83,
+        "draw_calls": 83,
+        "primitives": 341200
+      }
+    },
+    "movers": {
+      "index_visits": 0,
+      "queries": 0,
+      "traveller": {
+        "uploads": 0,
+        "bytes": 0,
+        "upload_ms": 0.0
+      },
+      "car": {
+        "uploads": 0,
+        "bytes": 0,
+        "upload_ms": 0.0
+      }
+    }
+  },
+  {
+    "view": "street",
+    "case": "1x",
+    "probe": "baseline",
+    "band": "0 0 0 on",
+    "samples": 10,
+    "fps": 134.74,
+    "frame_ms": 7.4217010538815495,
+    "gpu_ms": 6.64295,
+    "render_cpu_ms": 0.48934999999999995,
+    "shell_ms": 0.9778038779956426,
+    "ticks_per_s": 5.990563834386968,
+    "step_ms_per_s": 789.5117092676772,
+    "busy_frames": 0.9551339285714286,
+    "upload": null,
+    "counts": {
+      "Visible": {
+        "objects": 80,
+        "draw_calls": 80,
+        "primitives": 262736
+      },
+      "Shadow": {
+        "objects": 89,
+        "draw_calls": 89,
+        "primitives": 361264
+      }
+    },
+    "movers": {
+      "index_visits": 1288350,
+      "queries": 2399,
+      "traveller": {
+        "uploads": 231,
+        "bytes": 256000,
+        "upload_ms": 3.11
+      },
+      "car": {
+        "uploads": 214,
+        "bytes": 275456,
+        "upload_ms": 2.307
+      }
+    }
+  },
+  {
+    "view": "street",
+    "case": "4x",
+    "probe": "baseline",
+    "band": "0 0 0 on",
+    "samples": 8,
+    "fps": 135.168,
+    "frame_ms": 7.398200757575757,
+    "gpu_ms": 6.546849999999999,
+    "render_cpu_ms": 0.4622,
+    "shell_ms": 1.096682883986928,
+    "ticks_per_s": 6.97731062822916,
+    "step_ms_per_s": 817.2970905327006,
+    "busy_frames": 0.948338779956427,
+    "upload": null,
+    "counts": {
+      "Visible": {
+        "objects": 80,
+        "draw_calls": 80,
+        "primitives": 264114
+      },
+      "Shadow": {
+        "objects": 94,
+        "draw_calls": 94,
+        "primitives": 373580
+      }
+    },
+    "movers": {
+      "index_visits": 1262583,
+      "queries": 3830,
+      "traveller": {
+        "uploads": 234,
+        "bytes": 289792,
+        "upload_ms": 3.536
+      },
+      "car": {
+        "uploads": 220,
+        "bytes": 325632,
+        "upload_ms": 2.823
+      }
+    }
+  },
+  {
+    "view": "district",
+    "case": "paused",
+    "probe": "baseline",
+    "band": "0 0 0 on",
+    "samples": 8,
+    "fps": 106.2235,
+    "frame_ms": 9.414112696343087,
+    "gpu_ms": 9.2356,
+    "render_cpu_ms": 0.65005,
+    "shell_ms": 6.004951699651823,
+    "ticks_per_s": 0.0,
+    "step_ms_per_s": 0.0,
+    "busy_frames": 0.0,
+    "upload": null,
+    "counts": {
+      "Visible": {
+        "objects": 348,
+        "draw_calls": 348,
+        "primitives": 1709980
+      },
+      "Shadow": {
+        "objects": 268,
+        "draw_calls": 268,
+        "primitives": 1326030
+      }
+    },
+    "movers": {
+      "index_visits": 0,
+      "queries": 0,
+      "traveller": {
+        "uploads": 0,
+        "bytes": 0,
+        "upload_ms": 0.0
+      },
+      "car": {
+        "uploads": 0,
+        "bytes": 0,
+        "upload_ms": 0.0
+      }
+    }
+  },
+  {
+    "view": "district",
+    "case": "1x",
+    "probe": "baseline",
+    "band": "0 0 0 on",
+    "samples": 9,
+    "fps": 87.696,
+    "frame_ms": 11.403028644407955,
+    "gpu_ms": 9.3299,
+    "render_cpu_ms": 0.8214,
+    "shell_ms": 2.6805459770114943,
+    "ticks_per_s": 7.9343433091170565,
+    "step_ms_per_s": 672.4859715671863,
+    "busy_frames": 0.896551724137931,
+    "upload": null,
+    "counts": {
+      "Visible": {
+        "objects": 347,
+        "draw_calls": 347,
+        "primitives": 1703676
+      },
+      "Shadow": {
+        "objects": 205,
+        "draw_calls": 205,
+        "primitives": 1083048
+      }
+    },
+    "movers": {
+      "index_visits": 1623321,
+      "queries": 92020,
+      "traveller": {
+        "uploads": 1408,
+        "bytes": 3584000,
+        "upload_ms": 26.453
+      },
+      "car": {
+        "uploads": 1450,
+        "bytes": 5412864,
+        "upload_ms": 39.864
+      }
+    }
+  },
+  {
+    "view": "district",
+    "case": "4x",
+    "probe": "baseline",
+    "band": "0 0 0 on",
+    "samples": 8,
+    "fps": 94.088,
+    "frame_ms": 10.628347929597824,
+    "gpu_ms": 9.077100000000002,
+    "render_cpu_ms": 0.81225,
+    "shell_ms": 2.111576489361702,
+    "ticks_per_s": 7.457559124454848,
+    "step_ms_per_s": 689.406721523809,
+    "busy_frames": 0.9153415453527436,
+    "upload": null,
+    "counts": {
+      "Visible": {
+        "objects": 350,
+        "draw_calls": 350,
+        "primitives": 1625208
+      },
+      "Shadow": {
+        "objects": 447,
+        "draw_calls": 447,
+        "primitives": 1854896
+      }
+    },
+    "movers": {
+      "index_visits": 1649088,
+      "queries": 47745,
+      "traveller": {
+        "uploads": 871,
+        "bytes": 2152448,
+        "upload_ms": 15.446
+      },
+      "car": {
+        "uploads": 1430,
+        "bytes": 5179392,
+        "upload_ms": 34.821
+      }
+    }
+  }
+]

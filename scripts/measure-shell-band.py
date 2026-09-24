@@ -1,10 +1,10 @@
 """Measure generated Building shells, or profile the opening camera, in the shell.
 
-The band suite takes research/procedural-buildings REPORT §3 measurements 2-4. The opening suite
-hides layer groups at the whole-city camera to attribute its cost. The ready suite only times the
-launch. The shell opens a cached city save made by headless --save-city, keyed by Ruleset content
-hash, save format, Citizens and Tick; --simulate steps from Tick 0 instead. Build the shell in
-Release first:
+The band suite takes research/procedural-buildings REPORT §3 measurements 2-4. The moving suite
+compares a paused city with the clock at 1x and 4x. The opening suite hides layer groups at the
+whole-city camera to attribute its cost. The ready suite only times the launch. The shell opens a
+cached city save made by headless --save-city, keyed by Ruleset content hash, save format, Citizens
+and Tick; --simulate steps from Tick 0 instead. Build the shell in Release first:
   dotnet build src/Borough.Godot -c Release -p:OutputPath=$PWD/src/Borough.Godot/.godot/mono/temp/bin/Debug/
 """
 import argparse
@@ -19,7 +19,7 @@ import subprocess
 import time
 
 # (name, focus command or None for the opening camera, cases)
-# A case is (label, render probe, shell-band arguments).
+# A case is (label, render probe, shell-band arguments[, clock speed rung]).
 BAND = [
     ('boxes', 'baseline', '0 0 0 on'),
     ('boxes-sun-off', 'shadows-off', '0 0 0 on'),
@@ -45,11 +45,21 @@ OPENING = [
     *[(f'hide-{group}', f'hide-{layers}', '0 0 0 on') for group, layers in LAYERS.items()],
     ('hide-all', 'hide-' + ','.join(LAYERS.values()), '0 0 0 on'),
 ]
+MOVING = [
+    ('paused', 'baseline', '0 0 0 on', 0),
+    ('1x', 'baseline', '0 0 0 on', 5),
+    ('4x', 'baseline', '0 0 0 on', 8),
+]
 SUITES = {'band': [
     ('opening', None, [BAND[0], BAND[1]]),
     ('street', 'focus 1781 1656 150', BAND),
     ('district', 'focus 1781 1656 600', [BAND[0], BAND[1], BAND[3], BAND[4], BAND[6], BAND[7]]),
-], 'opening': [('opening', None, OPENING)], 'ready': []}
+], 'opening': [('opening', None, OPENING)], 'moving': [
+    ('opening', None, MOVING),
+    ('street', 'focus 1781 1656 150', MOVING),
+    ('district', 'focus 1781 1656 600', MOVING),
+], 'ready': []}
+MOVERS = ('traveller', 'car')
 
 parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
 parser.add_argument('--output', type=Path, required=True)
@@ -112,6 +122,13 @@ manifest = {
 }
 
 
+def gpu_users():
+    """Other processes holding GPU compute, which would share the frames being measured."""
+    listed = subprocess.check_output(['nvidia-smi', '--query-compute-apps=pid,process_name',
+                                      '--format=csv,noheader'], text=True).splitlines()
+    return [line for line in listed if line.strip() and int(line.split(',')[0]) != process.pid]
+
+
 wire = None
 
 
@@ -147,6 +164,22 @@ def counts(path):
     return found
 
 
+def movers(path):
+    """Cumulative Traveller and car uploads, and movement-index work, since the shell started."""
+    found = {}
+    for line in Path(str(path) + '.profile.tsv').read_text().splitlines():
+        fields = line.split('\t')
+        if fields[0] == 'render' and fields[1] in MOVERS:
+            found[fields[1]] = {'uploads': int(fields[3]), 'bytes': int(fields[5]), 'upload_ms': float(fields[6])}
+        elif fields[0] == 'render_work':
+            found['index_visits'], found['queries'] = int(fields[3]), int(fields[4])
+    return found
+
+
+def difference(after, before):
+    return {k: difference(v, before[k]) if isinstance(v, dict) else round(v - before[k], 3) for k, v in after.items()}
+
+
 def profile(path):
     for line in Path(str(path) + '.profile.tsv').read_text().splitlines():
         if line.startswith('shell_band\t'):
@@ -176,6 +209,7 @@ with (output / 'game.log').open('w') as log:
             manifest['launch_to_ready_seconds'] = round(time.monotonic() - launched, 1)
             print(json.dumps({'launch_to_ready_seconds': manifest['launch_to_ready_seconds']}), flush=True)
             initial = state(output / 'initial.json')
+            manifest['other_gpu_users_at_start'] = gpu_users()
             manifest['rendering'] = initial['Rendering']
             assert initial['Rendering']['Configuration'] == 'Release', 'Build the shell in Release'
             assert initial['Rendering']['Vsync'] == 'Disabled' and initial['Rendering']['FrameLimit'] == 0
@@ -186,19 +220,25 @@ with (output / 'game.log').open('w') as log:
                     send(focus)
                     send('tilt 35')
                 state(output / f'{view}-camera.json')
-                for label, probe, band in cases:
+                for label, probe, band, *speed in cases:
                     name = f'{view}-{label}'
                     send(f'ui render-probe {probe}')
                     send(f'ui shell-band {band}')
+                    if speed:
+                        send(f'speed {speed[0]}')
                     send(f'draw {output / (name + ".tsv")}')
                     upload = profile(output / (name + '.tsv'))
                     (output / (name + '.tsv')).unlink()
                     time.sleep(args.warmup)
                     start = len(rows())
+                    send(f'draw {output / (name + ".tsv")}')
+                    moved_before = movers(output / (name + '.tsv'))
+                    (output / (name + '.tsv')).unlink()
                     time.sleep(args.seconds)
                     window = rows()[start:]
                     send(f'draw {output / (name + ".tsv")}')
                     drawn = counts(output / (name + '.tsv'))
+                    moved = difference(movers(output / (name + '.tsv')), moved_before)
                     (output / (name + '.tsv')).unlink()
                     send(f'shoot {output / (name + ".png")}')
                     Path(output / (name + '.txt')).unlink(missing_ok=True)
@@ -209,10 +249,15 @@ with (output / 'game.log').open('w') as log:
                     result = {'view': view, 'case': label, 'probe': probe, 'band': band,
                               'samples': len(window), 'fps': median('fps'),
                               'frame_ms': 1000 / median('fps'), 'gpu_ms': median('gpu_ms'),
-                              'render_cpu_ms': median('render_cpu_ms'), 'upload': upload,
-                              'counts': drawn}
+                              'render_cpu_ms': median('render_cpu_ms'),
+                              'shell_ms': statistics.median(float(r['shell_ms']) / int(r['frames']) for r in window),
+                              'ticks_per_s': statistics.median(int(r['ticks']) / float(r['seconds']) for r in window),
+                              'step_ms_per_s': statistics.median(float(r['step_ms']) / float(r['seconds']) for r in window),
+                              'busy_frames': statistics.median(int(r['busy_frames']) / int(r['frames']) for r in window),
+                              'upload': upload, 'counts': drawn, 'movers': moved}
                     results.append(result)
                     print(json.dumps(result), flush=True)
+            manifest['other_gpu_users_at_end'] = gpu_users()
             send('ui shell-band 0 0 0 on')
             send('quit')
         process.wait(timeout=120)

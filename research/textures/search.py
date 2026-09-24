@@ -1,0 +1,286 @@
+#!/usr/bin/env python3
+"""Match inventory.toml against the CC0 texture catalogues.
+
+Writes candidates.md and candidates.html beside this file. The HTML embeds its
+thumbnails, so it works offline and as a published artifact. Needs Pillow. Catalogues are cached in
+$XDG_CACHE_HOME/borough-textures; pass --refresh to fetch them again.
+"""
+
+import argparse
+import base64
+import html
+import io
+import json
+import math
+import os
+import re
+import tomllib
+import urllib.request
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+CACHE = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "borough-textures"
+AGENT = {"User-Agent": "borough-texture-inventory"}
+PER_ITEM = 8
+
+
+def fetch(url):
+    with urllib.request.urlopen(urllib.request.Request(url, headers=AGENT), timeout=60) as r:
+        return r.read()
+
+
+def cached(name, load, refresh):
+    path = CACHE / name
+    if refresh or not path.exists():
+        CACHE.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(load()))
+    return json.loads(path.read_text())
+
+
+def polyhaven():
+    return json.loads(fetch("https://api.polyhaven.com/assets?t=textures"))
+
+
+def ambientcg():
+    assets, offset = [], 0
+    while True:
+        page = json.loads(fetch(
+            "https://ambientcg.com/api/v2/full_json?type=Material&limit=250"
+            f"&offset={offset}&include=tagData,dimensionsData,displayData,previewData"))
+        assets += page["foundAssets"]
+        offset += 250
+        if not page["foundAssets"] or offset >= page["numberOfResults"]:
+            return assets
+
+
+def cgbookcase():
+    page = fetch("https://www.cgbookcase.com/textures").decode()
+    return sorted(set(re.findall(r'href="/textures/([a-z0-9-]+)"', page)))
+
+
+def records(refresh):
+    for key, a in cached("polyhaven.json", polyhaven, refresh).items():
+        w, h = a.get("dimensions") or (0, 0)
+        yield {
+            "source": "Poly Haven", "id": key, "name": a["name"],
+            "url": f"https://polyhaven.com/a/{key}",
+            "thumb": f"https://cdn.polyhaven.com/asset_img/thumbs/{key}.png?width=256&height=256",
+            "text": " ".join([a["name"], *a["tags"], *a["categories"], a.get("category", "")]),
+            "extra": a.get("description", ""),
+            "size": f"{w / 1000:g} x {h / 1000:g} m" if w else "",
+            "downloads": a.get("download_count", 0),
+        }
+    for a in cached("ambientcg.json", ambientcg, refresh):
+        w, h = a.get("dimensionX") or 0, a.get("dimensionY") or 0
+        yield {
+            "source": "ambientCG", "id": a["assetId"], "name": a["displayName"],
+            "url": a["shortLink"],
+            "thumb": (a.get("previewImage") or {}).get("256-JPG-FFFFFF", ""),
+            "text": " ".join([a["displayName"], a.get("displayCategory") or "", *a["tags"]]),
+            "extra": a.get("description") or "",
+            "size": f"{w / 100:g} x {h / 100:g} m" if w else "",
+            "downloads": a.get("downloadCount", 0),
+        }
+    for slug in cached("cgbookcase.json", cgbookcase, refresh):
+        yield {
+            "source": "cgbookcase", "id": slug, "name": slug.replace("-", " ").title(),
+            "url": f"https://www.cgbookcase.com/textures/{slug}", "thumb": "",
+            "text": slug.replace("-", " "), "extra": "", "size": "", "downloads": 0,
+        }
+
+
+def has(term, text):
+    return re.search(rf"\b{re.escape(term)}", text) is not None
+
+
+def score(item, rec):
+    text, extra = rec["text"].lower(), rec["extra"].lower()
+    if any(has(t, text) for t in item.get("not", [])):
+        return 0
+    if not all(has(t, text + " " + extra) for t in item.get("all", [])):
+        return 0
+    s = sum(2 * len(t.split()) for t in item["any"] if has(t, text))
+    s += sum(0.5 for t in item["any"] if not has(t, text) and has(t, extra))
+    return s + math.log10(1 + rec["downloads"]) / 10 if s else 0
+
+
+def pick(item, recs):
+    by_key = {f"{r['source']}:{r['id']}": r for r in recs}
+    shortlist = [dict(by_key[k], short=True) for k in item.get("shortlist", []) if k in by_key]
+    missing = [k for k in item.get("shortlist", []) if k not in by_key]
+    if missing:
+        raise SystemExit(f"{item['id']}: shortlist names unknown assets {missing}")
+    taken = {(r["source"], r["id"]) for r in shortlist}
+    ranked = sorted(((score(item, r), r) for r in recs), key=lambda p: -p[0])
+    ranked = [r for s, r in ranked if s > 0]
+    chosen, per_source = list(shortlist), {}
+    for r in ranked:
+        if len(chosen) >= PER_ITEM + len(shortlist):
+            break
+        if (r["source"], r["id"]) not in taken and per_source.get(r["source"], 0) < PER_ITEM // 2:
+            chosen.append(r)
+            per_source[r["source"]] = per_source.get(r["source"], 0) + 1
+    return chosen, len(ranked)
+
+
+def write_md(items, results):
+    lines = [
+        "# Texture candidates",
+        "",
+        "Generated by `search.py` from `inventory.toml`. Do not edit by hand.",
+        "Matches are by keyword. Every candidate still needs a look for fit, scale and region.",
+        "",
+    ]
+    group = None
+    for item in items:
+        chosen, total = results[item["id"]]
+        if item["group"] != group:
+            group = item["group"]
+            lines += [f"## {group}", ""]
+        lines += [
+            f"### {item['id']} {item['item']} (priority {item['priority']})",
+            "",
+            f"- Serves: {item['serves']}",
+            *([f"- Notes: {item['notes']}"] if item.get("notes") else []),
+            *([f"- Gap: {item['gap']}"] if item.get("gap") else []),
+            f"- Keyword matches: {total}",
+            "",
+        ]
+        if chosen:
+            lines += ["| Shortlist | Source | Asset | Real size |", "|---|---|---|---|"]
+            lines += [f"| {'yes' if r.get('short') else ''} | {r['source']} | [{r['name']}]({r['url']}) | {r['size']} |"
+                      for r in chosen]
+        else:
+            lines += ["No keyword match. Needs a manual search or another source."]
+        lines.append("")
+    (HERE / "candidates.md").write_text("\n".join(lines) + "\n")
+
+
+THUMB_PX = 160
+
+
+def thumbnail(rec):
+    path = CACHE / "thumbs" / f"{rec['source'].replace(' ', '')}_{rec['id']}.jpg"
+    if not path.exists():
+        from PIL import Image
+        path.parent.mkdir(parents=True, exist_ok=True)
+        img = Image.open(io.BytesIO(fetch(rec["thumb"]))).convert("RGB")
+        img.resize((THUMB_PX, THUMB_PX), Image.LANCZOS).save(path, quality=74)
+    return "data:image/jpeg;base64," + base64.b64encode(path.read_bytes()).decode()
+
+
+def write_html(items, results):
+    e = html.escape
+    wanted = {(r["source"], r["id"]): r for chosen, _ in results.values() for r in chosen if r["thumb"]}
+    with ThreadPoolExecutor(12) as pool:
+        thumbs = dict(zip(wanted, pool.map(thumbnail, wanted.values())))
+    groups = list(dict.fromkeys(i["group"] for i in items))
+    shortlisted = sum(1 for i in items if i.get("shortlist"))
+    gaps = sum(1 for i in items if i.get("gap"))
+
+    def card(r):
+        img = thumbs.get((r["source"], r["id"]))
+        pic = f'<img src="{img}" alt="" width="{THUMB_PX}" height="{THUMB_PX}">' if img else '<div class="noimg">No preview</div>'
+        meta = e(r["source"]) + (f' · {e(r["size"])}' if r["size"] else "")
+        badge = '<span class="pick">Shortlist</span>' if r.get("short") else ""
+        return (f'<a class="card{" short" if r.get("short") else ""}" href="{e(r["url"])}" target="_blank" rel="noopener">'
+                f'{pic}<span class="n">{e(r["name"])}</span><span class="m">{meta}</span>{badge}</a>')
+
+    sections = []
+    for item in items:
+        chosen, total = results[item["id"]]
+        cards = "".join(card(r) for r in chosen) or '<p class="none">No keyword match.</p>'
+        gap = f'<p class="gap"><b>Gap</b> {e(item["gap"])}</p>' if item.get("gap") else ""
+        notes = f'<p class="notes">{e(item["notes"])}</p>' if item.get("notes") else ""
+        sections.append(
+            f'<section id="{e(item["id"])}" data-p="{item["priority"]}" data-g="{e(item["group"])}">'
+            f'<header><span class="id">{e(item["id"])}</span><h2>{e(item["item"])}</h2>'
+            f'<span class="prio p{item["priority"]}">P{item["priority"]}</span></header>'
+            f'<p class="serves">{e(item["serves"])}</p>{notes}{gap}'
+            f'<p class="count">{total} keyword matches</p><div class="grid">{cards}</div></section>')
+
+    group_buttons = "".join(f'<button type="button" data-g="{e(g)}">{e(g)}</button>' for g in groups)
+    page = f"""<title>PNW Texture Candidates</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+:root{{--bg:#f3f5f2;--surface:#ffffff;--fg:#1c2320;--mute:#5d6a63;--line:#d6ddd8;--accent:#3f6b4f;--accent-soft:#e1ebe3;--gap:#8a5a12;--gap-soft:#f6ecd9}}
+@media (prefers-color-scheme:dark){{:root:not([data-theme="light"]){{color-scheme:dark;--bg:#141917;--surface:#1c2320;--fg:#e4ebe6;--mute:#93a39a;--line:#2e3833;--accent:#8cc29d;--accent-soft:#233229;--gap:#e0b366;--gap-soft:#2d2518}}}}
+:root[data-theme="dark"]{{color-scheme:dark;--bg:#141917;--surface:#1c2320;--fg:#e4ebe6;--mute:#93a39a;--line:#2e3833;--accent:#8cc29d;--accent-soft:#233229;--gap:#e0b366;--gap-soft:#2d2518}}
+*{{box-sizing:border-box}}
+body{{background:var(--bg);color:var(--fg);font:15px/1.5 "IBM Plex Sans",system-ui,sans-serif;margin:0}}
+main{{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:28px 64px}}
+h1{{font-size:26px;font-weight:600;margin:0;text-wrap:balance}}
+.lede{{color:var(--mute);max-width:68ch;margin:6px 0 0}}
+.facts{{display:flex;flex-wrap:wrap;gap:8px 24px;margin:16px 0 0;padding:0;list-style:none;color:var(--mute);font-size:13px}}
+.facts b{{color:var(--fg);font-weight:600;font-variant-numeric:tabular-nums}}
+.filters{{position:sticky;top:env(safe-area-inset-top,0px);z-index:2;background:var(--bg);display:flex;flex-direction:column;gap:8px;padding-block:14px;margin-top:18px;border-bottom:1px solid var(--line)}}
+.row{{display:flex;flex-wrap:wrap;gap:6px}}
+.filters button{{font:inherit;font-size:13px;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:3px 12px;cursor:pointer}}
+.filters button[aria-pressed="true"]{{background:var(--accent);border-color:var(--accent);color:var(--bg)}}
+.filters button:focus-visible,.card:focus-visible{{outline:2px solid var(--accent);outline-offset:2px}}
+section{{padding-block:22px;border-bottom:1px solid var(--line);scroll-margin-top:110px}}
+section header{{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}}
+h2{{font-size:17px;font-weight:600;margin:0;text-wrap:balance}}
+.id{{font:500 13px "IBM Plex Mono",ui-monospace,monospace;color:var(--accent)}}
+.prio{{font-size:11px;letter-spacing:.06em;border:1px solid var(--line);border-radius:4px;padding:0 6px;color:var(--mute)}}
+.prio.p1{{border-color:var(--accent);color:var(--accent)}}
+.serves,.notes,.count{{margin:4px 0 0;max-width:80ch;font-size:13.5px;color:var(--mute)}}
+.serves{{color:var(--fg)}}
+.gap{{margin:8px 0 0;max-width:80ch;font-size:13.5px;background:var(--gap-soft);color:var(--fg);border-radius:6px;padding:6px 10px}}
+.gap b{{color:var(--gap);font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin-right:6px}}
+.grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:10px;margin-top:12px}}
+.card{{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:6px;overflow:hidden;text-decoration:none;color:inherit;display:flex;flex-direction:column}}
+.card:hover{{border-color:var(--mute)}}
+.card.short{{border:2px solid var(--accent)}}
+.card img,.noimg{{display:block;width:100%;max-width:100%;height:auto;aspect-ratio:1;object-fit:cover;background:var(--line)}}
+.noimg{{display:grid;place-items:center;color:var(--mute);font-size:12px}}
+.n{{font-size:13px;line-height:1.3;padding:7px 8px 0;overflow-wrap:anywhere}}
+.m{{font-size:11.5px;color:var(--mute);padding:2px 8px 8px}}
+.pick{{position:absolute;top:6px;left:6px;font-size:10.5px;font-weight:600;letter-spacing:.05em;background:var(--accent);color:var(--bg);border-radius:3px;padding:1px 6px}}
+.none{{color:var(--mute);font-size:13px}}
+footer{{margin-top:28px;color:var(--mute);font-size:12.5px;max-width:80ch}}
+</style>
+<main>
+<h1>Texture candidates for the Pacific Northwest preset</h1>
+<p class="lede">Every surface the first style preset needs, with candidate materials from Poly Haven, ambientCG and cgbookcase. All three license their textures as CC0. Outlined cards passed a first look at the thumbnail. The rest are keyword matches. No pick has been tried in the game yet.</p>
+<ul class="facts"><li><b>{len(items)}</b> surfaces</li><li><b>{shortlisted}</b> with a shortlist</li><li><b>{gaps}</b> gaps the libraries cannot fill</li><li>Priority 1 = first test street and far view</li></ul>
+<div class="filters">
+<div class="row" data-kind="p"><button type="button" data-p="all" aria-pressed="true">All priorities</button><button type="button" data-p="1" aria-pressed="false">Priority 1</button><button type="button" data-p="2" aria-pressed="false">Priority 2</button><button type="button" data-p="3" aria-pressed="false">Priority 3</button></div>
+<div class="row" data-kind="g"><button type="button" data-g="all" aria-pressed="true">All groups</button>{group_buttons}</div>
+</div>
+{''.join(sections)}
+<footer>Generated by research/textures/search.py from inventory.toml. Real sizes come from each library's metadata. Poly Haven sizes describe the photographed area and are not a brick or board size.</footer>
+</main>
+<script>
+const f={{p:'all',g:'all'}};
+document.querySelectorAll('.filters button').forEach(b=>{{
+  if(b.dataset.g&&b.dataset.g!=='all')b.setAttribute('aria-pressed','false');
+  b.addEventListener('click',()=>{{
+    const k=b.dataset.p?'p':'g';f[k]=b.dataset[k];
+    b.parentElement.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+    document.querySelectorAll('section').forEach(s=>{{s.hidden=(f.p!=='all'&&s.dataset.p!==f.p)||(f.g!=='all'&&s.dataset.g!==f.g);}});
+  }});
+}});
+</script>
+"""
+    (HERE / "candidates.html").write_text(page)
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--refresh", action="store_true", help="fetch the catalogues again")
+    args = ap.parse_args()
+    items = tomllib.loads((HERE / "inventory.toml").read_text())["item"]
+    recs = list(records(args.refresh))
+    results = {item["id"]: pick(item, recs) for item in items}
+    write_md(items, results)
+    write_html(items, results)
+    empty = [i["id"] for i in items if not results[i["id"]][0]]
+    print(f"{len(items)} items, {len(recs)} catalogue assets, no match: {', '.join(empty) or 'none'}")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,27 @@
+{
+  "Tick": 600,
+  "Hash": "91651FCF980AB06B",
+  "Camera": {
+    "Yaw": 0.7853982,
+    "Pitch": 0.6154797,
+    "Distance": 25292.799,
+    "Focus": {
+      "X": 15488,
+      "Y": 0,
+      "Z": -7296
+    }
+  },
+  "Rendering": {
+    "Probe": "baseline",
+    "ChunkMetres": 256,
+    "Scale": 1,
+    "FrameLimit": 0,
+    "Vsync": "Disabled",
+    "Shadow16Bits": true,
+    "Configuration": "Release"
+  },
+  "Viewport": {
+    "Width": 2560,
+    "Height": 1371
+  }
+}
