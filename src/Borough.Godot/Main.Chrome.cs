@@ -156,10 +156,10 @@ public partial class Main
     private static readonly (string Name, string Label)[] Washes =
     [
         ("off", "Off"), ("pollution", "Pollution"), ("value", "Land value"), ("sealing", "Sealing"),
-        ("health", "Health"), ("trouble", "Trouble"), ("rung", "Rung"), ("age", "Age"),
+        ("health", "Health"), ("trouble", "Trouble"), ("rung", "Rung"), ("age", "Age"), ("family", "Family"),
     ];
 
-    private static bool DebugWash(string name) => name is "rung" or "age";
+    private static bool DebugWash(string name) => name is "rung" or "age" or "family";
 
     /// <summary>The <see cref="Wash"/>'s name in the drive grammar, which is the picker's key too.</summary>
     private static string WashName(Wash wash) => wash switch
@@ -171,6 +171,7 @@ public partial class Main
         Wash.Health => "health",
         Wash.Trouble => "trouble",
         Wash.Rung => "rung",
+        Wash.Family => "family",
         _ => "age",
     };
 
@@ -208,7 +209,7 @@ public partial class Main
         _legend.Visible = washing;
         _legendPanel.Visible = washing;
         _legendTitle.Visible = washing;
-        _legendRamp.Visible = washing && _washing != Wash.Rung;
+        _legendRamp.Visible = washing && _washing is not (Wash.Rung or Wash.Family);
         _legendBody.Visible = washing;
         if (washing)
         {

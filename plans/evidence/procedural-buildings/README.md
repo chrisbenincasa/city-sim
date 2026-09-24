@@ -172,6 +172,10 @@ Pass 03's five bodies as monochrome Blender blockouts on its 80 × 64 m study si
 `BLENDER_BIN=… scripts/art/review.sh test-street`; browse with `open-test-street`. Blender 5.2.1, Godot 4.7.2,
 Debug build, `ExpandedStudy --test-street`.
 
+The bodies were renamed after these captures, which keep the old names. H1 is now `rowhouses`, A1
+`corridor-apartments`, A2 `walkup-apartments`, M1 `corner-shops-with-flats`, W1 `office-warehouse`,
+W2 `workshop` and G003 `two-unit-apartments`.
+
 | Body | Brief | Built | Vertices |
 |---|---|---|---:|
 | H1 attached range | 24 × 12 m, 2 × 3.2 m, four 6 m modules, 18° roof across the depth | 2 × 3.5 m, party-wall upstands, distinct end walls, street doors and rear garden doors | 2,100 |
@@ -224,3 +228,34 @@ the same views. A `houses` view looks at H1's roof from above the side garden in
 | `m1-repaired` | M1 | The west shop has dark-bronze mullions, transom and kickplate, a green sign board and a red fabric awning; the east shop is unchanged |
 | `w1-solar` | W1 | Seven rows of 10° panels, 1.7 × 0.95 m modules on rails, clear of the plant units and crickets |
 - The Godot import extracts each model's maps beside it, so every body carries its own copy.
+
+## Exact game bodies in the live city (`exact-bodies/`)
+
+Step 5 of the pass 03 review protocol. W1 and a G003 study stand on real simulation Buildings in the shopping fixture at
+400 Citizens, Tick 600–653. `ui exact-bodies on` gives each body to the lowest-id Building whose plan matches it exactly.
+It matches frontage, depth and storey count, never kind (adr/0150). The body faces its Building's street, and the
+Building's massing drops out of the draw list. Reproduce with `scripts/art/review.sh exact-bodies`. Blender 5.2.1,
+Godot 4.7.2, Debug build.
+
+| Body | Building | Plan | Ceiling | Built |
+|---|---|---|---:|---|
+| W1 (`w1-workplace`, unchanged) | 1, `dwelling` | 36 × 20 m, 2 storeys, 7 m walls | 3 tenancies | The step 4 body |
+| G003 study (`g003-two-tenancy`) | 3, `dwelling` | 24 × 16 m, 3 storeys, 10.5 m walls | 2 tenancies | Two halves split by a party line at mid-frontage. Each half has its own street door, stair glazing, canopy, garden door and roof hatch. Render walls as A1 |
+
+- Buildings 1 and 3 are the ones pass 03 named G001 and G003, so the match found the audit's own sample.
+- G003's label reads the ceiling from `World.DeclaredOccupancy`, so it cannot drift from the simulation.
+- Both Buildings are the fixture's `dwelling` kind, which houses people and allows a shop. W1's workplace facade
+  therefore stands on 4 Households and 1 Business.
+
+| View | Sheet | What it exposed |
+|---|---|---|
+| Near | `sheet-near-w1.jpg`, `sheet-near-g003.jpg`, `sheet-near-g003-rear.jpg` | Both bodies fit their footprints and face the kerb. They read as much paler and cooler than the massing beside them, because the massing takes the city's warm paint and the bodies keep the test street's finishes. The palette mismatch is the first thing the eye finds. The rear capture framed G003 from the far corner and missed its garden face |
+| Neighbourhood | `sheet-neighbourhood.jpg` | The two bodies are the only white buildings in the district. W1 reads as an office among dwellings, which is true of its geometry and false of its occupants |
+| City | `sheet-city.jpg` | At 1,000 m neither body can be told from massing. Only G003's fixed-size label marks it |
+| Moving camera | `sheet-moving.jpg`, `moving.mp4` | 31 frames panning along the street at 90 m and 12° tilt. The bodies hold their positions and scale with no popping or swapping |
+| Overlays | `sheet-overlays.jpg` | Neither body takes a wash. Under `age` and `rung` every other Building is tinted and these two stay full colour. Under `pollution`, `sealing` and `value` the massing greys out and these two do not. An authored body would hide its reading in every overlay |
+
+- The frame rate shown in these captures is 4–6 fps under the capture script. It is not a timing measurement.
+- Findings for the generator: an authored body needs the city's paint and the overlay washes, or it cannot share a
+  street with procedural massing. A workplace facade drawn by plan alone lands on dwellings, as `Main.Massing`'s
+  `Cap.Parapet` note already found for roofs.

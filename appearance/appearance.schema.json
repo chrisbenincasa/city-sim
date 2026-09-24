@@ -1,0 +1,252 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/chrisbenincasa/city-sim/appearance/appearance.schema.json",
+  "title": "Borough Style Preset file",
+  "description": "One file of a Style Preset under appearance/<preset>/. StylePresetReader is the authority and refuses at the line what this schema cannot express: a fallback with conditions, a repeated family id, two fallbacks for one kind, and a preset with no [preset] table. StylePresetSchemaTests keeps the key sets equal.",
+  "type": "object",
+  "properties": {
+    "preset": {
+      "description": "Names the preset and sets how attached Buildings share a family. Exactly one file of the preset holds it.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "The preset's name.",
+          "type": "string"
+        },
+        "era_days": {
+          "description": "Game Days in one era. Attached Buildings on one block face raised in the same era draw with one seed.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "attached": {
+          "description": "The block patterns whose Buildings share a draw along a block face.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/pattern"
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "name",
+        "era_days"
+      ],
+      "additionalProperties": false
+    },
+    "family": {
+      "description": "The Appearance Families. A family admits a Building when its kind is listed and every condition given holds.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "The family's id, unique across the preset.",
+            "type": "string"
+          },
+          "kinds": {
+            "description": "The Building kinds this family may draw, by their Ruleset names.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "weight": {
+            "description": "The family's share of the draw among the families that admit a Building. Defaults to 1.",
+            "type": "integer",
+            "minimum": 1
+          },
+          "fallback": {
+            "description": "Draws every Building of its kinds that no other family admits. A fallback carries no conditions, and a kind has at most one.",
+            "type": "boolean"
+          },
+          "model": {
+            "description": "The authored model this family draws, relative to the preset's assets.",
+            "type": "string"
+          },
+          "storeys": {
+            "description": "The storey counts this family admits. Given as [low, high], both inclusive and not negative.",
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "frontage_metres": {
+            "description": "The street frontages this family admits, in metres. Given as [low, high], both inclusive and not negative.",
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "depth_metres": {
+            "description": "The plot depths this family admits, in metres. Given as [low, high], both inclusive and not negative.",
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "raised_day": {
+            "description": "The game Days of raising this family admits. Given as [low, high], both inclusive and not negative.",
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "patterns": {
+            "description": "The block patterns this family admits.",
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/pattern"
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "zones": {
+            "description": "The zones this family admits.",
+            "type": "array",
+            "items": {
+              "enum": [
+                "housing",
+                "trade"
+              ]
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "body": {
+            "description": "How the family builds its body at any size it admits. Follows the [[family]] it builds; a fallback takes none.",
+            "type": "object",
+            "properties": {
+              "library": {
+                "description": "The authored model whose materials dress the body's parts, relative to the shell's assets.",
+                "type": "string"
+              },
+              "tile_metres": {
+                "description": "The size one texture tile covers, by part, as [along, up] in metres. Unlisted parts tile per metre.",
+                "type": "object",
+                "additionalProperties": {
+                  "type": "array",
+                  "items": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "minItems": 2,
+                  "maxItems": 2
+                }
+              },
+              "bay_metres": {
+                "description": "The bay width the family aims for. A wall holds the nearest whole number of bays.",
+                "type": "number",
+                "minimum": 1
+              },
+              "parapet_metres": {
+                "description": "The parapet's height above the roof deck. 0 leaves a bare deck.",
+                "type": "number",
+                "minimum": 0
+              },
+              "pilasters": {
+                "description": "Pilasters stand at every bay line on the street and back walls.",
+                "type": "boolean"
+              },
+              "plant": {
+                "description": "Rooftop plant units, spaced evenly along the frontage.",
+                "type": "integer",
+                "minimum": 0
+              },
+              "street_ground": {
+                "description": "The bays of the street wall's ground storey, left to right seen from outside. A token ending in '*' repeats to fill the bays the others leave.",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^(blank|window|shop|entry|door|roller|stair)\\*?$"
+                },
+                "minItems": 1
+              },
+              "street_upper": {
+                "description": "The bays of each storey above the ground on the street wall, left to right seen from outside. A token ending in '*' repeats to fill the bays the others leave.",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^(blank|window|shop|entry|door|roller|stair)\\*?$"
+                },
+                "minItems": 1
+              },
+              "back_ground": {
+                "description": "The bays of the back wall's ground storey, left to right seen from outside. A token ending in '*' repeats to fill the bays the others leave.",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^(blank|window|shop|entry|door|roller|stair)\\*?$"
+                },
+                "minItems": 1
+              },
+              "back_upper": {
+                "description": "The bays of each storey above the ground on the back wall, left to right seen from outside. A token ending in '*' repeats to fill the bays the others leave.",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^(blank|window|shop|entry|door|roller|stair)\\*?$"
+                },
+                "minItems": 1
+              },
+              "side_ground": {
+                "description": "The bays of each side wall's ground storey, left to right seen from outside. A token ending in '*' repeats to fill the bays the others leave.",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^(blank|window|shop|entry|door|roller|stair)\\*?$"
+                },
+                "minItems": 1
+              },
+              "side_upper": {
+                "description": "The bays of each storey above the ground on the side walls, left to right seen from outside. A token ending in '*' repeats to fill the bays the others leave.",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^(blank|window|shop|entry|door|roller|stair)\\*?$"
+                },
+                "minItems": 1
+              }
+            },
+            "required": [
+              "library",
+              "bay_metres"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "kinds"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "pattern": {
+      "enum": [
+        "detached",
+        "perimeter",
+        "back-to-back",
+        "courtyard",
+        "slab",
+        "tower"
+      ]
+    }
+  }
+}

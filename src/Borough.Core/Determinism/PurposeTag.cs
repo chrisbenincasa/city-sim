@@ -912,4 +912,10 @@ public enum PurposeTag : ulong
     /// standing-housing draws unchanged.
     /// </remarks>
     ProspectLandCandidate = 59,
+
+    /// <summary>
+    /// Which eligible Appearance Family draws a Building. Drawn by the shell and the headless runner,
+    /// never by a Tick, so it moves no State Hash.
+    /// </summary>
+    AppearanceFamily = 60,
 }

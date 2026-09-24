@@ -872,6 +872,20 @@ internal static class Session
     }
 
     /// <summary>Runs <c>--kinds</c>, to <c>--out</c> or to the console.</summary>
+    internal static int Dump(Options options, Func<Options, TextWriter, int> run)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(run);
+
+        if (options.OutPath is null)
+        {
+            return run(options, Console.Out);
+        }
+
+        using var writer = new StreamWriter(options.OutPath);
+        return run(options, writer);
+    }
+
     internal static int DumpKinds(Options options)
     {
         ArgumentNullException.ThrowIfNull(options);

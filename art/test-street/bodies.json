@@ -2,7 +2,7 @@
   "storey_metres": 3.5,
   "bodies": [
     {
-      "body": "h1-attached-range",
+      "body": "rowhouses",
       "vertices": 2100,
       "faces": 692,
       "bounds_min": [
@@ -27,7 +27,7 @@
       "geometry_sha256": "a23b94f896b5a95734673d147ccf9d425d37413ac0974900b1d7d01acd18f6e0"
     },
     {
-      "body": "a1-apartment",
+      "body": "corridor-apartments",
       "vertices": 2688,
       "faces": 912,
       "bounds_min": [
@@ -52,7 +52,7 @@
       "geometry_sha256": "051fe26485a22bf4a4c032299c7d65c4fa8ec1092211b6e4de40b27459cdcebb"
     },
     {
-      "body": "a2-stair-range",
+      "body": "walkup-apartments",
       "vertices": 3856,
       "faces": 1332,
       "bounds_min": [
@@ -77,7 +77,7 @@
       "geometry_sha256": "53292b6b0076c3cf7238373d727a607ac82a6b380f5156be5b7f1418bda2e482"
     },
     {
-      "body": "m1-corner",
+      "body": "corner-shops-with-flats",
       "vertices": 4080,
       "faces": 1340,
       "bounds_min": [
@@ -103,7 +103,7 @@
       "geometry_sha256": "99f18b3949e27acdfd7b548ea720862cfd4e5b537a747b569812f5ed15d57bcb"
     },
     {
-      "body": "w1-workplace",
+      "body": "office-warehouse",
       "vertices": 2138,
       "faces": 915,
       "bounds_min": [
@@ -130,7 +130,7 @@
       "geometry_sha256": "a4ca8a2f6351e0a0b5d15b63619ccbb6c6c23b0c8db96230ca211cc1c25c7077"
     },
     {
-      "body": "w2-workshop",
+      "body": "workshop",
       "vertices": 1932,
       "faces": 867,
       "bounds_min": [
@@ -157,7 +157,33 @@
       "geometry_sha256": "d5a13d10dcb7a1d21b33ee5bade87a425474fbb9a5de32d9d794fddaa55bb60e"
     },
     {
-      "body": "h1-reroofed",
+      "body": "two-unit-apartments",
+      "vertices": 2972,
+      "faces": 1003,
+      "bounds_min": [
+        -12.06,
+        -9.1,
+        0.0
+      ],
+      "bounds_max": [
+        12.06,
+        8.12,
+        11.4
+      ],
+      "materials": [
+        "wall-render",
+        "trim",
+        "door",
+        "glass",
+        "wall-end-render",
+        "plinth",
+        "membrane-membrane",
+        "metal"
+      ],
+      "geometry_sha256": "768c19d392dd86e489b91974044f5e4447921e4707c107f7fb4577ed727fac1a"
+    },
+    {
+      "body": "rowhouses-reroofed",
       "vertices": 2124,
       "faces": 708,
       "bounds_min": [
@@ -183,7 +209,7 @@
       "geometry_sha256": "3ebbdd82bb8faca7d9c63448d70d12ec1e6143b45a6d2b56e6b5684537c45ed3"
     },
     {
-      "body": "m1-repaired",
+      "body": "corner-shops-with-flats-repaired",
       "vertices": 4136,
       "faces": 1382,
       "bounds_min": [
@@ -212,7 +238,7 @@
       "geometry_sha256": "571041bc6ebfe9523c67cb571d09e5d19d8963217ea1bc56a9192f9973790638"
     },
     {
-      "body": "w1-solar",
+      "body": "office-warehouse-solar",
       "vertices": 3258,
       "faces": 1755,
       "bounds_min": [

@@ -747,13 +747,14 @@ public partial class Main
             "trouble" => Wash.Trouble,
             "rung" or "pattern" => Wash.Rung,
             "age" or "vintage" => Wash.Age,
+            "family" => Wash.Family,
             _ => Wash.None,
         };
 
         if (want == Wash.None && layer is not ("off" or "none"))
         {
             _refused = $"there is no overlay called '{layer}'. There is off, pollution, value, "
-                + "sealing, health, trouble, and the two debug ones, rung and age.";
+                + "sealing, health, trouble, and the debug ones, rung, age and family.";
         }
 
         _washing = want;
@@ -805,7 +806,7 @@ public partial class Main
                 // difference between these two and the three ground ones. A ground overlay mutes
                 // everything and lets the plane carry the reading; a building overlay mutes
                 // everything EXCEPT the thing being measured.
-                Wash.Rung or Wash.Age or Wash.Health or Wash.Trouble when name is "building" or "roof" or "hip" or "paired-roof" => _categorical,
+                Wash.Rung or Wash.Age or Wash.Family or Wash.Health or Wash.Trouble when name is "building" or "roof" or "hip" or "paired-roof" => _categorical,
                 _ => _muted,
             };
         }
@@ -822,7 +823,7 @@ public partial class Main
         // A building wash reads nothing off a Cell, so there is no texture to build and the ground
         // goes dark rather than staying under the last layer's tint -- which would be a stale
         // instrument sitting beside a live one, and the reader has no way to tell.
-        if (_washing is Wash.Rung or Wash.Age or Wash.Health or Wash.Trouble)
+        if (_washing is Wash.Rung or Wash.Age or Wash.Family or Wash.Health or Wash.Trouble)
         {
             _washPeak = 0;
             _washCells = 0;
@@ -1000,6 +1001,7 @@ public partial class Main
         Wash.Sealed => $"\nOVERLAY sealing — dark 0 to bright {_washPeak:N0} Tiles a Cell, "
             + $"{_washCells:N0} Cells read",
         Wash.Trouble => TroubleLegend(),
+        Wash.Family => FamilyLegend(),
         Wash.Health => "\nHEALTH — homes: green healthy, amber to red illness or Health deficit; blue care facilities. Select a home or facility for causes and waiting times.",
         Wash.Rung =>
             "\nOVERLAY rung — DEBUG. The block pattern a Building's Lot was carved by, "

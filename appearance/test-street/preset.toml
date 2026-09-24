@@ -1,0 +1,92 @@
+# The test-street Style Preset. A fixture for the Appearance Family format and the picking rule,
+# not a style: it maps pass 03's test-street bodies onto the plans the shipped Rulesets raise, and
+# draws every other Building in a plain box fallback. Plans are in metres; one Tile is 4 m.
+
+[preset]
+name = "test-street"
+
+# Provisional. Attached Buildings on one block face raised within the same 30 game Days share a family.
+era_days = 30
+
+# Patterns whose Buildings stand in attached rows along a block face.
+attached = ["perimeter", "back-to-back"]
+
+[[family]]
+id = "box"
+fallback = true
+kinds = ["dwelling", "shopfront", "school", "port", "hospital", "clinic", "university", "secondary",
+         "primary", "officeblock", "existing homes", "college", "arrival gate"]
+
+[[family]]
+id = "rowhouses"
+model = "test-street/rowhouses"
+kinds = ["dwelling"]
+storeys = [2, 2]
+frontage_metres = [4, 28]
+depth_metres = [8, 16]
+patterns = ["perimeter", "back-to-back"]
+
+[[family]]
+id = "corridor-apartments"
+model = "test-street/corridor-apartments"
+kinds = ["dwelling"]
+weight = 2
+storeys = [3, 3]
+frontage_metres = [20, 28]
+depth_metres = [12, 20]
+
+[[family]]
+id = "two-unit-apartments"
+model = "test-street/two-unit-apartments"
+kinds = ["dwelling"]
+storeys = [3, 3]
+frontage_metres = [20, 28]
+depth_metres = [12, 20]
+
+[[family]]
+id = "walkup-apartments"
+model = "test-street/walkup-apartments"
+kinds = ["dwelling"]
+storeys = [3, 3]
+frontage_metres = [28, 36]
+depth_metres = [8, 16]
+
+[[family]]
+id = "corner-shops-with-flats"
+model = "test-street/corner-shops-with-flats"
+kinds = ["dwelling", "shopfront"]
+storeys = [3, 3]
+frontage_metres = [20, 28]
+depth_metres = [12, 20]
+zones = ["trade"]
+
+[[family]]
+id = "office-warehouse"
+model = "test-street/office-warehouse"
+kinds = ["dwelling", "shopfront", "officeblock"]
+storeys = [2, 2]
+frontage_metres = [32, 40]
+depth_metres = [16, 24]
+
+# Six 6 m bays at 36 m. Receiving is at the back; stairs light the ends.
+[family.body]
+library = "test-street/office-warehouse"
+tile_metres = { wall = [2.0, 1.6], wall-end = [2.0, 1.6], membrane = [20.0, 20.0] }
+bay_metres = 6.0
+parapet_metres = 0.8
+pilasters = true
+plant = 2
+street_ground = ["shop", "shop", "entry", "shop*"]
+street_upper = ["shop*"]
+back_ground = ["roller", "roller", "door", "blank*"]
+back_upper = ["shop*"]
+side_ground = ["blank", "stair", "door"]
+side_upper = ["blank", "stair", "blank"]
+
+[[family]]
+id = "workshop"
+model = "test-street/workshop"
+kinds = ["shopfront", "officeblock"]
+storeys = [2, 2]
+frontage_metres = [28, 36]
+depth_metres = [12, 20]

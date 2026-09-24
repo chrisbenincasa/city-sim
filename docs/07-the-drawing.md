@@ -151,7 +151,7 @@ shader's bay is 3.6, so one authored piece is a panel that tiles in both directi
 |---|---|---|
 | **Massing** | **Procedural, and it already works.** The wall shader is Müller's CGA shape in miniature — `split` on storeys, `repeat` on bays, `comp` where the door picks a face ([`references §6`](references.md)) | Walls, storeys, openings, doors, cornices, shopfronts |
 | **Identity** | **A small authored kit.** No shader says *school*. Roughly 10–20 low-poly meshes, each its own MultiMesh, instanced and colour-jittered: spire, clock tower, chimney stack, water tower, sign, portico, car, bus, lamp, a second tree | §2's *kinds announce themselves*, which tier 1 cannot reach |
-| **Declaration** | **The Ruleset names an appearance family, never a mesh.** `Core` hands over an id and the shell resolves it, exactly as it does for strings | Stops the next `serves = "health"` being a grey cube for ever, without putting file paths in content |
+| **Declaration** | **A Style Preset names the kinds each Appearance Family draws; the Ruleset names no family and no mesh.** `Core` hands over a kind and the Building's facts, and the shell picks the family (`plans/appearance-families.md`) | Stops the next `serves = "health"` being a grey cube for ever, without putting file paths or drawing choices in content |
 | **Overlays** | **A second render path, not a material.** The city drops to an unlit base and the layer owns all the colour | Pollution, land value, and every Map Layer after them |
 
 ### 3.2 The cost of the kit, and why it threatens nothing

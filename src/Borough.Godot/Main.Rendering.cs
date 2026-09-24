@@ -24,6 +24,7 @@ public partial class Main
             _troubleRepaint = false;
             _fullBuildingPasses++;
             _visualWash = _washing;
+            PlaceFamilyBodies();
             _drawnBuildings = Massings(Buildings());
             _vacantLots = Fill(_plots, Plots(), _plotIds);
             _renderedBuildings.Clear();
@@ -46,18 +47,24 @@ public partial class Main
                 {
                     if (old.Drawn) _drawnBuildings--;
                     if (old.Id != id) geometry |= ReplaceBuilding(old.Id);
+                    RemoveFamilyBody(old.Id);
                 }
                 if (!live) continue;
-                foreach (Massing one in Buildings(slot))
+                RemoveFamilyBody(id);
+                bool bodied = PlaceFamilyBody(slot);
+                if (!bodied)
                 {
-                    _bodyEdits.Add(new(one.Body, one.Paint, one.Reads));
-                    if (one.Outhoused) _yardEdits.Add(new(one.Yard,
-                        YardPaint(one)));
-                    var roof = one.Cap switch { Cap.Gable => _roofEdits, Cap.Hip => _hipEdits, Cap.PairedGable => _pairedRoofEdits, Cap.Parapet => _parapetEdits, _ => null };
-                    roof?.Add(new(one.Roof, RoofPaint(one), RoofWall(one)));
+                    foreach (Massing one in Buildings(slot))
+                    {
+                        _bodyEdits.Add(new(one.Body, one.Paint, one.Reads));
+                        if (one.Outhoused) _yardEdits.Add(new(one.Yard,
+                            YardPaint(one)));
+                        var roof = one.Cap switch { Cap.Gable => _roofEdits, Cap.Hip => _hipEdits, Cap.PairedGable => _pairedRoofEdits, Cap.Parapet => _parapetEdits, _ => null };
+                        roof?.Add(new(one.Roof, RoofPaint(one), RoofWall(one)));
+                    }
                 }
                 geometry |= ReplaceBuilding(id);
-                bool drawn = _bodyEdits.Count != 0;
+                bool drawn = bodied || _bodyEdits.Count != 0;
                 _renderedBuildings[slot] = (id, drawn);
                 if (drawn) _drawnBuildings++;
             }

@@ -46,3 +46,12 @@ include = ["rulesets/*/ruleset.toml"]
 [rule.schema]
 path = "rulesets/manifest.schema.json"
 enabled = true
+
+# A Style Preset file takes the hand-written appearance schema. StylePresetReader is the authority.
+
+[[rule]]
+include = ["appearance/*/*.toml"]
+
+[rule.schema]
+path = "appearance/appearance.schema.json"
+enabled = true
