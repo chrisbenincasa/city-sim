@@ -29,7 +29,9 @@ public partial class ExpandedStudy
 
     private static readonly Dictionary<string, string> Variants = new()
     {
-        ["h1-attached-range"] = "h1-reroofed", ["m1-corner"] = "m1-repaired", ["w1-workplace"] = "w1-solar",
+        ["h1-attached-range"] = "h1-reroofed",
+        ["m1-corner"] = "m1-repaired",
+        ["w1-workplace"] = "w1-solar",
     };
 
     private static (string, Vector3, Vector3)[] MatchedViews(string body, Vector3 centre) =>
