@@ -712,7 +712,7 @@ public sealed class PlacementEngine
 
         int candidates = placement.Candidates;
 
-        Retain(candidates + 1);
+        Retain((candidates * 2) + 1);
 
         long weight = HousingUtility.Taste(_world.Rules, _key, prospect.Identity, prospect.Stage);
         int rentWeight = _world.Rules.RentWeight(prospect.Stage);
@@ -753,6 +753,11 @@ public sealed class PlacementEngine
             }
         }
 
+        if (_world.Buildings.Rows.TryResolve(gate, out _))
+        {
+            found = SampleLand(prospect, tick, weight, rentWeight, candidates, found);
+        }
+
         if (found == 1)
         {
             return ProspectOutcome.NoSample;
@@ -764,6 +769,79 @@ public sealed class PlacementEngine
             Randomness.Draw(_key, prospect.Identity, tick, PurposeTag.ChoiceDraw));
 
         return chosen == 0 ? ProspectOutcome.StayedOutside : ProspectOutcome.Willing;
+    }
+
+    /// <summary>
+    /// Adds up to <paramref name="candidates"/> vacant Lots that a housing Zone Rule would build on,
+    /// each valued as the dwelling that Rule builds.
+    /// </summary>
+    /// <remarks>
+    /// A family that prefers unbuilt land to its Outside home comes and waits in the Unplaced Pool,
+    /// and housing construction answers it. Without land, a city with no homes attracts nobody.
+    /// A Lot is recorded as its complement, so it never matches a Building slot in
+    /// <see cref="Shown"/>.
+    /// </remarks>
+    private int SampleLand(
+        in ArrivalProspect prospect, Ticks tick, long weight, int rentWeight, int candidates, int found)
+    {
+        int slots = _world.Lots.Rows.SlotCount;
+        int budget = candidates * 2;
+        int added = 0;
+
+        for (int draw = 0; slots > 0 && draw < budget && added < candidates; draw++)
+        {
+            ulong entity = Randomness.Mix(prospect.Identity ^ ((ulong)(uint)draw << 32));
+            ulong value = Randomness.Draw(_key, entity, tick, PurposeTag.ProspectLandCandidate);
+            int lot = (int)(value % (ulong)(uint)slots);
+
+            if (!_world.Lots.Rows.IsLive(lot) || !_world.Lots.IsVacant(lot) || Shown(~lot, found))
+            {
+                continue;
+            }
+
+            byte kind = HousingKindFor(lot);
+
+            if (kind == 0)
+            {
+                continue;
+            }
+
+            Money rent = _world.Rules.Kind(kind).Rent;
+
+            if (rent.Raw > 0 && prospect.Purse.Raw < rent.Raw)
+            {
+                continue;
+            }
+
+            _candidateBuildings[found] = ~lot;
+            _candidateUtilities[found] = HousingUtility.Worth(
+                _world.Rules.Placement, Distance(lot), weight, rent, rentWeight);
+            found++;
+            added++;
+        }
+
+        return found;
+    }
+
+    /// <summary>The housing kind the first Zone Rule admitting this Lot would build, or zero.</summary>
+    /// <remarks>
+    /// Only Rules that answer the Unplaced Pool count. A market-reading Rule builds for trade and
+    /// would not house the family that chose the Lot.
+    /// </remarks>
+    private byte HousingKindFor(int lot)
+    {
+        foreach (ZoneRuleDefinition rule in _world.Rules.ZoneRules)
+        {
+            if (!rule.ReadsDemand
+                && _world.Rules.Declares(rule.Kind)
+                && _world.Rules.Kind(rule.Kind).Houses
+                && _world.ConstructionPermission(lot, rule.Admits) == Space.PermissionRefusal.None)
+            {
+                return rule.Kind;
+            }
+        }
+
+        return 0;
     }
 
     /// <summary>Whether this Building is already in the candidate set.</summary>

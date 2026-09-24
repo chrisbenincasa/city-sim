@@ -905,4 +905,11 @@ public enum PurposeTag : ulong
     HousingConstructionSeekers = 57,
     /// <summary>Variation among equally useful local arrangements.</summary>
     HousingConstructionForm = 58,
+
+    /// <summary>Which Lots an arriving family considers as homes not yet built.</summary>
+    /// <remarks>
+    /// Separate from <see cref="PlacementCandidate"/> so adding land to the sample leaves the
+    /// standing-housing draws unchanged.
+    /// </remarks>
+    ProspectLandCandidate = 59,
 }
