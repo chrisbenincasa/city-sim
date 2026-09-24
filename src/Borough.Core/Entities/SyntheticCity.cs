@@ -717,7 +717,10 @@ public static class SyntheticCity
             // failure. ***That is plans/0044 P6 -- the split's failure mode is silent, and it is
             // silent in the one world that matters*** -- reached through the populator instead of
             // through the painter.
-            if ((world.Lots.Zone[slot] & Housing) == 0)
+            //
+            // The band caps the zone here as it does for every Zone Rule (adr/0025), so a band that
+            // refuses housing is not built on either.
+            if ((world.Lots.Zone[slot] & world.BandAdmitting(slot) & Housing) == 0)
             {
                 continue;
             }

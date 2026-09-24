@@ -63,7 +63,8 @@ A rowhouses Building is one house. The shell probes half a metre outside the mid
 wall; where another Building's footprint covers the probe, that wall is a party wall. A party wall
 is blank, the gable stops at it rather than overhanging, and a half-thickness upstand rises above
 it, so two neighbours make one whole upstand. `rulesets/rowhouses.toml` is the fixture: perimeter
-blocks carved into 8 × 12 m house plots with no setback.
+blocks carved into 8 × 12 m house plots with no setback. Its three denser bands admit only zone
+bit 1, which nothing builds on, so the middle of the city stays empty.
 
 `FamilyBodyBuilder` ports the vocabulary of `scripts/art/test-street.py`. The shell draws the result
 in place of the massing with `ui family-bodies on`.
