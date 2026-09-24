@@ -1,7 +1,8 @@
 # Working in city-sim
 
-Start with Git status, recent local/remote commits and `git worktree list`, then
-[the backlog](plans/0000-board.md) and the selected item's plan. Read [PROCESS.md](PROCESS.md)
+Start with Git status, recent local/remote commits and `git worktree list`. Large outcomes live on
+[the backlog board](plans/0000-board.md) with a plan each; single-PR fixes live in GitHub issues
+(`gh issue list --label ready-for-agent`). Read [PROCESS.md](PROCESS.md)
 for the workflow. The amnesty and separate status/question/audit ledgers are retired. Process
 instructions there supersede older record-keeping requirements; do not restore them from an ADR.
 Preserve other worktrees and uncommitted changes. Do not start work already owned by another tree.
@@ -15,7 +16,7 @@ Godot hosts the shell; the C# simulation is engine-independent.
 |---|---|
 | `CONTEXT.md` | Domain vocabulary; use its terms and avoid its explicitly rejected concepts |
 | `PROCESS.md` | How to choose, document and finish work |
-| `plans/0000-board.md` | The single backlog: active work, prerequisites and deferred follow-ups |
+| `plans/0000-board.md` | Backlog of outcomes needing a plan or design; single-PR fixes are GitHub issues |
 | `docs/00-vision.md`, `docs/01-player-experience.md` | Intent and player interactions |
 | `docs/02-simulation-model.md`, `docs/03-agent-architecture.md`, `docs/04-economy-and-goods.md` | Simulation, movement and economy design |
 | `docs/05-technical-architecture.md` | Technical boundaries and invariants |
