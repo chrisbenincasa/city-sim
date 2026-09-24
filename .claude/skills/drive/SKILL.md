@@ -19,6 +19,14 @@ stale and a draw list can.*** So, before any driven verification of a shell chan
 dotnet build src/Borough.Godot          # no -c. The default is Debug and Debug is what loads
 ```
 
+🔴 **A fresh worktree has no import cache, and a driven run does not import.** Every texture fails
+with `Unable to open file: res://.godot/imported/...` and the shell draws untextured surfaces
+without stopping. Import once per new worktree, and again after adding an asset:
+
+```
+godot --path src/Borough.Godot --headless --import
+```
+
 ⚠ **`godot` resolves to a symlink at `~/.local/bin/godot`** pointing at the Godot 4.7.2 mono Linux
 build. A run that hangs at `.NET: Initializing module...` is not explained by the link.
 
