@@ -1,9 +1,9 @@
 # Working in city-sim
 
-Start with Git status, recent local/remote commits and `git worktree list`. Medium and large systems and
-features, which need design, studies or iteration, live on [the backlog board](plans/0000-board.md); single-PR fixes live in GitHub issues
-(`gh issue list --label ready-for-agent`). Read [PROCESS.md](PROCESS.md)
-for the workflow. The amnesty and separate status/question/audit ledgers are retired. Process
+Start with Git status, recent local/remote commits and `git worktree list`. Medium and large
+systems and features, which need design, studies or iteration, live on
+[the backlog board](plans/0000-board.md). Single-PR fixes live in GitHub issues
+(`gh issue list --label ready-for-agent`). Read [PROCESS.md](PROCESS.md) for the workflow. The amnesty and separate status/question/audit ledgers are retired. Process
 instructions there supersede older record-keeping requirements; do not restore them from an ADR.
 Preserve other worktrees and uncommitted changes. Do not start work already owned by another tree.
 
