@@ -23,6 +23,19 @@ public partial class Main
 
     private void PrepareCity(Ruleset rules, int citizens, ulong seed, ulong until, Action<Simulation> completed)
     {
+        ShowPreparation(until, completed);
+        _preparation = new CityPreparation(citizens, rules, WorldKey.FromSeed(seed), _empty, until, _routeWorkers);
+    }
+
+    private void PrepareSavedCity(string path, ulong? until, Action<Simulation, CityPreparation> completed)
+    {
+        var preparation = new CityPreparation(path, until, _routeWorkers);
+        ShowPreparation(until ?? 0, simulation => completed(simulation, preparation));
+        _preparation = preparation;
+    }
+
+    private void ShowPreparation(ulong until, Action<Simulation> completed)
+    {
         RequireWorld();
         _atBoundary.Clear();
         _queued.Clear();
@@ -51,7 +64,6 @@ public partial class Main
         cancel.AddThemeFontSizeOverride("font_size", 20);
         cancel.Pressed += CancelPreparation;
         column.AddChild(cancel);
-        _preparation = new CityPreparation(citizens, rules, WorldKey.FromSeed(seed), _empty, until, _routeWorkers);
     }
 
     private void CancelPreparation()
@@ -65,8 +77,9 @@ public partial class Main
         var preparation = _preparation!;
         _previousLoadingText = _loadingText!.Text;
         _loadingText.Text = _cancellingPreparation ? "Cancelling after the current Tick…"
+            : preparation.Reading ? "Reading saved city…"
             : preparation.Tick == 0 ? "Preparing terrain and population…"
-            : $"Preparing city · Tick {preparation.Tick:N0} / {Math.Max(1UL, _prepareUntil):N0}";
+            : $"Preparing city · Tick {preparation.Tick:N0} / {Math.Max(preparation.Tick, _prepareUntil):N0}";
         AnswerPreparation();
         if (!preparation.IsCompleted) return;
         try
@@ -75,6 +88,11 @@ public partial class Main
             if (!_cancellingPreparation) _prepared!(simulation);
         }
         catch (OperationCanceledException) { }
+        catch (InvalidDataException refused)
+        {
+            GD.PrintErr(refused.Message);
+            Stop(2);
+        }
         catch (Exception error)
         {
             GD.PrintErr(error.ToString());
@@ -133,6 +151,20 @@ public partial class Main
             _answered.Add("ok\t0\t" + caption);
         }
         catch (Exception error) { _answered.Add("refused\t" + error.Message); }
+    }
+
+    private void InstallSavedCity(Simulation simulation, SavedCity city, ulong savedTick, string path)
+    {
+        _capture = city.Capture;
+        _names = city.Names;
+        _seed = city.Seed;
+        _citizens = city.World.Citizens.Rows.LiveCount;
+        InstallCity(simulation);
+        _resumedFromSave = true;
+        _log = new InputLogBuilder(_seed, new WorldConfiguration(_citizens), city.Header.RulesetInForce);
+        _savedWorld = _world;
+        _savedTick = savedTick;
+        _savePath = path;
     }
 
     private void InstallCity(Simulation simulation)

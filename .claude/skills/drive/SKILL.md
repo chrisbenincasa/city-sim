@@ -63,6 +63,7 @@ writes.
 | `--record PATH` | — | Appends every applied command as a script line |
 | `--govern` | off | Opens the Policy panel at start, so a machine with no hands can photograph it |
 | `--empty` | off | 🔴 **Declines to generate a city.** No lattice, no Lots, no Buildings, no Citizens — and see below, because it withholds the terrain too |
+| `--load PATH` | — | Opens a city save at its saved Tick and simulates nothing before it. Headless `--save-city` and the menu write one. Refuses `--ruleset`, `--citizens` and `--empty`. `--start-at` stays absolute and may not precede the save |
 | `BOROUGH_LOG` (env) | — | Any value: writes the Input Log at `quit`, so play → write → replay → compare runs in a script |
 
 🔴 **`--empty` is the only argument that changes what the shell is a picture of.** Everything else
