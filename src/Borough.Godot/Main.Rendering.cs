@@ -52,7 +52,9 @@ public partial class Main
                 if (!live) continue;
                 RemoveFamilyBody(id);
                 bool bodied = PlaceFamilyBody(slot);
-                if (!bodied) foreach (Massing one in Buildings(slot))
+                if (!bodied)
+                {
+                    foreach (Massing one in Buildings(slot))
                     {
                         _bodyEdits.Add(new(one.Body, one.Paint, one.Reads));
                         if (one.Outhoused) _yardEdits.Add(new(one.Yard,
@@ -60,6 +62,7 @@ public partial class Main
                         var roof = one.Cap switch { Cap.Gable => _roofEdits, Cap.Hip => _hipEdits, Cap.PairedGable => _pairedRoofEdits, Cap.Parapet => _parapetEdits, _ => null };
                         roof?.Add(new(one.Roof, RoofPaint(one), RoofWall(one)));
                     }
+                }
                 geometry |= ReplaceBuilding(id);
                 bool drawn = bodied || _bodyEdits.Count != 0;
                 _renderedBuildings[slot] = (id, drawn);
