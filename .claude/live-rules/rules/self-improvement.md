@@ -13,6 +13,7 @@ recommended change still needs its own.
 - **A multi-step job done by hand** may belong in a project skill.
 - **Something re-derived or re-explored** may belong in the document that owns it.
 - **A convention you had to be told** may belong in a tightly-scoped live rule.
-- **A finding with no home** gets routed on the day (`adr/0073`): a defect to the code or
-  `plans/0003`, a question to `plans/0002`, a document now wrong to `plans/0012`.
+- **A finding with no home** gets routed on the day (`adr/0073`). Fix a defect or file it as a
+  GitHub issue labelled `needs-triage`. Put work that needs a plan or design on the board. Correct a
+  document that is now wrong in place.
 Keep it to one evidenced improvement. If the existing capabilities hold up, say so plainly.

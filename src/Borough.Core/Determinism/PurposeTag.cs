@@ -906,9 +906,16 @@ public enum PurposeTag : ulong
     /// <summary>Variation among equally useful local arrangements.</summary>
     HousingConstructionForm = 58,
 
+    /// <summary>Which Lots an arriving family considers as homes not yet built.</summary>
+    /// <remarks>
+    /// Separate from <see cref="PlacementCandidate"/> so adding land to the sample leaves the
+    /// standing-housing draws unchanged.
+    /// </remarks>
+    ProspectLandCandidate = 59,
+
     /// <summary>
     /// Which eligible Appearance Family draws a Building. Drawn by the shell and the headless runner,
     /// never by a Tick, so it moves no State Hash.
     /// </summary>
-    AppearanceFamily = 59,
+    AppearanceFamily = 60,
 }

@@ -3,16 +3,29 @@
 ## Start and choose work
 
 Check Git status, recent local and remote commits, and the worktrees before choosing work.
-Read [the backlog](plans/0000-board.md), then the plan and code for the selected item.
 An occupied worktree is taken. Preserve other people's uncommitted work.
 
-The backlog is the only maintained list of all known unfinished work: gameplay, design, art,
-audio, interface and accessibility, architecture, performance, tooling, tests, delivery and
-documentation. Work needing discovery or a decision belongs there too. Recording a candidate
-commits us to considering its scope, not to building it. Each active item names its outcome,
-owner or worktree, plan, and any prerequisite that actually prevents starting it. Questions needed
-to implement that item belong in its plan. Other actionable findings get one backlog entry.
-Remove completed entries; commits and PRs record completion.
+Unfinished work lives in two places, and a session usually works from one of them.
+
+| | [The backlog board](plans/0000-board.md) | [GitHub issues](https://github.com/chrisbenincasa/city-sim/issues) |
+|---|---|---|
+| Holds | Medium and large game systems and features: work that involves design, studies or iteration, usually across several PRs | One defect or tightly scoped change that a single PR closes |
+| Approach | Worked out in the item's plan | Known, or found by reading the code |
+| Choosing | Read the board, then the item's plan and code | List issues labelled `ready-for-agent` |
+| Claiming | The row names its owner or worktree | Add `in-progress` and comment the branch name |
+| Finishing | Remove the row in the PR | The PR body says `Fixes #N` |
+
+The board covers gameplay, design, art, audio, interface and accessibility, architecture,
+performance, tooling, tests, delivery and documentation. Work needing discovery or a decision
+belongs there too. Recording a candidate commits us to considering its scope, not to building it.
+Each active item names its outcome, owner or worktree, plan, and any prerequisite that actually
+prevents starting it. Questions needed to implement that item belong in its plan.
+
+An issue carries `bug` or `enhancement` and one state label, as the `triage` skill defines:
+`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human` or `wontfix`. A new finding
+starts as `needs-triage`. An issue that turns out to need a design decision becomes
+`ready-for-human`. If it grows into an outcome with its own plan, move it to the board and close
+the issue with a link.
 
 ## Plans and design
 
@@ -58,7 +71,8 @@ determinism, save/reload equivalence, bounded state and the simulation/render bo
 golden fixtures when behaviour deliberately changes. A visible capability needs a driven
 demonstration and an account of what observation exposed, in its plan or PR.
 
-Finish by updating the affected design if necessary and removing the completed backlog entry.
+Finish by updating the affected design if necessary and removing the completed backlog entry,
+or by closing the issue through `Fixes #N`.
 The commit or PR says what changed, why and how it was checked. Documentation-only improvements
 are legitimate; do not add source code to qualify a commit.
 

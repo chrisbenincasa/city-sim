@@ -55,10 +55,12 @@
           CopyToOutputDirectory="PreserveNewest" />
 
     <!--
-      The source v1 package, kept out of the glob above: several tests assert every file that glob
+      The source v1 packages, kept out of the glob above: several tests assert every file that glob
       finds is a single-file Ruleset, and a manifest among them would arrive without its members.
     -->
     <None Include="..\..\rulesets\split\*.toml" Link="Rulesets\split\%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\rulesets\base\*.*" Link="Rulesets\base\%(Filename)%(Extension)"
           CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

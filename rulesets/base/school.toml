@@ -1,0 +1,35 @@
+# A public school: a service kind whose trade pays a wage and charges no tuition.
+#
+# The player places it with the `service` command, and the treasury pays `placement_cost`. No zone
+# rule names the school, because the city does not site its own schools. The grant lands in the
+# school's till, and the teachers are paid from it. If the grant stops, paydays fall short and the
+# trade closes after three of them. plans/0070 records how each number was chosen.
+
+[[business]]
+id = "teaching"
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+wage_per_day    = 4096
+pay_period_days = 7
+goes_bankrupt_after_short_paydays = 3
+
+[[building]]
+id             = "school"
+label          = "School"
+serves         = "education"
+level          = 1
+premises       = true
+business       = "teaching"
+placement_cost = 262144
+bins = [
+    { resource = "money", owner = "business" },
+]
+
+[[policy]]
+id       = "school_funding"
+order    = 1
+sweeps   = "business"
+trade    = "teaching"
+interval = 2048
+apply    = { derived = "jobs", percent = 100 }
+transfer = { from = "global", to = "local", resource = "money", amount = 4096 }

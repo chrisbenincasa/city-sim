@@ -1,0 +1,17 @@
+# The base founding package: a city founded from Ground by the player.
+#
+# The player lays Streets, zones housing and places a gate on a map edge. Families in the Hinterland
+# weigh the zoned land against their Outside homes, and those who prefer it arrive through the gate.
+# Housing is built for them, and every dwelling houses a shop. The player
+# places a public school, which the treasury pays for once and then funds by the declared job.
+#
+# The content combines attracted.toml's arrivals with funded.toml's public school. Those files carry
+# the reasoning behind each shared number. Every number here is provisional starting content; none
+# is balanced. The city has no income, so the opening balance is all the money it has.
+#
+# The founding run lives beside it in founding.borough. Its `ruleset` header line is this package's
+# bundle hash, so an edit to any member needs that line updated (`--save-key` prints the hash).
+
+[source]
+version = 1
+members = ["goods.toml", "city.toml", "people.toml", "housing.toml", "school.toml"]

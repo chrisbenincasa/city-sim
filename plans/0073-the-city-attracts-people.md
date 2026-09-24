@@ -212,13 +212,14 @@ home's probability. Reuse `Consider`'s existing feasibility checks and name thei
 no new Household-size capacity rule is introduced. Put the Outside first and the sampled homes
 in accepted draw order; apply `Choice.Draw` once. No feasible sample means no city alternative,
 not proof that every dwelling in the whole city is unsuitable. No gate on the source edge means
-no connected city alternative and no Lot sampling.
+no connected city alternative and no Lot sampling. D15 adds vacant buildable housing Lots to the
+sample, so a feasible sample means a Building with room or a Lot a housing Zone Rule would build on.
 
 The Outside carries the existing moving-friction bonus when an unadmitted prospect compares leaving
 its current home. A city Household's incumbent carries that same bonus; a Household already in the
 Unplaced Pool carries none. This explicitly changes the old prospect path's frictionless comparison
 in stock-enabled worlds. The chosen dwelling is evidence for willingness, not a reservation or a
-promise of a particular address. Queue members retain purse and identity; they do not retain a
+promise of a particular address, and a chosen Lot promises no construction. Queue members retain purse and identity; they do not retain a
 right to that dwelling. Differences in rent weights and centrality now make Life Stage composition
 selectively drain, without claiming a predetermined ordering in every city.
 
@@ -867,6 +868,30 @@ admission on that Tick, empty gate removal with a queue, mixed-use occupied remo
 double removal refusal, log round trip and replay. At least one driven episode places/removes a
 gate with these actual commands.
 
+### D15 — A family weighs buildable land as well as standing homes
+
+After sampling standing Buildings, `PlacementEngine.Compare` samples up to `placement.candidates`
+further vacant Lots within at most twice that many draws, on its own purpose tag
+(`ProspectLandCandidate`), so the Building draws are unchanged. A Lot qualifies when the first
+housing Zone Rule that answers the Unplaced Pool admits it (`ConstructionPermission`). Market-reading
+Rules do not count, because they build for trade. The Lot is valued as that Rule's kind: the
+kind's rent, the Lot's centrality, and the same affordability filter a standing dwelling gets. Lots
+are de-duplicated like Buildings.
+
+A family that prefers the land comes through the gate and waits in the Unplaced Pool. Construction
+builds because the Pool is not empty, and placement houses the family. `gives_up_after_days` bounds
+the wait if nothing is built in time.
+
+**Why:** without land in the sample, a city founded from Ground attracts nobody. Arrivals compared
+only standing homes, and housing is built only for Households already waiting, so each waited on the
+other. Land counts at every city size, not only while the city is empty, so zoning new land draws
+arrivals the way it does in other city-builders. There is no special case at zero homes.
+
+**Measured:** `rulesets/base/` replaying `founding.borough` (seed 20,260,924, 16 zoned blocks, gate
+on the south edge) grew from 0 to 366 Households and 582 Citizens in 12 Days, with 120 dwellings
+built and at most 6 Households waiting at any reading. Before this rule the same log admitted
+nobody.
+
 ## Inspection and demonstration contract
 
 Add `HinterlandReading` in Core instruments: typed ids, enums and counts, no human-readable strings.
@@ -1019,12 +1044,12 @@ instrument opts out under the repository's tier rule.
 | Area / proposed test class | Cases that must be written |
 |---|---|
 | **`HinterlandPopulationLoadTests`** | Absence preserves legacy mode; all-four-edge opt-in; missing durations/model/Money/Life Stages; duplicate composition; empty band; invalid tier-array shape/count/stage/child composition; zero target; product overflow; stable canonical ordering; copies retain settings; nested tables bind to the correct edge. |
-| **`HousingUtilityTests` / `ChoiceTests`** | Same inputs give identical utilities for resident/prospect/Outside; stage rent and centrality terms both affect a nontrivial trade-off; affordability remains a filter at zero rent weight; zero spread deterministic identity; extreme signed subtraction; friction exactly at either side of actual underflow boundary; no feasible sample correctly labelled; duplicate sampled Building does not get extra probability. |
+| **`HousingUtilityTests` / `ChoiceTests`** | Same inputs give identical utilities for resident/prospect/Outside; stage rent and centrality terms both affect a nontrivial trade-off; affordability remains a filter at zero rent weight; zero spread deterministic identity; extreme signed subtraction; friction exactly at either side of actual underflow boundary; no feasible sample correctly labelled; duplicate sampled Building does not get extra probability; a city with no standing homes and vacant zoned housing land still yields a sample. |
 | **`HinterlandStockTests`** | Opening Households/people exact; debit last Household then refuse next; fractional single-Household recovery eventually adds/removes; no overshoot; sign change clears wrong-direction fraction; disabled recovery inert; returns above target retained initially; queue reservations protected; zero-target group retires and its index entry vanishes. |
 | **`PopulationLedgerTests`** | Founding seal once, including save before/after first Step; Tick-zero inputs separate; one birth; imported child not birth; child formation adds zero people; dissolution including children counted as removal not return; actual civic illness death counted separately, including the last adult; direct scenario creation/removal classified; Business destruction changes no people; deliberately omitted/doubled transfer trips invariant. |
 | **`ProspectAdmissionTests`** | Exact evaluated purse through threshold affordability; mixed adult tiers and children created correctly; full/invalid/wrong-edge gate makes no stock/quota/Money changes; FIFO group reservation honoured; stock-aware legacy overload cannot bypass accounting; source edge survives placement/eviction/gate destruction; preference identity survives new Household id. |
 | **`HinterlandQueueTests`** | Queue reserves but transfers no population; capacity serves oldest first; no immediate double draw on fresh willingness; scheduled review at a full gate uses current city/Outside and retained purse; willingness preserves FIFO rank but not an unlimited wait; review/admission on one Tick draw once; expiry at exact duration; no same-pass retry loop after expiry; sole-gate loss cancels; one of two gates lost reroutes; reduced quota below use admits zero; replacement gate's reused slot cannot inherit cursor identity. |
-| **`AutonomousArrivalTests`** | No `Arrive` inputs needed; no gates means zero admissions without stock loss; no feasible housing means zero admissions; same-edge gates share stock and occasions; empty stock cannot generate; occasional single Household not permanently rounded away; selective depletion under fixed conditions across a fixed seed ensemble, with no fragile single-draw monotonicity assertion. |
+| **`AutonomousArrivalTests`** | No `Arrive` inputs needed; no gates means zero admissions without stock loss; no Building with room and no buildable housing Lot means zero admissions; same-edge gates share stock and occasions; empty stock cannot generate; occasional single Household not permanently rounded away; selective depletion under fixed conditions across a fixed seed ensemble, with no fragile single-draw monotonicity assertion. |
 | **`StockArrivalCommandTests`** | Zero request; unsupported composition refusal; supported empty stock no-op; payload larger than remaining stock; reserved stock excluded; two commands on same Tick generate distinct identities; explicit and autonomous shares use the same quota; stock-disabled payload and replay behaviour retained. |
 | **`HinterlandDepartureTests`** | Heterogeneous adult tiers/children; local formation; migrated then evicted; no live gate; destination differs from source; child-only unusual return counted/ineligible; empty Household; zero and out-of-band Money; dissolution and fixture destruction do not refill; non-authored composition recovers to zero. |
 | **`HinterlandReloadTests`** | Mid-Day rent/taste/reconsider/recovery/wait edits, preserved fractions and SinceTick; lowering quota; queued purse retained when band changes; temporarily empty band; zero recovery off/on; refusal for stock/layout/target/edge/stage structure and Money family even alongside another shape change; refusal leaves State Hash and Ruleset unchanged. |
