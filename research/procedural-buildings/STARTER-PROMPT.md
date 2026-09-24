@@ -1,73 +1,97 @@
-# Starter prompt — procedural Buildings, step 5
+# Starter prompt — procedural Buildings, family bodies
 
 Paste the block below into a fresh session.
 
 ```text
-We are continuing the procedural Building work. The test street has its
-materials and variants. The next job is step 5 of the pass 03 review
-protocol: decide whether to put exact game bodies into Godot, and build
-them if so.
+We are continuing the procedural Building work. Appearance Families can
+now generate their own body at each Building's size, and the
+office-warehouse is the first family with one. The next job is bodies for
+the corridor apartments and the rowhouses.
 
 State at hand-off (2026-09-24):
-- PR #21 (procedural-buildings) is merged. It holds the ShellBuilder
-  prototype, the chunk measurements and the monochrome test street.
-- PR #22 (branch test-street-materials) is open and unmerged. It holds:
-  - CC0 wall and roof materials at true scale. scripts/art/
-    test-street-materials.py fetches them into art/materials/test-street/,
-    with provenance in materials.json.
-  - A filter that divides out the membrane's broad tonal bands.
-  - Flat roofs behind parapets on A2 and W2.
-  - Three variants on unchanged geometry: H1 reroofed, M1 with a repaired
-    shopfront, W1 with rooftop solar. Show them with --variants.
-  - A pre-commit hook, scripts/hooks/pre-commit, that runs
-    scripts/format.sh --check when C# is staged. Install it per clone with
-    ln -s ../../scripts/hooks/pre-commit .git/hooks/pre-commit
-  Check whether #22 has merged before branching.
-- Decisions the user made:
-  - Keep 3.5 m storeys everywhere.
-  - A pitched roof is at least 18 degrees. Anything shallower is a flat
-    roof behind a parapet (SESSION.md Q11).
-  - A "minor details" pass comes later (docs/deferred.md). Do not start it.
-- Known gaps in the test street:
-  - Fine streaks remain in the membrane roofs after the band filter. An
-    authored membrane texture is the fallback if they bother the user.
-  - The ground is flat colour.
-  - The camera can pass inside a Building. That may deserve a board row.
+- Three stacked PRs are open. Check which have merged before branching,
+  and branch from the newest unmerged one (family-models) or from main.
+  - #24 (exact-game-bodies): exact Blender bodies placed on live
+    Buildings with `ui exact-bodies on|off`.
+  - #35 (appearance-families): the Style Preset format, reader, schema,
+    weighted picker, headless coverage report (--appearance DIR) and the
+    `overlay family` debug wash.
+  - #36 (family-models): `[family.body]` in the preset,
+    FamilyBodyBuilder in Borough.Appearance, `ui family-bodies on|off` in
+    the shell, and the rename of the test-street bodies.
+- The test-street bodies were renamed. H1 is now rowhouses, A1
+  corridor-apartments, A2 walkup-apartments, M1 corner-shops-with-flats,
+  W1 office-warehouse, W2 workshop and G003 two-unit-apartments. Older
+  evidence keeps the old codes.
+- How a body works now:
+  - A family's [family.body] table sets the bay width, a bay list for
+    each wall's ground and upper storeys (street_, back_, side_), a
+    parapet, pilasters, rooftop plant, and the GLB whose materials
+    dress it. A token ending in `*` fills the spare bays.
+  - Bay kinds: blank, window, shop, entry, door, roller, stair. Opening
+    sizes are fixed per kind in FamilyBodyBuilder.Openings.
+  - FamilyBodyBuilder ports scripts/art/test-street.py. It writes in
+    Blender's Z-up frame and converts each polygon to Godot's frame, so
+    the two stay comparable line for line.
+  - The office-warehouse at 36 x 20 m has the Blender body's exact
+    bounds. Five generated ones stand in shopping.toml at 400 Citizens,
+    Tick 600.
+- Known limits of bodies:
+  - Drawn only with no overlay showing; no wash or paint yet.
+  - A Building raised after the toggle gets no foliage footprint until
+    the next full pass.
+  - One mesh per Building, no chunking, no far level, not measured.
+
+The job, in order:
+1. Corridor apartments first, because they need the least new
+   vocabulary. Compare scripts/art/test-street.py corridor_apartments()
+   with what [family.body] can express. It needs at least a window width
+   per family or per row (1.6 m windows on 3 m bays), a central entrance
+   with its own canopy, and end-wall doors under stair windows. Extend
+   the format only as far as the body needs. Check the generated body
+   against the Blender one at 24 x 16 m by bounds, then photograph both.
+2. Rowhouses second. They need a gable roof (18 degrees across the
+   depth, shingles), a repeating house module (door and window below,
+   two windows above), party-wall upstands, chimneys and front steps.
+   Before building, put this decision to the user as prose with costs:
+   is one rowhouses Building a single house or a whole range? The family
+   admits frontages of 4 to 28 m, and attached Buildings on one block
+   face share a family (SESSION.md Q6). Party walls should follow edge
+   labels (SESSION.md Q4), so a side wall against a neighbour is blank.
+3. Photograph each family with the drive skill: near, neighbourhood and
+   a side-by-side with its Blender body. Record the results in
+   plans/appearance-families.md and keep evidence in
+   plans/evidence/appearance-families/.
 
 Read first:
-- research/city-architecture/output/03-context-and-construction/
-  model-briefs.md. Step 5 is line 52. Line 28 sets the G003 rules.
-- research/city-architecture/output/03-context-and-construction/
-  simulation-audit.md explains the capacity ceilings. G003 is 24 x 16 m
-  with 10.5 m walls and a two-tenancy ceiling. The twelve-flat A1 is a
-  content experiment, not a replacement for G003.
-- plans/evidence/procedural-buildings/README.md, sections "First test
-  street", "Surface materials" and "Variants on the same geometry".
-- research/procedural-buildings/SESSION.md for decisions Q1-Q11.
+- plans/appearance-families.md: decisions, pieces, acceptance and limits.
+- src/Borough.Appearance/FamilyBodyBuilder.cs and StylePreset.cs.
+- appearance/test-street/preset.toml, the office-warehouse body.
+- scripts/art/test-street.py, rowhouses() and corridor_apartments().
+- research/procedural-buildings/SESSION.md, decisions Q1-Q11.
 - docs/07-the-drawing.md#building-authoring-procedure.
 
-Step 5, in order:
-1. Put the decision to the user first, as prose with costs. The choice is
-   whether to build one exact-body W1 and one G003 study labelled with its
-   two-tenancy capacity, or to stop at the test street.
-2. If the user says yes, author both in Blender, following the Building
-   authoring procedure. W1 keeps its pass 03 dimensions exactly. G003
-   keeps 24 x 16 m and 10.5 m walls and displays its capacity.
-3. Place them in the shell with the drive skill. Build Debug before every
-   capture:
-     dotnet build src/Borough.Godot
-4. Review five views: near, neighbourhood, city, a moving camera and the
-   overlays. Record what each view exposed in the evidence README.
-
 Tools and paths:
-- BLENDER_BIN=~/.local/opt/blender-5.2.1-linux-x64/blender, GODOT_BIN=godot
-- scripts/art/review.sh test-street exports, imports, builds and captures
-  into artifacts/test-street/. open-test-street and
-  open-test-street-variants open the scene.
-- When a GLB is byte-identical, Godot skips its reimport. If extracted
-  textures go missing, delete .godot/imported/<model>.glb-* and reimport.
+- Build Debug before every capture: dotnet build src/Borough.Godot
+- Probe run: --ruleset rulesets/shopping.toml --citizens 400
+  --start-at 600, then `ui family-bodies on`. Placement prints
+  family_body lines with each Building's size and tile.
+- scripts/test.sh --filter 'FullyQualifiedName~Appearance' covers the
+  reader, picker, builder and schema.
+- The schema is hand-written: appearance/appearance.schema.json.
+  StylePresetSchemaTests keeps its keys equal to the reader's. Lint with
+  npx @taplo/cli lint 'appearance/*/*.toml'
+- BLENDER_BIN=~/.local/opt/blender-5.2.1-linux-x64/blender. Re-exporting
+  the test street changes no geometry hash unless the geometry changes;
+  art/test-street/bodies.json records them.
+- After new or renamed assets, run
+  godot --headless --path src/Borough.Godot --import
+  and commit the generated .import and .cs.uid files.
 
 Constraints:
+- Keep 3.5 m storeys everywhere. A pitched roof is at least 18 degrees.
+- The "minor details" pass (scuppers, downpipes, crickets) comes later.
+  Do not start it.
 - Put --listen sockets in $XDG_RUNTIME_DIR, because the path limit is
   108 characters.
 - Do not use `pkill -f`. It matched and killed its own shell.

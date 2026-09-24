@@ -69,7 +69,7 @@ Limits of this slice:
 
 ## Next
 
-- Bodies for the other test-street families: rowhouses and corridor apartments need gable roofs and window bays.
+- Bodies for the other test-street families. Corridor apartments need window bays and a central entry under a flat parapeted roof. Rowhouses need an 18° gable, house modules and party walls.
 - Wash and paint for bodies, so overlays work with bodies on.
 - Chunked upload and the far level, measured against the 6 ms Building frame share.
 - Author the rest of the families. The coverage report says which size bands and kinds need them.
