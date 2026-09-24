@@ -2,9 +2,10 @@
 # Family (plans/appearance-families.md). Based on neighbourhood.toml; its placeholder economy is a
 # fixture, not balanced gameplay.
 #
-# Five bands put perimeter blocks on rung 1, as in platted.toml at the same lattice. A perimeter
-# block takes the house plots below: 8 m of frontage, 12 m deep, no setback, so neighbours share
-# their side walls. A perimeter house stands house_storeys plus one storey a rung.
+# Five bands put perimeter blocks on rung 1, as in platted.toml. A perimeter block takes the house
+# plots below: 8 m of frontage, 12 m deep, no setback, so neighbours share their side walls. A
+# perimeter house stands house_storeys plus one storey a rung. Streets run every 64 m, about the
+# depth of a real rowhouse block, which leaves some 16 m behind each house for gardens.
 #
 # The three denser bands admit only zone bit 1, which no rule here builds on, so the middle of the
 # city stays empty. The last band always takes the top rung, and a slab there stands 20 storeys
@@ -88,7 +89,7 @@ pollution_decay_ticks = 2048
 land_value_tau        = 8
 
 [roads]
-block_tiles                    = 32
+block_tiles                    = 16
 arterial_count                 = 0
 arterial_junction_tiles        = 512
 foot_crossing_every            = 4
