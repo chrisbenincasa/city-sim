@@ -157,6 +157,32 @@
       "geometry_sha256": "d5a13d10dcb7a1d21b33ee5bade87a425474fbb9a5de32d9d794fddaa55bb60e"
     },
     {
+      "body": "g003-two-tenancy",
+      "vertices": 2972,
+      "faces": 1003,
+      "bounds_min": [
+        -12.06,
+        -9.1,
+        0.0
+      ],
+      "bounds_max": [
+        12.06,
+        8.12,
+        11.4
+      ],
+      "materials": [
+        "wall-render",
+        "trim",
+        "door",
+        "glass",
+        "wall-end-render",
+        "plinth",
+        "membrane-membrane",
+        "metal"
+      ],
+      "geometry_sha256": "768c19d392dd86e489b91974044f5e4447921e4707c107f7fb4577ed727fac1a"
+    },
+    {
       "body": "h1-reroofed",
       "vertices": 2124,
       "faces": 708,

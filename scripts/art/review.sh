@@ -118,6 +118,11 @@ case "${1:-capture}" in
     "$godot_bin" --path src/Borough.Godot res://ExpandedStudy.tscn -- --test-street --capture-expanded "$PWD/artifacts/test-street/capture" > artifacts/test-street/capture.log 2>&1
     "$godot_bin" --path src/Borough.Godot res://ExpandedStudy.tscn -- --test-street --variants --capture-expanded "$PWD/artifacts/test-street/capture" > artifacts/test-street/capture-variants.log 2>&1
     ;;
+  exact-bodies)
+    mkdir -p artifacts/exact-bodies/capture
+    dotnet build src/Borough.Godot --no-restore > artifacts/exact-bodies/build.log 2>&1
+    "$godot_bin" --path src/Borough.Godot -- --ruleset rulesets/shopping.toml --citizens 400 --start-at 599 --drive scripts/art/exact-bodies.drive > artifacts/exact-bodies/capture.log 2>&1
+    ;;
   open-test-street)
     "$godot_bin" --path src/Borough.Godot res://ExpandedStudy.tscn -- --test-street
     ;;
@@ -151,5 +156,5 @@ case "${1:-capture}" in
   open)
     "$godot_bin" --path src/Borough.Godot res://VisualStudy.tscn
     ;;
-  *) echo 'Usage: scripts/art/review.sh [rebuild|verify|capture|open|material-rich|open-rich|kit|open-kit|extremes|open-extremes|styles|open-styles|models|open-models|palettes|open-palettes|expanded|open-expanded|construction|fidelity|open-fidelity|brick-scale|neighbourhood|open-neighbourhood|test-street|open-test-street|open-test-street-variants]' >&2; exit 2 ;;
+  *) echo 'Usage: scripts/art/review.sh [rebuild|verify|capture|open|material-rich|open-rich|kit|open-kit|extremes|open-extremes|styles|open-styles|models|open-models|palettes|open-palettes|expanded|open-expanded|construction|fidelity|open-fidelity|brick-scale|neighbourhood|open-neighbourhood|test-street|exact-bodies|open-test-street|open-test-street-variants]' >&2; exit 2 ;;
 esac

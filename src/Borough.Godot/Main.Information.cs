@@ -577,6 +577,9 @@ public partial class Main
             case "shell-band":
                 ShellBand(words);
                 break;
+            case "exact-bodies":
+                ExactBodyStudy(words);
+                break;
             case "health" when words.Length == 1:
                 _selectedBusiness = default;
                 _healthInspection = true;

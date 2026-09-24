@@ -1,0 +1,157 @@
+600 ui exact-bodies off
+601 focus 91 36 60
+601 tilt 15
+601 shoot artifacts/exact-bodies/capture/near-g003-off.png
+602 focus 70 36 70
+602 tilt 15
+602 shoot artifacts/exact-bodies/capture/near-w1-off.png
+603 focus 80 36 250
+603 tilt 35
+603 shoot artifacts/exact-bodies/capture/neighbourhood-off.png
+604 focus 80 36 1000
+604 tilt 40
+604 shoot artifacts/exact-bodies/capture/city-off.png
+605 focus 91 36 60
+605 tilt 15
+605 turn left
+605 turn left
+605 shoot artifacts/exact-bodies/capture/near-g003-rear-off.png
+606 turn right
+606 turn right
+607 ui exact-bodies on
+608 focus 91 36 60
+608 tilt 15
+608 shoot artifacts/exact-bodies/capture/near-g003-on.png
+609 focus 70 36 70
+609 tilt 15
+609 shoot artifacts/exact-bodies/capture/near-w1-on.png
+610 focus 80 36 250
+610 tilt 35
+610 shoot artifacts/exact-bodies/capture/neighbourhood-on.png
+611 focus 80 36 1000
+611 tilt 40
+611 shoot artifacts/exact-bodies/capture/city-on.png
+612 focus 91 36 60
+612 tilt 15
+612 turn left
+612 turn left
+612 shoot artifacts/exact-bodies/capture/near-g003-rear-on.png
+613 turn right
+613 turn right
+614 ui exact-bodies on
+615 focus 50 30 90
+615 tilt 12
+615 shoot artifacts/exact-bodies/capture/moving-00.png
+616 focus 52 30 90
+616 tilt 12
+616 shoot artifacts/exact-bodies/capture/moving-01.png
+617 focus 54 30 90
+617 tilt 12
+617 shoot artifacts/exact-bodies/capture/moving-02.png
+618 focus 56 30 90
+618 tilt 12
+618 shoot artifacts/exact-bodies/capture/moving-03.png
+619 focus 58 30 90
+619 tilt 12
+619 shoot artifacts/exact-bodies/capture/moving-04.png
+620 focus 60 30 90
+620 tilt 12
+620 shoot artifacts/exact-bodies/capture/moving-05.png
+621 focus 62 30 90
+621 tilt 12
+621 shoot artifacts/exact-bodies/capture/moving-06.png
+622 focus 64 30 90
+622 tilt 12
+622 shoot artifacts/exact-bodies/capture/moving-07.png
+623 focus 66 30 90
+623 tilt 12
+623 shoot artifacts/exact-bodies/capture/moving-08.png
+624 focus 68 30 90
+624 tilt 12
+624 shoot artifacts/exact-bodies/capture/moving-09.png
+625 focus 70 30 90
+625 tilt 12
+625 shoot artifacts/exact-bodies/capture/moving-10.png
+626 focus 72 30 90
+626 tilt 12
+626 shoot artifacts/exact-bodies/capture/moving-11.png
+627 focus 74 30 90
+627 tilt 12
+627 shoot artifacts/exact-bodies/capture/moving-12.png
+628 focus 76 30 90
+628 tilt 12
+628 shoot artifacts/exact-bodies/capture/moving-13.png
+629 focus 78 30 90
+629 tilt 12
+629 shoot artifacts/exact-bodies/capture/moving-14.png
+630 focus 80 30 90
+630 tilt 12
+630 shoot artifacts/exact-bodies/capture/moving-15.png
+631 focus 82 30 90
+631 tilt 12
+631 shoot artifacts/exact-bodies/capture/moving-16.png
+632 focus 84 30 90
+632 tilt 12
+632 shoot artifacts/exact-bodies/capture/moving-17.png
+633 focus 86 30 90
+633 tilt 12
+633 shoot artifacts/exact-bodies/capture/moving-18.png
+634 focus 88 30 90
+634 tilt 12
+634 shoot artifacts/exact-bodies/capture/moving-19.png
+635 focus 90 30 90
+635 tilt 12
+635 shoot artifacts/exact-bodies/capture/moving-20.png
+636 focus 92 30 90
+636 tilt 12
+636 shoot artifacts/exact-bodies/capture/moving-21.png
+637 focus 94 30 90
+637 tilt 12
+637 shoot artifacts/exact-bodies/capture/moving-22.png
+638 focus 96 30 90
+638 tilt 12
+638 shoot artifacts/exact-bodies/capture/moving-23.png
+639 focus 98 30 90
+639 tilt 12
+639 shoot artifacts/exact-bodies/capture/moving-24.png
+640 focus 100 30 90
+640 tilt 12
+640 shoot artifacts/exact-bodies/capture/moving-25.png
+641 focus 102 30 90
+641 tilt 12
+641 shoot artifacts/exact-bodies/capture/moving-26.png
+642 focus 104 30 90
+642 tilt 12
+642 shoot artifacts/exact-bodies/capture/moving-27.png
+643 focus 106 30 90
+643 tilt 12
+643 shoot artifacts/exact-bodies/capture/moving-28.png
+644 focus 108 30 90
+644 tilt 12
+644 shoot artifacts/exact-bodies/capture/moving-29.png
+645 focus 110 30 90
+645 tilt 12
+645 shoot artifacts/exact-bodies/capture/moving-30.png
+646 overlay value
+646 focus 80 36 250
+646 tilt 35
+646 shoot artifacts/exact-bodies/capture/overlay-value.png
+647 overlay pollution
+647 focus 80 36 250
+647 tilt 35
+647 shoot artifacts/exact-bodies/capture/overlay-pollution.png
+648 overlay sealing
+648 focus 80 36 250
+648 tilt 35
+648 shoot artifacts/exact-bodies/capture/overlay-sealing.png
+649 overlay rung
+649 focus 80 36 250
+649 tilt 35
+649 shoot artifacts/exact-bodies/capture/overlay-rung.png
+650 overlay age
+650 focus 80 36 250
+650 tilt 35
+650 shoot artifacts/exact-bodies/capture/overlay-age.png
+651 overlay off
+651 draw artifacts/exact-bodies/capture/on.tsv
+652 quit
