@@ -16,13 +16,13 @@
         10.05
       ],
       "materials": [
-        "wall",
+        "wall-siding",
         "trim",
         "door",
         "glass",
-        "wall-end",
+        "wall-end-siding",
         "plinth",
-        "roof"
+        "roof-shingles"
       ],
       "geometry_sha256": "a23b94f896b5a95734673d147ccf9d425d37413ac0974900b1d7d01acd18f6e0"
     },
@@ -41,12 +41,12 @@
         11.4
       ],
       "materials": [
-        "wall",
+        "wall-render",
         "trim",
         "glass",
         "door",
         "plinth",
-        "membrane",
+        "membrane-membrane",
         "metal"
       ],
       "geometry_sha256": "051fe26485a22bf4a4c032299c7d65c4fa8ec1092211b6e4de40b27459cdcebb"
@@ -66,12 +66,12 @@
         11.866
       ],
       "materials": [
-        "wall",
+        "wall-render",
         "trim",
         "door",
         "glass",
         "plinth",
-        "membrane",
+        "membrane-membrane",
         "metal"
       ],
       "geometry_sha256": "d192eb34202e43ed6067a1d8bcbd64d2488bbd19c51276b510325dd2e1e5c2d7"
@@ -91,14 +91,14 @@
         12.9
       ],
       "materials": [
-        "wall",
+        "wall-brick",
         "trim",
         "glass",
         "frame",
         "door",
         "metal",
         "plinth",
-        "membrane"
+        "membrane-membrane"
       ],
       "geometry_sha256": "99f18b3949e27acdfd7b548ea720862cfd4e5b537a747b569812f5ed15d57bcb"
     },
@@ -117,15 +117,15 @@
         8.5
       ],
       "materials": [
-        "wall",
+        "wall-block",
         "trim",
         "door",
         "glass",
         "frame",
         "metal",
         "plinth",
-        "membrane",
-        "wall-end"
+        "membrane-membrane",
+        "wall-end-block"
       ],
       "geometry_sha256": "a4ca8a2f6351e0a0b5d15b63619ccbb6c6c23b0c8db96230ca211cc1c25c7077"
     },
@@ -144,13 +144,14 @@
         8.841
       ],
       "materials": [
-        "wall",
+        "wall-sheet",
         "trim",
         "door",
         "metal",
         "glass",
         "frame",
         "plinth",
+        "roof-sheet",
         "wall-end"
       ],
       "geometry_sha256": "39eab6a6ceb8389462487ca00732602cb14b7a39513a3428110af352c7414f2b"

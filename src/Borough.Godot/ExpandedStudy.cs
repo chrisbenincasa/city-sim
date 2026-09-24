@@ -175,7 +175,7 @@ public partial class ExpandedStudy : Node3D
         Vector3 eye;
         if (_testStreet)
         {
-            TestStreet(); _subject = "test-street"; _palette = "monochrome";
+            TestStreet(); _subject = "test-street"; _palette = "materials";
             (_view, eye, _target) = TestStreetViews[_page];
         }
         else if (_neighbourhood)
@@ -238,7 +238,7 @@ public partial class ExpandedStudy : Node3D
         if (_fidelity) _caption.Text = $"0063 / FIDELITY PILOT / {_subject.ToUpperInvariant()} / {_palette.ToUpperInvariant()} / {_view.ToUpperInvariant()}\nBrick material · sash windows and curtains · cornices · entrance courts · matched camera and noon light";
         if (_fidelity && _brickScale != 1) _caption.Text = $"0063 / BRICK SCALE / {_brickScale:0.00}× / {_palette.ToUpperInvariant()} / {_view.ToUpperInvariant()}\nSame geometry and texture images · diffuse, normal and roughness scaled together · matched camera and light";
         if (_neighbourhood) _caption.Text = $"0063 / NEIGHBOURHOOD FIDELITY / {_view.ToUpperInvariant()}\nAuthored street corner · warm material families · static daylight study · Left/Right browse · Escape closes";
-        if (_testStreet) _caption.Text = $"PROCEDURAL BUILDINGS / TEST STREET / {_view.ToUpperInvariant()}\nPass 03 bodies H1 A1 M1 W1 W2, A2 apart · 3.5 m storeys · monochrome blockout · noon · Left/Right browse · Escape closes";
+        if (_testStreet) _caption.Text = $"PROCEDURAL BUILDINGS / TEST STREET / {_view.ToUpperInvariant()}\nPass 03 bodies H1 A1 M1 W1 W2, A2 apart · 3.5 m storeys · surface materials · noon · Left/Right browse · Escape closes";
         GD.Print($"EXPANDED_IMPORT_OK {_subject} {_palette} {_view} instances={_instances.Count} triangles={_triangles}");
     }
 

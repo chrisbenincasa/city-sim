@@ -185,3 +185,25 @@ Debug build, `ExpandedStudy --test-street`.
 - The monochrome review on 2026-09-24 kept 3.5 m storeys for every body, so the drawn height always matches the simulation's.
 - A2 sits on its own pad east of the side street, as the brief asks. The `a1-front`/`a2-front` and `a1-garden`/`a2-garden` views use matched camera offsets for the unlabelled comparison.
 - The street is a study fixture. No body is a simulation Building, and nothing is tied to a Lot or an Appearance Family yet.
+
+### Surface materials (`test-street-materials-*`)
+
+Step 4 of the pass 03 review protocol, on unchanged geometry. `scripts/art/test-street-materials.py` fetches the CC0 maps
+into `art/materials/test-street/` with their sources, hashes and measured tile sizes. `scripts/art/test-street.py` gives
+each body its finish, projects world-scale UVs (u level along a face, v up it or up a roof's slope) and embeds 1024 px
+maps in the GLB. Colours follow the warm-slate palette: warm walls, dark slate-grey roofs.
+
+| Body | Wall | Roof | Tile | Paint |
+|---|---|---|---|---|
+| H1 | ambientCG Wood Siding 009, 150 mm lap | Authored asphalt shingles, 142.9 mm courses | 2.4 × 1.2 m; 4 m | `b9ad97`, ends `a39985`; roof `353e44` |
+| A1, A2 | Poly Haven Painted Plaster Wall | Poly Haven Bitumen membrane | 2 m; 20 m | `cdc6b6` on both, as the brief asks |
+| M1 | Poly Haven Brick Wall 001, the brick the live shell uses | Bitumen membrane | 1.125 m; 20 m | Photograph's own colour |
+| W1 | Poly Haven Concrete Block Wall, 400 × 200 mm blocks | Bitumen membrane | 2.0 × 1.6 m; 20 m | `c3bcaa`, pilasters `ada691` |
+| W2 | Poly Haven Box Profile Metal Sheet, 200 mm ribs | The same sheet | 2 m | `5d6a6e`; roof `a3a8a9` |
+
+- A painted surface's albedo is greyscale at linear mean luminance 0.7. The glTF colour factor is the paint colour divided
+  by that mean, so the paint reads true on average. The shingles divide by their own recorded mean, 0.178.
+- Poly Haven states 2 × 2 m for the block wall. Its 8 courses and 5 blocks give 2.0 × 1.6 m at true block size, so the
+  tile is mapped anisotropically.
+- Seen at close range, the membrane shows its 20 m repeat as faint bands. The ground is still flat colour.
+- The Godot import extracts each model's maps beside it, so every body carries its own copy.

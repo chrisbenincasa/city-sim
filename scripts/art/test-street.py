@@ -1,4 +1,4 @@
-"""The first procedural-buildings test street: pass 03's five bodies and the A2 alternative as monochrome blockouts.
+"""The first procedural-buildings test street: pass 03's five bodies and the A2 alternative, with surface materials.
 
 Run with Blender in the background:
   blender --background --factory-startup --python-exit-code 1 --python scripts/art/test-street.py
@@ -15,6 +15,8 @@ import json
 import math
 from pathlib import Path
 
+from mathutils import Vector
+
 ROOT = Path(__file__).resolve().parents[2]
 SOURCES = ROOT / 'art/test-street'
 EXPORT = ROOT / 'src/Borough.Godot/assets/test-street'
@@ -24,6 +26,29 @@ REVEAL = .18
 COLOURS = {
     'wall': 'd9d8d2', 'wall-end': 'c9c8c1', 'trim': 'f0efe9', 'roof': '85888a', 'membrane': '6f7274',
     'glass': '39454d', 'door': '4f5253', 'frame': 'eeeeea', 'metal': '8d9194', 'plinth': 'a3a29b',
+}
+
+FETCHED = json.loads((ROOT / 'art/materials/test-street/materials.json').read_text())
+SURFACES = {name: {'metres': s['tile_metres'], 'mean': FETCHED['paint_mean_linear_luminance'] if s['paint'] else None,
+                   'maps': {key: ROOT / f['file'] for key, f in s['files'].items()}}
+            for name, s in FETCHED['surfaces'].items()}
+CITY = ROOT / 'src/Borough.Godot/assets/city'
+SURFACES['brick'] = {'metres': [1.125, 1.125], 'mean': None,
+                     'maps': {'albedo': CITY / 'brick-wall-diffuse.jpg', 'normal': CITY / 'brick-wall-normal.jpg'}}
+SURFACES['shingles'] = {'metres': [4.0, 4.0],
+                        'mean': json.loads((CITY / 'roofing/asphalt-shingles.json').read_text())['albedo_linear_mean_luminance'],
+                        'maps': {key: CITY / f'roofing/asphalt-shingles-{key}.png' for key in ('albedo', 'normal', 'roughness')}}
+TEXTURE_PIXELS = 1024
+
+# A body's finish replaces a blockout material with a surface and a paint colour. A painted surface
+# divides the colour by its albedo's mean luminance; None keeps the photograph's own colour.
+FINISHES = {
+    'h1-attached-range': {'wall': ('siding', 'b9ad97'), 'wall-end': ('siding', 'a39985'), 'roof': ('shingles', '353e44')},
+    'a1-apartment': {'wall': ('render', 'cdc6b6'), 'membrane': ('membrane', None)},
+    'a2-stair-range': {'wall': ('render', 'cdc6b6'), 'membrane': ('membrane', None)},
+    'm1-corner': {'wall': ('brick', None), 'membrane': ('membrane', None)},
+    'w1-workplace': {'wall': ('block', 'c3bcaa'), 'wall-end': ('block', 'ada691'), 'membrane': ('membrane', None)},
+    'w2-workshop': {'wall': ('sheet', '5d6a6e'), 'wall-end': (None, '4f5b5f'), 'roof': ('sheet', 'a3a8a9')},
 }
 BOX_FACES = [(0, 3, 2, 1), (4, 5, 6, 7), (0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7)]
 
@@ -35,7 +60,57 @@ def linear(channel):
     return channel / 12.92 if channel <= .04045 else ((channel + .055) / 1.055) ** 2.4
 
 
-def reset():
+def rgb(code):
+    return tuple(linear(int(code[i:i + 2], 16) / 255) for i in (0, 2, 4))
+
+
+def image(path, colour):
+    loaded = bpy.data.images.load(str(path), check_existing=True)
+    if tuple(loaded.size) != (TEXTURE_PIXELS, TEXTURE_PIXELS) and loaded.size[0] > TEXTURE_PIXELS:
+        loaded.scale(TEXTURE_PIXELS, TEXTURE_PIXELS * loaded.size[1] // loaded.size[0])
+    if not colour:
+        loaded.colorspace_settings.name = 'Non-Color'
+    return loaded
+
+
+def surface(name, key, code):
+    """A textured material. Its tile size rides along for project_uvs."""
+    spec = SURFACES[key]
+    material = bpy.data.materials.new(name)
+    material.use_nodes = True
+    material['tile_metres'] = spec['metres']
+    nodes, links = material.node_tree.nodes, material.node_tree.links
+    shader = nodes['Principled BSDF']
+    albedo = nodes.new('ShaderNodeTexImage')
+    albedo.image = image(spec['maps']['albedo'], True)
+    factor = (1, 1, 1)
+    if code:
+        factor = tuple(c / spec['mean'] for c in rgb(code))
+        assert max(factor) <= 1, (name, factor)
+        tint = nodes.new('ShaderNodeMix')
+        tint.data_type, tint.blend_type = 'RGBA', 'MULTIPLY'
+        tint.inputs['Factor'].default_value = 1
+        links.new(albedo.outputs['Color'], tint.inputs['A'])
+        tint.inputs['B'].default_value = factor + (1,)
+        links.new(tint.outputs['Result'], shader.inputs['Base Color'])
+    else:
+        links.new(albedo.outputs['Color'], shader.inputs['Base Color'])
+    normal = nodes.new('ShaderNodeTexImage')
+    normal.image = image(spec['maps']['normal'], False)
+    bump = nodes.new('ShaderNodeNormalMap')
+    links.new(normal.outputs['Color'], bump.inputs['Color'])
+    links.new(bump.outputs['Normal'], shader.inputs['Normal'])
+    if 'roughness' in spec['maps']:
+        roughness = nodes.new('ShaderNodeTexImage')
+        roughness.image = image(spec['maps']['roughness'], False)
+        links.new(roughness.outputs['Color'], shader.inputs['Roughness'])
+    else:
+        shader.inputs['Roughness'].default_value = .85
+    material.diffuse_color = tuple(min(1.0, f * .5) for f in factor) + (1,)
+    return material
+
+
+def reset(finish):
     bpy.ops.object.select_all(action='SELECT')
     bpy.ops.object.delete(use_global=False)
     for data in list(bpy.data.meshes):
@@ -45,14 +120,34 @@ def reset():
     parts.clear()
     materials.clear()
     for name, code in COLOURS.items():
+        key, paint = finish.get(name, (None, None))
+        if key:
+            materials[name] = surface(f'{name}-{key}', key, paint)
+            continue
         material = bpy.data.materials.new(name)
         material.use_nodes = True
-        colour = tuple(linear(int(code[i:i + 2], 16) / 255) for i in (0, 2, 4)) + (1,)
+        colour = rgb(paint or code) + (1,)
         shader = material.node_tree.nodes['Principled BSDF']
         shader.inputs['Base Color'].default_value = colour
         shader.inputs['Roughness'].default_value = .25 if name == 'glass' else .85
         material.diffuse_color = colour
         materials[name] = material
+
+
+def project_uvs(body):
+    """World-scale UVs: u runs level along each face and v runs up it, or up the slope of a roof."""
+    bm = bmesh.new()
+    bm.from_mesh(body.data)
+    layer = bm.loops.layers.uv.new('UVMap')
+    for face in bm.faces:
+        width, height = body.data.materials[face.material_index].get('tile_metres', (1.0, 1.0))
+        n = face.normal
+        along = Vector((-n.y, n.x, 0)).normalized() if abs(n.z) < .95 else Vector((1, 0, 0))
+        up = n.cross(along)
+        for loop in face.loops:
+            loop[layer].uv = (loop.vert.co.dot(along) / width, loop.vert.co.dot(up) / height)
+    bm.to_mesh(body.data)
+    bm.free()
 
 
 def mesh(name, vertices, faces, material):
@@ -329,7 +424,7 @@ def w2():
     end = [(6.0, .3, 1.0, 2.3, 'door'), (9.5, STOREY + 1.1, 3.0, 1.2, 'window')]
     faces = walls(width, depth, height, front, back, end, end)
     plinth(width, depth)
-    roof = gable(width, depth, height, 6, eaves=.5, material='metal')
+    roof = gable(width, depth, height, 6, eaves=.5)
     for bay in range(4):
         x = -width / 2 + bay * 8 + 4
         for sign in (-1, 1):
@@ -348,7 +443,7 @@ BODIES = [('h1-attached-range', h1), ('a1-apartment', a1), ('a2-stair-range', a2
 
 
 def export(name, build):
-    reset()
+    reset(FINISHES[name])
     build()
     degenerate = [part.name for part in parts if any(p.area <= 1e-8 for p in part.data.polygons)]
     assert not degenerate, (name, degenerate)
@@ -370,6 +465,7 @@ def export(name, build):
     for polygon, index in zip(body.data.polygons, indices):
         polygon.material_index = index
     assert all(p.area > 1e-8 for p in body.data.polygons), name
+    project_uvs(body)
     low = [min(v.co[i] for v in body.data.vertices) for i in range(3)]
     high = [max(v.co[i] for v in body.data.vertices) for i in range(3)]
     assert abs(low[2]) < .025, (name, low)
@@ -378,7 +474,8 @@ def export(name, build):
     bpy.context.preferences.filepaths.save_version = 0
     bpy.ops.wm.save_as_mainfile(filepath=str(SOURCES / f'{name}.blend'))
     bpy.ops.export_scene.gltf(filepath=str(EXPORT / f'{name}.glb'), export_format='GLB', use_selection=True,
-                              export_apply=True, export_yup=True)
+                              export_apply=True, export_yup=True, export_tangents=True,
+                              export_image_format='JPEG', export_jpeg_quality=88)
     return {'body': name, 'vertices': len(body.data.vertices), 'faces': len(body.data.polygons),
             'bounds_min': [round(v, 3) for v in low], 'bounds_max': [round(v, 3) for v in high],
             'materials': [m.name for m in used], 'geometry_sha256': geometry}
