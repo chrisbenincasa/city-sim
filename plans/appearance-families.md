@@ -77,7 +77,7 @@ in place of the massing with `ui family-bodies on`.
 | Corridor apartments at 24 × 16 m against the Blender body | Same bounds: ±12.5 m to the end-door canopies, 9.2 m to the entrance canopy, 8.06 m to the back sills, 11.4 m to the vents |
 | Live city, `shopping.toml`, 1,000 Citizens, Tick 600 | Nine generated corridor bodies at 20, 24 and 28 m. The Blender body stands at Tile 68 116 and a generated 24 × 16 m one at Tile 2084 116; captures in `plans/evidence/appearance-families/a1-body-*` from `a1-body.drive` |
 | Four attached 6 × 12 m rowhouses against the Blender row | Same bounds: ±12.2 m to the free eaves, 7.0 m to the front steps, 6.4 m to the back eaves, 10.05 m to the chimneys |
-| Live city, `rowhouses.toml`, 1,000 Citizens, Tick 600 | 54 generated rowhouses, all 8 × 12 m and three storeys, in two terraces of 27 on one block's north and south faces. 50 share both side walls, and each terrace has one free end each side. Captures in `plans/evidence/appearance-families/h1-body-*` from `h1-body.drive`; the Blender row is rendered by `blender-render.py` |
+| Live city, `rowhouses.toml`, 1,000 Citizens, Tick 600 | 54 generated rowhouses, all 8 × 12 m and three storeys, round one block: rows of 15 on the north and south faces and columns of 12 on the west and east faces. 50 share both side walls. Each row has a free end at each street corner, and each column's end houses back onto the rows and hip down to them. Captures in `plans/evidence/appearance-families/h1-body-*` from `h1-body.drive`; the Blender row is rendered by `blender-render.py` |
 | Rowhouse side-by-side | Upstands, chimneys, steps, doors and the windowed free end match. Each house has one window size, so the narrow window over the Blender door is as wide as the other. End walls take the wall siding, not the darker end siding |
 | Corridor side-by-side | Walls, openings, canopies and roof hatch match. The two vents stand 4 m either side of the centre, where the Blender body puts them at 8 m. The ground windows sit 5 cm lower, and the back door is 10 cm taller |
 
@@ -93,7 +93,8 @@ Limits of this slice:
   spans a different stretch of the house's depth. The house then hips its roof down to that side,
   and the hip meets the row's back slope in a valley. The end has no gable wall and no upstand.
   Evidence is in `h1-corner-before.png` and `h1-corner-after.png`, taken at the south-west corner
-  of `rowhouses.toml` at 1,000 Citizens, from four sides.
+  of `rowhouses.toml` at 1,000 Citizens, from four sides. `h1-block.png` and `h1-street.png` show
+  the whole block and one street after the fix.
 - The rowhouse fixture's perimeter houses are all three storeys, since a perimeter block adds one
   storey to `house_storeys`. The family admits two and three.
 
