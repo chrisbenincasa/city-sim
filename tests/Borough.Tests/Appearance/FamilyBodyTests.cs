@@ -5,11 +5,77 @@ namespace Borough.Tests.Appearance;
 
 public sealed class FamilyBodyTests
 {
-    private static FamilyBody OfficeWarehouse()
+    private static FamilyBody OfficeWarehouse() => TestStreet("office-warehouse");
+
+    private static FamilyBody TestStreet(string family)
     {
         StylePresetResult read = StylePresetReader.Read(Path.Combine(AppContext.BaseDirectory, "Appearance", "test-street"));
         Assert.Empty(read.Errors);
-        return read.Preset!.Families.Single(f => f.Id == "office-warehouse").Body!;
+        return read.Preset!.Families.Single(f => f.Id == family).Body!;
+    }
+
+    private static Vector3[] Positions(FamilyBodyMesh mesh) => [.. mesh.Parts.SelectMany(p => p.Mesh.Positions.ToArray())];
+
+    [Fact]
+    public void Corridor_apartments_at_24_by_16_m_have_the_blender_bodys_bounds()
+    {
+        Vector3[] all = Positions(FamilyBodyBuilder.Build(TestStreet("corridor-apartments"), 24f, 16f, 3));
+
+        Assert.Equal(-12.5f, all.Min(p => p.X), 3);
+        Assert.Equal(12.5f, all.Max(p => p.X), 3);
+        Assert.Equal(0f, all.Min(p => p.Y), 3);
+        Assert.Equal(11.4f, all.Max(p => p.Y), 3);
+        Assert.Equal(-8.06f, all.Min(p => p.Z), 3);
+        Assert.Equal(9.2f, all.Max(p => p.Z), 3);
+    }
+
+    [Theory]
+    [InlineData(7, "WWHHHWW")]
+    [InlineData(8, "WWWHHWWW")]
+    [InlineData(9, "WWWHHHWWW")]
+    public void Bays_that_do_not_share_evenly_keep_a_symmetric_row_symmetric(int bays, string expected)
+    {
+        var row = new BayRow([BayKind.Window, BayKind.Hall, BayKind.Window], [true, true, true]);
+
+        Assert.Equal(expected, string.Concat(row.Over(bays).Select(k => k == BayKind.Hall ? 'H' : 'W')));
+    }
+
+    [Theory]
+    [InlineData(20f)]
+    [InlineData(24f)]
+    [InlineData(28f)]
+    public void Neighbouring_hall_bays_share_one_door_centred_on_them(float frontage)
+    {
+        FamilyBodyMesh mesh = FamilyBodyBuilder.Build(TestStreet("corridor-apartments"), frontage, 16f, 3);
+        Vector3[] doors = [.. mesh.Parts.Single(p => p.Part == "door").Mesh.Positions.ToArray()];
+        Vector3[] street = [.. doors.Where(p => p.Z > 7f)];
+
+        Assert.Equal(-1.2f, street.Min(p => p.X), 3);
+        Assert.Equal(1.2f, street.Max(p => p.X), 3);
+    }
+
+    [Fact]
+    public void An_opening_size_for_a_bay_that_fills_its_bay_is_refused()
+    {
+        StylePresetResult read = StylePresetReader.Read([("x.toml", """
+            [preset]
+            name = "x"
+            era_days = 1
+
+            [[family]]
+            id = "a"
+            kinds = ["dwelling"]
+
+            [family.body]
+            library = "l"
+            bay_metres = 3
+            openings = { shop = [2, 2], window = [1.6], door = [1, 2, -1] }
+            """)]);
+
+        Assert.Null(read.Preset);
+        Assert.Contains(read.Errors, e => e.Message.Contains("'openings.shop' names no sized opening", StringComparison.Ordinal));
+        Assert.Contains(read.Errors, e => e.Message.Contains("'openings.window' must be", StringComparison.Ordinal));
+        Assert.Contains(read.Errors, e => e.Message.Contains("'openings.door' must be", StringComparison.Ordinal));
     }
 
     [Theory]

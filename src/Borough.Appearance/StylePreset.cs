@@ -69,11 +69,24 @@ public enum BayKind : byte
     Door,
     Roller,
     Stair,
+
+    /// <summary>
+    /// A residential entrance. Neighbouring hall bays on the ground storey share one door centred on
+    /// them, under a canopy on the street wall. Above the ground a hall bay is a window.
+    /// </summary>
+    Hall,
 }
 
 /// <summary>
+/// An opening's size, and the height of its foot above its storey's floor. A <c>null</c> sill keeps
+/// the builder's own.
+/// </summary>
+public readonly record struct OpeningSize(float Width, float Height, float? Sill);
+
+/// <summary>
 /// One storey's bays along a wall. A filling token repeats to take up the bays the fixed tokens
-/// leave, shared among the filling tokens from the left.
+/// leave, shared evenly among the filling tokens. Bays that do not share evenly go in pairs to the
+/// outermost fillers, and a last odd one to the middle filler, so a symmetric row stays symmetric.
 /// </summary>
 public sealed record BayRow(BayKind[] Kinds, bool[] Fills)
 {
@@ -85,11 +98,25 @@ public sealed record BayRow(BayKind[] Kinds, bool[] Fills)
         int fixedCount = Fills.Count(f => !f);
         int fillers = Kinds.Length - fixedCount;
         int spare = Math.Max(0, bays - fixedCount);
+        int[] share = new int[fillers];
+        if (fillers > 0)
+        {
+            Array.Fill(share, spare / fillers);
+            int left = spare % fillers;
+            for (int outer = 0; left >= 2; outer++, left -= 2)
+            {
+                share[outer]++;
+                share[fillers - 1 - outer]++;
+            }
+
+            if (left == 1) share[(fillers - 1) / 2]++;
+        }
+
         var laid = new List<BayKind>(bays);
         int filler = 0;
         for (int i = 0; i < Kinds.Length && laid.Count < bays; i++)
         {
-            int count = !Fills[i] ? 1 : (spare / fillers) + (filler++ < spare % fillers ? 1 : 0);
+            int count = Fills[i] ? share[filler++] : 1;
             for (int n = 0; n < count && laid.Count < bays; n++) laid.Add(Kinds[i]);
         }
 
@@ -107,6 +134,10 @@ public sealed record WallRule(BayRow Ground, BayRow Upper);
 /// <param name="Library">The authored model whose materials dress the body's parts.</param>
 /// <param name="TileMetres">The size one texture tile covers, by part. Unlisted parts tile per metre.</param>
 /// <param name="Plant">Rooftop plant units, spaced evenly along the frontage.</param>
+/// <param name="Vents">Rooftop vents, spaced evenly along the frontage.</param>
+/// <param name="Openings">
+/// Opening sizes that replace the builder's own for window, door and stair bays, on every storey.
+/// </param>
 public sealed record FamilyBody(
     string Library,
     IReadOnlyDictionary<string, (float Along, float Up)> TileMetres,
@@ -116,4 +147,7 @@ public sealed record FamilyBody(
     int Plant,
     WallRule Street,
     WallRule Back,
-    WallRule Side);
+    WallRule Side,
+    bool RoofHatch,
+    int Vents,
+    IReadOnlyDictionary<BayKind, OpeningSize> Openings);

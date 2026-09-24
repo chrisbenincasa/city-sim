@@ -35,6 +35,22 @@ storeys = [3, 3]
 frontage_metres = [20, 28]
 depth_metres = [12, 20]
 
+# Eight 3 m bays at 24 m. One central entrance; the stairs stand at both ends over their doors.
+[family.body]
+library = "test-street/corridor-apartments"
+tile_metres = { wall = [2.0, 2.0], membrane = [20.0, 20.0] }
+bay_metres = 3.0
+parapet_metres = 0.7
+roof_hatch = true
+vents = 2
+openings = { window = [1.6, 1.7], door = [2.0, 2.4], stair = [2.0, 2.6, 1.2] }
+street_ground = ["window*", "hall*", "window*"]
+street_upper = ["window*"]
+back_ground = ["window*", "hall*", "window*"]
+back_upper = ["window*"]
+side_ground = ["blank*", "door", "blank*"]
+side_upper = ["blank*", "stair", "blank*"]
+
 [[family]]
 id = "two-unit-apartments"
 model = "test-street/two-unit-apartments"

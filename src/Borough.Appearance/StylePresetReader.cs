@@ -52,6 +52,14 @@ public static class StylePresetReader
         ["door"] = BayKind.Door,
         ["roller"] = BayKind.Roller,
         ["stair"] = BayKind.Stair,
+        ["hall"] = BayKind.Hall,
+    };
+
+    private static readonly Dictionary<string, BayKind> SizedOpenings = new()
+    {
+        ["window"] = BayKind.Window,
+        ["door"] = BayKind.Door,
+        ["stair"] = BayKind.Stair,
     };
 
     private static readonly string[] Conditions = ["storeys", "frontage_metres", "depth_metres", "raised_day", "patterns", "zones"];
@@ -281,18 +289,57 @@ public static class StylePresetReader
         public FamilyBody? Body()
         {
             int before = errors.Count;
-            Collect(["library", "tile_metres", "bay_metres", "parapet_metres", "pilasters", "plant", .. Rows]);
+            Collect(["library", "tile_metres", "bay_metres", "parapet_metres", "pilasters", "plant", "roof_hatch", "vents", "openings", .. Rows]);
             string? library = Text("library", required: true);
             Dictionary<string, (float, float)> tiles = Tiles("tile_metres");
             float bay = Metres("bay_metres", required: true, least: 1f) ?? 0f;
             float parapet = Metres("parapet_metres", required: false, least: 0f) ?? 0f;
             bool pilasters = Boolean("pilasters") ?? false;
             long plant = Integer("plant", required: false, least: 0) ?? 0;
+            bool hatch = Boolean("roof_hatch") ?? false;
+            long vents = Integer("vents", required: false, least: 0) ?? 0;
+            Dictionary<BayKind, OpeningSize> openings = Openings("openings");
             BayRow[] rows = [.. Rows.Select(Row)];
             return errors.Count > before || library is null
                 ? null
                 : new FamilyBody(library, tiles, bay, parapet, pilasters, (int)plant,
-                    new WallRule(rows[0], rows[1]), new WallRule(rows[2], rows[3]), new WallRule(rows[4], rows[5]));
+                    new WallRule(rows[0], rows[1]), new WallRule(rows[2], rows[3]), new WallRule(rows[4], rows[5]),
+                    hatch, (int)vents, openings);
+        }
+
+        private Dictionary<BayKind, OpeningSize> Openings(string key)
+        {
+            var sizes = new Dictionary<BayKind, OpeningSize>();
+            switch (Value(key, required: false))
+            {
+                case null:
+                    return sizes;
+                case InlineTableSyntax table:
+                    foreach (KeyValueSyntax pair in table.Items.Select(i => i.KeyValue).OfType<KeyValueSyntax>())
+                    {
+                        string name = NameOf(pair.Key);
+                        float?[] numbers = pair.Value is ArraySyntax { Items.ChildrenCount: 2 or 3 } array
+                            ? [.. array.Items.Select(i => Number(i.Value))]
+                            : [];
+                        if (!SizedOpenings.TryGetValue(name, out BayKind kind))
+                        {
+                            Refuse(LineOf(pair), $"'{key}.{name}' names no sized opening. Expected one of: {string.Join(", ", SizedOpenings.Keys)}.");
+                        }
+                        else if (numbers.Length > 0 && numbers[0] > 0f && numbers[1] > 0f && (numbers.Length == 2 || numbers[2] >= 0f))
+                        {
+                            sizes[kind] = new OpeningSize(numbers[0]!.Value, numbers[1]!.Value, numbers.Length == 3 ? numbers[2] : null);
+                        }
+                        else
+                        {
+                            Refuse(LineOf(pair), $"'{key}.{name}' must be [width, height] or [width, height, sill] in metres: positive sizes and a sill not below the floor.");
+                        }
+                    }
+
+                    return sizes;
+                default:
+                    Refuse(LineOf(_keys[key]), $"'{key}' must be an inline table of opening = [width, height] or [width, height, sill].");
+                    return sizes;
+            }
         }
 
         private BayRow Row(string key)

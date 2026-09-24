@@ -6,7 +6,7 @@ namespace Borough.Shell;
 /// <summary>
 /// A study of pass 03's exact game bodies in the live city (research/city-architecture pass 03,
 /// review step 5). Each authored body replaces the massing of the lowest-id Building whose plan it
-/// matches exactly. The body faces that Building's street.
+/// matches exactly and that no earlier body took. The body faces that Building's street.
 /// </summary>
 /// <remarks>
 /// The match reads the plan and the storey count, never the kind (adr/0150). A workplace body can
@@ -18,6 +18,7 @@ public partial class Main
     [
         ("office-warehouse", 36f, 20f, 2, false),
         ("two-unit-apartments", 24f, 16f, 3, true),
+        ("corridor-apartments", 24f, 16f, 3, false),
     ];
 
     private readonly Dictionary<ulong, Node3D> _exactBodies = [];
@@ -53,7 +54,7 @@ public partial class Main
                 using IEnumerator<Massing> parts = Buildings(slot).GetEnumerator();
                 if (!parts.MoveNext()) continue;
                 Massing one = parts.Current;
-                if (parts.MoveNext() || !Matches(one, along, deep, storeys)) continue;
+                if (parts.MoveNext() || _exactBodies.ContainsKey(one.Id) || !Matches(one, along, deep, storeys)) continue;
                 if (chosen < 0 || one.Id < match.Id)
                 {
                     chosen = slot;

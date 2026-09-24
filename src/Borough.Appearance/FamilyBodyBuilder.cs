@@ -56,10 +56,10 @@ public static class FamilyBodyBuilder
 
         var entries = new List<float>();
         var rollers = new List<(float Low, float High)>();
-        Facade(writer, front, frontage, height, storeys, body.Street, body.BayMetres, entries, null);
-        Facade(writer, back, frontage, height, storeys, body.Back, body.BayMetres, null, rollers);
-        Facade(writer, left, depth, height, storeys, body.Side, body.BayMetres, null, null);
-        Facade(writer, right, depth, height, storeys, body.Side, body.BayMetres, null, null);
+        Facade(writer, body, front, frontage, height, storeys, body.Street, street: true, entries, null);
+        Facade(writer, body, back, frontage, height, storeys, body.Back, street: false, null, rollers);
+        Facade(writer, body, left, depth, height, storeys, body.Side, street: false, null, null);
+        Facade(writer, body, right, depth, height, storeys, body.Side, street: false, null, null);
 
         writer.Box(new Vector3(-x - .05f, -y - .05f, 0), new Vector3(x + .05f, y + .05f, PlinthHeight), "plinth");
         if (body.ParapetMetres > 0f) Parapet(writer, frontage, depth, height, body.ParapetMetres);
@@ -94,27 +94,53 @@ public static class FamilyBodyBuilder
             writer.Box(new Vector3(at - 2f, -1.5f, height + .35f), new Vector3(at + 2f, 1.5f, height + 1.5f), "metal");
         }
 
+        if (body.RoofHatch) writer.Box(new Vector3(-1f, 1f, height), new Vector3(1f, 2.2f, height + .5f), "metal");
+        for (int vent = 0; vent < body.Vents; vent++)
+        {
+            float at = -x + (frontage * (vent + 1) / (body.Vents + 1));
+            writer.Box(new Vector3(at - .4f, 3f, height), new Vector3(at + .4f, 3.8f, height + .9f), "metal");
+        }
+
         return mesh;
     }
 
     /// <summary>The whole bays a wall holds, each as near the family's bay width as the wall allows.</summary>
     public static int Bays(float length, float bayMetres) => Math.Max(1, (int)MathF.Round(length / bayMetres));
 
-    private static void Facade(Writer writer, Face face, float width, float height, int storeys, WallRule rule,
-        float bayMetres, List<float>? entries, List<(float, float)>? rollers)
+    private static void Facade(Writer writer, FamilyBody body, Face face, float width, float height, int storeys,
+        WallRule rule, bool street, List<float>? entries, List<(float, float)>? rollers)
     {
-        int bays = Bays(width, bayMetres);
+        int bays = Bays(width, body.BayMetres);
         float bay = width / bays;
+        BayKind[] ground = rule.Ground.Over(bays);
+        BayKind[] above = rule.Upper.Over(bays);
         var openings = new List<Opening>();
         for (int storey = 0; storey < storeys; storey++)
         {
-            BayKind[] row = (storey == 0 ? rule.Ground : rule.Upper).Over(bays);
+            BayKind[] row = storey == 0 ? ground : above;
             for (int b = 0; b < bays; b++)
             {
-                Openings(openings, row[b], b * bay, bay, storey * Storey, storey == 0);
+                if (storey == 0 && row[b] == BayKind.Hall)
+                {
+                    int last = b;
+                    while (last + 1 < bays && row[last + 1] == BayKind.Hall) last++;
+                    float centre = (b + last + 1) * bay / 2f;
+                    openings.Add(new Opening(centre - 1.2f, .3f, 2.4f, 2.5f, OpeningKind.Door));
+                    if (street) writer.Slab(face, centre - 1.8f, centre + 1.8f, 2.9f, 3.05f, -1.2f, 0f, "trim");
+                    b = last;
+                    continue;
+                }
+
+                Openings(openings, body.Openings, row[b], b * bay, bay, storey * Storey, storey == 0, height);
                 if (storey != 0) continue;
                 if (row[b] == BayKind.Entry) entries?.Add(face.AlongX(b * bay + .8f + 1.2f));
                 if (row[b] == BayKind.Roller) rollers?.Add(face.SpanX(b * bay + .8f, (b + 1) * bay - .8f));
+                if (row[b] == BayKind.Door && storeys > 1 && above[b] == BayKind.Stair)
+                {
+                    Opening door = openings[^1];
+                    float top = door.V + door.H;
+                    writer.Slab(face, door.U - .3f, door.U + door.W + .3f, top + .1f, top + .25f, -.5f, 0f, "trim");
+                }
             }
         }
 
@@ -122,14 +148,14 @@ public static class FamilyBodyBuilder
         writer.Facade(face, width, height, openings);
     }
 
-    private static void Openings(List<Opening> openings, BayKind kind, float start, float bay, float floor, bool ground)
+    private static void Openings(List<Opening> openings, IReadOnlyDictionary<BayKind, OpeningSize> sizes, BayKind kind,
+        float start, float bay, float floor, bool ground, float roof)
     {
         float centre = start + bay / 2f;
         switch (kind)
         {
-            case BayKind.Window:
-                float w = Math.Min(1.4f, bay - .8f);
-                openings.Add(new Opening(centre - w / 2f, floor + .95f, w, 1.7f, OpeningKind.Window));
+            case BayKind.Window or BayKind.Hall:
+                Centred(BayKind.Window, new OpeningSize(1.4f, 1.7f, .95f), OpeningKind.Window);
                 break;
             case BayKind.Shop:
                 openings.Add(new Opening(start + .8f, floor + 1f, bay - 1.6f, 1.9f, OpeningKind.Shop));
@@ -143,17 +169,23 @@ public static class FamilyBodyBuilder
                 openings.Add(new Opening(start + .8f, floor + 1f, bay - 1.6f, 1.9f, OpeningKind.Shop));
                 break;
             case BayKind.Door:
-                openings.Add(new Opening(centre - .5f, floor + .3f, 1f, 2.3f, OpeningKind.Door));
+                Centred(BayKind.Door, new OpeningSize(1f, 2.3f, .3f), OpeningKind.Door);
                 break;
             case BayKind.Roller when ground:
                 openings.Add(new Opening(start + .8f, floor + .3f, bay - 1.6f, 4f, OpeningKind.Roller));
                 break;
             case BayKind.Stair:
-                float s = Math.Min(4f, bay - 1.6f);
-                openings.Add(ground
-                    ? new Opening(centre - s / 2f, floor + .3f, s, 2.5f, OpeningKind.Stair)
-                    : new Opening(centre - s / 2f, floor + 1f, s, 1.9f, OpeningKind.Stair));
+                Centred(BayKind.Stair, ground ? new OpeningSize(4f, 2.5f, .3f) : new OpeningSize(4f, 1.9f, 1f), OpeningKind.Stair);
                 break;
+        }
+
+        // An opening keeps 0.4 m of wall either side within its bay, and stops 0.3 m under the roof deck.
+        void Centred(BayKind sized, OpeningSize own, OpeningKind drawn)
+        {
+            OpeningSize size = sizes.TryGetValue(sized, out OpeningSize given) ? given with { Sill = given.Sill ?? own.Sill } : own;
+            float w = Math.Min(size.Width, bay - .8f);
+            float foot = floor + size.Sill!.Value;
+            openings.Add(new Opening(centre - w / 2f, foot, w, Math.Min(size.Height, roof - .3f - foot), drawn));
         }
     }
 
@@ -274,7 +306,7 @@ public static class FamilyBodyBuilder
             }
         }
 
-        private void Slab(Face face, float u0, float u1, float v0, float v1, float d0, float d1, string part)
+        public void Slab(Face face, float u0, float u1, float v0, float v1, float d0, float d1, string part)
         {
             Span<Vector3> corners =
             [
