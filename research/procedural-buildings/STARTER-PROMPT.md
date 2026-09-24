@@ -1,65 +1,78 @@
-# Starter prompt — procedural Buildings, after the measurements
+# Starter prompt — procedural Buildings, step 5
 
 Paste the block below into a fresh session.
 
 ```text
-We are continuing the procedural Building generator. The four REPORT §3
-measurements are done. The next job is the first test street.
+We are continuing the procedural Building work. The test street has its
+materials and variants. The next job is step 5 of the pass 03 review
+protocol: decide whether to put exact game bodies into Godot, and build
+them if so.
 
-State at hand-off (2026-09-23):
-- main is 4 commits ahead of origin/main and unpushed: 3ad76f8, 192a937,
-  c434cd5, 71e5e82. Ask me before pushing.
-- The `procedural-buildings` branch stops at 192a937 and is already in main.
-  The later work was committed on main directly. Pick one home for new
-  work and say which.
-- The ShellBuilder prototype is in src/Borough.Appearance, a library with no
-  Godot reference. ShellBuilder turns a WingShape (width, depth, storeys,
-  street face, roof form, seed) into a mesh with bays, reveals, panes, a door
-  and a roof. It has winding tests and benchmarks in tests/Borough.Tests.
-- The shell hook `ui shell-band RADIUS CHUNK KIT on|off` (Main.ShellBand.cs)
-  replaces boxes near the camera with generated shells, plus 15 placeholder
-  kit boxes per Building. It is a measuring rig, not the production path.
-- InstanceLayer.ChunkMetres now defaults to 1024 m. That took the whole-city
-  opening camera from 12.9 to 67 fps.
+State at hand-off (2026-09-24):
+- PR #21 (procedural-buildings) is merged. It holds the ShellBuilder
+  prototype, the chunk measurements and the monochrome test street.
+- PR #22 (branch test-street-materials) is open and unmerged. It holds:
+  - CC0 wall and roof materials at true scale. scripts/art/
+    test-street-materials.py fetches them into art/materials/test-street/,
+    with provenance in materials.json.
+  - A filter that divides out the membrane's broad tonal bands.
+  - Flat roofs behind parapets on A2 and W2.
+  - Three variants on unchanged geometry: H1 reroofed, M1 with a repaired
+    shopfront, W1 with rooftop solar. Show them with --variants.
+  - A pre-commit hook, scripts/hooks/pre-commit, that runs
+    scripts/format.sh --check when C# is staged. Install it per clone with
+    ln -s ../../scripts/hooks/pre-commit .git/hooks/pre-commit
+  Check whether #22 has merged before branching.
+- Decisions the user made:
+  - Keep 3.5 m storeys everywhere.
+  - A pitched roof is at least 18 degrees. Anything shallower is a flat
+    roof behind a parapet (SESSION.md Q11).
+  - A "minor details" pass comes later (docs/deferred.md). Do not start it.
+- Known gaps in the test street:
+  - Fine streaks remain in the membrane roofs after the band filter. An
+    authored membrane texture is the fallback if they bother the user.
+  - The ground is flat colour.
+  - The camera can pass inside a Building. That may deserve a board row.
 
 Read first:
-- plans/evidence/procedural-buildings/README.md has findings 1-14 and
-  their conditions.
-- research/procedural-buildings/optimizations.md holds optimisation leads.
-  Keep adding to it as you find more.
-- research/procedural-buildings/SESSION.md holds the ten decisions. Q8 sets
-  the style as a present-day US Pacific Northwest preset.
-- research/city-architecture/output/03-context-and-construction/REPORT.md
-  is pass 03, which holds the Building briefs for the test street.
-- docs/adr/0173-a-building-is-drawn-realistically-at-every-distance-from-its-own-facts.md
+- research/city-architecture/output/03-context-and-construction/
+  model-briefs.md. Step 5 is line 52. Line 28 sets the G003 rules.
+- research/city-architecture/output/03-context-and-construction/
+  simulation-audit.md explains the capacity ceilings. G003 is 24 x 16 m
+  with 10.5 m walls and a two-tenancy ceiling. The twelve-flat A1 is a
+  content experiment, not a replacement for G003.
+- plans/evidence/procedural-buildings/README.md, sections "First test
+  street", "Surface materials" and "Variants on the same geometry".
+- research/procedural-buildings/SESSION.md for decisions Q1-Q11.
+- docs/07-the-drawing.md#building-authoring-procedure.
 
-Jobs, in order:
-1. Check that a moving city is fine at 1024 m chunks. Every capture so far
-   ran paused, and the Traveller movement index (Main.MovementDrawing.cs)
-   shares ChunkMetres. Unpause the 1M-Citizen stress city, then compare
-   256 and 1024 m with BOROUGH_RENDER_PROFILE=1 and
-   BOROUGH_RENDER_CHUNK_METRES. Use scripts/measure-shell-band.py as the
-   model. Record the results in the evidence README.
-2. Build the first test street from pass 03's briefs, US-sourced bodies
-   first. Author the kit in Blender, following docs/07-the-drawing.md
-   #building-authoring-procedure, and watch the result with the drive skill.
+Step 5, in order:
+1. Put the decision to the user first, as prose with costs. The choice is
+   whether to build one exact-body W1 and one G003 study labelled with its
+   two-tenancy capacity, or to stop at the test street.
+2. If the user says yes, author both in Blender, following the Building
+   authoring procedure. W1 keeps its pass 03 dimensions exactly. G003
+   keeps 24 x 16 m and 10.5 m walls and displays its capacity.
+3. Place them in the shell with the drive skill. Build Debug before every
+   capture:
+     dotnet build src/Borough.Godot
+4. Review five views: near, neighbourhood, city, a moving camera and the
+   overlays. Record what each view exposed in the evidence README.
 
-Measuring notes:
-- For a Release capture, build the shell into the Debug path, and rebuild
-  Debug afterwards:
-    dotnet build src/Borough.Godot -c Release -p:OutputPath=$PWD/src/Borough.Godot/.godot/mono/temp/bin/Debug/
-    dotnet build src/Borough.Godot -t:Rebuild
-- Put --listen sockets in $XDG_RUNTIME_DIR, because the path limit is 108
-  characters.
-- The machine is rarely quiet. Record the load average, and treat every
-  figure as an upper bound.
-- Do not use `pkill -f`. It matched and killed its own shell.
+Tools and paths:
+- BLENDER_BIN=~/.local/opt/blender-5.2.1-linux-x64/blender, GODOT_BIN=godot
+- scripts/art/review.sh test-street exports, imports, builds and captures
+  into artifacts/test-street/. open-test-street and
+  open-test-street-variants open the scene.
+- When a GLB is byte-identical, Godot skips its reimport. If extracted
+  textures go missing, delete .godot/imported/<model>.glb-* and reimport.
 
 Constraints:
-- Another session owns "Start the shell from a saved city" in
-  .claude/worktrees/city-save-fast-start. Its plan is uncommitted there.
-  Do not touch it. Until it lands, --start-at 600 replays every Tick, about
-  130 ms each at 1M Citizens.
-- Ask me before touching `worktree-row-31-attracts-people` or
-  `catchment-fold` (../city-sim-terrain). Preserve every worktree.
+- Put --listen sockets in $XDG_RUNTIME_DIR, because the path limit is
+  108 characters.
+- Do not use `pkill -f`. It matched and killed its own shell.
+- Preserve every worktree. Ask the user before touching
+  worktree-row-31-attracts-people or catchment-fold (../city-sim-terrain).
+  Another session owns .claude/worktrees/city-save-fast-start.
+- research/textures/candidates.html is deliberately untracked. Leave it.
 ```
