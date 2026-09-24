@@ -86,6 +86,18 @@ public sealed class FamilyBodyTests
     }
 
     [Fact]
+    public void A_house_against_a_crosswise_neighbour_hips_its_roof_down_to_it()
+    {
+        FamilyBodyMesh mesh = FamilyBodyBuilder.Build(TestStreet("rowhouses"), 8f, 12f, 2,
+            AttachedSides.Left | AttachedSides.LeftCrosswise | AttachedSides.Right);
+        Vector3[] all = Positions(mesh);
+
+        Assert.Equal(-4.4f, all.Min(p => p.X), 3);
+        Assert.Equal(4f, all.Max(p => p.X), 3);
+        Assert.DoesNotContain(all, p => p.X < -3.9f && p.Y > 7.1f);
+    }
+
+    [Fact]
     public void A_shallow_gable_and_a_chimney_on_a_flat_roof_are_refused()
     {
         StylePresetResult read = StylePresetReader.Read([("x.toml", """
@@ -178,6 +190,8 @@ public sealed class FamilyBodyTests
     [InlineData("office-warehouse", 36f, 20f, 2, AttachedSides.None)]
     [InlineData("corridor-apartments", 24f, 16f, 3, AttachedSides.None)]
     [InlineData("rowhouses", 6f, 12f, 3, AttachedSides.Left)]
+    [InlineData("rowhouses", 8f, 12f, 3, AttachedSides.Right | AttachedSides.RightCrosswise)]
+    [InlineData("rowhouses", 8f, 12f, 3, AttachedSides.Left | AttachedSides.LeftCrosswise | AttachedSides.Right | AttachedSides.RightCrosswise)]
     public void Every_triangle_faces_the_way_its_normal_says(string family, float frontage, float depth, int storeys, AttachedSides attached)
     {
         foreach ((_, ShellMesh part) in FamilyBodyBuilder.Build(TestStreet(family), frontage, depth, storeys, attached).Parts)

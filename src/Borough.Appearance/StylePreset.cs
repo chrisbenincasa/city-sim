@@ -167,4 +167,10 @@ public enum AttachedSides : byte
     None = 0,
     Left = 1,
     Right = 2,
+
+    /// <summary>The left neighbour runs crosswise, so the roof hips down to it.</summary>
+    LeftCrosswise = 4,
+
+    /// <summary>The right neighbour runs crosswise, so the roof hips down to it.</summary>
+    RightCrosswise = 8,
 }

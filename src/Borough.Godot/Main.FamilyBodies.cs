@@ -108,13 +108,26 @@ public partial class Main
     {
         var right = new Vector3(Mathf.Cos(turn), 0f, -Mathf.Sin(turn));
         float reach = (frontage / 2f) + .5f;
+        bool deepEast = Mathf.Abs(right.Z) > .5f;
         AttachedSides attached = AttachedSides.None;
-        if (Covered(slot, centre - (right * reach))) attached |= AttachedSides.Left;
-        if (Covered(slot, centre + (right * reach))) attached |= AttachedSides.Right;
+        int left = Covering(slot, centre - (right * reach)), rightLot = Covering(slot, centre + (right * reach));
+        if (left >= 0) attached |= AttachedSides.Left | (Crosswise(slot, left, deepEast) ? AttachedSides.LeftCrosswise : 0);
+        if (rightLot >= 0) attached |= AttachedSides.Right | (Crosswise(slot, rightLot, deepEast) ? AttachedSides.RightCrosswise : 0);
         return attached;
     }
 
-    private bool Covered(int slot, Vector3 point)
+    /// <summary>Whether the neighbour's footprint spans a different stretch of this Building's depth.</summary>
+    private bool Crosswise(int slot, int neighbour, bool deepEast)
+    {
+        LotTable lots = _world.Lots;
+        if (!lots.Rows.TryResolve(_world.Buildings.Lot[slot], out int own)) return false;
+        return deepEast
+            ? lots.FootprintEast[own] != lots.FootprintEast[neighbour] || lots.FootprintWide[own] != lots.FootprintWide[neighbour]
+            : lots.FootprintNorth[own] != lots.FootprintNorth[neighbour] || lots.FootprintDeep[own] != lots.FootprintDeep[neighbour];
+    }
+
+    /// <returns>The Lot whose Building footprint covers the point, or -1.</returns>
+    private int Covering(int slot, Vector3 point)
     {
         float east = point.X / MetresPerTile, north = -point.Z / MetresPerTile;
         BuildingTable table = _world.Buildings;
@@ -123,10 +136,10 @@ public partial class Main
         {
             if (other == slot || !table.Rows.IsLive(other) || !lots.Rows.TryResolve(table.Lot[other], out int lot)) continue;
             int x = lots.FootprintEast[lot].Raw, y = lots.FootprintNorth[lot].Raw;
-            if (east >= x && east < x + lots.FootprintWide[lot].Raw && north >= y && north < y + lots.FootprintDeep[lot].Raw) return true;
+            if (east >= x && east < x + lots.FootprintWide[lot].Raw && north >= y && north < y + lots.FootprintDeep[lot].Raw) return lot;
         }
 
-        return false;
+        return -1;
     }
 
     private ArrayMesh BodyMesh(string family, FamilyBody body, float frontage, float depth, int storeys, AttachedSides attached)

@@ -40,7 +40,7 @@ public static class FamilyBodyBuilder
 
     private static readonly int[][] BoxFaces = [[0, 3, 2, 1], [4, 5, 6, 7], [0, 1, 5, 4], [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7]];
 
-    /// <param name="attached">Side walls shared with a neighbour. They are blank, and a gable stops at them.</param>
+    /// <param name="attached">Side walls shared with a neighbour. They are blank, and a gable stops at them or hips down to a crosswise one.</param>
     public static FamilyBodyMesh Build(FamilyBody body, float frontage, float depth, int storeys,
         AttachedSides attached = AttachedSides.None)
     {
@@ -212,12 +212,37 @@ public static class FamilyBodyBuilder
         float slope = MathF.Tan(body.GableDegrees * MathF.PI / 180f);
         float x = width / 2f, y = depth / 2f, eave = y + Eaves;
         bool left = attached.HasFlag(AttachedSides.Left), right = attached.HasFlag(AttachedSides.Right);
-        float x0 = left ? -x : -x - (Eaves / 2f), x1 = right ? x : x + (Eaves / 2f);
+        bool hipLeft = attached.HasFlag(AttachedSides.LeftCrosswise), hipRight = attached.HasFlag(AttachedSides.RightCrosswise);
+        float x0 = hipLeft ? -x - Eaves : left ? -x : -x - (Eaves / 2f);
+        float x1 = hipRight ? x + Eaves : right ? x : x + (Eaves / 2f);
+        float r0 = hipLeft ? x0 + eave : x0, r1 = hipRight ? x1 - eave : x1;
+        if (r0 > r1) r0 = r1 = (r0 + r1) / 2f;
+
         float low = height - (Eaves * slope), top = height + (y * slope);
-        writer.Prism([new(-eave, low), new(0f, top), new(0f, top + Thick), new(-eave, low + Thick)], x0, x1, "roof");
-        writer.Prism([new(0f, top), new(eave, low), new(eave, low + Thick), new(0f, top + Thick)], x0, x1, "roof");
-        writer.Polygon("wall", [new(x, -y, height), new(x, y, height), new(x, 0f, top)]);
-        writer.Polygon("wall", [new(-x, 0f, top), new(-x, y, height), new(-x, -y, height)]);
+        Vector3 a = new(x0, -eave, low), b = new(x1, -eave, low), c = new(x1, eave, low), d = new(x0, eave, low);
+        Vector3 p = new(r0, 0f, top), q = new(r1, 0f, top), up = new(0f, 0f, Thick);
+        Sheet([a, b, q, p]);
+        Sheet([c, d, p, q]);
+        if (hipLeft) Sheet([d, a, p]);
+        else
+        {
+            writer.Polygon("roof", [a, a + up, p + up, p]);
+            writer.Polygon("roof", [p, p + up, d + up, d]);
+            writer.Polygon("wall", [new(-x, 0f, top), new(-x, y, height), new(-x, -y, height)]);
+        }
+
+        if (hipRight) Sheet([b, c, q]);
+        else
+        {
+            writer.Polygon("roof", [q, q + up, b + up, b]);
+            writer.Polygon("roof", [c, c + up, q + up, q]);
+            writer.Polygon("wall", [new(x, -y, height), new(x, y, height), new(x, 0f, top)]);
+        }
+
+        writer.Polygon("roof", [a, b, b + up, a + up]);
+        writer.Polygon("roof", [c, d, d + up, c + up]);
+        if (hipLeft) writer.Polygon("roof", [d, a, a + up, d + up]);
+        if (hipRight) writer.Polygon("roof", [b, c, c + up, b + up]);
 
         float edge = y + Upstand;
         Vector2[] profile =
@@ -225,11 +250,31 @@ public static class FamilyBodyBuilder
             new(-edge, height - .3f), new(edge, height - .3f), new(edge, Surface(edge) + .25f),
             new(0f, Surface(0f) + .25f), new(-edge, Surface(edge) + .25f),
         ];
-        if (left) writer.Prism(profile, -x, -x + Upstand, "wall");
-        if (right) writer.Prism(profile, x - Upstand, x, "wall");
-        if (body.Chimney) writer.Box(new Vector3(x - 1.6f, .8f, Surface(1.4f) - .6f), new Vector3(x - 1f, 1.4f, Surface(0f) + .9f), "wall-end");
+        if (left && !hipLeft) writer.Prism(profile, -x, -x + Upstand, "wall");
+        if (right && !hipRight) writer.Prism(profile, x - Upstand, x, "wall");
+        if (body.Chimney && !(hipLeft && hipRight))
+        {
+            float stack = hipRight ? -x + 1f : x - 1.6f;
+            writer.Box(new Vector3(stack, .8f, Surface(1.4f) - .6f), new Vector3(stack + .6f, 1.4f, Surface(0f) + .9f), "wall-end");
+        }
 
         float Surface(float distance) => top + Thick - (MathF.Abs(distance) * slope);
+
+        void Sheet(ReadOnlySpan<Vector3> under)
+        {
+            Span<Vector3> over = stackalloc Vector3[under.Length];
+            Span<Vector3> below = stackalloc Vector3[under.Length];
+            int n = 0;
+            foreach (Vector3 corner in under)
+            {
+                if (n > 0 && corner == over[n - 1] - up) continue;
+                over[n++] = corner + up;
+            }
+
+            for (int i = 0; i < n; i++) below[i] = over[n - 1 - i] - up;
+            writer.Polygon("roof", over[..n]);
+            writer.Polygon("roof", below[..n]);
+        }
     }
 
     private static void Parapet(Writer writer, float width, float depth, float height, float parapet)

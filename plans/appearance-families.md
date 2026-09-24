@@ -88,15 +88,19 @@ Limits of this slice:
 - Scuppers, downpipes and roof crickets are left for the minor-details pass.
 - A body reads its neighbours only when it is placed, so a neighbour raised later leaves the shared
   wall windowed until the next full pass. Each placement scans every live Building; unmeasured.
-- Where a terrace meets the Building on the next face at a block corner, the two roofs run into
-  each other. Corners are not resolved.
+- At a block corner the column's end house backs onto the row's corner houses, whose ridges run
+  crosswise to its own. The shell flags that side as crosswise when the neighbour's footprint
+  spans a different stretch of the house's depth. The house then hips its roof down to that side,
+  and the hip meets the row's back slope in a valley. The end has no gable wall and no upstand.
+  Evidence is in `h1-corner-before.png` and `h1-corner-after.png`, taken at the south-west corner
+  of `rowhouses.toml` at 1,000 Citizens, from four sides.
 - The rowhouse fixture's perimeter houses are all three storeys, since a perimeter block adds one
   storey to `house_storeys`. The family admits two and three.
 
 ## Next
 
 - Bodies for the other test-street families: walkup-apartments, two-unit-apartments, corner-shops-with-flats and workshop.
-- Resolve block corners, and refresh a body when its neighbour is raised or removed.
+- Refresh a body when its neighbour is raised or removed.
 - Wash and paint for bodies, so overlays work with bodies on.
 - Chunked upload and the far level, measured against the 6 ms Building frame share.
 - Author the rest of the families. The coverage report says which size bands and kinds need them.
