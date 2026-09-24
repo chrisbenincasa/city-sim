@@ -722,7 +722,7 @@ public partial class Main
 
             FoliageFootprint(one.Body, footprints++);
             if (one.Outhoused) FoliageFootprint(one.Yard, footprints++);
-            if (_shelled.Contains(one.Id) || _exactBodies.ContainsKey(one.Id)) continue;
+            if (_shelled.Contains(one.Id) || _exactBodies.ContainsKey(one.Id) || _familyBodyNodes.ContainsKey(one.Id)) continue;
             _buildings.Multimesh.Identity(bodies, one.Id);
             _buildingIds.Add(one.Id);
             _buildings.Multimesh.SetInstanceTransform(bodies, one.Body);

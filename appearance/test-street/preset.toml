@@ -68,6 +68,21 @@ storeys = [2, 2]
 frontage_metres = [32, 40]
 depth_metres = [16, 24]
 
+# Six 6 m bays at 36 m. Receiving is at the back; stairs light the ends.
+[family.body]
+library = "test-street/w1-workplace"
+tile_metres = { wall = [2.0, 1.6], wall-end = [2.0, 1.6], membrane = [20.0, 20.0] }
+bay_metres = 6.0
+parapet_metres = 0.8
+pilasters = true
+plant = 2
+street_ground = ["shop", "shop", "entry", "shop*"]
+street_upper = ["shop*"]
+back_ground = ["roller", "roller", "door", "blank*"]
+back_upper = ["shop*"]
+side_ground = ["blank", "stair", "door"]
+side_upper = ["blank", "stair", "blank"]
+
 [[family]]
 id = "w2-workshop"
 model = "test-street/w2-workshop"

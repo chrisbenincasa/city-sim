@@ -66,6 +66,28 @@ public sealed class ShellMesh
         IndexCount += 3;
     }
 
+    /// <summary>Appends a planar polygon with its own UVs, fanned from its first corner. Corners run like <see cref="Quad"/>.</summary>
+    internal void Polygon(ReadOnlySpan<Vector3> corners, ReadOnlySpan<Vector2> uvs, Vector3 normal)
+    {
+        Reserve(corners.Length, (corners.Length - 2) * 3);
+        int at = VertexCount;
+        for (int i = 0; i < corners.Length; i++)
+        {
+            _positions[at + i] = corners[i];
+            _normals[at + i] = normal;
+            _uvs[at + i] = uvs[i];
+            _colors[at + i] = Vector4.One;
+        }
+
+        VertexCount += corners.Length;
+        for (int i = 1; i + 1 < corners.Length; i++)
+        {
+            _indices[IndexCount++] = at;
+            _indices[IndexCount++] = at + i;
+            _indices[IndexCount++] = at + i + 1;
+        }
+    }
+
     private void Vertex(Vector3 local, Vector3 normal, Vector4 color, Frame frame)
     {
         int at = VertexCount++;

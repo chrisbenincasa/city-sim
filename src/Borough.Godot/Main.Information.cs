@@ -577,6 +577,9 @@ public partial class Main
             case "shell-band":
                 ShellBand(words);
                 break;
+            case "family-bodies":
+                FamilyBodyStudy(words);
+                break;
             case "exact-bodies":
                 ExactBodyStudy(words);
                 break;

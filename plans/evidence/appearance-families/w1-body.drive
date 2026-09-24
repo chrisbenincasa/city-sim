@@ -1,0 +1,22 @@
+601 pause
+601 ui exact-bodies on
+601 ui family-bodies on
+601 focus 76 68 300
+601 tilt 40
+601 shoot plans/evidence/appearance-families/w1-body-hood.png
+601 speed 5
+602 pause
+602 focus 70 36 90
+602 tilt 25
+602 shoot plans/evidence/appearance-families/w1-body-blender.png
+602 speed 5
+603 pause
+603 focus 70 100 90
+603 shoot plans/evidence/appearance-families/w1-body-generated-32x20.png
+603 speed 5
+604 pause
+604 focus 82 100 90
+604 turn left
+604 shoot plans/evidence/appearance-families/w1-body-generated-36x16-side.png
+604 speed 5
+606 quit

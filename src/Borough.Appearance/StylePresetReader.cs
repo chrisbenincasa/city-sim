@@ -41,6 +41,19 @@ public static class StylePresetReader
         ["trade"] = LotTable.Trade,
     };
 
+    private static readonly string[] Rows = ["street_ground", "street_upper", "back_ground", "back_upper", "side_ground", "side_upper"];
+
+    private static readonly Dictionary<string, BayKind> BayNames = new()
+    {
+        ["blank"] = BayKind.Blank,
+        ["window"] = BayKind.Window,
+        ["shop"] = BayKind.Shop,
+        ["entry"] = BayKind.Entry,
+        ["door"] = BayKind.Door,
+        ["roller"] = BayKind.Roller,
+        ["stair"] = BayKind.Stair,
+    };
+
     private static readonly string[] Conditions = ["storeys", "frontage_metres", "depth_metres", "raised_day", "patterns", "zones"];
 
     public static StylePresetResult Read(string directory)
@@ -68,6 +81,8 @@ public static class StylePresetReader
 
         foreach ((string file, string text) in sources)
         {
+            int? lastFamily = null;
+            bool lastFamilyRefused = false;
             DocumentSyntax document = SyntaxParser.Parse(text, file, validate: true);
             foreach (DiagnosticMessage message in document.Diagnostics)
             {
@@ -98,11 +113,36 @@ public static class StylePresetReader
                         break;
 
                     case ("family", true):
-                        if (reading.Family() is { } family) families.Add(family);
+                        AppearanceFamily? family = reading.Family();
+                        lastFamilyRefused = family is null;
+                        lastFamily = family is null ? null : families.Count;
+                        if (family is not null) families.Add(family);
+
+                        break;
+
+                    case ("family.body", false):
+                        FamilyBody? body = reading.Body();
+                        if (lastFamily is not { } owner)
+                        {
+                            if (!lastFamilyRefused) reading.Refuse(LineOf(table), "[family.body] must follow the [[family]] it builds.");
+                        }
+                        else if (families[owner].Body is not null)
+                        {
+                            reading.Refuse(LineOf(table), $"family '{families[owner].Id}' already has a body.");
+                        }
+                        else if (families[owner].Fallback)
+                        {
+                            reading.Refuse(LineOf(table), $"fallback family '{families[owner].Id}' draws the massing and takes no body.");
+                        }
+                        else if (body is not null)
+                        {
+                            families[owner] = families[owner] with { Body = body };
+                        }
+
                         break;
 
                     default:
-                        reading.Refuse(LineOf(table), $"unknown section '{NameOf(table.Name)}'. Expected [preset] or [[family]].");
+                        reading.Refuse(LineOf(table), $"unknown section '{NameOf(table.Name)}'. Expected [preset], [[family]] or [family.body].");
                         break;
                 }
             }
@@ -237,6 +277,101 @@ public static class StylePresetReader
             return new AppearanceFamily(id, file, LineOf(table), kinds, (int)weight, fallback, model,
                 storeys, frontage, depth, raised, patterns, (ushort)(zones?.Aggregate(0, (a, z) => a | z) ?? 0));
         }
+
+        public FamilyBody? Body()
+        {
+            int before = errors.Count;
+            Collect(["library", "tile_metres", "bay_metres", "parapet_metres", "pilasters", "plant", .. Rows]);
+            string? library = Text("library", required: true);
+            Dictionary<string, (float, float)> tiles = Tiles("tile_metres");
+            float bay = Metres("bay_metres", required: true, least: 1f) ?? 0f;
+            float parapet = Metres("parapet_metres", required: false, least: 0f) ?? 0f;
+            bool pilasters = Boolean("pilasters") ?? false;
+            long plant = Integer("plant", required: false, least: 0) ?? 0;
+            BayRow[] rows = [.. Rows.Select(Row)];
+            return errors.Count > before || library is null
+                ? null
+                : new FamilyBody(library, tiles, bay, parapet, pilasters, (int)plant,
+                    new WallRule(rows[0], rows[1]), new WallRule(rows[2], rows[3]), new WallRule(rows[4], rows[5]));
+        }
+
+        private BayRow Row(string key)
+        {
+            string[]? tokens = Strings(key, required: false);
+            if (tokens is null) return BayRow.Blank;
+            var kinds = new List<BayKind>();
+            var fills = new List<bool>();
+            foreach (string token in tokens)
+            {
+                bool fill = token.EndsWith('*');
+                string name = fill ? token[..^1] : token;
+                if (!BayNames.TryGetValue(name, out BayKind kind))
+                {
+                    Refuse(LineOf(_keys[key]), $"'{token}' is not a bay. Expected one of: {string.Join(", ", BayNames.Keys)}, each optionally ending in '*' to fill.");
+                    continue;
+                }
+
+                kinds.Add(kind);
+                fills.Add(fill);
+            }
+
+            return new BayRow([.. kinds], [.. fills]);
+        }
+
+        private float? Metres(string key, bool required, float least)
+        {
+            ValueSyntax? value = Value(key, required);
+            float? metres = value switch
+            {
+                null => null,
+                IntegerValueSyntax whole => whole.Value,
+                FloatValueSyntax real => (float)real.Value,
+                _ => float.NaN,
+            };
+            if (metres is { } m && !(m >= least))
+            {
+                Refuse(LineOf(_keys[key]), $"'{key}' must be a number of at least {least} metres.");
+                return null;
+            }
+
+            return metres;
+        }
+
+        private Dictionary<string, (float, float)> Tiles(string key)
+        {
+            var tiles = new Dictionary<string, (float, float)>(StringComparer.Ordinal);
+            switch (Value(key, required: false))
+            {
+                case null:
+                    return tiles;
+                case InlineTableSyntax table:
+                    foreach (KeyValueSyntax pair in table.Items.Select(i => i.KeyValue).OfType<KeyValueSyntax>())
+                    {
+                        if (pair.Value is ArraySyntax { Items.ChildrenCount: 2 } array
+                            && Number(array.Items.GetChild(0)?.Value) is { } along and > 0f
+                            && Number(array.Items.GetChild(1)?.Value) is { } up and > 0f)
+                        {
+                            tiles[NameOf(pair.Key)] = (along, up);
+                        }
+                        else
+                        {
+                            Refuse(LineOf(pair), $"'{key}.{NameOf(pair.Key)}' must be [along, up]: two positive numbers of metres.");
+                        }
+                    }
+
+                    return tiles;
+                default:
+                    Refuse(LineOf(_keys[key]), $"'{key}' must be an inline table of part = [along, up].");
+                    return tiles;
+            }
+        }
+
+        private static float? Number(ValueSyntax? value) => value switch
+        {
+            IntegerValueSyntax whole => whole.Value,
+            FloatValueSyntax real => (float)real.Value,
+            _ => null,
+        };
 
         private void Collect(string[] known)
         {

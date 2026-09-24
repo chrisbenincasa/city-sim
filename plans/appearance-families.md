@@ -44,8 +44,32 @@ draw family geometry. A debug wash shows which family each Building would draw.
 - No shopfront or workplace kind matches a test-street family on this fixture.
 - The wash colours the roof with the body, so the family reads from above at 260 m.
 
+## Generated bodies
+
+A family's `[family.body]` table says how it builds its body at any size it admits:
+- the bay width
+- the bays of each wall's ground and upper storeys, where a `*` token fills the spare bays
+- a parapet, pilasters and rooftop plant
+- the authored model whose materials dress it
+
+`FamilyBodyBuilder` ports the vocabulary of `scripts/art/test-street.py`. The shell draws the result
+in place of the massing with `ui family-bodies on`.
+
+| Check | Result |
+|---|---|
+| W1 at 36 × 20 m against the Blender W1 | Same bounds: ±18.2 m, 11.4 m to the street canopy, 12.2 m to the receiving canopy, 8.5 m to the plant |
+| Live city, `shopping.toml`, 400 Citizens, Tick 600 | Five generated W1 bodies at 32×24, 32×20, 36×16, 32×20 and 36×24 m; captures in `plans/evidence/appearance-families/w1-body-*` |
+| Walls hold whole bays | 32 m gives five 6.4 m bays and 36 m gives six 6 m bays |
+
+Limits of this slice:
+- A body is drawn only with no overlay showing, because its materials take no wash or paint.
+- A Building raised after the toggle gets no foliage footprint for its body until the next full pass.
+- One mesh per Building, with no chunking or far level yet.
+- Scuppers, downpipes and roof crickets are left for the minor-details pass.
+
 ## Next
 
-- Draw each family's model in place of the massing, starting from the exact-body placement in
-  PR #24.
+- Bodies for the other test-street families: H1 and A1 need gable roofs and window bays.
+- Wash and paint for bodies, so overlays work with bodies on.
+- Chunked upload and the far level, measured against the 6 ms Building frame share.
 - Author the rest of the families. The coverage report says which size bands and kinds need them.
