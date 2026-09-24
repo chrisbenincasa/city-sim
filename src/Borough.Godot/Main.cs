@@ -236,18 +236,23 @@ public partial class Main : Node3D
     /// <summary>How far a coping stands proud of the wall below it, in metres. <b>Not an eave.</b></summary>
     private const float CopingMetres = .08f;
 
-    /// <summary>The two roofing tones a Building draws between, in sRGB.</summary>
+    /// <summary>Asphalt shingle colours a pitched roof draws between, in sRGB, weighted by repetition.</summary>
     /// <remarks>
-    /// ⚠ <b>Two tones and a jitter, rather than one colour</b> — a terrace roofed in exactly one
-    /// red reads as moulded plastic, and the variation costs a draw off the same scramble the
-    /// massing already took. <b>Neither is a state</b>: an abandoned Building is painted
-    /// <see cref="Derelict"/> over the top of whichever it drew, because a shell that kept a warm
-    /// roof would be the liveliest thing on the street.
+    /// ⚠ <b>Eight entries so a 3-bit draw weights them</b>: charcoal, weathered wood and pewter
+    /// grey are the region's common blends and appear twice. <b>None is a state</b>: an abandoned
+    /// Building is painted <see cref="Derelict"/> over whichever it drew, so every entry stays
+    /// lighter or warmer than it after the ±14% shade jitter.
     /// </remarks>
     private static readonly Color[] Roofs =
     [
-        new(0.55f, 0.33f, 0.26f),   // clay tile, and the shell's original
-        new(0.36f, 0.34f, 0.36f),   // slate
+        new(0.30f, 0.30f, 0.31f),   // charcoal
+        new(0.30f, 0.30f, 0.31f),
+        new(0.41f, 0.36f, 0.30f),   // weathered wood
+        new(0.41f, 0.36f, 0.30f),
+        new(0.38f, 0.39f, 0.41f),   // pewter grey
+        new(0.38f, 0.39f, 0.41f),
+        new(0.37f, 0.29f, 0.23f),   // barkwood brown
+        new(0.27f, 0.33f, 0.28f),   // hunter green
     ];
 
     /// <summary>What a flat roof is covered in. <b>A third covering, and not a third tone.</b></summary>
@@ -409,7 +414,7 @@ public partial class Main : Node3D
     /// </remarks>
     private static readonly Color Derelict = new(0.20f, 0.19f, 0.18f);
 
-    /// <summary>A pitched roof, warm against the wall so the silhouette has an edge.</summary>
+    /// <summary>A pitched roof's layer colour before any Building draws its own.</summary>
     private static readonly Color Roofing = Roofs[0];
 
     /// <summary>What the five <see cref="TerrainKind"/>s look like, in sRGB.</summary>

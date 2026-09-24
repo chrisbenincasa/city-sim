@@ -2,15 +2,10 @@ shader_type spatial;
 render_mode diffuse_burley;
 // 0 carriageway, 1 footway/kerb, 2 a pitched roof, 3 a flat deck behind a parapet.
 //
-// 🔴 3 EXISTS BECAUSE THE PHOTOGRAPH WAS BOTH REPEATING AND WRONG. `roof_albedo` is a slate
-// photograph mapped at `roof_texture_metres` = 3 m, which on a pitched roof is broken up by the
-// ridge cap, the eaves band and the foreshortening -- and on a 36 x 20 m flat deck is TWELVE BY
-// SEVEN copies of one image lying flat and facing the camera. ***A tiling artefact is a property
-// of the surface it is on, not of the texture***, so the same map that reads on a gable reads as
-// wallpaper on a deck. ⚠ AND IT WAS SLATE ON A MEMBRANE, which is the assembly research pass 03
-// puts in its own table of invalid combinations. Both faults have one repair: a flat deck is not
-// a roof covering at a smaller angle, it is a different covering, and it is drawn rather than
-// photographed.
+//
+// A flat deck is a membrane, drawn procedurally. Only a pitched roof takes the shingle texture:
+// laid flat and facing the camera, any tile reads as wallpaper, and shingles on a membrane deck
+// are an assembly that does not exist.
 uniform int surface_kind = 0;
 
 // How wide a membrane roll is, kerb to kerb across the lap, in metres.
@@ -20,13 +15,17 @@ uniform int surface_kind = 0;
 // membrane rather than sheet, board or asphalt.
 const float ROLL_METRES = 1.05;
 uniform int roof_treatment = 2;
-uniform float roof_texture_metres = 3.0;
+
+// The shingle tile's size and course count. RoofMaterials reads both from the texture's manifest.
+uniform float shingle_tile_metres = 4.0;
+uniform int shingle_courses = 28;
+uniform float shingle_mean_luminance = 0.18;
 uniform sampler2D roof_albedo : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D roof_normal : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D roof_roughness : filter_linear_mipmap, repeat_enable;
 uniform sampler2D roof_wall_brick : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D roof_wall_plaster : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
-varying vec4 wall;
+varying flat vec4 wall;
 varying vec2 heights;
 varying float base_y;
 varying vec3 metres;
@@ -55,45 +54,16 @@ float tile_hash(vec2 p) { return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.54
 // as it loses width, and only the mark knows its own width.
 float resolves(float mark, float px) { return clamp(mark / max(px, 0.0001), 0.0, 1.0); }
 
-// ---- breaking the roof photograph's tile -------------------------------------------------------
+// ---- shuffling shingle courses ----------------------------------------------------------------
 //
-// 🔴 `roof_albedo` REPEATS EVERY 3 m AND A ROOF IS BIGGER THAN THAT. The flat deck showed it first
-// because a deck is one broad plane facing the camera, but the fault is the map's and not the
-// deck's: a 36 m pitch is twelve copies of one image side by side, and the eye finds a grid of
-// identical blobs long before it finds a slate. ***The repair is the one `buildings.gdshader`
-// already made for the brick*** -- sample the image three times at hashed offsets and blend, so
-// the covering keeps the photograph's grain and loses its period.
-//
-// ⚠ A TRIANGLE GRID AND NOT A SQUARE ONE, and the reason is the wall's: four cells meeting at a
-// corner put the seams on two straight lines a person can see, and three-way blending has no such
-// alignment. This is the wall's own geometry with its constants inlined -- the wall tunes its
-// three through uniforms because a study was tuning them, and nothing is tuning these.
-const float ROOF_SPREAD = 3.0;
-const float ROOF_BIAS = 6.0;
-
+// Every course line in the shingle tile is a butt edge, so any course of the tile can sit on any
+// course of the roof. Each roof course draws its own source course and a sideways offset from the
+// Building's seed. The tile's 28 courses then never repeat as a grid, and no blend doubles a joint.
 vec2 roof_hash(vec2 cell) {
     float seed = dot(cell, vec2(127.1, 311.7));
     return fract(sin(vec2(seed, seed * 1.7)) * 43758.5453);
 }
 
-void roof_grid(vec2 uv, out vec2 first, out vec2 second, out vec2 third, out vec3 weight) {
-    vec2 skewed = mat2(vec2(1.0, 0.0), vec2(-0.57735027, 1.15470054))
-        * (uv * (3.4641016 / ROOF_SPREAD));
-    vec2 base = floor(skewed);
-    vec3 part = vec3(fract(skewed), 0.0);
-    part.z = 1.0 - part.x - part.y;
-
-    if (part.z > 0.0) {
-        weight = vec3(part.z, part.y, part.x);
-        first = base; second = base + vec2(0.0, 1.0); third = base + vec2(1.0, 0.0);
-    } else {
-        weight = vec3(-part.z, 1.0 - part.y, 1.0 - part.x);
-        first = base + vec2(1.0, 1.0); second = base + vec2(1.0, 0.0); third = base + vec2(0.0, 1.0);
-    }
-
-    weight = pow(weight, vec3(ROOF_BIAS));
-    weight /= weight.x + weight.y + weight.z;
-}
 void fragment() {
     // PROVISIONAL construction detail, not a record of maintenance or traffic.
     vec2 p = surface_kind == 2 ? vec2(metres.x + metres.z, metres.y * 1.6) : metres.xz;
@@ -161,28 +131,22 @@ void fragment() {
         ROUGHNESS = .88 + variation*.08*visible;
     }
     if (surface_kind == 2 && roof_treatment == 2) {
-        vec2 uv = vec2(p.x, -p.y) / roof_texture_metres;
-        vec2 dx = dFdx(uv), dy = dFdy(uv);
+        float course = shingle_tile_metres / float(shingle_courses);
+        float row = floor(p.y / course);
+        vec2 draw = roof_hash(vec2(row, mod(wall.a, 256.0) + 0.5));
+        float source = floor(draw.x * float(shingle_courses));
+        vec2 uv = vec2(p.x + draw.y * shingle_tile_metres, -(p.y - row * course + source * course))
+            / shingle_tile_metres;
 
-        // Three reads at hashed offsets, blended on the triangle grid. ⚠ THE GRADIENTS ARE THE
-        // UNSHIFTED ONES and must be: an offset is a constant per cell, so its derivative is zero
-        // and a `texture()` here would pick its own mip per sample and seam where they disagree.
-        vec2 cell_a, cell_b, cell_c; vec3 share;
-        roof_grid(uv, cell_a, cell_b, cell_c, share);
-        vec3 photographed =
-            (textureGrad(roof_albedo, uv + roof_hash(cell_a), dx, dy).rgb * share.x)
-            + (textureGrad(roof_albedo, uv + roof_hash(cell_b), dx, dy).rgb * share.y)
-            + (textureGrad(roof_albedo, uv + roof_hash(cell_c), dx, dy).rgb * share.z);
+        // Gradients come from the unshuffled coordinate, because the shuffle is constant per course.
+        vec2 plain = vec2(p.x, -p.y) / shingle_tile_metres;
+        vec2 dx = dFdx(plain), dy = dFdy(plain);
 
-        detail = mix(1.0, clamp(dot(photographed, vec3(.2126,.7152,.0722)) / 0.25906122, .4, 1.8), .7);
-
-        vec3 relief =
-            ((textureGrad(roof_normal, uv + roof_hash(cell_a), dx, dy).rgb * share.x)
-            + (textureGrad(roof_normal, uv + roof_hash(cell_b), dx, dy).rgb * share.y)
-            + (textureGrad(roof_normal, uv + roof_hash(cell_c), dx, dy).rgb * share.z)) * 2.0 - 1.0;
-        relief.y = -relief.y;
-        NORMAL_MAP = normalize(mix(vec3(0,0,1),relief,.55))*.5+.5;
-        ROUGHNESS = textureGrad(roof_roughness, uv + roof_hash(cell_a), dx, dy).r;
+        vec3 shingles = textureGrad(roof_albedo, uv, dx, dy).rgb;
+        detail = clamp(dot(shingles, vec3(.2126, .7152, .0722)) / shingle_mean_luminance, .3, 2.2);
+        detail *= .96 + sin(p.x * .31 + sin(p.y * .53)) * sin(p.y * .27) * .04;
+        NORMAL_MAP = textureGrad(roof_normal, uv, dx, dy).rgb;
+        ROUGHNESS = textureGrad(roof_roughness, uv, dx, dy).r;
     }
     ALBEDO = COLOR.rgb * detail;
     if (surface_kind == 2 && roof_treatment > 0) {

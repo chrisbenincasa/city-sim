@@ -54,14 +54,11 @@ public partial class Main
 
     /// <summary>What one Building's roof is covered in — a tone, and a jitter on it.</summary>
     /// <remarks>
-    /// ⚠ <b>Weighted, and the weighting is the whole point.</b> A fair coin between two tones
-    /// gives a chequerboard; one roofing in five puts a slate roof in a street of tile, which is
-    /// what a street of them looks like. It is <see cref="DepthFillLow"/>' class of thing and
-    /// draws on no <c>purpose_tag</c>.
+    /// It draws on no <c>purpose_tag</c>, the same class of draw as <see cref="DepthFillLow"/>.
     /// </remarks>
     private static Color Slate(ulong shape)
     {
-        Color tone = Roofs[((shape >> 24) & 7u) == 0u ? 1 : 0];
+        Color tone = Roofs[(int)((shape >> 24) & 7u)];
         float shade = 0.86f + (((shape >> 28) & 0xFu) / 15f * 0.28f);
 
         return new Color(tone.R * shade, tone.G * shade, tone.B * shade);
