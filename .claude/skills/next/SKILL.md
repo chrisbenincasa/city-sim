@@ -1,11 +1,11 @@
 ---
 name: next
-description: Orient in city-sim, or establish whether work is actually finished. Use when the user asks what is next or wants to pick up unfinished work without naming it, and equally when they ask about the state of a named backlog row or plan — "are we finished with 0077?", "where are we on plan X", "is the urban fabric row done?", "what's left on the founding loop". Answer from Git, code and tests rather than from the board's prose, because a row accretes claims for months and goes stale.
+description: Orient in city-sim, or establish whether work is actually finished. Use when the user asks what is next or wants to pick up unfinished work or a bug fix without naming it, and equally when they ask about the state of a named backlog row or plan — "are we finished with 0077?", "where are we on plan X", "is the urban fabric row done?", "what's left on the founding loop". Answer from Git, code and tests rather than from the board's prose, because a row accretes claims for months and goes stale.
 ---
 
 # Finding work and finishing it in city-sim
 
-Two questions arrive here. *What should I start* needs the backlog. *Is this finished* needs the
+Two questions arrive here. *What should I start* needs the board or the issues. *Is this finished* needs the
 code. They share a first step and diverge after it.
 
 ## Both paths start with Git
@@ -16,18 +16,25 @@ uncommitted work or choose an item already being built in another worktree.
 
 ## Choosing work to start
 
-Read [the backlog](../../../plans/0000-board.md), then only the selected item's plan and relevant
-code. [PROCESS.md](../../../PROCESS.md) owns the workflow; the old amnesty and separate ledgers
-are retired. Do not use their historical status to schedule work.
+Work comes from two sources, and [PROCESS.md](../../../PROCESS.md) draws the line between them.
+If the user named a lane, use only that one. Otherwise report both.
+
+- **Systems and features:** read [the backlog board](../../../plans/0000-board.md), then only the selected
+  item's plan and relevant code.
+- **Fixes:** run `gh issue list --label ready-for-agent`. Skip issues labelled `in-progress`.
+  Before recommending one, confirm the code it names still behaves as described.
+
+The old amnesty and separate ledgers are retired. Do not use their historical status to schedule
+work.
 
 Check a prerequisite in the code or evidence that owns it. Historical reports marked for
 verification are leads, not established current defects or gates. If Git contradicts the backlog,
 report the specific discrepancy. Do not reconstruct a second status ledger.
 
-Give a short report: current work, next available outcome, real blocker if any, first concrete
-step, and one reasonable alternative. Ask which to pursue, then stop. If the user already asked to
-implement a specific outcome, continue that authorised work instead of asking them to select it
-again.
+Give a short report: current work, next available outcome or fix, real blocker if any, first
+concrete step, and one reasonable alternative. Ask which to pursue, then stop. If the user already
+asked to implement a specific outcome, continue that authorised work instead of asking them to
+select it again. Before starting an issue, add `in-progress` and comment the branch name.
 
 ## Establishing whether a named item is finished
 
@@ -41,6 +48,7 @@ Treat the row and the plan as the list of claims, then settle each one elsewhere
 - A claimed mechanism is finished when its type or method exists and its test passes. Locate it with
   Serena, run the narrowest `scripts/test.sh <Area>` that covers it, and cite what you ran.
 - A claimed Ruleset or document change is finished when the file says so. Read it.
+- A named issue is finished when a merged PR closes it. `gh issue view N` shows the linked PR.
 - Work in flight sits on a branch or in a worktree rather than in the row.
   `git log origin/main..<branch>` says what is built.
 - A step needing a person — a designer session, a playtest — is not unfinished work an agent can
