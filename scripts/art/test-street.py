@@ -50,6 +50,7 @@ FINISHES = {
     'm1-corner': {'wall': ('brick', None), 'membrane': ('membrane', None)},
     'w1-workplace': {'wall': ('block', 'c3bcaa'), 'wall-end': ('block', 'ada691'), 'membrane': ('membrane', None)},
     'w2-workshop': {'wall': ('sheet', '5d6a6e'), 'wall-end': (None, '4f5b5f'), 'membrane': ('membrane', None)},
+    'g003-two-tenancy': {'wall': ('render', 'cdc6b6'), 'wall-end': ('render', 'b8b1a1'), 'membrane': ('membrane', None)},
 }
 FINISHES['h1-reroofed'] = FINISHES['h1-attached-range'] | {'roof-new': ('shingles', '4d463f')}
 FINISHES['m1-repaired'] = FINISHES['m1-corner']
@@ -465,7 +466,34 @@ def w2():
         faces[name].slab('floor band', 0, width, STOREY - .1, STOREY + .1, -.06, 0, 'wall-end')
 
 
-BODIES = [('h1-attached-range', h1), ('a1-apartment', a1), ('a2-stair-range', a2), ('m1-corner', m1), ('w1-workplace', w1), ('w2-workshop', w2),
+def g003():
+    """Exact game body G003: 24 x 16 m, three storeys, 10.5 m walls. The simulation's ceiling is two
+    tenancies, so the body reads as two halves split at mid-frontage, each with its own street door,
+    stair and garden door."""
+    width, depth, height = 24.0, 16.0, 3 * STOREY
+    front, back = [], []
+    for half, stair in ((0.0, 1.2), (12.0, 8.8)):
+        front += [(half + stair, .3, 2.0, 2.5, 'door'), (half + stair, STOREY + 1.2, 2.0, 2.6, 'stair'),
+                  (half + stair, 2 * STOREY + 1.2, 2.0, 2.0, 'stair')]
+        rooms = [half + c for c in ((5.0, 8.0, 11.0) if stair < 5 else (1.0, 4.0, 7.0))]
+        front += bays(rooms, 1.0, 1.6, 1.7) + upper(3, rooms, w=1.6)
+        back += [(half + 4.8, .3, 2.4, 2.4, 'door')]
+        back += bays([half + 2.0, half + 9.5], 1.0, 1.6, 1.7) + upper(3, [half + 2.0, half + 6.0, half + 9.5], w=1.6)
+    end = [(x, s * STOREY + .95, 1.4, 1.7, 'window') for s in range(3) for x in (4.0, 10.6)]
+    faces = walls(width, depth, height, front, back, end, end, 'wall-end')
+    plinth(width, depth)
+    flat_roof(width, depth, height)
+    for name in ('front', 'back'):
+        faces[name].slab('party line', 11.85, 12.15, .3, height, -.12, 0, 'wall-end')
+    box('party upstand', (-.15, -depth / 2 + .25, height), (.15, depth / 2 - .25, height + .7), 'wall-end')
+    for sign in (-1, 1):
+        x = sign * 9.8
+        box('entrance canopy', (x - 1.4, -depth / 2 - 1.1, 2.9), (x + 1.4, -depth / 2, 3.05), 'trim')
+        box('roof hatch', (x - 1.0, -5.5, height), (x + 1.0, -4.3, height + .5), 'metal')
+        box('rooftop vent', (sign * 5.0 - .4, 3.0, height), (sign * 5.0 + .4, 3.8, height + .9), 'metal')
+
+
+BODIES = [('h1-attached-range', h1), ('a1-apartment', a1), ('a2-stair-range', a2), ('m1-corner', m1), ('w1-workplace', w1), ('w2-workshop', w2), ('g003-two-tenancy', g003),
           ('h1-reroofed', lambda: h1(reroofed=True)), ('m1-repaired', lambda: m1(repaired=True)), ('w1-solar', lambda: w1(solar=True))]
 
 
