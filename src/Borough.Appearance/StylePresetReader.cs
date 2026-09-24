@@ -53,6 +53,7 @@ public static class StylePresetReader
         ["roller"] = BayKind.Roller,
         ["stair"] = BayKind.Stair,
         ["hall"] = BayKind.Hall,
+        ["balcony"] = BayKind.Balcony,
     };
 
     private static readonly Dictionary<string, BayKind> SizedOpenings = new()
@@ -60,6 +61,9 @@ public static class StylePresetReader
         ["window"] = BayKind.Window,
         ["door"] = BayKind.Door,
         ["stair"] = BayKind.Stair,
+        ["shop"] = BayKind.Shop,
+        ["roller"] = BayKind.Roller,
+        ["balcony"] = BayKind.Balcony,
     };
 
     private static readonly string[] Conditions = ["storeys", "frontage_metres", "depth_metres", "raised_day", "patterns", "zones"];
@@ -289,7 +293,7 @@ public static class StylePresetReader
         public FamilyBody? Body()
         {
             int before = errors.Count;
-            Collect(["library", "tile_metres", "bay_metres", "parapet_metres", "pilasters", "plant", "roof_hatch", "vents", "openings", "gable_degrees", "chimney", "steps", .. Rows]);
+            Collect(["library", "tile_metres", "bay_metres", "parapet_metres", "pilasters", "plant", "roof_hatch", "vents", "openings", "gable_degrees", "chimney", "steps", "party_line", "shopfront", "panels", "rooflights", "receiving_canopy", .. Rows]);
             string? library = Text("library", required: true);
             Dictionary<string, (float, float)> tiles = Tiles("tile_metres");
             float bay = Metres("bay_metres", required: true, least: 1f) ?? 0f;
@@ -302,6 +306,11 @@ public static class StylePresetReader
             float gable = Metres("gable_degrees", required: false, least: 18f, unit: "degrees") ?? 0f;
             bool chimney = Boolean("chimney") ?? false;
             bool steps = Boolean("steps") ?? false;
+            bool partyLine = Boolean("party_line") ?? false;
+            bool shopfront = Boolean("shopfront") ?? false;
+            bool panels = Boolean("panels") ?? false;
+            bool rooflights = Boolean("rooflights") ?? false;
+            bool receiving = Boolean("receiving_canopy") ?? false;
             if (gable > 0f && parapet > 0f) Refuse(LineOf(_keys["gable_degrees"]), "a gable roof takes no parapet: give 'gable_degrees' or 'parapet_metres', not both.");
             if (chimney && gable == 0f) Refuse(LineOf(_keys["chimney"]), "a chimney stands on a gable roof: 'chimney' needs 'gable_degrees'.");
             BayRow[] rows = [.. Rows.Select(Row)];
@@ -309,7 +318,7 @@ public static class StylePresetReader
                 ? null
                 : new FamilyBody(library, tiles, bay, parapet, pilasters, (int)plant,
                     new WallRule(rows[0], rows[1]), new WallRule(rows[2], rows[3]), new WallRule(rows[4], rows[5]),
-                    hatch, (int)vents, openings, gable, chimney, steps);
+                    hatch, (int)vents, openings, gable, chimney, steps, partyLine, shopfront, panels, rooflights, receiving);
         }
 
         private Dictionary<BayKind, OpeningSize> Openings(string key)
@@ -351,23 +360,29 @@ public static class StylePresetReader
         {
             string[]? tokens = Strings(key, required: false);
             if (tokens is null) return BayRow.Blank;
-            var kinds = new List<BayKind>();
+            var laid = new List<BayKind[]>();
             var fills = new List<bool>();
             foreach (string token in tokens)
             {
                 bool fill = token.EndsWith('*');
-                string name = fill ? token[..^1] : token;
-                if (!BayNames.TryGetValue(name, out BayKind kind))
+                string[] names = (fill ? token[..^1] : token).Split('+');
+                var kinds = new List<BayKind>();
+                foreach (string name in names)
                 {
-                    Refuse(LineOf(_keys[key]), $"'{token}' is not a bay. Expected one of: {string.Join(", ", BayNames.Keys)}, each optionally ending in '*' to fill.");
+                    if (BayNames.TryGetValue(name, out BayKind kind)) kinds.Add(kind);
+                }
+
+                if (kinds.Count != names.Length)
+                {
+                    Refuse(LineOf(_keys[key]), $"'{token}' is not a bay. Expected one of: {string.Join(", ", BayNames.Keys)}, several joined by '+' to alternate, each token optionally ending in '*' to fill.");
                     continue;
                 }
 
-                kinds.Add(kind);
+                laid.Add([.. kinds]);
                 fills.Add(fill);
             }
 
-            return new BayRow([.. kinds], [.. fills]);
+            return new BayRow([.. laid], [.. fills]);
         }
 
         private float? Metres(string key, bool required, float least, string unit = "metres")

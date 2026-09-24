@@ -1,0 +1,23 @@
+# Generated bodies for walkup and two-unit apartments: gridded.toml, 2000 Citizens, --start-at 600,
+# default test-street preset. Tile 107 137 is a two-unit drawn from its Blender body for comparison.
+601 pause
+601 ui exact-bodies on
+601 ui family-bodies on
+601 focus 107 137 70
+601 tilt 25
+601 shoot plans/evidence/appearance-families/body-two-unit-blender.png
+601 speed 5
+602 pause
+602 focus 76 208 80
+602 shoot plans/evidence/appearance-families/body-two-unit.png
+602 speed 5
+603 pause
+603 focus 167 131 80
+603 shoot plans/evidence/appearance-families/body-walkup-front.png
+603 speed 5
+604 pause
+604 turn left
+604 turn left
+604 shoot plans/evidence/appearance-families/body-walkup-back.png
+604 speed 5
+606 quit

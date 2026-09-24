@@ -167,7 +167,7 @@
                 "minimum": 0
               },
               "roof_hatch": {
-                "description": "A roof hatch stands behind the middle of the frontage.",
+                "description": "A roof hatch stands over each stair stack on the street wall, or behind the middle of the frontage where there is none.",
                 "type": "boolean"
               },
               "vents": {
@@ -179,7 +179,7 @@
                 "description": "Opening sizes that replace the builder's own on every storey, as [width, height] or [width, height, sill] in metres. The sill is the opening's foot above its storey's floor.",
                 "type": "object",
                 "propertyNames": {
-                  "enum": ["window", "door", "stair"]
+                  "enum": ["window", "door", "stair", "shop", "roller", "balcony"]
                 },
                 "additionalProperties": {
                   "type": "array",
@@ -204,57 +204,77 @@
                 "description": "A step stands before each street door.",
                 "type": "boolean"
               },
+              "party_line": {
+                "description": "The body reads as two halves: a party line runs up the middle of the street and back walls and an upstand crosses the roof.",
+                "type": "boolean"
+              },
+              "shopfront": {
+                "description": "A fascia runs over each wall's ground-storey shops, and an awning shades each run of street shops.",
+                "type": "boolean"
+              },
+              "panels": {
+                "description": "Panel joints stand at every bay line of the street and back walls, with a floor band at each storey.",
+                "type": "boolean"
+              },
+              "rooflights": {
+                "description": "Two rooflights and a vent stand over each street bay.",
+                "type": "boolean"
+              },
+              "receiving_canopy": {
+                "description": "A canopy shelters each roller door on the back wall.",
+                "type": "boolean"
+              },
               "street_ground": {
-                "description": "The bays of the street wall's ground storey, left to right seen from outside. A token ending in '*' repeats to fill the bays the others leave.",
+                "description": "The bays of the street wall's ground storey, left to right seen from outside. A token ending in '*' repeats to fill the bays the others leave; kinds joined by '+' take turns.",
                 "type": "array",
                 "items": {
                   "type": "string",
-                  "pattern": "^(blank|window|shop|entry|door|roller|stair|hall)\\*?$"
+                  "pattern": "^(blank|window|shop|entry|door|roller|stair|hall|balcony)(\\+(blank|window|shop|entry|door|roller|stair|hall|balcony))*\\*?$"
                 },
                 "minItems": 1
               },
               "street_upper": {
-                "description": "The bays of each storey above the ground on the street wall, left to right seen from outside. A token ending in '*' repeats to fill the bays the others leave.",
+                "description": "The bays of each storey above the ground on the street wall, left to right seen from outside. A token ending in '*' repeats to fill the bays the others leave; kinds joined by '+' take turns.",
                 "type": "array",
                 "items": {
                   "type": "string",
-                  "pattern": "^(blank|window|shop|entry|door|roller|stair|hall)\\*?$"
+                  "pattern": "^(blank|window|shop|entry|door|roller|stair|hall|balcony)(\\+(blank|window|shop|entry|door|roller|stair|hall|balcony))*\\*?$"
                 },
                 "minItems": 1
               },
               "back_ground": {
-                "description": "The bays of the back wall's ground storey, left to right seen from outside. A token ending in '*' repeats to fill the bays the others leave.",
+                "description": "The bays of the back wall's ground storey, left to right seen from outside. A token ending in '*' repeats to fill the bays the others leave; kinds joined by '+' take turns.",
                 "type": "array",
                 "items": {
                   "type": "string",
-                  "pattern": "^(blank|window|shop|entry|door|roller|stair|hall)\\*?$"
+                  "pattern": "^(blank|window|shop|entry|door|roller|stair|hall|balcony)(\\+(blank|window|shop|entry|door|roller|stair|hall|balcony))*\\*?$"
                 },
                 "minItems": 1
               },
               "back_upper": {
-                "description": "The bays of each storey above the ground on the back wall, left to right seen from outside. A token ending in '*' repeats to fill the bays the others leave.",
+                "description": "The bays of each storey above the ground on the back wall, left to right seen from outside. A token ending in '*' repeats to fill the bays the others leave; kinds joined by '+' take turns.",
                 "type": "array",
                 "items": {
                   "type": "string",
-                  "pattern": "^(blank|window|shop|entry|door|roller|stair|hall)\\*?$"
+                  "pattern": "^(blank|window|shop|entry|door|roller|stair|hall|balcony)(\\+(blank|window|shop|entry|door|roller|stair|hall|balcony))*\\*?$"
                 },
                 "minItems": 1
               },
               "side_ground": {
-                "description": "The bays of each side wall's ground storey, left to right seen from outside. A token ending in '*' repeats to fill the bays the others leave.",
+                "description": "The bays of each side wall's ground storey, left to right seen from outside. A token ending in '*' repeats to fill the bays the others leave; kinds joined by '+' take turns.",
                 "type": "array",
                 "items": {
                   "type": "string",
-                  "pattern": "^(blank|window|shop|entry|door|roller|stair|hall)\\*?$"
+                  "pattern": "^(blank|window|shop|entry|door|roller|stair|hall|balcony)(\\+(blank|window|shop|entry|door|roller|stair|hall|balcony))*\\*?$"
                 },
                 "minItems": 1
               },
               "side_upper": {
-                "description": "The bays of each storey above the ground on the side walls, left to right seen from outside. A token ending in '*' repeats to fill the bays the others leave.",
+                "description": "The bays of each storey above the ground on the side walls, left to right seen from outside. A token ending in '*' repeats to fill the bays the others leave; kinds joined by '+' take turns.",
                 "type": "array",
                 "items": {
                   "type": "string",
-                  "pattern": "^(blank|window|shop|entry|door|roller|stair|hall)\\*?$"
+                  "pattern": "^(blank|window|shop|entry|door|roller|stair|hall|balcony)(\\+(blank|window|shop|entry|door|roller|stair|hall|balcony))*\\*?$"
                 },
                 "minItems": 1
               }
