@@ -182,5 +182,6 @@ Debug build, `ExpandedStudy --test-street`.
 | W2 workshop | 32 × 16 m, 2 × 3.2 m, 8 m grid, 3.5 m receiving door | 2 × 3.5 m, 6° metal roof with rooflights, panel joints on the grid | 1,782 |
 
 - Every storey is 3.5 m, the simulation's storey height. The briefs propose 3.2 m, so H1, A1, A2, M1 and W2 are taller than briefed.
+- The monochrome review on 2026-09-24 kept 3.5 m storeys for every body, so the drawn height always matches the simulation's.
 - A2 sits on its own pad east of the side street, as the brief asks. The `a1-front`/`a2-front` and `a1-garden`/`a2-garden` views use matched camera offsets for the unlabelled comparison.
 - The street is a study fixture. No body is a simulation Building, and nothing is tied to a Lot or an Appearance Family yet.
