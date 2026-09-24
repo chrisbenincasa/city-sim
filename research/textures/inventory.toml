@@ -1,0 +1,699 @@
+# Texture inventory for the first style preset: present-day US Pacific Northwest.
+#
+# Each [[item]] is a surface the game needs a material for. `search.py` matches every item
+# against the Poly Haven, ambientCG and cgbookcase catalogues and writes candidates.md and
+# candidates.html. Edit this file, then rerun the script.
+#
+# Fields
+#   group     Walls, Roofs, Openings, Streets, Land, Industrial, Wear, Construction, Vegetation
+#   item      the surface, in plain words
+#   serves    the game fact that puts this surface on screen. Drawing pillar 1.3 says every mark
+#             reports a fact or is marked invented, so an item with no fact says "invented"
+#   priority  1 = first test street and the far band; 2 = full coverage of today's kinds and
+#             terrain; 3 = reserved states, props and polish
+#   any       search terms; an asset matches when its name, tags or category contain one
+#   all       optional terms the asset must also contain
+#   not       optional terms that exclude an asset
+#   notes     scale, colour or use constraints to check when choosing
+#   shortlist optional "Source:asset id" picks that passed a thumbnail look; shown first
+#   gap       optional; what the CC0 libraries lack and how to fill it
+#
+# Licence rule: commit only CC0 files. Poly Haven, ambientCG and cgbookcase are CC0.
+# ShareTextures restricts redistribution and automated download, so it is excluded here.
+
+# Walls
+
+[[item]]
+id = "W01"
+group = "Walls"
+item = "Horizontal lap siding, painted"
+serves = "Dwelling families: post-war and older houses, the dominant PNW wall"
+priority = 1
+any = ["siding", "clapboard", "weatherboard", "wood planks painted", "painted wood"]
+not = ["floor", "parquet"]
+notes = "Board exposure 100 to 180 mm. Paint must divide out so the family colour shows through, like the masonry ratio in plans/0063"
+shortlist = ["ambientCG:WoodSiding009", "ambientCG:WoodSiding005", "Poly Haven:brown_planks_07"]
+
+[[item]]
+id = "W02"
+group = "Walls"
+item = "Board-and-batten vertical siding"
+serves = "Dwelling families: recent infill and rural outskirts"
+priority = 2
+any = ["board and batten", "batten", "vertical siding", "wood siding"]
+not = ["floor"]
+notes = "Batten spacing 300 to 400 mm"
+
+[[item]]
+id = "W03"
+group = "Walls"
+item = "Cedar shingle siding"
+serves = "Dwelling families: older survivors (craftsman, 1900 to 1930)"
+priority = 2
+any = ["shingle", "shake", "wood shingles"]
+not = ["asphalt", "roof tiles clay"]
+notes = "Wall shingles, not roof. Exposure around 125 to 175 mm"
+shortlist = ["ambientCG:WoodSiding013"]
+
+[[item]]
+id = "W04"
+group = "Walls"
+item = "Fibre cement panel with reveals"
+serves = "Mid-rise infill families (five-over-one apartments)"
+priority = 1
+any = ["facade panel", "cladding", "panel", "fiber cement", "fibre cement", "facade"]
+not = ["wood floor", "office ceiling", "solar", "acoustic"]
+notes = "Panels 1.2 x 2.4 m with thin reveal lines. May be cheaper as a shader grid than a photo"
+shortlist = ["Poly Haven:concrete_wall_001", "Poly Haven:concrete_wall_004"]
+gap = "No true fibre cement panel. The concrete walls with panel joints are the nearest. A shader grid over smooth render may be cheaper"
+
+[[item]]
+id = "W05"
+group = "Walls"
+item = "Stucco / cement render"
+serves = "Post-war commercial and some dwelling families"
+priority = 1
+any = ["stucco", "plaster", "render", "painted plaster"]
+not = ["indoor", "ceiling"]
+notes = "The player rejected the earlier plaster treatment (plans/0063). Choose a finer, calmer grain"
+shortlist = ["Poly Haven:painted_plaster_wall", "ambientCG:Plaster001", "ambientCG:PaintedPlaster017"]
+
+[[item]]
+id = "W06"
+group = "Walls"
+item = "Red common brick"
+serves = "Older survivor commercial blocks, schools, warehouses"
+priority = 1
+any = ["brick", "bricks"]
+not = ["floor", "paving", "pavers", "white"]
+all = []
+notes = "Already in use: Poly Haven brick_wall_001. US modular brick 194 x 57 mm (plus 10 mm joint). Check bond is running or common bond"
+shortlist = ["Poly Haven:brick_wall_001", "Poly Haven:red_brick", "Poly Haven:red_bricks_04", "ambientCG:Bricks059"]
+
+[[item]]
+id = "W07"
+group = "Walls"
+item = "Buff, tan or brown brick veneer"
+serves = "Post-war commercial, civic and clinic families"
+priority = 2
+any = ["brick", "bricks"]
+not = ["floor", "paving", "red"]
+notes = "Look for tan, beige, brown, yellow tags"
+
+[[item]]
+id = "W08"
+group = "Walls"
+item = "Concrete block (CMU), painted and split-face"
+serves = "Industrial, warehouse and post-war shop families"
+priority = 1
+any = ["concrete block", "cinder block", "cmu", "breeze block", "concrete bricks", "blocks"]
+not = ["floor", "paving", "tactile", "cube tiles"]
+notes = "Block 390 x 190 mm face. Running bond"
+shortlist = ["ambientCG:Bricks066", "Poly Haven:concrete_block_wall"]
+
+[[item]]
+id = "W09"
+group = "Walls"
+item = "Cast-in-place or board-formed concrete"
+serves = "Civic families, parking structures, tower cores"
+priority = 2
+any = ["concrete wall", "board formed", "formwork", "exposed concrete", "concrete"]
+not = ["floor", "block", "tiles", "pavement", "road"]
+notes = "Form-tie holes on a 600 mm grid read well at street distance"
+
+[[item]]
+id = "W10"
+group = "Walls"
+item = "Precast or tilt-up concrete panel"
+serves = "Office blocks, big-box and warehouse families"
+priority = 2
+any = ["precast", "concrete panel", "concrete slab wall", "concrete facade", "facade"]
+not = ["floor", "tiles"]
+notes = "Panel joints every 3 to 9 m; the joint pattern can be a shader line"
+
+[[item]]
+id = "W11"
+group = "Walls"
+item = "Corrugated or ribbed metal siding"
+serves = "Industrial, port and workshop families; modern infill accents"
+priority = 1
+any = ["corrugated", "sheet metal", "metal siding", "ribbed metal", "metal cladding"]
+not = ["floor", "diamond"]
+notes = "Rib pitch 76 mm (corrugated) or 300 mm (trapezoidal). Painted and galvanised variants"
+shortlist = ["Poly Haven:corrugated_iron", "Poly Haven:corrugated_iron_02", "Poly Haven:box_profile_metal_sheet", "Poly Haven:factory_wall"]
+
+[[item]]
+id = "W12"
+group = "Walls"
+item = "Glass curtain wall and spandrel"
+serves = "Office block families, tower shafts"
+priority = 2
+any = ["glass", "curtain wall", "window facade", "office facade", "facade"]
+not = ["bottle", "stained glass", "frosted"]
+notes = "Mullion grid likely belongs in the shader. A photo candidate is useful for reflections and spandrel colour"
+
+[[item]]
+id = "W13"
+group = "Walls"
+item = "Stone veneer (basalt or ledgestone)"
+serves = "Civic bases, recent dwelling accents"
+priority = 3
+any = ["stone wall", "ledgestone", "stacked stone", "stone veneer", "basalt", "rock wall"]
+not = ["floor", "cobblestone", "paving"]
+notes = "Grey basalt suits the region"
+
+[[item]]
+id = "W14"
+group = "Walls"
+item = "Natural cedar vertical cladding"
+serves = "Recent infill dwellings and shops"
+priority = 2
+any = ["wood planks", "wooden planks", "cedar", "wood siding", "timber cladding"]
+not = ["floor", "parquet", "painted"]
+notes = "Unpainted, warm orange-brown when new, silver-grey when weathered"
+
+[[item]]
+id = "W15"
+group = "Walls"
+item = "T1-11 or plain plywood siding"
+serves = "Cheap post-war dwellings, sheds, workshops"
+priority = 3
+any = ["plywood", "t1-11", "wood panel"]
+not = ["floor"]
+notes = "Grooves every 100 or 200 mm on 1.2 m sheets"
+
+# Roofs
+
+[[item]]
+id = "R01"
+group = "Roofs"
+item = "Asphalt composition shingles"
+serves = "Nearly every pitched dwelling roof in the preset"
+priority = 1
+any = ["asphalt shingle", "roof shingle", "shingles", "roofing"]
+not = ["clay", "slate", "thatch", "wood shingle", "terracotta"]
+notes = "Grey, charcoal, brown. Architectural (laminated) and 3-tab. Exposure 140 mm. The current roof texture is English slate and does not fit this preset"
+gap = "No CC0 library has asphalt composition shingles. The ambientCG 'modern roofing tiles' are European concrete tiles. Author a procedural shingle material in Blender, using an asphalt or fine-gravel photo for the granules"
+
+[[item]]
+id = "R02"
+group = "Roofs"
+item = "Standing-seam metal roof"
+serves = "Recent dwellings, rural outskirts, civic accents"
+priority = 2
+any = ["standing seam", "metal roof", "roof metal", "sheet metal"]
+not = ["floor", "diamond"]
+notes = "Seams every 300 to 450 mm"
+
+[[item]]
+id = "R03"
+group = "Roofs"
+item = "Flat membrane roof (white TPO, black EPDM)"
+serves = "Commercial, mid-rise, office and big-box flat roofs"
+priority = 1
+any = ["membrane", "roof felt", "tar paper", "bitumen", "rubber roof", "flat roof"]
+not = ["floor"]
+notes = "Seam laps every 3 m. The default camera is high, so flat roofs cover much of the frame"
+shortlist = ["Poly Haven:bitumen"]
+gap = "No white TPO membrane. Bitumen covers black EPDM. White membrane is a flat colour with seam lines, so a shader may be enough"
+
+[[item]]
+id = "R04"
+group = "Roofs"
+item = "Gravel-ballast or tar-and-gravel roof"
+serves = "Older flat roofs on commercial and industrial families"
+priority = 2
+any = ["gravel", "pebbles", "roof gravel"]
+not = ["road", "path"]
+notes = "Fine grey gravel, uniform. Any fine grey gravel photo can serve"
+
+[[item]]
+id = "R05"
+group = "Roofs"
+item = "Corrugated metal roof, galvanised and rusted"
+serves = "Industrial, port, sheds"
+priority = 2
+any = ["corrugated", "rusty metal", "rusted metal", "sheet metal"]
+not = ["floor", "diamond"]
+notes = "Rust variant can double as abandonment wear"
+
+[[item]]
+id = "R06"
+group = "Roofs"
+item = "Cedar shake roof"
+serves = "Older survivor dwellings"
+priority = 3
+any = ["wood shingle", "shake", "wooden roof", "roof wood"]
+not = ["asphalt"]
+notes = "Weathers to silver-grey; often mossy in the PNW"
+gap = "No cedar shake roof. The wall shingles in W03 may serve at roof scale"
+
+[[item]]
+id = "R07"
+group = "Roofs"
+item = "Moss-covered roof"
+serves = "Age and time-empty wear on pitched roofs (Q7 wear from recorded facts)"
+priority = 2
+any = ["moss", "mossy"]
+not = []
+notes = "A regional signature. Use as a mask over R01, keyed to age"
+
+# Openings and trim
+
+[[item]]
+id = "O01"
+group = "Openings"
+item = "Sectional steel garage door"
+serves = "Dwelling street faces with a garage"
+priority = 2
+any = ["garage door", "roller door", "rolling door", "shutter"]
+not = []
+notes = "Panels 530 mm tall. Likely a kit piece with its own texture"
+
+[[item]]
+id = "O02"
+group = "Openings"
+item = "Roll-up metal shutter"
+serves = "Shopfronts and industrial doors when shut or vacant"
+priority = 2
+any = ["roller shutter", "rolling shutter", "shutter", "roll up door", "garage door"]
+not = []
+notes = "Slat pitch 75 mm"
+
+[[item]]
+id = "O03"
+group = "Openings"
+item = "Plywood boarding"
+serves = "Abandoned Buildings (Q7 time abandoned)"
+priority = 1
+any = ["plywood", "osb", "chipboard", "wood panel"]
+not = ["floor"]
+notes = "Both clean and weathered plywood. Weathered only after long abandonment"
+shortlist = ["Poly Haven:plywood", "Poly Haven:oriented_strand_board"]
+
+[[item]]
+id = "O04"
+group = "Openings"
+item = "Canvas awning fabric"
+serves = "Shopfront families"
+priority = 3
+any = ["canvas", "awning", "fabric stripes", "cotton"]
+not = ["leather", "denim", "knitted", "fleece"]
+notes = "Solid and striped; colour comes from the family"
+
+[[item]]
+id = "O05"
+group = "Openings"
+item = "Wood and chain-link fences"
+serves = "Lot edges and yards"
+priority = 3
+any = ["fence", "chain link", "chainlink", "wire mesh"]
+not = []
+notes = "Needs alpha. Cedar picket fences are the regional default"
+
+# Streets
+
+[[item]]
+id = "S01"
+group = "Streets"
+item = "Asphalt road, fresh"
+serves = "Streets and Arterials"
+priority = 1
+any = ["asphalt", "road"]
+not = ["shingle", "marking"]
+notes = "Already in use for studies: ambientCG Asphalt012. Needs large scale and low repetition from 50 to 500 m"
+shortlist = ["Poly Haven:aerial_asphalt_01", "ambientCG:Asphalt012", "ambientCG:Asphalt015", "ambientCG:Asphalt023S"]
+
+[[item]]
+id = "S02"
+group = "Streets"
+item = "Asphalt road, worn, cracked and patched"
+serves = "Road condition, if the simulation records one; otherwise invented"
+priority = 2
+any = ["asphalt", "road"]
+all = []
+not = ["shingle", "marking"]
+notes = "visual-direction.md forbids cosmetic wear that masquerades as road wear. Hold until a road condition fact exists"
+
+[[item]]
+id = "S03"
+group = "Streets"
+item = "Concrete road panels"
+serves = "Arterials and alleys (common in PNW cities)"
+priority = 2
+any = ["concrete road", "concrete pavement", "concrete floor", "concrete slab", "concrete"]
+not = ["wall", "block", "brick", "tiles"]
+notes = "Panel joints every 4.5 m; joints can be a shader line"
+
+[[item]]
+id = "S04"
+group = "Streets"
+item = "Concrete sidewalk with scored joints"
+serves = "Pavements on every Street"
+priority = 1
+any = ["sidewalk", "pavement", "concrete floor", "concrete"]
+not = ["wall", "brick", "block"]
+notes = "Scored squares 1.2 to 1.5 m. Light grey, broom finish"
+shortlist = ["ambientCG:Concrete048", "ambientCG:Concrete047A"]
+
+[[item]]
+id = "S05"
+group = "Streets"
+item = "Parking lot asphalt"
+serves = "Parking (the [parking] Ruleset section) and big-box lots"
+priority = 2
+any = ["asphalt", "parking"]
+not = ["shingle"]
+notes = "Stall lines should be decals or shader lines, not baked into the photo"
+
+[[item]]
+id = "S06"
+group = "Streets"
+item = "Gravel lane or driveway"
+serves = "Rural roads, alleys, industrial yards"
+priority = 2
+any = ["gravel", "dirt road", "gravel road"]
+not = ["roof"]
+notes = "Mixed 20 mm crushed rock"
+
+[[item]]
+id = "S07"
+group = "Streets"
+item = "Brick or concrete pavers"
+serves = "Plazas, school and civic forecourts"
+priority = 3
+any = ["paving stones", "pavers", "paving", "cobblestone"]
+not = []
+notes = "Avoid old-world cobbles; PNW plazas use concrete pavers or brick"
+
+[[item]]
+id = "S08"
+group = "Streets"
+item = "Road markings, crosswalks, manholes and drains"
+serves = "Streets and junctions"
+priority = 3
+any = ["road marking", "manhole", "drain", "crosswalk", "arrows"]
+not = []
+notes = "Likely decals or shader lines. US yellow centre lines and white edge lines"
+
+# Land
+
+[[item]]
+id = "L01"
+group = "Land"
+item = "Mown lawn"
+serves = "Front gardens (the 2-Tile setback in minimal.toml), parks"
+priority = 1
+any = ["grass", "lawn"]
+not = ["dry", "artificial", "straw"]
+notes = "Seen from 50 m up it reads as colour plus variation. A macro variation map matters more than blade detail"
+shortlist = ["ambientCG:Grass004", "ambientCG:Grass001"]
+
+[[item]]
+id = "L02"
+group = "Land"
+item = "Dry summer grass"
+serves = "Ordinary terrain in late summer, if seasons arrive; vacant lots"
+priority = 3
+any = ["dry grass", "grass dry", "dead grass", "straw", "hay"]
+not = []
+notes = "PNW lawns brown in August. No season fact exists yet"
+
+[[item]]
+id = "L03"
+group = "Land"
+item = "Bark mulch landscaping beds"
+serves = "Dwelling and commercial landscaping"
+priority = 2
+any = ["mulch", "wood chips", "bark chips"]
+not = []
+notes = "Very common in the region around foundations and car parks"
+
+[[item]]
+id = "L04"
+group = "Land"
+item = "Bare soil"
+serves = "Vacant Lots, construction stage, thin_soil terrain"
+priority = 1
+any = ["soil", "dirt", "ground", "mud"]
+not = ["snow", "moon", "desert", "lava"]
+notes = "Dark brown-grey regional soil, not red or sandy"
+shortlist = ["Poly Haven:brown_mud_02", "Poly Haven:brown_mud_dry"]
+
+[[item]]
+id = "L05"
+group = "Land"
+item = "Conifer forest floor"
+serves = "Woodland (the ground texture that stands for it, plans/0066)"
+priority = 1
+any = ["forest floor", "forest ground", "pine needles", "needles", "forest"]
+not = ["snow"]
+notes = "Needles, duff and ferns under Douglas fir. Poly Haven has a pine_forest collection"
+shortlist = ["Poly Haven:forrest_ground_03", "Poly Haven:forrest_sand_01", "Poly Haven:forrest_ground_01"]
+
+[[item]]
+id = "L06"
+group = "Land"
+item = "Rock outcrop"
+serves = "Terrain type rock"
+priority = 1
+any = ["rock", "cliff", "boulder", "basalt", "granite"]
+not = ["wall", "floor tiles", "marble", "travertine", "moon", "lava"]
+notes = "Grey basalt or granite. Must hold from high above as well as up close"
+shortlist = ["Poly Haven:rock_boulder_dry", "Poly Haven:aerial_rocks_02", "ambientCG:Rock035"]
+
+[[item]]
+id = "L07"
+group = "Land"
+item = "Thin stony soil"
+serves = "Terrain type thin_soil"
+priority = 2
+any = ["rocky ground", "stony", "gravel ground", "rocky", "stones ground", "ground"]
+not = ["snow", "moon", "desert"]
+notes = "Soil with scattered stones and sparse grass"
+
+[[item]]
+id = "L08"
+group = "Land"
+item = "Wet mud and silt"
+serves = "Terrain type floodplain; flooded ground after a flood"
+priority = 1
+any = ["mud", "wet", "muddy", "silt"]
+not = ["snow", "wall"]
+notes = "A wetness mask over L04 may be enough"
+shortlist = ["Poly Haven:brown_mud_03", "Poly Haven:muddy_tracks"]
+
+[[item]]
+id = "L09"
+group = "Land"
+item = "Marsh and reeds"
+serves = "Terrain type marsh"
+priority = 1
+any = ["marsh", "swamp", "reeds", "wetland", "moss"]
+not = []
+notes = "Rare in CC0 libraries. May need a mud base plus scattered reed cards"
+shortlist = ["ambientCG:Ground037", "Poly Haven:aerial_grass_rock"]
+gap = "No reed or marsh texture. Use damp ground plus reed cards or scattered reed models"
+
+[[item]]
+id = "L10"
+group = "Land"
+item = "Sand and cobble beach"
+serves = "Coastal edges (coastal.toml)"
+priority = 2
+any = ["sand", "beach", "pebbles", "shingle beach", "coast"]
+not = ["sandstone", "desert", "moon", "roof"]
+notes = "PNW beaches are grey sand and cobbles with driftwood"
+
+[[item]]
+id = "L11"
+group = "Land"
+item = "Riprap and rock armour"
+serves = "Port edges, river banks"
+priority = 3
+any = ["riprap", "boulders", "rocks", "stones"]
+not = ["wall", "floor"]
+notes = "Angular grey rock 0.5 to 1 m"
+
+# Industrial and port
+
+[[item]]
+id = "I01"
+group = "Industrial"
+item = "Painted steel, rusting"
+serves = "Port, works, tanks, containers"
+priority = 2
+any = ["painted metal", "rust", "rusty"]
+not = []
+notes = "Paint colour from the family; rust from age"
+
+[[item]]
+id = "I02"
+group = "Industrial"
+item = "Stained concrete yard"
+serves = "Port apron, works yards, loading docks"
+priority = 2
+any = ["concrete floor", "concrete", "industrial floor"]
+not = ["wall", "block", "brick", "tiles"]
+notes = "Oil stains and expansion joints"
+
+[[item]]
+id = "I03"
+group = "Industrial"
+item = "Rail ballast and ties"
+serves = "Rail, if and when it exists; port sidings"
+priority = 3
+any = ["rails", "railway", "ballast", "train track"]
+not = []
+notes = "No rail fact exists yet"
+
+[[item]]
+id = "I04"
+group = "Industrial"
+item = "Timber pier deck planks"
+serves = "Port"
+priority = 2
+any = ["planks", "wooden planks", "wood planks", "deck", "boardwalk"]
+not = ["floor indoor", "parquet", "painted"]
+notes = "Weathered grey timber"
+
+[[item]]
+id = "I05"
+group = "Industrial"
+item = "Steel grating and diamond plate"
+serves = "Port and works walkways, stairs"
+priority = 3
+any = ["grating", "grate", "diamond plate", "metal walkway"]
+not = []
+notes = "Needs alpha for grating"
+
+# Wear (overlays keyed to recorded facts, per Q7)
+
+[[item]]
+id = "X01"
+group = "Wear"
+item = "Grime and water-runoff streaks"
+serves = "Age, time empty"
+priority = 1
+any = ["grime", "leaking", "dirt", "stains", "streaks", "surface imperfections", "smear"]
+not = ["road", "ground", "floor"]
+notes = "Wear follows construction: concentrate under sills, copings and gutters (pass 03 finding 5)"
+shortlist = ["Poly Haven:concrete_layers_02", "ambientCG:SurfaceImperfections008"]
+gap = "Libraries hold generic grime, not runoff streaks placed under sills and copings. Author directed masks procedurally"
+
+[[item]]
+id = "X02"
+group = "Wear"
+item = "Moss and lichen growth on walls"
+serves = "Age, time empty, on north faces"
+priority = 2
+any = ["moss", "lichen"]
+not = []
+notes = "Regional signature"
+
+[[item]]
+id = "X03"
+group = "Wear"
+item = "Rust streaks"
+serves = "Age on metal families and below metal fixings"
+priority = 2
+any = ["rust", "rusty"]
+not = []
+notes = ""
+
+[[item]]
+id = "X04"
+group = "Wear"
+item = "Peeling and chipped paint"
+serves = "Time abandoned, on painted siding and render"
+priority = 1
+any = ["peeling", "chipped", "flaking", "damaged paint", "chipped paint", "painted wood"]
+not = []
+notes = "Must reveal the family's own base material (plans/0063 abandonment review)"
+shortlist = ["Poly Haven:wood_peeling_paint_weathered", "Poly Haven:blue_plaster_weathered", "Poly Haven:green_rough_planks"]
+
+[[item]]
+id = "X05"
+group = "Wear"
+item = "Soot staining"
+serves = "Emissions (Q7 wear from recorded facts)"
+priority = 2
+any = ["soot", "burnt", "burned", "charred", "smoke"]
+not = []
+notes = "Only where the simulation records emissions"
+
+[[item]]
+id = "X06"
+group = "Wear"
+item = "Broken window glass"
+serves = "Long abandonment"
+priority = 3
+any = ["broken glass", "cracked glass", "shattered"]
+not = []
+notes = "Probably a shader mask rather than a photo"
+gap = "No match. Likely a shader mask on the pane"
+
+# Construction (reserved stage, Q7 option D)
+
+[[item]]
+id = "C01"
+group = "Construction"
+item = "OSB sheathing"
+serves = "Buildings under construction"
+priority = 3
+any = ["osb", "chipboard", "oriented strand"]
+not = []
+notes = "Construction phase is a separate simulation item"
+
+[[item]]
+id = "C02"
+group = "Construction"
+item = "House wrap and exposed framing lumber"
+serves = "Buildings under construction"
+priority = 3
+any = ["house wrap", "tarp", "plastic sheet", "lumber", "timber", "wood beam"]
+not = ["floor"]
+notes = "Avoid brand markings. Generic white wrap"
+
+[[item]]
+id = "C03"
+group = "Construction"
+item = "Construction site dirt and tracks"
+serves = "Buildings under construction"
+priority = 3
+any = ["dirt", "tracks", "construction", "mud"]
+not = ["snow"]
+notes = "Can reuse L04 with a tyre-track mask"
+
+# Vegetation
+
+[[item]]
+id = "V01"
+group = "Vegetation"
+item = "Douglas fir and western red cedar bark"
+serves = "Tree trunks near the camera"
+priority = 3
+any = ["bark", "pine bark", "tree bark"]
+not = []
+notes = "Only visible at near band. Deep-furrowed brown bark"
+
+[[item]]
+id = "V02"
+group = "Vegetation"
+item = "Conifer foliage and broadleaf leaf atlases"
+serves = "Tree crowns (Main.Foliage)"
+priority = 2
+any = ["leaf", "leaves", "foliage", "needles", "fern"]
+not = ["scattered leaves", "autumn"]
+notes = "CC0 texture libraries rarely carry foliage cards. Poly Haven models may be a better source"
+gap = "Texture libraries hold no conifer foliage cards. Look at Poly Haven models or author cards in Blender"
+
+[[item]]
+id = "V03"
+group = "Vegetation"
+item = "Hedge (laurel, arborvitae)"
+serves = "Dwelling lot edges"
+priority = 3
+any = ["hedge", "bush", "shrub", "ivy"]
+not = []
+notes = "Seen as a mass from above"
