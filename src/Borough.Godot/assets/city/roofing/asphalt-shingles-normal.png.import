@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d0c66hvlbppp3"
-path="res://.godot/imported/roof-slates-normal.jpg-8891e85b9e9871f0752436192917308b.ctex"
+uid="uid://cyy77t6hjk4jl"
+path="res://.godot/imported/asphalt-shingles-normal.png-67542210d8f7600b4ed8452c820a7342.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/city/material-study/roof-slates-normal.jpg"
-dest_files=["res://.godot/imported/roof-slates-normal.jpg-8891e85b9e9871f0752436192917308b.ctex"]
+source_file="res://assets/city/roofing/asphalt-shingles-normal.png"
+dest_files=["res://.godot/imported/asphalt-shingles-normal.png-67542210d8f7600b4ed8452c820a7342.ctex"]
 
 [params]
 

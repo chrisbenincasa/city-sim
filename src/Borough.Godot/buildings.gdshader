@@ -154,7 +154,7 @@ uniform float masonry_relief = 0.7;
 // the albedo outright, which is why it looked like that photograph -- and a city drawn that way is
 // one red for every masonry Building in it. ***A specimen may borrow a photograph's colour; a city
 // has to keep its own.***
-uniform float masonry_hue : hint_range(0.0, 1.0) = 0.55;
+uniform float masonry_hue : hint_range(0.0, 1.0) = 0.2;
 
 // How many texture tiles across one cell of the shuffling grid below.
 //
@@ -228,7 +228,7 @@ const vec3 MASONRY_MEAN = vec3(0.1401, 0.0776, 0.0515);
 varying vec3 v_local;
 varying vec3 v_size;
 varying vec3 v_face;
-varying vec4 v_custom;
+varying flat vec4 v_custom;
 varying float v_shop;
 varying float v_ruin;
 

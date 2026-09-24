@@ -236,18 +236,23 @@ public partial class Main : Node3D
     /// <summary>How far a coping stands proud of the wall below it, in metres. <b>Not an eave.</b></summary>
     private const float CopingMetres = .08f;
 
-    /// <summary>The two roofing tones a Building draws between, in sRGB.</summary>
+    /// <summary>Asphalt shingle colours a pitched roof draws between, in sRGB, weighted by repetition.</summary>
     /// <remarks>
-    /// ⚠ <b>Two tones and a jitter, rather than one colour</b> — a terrace roofed in exactly one
-    /// red reads as moulded plastic, and the variation costs a draw off the same scramble the
-    /// massing already took. <b>Neither is a state</b>: an abandoned Building is painted
-    /// <see cref="Derelict"/> over the top of whichever it drew, because a shell that kept a warm
-    /// roof would be the liveliest thing on the street.
+    /// ⚠ <b>Eight entries so a 3-bit draw weights them</b>: charcoal, weathered wood and pewter
+    /// grey are the region's common blends and appear twice. <b>None is a state</b>: an abandoned
+    /// Building is painted <see cref="Derelict"/> over whichever it drew, so every entry stays
+    /// lighter or warmer than it after the ±14% shade jitter.
     /// </remarks>
     private static readonly Color[] Roofs =
     [
-        new(0.55f, 0.33f, 0.26f),   // clay tile, and the shell's original
-        new(0.36f, 0.34f, 0.36f),   // slate
+        new(0.30f, 0.30f, 0.31f),   // charcoal
+        new(0.30f, 0.30f, 0.31f),
+        new(0.41f, 0.36f, 0.30f),   // weathered wood
+        new(0.41f, 0.36f, 0.30f),
+        new(0.38f, 0.39f, 0.41f),   // pewter grey
+        new(0.38f, 0.39f, 0.41f),
+        new(0.37f, 0.29f, 0.23f),   // barkwood brown
+        new(0.27f, 0.33f, 0.28f),   // hunter green
     ];
 
     /// <summary>What a flat roof is covered in. <b>A third covering, and not a third tone.</b></summary>
@@ -409,7 +414,7 @@ public partial class Main : Node3D
     /// </remarks>
     private static readonly Color Derelict = new(0.20f, 0.19f, 0.18f);
 
-    /// <summary>A pitched roof, warm against the wall so the silhouette has an edge.</summary>
+    /// <summary>A pitched roof's layer colour before any Building draws its own.</summary>
     private static readonly Color Roofing = Roofs[0];
 
     /// <summary>What the five <see cref="TerrainKind"/>s look like, in sRGB.</summary>
@@ -1062,10 +1067,10 @@ public partial class Main : Node3D
 
     public override void _Ready()
     {
-        (_rulesetPath, int citizens, ulong startAt, bool govern, _empty, string? drive,
-            ulong quitAt, string? listen, string? record) = Arguments();
+        (_rulesetPath, int citizens, ulong? startAt, bool govern, _empty, string? drive,
+            ulong quitAt, string? listen, string? record, string? load) = Arguments();
 
-        if (!ThreadArguments() || !Driven(drive, quitAt))
+        if (!ThreadArguments() || !Driven(drive, quitAt) || !Loadable(load))
         {
             Stop(2);
 
@@ -1082,6 +1087,20 @@ public partial class Main : Node3D
         if (listen is not null && !Listen(Globalize(listen)))
         {
             Stop(2);
+
+            return;
+        }
+
+        if (load is not null)
+        {
+            string city = Globalize(load);
+
+            PrepareSavedCity(city, startAt, (simulation, preparation) =>
+            {
+                InstallSavedCity(simulation, preparation.City!, preparation.SavedTick, city);
+                FinishReady(govern);
+                _sceneReady = true;
+            });
 
             return;
         }
@@ -1113,7 +1132,7 @@ public partial class Main : Node3D
         _citizens = citizens;
         _seed = 0;
 
-        PrepareCity(loaded.Ruleset, citizens, _seed, startAt, simulation =>
+        PrepareCity(loaded.Ruleset, citizens, _seed, startAt ?? (ulong)Ticks.AtClock(8), simulation =>
         {
             InstallCity(simulation);
             FinishReady(govern);
@@ -1572,15 +1591,16 @@ public partial class Main : Node3D
     /// <summary>
     /// <c>--ruleset PATH</c>, <c>--citizens N</c>, <c>--start-at TICK</c>, <c>--govern</c>,
     /// <c>--empty</c>, <c>--drive PATH</c>, <c>--quit-at TICK</c>, <c>--listen PATH</c> and
-    /// <c>--record PATH</c>, <c>--route-workers 1..8</c> and <c>--main-thread-sim</c>, after Godot's <c>--</c>.
+    /// <c>--record PATH</c>, <c>--load PATH</c>, <c>--route-workers 1..8</c> and <c>--main-thread-sim</c>,
+    /// after Godot's <c>--</c>.
     /// </summary>
     /// <remarks>
     /// ⚠ <b>A shell reads the command line and the core does not.</b> Every string here is this
     /// project's (<c>adr/0002</c>), and a bad one is reported rather than defaulted, because a
     /// silently-substituted world is a picture of somewhere else.
     /// </remarks>
-    private static (string Ruleset, int Citizens, ulong StartAt, bool Govern, bool Empty,
-        string? Drive, ulong QuitAt, string? Listen, string? Record) Arguments()
+    private static (string Ruleset, int Citizens, ulong? StartAt, bool Govern, bool Empty,
+        string? Drive, ulong QuitAt, string? Listen, string? Record, string? Load) Arguments()
     {
         string ruleset = "rulesets/neighbourhood.toml";
         int citizens = 1_000;
@@ -1604,11 +1624,12 @@ public partial class Main : Node3D
         //
         // ⚠ It steps the world 256 Ticks at boot rather than jumping. --start-at skips nothing,
         // and a world jumped to is a different world.
-        ulong startAt = (ulong)Ticks.AtClock(8);
+        ulong? startAt = null;
         string? drive = null;
         ulong quitAt = 0;
         string? listen = null;
         string? record = null;
+        string? load = null;
         string[] given = OS.GetCmdlineUserArgs();
 
         // ⚠ A FLAG AND NOT A PAIR, so it is read over the whole array rather than inside the loop
@@ -1653,9 +1674,27 @@ public partial class Main : Node3D
             {
                 record = given[at + 1];
             }
+            else if (given[at] == "--load")
+            {
+                load = given[at + 1];
+            }
         }
 
-        return (ruleset, citizens, startAt, govern, empty, drive, quitAt, listen, record);
+        return (ruleset, citizens, startAt, govern, empty, drive, quitAt, listen, record, load);
+    }
+
+    private static readonly string[] SettledBySave = ["--ruleset", "--citizens", "--empty"];
+
+    /// <summary>Refuses a saved city named with options the save already settles.</summary>
+    private static bool Loadable(string? load)
+    {
+        if (load is null) return true;
+        string[] given = OS.GetCmdlineUserArgs();
+        string[] settled = [.. SettledBySave.Where(option => Array.IndexOf(given, option) >= 0)];
+        if (settled.Length == 0) return true;
+        GD.PrintErr($"--load cannot be combined with {string.Join(", ", settled)}: "
+            + "a saved city carries its own Ruleset, Citizens and seed.");
+        return false;
     }
 
     /// <summary>

@@ -63,6 +63,7 @@ writes.
 | `--record PATH` | — | Appends every applied command as a script line |
 | `--govern` | off | Opens the Policy panel at start, so a machine with no hands can photograph it |
 | `--empty` | off | 🔴 **Declines to generate a city.** No lattice, no Lots, no Buildings, no Citizens — and see below, because it withholds the terrain too |
+| `--load PATH` | — | Opens a city save at its saved Tick and simulates nothing before it. Headless `--save-city` and the menu write one. Refuses `--ruleset`, `--citizens` and `--empty`. `--start-at` stays absolute and may not precede the save |
 | `BOROUGH_LOG` (env) | — | Any value: writes the Input Log at `quit`, so play → write → replay → compare runs in a script |
 
 🔴 **`--empty` is the only argument that changes what the shell is a picture of.** Everything else
@@ -279,18 +280,24 @@ Segment is 8 long and 128 wide fails a test.
 
 ## 6 — Recipes
 
-**Photograph one Tick from two angles.** The same city, two drawings:
+**Photograph the city from two angles.** Give each `shoot` its own Tick:
 
 ```
 # /tmp/run/flood.drive
 6101 pause
 6101 shoot /tmp/run/a.png
-6101 roads off
-6101 turn left
-6101 shoot /tmp/run/b.png
-6101 speed 8
+6101 resume
+6102 pause
+6102 roads off
+6102 turn left
+6102 shoot /tmp/run/b.png
+6102 speed 8
 6400 readout /tmp/run/c.txt
 ```
+
+🔴 **One Tick draws one frame.** Every camera verb on a Tick applies before that frame renders, so
+two `shoot`s on one Tick write one picture of the last camera state, or only the last file.
+Measured 2026-09-23. ⚠ **`focus` takes integer Tiles**, and `215.5` is refused at parse.
 
 **Assert the drawing against the city**, which is the reason to run this at all:
 

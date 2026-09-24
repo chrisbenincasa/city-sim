@@ -31,21 +31,21 @@ for name, wash, distance in [('age-near','age',160), ('age-city','age',900), ('d
     assert uploads('') == uploads('-repeat'), name
     assert (OUT / f'{name}.png').is_file(), name
 
-files = ['RoofMeshes.cs','RoofMaterials.cs','RoofStudy.cs','overlay-buildings.gdshader','surfaces.gdshader','Main.cs','Main.Assets.cs','Main.Massing.cs','Main.Rendering.cs','assets/city/material-study/roof-sources.json']
+files = ['RoofMeshes.cs','RoofMaterials.cs','RoofStudy.cs','overlay-buildings.gdshader','surfaces.gdshader','Main.cs','Main.Assets.cs','Main.Massing.cs','Main.Rendering.cs','assets/city/roofing/asphalt-shingles.json']
 (OUT / 'manifest.json').write_text(json.dumps({
     'sources': {f: hashlib.sha256((ROOT / 'src/Borough.Godot' / f).read_bytes()).hexdigest() for f in files},
-    'standing':'Smaller roof spans, wall-coloured gable ends and photographed slate at source scale; provisional art.'
+    'standing':'Smaller roof spans, wall-coloured gable ends and baked asphalt shingles at true scale; provisional art.'
 }, indent=2)+'\n')
 (OUT / 'index.html').write_text('''<!doctype html><meta charset="utf-8"><title>Roof proportions and scale</title>
 <style>body{background:#202528;color:#e5e4df;font:17px system-ui;margin:28px}button,select{font:inherit;padding:8px;margin:5px}img{display:block;width:100%;max-width:1500px}p{max-width:1050px}a{color:#bdcfdf}</style>
 <h1>Roof proportions and scale — comparison</h1>
 <p>The live fixture contains large blocks: its median drawn width and depth are 28 m and 22 m; walls are 7–10.5 m high. Broad footprints now have two narrower roof spans. The truncated pyramid is replaced; hips have a short ridge; gable ends continue the walls. The city footprints stay identical so the shape change can be judged against the original.</p>
-<p>The material is <a href="https://polyhaven.com/a/roof_slates_02">Rob Tuytel’s Roof Slates 02 (CC0)</a>, at the source’s documented 3 m width. The specimen view includes a deliberately doubled texture scale and 1.75 m figures. Surface colour follows the existing roof palette; this remains a material candidate. The previous procedural tiles were 32 × 24 cm.</p>
+<p>The material is laminated asphalt shingle baked by <code>scripts/art/asphalt-shingles.py</code>: a 4 m tile of 28 courses at a 142.9 mm exposure. The specimen view includes a deliberately doubled texture scale and 1.75 m figures. Surface colour follows the existing roof palette; this remains a material candidate. The previous procedural tiles were 32 × 24 cm.</p>
 <select id="choice">
-<option value="daylight-near.png">New roof forms + photographed surface — live city</option>
+<option value="daylight-near.png">New roof forms + shingle surface — live city</option>
 <option value="../roofs/daylight-near.png">Previous roof forms + procedural surface — same city/camera</option>
-<option value="after/roof-4.png">New forms — photographed surface at source scale</option>
-<option value="after/roof-5.png">New forms — photographed surface enlarged 2×</option>
+<option value="after/roof-4.png">New forms — shingles at true scale</option>
+<option value="after/roof-5.png">New forms — shingles enlarged 2×</option>
 <option value="after/roof-3.png">New forms — previous procedural courses</option>
 <option value="after/roof-2.png">New forms — original grid surface</option>
 <option value="after/roof-1.png">New forms — crease outlines</option>

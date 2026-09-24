@@ -8,9 +8,8 @@ using Borough.Core.Input;
 using Borough.Core.Persistence;
 using Borough.Core.Rules;
 using Borough.Formats;
-using Borough.Shell;
 
-namespace Borough.Tests.Shell;
+namespace Borough.Tests.Formats;
 
 public sealed class CitySaveTests
 {

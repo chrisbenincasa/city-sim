@@ -7,15 +7,14 @@ using Borough.Core;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Persistence;
-using Borough.Formats;
 
-namespace Borough.Shell;
+namespace Borough.Formats;
 
-internal sealed record SavedCity(
+public sealed record SavedCity(
     World World, SaveHeader Header, RulesetCapture Capture, RulesetNames Names, ulong Seed);
 
 // The package carries content; Core still owns every byte of the world dump.
-internal static class CitySave
+public static class CitySave
 {
     /// <summary>The envelope this build writes. A v1 save holds one file under no envelope.</summary>
     private const int Envelope = 2;
