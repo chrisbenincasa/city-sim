@@ -21,10 +21,27 @@ kinds = ["dwelling", "shopfront", "school", "port", "hospital", "clinic", "unive
 id = "rowhouses"
 model = "test-street/rowhouses"
 kinds = ["dwelling"]
-storeys = [2, 2]
-frontage_metres = [4, 28]
+storeys = [2, 3]
+frontage_metres = [4, 12]
 depth_metres = [8, 16]
 patterns = ["perimeter", "back-to-back"]
+
+# One house a Building: two 3 m bays at 6 m, a door and a window below and two windows above.
+# A side wall against a neighbour is blank and carries a party-wall upstand.
+[family.body]
+library = "test-street/rowhouses"
+tile_metres = { wall = [2.4, 1.2], wall-end = [2.4, 1.2], roof = [4.0, 4.0] }
+bay_metres = 3.5
+gable_degrees = 18
+chimney = true
+steps = true
+openings = { window = [2.2, 1.6, 0.9], door = [1.0, 2.3] }
+street_ground = ["door", "window*"]
+street_upper = ["window*"]
+back_ground = ["door", "window*"]
+back_upper = ["window*"]
+side_ground = ["blank*", "window", "blank*"]
+side_upper = ["blank*", "window", "blank*"]
 
 [[family]]
 id = "corridor-apartments"

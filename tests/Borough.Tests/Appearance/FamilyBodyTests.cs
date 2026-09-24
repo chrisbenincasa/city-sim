@@ -55,6 +55,69 @@ public sealed class FamilyBodyTests
     }
 
     [Fact]
+    public void Four_attached_six_metre_houses_have_the_blender_rows_bounds()
+    {
+        FamilyBody body = TestStreet("rowhouses");
+        (float Offset, AttachedSides Sides)[] row =
+        [
+            (-9f, AttachedSides.Right), (-3f, AttachedSides.Left | AttachedSides.Right),
+            (3f, AttachedSides.Left | AttachedSides.Right), (9f, AttachedSides.Left),
+        ];
+        Vector3[] all = [.. row.SelectMany(h => Positions(FamilyBodyBuilder.Build(body, 6f, 12f, 2, h.Sides)).Select(p => p + new Vector3(h.Offset, 0f, 0f)))];
+
+        Assert.Equal(-12.2f, all.Min(p => p.X), 3);
+        Assert.Equal(12.2f, all.Max(p => p.X), 3);
+        Assert.Equal(0f, all.Min(p => p.Y), 3);
+        Assert.Equal(10.05f, all.Max(p => p.Y), 2);
+        Assert.Equal(-6.4f, all.Min(p => p.Z), 3);
+        Assert.Equal(7f, all.Max(p => p.Z), 3);
+    }
+
+    [Fact]
+    public void A_house_between_two_neighbours_stops_at_its_party_walls_and_shows_them_no_window()
+    {
+        FamilyBodyMesh mesh = FamilyBodyBuilder.Build(TestStreet("rowhouses"), 6f, 12f, 2, AttachedSides.Left | AttachedSides.Right);
+        Vector3[] all = Positions(mesh);
+        Vector3[] glass = [.. mesh.Parts.Single(p => p.Part == "glass").Mesh.Positions.ToArray()];
+
+        Assert.Equal(-3f, all.Min(p => p.X), 3);
+        Assert.Equal(3f, all.Max(p => p.X), 3);
+        Assert.DoesNotContain(glass, p => MathF.Abs(p.X) > 2.5f && MathF.Abs(p.Z) < 5f);
+    }
+
+    [Fact]
+    public void A_shallow_gable_and_a_chimney_on_a_flat_roof_are_refused()
+    {
+        StylePresetResult read = StylePresetReader.Read([("x.toml", """
+            [preset]
+            name = "x"
+            era_days = 1
+
+            [[family]]
+            id = "a"
+            kinds = ["dwelling"]
+
+            [family.body]
+            library = "l"
+            bay_metres = 3
+            gable_degrees = 12
+
+            [[family]]
+            id = "b"
+            kinds = ["dwelling"]
+
+            [family.body]
+            library = "l"
+            bay_metres = 3
+            chimney = true
+            """)]);
+
+        Assert.Null(read.Preset);
+        Assert.Contains(read.Errors, e => e.Message.Contains("'gable_degrees' must be a number of at least 18 degrees", StringComparison.Ordinal));
+        Assert.Contains(read.Errors, e => e.Message.Contains("'chimney' needs 'gable_degrees'", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void An_opening_size_for_a_bay_that_fills_its_bay_is_refused()
     {
         StylePresetResult read = StylePresetReader.Read([("x.toml", """
@@ -111,10 +174,13 @@ public sealed class FamilyBodyTests
         Assert.Contains(mesh.Parts, p => p.Part == "door");
     }
 
-    [Fact]
-    public void Every_triangle_faces_the_way_its_normal_says()
+    [Theory]
+    [InlineData("office-warehouse", 36f, 20f, 2, AttachedSides.None)]
+    [InlineData("corridor-apartments", 24f, 16f, 3, AttachedSides.None)]
+    [InlineData("rowhouses", 6f, 12f, 3, AttachedSides.Left)]
+    public void Every_triangle_faces_the_way_its_normal_says(string family, float frontage, float depth, int storeys, AttachedSides attached)
     {
-        foreach ((_, ShellMesh part) in FamilyBodyBuilder.Build(OfficeWarehouse(), 36f, 20f, 2).Parts)
+        foreach ((_, ShellMesh part) in FamilyBodyBuilder.Build(TestStreet(family), frontage, depth, storeys, attached).Parts)
         {
             ReadOnlySpan<Vector3> p = part.Positions;
             ReadOnlySpan<int> i = part.Indices;

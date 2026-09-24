@@ -138,6 +138,11 @@ public sealed record WallRule(BayRow Ground, BayRow Upper);
 /// <param name="Openings">
 /// Opening sizes that replace the builder's own for window, door and stair bays, on every storey.
 /// </param>
+/// <param name="GableDegrees">
+/// The pitch of a gable roof whose ridge runs along the street, or 0 for a flat roof.
+/// </param>
+/// <param name="Chimney">A chimney stands behind the ridge near the right-hand end.</param>
+/// <param name="Steps">A step stands before each street door.</param>
 public sealed record FamilyBody(
     string Library,
     IReadOnlyDictionary<string, (float Along, float Up)> TileMetres,
@@ -150,4 +155,16 @@ public sealed record FamilyBody(
     WallRule Side,
     bool RoofHatch,
     int Vents,
-    IReadOnlyDictionary<BayKind, OpeningSize> Openings);
+    IReadOnlyDictionary<BayKind, OpeningSize> Openings,
+    float GableDegrees,
+    bool Chimney,
+    bool Steps);
+
+/// <summary>The side walls a body shares with a neighbour, left and right as seen from the street.</summary>
+[Flags]
+public enum AttachedSides : byte
+{
+    None = 0,
+    Left = 1,
+    Right = 2,
+}

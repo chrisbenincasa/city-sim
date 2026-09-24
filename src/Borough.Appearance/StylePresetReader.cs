@@ -289,7 +289,7 @@ public static class StylePresetReader
         public FamilyBody? Body()
         {
             int before = errors.Count;
-            Collect(["library", "tile_metres", "bay_metres", "parapet_metres", "pilasters", "plant", "roof_hatch", "vents", "openings", .. Rows]);
+            Collect(["library", "tile_metres", "bay_metres", "parapet_metres", "pilasters", "plant", "roof_hatch", "vents", "openings", "gable_degrees", "chimney", "steps", .. Rows]);
             string? library = Text("library", required: true);
             Dictionary<string, (float, float)> tiles = Tiles("tile_metres");
             float bay = Metres("bay_metres", required: true, least: 1f) ?? 0f;
@@ -299,12 +299,17 @@ public static class StylePresetReader
             bool hatch = Boolean("roof_hatch") ?? false;
             long vents = Integer("vents", required: false, least: 0) ?? 0;
             Dictionary<BayKind, OpeningSize> openings = Openings("openings");
+            float gable = Metres("gable_degrees", required: false, least: 18f, unit: "degrees") ?? 0f;
+            bool chimney = Boolean("chimney") ?? false;
+            bool steps = Boolean("steps") ?? false;
+            if (gable > 0f && parapet > 0f) Refuse(LineOf(_keys["gable_degrees"]), "a gable roof takes no parapet: give 'gable_degrees' or 'parapet_metres', not both.");
+            if (chimney && gable == 0f) Refuse(LineOf(_keys["chimney"]), "a chimney stands on a gable roof: 'chimney' needs 'gable_degrees'.");
             BayRow[] rows = [.. Rows.Select(Row)];
             return errors.Count > before || library is null
                 ? null
                 : new FamilyBody(library, tiles, bay, parapet, pilasters, (int)plant,
                     new WallRule(rows[0], rows[1]), new WallRule(rows[2], rows[3]), new WallRule(rows[4], rows[5]),
-                    hatch, (int)vents, openings);
+                    hatch, (int)vents, openings, gable, chimney, steps);
         }
 
         private Dictionary<BayKind, OpeningSize> Openings(string key)
@@ -365,7 +370,7 @@ public static class StylePresetReader
             return new BayRow([.. kinds], [.. fills]);
         }
 
-        private float? Metres(string key, bool required, float least)
+        private float? Metres(string key, bool required, float least, string unit = "metres")
         {
             ValueSyntax? value = Value(key, required);
             float? metres = value switch
@@ -377,7 +382,7 @@ public static class StylePresetReader
             };
             if (metres is { } m && !(m >= least))
             {
-                Refuse(LineOf(_keys[key]), $"'{key}' must be a number of at least {least} metres.");
+                Refuse(LineOf(_keys[key]), $"'{key}' must be a number of at least {least} {unit}.");
                 return null;
             }
 

@@ -40,7 +40,9 @@ public static class FamilyBodyBuilder
 
     private static readonly int[][] BoxFaces = [[0, 3, 2, 1], [4, 5, 6, 7], [0, 1, 5, 4], [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7]];
 
-    public static FamilyBodyMesh Build(FamilyBody body, float frontage, float depth, int storeys)
+    /// <param name="attached">Side walls shared with a neighbour. They are blank, and a gable stops at them.</param>
+    public static FamilyBodyMesh Build(FamilyBody body, float frontage, float depth, int storeys,
+        AttachedSides attached = AttachedSides.None)
     {
         ArgumentNullException.ThrowIfNull(body);
         var mesh = new FamilyBodyMesh();
@@ -58,11 +60,15 @@ public static class FamilyBodyBuilder
         var rollers = new List<(float Low, float High)>();
         Facade(writer, body, front, frontage, height, storeys, body.Street, street: true, entries, null);
         Facade(writer, body, back, frontage, height, storeys, body.Back, street: false, null, rollers);
-        Facade(writer, body, left, depth, height, storeys, body.Side, street: false, null, null);
-        Facade(writer, body, right, depth, height, storeys, body.Side, street: false, null, null);
+        var party = new WallRule(BayRow.Blank, BayRow.Blank);
+        Facade(writer, body, left, depth, height, storeys, attached.HasFlag(AttachedSides.Left) ? party : body.Side, street: false, null, null);
+        Facade(writer, body, right, depth, height, storeys, attached.HasFlag(AttachedSides.Right) ? party : body.Side, street: false, null, null);
 
-        writer.Box(new Vector3(-x - .05f, -y - .05f, 0), new Vector3(x + .05f, y + .05f, PlinthHeight), "plinth");
-        if (body.ParapetMetres > 0f) Parapet(writer, frontage, depth, height, body.ParapetMetres);
+        float plinthLeft = attached.HasFlag(AttachedSides.Left) ? -x : -x - .05f;
+        float plinthRight = attached.HasFlag(AttachedSides.Right) ? x : x + .05f;
+        writer.Box(new Vector3(plinthLeft, -y - .05f, 0), new Vector3(plinthRight, y + .05f, PlinthHeight), "plinth");
+        if (body.GableDegrees > 0f) Gable(writer, body, frontage, depth, height, attached);
+        else if (body.ParapetMetres > 0f) Parapet(writer, frontage, depth, height, body.ParapetMetres);
         else writer.Box(new Vector3(-x, -y, height - .2f), new Vector3(x, y, height), "membrane");
 
         if (body.Pilasters)
@@ -135,6 +141,12 @@ public static class FamilyBodyBuilder
                 if (storey != 0) continue;
                 if (row[b] == BayKind.Entry) entries?.Add(face.AlongX(b * bay + .8f + 1.2f));
                 if (row[b] == BayKind.Roller) rollers?.Add(face.SpanX(b * bay + .8f, (b + 1) * bay - .8f));
+                if (row[b] == BayKind.Door && street && body.Steps)
+                {
+                    float at = openings[^1].U + (openings[^1].W / 2f);
+                    writer.Slab(face, at - .75f, at + .75f, 0f, PlinthHeight, -1f, 0f, "plinth");
+                }
+
                 if (row[b] == BayKind.Door && storeys > 1 && above[b] == BayKind.Stair)
                 {
                     Opening door = openings[^1];
@@ -189,6 +201,37 @@ public static class FamilyBodyBuilder
         }
     }
 
+    /// <summary>
+    /// A pitched roof whose rafters span the depth, so the ridge runs along the street. It overhangs a
+    /// free end and stops at a shared one, where a party-wall upstand covers the joint. The upstand is
+    /// half the wall's thickness, so two neighbours make one whole.
+    /// </summary>
+    private static void Gable(Writer writer, FamilyBody body, float width, float depth, float height, AttachedSides attached)
+    {
+        const float Eaves = .4f, Thick = .2f, Upstand = .15f;
+        float slope = MathF.Tan(body.GableDegrees * MathF.PI / 180f);
+        float x = width / 2f, y = depth / 2f, eave = y + Eaves;
+        bool left = attached.HasFlag(AttachedSides.Left), right = attached.HasFlag(AttachedSides.Right);
+        float x0 = left ? -x : -x - (Eaves / 2f), x1 = right ? x : x + (Eaves / 2f);
+        float low = height - (Eaves * slope), top = height + (y * slope);
+        writer.Prism([new(-eave, low), new(0f, top), new(0f, top + Thick), new(-eave, low + Thick)], x0, x1, "roof");
+        writer.Prism([new(0f, top), new(eave, low), new(eave, low + Thick), new(0f, top + Thick)], x0, x1, "roof");
+        writer.Polygon("wall", [new(x, -y, height), new(x, y, height), new(x, 0f, top)]);
+        writer.Polygon("wall", [new(-x, 0f, top), new(-x, y, height), new(-x, -y, height)]);
+
+        float edge = y + Upstand;
+        Vector2[] profile =
+        [
+            new(-edge, height - .3f), new(edge, height - .3f), new(edge, Surface(edge) + .25f),
+            new(0f, Surface(0f) + .25f), new(-edge, Surface(edge) + .25f),
+        ];
+        if (left) writer.Prism(profile, -x, -x + Upstand, "wall");
+        if (right) writer.Prism(profile, x - Upstand, x, "wall");
+        if (body.Chimney) writer.Box(new Vector3(x - 1.6f, .8f, Surface(1.4f) - .6f), new Vector3(x - 1f, 1.4f, Surface(0f) + .9f), "wall-end");
+
+        float Surface(float distance) => top + Thick - (MathF.Abs(distance) * slope);
+    }
+
     private static void Parapet(Writer writer, float width, float depth, float height, float parapet)
     {
         float x = width / 2f, y = depth / 2f, top = height + parapet;
@@ -234,8 +277,6 @@ public static class FamilyBodyBuilder
 
     private sealed class Writer(FamilyBodyMesh mesh, FamilyBody body)
     {
-        private readonly Vector3[] _corners = new Vector3[4];
-        private readonly Vector2[] _uvs = new Vector2[4];
 
         public void Facade(Face face, float width, float height, List<Opening> openings)
         {
@@ -335,10 +376,38 @@ public static class FamilyBodyBuilder
             }
         }
 
-        /// <summary>A quad in the script's frame, anticlockwise seen from outside.</summary>
-        private void Quad(string part, Vector3 a, Vector3 b, Vector3 c, Vector3 d)
+        /// <summary>
+        /// A solid from <paramref name="x0"/> to <paramref name="x1"/> whose cross-section is a convex
+        /// (y, z) profile, anticlockwise seen from +X, as the script's <c>prism</c> builds it.
+        /// </summary>
+        public void Prism(ReadOnlySpan<Vector2> profile, float x0, float x1, string part)
         {
-            Vector3 cross = Vector3.Cross(b - a, d - a);
+            int n = profile.Length;
+            Span<Vector3> near = stackalloc Vector3[n];
+            Span<Vector3> far = stackalloc Vector3[n];
+            for (int i = 0; i < n; i++)
+            {
+                near[i] = new Vector3(x0, profile[i].X, profile[i].Y);
+                far[i] = new Vector3(x1, profile[i].X, profile[i].Y);
+            }
+
+            Span<Vector3> cap = stackalloc Vector3[n];
+            for (int i = 0; i < n; i++) cap[i] = near[n - 1 - i];
+            Polygon(part, cap);
+            Polygon(part, far);
+            for (int i = 0; i < n; i++)
+            {
+                int j = (i + 1) % n;
+                Quad(part, near[i], near[j], far[j], far[i]);
+            }
+        }
+
+        private void Quad(string part, Vector3 a, Vector3 b, Vector3 c, Vector3 d) => Polygon(part, [a, b, c, d]);
+
+        /// <summary>A convex polygon in the script's frame, anticlockwise seen from outside.</summary>
+        public void Polygon(string part, ReadOnlySpan<Vector3> points)
+        {
+            Vector3 cross = Vector3.Cross(points[1] - points[0], points[^1] - points[0]);
             if (cross.LengthSquared() < 1e-10f) return;
             Vector3 n = Vector3.Normalize(cross);
 
@@ -346,15 +415,16 @@ public static class FamilyBodyBuilder
             Vector3 along = MathF.Abs(n.Z) < .95f ? Vector3.Normalize(new Vector3(-n.Y, n.X, 0)) : Vector3.UnitX;
             Vector3 up = Vector3.Cross(n, along);
 
-            Vector3[] source = [a, b, c, d];
-            for (int i = 0; i < 4; i++)
+            Span<Vector3> corners = stackalloc Vector3[points.Length];
+            Span<Vector2> uvs = stackalloc Vector2[points.Length];
+            for (int i = 0; i < points.Length; i++)
             {
-                Vector3 p = source[3 - i];
-                _corners[i] = Godot(p);
-                _uvs[i] = new Vector2(Vector3.Dot(p, along) / tileAlong, 1f - (Vector3.Dot(p, up) / tileUp));
+                Vector3 p = points[points.Length - 1 - i];
+                corners[i] = Godot(p);
+                uvs[i] = new Vector2(Vector3.Dot(p, along) / tileAlong, 1f - (Vector3.Dot(p, up) / tileUp));
             }
 
-            mesh.Part(part).Polygon(_corners, _uvs, Godot(n));
+            mesh.Part(part).Polygon(corners, uvs, Godot(n));
         }
 
         private static Vector3 Godot(Vector3 v) => new(v.X, v.Z, -v.Y);

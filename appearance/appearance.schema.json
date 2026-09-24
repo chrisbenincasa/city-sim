@@ -191,6 +191,19 @@
                   "maxItems": 3
                 }
               },
+              "gable_degrees": {
+                "description": "The pitch of a gable roof whose ridge runs along the street. Omit it for a flat roof; a gable takes no parapet.",
+                "type": "number",
+                "minimum": 18
+              },
+              "chimney": {
+                "description": "A chimney stands behind the ridge near the right-hand end. Needs gable_degrees.",
+                "type": "boolean"
+              },
+              "steps": {
+                "description": "A step stands before each street door.",
+                "type": "boolean"
+              },
               "street_ground": {
                 "description": "The bays of the street wall's ground storey, left to right seen from outside. A token ending in '*' repeats to fill the bays the others leave.",
                 "type": "array",
