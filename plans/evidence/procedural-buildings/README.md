@@ -172,6 +172,10 @@ Pass 03's five bodies as monochrome Blender blockouts on its 80 × 64 m study si
 `BLENDER_BIN=… scripts/art/review.sh test-street`; browse with `open-test-street`. Blender 5.2.1, Godot 4.7.2,
 Debug build, `ExpandedStudy --test-street`.
 
+The bodies were renamed after these captures, which keep the old names. H1 is now `rowhouses`, A1
+`corridor-apartments`, A2 `walkup-apartments`, M1 `corner-shops-with-flats`, W1 `office-warehouse`,
+W2 `workshop` and G003 `two-unit-apartments`.
+
 | Body | Brief | Built | Vertices |
 |---|---|---|---:|
 | H1 attached range | 24 × 12 m, 2 × 3.2 m, four 6 m modules, 18° roof across the depth | 2 × 3.5 m, party-wall upstands, distinct end walls, street doors and rear garden doors | 2,100 |

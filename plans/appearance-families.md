@@ -24,7 +24,7 @@ draw family geometry. A debug wash shows which family each Building would draw.
 | Piece | Where |
 |---|---|
 | Facts, reader, picker | `src/Borough.Appearance/BuildingFacts.cs`, `StylePresetReader.cs`, `FamilyPicker.cs` |
-| Test preset | `appearance/test-street/preset.toml`: the six test-street bodies, G003, and a `box` fallback for every shipped kind |
+| Test preset | `appearance/test-street/preset.toml`: the six test-street bodies, the two-unit apartments study, and a `box` fallback for every shipped kind |
 | Schema | `appearance/appearance.schema.json`, associated in `.taplo.toml`; `StylePresetSchemaTests` keeps it equal to the reader's key sets |
 | Coverage report | `dotnet run --project src/Borough.Headless -- --ruleset R --appearance DIR` |
 | Debug wash | `overlay family` in the shell; `--appearance DIR` picks the preset, default `appearance/test-street` |
@@ -33,7 +33,7 @@ draw family geometry. A debug wash shows which family each Building would draw.
 
 - The reader refuses each mistake at its file and line. Covered by `StylePresetTests`.
 - The shell and the headless report agree. On `shopping.toml` at 400 Citizens, seed 0, Tick 600,
-  both give a1-apartment 9, a2-stair-range 1, g003-two-tenancy 1, w1-workplace 6 and box 35.
+  both give corridor-apartments 9, walkup-apartments 1, two-unit-apartments 1, office-warehouse 6 and box 35.
 - The wash is driven and photographed: `plans/evidence/appearance-families/family-wash.drive`
   and its two captures, taken on `zeus` on 2026-09-24.
 
@@ -57,8 +57,8 @@ in place of the massing with `ui family-bodies on`.
 
 | Check | Result |
 |---|---|
-| W1 at 36 × 20 m against the Blender W1 | Same bounds: ±18.2 m, 11.4 m to the street canopy, 12.2 m to the receiving canopy, 8.5 m to the plant |
-| Live city, `shopping.toml`, 400 Citizens, Tick 600 | Five generated W1 bodies at 32×24, 32×20, 36×16, 32×20 and 36×24 m; captures in `plans/evidence/appearance-families/w1-body-*` |
+| Office-warehouse at 36 × 20 m against its Blender body | Same bounds: ±18.2 m, 11.4 m to the street canopy, 12.2 m to the receiving canopy, 8.5 m to the plant |
+| Live city, `shopping.toml`, 400 Citizens, Tick 600 | Five generated office-warehouse bodies at 32×24, 32×20, 36×16, 32×20 and 36×24 m; captures in `plans/evidence/appearance-families/w1-body-*`, named before the rename |
 | Walls hold whole bays | 32 m gives five 6.4 m bays and 36 m gives six 6 m bays |
 
 Limits of this slice:
@@ -69,7 +69,7 @@ Limits of this slice:
 
 ## Next
 
-- Bodies for the other test-street families: H1 and A1 need gable roofs and window bays.
+- Bodies for the other test-street families: rowhouses and corridor apartments need gable roofs and window bays.
 - Wash and paint for bodies, so overlays work with bodies on.
 - Chunked upload and the far level, measured against the 6 ms Building frame share.
 - Author the rest of the families. The coverage report says which size bands and kinds need them.

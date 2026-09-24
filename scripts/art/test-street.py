@@ -1,4 +1,5 @@
-"""The first procedural-buildings test street: pass 03's five bodies and the A2 alternative, with surface materials.
+"""The first procedural-buildings test street: pass 03's five bodies and the walk-up apartments
+alternative, with surface materials.
 
 Run with Blender in the background:
   blender --background --factory-startup --python-exit-code 1 --python scripts/art/test-street.py
@@ -44,17 +45,17 @@ TEXTURE_PIXELS = 1024
 # A body's finish replaces a blockout material with a surface and a paint colour. A painted surface
 # divides the colour by its albedo's mean luminance; None keeps the photograph's own colour.
 FINISHES = {
-    'h1-attached-range': {'wall': ('siding', 'b9ad97'), 'wall-end': ('siding', 'a39985'), 'roof': ('shingles', '353e44')},
-    'a1-apartment': {'wall': ('render', 'cdc6b6'), 'membrane': ('membrane', None)},
-    'a2-stair-range': {'wall': ('render', 'cdc6b6'), 'membrane': ('membrane', None)},
-    'm1-corner': {'wall': ('brick', None), 'membrane': ('membrane', None)},
-    'w1-workplace': {'wall': ('block', 'c3bcaa'), 'wall-end': ('block', 'ada691'), 'membrane': ('membrane', None)},
-    'w2-workshop': {'wall': ('sheet', '5d6a6e'), 'wall-end': (None, '4f5b5f'), 'membrane': ('membrane', None)},
-    'g003-two-tenancy': {'wall': ('render', 'cdc6b6'), 'wall-end': ('render', 'b8b1a1'), 'membrane': ('membrane', None)},
+    'rowhouses': {'wall': ('siding', 'b9ad97'), 'wall-end': ('siding', 'a39985'), 'roof': ('shingles', '353e44')},
+    'corridor-apartments': {'wall': ('render', 'cdc6b6'), 'membrane': ('membrane', None)},
+    'walkup-apartments': {'wall': ('render', 'cdc6b6'), 'membrane': ('membrane', None)},
+    'corner-shops-with-flats': {'wall': ('brick', None), 'membrane': ('membrane', None)},
+    'office-warehouse': {'wall': ('block', 'c3bcaa'), 'wall-end': ('block', 'ada691'), 'membrane': ('membrane', None)},
+    'workshop': {'wall': ('sheet', '5d6a6e'), 'wall-end': (None, '4f5b5f'), 'membrane': ('membrane', None)},
+    'two-unit-apartments': {'wall': ('render', 'cdc6b6'), 'wall-end': ('render', 'b8b1a1'), 'membrane': ('membrane', None)},
 }
-FINISHES['h1-reroofed'] = FINISHES['h1-attached-range'] | {'roof-new': ('shingles', '4d463f')}
-FINISHES['m1-repaired'] = FINISHES['m1-corner']
-FINISHES['w1-solar'] = FINISHES['w1-workplace']
+FINISHES['rowhouses-reroofed'] = FINISHES['rowhouses'] | {'roof-new': ('shingles', '4d463f')}
+FINISHES['corner-shops-with-flats-repaired'] = FINISHES['corner-shops-with-flats']
+FINISHES['office-warehouse-solar'] = FINISHES['office-warehouse']
 BOX_FACES = [(0, 3, 2, 1), (4, 5, 6, 7), (0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7)]
 
 parts = []
@@ -291,7 +292,7 @@ def gable(width, depth, height, pitch, eaves=.4, segments=None):
     return lambda distance: top + t - abs(distance) * slope
 
 
-def h1(reroofed=False):
+def rowhouses(reroofed=False):
     """Attached range: four 6 x 12 m house modules, two storeys, 18 degree roof across the depth.
     Reroofed, the third house carries newer shingles in another shade, split at the party walls."""
     width, depth, height = 24.0, 12.0, 2 * STOREY
@@ -317,7 +318,7 @@ def h1(reroofed=False):
         box('chimney', (x + 3.0, .8, roof(1.4) - .6), (x + 3.6, 1.4, roof(0) + .9), 'wall-end')
 
 
-def a1():
+def corridor_apartments():
     """Corridor apartment: 24 x 16 m, three storeys, one central entrance, stairs at both ends."""
     width, depth, height = 24.0, 16.0, 3 * STOREY
     centres = [1.5 + 3 * i for i in range(8)]
@@ -336,7 +337,7 @@ def a1():
         box('rooftop vent', (x - .4, 3.0, height), (x + .4, 3.8, height + .9), 'metal')
 
 
-def a2():
+def walkup_apartments():
     """Stair-access range: 32 x 12 m, three storeys, two stair stacks each serving two flats a floor,
     no corridor, parapeted membrane roof, balconies to the garden."""
     width, depth, height = 32.0, 12.0, 3 * STOREY
@@ -369,7 +370,7 @@ def a2():
                 garden.slab('balcony side', u, u + .05, v + .15, v + 1.1, -1.35, 0, 'metal')
 
 
-def m1(repaired=False):
+def corner_shops_with_flats(repaired=False):
     """Corner mixed use: 24 x 16 m, three storeys, shopfront on the street, residential door and core
     on the side street (the +X end), receiving at the back, roof falling to the service side.
     Repaired, the west shop has a new bronze storefront, a sign board and a fabric awning."""
@@ -406,8 +407,8 @@ def m1(repaired=False):
         box('downpipe', (x - .08, depth / 2, .3), (x + .08, depth / 2 + .16, height + .05), 'metal')
 
 
-def w1(solar=False):
-    """Workplace, archived G001: 36 x 20 m, two full floors, six 6 m bays, receiving at the back.
+def office_warehouse(solar=False):
+    """Office-warehouse, the audited game Building G001: 36 x 20 m, two full floors, six 6 m bays, receiving at the back.
     With solar, rows of 10 degree panels cover the roof clear of the plant and crickets."""
     width, depth, height = 36.0, 20.0, 2 * STOREY
     front = [(12.8, .3, 2.4, 2.6, 'door'), (15.6, 1.0, 1.6, 1.9, 'shop')]
@@ -443,7 +444,7 @@ def w1(solar=False):
             box('solar rail', (-16.5, y + .8, height), (16.5, y + .9, low + rise), 'metal')
 
 
-def w2():
+def workshop():
     """Workshop: 32 x 16 m, two full floors on an 8 m grid, a 3.5 m receiving door, parapeted membrane roof."""
     width, depth, height = 32.0, 16.0, 2 * STOREY
     front = [(2.2, .3, 3.5, 3.0, 'roller'), (9.5, .3, 1.0, 2.3, 'door'), (11.0, 1.0, 4.0, 1.4, 'window')]
@@ -466,8 +467,8 @@ def w2():
         faces[name].slab('floor band', 0, width, STOREY - .1, STOREY + .1, -.06, 0, 'wall-end')
 
 
-def g003():
-    """Exact game body G003: 24 x 16 m, three storeys, 10.5 m walls. The simulation's ceiling is two
+def two_unit_apartments():
+    """Two-unit apartments, the audited game Building G003: 24 x 16 m, three storeys, 10.5 m walls. The simulation's ceiling is two
     tenancies, so the body reads as two halves split at mid-frontage, each with its own street door,
     stair and garden door."""
     width, depth, height = 24.0, 16.0, 3 * STOREY
@@ -493,8 +494,8 @@ def g003():
         box('rooftop vent', (sign * 5.0 - .4, 3.0, height), (sign * 5.0 + .4, 3.8, height + .9), 'metal')
 
 
-BODIES = [('h1-attached-range', h1), ('a1-apartment', a1), ('a2-stair-range', a2), ('m1-corner', m1), ('w1-workplace', w1), ('w2-workshop', w2), ('g003-two-tenancy', g003),
-          ('h1-reroofed', lambda: h1(reroofed=True)), ('m1-repaired', lambda: m1(repaired=True)), ('w1-solar', lambda: w1(solar=True))]
+BODIES = [('rowhouses', rowhouses), ('corridor-apartments', corridor_apartments), ('walkup-apartments', walkup_apartments), ('corner-shops-with-flats', corner_shops_with_flats), ('office-warehouse', office_warehouse), ('workshop', workshop), ('two-unit-apartments', two_unit_apartments),
+          ('rowhouses-reroofed', lambda: rowhouses(reroofed=True)), ('corner-shops-with-flats-repaired', lambda: corner_shops_with_flats(repaired=True)), ('office-warehouse-solar', lambda: office_warehouse(solar=True))]
 
 
 def export(name, build):

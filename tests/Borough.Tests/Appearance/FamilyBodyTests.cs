@@ -5,11 +5,11 @@ namespace Borough.Tests.Appearance;
 
 public sealed class FamilyBodyTests
 {
-    private static FamilyBody W1()
+    private static FamilyBody OfficeWarehouse()
     {
         StylePresetResult read = StylePresetReader.Read(Path.Combine(AppContext.BaseDirectory, "Appearance", "test-street"));
         Assert.Empty(read.Errors);
-        return read.Preset!.Families.Single(f => f.Id == "w1-workplace").Body!;
+        return read.Preset!.Families.Single(f => f.Id == "office-warehouse").Body!;
     }
 
     [Theory]
@@ -17,7 +17,7 @@ public sealed class FamilyBodyTests
     [InlineData(4, new[] { BayKind.Shop, BayKind.Shop, BayKind.Entry, BayKind.Shop })]
     [InlineData(3, new[] { BayKind.Shop, BayKind.Shop, BayKind.Entry })]
     public void A_filling_token_takes_up_the_bays_the_fixed_ones_leave(int bays, BayKind[] expected) =>
-        Assert.Equal(expected, W1().Street.Ground.Over(bays));
+        Assert.Equal(expected, OfficeWarehouse().Street.Ground.Over(bays));
 
     [Fact]
     public void Two_filling_tokens_share_the_spare_bays_from_the_left()
@@ -33,7 +33,7 @@ public sealed class FamilyBodyTests
     [InlineData(40f, 24f)]
     public void The_body_fills_its_footprint_and_nothing_hangs_off_the_street_wall(float frontage, float depth)
     {
-        FamilyBodyMesh mesh = FamilyBodyBuilder.Build(W1(), frontage, depth, 2);
+        FamilyBodyMesh mesh = FamilyBodyBuilder.Build(OfficeWarehouse(), frontage, depth, 2);
         Vector3[] all = [.. mesh.Parts.SelectMany(p => p.Mesh.Positions.ToArray())];
 
         Assert.Equal(-frontage / 2f - .2f, all.Min(p => p.X), 3);
@@ -48,7 +48,7 @@ public sealed class FamilyBodyTests
     [Fact]
     public void Every_triangle_faces_the_way_its_normal_says()
     {
-        foreach ((_, ShellMesh part) in FamilyBodyBuilder.Build(W1(), 36f, 20f, 2).Parts)
+        foreach ((_, ShellMesh part) in FamilyBodyBuilder.Build(OfficeWarehouse(), 36f, 20f, 2).Parts)
         {
             ReadOnlySpan<Vector3> p = part.Positions;
             ReadOnlySpan<int> i = part.Indices;

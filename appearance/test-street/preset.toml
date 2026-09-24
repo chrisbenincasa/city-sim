@@ -18,8 +18,8 @@ kinds = ["dwelling", "shopfront", "school", "port", "hospital", "clinic", "unive
          "primary", "officeblock", "existing homes", "college", "arrival gate"]
 
 [[family]]
-id = "h1-attached-range"
-model = "test-street/h1-attached-range"
+id = "rowhouses"
+model = "test-street/rowhouses"
 kinds = ["dwelling"]
 storeys = [2, 2]
 frontage_metres = [4, 28]
@@ -27,8 +27,8 @@ depth_metres = [8, 16]
 patterns = ["perimeter", "back-to-back"]
 
 [[family]]
-id = "a1-apartment"
-model = "test-street/a1-apartment"
+id = "corridor-apartments"
+model = "test-street/corridor-apartments"
 kinds = ["dwelling"]
 weight = 2
 storeys = [3, 3]
@@ -36,24 +36,24 @@ frontage_metres = [20, 28]
 depth_metres = [12, 20]
 
 [[family]]
-id = "g003-two-tenancy"
-model = "test-street/g003-two-tenancy"
+id = "two-unit-apartments"
+model = "test-street/two-unit-apartments"
 kinds = ["dwelling"]
 storeys = [3, 3]
 frontage_metres = [20, 28]
 depth_metres = [12, 20]
 
 [[family]]
-id = "a2-stair-range"
-model = "test-street/a2-stair-range"
+id = "walkup-apartments"
+model = "test-street/walkup-apartments"
 kinds = ["dwelling"]
 storeys = [3, 3]
 frontage_metres = [28, 36]
 depth_metres = [8, 16]
 
 [[family]]
-id = "m1-corner"
-model = "test-street/m1-corner"
+id = "corner-shops-with-flats"
+model = "test-street/corner-shops-with-flats"
 kinds = ["dwelling", "shopfront"]
 storeys = [3, 3]
 frontage_metres = [20, 28]
@@ -61,8 +61,8 @@ depth_metres = [12, 20]
 zones = ["trade"]
 
 [[family]]
-id = "w1-workplace"
-model = "test-street/w1-workplace"
+id = "office-warehouse"
+model = "test-street/office-warehouse"
 kinds = ["dwelling", "shopfront", "officeblock"]
 storeys = [2, 2]
 frontage_metres = [32, 40]
@@ -70,7 +70,7 @@ depth_metres = [16, 24]
 
 # Six 6 m bays at 36 m. Receiving is at the back; stairs light the ends.
 [family.body]
-library = "test-street/w1-workplace"
+library = "test-street/office-warehouse"
 tile_metres = { wall = [2.0, 1.6], wall-end = [2.0, 1.6], membrane = [20.0, 20.0] }
 bay_metres = 6.0
 parapet_metres = 0.8
@@ -84,8 +84,8 @@ side_ground = ["blank", "stair", "door"]
 side_upper = ["blank", "stair", "blank"]
 
 [[family]]
-id = "w2-workshop"
-model = "test-street/w2-workshop"
+id = "workshop"
+model = "test-street/workshop"
 kinds = ["shopfront", "officeblock"]
 storeys = [2, 2]
 frontage_metres = [28, 36]

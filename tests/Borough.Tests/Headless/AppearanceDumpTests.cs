@@ -30,7 +30,7 @@ public sealed class AppearanceDumpTests
 
         Assert.True(header > 0);
         Assert.Equal(header, families);
-        Assert.Contains("  dwelling              w1-workplace", report, StringComparison.Ordinal);
+        Assert.Contains("  dwelling              office-warehouse", report, StringComparison.Ordinal);
     }
 
     [Fact]

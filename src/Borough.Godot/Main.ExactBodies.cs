@@ -16,8 +16,8 @@ public partial class Main
 {
     private static readonly (string Asset, float Along, float Deep, int Storeys, bool Labelled)[] ExactBodies =
     [
-        ("w1-workplace", 36f, 20f, 2, false),
-        ("g003-two-tenancy", 24f, 16f, 3, true),
+        ("office-warehouse", 36f, 20f, 2, false),
+        ("two-unit-apartments", 24f, 16f, 3, true),
     ];
 
     private readonly Dictionary<ulong, Node3D> _exactBodies = [];
@@ -81,7 +81,7 @@ public partial class Main
             {
                 body.AddChild(new Label3D
                 {
-                    Text = $"G003 study\nceiling {ceiling} tenancies",
+                    Text = $"two-unit study\nceiling {ceiling} tenancies",
                     Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
                     NoDepthTest = true,
                     FixedSize = true,
