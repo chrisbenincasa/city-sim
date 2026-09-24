@@ -430,6 +430,13 @@ git add CLAUDE.md CONTEXT.md docs plans src tests \
 git commit -m "Scaffold: four-project layout, boundary guards, net10.0"
 ```
 
+Install the pre-commit hook once per clone. It blocks a commit that stages C# failing the CI
+format check (`scripts/format.sh --check`):
+
+```bash
+ln -s ../../scripts/hooks/pre-commit .git/hooks/pre-commit
+```
+
 **Track A is done.** You can now do all of Phase 1.
 
 ---

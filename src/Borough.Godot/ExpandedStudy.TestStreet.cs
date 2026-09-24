@@ -15,6 +15,7 @@ public partial class ExpandedStudy
     private static readonly (string Name, Vector3 Eye, Vector3 Target)[] TestStreetViews =
     [
         ("street", new(40, 12, 26), new(40, 5, -8)),
+        ("houses", new(-8, 20, 14), new(12, 6, -9)),
         ("corner", new(104, 16, 22), new(68, 5, -8)),
         ("rears", new(40, 26, -50), new(40, 3, -12)),
         ("workplaces", new(40, 32, -8), new(38, 3, -48)),
@@ -25,6 +26,13 @@ public partial class ExpandedStudy
         .. MatchedViews("a1", new(40, 0, -11)),
         .. MatchedViews("a2", new(120, 0, -9)),
     ];
+
+    private static readonly Dictionary<string, string> Variants = new()
+    {
+        ["h1-attached-range"] = "h1-reroofed",
+        ["m1-corner"] = "m1-repaired",
+        ["w1-workplace"] = "w1-solar",
+    };
 
     private static (string, Vector3, Vector3)[] MatchedViews(string body, Vector3 centre) =>
     [
@@ -37,7 +45,7 @@ public partial class ExpandedStudy
         void Ground(string name, float x0, float x1, float y0, float y1, string colour, float height = .12f) =>
             GroundBox(name, new Vector3((x0 + x1) / 2, height / 2 - .12f, -(y0 + y1) / 2), new Vector3(x1 - x0, height, y1 - y0), colour);
         void Body(string asset, float x, float y, float width, float depth) =>
-            AddAsset(asset, new Vector3(x + width / 2, 0, -(y + depth / 2)), 0, "original");
+            AddAsset(_variants ? Variants.GetValueOrDefault(asset, asset) : asset, new Vector3(x + width / 2, 0, -(y + depth / 2)), 0, "original");
 
         Ground("unbuilt site", -12, 92, -12, 76, "d6d5cc", .1f);
         Ground("near pavement", -12, 80, -3, 0, "b9b8b0", .16f);

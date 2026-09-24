@@ -177,11 +177,50 @@ Debug build, `ExpandedStudy --test-street`.
 | H1 attached range | 24 × 12 m, 2 × 3.2 m, four 6 m modules, 18° roof across the depth | 2 × 3.5 m, party-wall upstands, distinct end walls, street doors and rear garden doors | 2,100 |
 | A1 apartment | 24 × 16 m, 3 × 3.2 m, corridor, two stairs, parapeted membrane roof | 3 × 3.5 m, one central entrance, stair glazing and doors on both end walls | 2,688 |
 | M1 corner | 24 × 16 m, 3 × 3.2 m, two shops, core on the side street, rear receiving | 3 × 3.5 m, shopfront in 3 m bays, residential door and stair on the side street, roller door and scuppers at the back, plant curb | 4,080 |
-| A2 stair-access range, on its own pad | 32 × 12 m, 3 × 3.2 m, two stair stacks serving two flats a floor, no corridor, 11° membrane gable | 3 × 3.5 m, two stair entrances with stair glazing, garden doors and balconies, exposed eaves and verges | 3,802 |
+| A2 stair-access range, on its own pad | 32 × 12 m, 3 × 3.2 m, two stair stacks serving two flats a floor, no corridor, 11° membrane gable | 3 × 3.5 m, two stair entrances with stair glazing, garden doors and balconies. Parapeted flat roof since the material review | 3,802 |
 | W1 workplace (G001) | 36 × 20 m, 2 × 3.5 m, six 6 m bays, receiving behind | As briefed, pilasters on the 6 m grid, two receiving doors, crickets, scuppers and overflows | 2,138 |
-| W2 workshop | 32 × 16 m, 2 × 3.2 m, 8 m grid, 3.5 m receiving door | 2 × 3.5 m, 6° metal roof with rooflights, panel joints on the grid | 1,782 |
+| W2 workshop | 32 × 16 m, 2 × 3.2 m, 8 m grid, 3.5 m receiving door | 2 × 3.5 m, panel joints on the grid. Parapeted flat roof with curbed rooflights since the material review | 1,782 |
 
 - Every storey is 3.5 m, the simulation's storey height. The briefs propose 3.2 m, so H1, A1, A2, M1 and W2 are taller than briefed.
 - The monochrome review on 2026-09-24 kept 3.5 m storeys for every body, so the drawn height always matches the simulation's.
 - A2 sits on its own pad east of the side street, as the brief asks. The `a1-front`/`a2-front` and `a1-garden`/`a2-garden` views use matched camera offsets for the unlabelled comparison.
 - The street is a study fixture. No body is a simulation Building, and nothing is tied to a Lot or an Appearance Family yet.
+
+### Surface materials (`test-street-materials-*`)
+
+Step 4 of the pass 03 review protocol, on unchanged geometry. `scripts/art/test-street-materials.py` fetches the CC0 maps
+into `art/materials/test-street/` with their sources, hashes and measured tile sizes. `scripts/art/test-street.py` gives
+each body its finish, projects world-scale UVs (u level along a face, v up it or up a roof's slope) and embeds 1024 px
+maps in the GLB. Colours follow the warm-slate palette: warm walls, dark slate-grey roofs.
+
+| Body | Wall | Roof | Tile | Paint |
+|---|---|---|---|---|
+| H1 | ambientCG Wood Siding 009, 150 mm lap | Authored asphalt shingles, 142.9 mm courses | 2.4 × 1.2 m; 4 m | `b9ad97`, ends `a39985`; roof `353e44` |
+| A1, A2 | Poly Haven Painted Plaster Wall | Poly Haven Bitumen membrane | 2 m; 20 m | `cdc6b6` on both, as the brief asks |
+| M1 | Poly Haven Brick Wall 001, the brick the live shell uses | Bitumen membrane | 1.125 m; 20 m | Photograph's own colour |
+| W1 | Poly Haven Concrete Block Wall, 400 × 200 mm blocks | Bitumen membrane | 2.0 × 1.6 m; 20 m | `c3bcaa`, pilasters `ada691` |
+| W2 | Poly Haven Box Profile Metal Sheet, 200 mm ribs | Bitumen membrane | 2 m; 20 m | `5d6a6e`, panel joints `4f5b5f` |
+
+- A painted surface's albedo is greyscale at linear mean luminance 0.7. The glTF colour factor is the paint colour divided
+  by that mean, so the paint reads true on average. The shingles divide by their own recorded mean, 0.178.
+- Poly Haven states 2 × 2 m for the block wall. Its 8 courses and 5 blocks give 2.0 × 1.6 m at true block size, so the
+  tile is mapped anisotropically.
+- The Bitumen photograph has broad light and dark strips about 1 m apart, which read as bands on every flat roof. The
+  fetch script divides out variation broader than a 16 px Gaussian (about 0.3 m); fine streaks remain at close range.
+  An authored membrane with 3 m seams is the next step if they matter.
+- A2's 11° gable and W2's 6° gable read as flat roofs with a crease, so both are now parapeted flat roofs. Pitched
+  roofs are at least 18° ([session Q11](../../../research/procedural-buildings/SESSION.md#decisions)).
+- The ground is still flat colour.
+
+### Variants on the same geometry (`test-street-variants-*`)
+
+The last part of review protocol step 4. Each variant is its own GLB built from the base body's function with one flag, so
+the shared geometry cannot drift. `ExpandedStudy --test-street --variants` swaps them in at the same positions and captures
+the same views. A `houses` view looks at H1's roof from above the side garden in both sets.
+
+| Variant | Base | Change |
+|---|---|---|
+| `h1-reroofed` | H1 | The third house is re-roofed in newer shingles, `4d463f` against the range's `353e44`, split at the party walls |
+| `m1-repaired` | M1 | The west shop has dark-bronze mullions, transom and kickplate, a green sign board and a red fabric awning; the east shop is unchanged |
+| `w1-solar` | W1 | Seven rows of 10° panels, 1.7 × 0.95 m modules on rails, clear of the plant units and crickets |
+- The Godot import extracts each model's maps beside it, so every body carries its own copy.

@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+#
+# Blocks a commit whose C# fails CI's format check. Install once per clone:
+#   ln -s ../../scripts/hooks/pre-commit .git/hooks/pre-commit
+#
+# dotnet format reads the working tree, not the index, so a partially staged
+# file is checked as it stands on disk.
+
+set -uo pipefail
+
+git diff --cached --name-only --diff-filter=ACMR -- '*.cs' | grep -q . || exit 0
+
+root="$(git rev-parse --show-toplevel)"
+"$root/scripts/format.sh" --check > /dev/null 2>&1 && exit 0
+
+echo "pre-commit: C# is not formatted. Run scripts/format.sh, stage the result, and commit again." >&2
+exit 1
