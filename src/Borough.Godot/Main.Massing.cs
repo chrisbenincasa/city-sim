@@ -266,7 +266,7 @@ public partial class Main
             // Membrane: the two tones Slate() draws between are both PITCHED coverings, so a flat
             // deck reaching into that draw comes up clay tile one time in five and slate the rest,
             // and neither is what is on it.
-            Color slate = _washing is Wash.Rung or Wash.Age or Wash.Family or Wash.Health or Wash.Trouble
+            Color slate = BuildingWash
                 ? paint
                 : (cap == Cap.Parapet ? Membrane : Slate(shape)).SrgbToLinear();
             float lit = table.IsAbandoned(slot) ? 0f : taken;
@@ -670,8 +670,11 @@ public partial class Main
         public bool Abandoned => ((int)Reads.A & 512) != 0;
     }
 
-    private Color RoofPaint(Massing one) => one.Abandoned && _washing is not (Wash.Rung or Wash.Age or Wash.Family or Wash.Health or Wash.Trouble)
+    private Color RoofPaint(Massing one) => one.Abandoned && !BuildingWash
         ? one.Slate.Darkened(0.35f) : one.Slate;
+
+    /// <summary>Whether the overlay in force colours each Building by its own reading.</summary>
+    private bool BuildingWash => _washing is Wash.Rung or Wash.Age or Wash.Family or Wash.Health or Wash.Trouble;
 
     private static Color YardPaint(Massing one) => one.Abandoned
         ? Outbuilding.SrgbToLinear().Darkened(0.35f) : Outbuilding.SrgbToLinear();

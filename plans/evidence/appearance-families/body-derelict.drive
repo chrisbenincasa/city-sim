@@ -1,0 +1,19 @@
+# Abandoned and troubled bodies: declining.toml, 1000 Citizens, --start-at 6400.
+6401 pause
+6401 ui family-bodies on
+6401 focus 146 132 80
+6401 tilt 30
+6401 shoot plans/evidence/appearance-families/body-derelict.png
+6401 speed 5
+6402 pause
+6402 ui family-bodies off
+6402 shoot plans/evidence/appearance-families/body-derelict-massing.png
+6402 speed 5
+6403 pause
+6403 ui family-bodies on
+6403 focus 132 128 150
+6403 tilt 40
+6403 overlay trouble
+6403 shoot plans/evidence/appearance-families/body-wash-trouble.png
+6403 speed 5
+6405 quit
