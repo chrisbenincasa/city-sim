@@ -1,0 +1,183 @@
+# Who lives in the city and who waits outside it.
+#
+# The four edges hold the same people and differ in rent, centrality and purse, as in
+# attracted.toml. Arrivals need a gate the player places on an edge Lot. Both stages that raise
+# children state school level 1, so the one school kind teaches every child.
+
+[[building]]
+id = "port"
+label = "Gate"
+arrivals_per_day = 96
+
+[immigration]
+reconsider_days       = 2
+recovery_days         = 32
+queue_wait_days       = 2
+queue_reconsider_days = 1
+
+[[hinterland]]
+id = "west"
+edge = "west"
+rent = 900
+centrality_tiles = 6000
+emigrant_balance_min = 800
+emigrant_balance_max = 4000
+
+[[hinterland.population]]
+stage           = "young"
+adults_by_tier  = [1, 0, 0]
+children        = 0
+money_band      = 0
+households      = 600
+
+[[hinterland.population]]
+stage           = "family"
+adults_by_tier  = [1, 1, 0]
+children        = 2
+money_band      = 1
+households      = 200
+
+[[hinterland.population]]
+stage           = "empty_nest"
+adults_by_tier  = [0, 0, 1]
+children        = 0
+money_band      = 2
+households      = 100
+
+[[hinterland]]
+id = "south"
+edge = "south"
+rent = 600
+centrality_tiles = 4000
+emigrant_balance_min = 1200
+emigrant_balance_max = 9000
+
+[[hinterland.population]]
+stage           = "young"
+adults_by_tier  = [1, 0, 0]
+children        = 0
+money_band      = 0
+households      = 600
+
+[[hinterland.population]]
+stage           = "family"
+adults_by_tier  = [1, 1, 0]
+children        = 2
+money_band      = 1
+households      = 200
+
+[[hinterland.population]]
+stage           = "empty_nest"
+adults_by_tier  = [0, 0, 1]
+children        = 0
+money_band      = 2
+households      = 100
+
+[[hinterland]]
+id = "east"
+edge = "east"
+rent = 300
+centrality_tiles = 2000
+emigrant_balance_min = 2000
+emigrant_balance_max = 14000
+
+[[hinterland.population]]
+stage           = "young"
+adults_by_tier  = [1, 0, 0]
+children        = 0
+money_band      = 0
+households      = 600
+
+[[hinterland.population]]
+stage           = "family"
+adults_by_tier  = [1, 1, 0]
+children        = 2
+money_band      = 1
+households      = 200
+
+[[hinterland.population]]
+stage           = "empty_nest"
+adults_by_tier  = [0, 0, 1]
+children        = 0
+money_band      = 2
+households      = 100
+
+[[hinterland]]
+id = "north"
+edge = "north"
+rent = 1500
+centrality_tiles = 9000
+emigrant_balance_min = 3000
+emigrant_balance_max = 20000
+
+[[hinterland.population]]
+stage           = "young"
+adults_by_tier  = [1, 0, 0]
+children        = 0
+money_band      = 0
+households      = 600
+
+[[hinterland.population]]
+stage           = "family"
+adults_by_tier  = [1, 1, 0]
+children        = 2
+money_band      = 1
+households      = 200
+
+[[hinterland.population]]
+stage           = "empty_nest"
+adults_by_tier  = [0, 0, 1]
+children        = 0
+money_band      = 2
+households      = 100
+
+[[life_stage]]
+id            = "young"
+duration_days = 24
+spread_days   = 8
+next          = "family"
+childless     = "childless"
+children_min  = 0
+children_max  = 3
+adult_age_min_days = 1
+adult_age_max_days = 160
+centrality_base_percent   = 70
+centrality_spread_percent = 0
+rent_weight_percent       = 100
+
+[[life_stage]]
+id            = "family"
+duration_days = 48
+spread_days   = 16
+next          = "mature_family"
+school_level  = 1
+centrality_base_percent   = 40
+centrality_spread_percent = 0
+rent_weight_percent       = 150
+
+[[life_stage]]
+id              = "mature_family"
+duration_days   = 48
+spread_days     = 16
+next            = "empty_nest"
+children_become = "young"
+school_level    = 1
+centrality_base_percent   = 30
+centrality_spread_percent = 0
+rent_weight_percent       = 150
+
+[[life_stage]]
+id            = "childless"
+duration_days = 40
+spread_days   = 16
+centrality_base_percent   = 70
+centrality_spread_percent = 0
+rent_weight_percent       = 100
+
+[[life_stage]]
+id            = "empty_nest"
+duration_days = 40
+spread_days   = 16
+centrality_base_percent   = 50
+centrality_spread_percent = 0
+rent_weight_percent       = 75

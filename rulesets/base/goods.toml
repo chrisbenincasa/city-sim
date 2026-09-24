@@ -1,0 +1,13 @@
+# The Goods and the money every other member refers to by id.
+
+[[resource]]
+id = "sundries"
+family = "good"
+
+[[resource]]
+id = "repairs"
+family = "good"
+
+[[resource]]
+id = "money"
+family = "money"

@@ -144,6 +144,15 @@ public sealed class HinterlandQueueTests
             }
         }
 
+        // Vacant housing land is a feasible home too, so no Lot may admit a dwelling.
+        for (int lot = 0; lot < world.Lots.Rows.SlotCount; lot++)
+        {
+            if (world.Lots.Rows.IsLive(lot) && world.Lots.IsVacant(lot))
+            {
+                world.PaintUsePermissions(world.LotGround(lot), 0);
+            }
+        }
+
         var placement = new PlacementEngine(world, Key, new Core.Movement.TripEngine(world));
         var engine = new HinterlandEngine(world, Key, placement);
         var prospect = new ArrivalProspect(
@@ -164,6 +173,37 @@ public sealed class HinterlandQueueTests
         Assert.True(world.HinterlandPopulation.Reserved[group] < reserved);
         Assert.Equal(0, world.Buildings.ArrivalsToday[gate]);
         world.Invariants.RunEndOfRun(world);
+    }
+
+    /// <summary>A city with no homes but zoned housing land still has something to compare.</summary>
+    [Fact]
+    public void A_family_weighs_zoned_land_when_no_home_stands()
+    {
+        (World world, Simulation simulation) = City(Narrow());
+        int edge = Waited(world, simulation);
+        int head = world.Hinterlands.AdmitHead[edge] - 1;
+        int group = GroupOf(world, head);
+
+        for (int building = 0; building < world.Buildings.Rows.SlotCount; building++)
+        {
+            if (world.Buildings.Rows.IsLive(building)
+                && !world.IsOutsideConnection(world.Buildings.Kind[building]))
+            {
+                world.DestroyBuilding(world.Buildings.Rows.At(building), world.Tick);
+            }
+        }
+
+        var placement = new PlacementEngine(world, Key, new Core.Movement.TripEngine(world));
+        var prospect = new ArrivalProspect(
+            world.HinterlandQueue.Group[head], HinterlandTable.EdgeAt(edge),
+            world.HinterlandPopulation.CompositionAt(group),
+            world.HinterlandQueue.Purse[head], world.HinterlandQueue.Identity[head]);
+        int gate = world.Buildings.Gates(world.Hinterlands).PeekFront(edge);
+
+        Assert.Equal(0, world.HousingBuildings.Count(world));
+        Assert.NotEqual(
+            ProspectOutcome.NoSample,
+            placement.Compare(prospect, world.Buildings.Rows.At(gate), world.Tick));
     }
 
     /// <summary>A family standing outside is promised, not moved.</summary>
