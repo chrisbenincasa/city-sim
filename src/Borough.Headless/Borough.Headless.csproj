@@ -25,6 +25,7 @@
       reimplement the codec to do it, in a project that already has one.
     -->
     <ProjectReference Include="..\Borough.Formats\Borough.Formats.csproj" />
+    <ProjectReference Include="..\Borough.Appearance\Borough.Appearance.csproj" />
   </ItemGroup>
 
 </Project>

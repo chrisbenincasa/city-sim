@@ -300,6 +300,10 @@ It may hold Bins its Occupants draw from, one Access Point they all share, and o
 An authored architectural style a Building is drawn in, such as a brick terrace house or a board school. A Building kind maps to one or more Appearance Families, and each Building is drawn in exactly one. It belongs to the drawing and never to the simulation.
 *Avoid*: family (taken by Resource and Rule families), style, building type, mesh
 
+**Style Preset**
+A set of Appearance Families authored together, stored as TOML under `appearance/<preset>/`. It says which kinds each family draws and which Building facts it admits. The shell picks one family per Building from it. The Ruleset never names a preset.
+*Avoid*: theme, skin, art pack
+
 **Failure Pressure**
 What a Building accumulates when the city stops working for it. Three sources: **Trips to or from it failing**, **its Rules repeatedly reaching a reporting terminal**, and **local conditions falling below its Occupants' tolerance**. Past a threshold it loses occupancy and quality; past a further one it is **abandoned**, its Occupants are evicted into the Unplaced Pool, and its Lot returns to vacant.
 

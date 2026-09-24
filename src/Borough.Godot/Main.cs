@@ -515,6 +515,12 @@ public partial class Main : Node3D
         /// Ticks.
         /// </remarks>
         Age,
+
+        /// <summary>
+        /// The Appearance Family each Building draws under the Style Preset. <b>A DEBUG VIEW AND NOT
+        /// A SHIPPING ONE.</b> Grey is a kind's fallback and magenta is a kind with no family.
+        /// </summary>
+        Family,
     }
 
     /// <summary>The five hues <see cref="Wash.Rung"/> is drawn with, sparsest to densest.</summary>

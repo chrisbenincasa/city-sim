@@ -1,0 +1,11 @@
+601 pause
+601 overlay family
+601 focus 70 72 260
+601 tilt 45
+601 shoot plans/evidence/appearance-families/family-wash-west.png
+601 speed 5
+602 pause
+602 focus 2116 70 260
+602 shoot plans/evidence/appearance-families/family-wash-east.png
+602 speed 5
+603 quit

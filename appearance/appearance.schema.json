@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/chrisbenincasa/city-sim/appearance/appearance.schema.json",
+  "title": "Borough Style Preset file",
+  "description": "One file of a Style Preset under appearance/<preset>/. StylePresetReader is the authority and refuses at the line what this schema cannot express: a fallback with conditions, a repeated family id, two fallbacks for one kind, and a preset with no [preset] table. StylePresetSchemaTests keeps the key sets equal.",
+  "type": "object",
+  "properties": {
+    "preset": {
+      "description": "Names the preset and sets how attached Buildings share a family. Exactly one file of the preset holds it.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "The preset's name.",
+          "type": "string"
+        },
+        "era_days": {
+          "description": "Game Days in one era. Attached Buildings on one block face raised in the same era draw with one seed.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "attached": {
+          "description": "The block patterns whose Buildings share a draw along a block face.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/pattern"
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "name",
+        "era_days"
+      ],
+      "additionalProperties": false
+    },
+    "family": {
+      "description": "The Appearance Families. A family admits a Building when its kind is listed and every condition given holds.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "The family's id, unique across the preset.",
+            "type": "string"
+          },
+          "kinds": {
+            "description": "The Building kinds this family may draw, by their Ruleset names.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "weight": {
+            "description": "The family's share of the draw among the families that admit a Building. Defaults to 1.",
+            "type": "integer",
+            "minimum": 1
+          },
+          "fallback": {
+            "description": "Draws every Building of its kinds that no other family admits. A fallback carries no conditions, and a kind has at most one.",
+            "type": "boolean"
+          },
+          "model": {
+            "description": "The authored model this family draws, relative to the preset's assets.",
+            "type": "string"
+          },
+          "storeys": {
+            "description": "The storey counts this family admits. Given as [low, high], both inclusive and not negative.",
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "frontage_metres": {
+            "description": "The street frontages this family admits, in metres. Given as [low, high], both inclusive and not negative.",
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "depth_metres": {
+            "description": "The plot depths this family admits, in metres. Given as [low, high], both inclusive and not negative.",
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "raised_day": {
+            "description": "The game Days of raising this family admits. Given as [low, high], both inclusive and not negative.",
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "patterns": {
+            "description": "The block patterns this family admits.",
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/pattern"
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "zones": {
+            "description": "The zones this family admits.",
+            "type": "array",
+            "items": {
+              "enum": [
+                "housing",
+                "trade"
+              ]
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "id",
+          "kinds"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "pattern": {
+      "enum": [
+        "detached",
+        "perimeter",
+        "back-to-back",
+        "courtyard",
+        "slab",
+        "tower"
+      ]
+    }
+  }
+}

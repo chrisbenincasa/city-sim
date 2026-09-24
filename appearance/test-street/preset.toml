@@ -1,0 +1,77 @@
+# The test-street Style Preset. A fixture for the Appearance Family format and the picking rule,
+# not a style: it maps pass 03's test-street bodies onto the plans the shipped Rulesets raise, and
+# draws every other Building in a plain box fallback. Plans are in metres; one Tile is 4 m.
+
+[preset]
+name = "test-street"
+
+# Provisional. Attached Buildings on one block face raised within the same 30 game Days share a family.
+era_days = 30
+
+# Patterns whose Buildings stand in attached rows along a block face.
+attached = ["perimeter", "back-to-back"]
+
+[[family]]
+id = "box"
+fallback = true
+kinds = ["dwelling", "shopfront", "school", "port", "hospital", "clinic", "university", "secondary",
+         "primary", "officeblock", "existing homes", "college", "arrival gate"]
+
+[[family]]
+id = "h1-attached-range"
+model = "test-street/h1-attached-range"
+kinds = ["dwelling"]
+storeys = [2, 2]
+frontage_metres = [4, 28]
+depth_metres = [8, 16]
+patterns = ["perimeter", "back-to-back"]
+
+[[family]]
+id = "a1-apartment"
+model = "test-street/a1-apartment"
+kinds = ["dwelling"]
+weight = 2
+storeys = [3, 3]
+frontage_metres = [20, 28]
+depth_metres = [12, 20]
+
+[[family]]
+id = "g003-two-tenancy"
+model = "test-street/g003-two-tenancy"
+kinds = ["dwelling"]
+storeys = [3, 3]
+frontage_metres = [20, 28]
+depth_metres = [12, 20]
+
+[[family]]
+id = "a2-stair-range"
+model = "test-street/a2-stair-range"
+kinds = ["dwelling"]
+storeys = [3, 3]
+frontage_metres = [28, 36]
+depth_metres = [8, 16]
+
+[[family]]
+id = "m1-corner"
+model = "test-street/m1-corner"
+kinds = ["dwelling", "shopfront"]
+storeys = [3, 3]
+frontage_metres = [20, 28]
+depth_metres = [12, 20]
+zones = ["trade"]
+
+[[family]]
+id = "w1-workplace"
+model = "test-street/w1-workplace"
+kinds = ["dwelling", "shopfront", "officeblock"]
+storeys = [2, 2]
+frontage_metres = [32, 40]
+depth_metres = [16, 24]
+
+[[family]]
+id = "w2-workshop"
+model = "test-street/w2-workshop"
+kinds = ["shopfront", "officeblock"]
+storeys = [2, 2]
+frontage_metres = [28, 36]
+depth_metres = [12, 20]

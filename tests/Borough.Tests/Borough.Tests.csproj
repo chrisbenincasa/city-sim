@@ -63,6 +63,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="..\..\appearance\**\*.toml" Link="Appearance\%(RecursiveDir)%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\Borough.Appearance\Borough.Appearance.csproj" />
     <ProjectReference Include="..\..\src\Borough.Core\Borough.Core.csproj" />
     <ProjectReference Include="..\..\src\Borough.Formats\Borough.Formats.csproj" />

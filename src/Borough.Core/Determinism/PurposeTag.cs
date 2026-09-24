@@ -905,4 +905,10 @@ public enum PurposeTag : ulong
     HousingConstructionSeekers = 57,
     /// <summary>Variation among equally useful local arrangements.</summary>
     HousingConstructionForm = 58,
+
+    /// <summary>
+    /// Which eligible Appearance Family draws a Building. Drawn by the shell and the headless runner,
+    /// never by a Tick, so it moves no State Hash.
+    /// </summary>
+    AppearanceFamily = 59,
 }

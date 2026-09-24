@@ -120,6 +120,12 @@ internal enum Mode
     Kinds,
 
     /// <summary>
+    /// Print which Appearance Family each standing Building draws under a Style Preset, by kind, and
+    /// how often each kind falls back. Needs one Ruleset.
+    /// </summary>
+    Appearance,
+
+    /// <summary>
     /// Print the Road Graph and its connected components. Slice 5a's.
     /// </summary>
     /// <remarks>
@@ -390,6 +396,9 @@ internal sealed class Options
     /// <summary>Where the trace goes. Null is standard output.</summary>
     public string? OutPath { get; private init; }
 
+    /// <summary>The Style Preset directory the Appearance Family coverage report reads.</summary>
+    public string? AppearancePath { get; private init; }
+
     /// <summary>The seed for a fresh session.</summary>
     public ulong Seed { get; private init; }
 
@@ -589,6 +598,7 @@ internal sealed class Options
         bool decideGuard = true;
         bool zones = false;
         bool kinds = false;
+        string? appearance = null;
         bool roads = false;
         bool morphology = false;
         bool trips = false;
@@ -927,6 +937,10 @@ internal sealed class Options
                     output = value;
                     break;
 
+                case "--appearance":
+                    appearance = value;
+                    break;
+
                 case "--crash":
                     crash = value;
                     break;
@@ -1177,6 +1191,16 @@ internal sealed class Options
         {
             complaint = "--income and --log disagree: the dump populates its own world and steps it, "
                       + "so a recorded session would be replayed and then over-populated.";
+            return false;
+        }
+
+        if (appearance is not null && (rulesets.Count != 1 || kinds || school || stages || day || money
+                                       || market || business || arrivals || landValue || parking || evidence
+                                       || traffic || commute || zones || roads || trips || flood || watch
+                                       || dump is not null))
+        {
+            complaint = "--appearance needs exactly one --ruleset and no other picture. Family "
+                      + "eligibility names a Ruleset's kinds, and each picture builds its own world.";
             return false;
         }
 
@@ -1726,6 +1750,7 @@ internal sealed class Options
                  : morphology ? Mode.Morphology
                  : zones ? Mode.Zones
                  : kinds ? Mode.Kinds
+                 : appearance is not null ? Mode.Appearance
                  : dump is not null ? Mode.Layer
                  : session ? Mode.Run
                  : Mode.Report,
@@ -1736,6 +1761,7 @@ internal sealed class Options
             AgainstPath = against,
             ReloadTicks = reloadAt,
             OutPath = output,
+            AppearancePath = appearance,
             Seed = seed,
             Citizens = citizens,
             Schools = schools,
@@ -1839,6 +1865,9 @@ internal sealed class Options
                                 stands nowhere. Needs --ruleset. It is the only picture that
                                 reports the MIX: --census has no per-kind row and --zones
                                 draws every Building as the same character
+          --appearance DIR      count the standing city by Appearance Family under the
+                                Style Preset in DIR, after --ticks Ticks, with the kinds
+                                that fall back. Needs one --ruleset
           --roads               dump the Road Graph -- Segments by kind, the Arcs each mode
                                 admits, and the connected components of both subgraphs.
                                 Needs --ruleset, because a road network is content. Takes

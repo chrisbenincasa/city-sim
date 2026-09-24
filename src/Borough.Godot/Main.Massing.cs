@@ -12,6 +12,7 @@ using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
 using Borough.Core.Tables;
+using Borough.Appearance;
 using Borough.Formats;
 using Godot;
 
@@ -138,10 +139,7 @@ public partial class Main
             // Which of the parcel's two axes runs ALONG the Street. Read the way
             // BlockPatterns.SideOf writes it: on a horizontal Street Left is the north side, on a
             // vertical one Right is the east side.
-            // ⚠ ON A LINE, which is what the modulo was asking. It reads the same on an evenly
-            // spaced lattice and is the question rather than an arithmetic that answers it.
-            bool horizontal = lattice.Nominal > 0
-                && lattice.EdgeOf(lattice.LineAt(lots.North[lot].Raw)) == lots.North[lot].Raw;
+            bool horizontal = BuildingFacts.RunsEastWest(lattice, lots, lot);
 
             float along = horizontal ? eastWest : southNorth;
             float deep = horizontal ? southNorth : eastWest;
@@ -257,6 +255,7 @@ public partial class Main
                 Wash.Trouble => TroubleColour(slot).SrgbToLinear(),
                 Wash.Rung => Patterns[RungOf(lot)].SrgbToLinear(),
                 Wash.Age => Shade(Vintage(slot)).SrgbToLinear(),
+                Wash.Family => FamilyColour(slot).SrgbToLinear(),
                 _ => Rendered(shape).SrgbToLinear(),
             };
 
@@ -267,7 +266,7 @@ public partial class Main
             // Membrane: the two tones Slate() draws between are both PITCHED coverings, so a flat
             // deck reaching into that draw comes up clay tile one time in five and slate the rest,
             // and neither is what is on it.
-            Color slate = _washing is Wash.Rung or Wash.Age or Wash.Health or Wash.Trouble
+            Color slate = _washing is Wash.Rung or Wash.Age or Wash.Family or Wash.Health or Wash.Trouble
                 ? paint
                 : (cap == Cap.Parapet ? Membrane : Slate(shape)).SrgbToLinear();
             float lit = table.IsAbandoned(slot) ? 0f : taken;
@@ -671,7 +670,7 @@ public partial class Main
         public bool Abandoned => ((int)Reads.A & 512) != 0;
     }
 
-    private Color RoofPaint(Massing one) => one.Abandoned && _washing is not (Wash.Rung or Wash.Age or Wash.Health or Wash.Trouble)
+    private Color RoofPaint(Massing one) => one.Abandoned && _washing is not (Wash.Rung or Wash.Age or Wash.Family or Wash.Health or Wash.Trouble)
         ? one.Slate.Darkened(0.35f) : one.Slate;
 
     private static Color YardPaint(Massing one) => one.Abandoned

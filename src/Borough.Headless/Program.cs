@@ -54,6 +54,9 @@ internal static class Program
                 case Mode.Kinds:
                     return Session.DumpKinds(options);
 
+                case Mode.Appearance:
+                    return Session.Dump(options, AppearanceDump.Run);
+
                 case Mode.Roads:
                     return Session.DumpRoads(options);
 
