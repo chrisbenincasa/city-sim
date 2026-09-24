@@ -1,0 +1,54 @@
+# The dwelling the housing zone builds, the shop each one houses, and what a dwelling consumes.
+# Nothing produces `repairs`, so dwellings decline over time; minimal.toml says why.
+
+[[business]]
+id = "shop"
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+[[building]]
+id = "dwelling"
+label = "Terraced house"
+bins = [
+    { resource = "sundries", capacity = 48, owner = "occupant" },
+    { resource = "repairs",  capacity = 4 },
+]
+houses   = true
+premises = true
+rent     = 400
+parked   = true
+business = "shop"
+
+[[zone_rule]]
+id            = "housing"
+kind          = "dwelling"
+zone          = 0
+interval      = 32
+revisit_ticks = 2048
+
+[[rule]]
+id      = "restock"
+order   = 1
+kind    = "dwelling"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = []
+outputs = [ { scope = "local", resource = "sundries", amount = 4 } ]
+
+[[rule]]
+id      = "consume"
+order   = 2
+kind    = "dwelling"
+rate    = 32
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "sundries", amount = 4 } ]
+outputs = []
+
+[[rule]]
+id      = "upkeep"
+order   = 3
+kind    = "dwelling"
+rate    = 16
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "repairs", amount = 4 } ]
+outputs = []
