@@ -169,9 +169,10 @@ public class StylePresetTests
     {
         var library = TextureLibrary.Read("""
             { "textures": {
-                "bricks-088": { "tile_metres": [1.5, 1.5] },
-                "clay-roof-tiles-02": { "tile_metres": [2, 2] } } }
+                "bricks-088": { "tile_metres": [1.5, 1.5], "paint": true },
+                "clay-roof-tiles-02": { "tile_metres": [2, 2], "paint": false } } }
             """);
+        Assert.Equal(["bricks-088"], library.Paintable);
         StylePreset preset = Preset("""
             [[family]]
             id = "terrace"

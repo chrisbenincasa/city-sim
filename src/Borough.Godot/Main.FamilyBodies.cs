@@ -31,6 +31,7 @@ public partial class Main
     private readonly Dictionary<(string Family, int Frontage, int Depth, int Storeys, AttachedSides Attached, int Paint), BodyShape> _familyBodyMeshes = [];
     private readonly Dictionary<(ArrayMesh Mesh, bool Abandoned), InstanceLayer> _bodyLayers = [];
     private readonly Dictionary<string, Dictionary<string, Material>> _bodyLibraries = [];
+    private readonly Dictionary<string, Material> _libraryMaterials = [];
     private readonly Dictionary<Material, (Material Painted, float Mean)> _paintedMaterials = [];
     private readonly Dictionary<Material, Color> _meanColours = [];
     private readonly HashSet<Vector2I> _nearChunks = [];
@@ -345,10 +346,13 @@ public partial class Main
         var reads = new Dictionary<string, Color>();
         foreach ((string part, ShellMesh source) in FamilyBodyBuilder.Build(body, frontage, depth, storeys, attached).Parts)
         {
-            Material material = library.GetValueOrDefault(part) ?? new StandardMaterial3D { AlbedoColor = new Color(0.8f, 0.8f, 0.78f) };
+            bool dressed = body.Materials.TryGetValue(part, out string? texture);
+            Material material = dressed ? LibraryMaterial(texture!)
+                : library.GetValueOrDefault(part) ?? new StandardMaterial3D { AlbedoColor = new Color(0.8f, 0.8f, 0.78f) };
+            bool paintable = !dressed || _textureLibrary!.Paintable.Contains(texture!);
             Color? tint = null;
             reads[part] = MeanColour(material);
-            if (scheme is not null && scheme.TryGetValue(part, out Paint colour) && material is BaseMaterial3D authored)
+            if (paintable && scheme is not null && scheme.TryGetValue(part, out Paint colour) && material is BaseMaterial3D authored)
             {
                 (material, tint) = Painted(authored, colour, family.Id, part);
                 reads[part] = Color.Color8(colour.R, colour.G, colour.B).SrgbToLinear();
@@ -456,6 +460,30 @@ public partial class Main
         }
 
         return sum / count;
+    }
+
+    /// <summary>A texture library entry's albedo, normal and roughness maps as one material.</summary>
+    private Material LibraryMaterial(string texture)
+    {
+        if (_libraryMaterials.TryGetValue(texture, out Material? found)) return found;
+
+        string stem = TextureLibraryDirectory + texture;
+        var material = new StandardMaterial3D
+        {
+            ResourceName = texture,
+            AlbedoTexture = GD.Load<Texture2D>(stem + "-albedo.jpg"),
+            NormalEnabled = true,
+            NormalTexture = GD.Load<Texture2D>(stem + "-normal.jpg"),
+            TextureFilter = BaseMaterial3D.TextureFilterEnum.LinearWithMipmapsAnisotropic,
+        };
+        if (ResourceLoader.Exists(stem + "-roughness.jpg"))
+        {
+            material.Roughness = 1f;
+            material.RoughnessTexture = GD.Load<Texture2D>(stem + "-roughness.jpg");
+        }
+
+        _libraryMaterials[texture] = material;
+        return material;
     }
 
     /// <summary>The materials of an authored model, by the part each one dresses.</summary>

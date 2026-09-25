@@ -28,10 +28,16 @@ public partial class Main
 
     private static readonly string[] FamilyHueNames = ["red", "blue", "yellow", "green", "pink", "teal", "orange", "violet"];
 
+    private const string TextureLibraryDirectory = "res://assets/city/library/";
+
     private StylePreset? _stylePreset;
     private string? _stylePresetRefusal;
+    private TextureLibrary? _textureLibrary;
 
-    /// <summary>The Style Preset the family wash draws with, from <c>--appearance DIR</c>.</summary>
+    /// <summary>
+    /// The Style Preset the family wash draws with, from <c>--appearance DIR</c>, its bodies dressed
+    /// from the texture library.
+    /// </summary>
     /// <remarks>Read on first use, so a city that never shows the wash never reads the files.</remarks>
     private StylePreset? Preset()
     {
@@ -41,7 +47,9 @@ public partial class Main
         int at = Array.IndexOf(given, "--appearance");
         string directory = Globalize(at >= 0 && at + 1 < given.Length ? given[at + 1] : DefaultStylePreset);
 
+        _textureLibrary = TextureLibrary.Read(Godot.FileAccess.GetFileAsString(TextureLibraryDirectory + "materials.json"));
         StylePresetResult read = StylePresetReader.Read(directory);
+        if (read.Preset is not null) read = _textureLibrary.Dress(read.Preset);
         if (read.Preset is null)
         {
             _stylePresetRefusal = string.Join("; ", read.Errors.Select(e => e.ToString()));

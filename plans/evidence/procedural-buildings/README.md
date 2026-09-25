@@ -281,3 +281,21 @@ Reproduce with `scripts/measure-shell-band.py --suite bodies --chunk-metres 1024
 - A whole-city placement pass takes 0.46–0.74 s on the main thread, and 1.72 s the first time,
   while it generates the 115 meshes.
 
+## Dressed family bodies
+
+Taken 2026-09-25 on `zeus` at 1024 m chunks, Release, the same world as above. Load average was
+3.4–4.7, so the frame times are not quiet-machine timings. Draw counts do not depend on load. Both
+runs are this branch. The undressed run uses the preset from `ac0a977`, so it draws as `main` does.
+
+| View | Draws, undressed | Draws, dressed | Frame, undressed | Frame, dressed |
+|---|---:|---:|---:|---:|
+| Opening | 2,693 visible, 0 shadow | 2,693 visible, 0 shadow | 14.85 ms | 14.81 ms |
+| Street | 437 visible, 680 shadow | 437 visible, 680 shadow | 9.10 ms | 8.78 ms |
+| District | 1,005 visible, 3,102 shadow | 1,005 visible, 3,102 shadow | 12.74 ms | 11.56 ms |
+
+- Dressing the walkup and two-unit walls leaves every draw count unchanged. A dressed surface swaps
+  its material and adds no mesh, layer or surface.
+- Paint schemes, merged after the table above was taken, raise the body meshes from 115 to 426.
+  At the district view that gives 1,005 visible and 3,102 shadow draws, against 767 and 2,052.
+- With paint schemes the first placement pass takes 3.5–3.7 s and later passes 0.48–1.03 s.
+
