@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://d3o450rl2xtqo"
-path="res://.godot/imported/stepped-towers-p8.glb-1fc13672f88a17a3e038f260fcb78a9a.scn"
+uid="uid://cpkg74nahp768"
+path="res://.godot/imported/library.glb-6943210a556c1a6ea4a53dc85a926bc9.scn"
 
 [deps]
 
-source_file="res://assets/tall-families/stepped-towers-p8.glb"
-dest_files=["res://.godot/imported/stepped-towers-p8.glb-1fc13672f88a17a3e038f260fcb78a9a.scn"]
+source_file="res://assets/tall-families/library.glb"
+dest_files=["res://.godot/imported/library.glb-6943210a556c1a6ea4a53dc85a926bc9.scn"]
 
 [params]
 
