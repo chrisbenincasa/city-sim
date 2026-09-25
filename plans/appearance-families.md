@@ -104,7 +104,7 @@ mean luminance with no clamp. Only a texture the library marks `paint` takes a s
 Clay Roof Tiles 02 keeps its terracotta under every rowhouse scheme. Each Building shifts the
 texture by an offset hashed from its instance origin, so meshes stay shared across a chunk's
 MultiMesh. World-space value noise at 24, 12 and 6 m scales brightness by up to `macro_strength`,
-±15%, across a wall.
+±30%, across a wall.
 
 `FamilyBodyBuilder` ports the vocabulary of `scripts/art/test-street.py`. The shell draws the result
 in place of the massing with `ui family-bodies on`.
@@ -147,7 +147,7 @@ the band in metres, and `on 0` draws every body as its far box.
 | Painted apartments, `gridded.toml`, 2,000 Citizens, Tick 600 | Corridor, walkup, two-unit and office-warehouse bodies draw their schemes; the render palette is quiet by design. `paint-apartments.png` from `paint-apartments.drive` |
 | Library-dressed rowhouses, `rowhouses.toml`, 1,000 Citizens, Tick 600 | Painted Bricks 088 walls and Clay Roof Tiles 02 roofs; each house keeps its scheme's wall colour and every roof keeps the photograph's. `lib-h1-street.png`, `lib-h1-block.png` from `lib-h1.drive` |
 | Corridor roofs, `gridded.toml`, 2,000 Citizens, Tick 600 | Concrete Panels on the membrane read as streaks from above, because the photograph is ribbed wall cladding (`lib-apts-roof.png` from `lib-apts.drive`). The membrane now draws Bitumen |
-| Macro variation A/B, both cities above, Tick 600 | Soft light at 0.35 (`macro-ab-street.png`, `macro-ab-apartments.png`, off above and on below) showed soft patches on the clay roofs and barely changed pastel brick or dark Bitumen, because soft light moves little near black or white. The shader now multiplies brightness by up to ±15%. Two runs of one frame differ in 10 to 13% of pixels with the shader unchanged, so pixel counts cannot measure the variation; compare by eye. `macro-ab-*.drive` |
+| Macro variation A/B, both cities above, Tick 600 | Soft light at 0.35 (`macro-ab-street.png`, `macro-ab-apartments.png`, off above and on below) showed soft patches on the clay roofs and barely changed pastel brick or dark Bitumen, because soft light moves little near black or white. The shader now multiplies brightness instead; ±15% was still faint, and ±30% shows patches on the clay roofs and some on painted brick. Bitumen barely changes at any strength because its photograph is nearly black. Two runs of one frame differ in 10 to 13% of pixels with the shader unchanged, so pixel counts cannot measure the variation; compare by eye. `macro-ab-*.drive` |
 | Corridor side-by-side | Walls, openings, canopies and roof hatch match. The two vents stand 4 m either side of the centre, where the Blender body puts them at 8 m. The ground windows sit 5 cm lower, and the back door is 10 cm taller |
 
 Limits of this slice:

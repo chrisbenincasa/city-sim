@@ -12,7 +12,7 @@ uniform sampler2D albedo_map : source_color, filter_linear_mipmap_anisotropic, r
 uniform sampler2D normal_map : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D roughness_map : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform float mean_luminance = 0.7;
-uniform float macro_strength = 0.15;
+uniform float macro_strength = 0.3;
 
 varying vec3 world;
 varying vec2 offset;
