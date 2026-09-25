@@ -1,0 +1,18 @@
+# Library shader on the dressed apartments: gridded.toml, 2000 Citizens, --start-at 600, default test-street preset.
+601 pause
+601 ui family-bodies on
+601 focus 167 131 160
+601 tilt 35
+601 shoot plans/evidence/appearance-families/shader-apartments.png
+601 speed 5
+602 pause
+602 focus 167 131 25
+602 tilt 12
+602 shoot plans/evidence/appearance-families/shader-walkup-near.png
+602 speed 5
+603 pause
+603 focus 76 208 80
+603 tilt 25
+603 shoot plans/evidence/appearance-families/shader-two-unit.png
+603 speed 5
+605 quit

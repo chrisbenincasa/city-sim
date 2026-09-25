@@ -30,7 +30,7 @@ patterns = ["perimeter", "back-to-back"]
 # A side wall against a neighbour is blank and carries a party-wall upstand.
 [family.body]
 library = "test-street/rowhouses"
-tile_metres = { wall = [2.4, 1.2], wall-end = [2.4, 1.2], roof = [4.0, 4.0] }
+materials = { wall = "bricks-088", wall-end = "bricks-088", roof = "clay-roof-tiles-02" }
 bay_metres = 3.5
 gable_degrees = 18
 chimney = true
@@ -43,63 +43,55 @@ back_upper = ["window*"]
 side_ground = ["blank*", "window", "blank*"]
 side_upper = ["blank*", "window", "blank*"]
 
-# Each house draws one scheme by its own id, so a terrace is painted house by house. Siding and
-# shingle photographs set how bright a paint can be: siding up to "dadada", shingles up to "757575".
+# Each house draws one scheme by its own id, so a terrace is painted house by house. The brick takes
+# the paint; the clay roof keeps its photograph's colour.
 [[family.paint]]
 wall = "b9ad97"
 wall-end = "a39985"
 trim = "f0efe9"
 door = "4f5253"
-roof = "353e44"
 
 [[family.paint]]
 wall = "8e9b86"
 wall-end = "7e8a77"
 trim = "ece9df"
 door = "3e4a3c"
-roof = "353e44"
 
 [[family.paint]]
 wall = "6f8290"
 wall-end = "627380"
 trim = "eeeeea"
 door = "7a2f2a"
-roof = "2c2f31"
 
 [[family.paint]]
 wall = "4a4f52"
 wall-end = "414548"
 trim = "e6e2d6"
 door = "b5832f"
-roof = "2c2f31"
 
 [[family.paint]]
 wall = "7c3b33"
 wall-end = "6d342d"
 trim = "ede6d6"
 door = "2f3a3f"
-roof = "4a4540"
 
 [[family.paint]]
 wall = "a9b4b8"
 wall-end = "96a0a4"
 trim = "f3f1ea"
 door = "2d4a5a"
-roof = "5b5f60"
 
 [[family.paint]]
 wall = "d6ccb4"
 wall-end = "bfb6a0"
 trim = "f5f2ea"
 door = "3d5a4a"
-roof = "4a4540"
 
 [[family.paint]]
 wall = "7a7a5c"
 wall-end = "6c6c52"
 trim = "ebe6d8"
 door = "5a3325"
-roof = "353e44"
 
 [[family]]
 id = "corridor-apartments"
@@ -113,7 +105,8 @@ depth_metres = [12, 20]
 # Eight 3 m bays at 24 m. One central entrance; the stairs stand at both ends over their doors.
 [family.body]
 library = "test-street/corridor-apartments"
-tile_metres = { wall = [2.0, 2.0], membrane = [20.0, 20.0] }
+tile_metres = { wall = [2.0, 2.0] }
+materials = { membrane = "bitumen" }
 bay_metres = 3.0
 parapet_metres = 0.7
 roof_hatch = true

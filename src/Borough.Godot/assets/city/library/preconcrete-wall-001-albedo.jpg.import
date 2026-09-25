@@ -3,19 +3,20 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ckkobrnrgop6l"
-path="res://.godot/imported/preconcrete-wall-001-albedo.jpg-fbc8919422c0840e950d7fc1f2432aa7.ctex"
+path.s3tc="res://.godot/imported/preconcrete-wall-001-albedo.jpg-fbc8919422c0840e950d7fc1f2432aa7.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/preconcrete-wall-001-albedo.jpg"
-dest_files=["res://.godot/imported/preconcrete-wall-001-albedo.jpg-fbc8919422c0840e950d7fc1f2432aa7.ctex"]
+dest_files=["res://.godot/imported/preconcrete-wall-001-albedo.jpg-fbc8919422c0840e950d7fc1f2432aa7.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

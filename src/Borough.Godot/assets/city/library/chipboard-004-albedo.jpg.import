@@ -3,19 +3,20 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ddkdxgqx4c737"
-path="res://.godot/imported/chipboard-004-albedo.jpg-b7f8ab9d4a93e1bea9b9c1f09ea4fb94.ctex"
+path.s3tc="res://.godot/imported/chipboard-004-albedo.jpg-b7f8ab9d4a93e1bea9b9c1f09ea4fb94.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/chipboard-004-albedo.jpg"
-dest_files=["res://.godot/imported/chipboard-004-albedo.jpg-b7f8ab9d4a93e1bea9b9c1f09ea4fb94.ctex"]
+dest_files=["res://.godot/imported/chipboard-004-albedo.jpg-b7f8ab9d4a93e1bea9b9c1f09ea4fb94.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

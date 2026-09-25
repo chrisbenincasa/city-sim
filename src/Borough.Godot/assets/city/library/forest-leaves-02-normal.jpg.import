@@ -3,25 +3,26 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://lmj4kl0grqxm"
-path="res://.godot/imported/forest-leaves-02-normal.jpg-db5fe0e84fabbd7d726f8e5217e24482.ctex"
+path.s3tc="res://.godot/imported/forest-leaves-02-normal.jpg-db5fe0e84fabbd7d726f8e5217e24482.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/forest-leaves-02-normal.jpg"
-dest_files=["res://.godot/imported/forest-leaves-02-normal.jpg-db5fe0e84fabbd7d726f8e5217e24482.ctex"]
+dest_files=["res://.godot/imported/forest-leaves-02-normal.jpg-db5fe0e84fabbd7d726f8e5217e24482.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
-compress/normal_map=0
+compress/normal_map=1
 compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1

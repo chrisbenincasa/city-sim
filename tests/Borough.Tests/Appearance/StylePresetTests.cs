@@ -40,6 +40,18 @@ public class StylePresetTests
         Assert.Contains(result.Preset.Families, f => f.Fallback && f.Kinds.Contains("dwelling"));
     }
 
+    [Fact]
+    public void The_shipped_test_street_preset_dresses_only_from_textures_the_library_holds()
+    {
+        StylePreset preset = StylePresetReader.Read(Path.Combine(AppContext.BaseDirectory, "Appearance", "test-street")).Preset!;
+        var library = TextureLibrary.Read(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Appearance", "library", "materials.json")));
+
+        StylePresetResult dressed = library.Dress(preset);
+
+        Assert.Empty(dressed.Errors);
+        Assert.Contains(dressed.Preset!.Families, f => f.Body?.Materials.Count > 0);
+    }
+
     [Theory]
     [InlineData("[[family]]\nid = \"a\"\nkinds = [\"dwelling\"]\ncolour = \"red\"\n", 8, "unknown key 'colour'")]
     [InlineData("[[family]]\nid = \"a\"\nkinds = [\"dwelling\"]\nstoreys = [3, 2]\n", 8, "'storeys' must be [low, high]")]
@@ -169,10 +181,11 @@ public class StylePresetTests
     {
         var library = TextureLibrary.Read("""
             { "textures": {
-                "bricks-088": { "tile_metres": [1.5, 1.5], "paint": true },
-                "clay-roof-tiles-02": { "tile_metres": [2, 2], "paint": false } } }
+                "bricks-088": { "tile_metres": [1.5, 1.5], "paint": true, "albedo_linear_mean_luminance": 0.64 },
+                "clay-roof-tiles-02": { "tile_metres": [2, 2], "paint": false, "albedo_linear_mean_luminance": 0.13 } } }
             """);
         Assert.Equal(["bricks-088"], library.Paintable);
+        Assert.Equal(0.64f, library.MeanLuminance["bricks-088"]);
         StylePreset preset = Preset("""
             [[family]]
             id = "terrace"

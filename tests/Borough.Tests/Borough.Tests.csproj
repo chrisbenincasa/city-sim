@@ -67,6 +67,8 @@
   <ItemGroup>
     <None Include="..\..\appearance\**\*.toml" Link="Appearance\%(RecursiveDir)%(Filename)%(Extension)"
           CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\src\Borough.Godot\assets\city\library\materials.json" Link="Appearance\library\materials.json"
+          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

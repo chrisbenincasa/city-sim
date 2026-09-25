@@ -98,14 +98,21 @@ photograph's mean. That caps paint on the test-street siding, render and block a
 shingles at `757575`; the shell warns and clamps a brighter one. Paint lives in the mesh, so it
 survives chunk merging. Each family's first scheme is its Blender body's colours.
 
-The shell draws a dressed part with the library texture's albedo, normal and roughness maps. A
-texture the library marks `paint` is greyscale at linear mean luminance 0.7, so a scheme paints it
-as it paints a model's material. Any other texture keeps its own colour, and a scheme that names the
-part leaves it alone. Brick and tile are the colour they are, while plaster and render take paint,
-and the library already records which is which. The test-street walkups wear `bricks-085`, so their
+A part dressed from the texture library draws with `library-body.gdshader`, using the texture's
+albedo, normal and roughness maps. Only a texture the library marks `paint` takes a scheme's colour.
+Brick and tile keep their photograph's colour, while plaster and render take paint. The vertex colour
+carries the sRGB paint and its alpha marks the part painted. The shader divides the paint by the
+texture's mean luminance with no clamp, so a dressed part takes any paint. The test-street rowhouses
+wear painted Bricks 088 walls and Clay Roof Tiles 02 roofs. The walkups wear `bricks-085`, so their
 schemes paint only the doors. The two-unit walls wear `painted-plaster-wall` and keep their schemes.
-A dressed part's far box takes the texture's mean colour, or the scheme's paint where it paints the
-part. Dressing adds no mesh and no layer, because a dressed surface only swaps its material.
+The corridor membrane wears Bitumen.
+
+Each Building shifts the texture by an offset hashed from its instance origin, so neighbours built
+from one mesh do not repeat in step and meshes stay shared across a chunk's MultiMesh. World-space
+value noise at 24, 12 and 6 m scales brightness by up to `macro_strength`, ±25%, which breaks the
+tile repeat across a long wall or roof. A dressed part's far box takes the texture's mean colour, or
+the scheme's paint where it paints the part. Dressing adds no mesh and no layer, because a dressed
+surface only swaps its material.
 
 `FamilyBodyBuilder` ports the vocabulary of `scripts/art/test-street.py`. The shell draws the result
 in place of the massing with `ui family-bodies on`.
@@ -147,6 +154,9 @@ the band in metres, and `on 0` draws every body as its far box.
 | Painted rowhouses, `rowhouses.toml`, 1,000 Citizens, Tick 600 | All 66 houses drew a scheme, spread across all eight. Wall, end wall, trim, door and roof vary house by house. `paint-h1-*.png` from `paint-h1.drive` |
 | Painted apartments, `gridded.toml`, 2,000 Citizens, Tick 600 | Corridor, walkup, two-unit and office-warehouse bodies draw their schemes; the render palette is quiet by design. `paint-apartments.png` from `paint-apartments.drive` |
 | Dressed apartments, `gridded.toml`, 2,000 Citizens, Tick 600 | Five walkups draw red brick at 2.4 × 1.2 m a tile, with painted doors. Two two-unit bodies draw plaster in their schemes' wall paint. The walkup's far box is the brick's mean colour. `dress-*.png` from `dress-apartments.drive` |
+| Library shader, `rowhouses.toml`, 1,000 Citizens, Tick 600 | Painted Bricks 088 walls keep each house's scheme colour; every Clay Roof Tiles 02 roof keeps the photograph's terracotta. `shader-rowhouses-street.png`, `shader-rowhouses-block.png` from `shader-rowhouses.drive` |
+| Library shader, `gridded.toml`, 2,000 Citizens, Tick 600 | Walkups draw `bricks-085`, two-unit blocks draw painted plaster, and corridor roofs draw Bitumen. Concrete Panels, the earlier membrane, read as streaks from above because the photograph is ribbed wall cladding. `shader-apartments.png`, `shader-walkup-near.png`, `shader-two-unit.png` from `shader-apartments.drive` |
+| Macro variation A/B, both cities above | Soft light at 0.35 barely changed pastel brick or dark Bitumen, because soft light moves little near black or white. A brightness multiply at ±15% was faint and ±30% showed patches on the clay roofs; the default is ±25%. Bitumen barely changes at any strength because its photograph is nearly black. Two runs of one frame differ in 10 to 13% of pixels with the shader unchanged, so compare by eye |
 | Corridor side-by-side | Walls, openings, canopies and roof hatch match. The two vents stand 4 m either side of the centre, where the Blender body puts them at 8 m. The ground windows sit 5 cm lower, and the back door is 10 cm taller |
 
 Limits of this slice:

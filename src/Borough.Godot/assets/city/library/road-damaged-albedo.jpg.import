@@ -3,19 +3,20 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://gie7x8ya2tay"
-path="res://.godot/imported/road-damaged-albedo.jpg-388cf0c608f4abc4f6eaea3a1104fec4.ctex"
+path.s3tc="res://.godot/imported/road-damaged-albedo.jpg-388cf0c608f4abc4f6eaea3a1104fec4.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/road-damaged-albedo.jpg"
-dest_files=["res://.godot/imported/road-damaged-albedo.jpg-388cf0c608f4abc4f6eaea3a1104fec4.ctex"]
+dest_files=["res://.godot/imported/road-damaged-albedo.jpg-388cf0c608f4abc4f6eaea3a1104fec4.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
