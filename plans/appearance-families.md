@@ -56,7 +56,7 @@ A family's `[family.body]` table says how it builds its body at any size it admi
 - texture library entries that dress some parts in place of the model's materials, as
   `materials = { wall = "bricks-088", roof = "clay-roof-tiles-02" }`. A dressed part tiles at the
   texture's measured size unless `tile_metres` lists it. `TextureLibrary.Dress` refuses a name
-  that `art/materials/library/materials.json` does not hold. The shell does not draw them yet.
+  that `src/Borough.Godot/assets/city/library/materials.json` does not hold.
 
 Spare bays split evenly among the `*` tokens. A remainder goes in pairs to the outermost tokens and
 a last odd bay to the middle one, so `["window*", "hall*", "window*"]` keeps its entrance central
@@ -98,6 +98,15 @@ photograph's mean. That caps paint on the test-street siding, render and block a
 shingles at `757575`; the shell warns and clamps a brighter one. Paint lives in the mesh, so it
 survives chunk merging. Each family's first scheme is its Blender body's colours.
 
+The shell draws a dressed part with the library texture's albedo, normal and roughness maps. A
+texture the library marks `paint` is greyscale at linear mean luminance 0.7, so a scheme paints it
+as it paints a model's material. Any other texture keeps its own colour, and a scheme that names the
+part leaves it alone. Brick and tile are the colour they are, while plaster and render take paint,
+and the library already records which is which. The test-street walkups wear `bricks-085`, so their
+schemes paint only the doors. The two-unit walls wear `painted-plaster-wall` and keep their schemes.
+A dressed part's far box takes the texture's mean colour, or the scheme's paint where it paints the
+part. Dressing adds no mesh and no layer, because a dressed surface only swaps its material.
+
 `FamilyBodyBuilder` ports the vocabulary of `scripts/art/test-street.py`. The shell draws the result
 in place of the massing with `ui family-bodies on`.
 
@@ -137,6 +146,7 @@ the band in metres, and `on 0` draws every body as its far box.
 | Corner shop and workshop, the same city on a copied preset | No shipped fixture raises either, so the copy lets them take dwellings. Fascia, awnings, brick and plant on the corner shop; panels, roller, rooflights and vents on the workshop. `body-corner-workshop-*.png`; `body-corner-workshop.drive` records the copy's edits |
 | Painted rowhouses, `rowhouses.toml`, 1,000 Citizens, Tick 600 | All 66 houses drew a scheme, spread across all eight. Wall, end wall, trim, door and roof vary house by house. `paint-h1-*.png` from `paint-h1.drive` |
 | Painted apartments, `gridded.toml`, 2,000 Citizens, Tick 600 | Corridor, walkup, two-unit and office-warehouse bodies draw their schemes; the render palette is quiet by design. `paint-apartments.png` from `paint-apartments.drive` |
+| Dressed apartments, `gridded.toml`, 2,000 Citizens, Tick 600 | Five walkups draw red brick at 2.4 × 1.2 m a tile, with painted doors. Two two-unit bodies draw plaster in their schemes' wall paint. The walkup's far box is the brick's mean colour. `dress-*.png` from `dress-apartments.drive` |
 | Corridor side-by-side | Walls, openings, canopies and roof hatch match. The two vents stand 4 m either side of the centre, where the Blender body puts them at 8 m. The ground windows sit 5 cm lower, and the back door is 10 cm taller |
 
 Limits of this slice:

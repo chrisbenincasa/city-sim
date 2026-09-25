@@ -1,0 +1,24 @@
+# Walkup walls dressed in bricks-085 and two-unit walls in painted-plaster-wall, from the texture
+# library: gridded.toml, 2000 Citizens, --start-at 600, default test-street preset.
+601 pause
+601 ui family-bodies on
+601 focus 167 131 80
+601 tilt 25
+601 shoot plans/evidence/appearance-families/dress-walkup.png
+601 speed 5
+602 pause
+602 focus 167 131 25
+602 tilt 12
+602 shoot plans/evidence/appearance-families/dress-walkup-near.png
+602 speed 5
+603 pause
+603 focus 76 208 80
+603 tilt 25
+603 shoot plans/evidence/appearance-families/dress-two-unit.png
+603 speed 5
+604 pause
+604 ui family-bodies on 0
+604 focus 167 131 80
+604 shoot plans/evidence/appearance-families/dress-far-boxes.png
+604 speed 5
+606 quit
