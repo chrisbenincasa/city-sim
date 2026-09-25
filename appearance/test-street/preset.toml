@@ -76,6 +76,24 @@ storeys = [3, 3]
 frontage_metres = [20, 28]
 depth_metres = [12, 20]
 
+# Two tenancies split at mid-frontage. Each has a street door under a stair stack at its outer end,
+# a garden door, and a roof hatch over its stair.
+[family.body]
+library = "test-street/two-unit-apartments"
+tile_metres = { wall = [2.0, 2.0], wall-end = [2.0, 2.0], membrane = [20.0, 20.0] }
+bay_metres = 3.0
+parapet_metres = 0.7
+party_line = true
+roof_hatch = true
+vents = 2
+openings = { window = [1.6, 1.7], door = [2.0, 2.5], stair = [2.0, 2.6, 1.2] }
+street_ground = ["door", "window*", "door"]
+street_upper = ["stair", "window*", "stair"]
+back_ground = ["window", "door", "window*", "door", "window"]
+back_upper = ["window*"]
+side_ground = ["blank*", "window", "blank", "window", "blank*"]
+side_upper = ["blank*", "window", "blank", "window", "blank*"]
+
 [[family]]
 id = "walkup-apartments"
 model = "test-street/walkup-apartments"
@@ -83,6 +101,21 @@ kinds = ["dwelling"]
 storeys = [3, 3]
 frontage_metres = [28, 36]
 depth_metres = [8, 16]
+
+# Two stair stacks on the street, each serving two flats a floor. Each flat has a garden door with a
+# balcony above it on every upper floor.
+[family.body]
+library = "test-street/walkup-apartments"
+tile_metres = { wall = [2.0, 2.0], membrane = [20.0, 20.0] }
+bay_metres = 4.0
+parapet_metres = 0.7
+openings = { window = [1.4, 1.7], door = [2.0, 2.4], stair = [2.0, 2.6, 1.2], balcony = [2.4, 2.3] }
+street_ground = ["window*", "door", "window*", "door", "window*"]
+street_upper = ["window*", "stair", "window*", "stair", "window*"]
+back_ground = ["balcony+window*"]
+back_upper = ["balcony+window*"]
+side_ground = ["window", "blank*", "window"]
+side_upper = ["window", "blank*", "window"]
 
 [[family]]
 id = "corner-shops-with-flats"
@@ -92,6 +125,23 @@ storeys = [3, 3]
 frontage_metres = [20, 28]
 depth_metres = [12, 20]
 zones = ["trade"]
+
+# Shops on the street under a fascia and awnings, with two shop doors. A free end is the side
+# street: two shops and the flats' door under their stair. Receiving is at the back.
+[family.body]
+library = "test-street/corner-shops-with-flats"
+tile_metres = { wall = [1.125, 1.125], membrane = [20.0, 20.0] }
+bay_metres = 3.0
+parapet_metres = 0.9
+shopfront = true
+plant = 2
+openings = { window = [1.5, 1.8], door = [2.3, 2.6], stair = [2.0, 2.6, 1.2], shop = [2.3, 3.0, 0.6], roller = [3.2, 3.0] }
+street_ground = ["shop", "door", "shop*", "door", "shop", "shop"]
+street_upper = ["window*"]
+back_ground = ["roller", "door", "blank*"]
+back_upper = ["window*"]
+side_ground = ["shop", "shop", "blank*", "door"]
+side_upper = ["window*", "stair"]
 
 [[family]]
 id = "office-warehouse"
@@ -109,6 +159,7 @@ bay_metres = 6.0
 parapet_metres = 0.8
 pilasters = true
 plant = 2
+receiving_canopy = true
 street_ground = ["shop", "shop", "entry", "shop*"]
 street_upper = ["shop*"]
 back_ground = ["roller", "roller", "door", "blank*"]
@@ -123,3 +174,19 @@ kinds = ["shopfront", "officeblock"]
 storeys = [2, 2]
 frontage_metres = [28, 36]
 depth_metres = [12, 20]
+
+# An 8 m grid of panels. A receiving door and a door on the street; long windows above and behind.
+[family.body]
+library = "test-street/workshop"
+tile_metres = { wall = [2.0, 2.0], membrane = [20.0, 20.0] }
+bay_metres = 8.0
+parapet_metres = 0.8
+panels = true
+rooflights = true
+openings = { window = [5.0, 1.2, 1.1], door = [1.0, 2.3], roller = [3.5, 3.0] }
+street_ground = ["roller", "door", "window*"]
+street_upper = ["window*"]
+back_ground = ["window*"]
+back_upper = ["window*"]
+side_ground = ["door", "blank*"]
+side_upper = ["blank*", "window"]

@@ -56,8 +56,21 @@ A family's `[family.body]` table says how it builds its body at any size it admi
 
 Spare bays split evenly among the `*` tokens. A remainder goes in pairs to the outermost tokens and
 a last odd bay to the middle one, so `["window*", "hall*", "window*"]` keeps its entrance central
-at any bay count. Neighbouring `hall` bays share one door. A ground door with a stair window above
-it gets a small canopy.
+at any bay count. A filling token may name several kinds joined by `+`, and the spare bays take
+them in turn, so `balcony+window*` alternates balconies and windows. Neighbouring `hall` bays share
+one door. A ground door with a stair window above it gets a canopy, deeper on the street than on an
+end wall.
+
+Five switches cover the other test-street families:
+- `balcony` bays are doors onto a 1.4 m balcony, or garden doors on the ground storey.
+- `shopfront` puts a fascia over each wall's shop bays and an awning over each street run of shops.
+- `party_line` marks mid-frontage on the front and back walls and raises an upstand across the roof,
+  so one Building reads as two units.
+- `panels` joints the walls at every bay line and bands each storey.
+- `rooflights` adds two rows of rooflights and a vent over each street bay.
+- `receiving_canopy` draws the back canopy over the rollers. Only the office-warehouse sets it.
+
+A roof hatch stands over each street stair.
 
 A rowhouses Building is one house. The shell probes half a metre outside the middle of each side
 wall; where another Building's footprint covers the probe, that wall is a party wall. A party wall
@@ -70,6 +83,13 @@ bit 1, which nothing builds on, so the middle of the city stays empty.
 `FamilyBodyBuilder` ports the vocabulary of `scripts/art/test-street.py`. The shell draws the result
 in place of the massing with `ui family-bodies on`.
 
+Bodies stay drawn under every overlay and follow the massing's overlay rule. A building overlay
+(family, health, trouble, rung, age) covers the whole body in the Building's overlay colour, unlit,
+with the massing's fixed diagram light. A ground overlay (pollution, value, sealing) mutes the body
+to the context grey. With no overlay, an abandoned body takes a 75% tint of `Main.Derelict` over its
+own materials. `overlay-buildings.gdshader` reads a body's colour from the `body_ink` instance
+uniform. Godot linearises an instance uniform's Color, so the shell passes sRGB.
+
 | Check | Result |
 |---|---|
 | Office-warehouse at 36 × 20 m against its Blender body | Same bounds: ±18.2 m, 11.4 m to the street canopy, 12.2 m to the receiving canopy, 8.5 m to the plant |
@@ -80,10 +100,21 @@ in place of the massing with `ui family-bodies on`.
 | Four attached 6 × 12 m rowhouses against the Blender row | Same bounds: ±12.2 m to the free eaves, 7.0 m to the front steps, 6.4 m to the back eaves, 10.05 m to the chimneys |
 | Live city, `rowhouses.toml`, 1,000 Citizens, Tick 600 | 66 generated rowhouses, all 8 × 12 m and three storeys, round three 64 m blocks. Each block has rows on its north and south faces and columns on its west and east faces. 54 share both side walls. Each row has a free end at each street corner, and each column's end houses back onto the rows and hip down to them. `h1-blocks.png`, `h1-block.png`, `h1-street.png` and `h1-garden.png`, from `h1-preview.drive`, show the current fixture. The earlier `h1-body-*` captures from `h1-body.drive`, and the corner captures, were taken when the fixture's streets ran every 128 m; the Blender row is rendered by `blender-render.py` |
 | Rowhouse side-by-side | Upstands, chimneys, steps, doors and the windowed free end match. Each house has one window size, so the narrow window over the Blender door is as wide as the other. End walls take the wall siding, not the darker end siding |
+| Bodies under overlays, `rowhouses.toml` and `declining.toml`, 1,000 Citizens | Family wash colours all 66 rowhouses; value mutes them; trouble colours bodies exactly as it colours the massing beside them. `body-wash-*.png` from `body-wash.drive` and `body-derelict.drive` |
+| Abandoned body, `declining.toml` at Tick 6,401 | 13 of 18 bodies are abandoned. The abandoned office-warehouse at Tile 154 132 reads grey beside the near-white standing ones. `body-derelict.png`, with the massing in `body-derelict-massing.png` |
+| Walkup, two-unit and workshop at their Blender sizes | Same bounds as the Blender bodies; `FamilyBodyTests` checks each |
+| Corner shop at its Blender size | Side-street shops at its free end and none at its shared end; same street, back and height bounds |
+| Live city, `gridded.toml`, 2,000 Citizens, Tick 600 | Five generated walkups and one generated two-unit. Walkup balconies, canopies and end windows, and the two-unit's party upstand and two hatches, read in `body-walkup-*.png` and `body-two-unit.png`. `body-two-unit-blender.png` shows the Blender two-unit at Tile 107 137. All from `body-four.drive` |
+| Corner shop and workshop, the same city on a copied preset | No shipped fixture raises either, so the copy lets them take dwellings. Fascia, awnings, brick and plant on the corner shop; panels, roller, rooflights and vents on the workshop. `body-corner-workshop-*.png`; `body-corner-workshop.drive` records the copy's edits |
 | Corridor side-by-side | Walls, openings, canopies and roof hatch match. The two vents stand 4 m either side of the centre, where the Blender body puts them at 8 m. The ground windows sit 5 cm lower, and the back door is 10 cm taller |
 
 Limits of this slice:
-- A body is drawn only with no overlay showing, because its materials take no wash or paint.
+- An abandoned body keeps whole windows. The massing shader's stains and broken glass have no body
+  equivalent yet.
+- Bodies take no per-Building value and warmth wander, so a terrace of one family is one colour.
+- The generated corner shop has no stair overrun or scuppers, and its side-street canopy is 0.5 m
+  deep where the Blender body's is 1.0 m. Both free ends get side-street shops.
+- The workshop's office bay is a plain door.
 - A Building raised after the toggle gets no foliage footprint for its body until the next full pass.
 - One mesh per Building, with no chunking or far level yet.
 - Scuppers, downpipes and roof crickets are left for the minor-details pass.
@@ -100,8 +131,6 @@ Limits of this slice:
 
 ## Next
 
-- Bodies for the other test-street families: walkup-apartments, two-unit-apartments, corner-shops-with-flats and workshop.
 - Refresh a body when its neighbour is raised or removed.
-- Wash and paint for bodies, so overlays work with bodies on.
 - Chunked upload and the far level, measured against the 6 ms Building frame share.
 - Author the rest of the families. The coverage report says which size bands and kinds need them.

@@ -806,7 +806,7 @@ public partial class Main
                 // difference between these two and the three ground ones. A ground overlay mutes
                 // everything and lets the plane carry the reading; a building overlay mutes
                 // everything EXCEPT the thing being measured.
-                Wash.Rung or Wash.Age or Wash.Family or Wash.Health or Wash.Trouble when name is "building" or "roof" or "hip" or "paired-roof" => _categorical,
+                _ when BuildingWash && name is "building" or "roof" or "hip" or "paired-roof" => _categorical,
                 _ => _muted,
             };
         }
@@ -823,7 +823,7 @@ public partial class Main
         // A building wash reads nothing off a Cell, so there is no texture to build and the ground
         // goes dark rather than staying under the last layer's tint -- which would be a stale
         // instrument sitting beside a live one, and the reader has no way to tell.
-        if (_washing is Wash.Rung or Wash.Age or Wash.Family or Wash.Health or Wash.Trouble)
+        if (BuildingWash)
         {
             _washPeak = 0;
             _washCells = 0;

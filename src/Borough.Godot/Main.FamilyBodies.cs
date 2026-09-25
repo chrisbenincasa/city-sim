@@ -11,8 +11,7 @@ namespace Borough.Shell;
 /// own size, in place of its massing. <c>ui family-bodies on|off</c>.
 /// </summary>
 /// <remarks>
-/// A body is drawn only with no overlay showing, since its materials carry no wash. A Building
-/// that draws as several massing wings keeps its massing.
+/// A Building that draws as several massing wings keeps its massing.
 /// </remarks>
 public partial class Main
 {
@@ -25,8 +24,12 @@ public partial class Main
     private readonly Dictionary<ulong, Node3D> _familyBodyNodes = [];
     private readonly Dictionary<(string Family, int Frontage, int Depth, int Storeys, AttachedSides Attached), ArrayMesh> _familyBodyMeshes = [];
     private readonly Dictionary<string, Dictionary<string, Material>> _bodyLibraries = [];
+    private ShaderMaterial? _derelictBody;
     private bool _familyBodies;
     private bool _reportFamilyBodies;
+
+    /// <summary>How far an abandoned body's own materials give way to <see cref="Derelict"/>.</summary>
+    private const float DerelictBodyShare = 0.75f;
 
     private void FamilyBodyStudy(string[] words)
     {
@@ -61,7 +64,7 @@ public partial class Main
     /// <returns><c>true</c> where the Building now draws as its family's body.</returns>
     private bool PlaceFamilyBody(int slot)
     {
-        if (!_familyBodies || _washing != Wash.None) return false;
+        if (!_familyBodies) return false;
         if (FamilyOf(slot).Family is not { Body: { } body } family) return false;
 
         using IEnumerator<Massing> parts = Buildings(slot).GetEnumerator();
@@ -85,15 +88,36 @@ public partial class Main
             Position = one.Body.Origin with { Y = 0f },
             Rotation = new Vector3(0f, turn, 0f),
         };
+        Dress(node, one);
         AddChild(node);
         _familyBodyNodes[one.Id] = node;
         if (_reportFamilyBodies)
         {
             GD.Print($"family_body\t{family.Id}\tbuilding {one.Id}\t{frontage}x{depth} m\t{storeys} storeys\tattached {attached}"
-                + $"\ttile {Mathf.RoundToInt(one.Body.Origin.X / MetresPerTile)} {Mathf.RoundToInt(-one.Body.Origin.Z / MetresPerTile)}");
+                + $"\ttile {Mathf.RoundToInt(one.Body.Origin.X / MetresPerTile)} {Mathf.RoundToInt(-one.Body.Origin.Z / MetresPerTile)}"
+                + (one.Abandoned ? "\tabandoned" : ""));
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Covers a body in its Building's overlay colour, mutes it under a ground overlay, or greys it
+    /// when abandoned, as the massing is drawn.
+    /// </summary>
+    private void Dress(MeshInstance3D node, Massing one)
+    {
+        if (_washing != Wash.None)
+        {
+            node.MaterialOverride = BuildingWash ? _categorical : _muted;
+            if (BuildingWash) node.SetInstanceShaderParameter("body_ink", one.Paint.LinearToSrgb() with { A = 1f });
+            return;
+        }
+
+        if (!one.Abandoned) return;
+        _derelictBody ??= new ShaderMaterial { Shader = GD.Load<Shader>("res://derelict-body.gdshader") };
+        node.MaterialOverlay = _derelictBody;
+        node.SetInstanceShaderParameter("derelict", Derelict with { A = DerelictBodyShare });
     }
 
     /// <summary>

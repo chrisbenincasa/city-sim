@@ -5,6 +5,12 @@ render_mode unshaded, cull_back;
 uniform int treatment = 2;
 uniform bool context_only = false;
 uniform vec3 context_colour : source_color = vec3(0.08, 0.10, 0.095);
+
+// A family body's colour. Its alpha is zero on the massing, which takes COLOR from its MultiMesh
+// instance and is a unit box the edge test can read. Godot linearises an instance uniform's Color,
+// so the shell passes the sRGB value.
+instance uniform vec4 body_ink = vec4(0.0);
+
 varying vec3 local_position;
 varying vec3 world_normal;
 varying vec3 triangle;
@@ -18,13 +24,15 @@ void vertex() {
 }
 
 void fragment() {
-    vec3 ink = context_only ? context_colour : COLOR.rgb;
+    bool body = body_ink.a > 0.0;
+    vec3 paint = body ? body_ink.rgb : COLOR.rgb;
+    vec3 ink = context_only ? context_colour : paint;
     if (treatment > 0) {
         // A fixed diagram light: the reading cannot change with time of day.
         float face = 0.66 + 0.34 * max(0.0, dot(normalize(world_normal), normalize(vec3(-0.4, 0.85, 0.3))));
         ink *= face;
     }
-    if (treatment > 1 && !context_only) {
+    if (treatment > 1 && !context_only && !body) {
         // Second-nearest unit-mesh bound finds geometric edges, not triangle diagonals.
         vec3 pixels = (vec3(0.5) - abs(local_position)) / max(fwidth(local_position), vec3(0.00001));
         float nearest = min(pixels.x, min(pixels.y, pixels.z));

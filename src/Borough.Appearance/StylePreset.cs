@@ -75,6 +75,11 @@ public enum BayKind : byte
     /// them, under a canopy on the street wall. Above the ground a hall bay is a window.
     /// </summary>
     Hall,
+
+    /// <summary>
+    /// A door onto a balcony that spans it. On the ground storey it is a garden door with no balcony.
+    /// </summary>
+    Balcony,
 }
 
 /// <summary>
@@ -87,16 +92,17 @@ public readonly record struct OpeningSize(float Width, float Height, float? Sill
 /// One storey's bays along a wall. A filling token repeats to take up the bays the fixed tokens
 /// leave, shared evenly among the filling tokens. Bays that do not share evenly go in pairs to the
 /// outermost fillers, and a last odd one to the middle filler, so a symmetric row stays symmetric.
+/// A token of several kinds lays them in turn, so a filling <c>balcony+window</c> alternates.
 /// </summary>
-public sealed record BayRow(BayKind[] Kinds, bool[] Fills)
+public sealed record BayRow(BayKind[][] Tokens, bool[] Fills)
 {
-    public static readonly BayRow Blank = new([BayKind.Blank], [true]);
+    public static readonly BayRow Blank = new([[BayKind.Blank]], [true]);
 
     /// <summary>The row laid out over <paramref name="bays"/> bays.</summary>
     public BayKind[] Over(int bays)
     {
         int fixedCount = Fills.Count(f => !f);
-        int fillers = Kinds.Length - fixedCount;
+        int fillers = Tokens.Length - fixedCount;
         int spare = Math.Max(0, bays - fixedCount);
         int[] share = new int[fillers];
         if (fillers > 0)
@@ -114,10 +120,10 @@ public sealed record BayRow(BayKind[] Kinds, bool[] Fills)
 
         var laid = new List<BayKind>(bays);
         int filler = 0;
-        for (int i = 0; i < Kinds.Length && laid.Count < bays; i++)
+        for (int i = 0; i < Tokens.Length && laid.Count < bays; i++)
         {
             int count = Fills[i] ? share[filler++] : 1;
-            for (int n = 0; n < count && laid.Count < bays; n++) laid.Add(Kinds[i]);
+            for (int n = 0; n < count && laid.Count < bays; n++) laid.Add(Tokens[i][n % Tokens[i].Length]);
         }
 
         while (laid.Count < bays) laid.Add(BayKind.Blank);
@@ -136,13 +142,24 @@ public sealed record WallRule(BayRow Ground, BayRow Upper);
 /// <param name="Plant">Rooftop plant units, spaced evenly along the frontage.</param>
 /// <param name="Vents">Rooftop vents, spaced evenly along the frontage.</param>
 /// <param name="Openings">
-/// Opening sizes that replace the builder's own for window, door and stair bays, on every storey.
+/// Opening sizes that replace the builder's own for window, door, stair, shop, roller and balcony
+/// bays, on every storey.
 /// </param>
 /// <param name="GableDegrees">
 /// The pitch of a gable roof whose ridge runs along the street, or 0 for a flat roof.
 /// </param>
 /// <param name="Chimney">A chimney stands behind the ridge near the right-hand end.</param>
 /// <param name="Steps">A step stands before each street door.</param>
+/// <param name="PartyLine">
+/// The body reads as two halves: a party line runs up the middle of the street and back walls and an
+/// upstand crosses the roof.
+/// </param>
+/// <param name="Shopfront">
+/// A fascia runs over each wall's ground-storey shops, and an awning shades each run of street shops.
+/// </param>
+/// <param name="Panels">Panel joints stand at every bay line of the street and back walls, with a floor band at each storey.</param>
+/// <param name="Rooflights">Two rooflights and a vent stand over each street bay.</param>
+/// <param name="ReceivingCanopy">A canopy shelters each roller door on the back wall.</param>
 public sealed record FamilyBody(
     string Library,
     IReadOnlyDictionary<string, (float Along, float Up)> TileMetres,
@@ -158,7 +175,12 @@ public sealed record FamilyBody(
     IReadOnlyDictionary<BayKind, OpeningSize> Openings,
     float GableDegrees,
     bool Chimney,
-    bool Steps);
+    bool Steps,
+    bool PartyLine = false,
+    bool Shopfront = false,
+    bool Panels = false,
+    bool Rooflights = false,
+    bool ReceivingCanopy = false);
 
 /// <summary>The side walls a body shares with a neighbour, left and right as seen from the street.</summary>
 [Flags]

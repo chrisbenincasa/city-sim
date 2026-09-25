@@ -30,12 +30,52 @@ public sealed class FamilyBodyTests
     }
 
     [Theory]
+    [InlineData("walkup-apartments", 32f, 12f, 3, 16.06f, 11.28f, -7.4f, 7.1f)]
+    [InlineData("two-unit-apartments", 24f, 16f, 3, 12.06f, 11.4f, -8.12f, 9.1f)]
+    [InlineData("workshop", 32f, 16f, 2, 16.06f, 7.88f, -8.06f, 8.06f)]
+    public void A_body_at_its_blender_size_has_the_blender_bodys_bounds(string family, float frontage, float depth, int storeys,
+        float halfWidth, float top, float back, float street)
+    {
+        Vector3[] all = Positions(FamilyBodyBuilder.Build(TestStreet(family), frontage, depth, storeys));
+
+        Assert.Equal(-halfWidth, all.Min(p => p.X), 3);
+        Assert.Equal(halfWidth, all.Max(p => p.X), 3);
+        Assert.Equal(0f, all.Min(p => p.Y), 3);
+        Assert.Equal(top, all.Max(p => p.Y), 3);
+        Assert.Equal(back, all.Min(p => p.Z), 3);
+        Assert.Equal(street, all.Max(p => p.Z), 3);
+    }
+
+    [Fact]
+    public void A_corner_shop_shows_the_side_street_shops_at_its_free_end_and_none_at_its_shared_one()
+    {
+        FamilyBodyMesh mesh = FamilyBodyBuilder.Build(TestStreet("corner-shops-with-flats"), 24f, 16f, 3, AttachedSides.Left);
+        Vector3[] all = Positions(mesh);
+        Vector3[] glass = [.. mesh.Parts.Single(p => p.Part == "glass").Mesh.Positions.ToArray()];
+
+        Assert.Equal(9.3f, all.Max(p => p.Z), 3);
+        Assert.Equal(-8.06f, all.Min(p => p.Z), 3);
+        Assert.Contains(glass, p => p.X > 11.7f && p.Y < 3.7f);
+        Assert.DoesNotContain(glass, p => p.X < -11.7f);
+    }
+
+    [Theory]
+    [InlineData(7, "BWBWBWB")]
+    [InlineData(8, "BWBWBWBW")]
+    public void A_filling_token_of_two_kinds_lays_them_in_turn(int bays, string expected)
+    {
+        BayRow row = TestStreet("walkup-apartments").Back.Ground;
+
+        Assert.Equal(expected, string.Concat(row.Over(bays).Select(k => k == BayKind.Balcony ? 'B' : 'W')));
+    }
+
+    [Theory]
     [InlineData(7, "WWHHHWW")]
     [InlineData(8, "WWWHHWWW")]
     [InlineData(9, "WWWHHHWWW")]
     public void Bays_that_do_not_share_evenly_keep_a_symmetric_row_symmetric(int bays, string expected)
     {
-        var row = new BayRow([BayKind.Window, BayKind.Hall, BayKind.Window], [true, true, true]);
+        var row = new BayRow([[BayKind.Window], [BayKind.Hall], [BayKind.Window]], [true, true, true]);
 
         Assert.Equal(expected, string.Concat(row.Over(bays).Select(k => k == BayKind.Hall ? 'H' : 'W')));
     }
@@ -144,11 +184,11 @@ public sealed class FamilyBodyTests
             [family.body]
             library = "l"
             bay_metres = 3
-            openings = { shop = [2, 2], window = [1.6], door = [1, 2, -1] }
+            openings = { entry = [2, 2], window = [1.6], door = [1, 2, -1] }
             """)]);
 
         Assert.Null(read.Preset);
-        Assert.Contains(read.Errors, e => e.Message.Contains("'openings.shop' names no sized opening", StringComparison.Ordinal));
+        Assert.Contains(read.Errors, e => e.Message.Contains("'openings.entry' names no sized opening", StringComparison.Ordinal));
         Assert.Contains(read.Errors, e => e.Message.Contains("'openings.window' must be", StringComparison.Ordinal));
         Assert.Contains(read.Errors, e => e.Message.Contains("'openings.door' must be", StringComparison.Ordinal));
     }
@@ -163,7 +203,7 @@ public sealed class FamilyBodyTests
     [Fact]
     public void Two_filling_tokens_share_the_spare_bays_from_the_left()
     {
-        var row = new BayRow([BayKind.Shop, BayKind.Entry, BayKind.Window], [true, false, true]);
+        var row = new BayRow([[BayKind.Shop], [BayKind.Entry], [BayKind.Window]], [true, false, true]);
 
         Assert.Equal([BayKind.Shop, BayKind.Shop, BayKind.Shop, BayKind.Entry, BayKind.Window, BayKind.Window], row.Over(6));
     }
@@ -189,6 +229,10 @@ public sealed class FamilyBodyTests
     [Theory]
     [InlineData("office-warehouse", 36f, 20f, 2, AttachedSides.None)]
     [InlineData("corridor-apartments", 24f, 16f, 3, AttachedSides.None)]
+    [InlineData("walkup-apartments", 32f, 12f, 3, AttachedSides.None)]
+    [InlineData("two-unit-apartments", 24f, 16f, 3, AttachedSides.None)]
+    [InlineData("corner-shops-with-flats", 24f, 16f, 3, AttachedSides.Left)]
+    [InlineData("workshop", 32f, 16f, 2, AttachedSides.None)]
     [InlineData("rowhouses", 6f, 12f, 3, AttachedSides.Left)]
     [InlineData("rowhouses", 8f, 12f, 3, AttachedSides.Right | AttachedSides.RightCrosswise)]
     [InlineData("rowhouses", 8f, 12f, 3, AttachedSides.Left | AttachedSides.LeftCrosswise | AttachedSides.Right | AttachedSides.RightCrosswise)]

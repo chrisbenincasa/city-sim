@@ -1,0 +1,15 @@
+# Generated bodies for a corner shop (Tile 168 108) and a workshop (Tile 179 108): gridded.toml,
+# 2000 Citizens, --start-at 600, --appearance on a copy of the test-street preset. No shipped
+# fixture raises either family, so the copy gives corner-shops-with-flats and workshop the kind
+# "dwelling" at weight 20 and drops the corner shop's zones limit.
+601 pause
+601 ui family-bodies on
+601 focus 172 108 75
+601 tilt 30
+601 shoot plans/evidence/appearance-families/body-corner-workshop-a.png
+601 speed 5
+602 pause
+602 turn right
+602 shoot plans/evidence/appearance-families/body-corner-workshop-b.png
+602 speed 5
+604 quit
