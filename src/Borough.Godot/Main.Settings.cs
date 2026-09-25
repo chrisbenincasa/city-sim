@@ -8,6 +8,8 @@ public partial class Main
     private PanelContainer _settingsPanel = null!;
     private bool _edgeScrolling = true;
     private Button _edgeScrollButton = null!;
+    private bool _antialiasing = true;
+    private Button _antialiasButton = null!;
 
     private void BuildSettings()
     {
@@ -37,9 +39,21 @@ public partial class Main
         _edgeScrollButton.ToggleMode = true;
         _edgeScrollButton.TooltipText = "Move the camera when the pointer reaches the window edge";
         body.AddChild(_edgeScrollButton);
+        _antialiasButton = InformationButton("Anti-aliasing", () => Ui(_antialiasing ? "antialias off" : "antialias on"));
+        _antialiasButton.ToggleMode = true;
+        _antialiasButton.ButtonPressed = _antialiasing;
+        _antialiasButton.TooltipText = "Smooth thin edges such as kerbs and roof ridges (TAA)";
+        body.AddChild(_antialiasButton);
         body.AddChild(InformationButton("Help & shortcuts", () => Ui("help on")));
         ScrollAuxiliary(_settingsPanel, body);
         _settingsPanel.Visible = false;
+    }
+
+    private void SetAntialiasing(bool on)
+    {
+        _antialiasing = on;
+        GetViewport().UseTaa = on;
+        _antialiasButton?.SetPressedNoSignal(on);
     }
 
     private void LayoutSettings(Vector2 size, float margin)
