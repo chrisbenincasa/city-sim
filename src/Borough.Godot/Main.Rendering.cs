@@ -32,11 +32,17 @@ public partial class Main
             for (int i = 0; i < _buildings.Multimesh.VisibleInstanceCount; i++) drawn.Add(_buildings.Multimesh.IdAt(i));
             var rows = _world.Buildings.Rows;
             for (int slot = 0; slot < rows.SlotCount; slot++)
-                if (rows.IsLive(slot)) _renderedBuildings[slot] = (rows.IdAt(slot), drawn.Contains(rows.IdAt(slot)));
+            {
+                if (!rows.IsLive(slot)) continue;
+                ulong id = rows.IdAt(slot);
+                _renderedBuildings[slot] = (id, drawn.Contains(id) || _familyBodyNodes.ContainsKey(id) || _exactBodies.ContainsKey(id) || _shelled.Contains(id));
+            }
         }
         else
         {
             bool geometry = false;
+            var changedIds = new HashSet<ulong>();
+            var placed = new List<int>();
             foreach (int slot in changes.Buildings)
             {
                 _buildingEdits++;
@@ -48,8 +54,11 @@ public partial class Main
                     if (old.Drawn) _drawnBuildings--;
                     if (old.Id != id) geometry |= ReplaceBuilding(old.Id);
                     RemoveFamilyBody(old.Id);
+                    changedIds.Add(old.Id);
                 }
                 if (!live) continue;
+                changedIds.Add(id);
+                placed.Add(slot);
                 RemoveFamilyBody(id);
                 bool bodied = PlaceFamilyBody(slot);
                 if (!bodied)
@@ -68,6 +77,7 @@ public partial class Main
                 _renderedBuildings[slot] = (id, drawn);
                 if (drawn) _drawnBuildings++;
             }
+            if (_familyBodies) RefreshNeighbourBodies(changedIds, placed);
             if (geometry)
             {
                 int at = 0;
@@ -97,6 +107,12 @@ public partial class Main
             foreach (var entry in before[i])
                 if (!after.TryGetValue(entry.Key, out var value) || value != entry.Value)
                     throw new System.InvalidOperationException($"Incremental Building {entry.Key} differs from a full rebuild at Tick {_world.Tick.Raw}.");
+        }
+
+        foreach ((ulong id, BodyNeighbours seen) in _bodyNeighbours)
+        {
+            if (IdAt(Covering(seen.Slot, seen.LeftProbe)) != seen.LeftId || IdAt(Covering(seen.Slot, seen.RightProbe)) != seen.RightId)
+                throw new System.InvalidOperationException($"Body of Building {id} was drawn against neighbours that have changed, at Tick {_world.Tick.Raw}.");
         }
     }
 
