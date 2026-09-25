@@ -1,0 +1,34 @@
+# Corridor-apartments body: shopping.toml, 1000 Citizens, --start-at 600.
+601 pause
+601 ui exact-bodies on
+601 ui family-bodies on
+601 focus 68 116 90
+601 tilt 25
+601 shoot plans/evidence/appearance-families/a1-body-blender.png
+601 speed 5
+602 pause
+602 focus 2084 116 90
+602 shoot plans/evidence/appearance-families/a1-body-generated-24x16.png
+602 speed 5
+603 pause
+603 turn left
+603 turn left
+603 focus 68 116 70
+603 shoot plans/evidence/appearance-families/a1-body-blender-street.png
+603 speed 5
+604 pause
+604 focus 2084 116 70
+604 shoot plans/evidence/appearance-families/a1-body-generated-24x16-street.png
+604 speed 5
+605 pause
+605 focus 100 108 70
+605 shoot plans/evidence/appearance-families/a1-body-generated-20x16-street.png
+605 speed 5
+606 pause
+606 turn left
+606 turn left
+606 focus 2084 116 300
+606 tilt 40
+606 shoot plans/evidence/appearance-families/a1-body-hood.png
+606 speed 5
+608 quit

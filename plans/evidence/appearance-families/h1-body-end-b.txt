@@ -1,0 +1,20 @@
+tick 602
+rowhouses.toml   Tick 602   Day 0   Monday   12:03
+Citizens 1,000   Buildings 108   vacant Lots 3   travelling 0
+speed paused   mode look   [ ] speed, space pause, w write log, g roads, c cells, tab tune
+click acts   right-drag or two-finger scroll pans   edge of screen pans   pinch or -/= zooms   q/e turns   r/f tilts   l lens   o overlay
+hover —
+road Segment · Street · 128 m · 0 Vehicles present
+debug —
+Tile (142, 64)    Cell (4, 2)
+dwelling — 1 of 1 occupied, 0 Tiles off
+Lot 10, future uses 0x0001 across the whole site
+ground: ordinary
+pollution 0    land value 0    sealing 388
+inspector —
+closed
+ui theme=dark debug=False visible=False scroll=0
+inspector (2130, 104), (406, 177) min=(125, 177)
+body (2130, 104), (0, 0) min=(0, 0)
+scroll (2130, 104), (0, 0) min=(0, 0)
+hover (40, 1286), (908, 49) debug (24, 264), (840, 36) console (24, 1210), (940, 137)

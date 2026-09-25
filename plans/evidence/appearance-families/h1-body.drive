@@ -1,0 +1,18 @@
+# Rowhouses body: rowhouses.toml, 1000 Citizens, --start-at 600.
+601 pause
+601 ui family-bodies on
+601 focus 132 66 70
+601 tilt 25
+601 shoot plans/evidence/appearance-families/h1-body-end-a.png
+601 speed 5
+602 pause
+602 turn left
+602 turn left
+602 shoot plans/evidence/appearance-families/h1-body-end-b.png
+602 speed 5
+603 pause
+603 focus 140 66 300
+603 tilt 40
+603 shoot plans/evidence/appearance-families/h1-body-hood.png
+603 speed 5
+605 quit

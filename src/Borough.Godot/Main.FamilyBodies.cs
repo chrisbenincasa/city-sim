@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Borough.Appearance;
+using Borough.Core.Entities;
 using Godot;
 
 namespace Borough.Shell;
@@ -22,7 +23,7 @@ public partial class Main
     ];
 
     private readonly Dictionary<ulong, Node3D> _familyBodyNodes = [];
-    private readonly Dictionary<(string Family, int Frontage, int Depth, int Storeys), ArrayMesh> _familyBodyMeshes = [];
+    private readonly Dictionary<(string Family, int Frontage, int Depth, int Storeys, AttachedSides Attached), ArrayMesh> _familyBodyMeshes = [];
     private readonly Dictionary<string, Dictionary<string, Material>> _bodyLibraries = [];
     private bool _familyBodies;
     private bool _reportFamilyBodies;
@@ -75,32 +76,80 @@ public partial class Main
         float frontage = facesNorthSouth ? size.X : size.Z;
         float depth = facesNorthSouth ? size.Z : size.X;
         int storeys = Mathf.Max(1, Mathf.RoundToInt(size.Y / StoreyMetres));
+        float turn = Mathf.Atan2(faceEast, faceSouth);
+        AttachedSides attached = Attached(slot, one.Body.Origin, turn, frontage);
 
         var node = new MeshInstance3D
         {
-            Mesh = BodyMesh(family.Id, body, frontage, depth, storeys),
+            Mesh = BodyMesh(family.Id, body, frontage, depth, storeys, attached),
             Position = one.Body.Origin with { Y = 0f },
-            Rotation = new Vector3(0f, Mathf.Atan2(faceEast, faceSouth), 0f),
+            Rotation = new Vector3(0f, turn, 0f),
         };
         AddChild(node);
         _familyBodyNodes[one.Id] = node;
         if (_reportFamilyBodies)
         {
-            GD.Print($"family_body\t{family.Id}\tbuilding {one.Id}\t{frontage}x{depth} m\t{storeys} storeys"
+            GD.Print($"family_body\t{family.Id}\tbuilding {one.Id}\t{frontage}x{depth} m\t{storeys} storeys\tattached {attached}"
                 + $"\ttile {Mathf.RoundToInt(one.Body.Origin.X / MetresPerTile)} {Mathf.RoundToInt(-one.Body.Origin.Z / MetresPerTile)}");
         }
 
         return true;
     }
 
-    private ArrayMesh BodyMesh(string family, FamilyBody body, float frontage, float depth, int storeys)
+    /// <summary>
+    /// The side walls another Building's footprint touches, found half a metre outside the middle of
+    /// each wall. Left and right are as seen from the street, the body's +Z.
+    /// </summary>
+    /// <remarks>
+    /// A body reads its neighbours only when it is placed, so a neighbour raised later leaves its
+    /// shared wall windowed until the next full pass.
+    /// </remarks>
+    private AttachedSides Attached(int slot, Vector3 centre, float turn, float frontage)
     {
-        var key = (family, Mathf.RoundToInt(frontage * 100f), Mathf.RoundToInt(depth * 100f), storeys);
+        var right = new Vector3(Mathf.Cos(turn), 0f, -Mathf.Sin(turn));
+        float reach = (frontage / 2f) + .5f;
+        bool deepEast = Mathf.Abs(right.Z) > .5f;
+        AttachedSides attached = AttachedSides.None;
+        int left = Covering(slot, centre - (right * reach)), rightLot = Covering(slot, centre + (right * reach));
+        if (left >= 0) attached |= AttachedSides.Left | (Crosswise(slot, left, deepEast) ? AttachedSides.LeftCrosswise : 0);
+        if (rightLot >= 0) attached |= AttachedSides.Right | (Crosswise(slot, rightLot, deepEast) ? AttachedSides.RightCrosswise : 0);
+        return attached;
+    }
+
+    /// <summary>Whether the neighbour's footprint spans a different stretch of this Building's depth.</summary>
+    private bool Crosswise(int slot, int neighbour, bool deepEast)
+    {
+        LotTable lots = _world.Lots;
+        if (!lots.Rows.TryResolve(_world.Buildings.Lot[slot], out int own)) return false;
+        return deepEast
+            ? lots.FootprintEast[own] != lots.FootprintEast[neighbour] || lots.FootprintWide[own] != lots.FootprintWide[neighbour]
+            : lots.FootprintNorth[own] != lots.FootprintNorth[neighbour] || lots.FootprintDeep[own] != lots.FootprintDeep[neighbour];
+    }
+
+    /// <returns>The Lot whose Building footprint covers the point, or -1.</returns>
+    private int Covering(int slot, Vector3 point)
+    {
+        float east = point.X / MetresPerTile, north = -point.Z / MetresPerTile;
+        BuildingTable table = _world.Buildings;
+        LotTable lots = _world.Lots;
+        for (int other = 0; other < table.Rows.SlotCount; other++)
+        {
+            if (other == slot || !table.Rows.IsLive(other) || !lots.Rows.TryResolve(table.Lot[other], out int lot)) continue;
+            int x = lots.FootprintEast[lot].Raw, y = lots.FootprintNorth[lot].Raw;
+            if (east >= x && east < x + lots.FootprintWide[lot].Raw && north >= y && north < y + lots.FootprintDeep[lot].Raw) return lot;
+        }
+
+        return -1;
+    }
+
+    private ArrayMesh BodyMesh(string family, FamilyBody body, float frontage, float depth, int storeys, AttachedSides attached)
+    {
+        var key = (family, Mathf.RoundToInt(frontage * 100f), Mathf.RoundToInt(depth * 100f), storeys, attached);
         if (_familyBodyMeshes.TryGetValue(key, out ArrayMesh? cached)) return cached;
 
         Dictionary<string, Material> library = BodyLibrary(body.Library);
         var mesh = new ArrayMesh();
-        foreach ((string part, ShellMesh source) in FamilyBodyBuilder.Build(body, frontage, depth, storeys).Parts)
+        foreach ((string part, ShellMesh source) in FamilyBodyBuilder.Build(body, frontage, depth, storeys, attached).Parts)
         {
             var tool = new SurfaceTool();
             tool.Begin(Mesh.PrimitiveType.Triangles);

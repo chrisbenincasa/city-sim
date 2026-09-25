@@ -1,0 +1,22 @@
+601 pause
+601 ui family-bodies on
+601 focus 40 24 130
+601 tilt 50
+601 shoot plans/evidence/appearance-families/h1-block.png
+601 speed 5
+602 pause
+602 focus 48 36 260
+602 tilt 45
+602 shoot plans/evidence/appearance-families/h1-blocks.png
+602 speed 5
+603 pause
+603 focus 38 17 60
+603 tilt 20
+603 shoot plans/evidence/appearance-families/h1-street.png
+603 speed 5
+604 pause
+604 focus 40 24 70
+604 tilt 55
+604 shoot plans/evidence/appearance-families/h1-garden.png
+604 speed 5
+606 quit
