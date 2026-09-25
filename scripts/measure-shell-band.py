@@ -19,7 +19,7 @@ import subprocess
 import time
 
 # (name, focus command or None for the opening camera, cases)
-# A case is (label, render probe, shell-band arguments[, clock speed rung]).
+# A case is (label, render probe, shell-band arguments[, clock speed rung or shell command ...]).
 BAND = [
     ('boxes', 'baseline', '0 0 0 on'),
     ('boxes-sun-off', 'shadows-off', '0 0 0 on'),
@@ -50,6 +50,11 @@ MOVING = [
     ('1x', 'baseline', '0 0 0 on', 5),
     ('4x', 'baseline', '0 0 0 on', 8),
 ]
+BODIES = [
+    ('boxes', 'baseline', '0 0 0 on', 'ui family-bodies off'),
+    ('bodies', 'baseline', '0 0 0 on', 'ui family-bodies on'),
+    ('bodies-1000', 'baseline', '0 0 0 on', 'ui family-bodies on 1000'),
+]
 SUITES = {'band': [
     ('opening', None, [BAND[0], BAND[1]]),
     ('street', 'focus 1781 1656 150', BAND),
@@ -58,6 +63,10 @@ SUITES = {'band': [
     ('opening', None, MOVING),
     ('street', 'focus 1781 1656 150', MOVING),
     ('district', 'focus 1781 1656 600', MOVING),
+], 'bodies': [
+    ('opening', None, BODIES),
+    ('street', 'focus 1781 1656 150', BODIES),
+    ('district', 'focus 1781 1656 600', BODIES),
 ], 'ready': []}
 MOVERS = ('traveller', 'car')
 
@@ -220,12 +229,12 @@ with (output / 'game.log').open('w') as log:
                     send(focus)
                     send('tilt 35')
                 state(output / f'{view}-camera.json')
-                for label, probe, band, *speed in cases:
+                for label, probe, band, *extra in cases:
                     name = f'{view}-{label}'
                     send(f'ui render-probe {probe}')
                     send(f'ui shell-band {band}')
-                    if speed:
-                        send(f'speed {speed[0]}')
+                    for step in extra:
+                        send(f'speed {step}' if isinstance(step, int) else step)
                     send(f'draw {output / (name + ".tsv")}')
                     upload = profile(output / (name + '.tsv'))
                     (output / (name + '.tsv')).unlink()

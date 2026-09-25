@@ -6,9 +6,8 @@ uniform int treatment = 2;
 uniform bool context_only = false;
 uniform vec3 context_colour : source_color = vec3(0.08, 0.10, 0.095);
 
-// A family body's colour. Its alpha is zero on the massing, which takes COLOR from its MultiMesh
-// instance and is a unit box the edge test can read. Godot linearises an instance uniform's Color,
-// so the shell passes the sRGB value.
+// Set on a family body's MultiMesh, whose instance COLOR is the body's paint. Its alpha is zero on
+// the massing, which is a unit box the edge test can read.
 instance uniform vec4 body_ink = vec4(0.0);
 
 varying vec3 local_position;
@@ -25,7 +24,7 @@ void vertex() {
 
 void fragment() {
     bool body = body_ink.a > 0.0;
-    vec3 paint = body ? body_ink.rgb : COLOR.rgb;
+    vec3 paint = body ? body_ink.rgb * COLOR.rgb : COLOR.rgb;
     vec3 ink = context_only ? context_colour : paint;
     if (treatment > 0) {
         // A fixed diagram light: the reading cannot change with time of day.

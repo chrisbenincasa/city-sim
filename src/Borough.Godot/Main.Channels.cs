@@ -629,6 +629,12 @@ public partial class Main
     /// <summary>Every layer, in draw order, with whether it paints per instance and who it is.</summary>
     private (string Name, InstanceLayer Layer, bool Colours, List<ulong>? Ids)[] Layers() =>
     [
+        .. FixedLayers(),
+        .. _bodyLayers.Values.Select(layer => ("family-body", layer, true, (List<ulong>?)_bodyLayerIds)),
+    ];
+
+    private (string Name, InstanceLayer Layer, bool Colours, List<ulong>? Ids)[] FixedLayers() =>
+    [
         ("ground", _ground, false, null),
         ("hazard", _hazard, false, null),
         ("water", _water, false, null),

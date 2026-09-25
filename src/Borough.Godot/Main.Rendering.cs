@@ -35,7 +35,7 @@ public partial class Main
             {
                 if (!rows.IsLive(slot)) continue;
                 ulong id = rows.IdAt(slot);
-                _renderedBuildings[slot] = (id, drawn.Contains(id) || _familyBodyNodes.ContainsKey(id) || _exactBodies.ContainsKey(id) || _shelled.Contains(id));
+                _renderedBuildings[slot] = (id, drawn.Contains(id) || _placedBodies.ContainsKey(id) || _exactBodies.ContainsKey(id) || _shelled.Contains(id));
             }
         }
         else
@@ -60,20 +60,19 @@ public partial class Main
                 changedIds.Add(id);
                 placed.Add(slot);
                 RemoveFamilyBody(id);
-                bool bodied = PlaceFamilyBody(slot);
-                if (!bodied)
+                bool far = PlaceFamilyBody(slot);
+                BodyShape? shape = far ? _placedBodies[id].Shape : null;
+                foreach (Massing each in Buildings(slot))
                 {
-                    foreach (Massing one in Buildings(slot))
-                    {
-                        _bodyEdits.Add(new(one.Body, one.Paint, one.Reads));
-                        if (one.Outhoused) _yardEdits.Add(new(one.Yard,
-                            YardPaint(one)));
-                        var roof = one.Cap switch { Cap.Gable => _roofEdits, Cap.Hip => _hipEdits, Cap.PairedGable => _pairedRoofEdits, Cap.Parapet => _parapetEdits, _ => null };
-                        roof?.Add(new(one.Roof, RoofPaint(one), RoofWall(one)));
-                    }
+                    Massing one = far ? FarMassing(each, shape!.Body) : each;
+                    _bodyEdits.Add(new(one.Body, far ? FarPaint(one, shape!.Wall, one.Paint) : one.Paint, one.Reads, far));
+                    if (one.Outhoused && !far) _yardEdits.Add(new(one.Yard,
+                        YardPaint(one)));
+                    var roof = one.Cap switch { Cap.Gable => _roofEdits, Cap.Hip => _hipEdits, Cap.PairedGable => _pairedRoofEdits, Cap.Parapet => _parapetEdits, _ => null };
+                    roof?.Add(new(one.Roof, far ? FarPaint(one, shape!.Roof, RoofPaint(one)) : RoofPaint(one), RoofWall(one), far));
                 }
                 geometry |= ReplaceBuilding(id);
-                bool drawn = bodied || _bodyEdits.Count != 0;
+                bool drawn = far || _bodyEdits.Count != 0;
                 _renderedBuildings[slot] = (id, drawn);
                 if (drawn) _drawnBuildings++;
             }

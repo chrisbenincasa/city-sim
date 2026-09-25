@@ -8,9 +8,12 @@ namespace Borough.Shell;
 
 /// <summary>
 /// Draws a Building whose Appearance Family has a body as that body, generated at the Building's
-/// own size, in place of its massing. <c>ui family-bodies on|off</c>.
+/// own size, in place of its massing. <c>ui family-bodies on|off [NEAR]</c>.
 /// </summary>
 /// <remarks>
+/// Bodies sharing a mesh share an <see cref="InstanceLayer"/>, batched by chunk. A chunk within the
+/// near band draws bodies; beyond it, the same Buildings draw as massing boxes in their family's
+/// colours and roof. Body and box layers decide by the same chunk key, so a Building is drawn once.
 /// A Building that draws as several massing wings keeps its massing.
 /// </remarks>
 public partial class Main
@@ -21,49 +24,90 @@ public partial class Main
         "plinth", "storefront", "sign", "awning", "solar",
     ];
 
-    private readonly Dictionary<ulong, Node3D> _familyBodyNodes = [];
+    private static readonly string[] RoofParts = ["roof-new", "roof", "membrane"];
+
+    private readonly Dictionary<ulong, PlacedBody> _placedBodies = [];
     private readonly Dictionary<ulong, BodyNeighbours> _bodyNeighbours = [];
-    private readonly Dictionary<(string Family, int Frontage, int Depth, int Storeys, AttachedSides Attached), ArrayMesh> _familyBodyMeshes = [];
+    private readonly Dictionary<(string Family, int Frontage, int Depth, int Storeys, AttachedSides Attached), BodyShape> _familyBodyMeshes = [];
+    private readonly Dictionary<(ArrayMesh Mesh, bool Abandoned), InstanceLayer> _bodyLayers = [];
     private readonly Dictionary<string, Dictionary<string, Material>> _bodyLibraries = [];
+    private readonly Dictionary<Material, Color> _meanColours = [];
+    private readonly HashSet<Vector2I> _nearChunks = [];
+    private readonly List<ulong> _bodyLayerIds = [];
+    private Dictionary<(int East, int North), int>? _footprintTiles;
     private ShaderMaterial? _derelictBody;
     private bool _familyBodies;
     private bool _reportFamilyBodies;
+    private float _bodyNearMetres = BodyNearMetres;
 
     /// <summary>How far an abandoned body's own materials give way to <see cref="Derelict"/>.</summary>
     private const float DerelictBodyShare = 0.75f;
 
+    /// <summary>PROVISIONAL reach of the body band, from the camera to the nearest point of a chunk.</summary>
+    private const float BodyNearMetres = 500f;
+
     /// <summary>Where a body probed for side neighbours, and the Buildings it found there; 0 is none.</summary>
     private readonly record struct BodyNeighbours(int Slot, Vector3 LeftProbe, Vector3 RightProbe, ulong LeftId, ulong RightId);
 
+    /// <summary>A generated body, and the linear mean colours its far box is painted with.</summary>
+    private sealed record BodyShape(ArrayMesh Mesh, Color Wall, Color Roof, FamilyBody Body);
+
+    private readonly record struct PlacedBody(InstanceLayer Layer, BodyShape Shape);
+
+    /// <summary><c>ui family-bodies on|off [NEAR]</c>; NEAR is the body band's reach in metres.</summary>
     private void FamilyBodyStudy(string[] words)
     {
-        if (words.Length != 2 || words[1] is not ("on" or "off"))
+        float near = BodyNearMetres;
+        if (words.Length is < 2 or > 3 || words[1] is not ("on" or "off")
+            || (words.Length == 3 && (!float.TryParse(words[2], System.Globalization.CultureInfo.InvariantCulture, out near) || near < 0f)))
         {
-            _refused = "family-bodies on|off";
+            _refused = "family-bodies on|off [NEAR]";
             return;
         }
 
         _familyBodies = words[1] == "on";
+        _bodyNearMetres = near;
         _reportFamilyBodies = _familyBodies;
+        _nearChunks.Clear();
+        foreach (InstanceLayer layer in new[] { _buildings, _roofs, _hips, _pairedRoofs, _parapets })
+        {
+            layer.Multimesh.Near = _familyBodies ? NearChunk : null;
+            layer.Multimesh.Repartition();
+        }
+
+        foreach (InstanceLayer layer in _bodyLayers.Values) layer.Multimesh.Repartition();
+
         _world.Changes!.Invalidate();
     }
 
     private void PlaceFamilyBodies()
     {
-        foreach (Node3D node in _familyBodyNodes.Values) node.QueueFree();
-        _familyBodyNodes.Clear();
+        foreach ((ulong id, PlacedBody placed) in _placedBodies) placed.Layer.Multimesh.Replace(id, []);
+        _placedBodies.Clear();
         _bodyNeighbours.Clear();
+        foreach (((ArrayMesh _, bool abandoned), InstanceLayer layer) in _bodyLayers)
+        {
+            if (abandoned) layer.MaterialOverlay = _washing == Wash.None ? DerelictBody() : null;
+        }
+
+        if (!_familyBodies) return;
+
+        long start = System.Diagnostics.Stopwatch.GetTimestamp();
+        _footprintTiles = FootprintTiles();
         for (int slot = 0; slot < _world.Buildings.Rows.SlotCount; slot++)
         {
             if (_world.Buildings.Rows.IsLive(slot)) PlaceFamilyBody(slot);
         }
 
+        _footprintTiles = null;
+        GD.Print($"family_bodies\t{_placedBodies.Count}\t{_familyBodyMeshes.Count} meshes\t{_bodyLayers.Count} layers"
+            + $"\t{System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalMilliseconds:F1} ms");
         _reportFamilyBodies = false;
     }
 
     private void RemoveFamilyBody(ulong id)
     {
-        if (_familyBodyNodes.Remove(id, out Node3D? node)) node.QueueFree();
+        if (_placedBodies.Remove(id, out PlacedBody placed)) placed.Layer.Multimesh.Replace(id, []);
         _bodyNeighbours.Remove(id);
     }
 
@@ -88,15 +132,11 @@ public partial class Main
         float turn = Mathf.Atan2(faceEast, faceSouth);
         AttachedSides attached = Attached(slot, one.Body.Origin, turn, frontage, out BodyNeighbours neighbours);
 
-        var node = new MeshInstance3D
-        {
-            Mesh = BodyMesh(family.Id, body, frontage, depth, storeys, attached),
-            Position = one.Body.Origin with { Y = 0f },
-            Rotation = new Vector3(0f, turn, 0f),
-        };
-        Dress(node, one);
-        AddChild(node);
-        _familyBodyNodes[one.Id] = node;
+        BodyShape shape = BodyMesh(family.Id, body, frontage, depth, storeys, attached);
+        InstanceLayer layer = BodyLayer(shape.Mesh, one.Abandoned);
+        var at = new Transform3D(new Basis(Vector3.Up, turn), one.Body.Origin with { Y = 0f });
+        layer.Multimesh.Replace(one.Id, [new InstanceValue(at, Tint(one))]);
+        _placedBodies[one.Id] = new PlacedBody(layer, shape);
         _bodyNeighbours[one.Id] = neighbours;
         if (_reportFamilyBodies)
         {
@@ -109,22 +149,81 @@ public partial class Main
     }
 
     /// <summary>
-    /// Covers a body in its Building's overlay colour, mutes it under a ground overlay, or greys it
-    /// when abandoned, as the massing is drawn.
+    /// A body's instance colour: its Building's overlay colour under a Building wash, or the share of
+    /// <see cref="Derelict"/> an abandoned body's overlay greys it by.
     /// </summary>
-    private void Dress(MeshInstance3D node, Massing one)
+    private Color Tint(Massing one)
     {
-        if (_washing != Wash.None)
+        if (_washing != Wash.None) return BuildingWash ? one.Paint with { A = 1f } : Colors.White;
+        return one.Abandoned ? Derelict.SrgbToLinear() with { A = DerelictBodyShare } : Colors.White;
+    }
+
+    /// <summary>
+    /// The colour a bodied Building's far box is drawn in: the family's own material under no wash,
+    /// greyed as its body is when abandoned.
+    /// </summary>
+    private Color FarPaint(Massing one, Color family, Color massing)
+    {
+        if (_washing != Wash.None) return massing;
+        return one.Abandoned ? family.Lerp(Derelict.SrgbToLinear(), DerelictBodyShare) : family;
+    }
+
+
+    /// <summary>
+    /// A bodied Building's far box, roofed as its body is: a pitched family keeps a pitched cap
+    /// and a flat family wears its parapet.
+    /// </summary>
+    private static Massing FarMassing(Massing one, FamilyBody body)
+    {
+        Vector3 plan = one.Body.Basis.Scale;
+        Vector3 at = one.Body.Origin;
+        if (body.GableDegrees <= 0f)
         {
-            node.MaterialOverride = BuildingWash ? _categorical : _muted;
-            if (BuildingWash) node.SetInstanceShaderParameter("body_ink", one.Paint.LinearToSrgb() with { A = 1f });
-            return;
+            if (body.ParapetMetres <= 0f) return one with { Cap = Cap.Flat };
+            var tray = Basis.FromScale(new Vector3(plan.X + (CopingMetres * 2f), body.ParapetMetres, plan.Z + (CopingMetres * 2f)));
+            return one with { Cap = Cap.Parapet, Roof = new Transform3D(tray, at with { Y = plan.Y + (body.ParapetMetres * 0.5f) }) };
         }
 
-        if (!one.Abandoned) return;
+        if (one.Cap is Cap.Gable or Cap.Hip or Cap.PairedGable) return one;
+
+        float span = Mathf.Min(plan.X, plan.Z), ridge = Mathf.Max(plan.X, plan.Z);
+        float rise = RoofHeight(Cap.Gable, Mathf.Tan(Mathf.DegToRad(body.GableDegrees)) * span * 0.5f);
+        Basis capped = CapBasis(Cap.Gable, plan.X > plan.Z, span, ridge, rise);
+        return one with { Cap = Cap.Gable, Roof = new Transform3D(capped, at with { Y = plan.Y + (rise * 0.5f) }) };
+    }
+
+    private InstanceLayer BodyLayer(ArrayMesh mesh, bool abandoned)
+    {
+        if (_bodyLayers.TryGetValue((mesh, abandoned), out InstanceLayer? found)) return found;
+
+        var layer = new InstanceLayer();
+        layer.Multimesh.Mesh = mesh;
+        layer.Multimesh.UseColors = true;
+        layer.Multimesh.Near = NearChunk;
+        layer.Multimesh.NearOnly = true;
+        layer.InstanceParameters["body_ink"] = Colors.White;
+        layer.MaterialOverride = _washing == Wash.None ? null : BuildingWash ? _categorical : _muted;
+        if (abandoned && _washing == Wash.None) layer.MaterialOverlay = DerelictBody();
+        AddChild(layer);
+        _bodyLayers[(mesh, abandoned)] = layer;
+        return layer;
+    }
+
+    private ShaderMaterial DerelictBody() =>
         _derelictBody ??= new ShaderMaterial { Shader = GD.Load<Shader>("res://derelict-body.gdshader") };
-        node.MaterialOverlay = _derelictBody;
-        node.SetInstanceShaderParameter("derelict", Derelict with { A = DerelictBodyShare });
+
+    /// <summary>Whether a chunk lies within the body band of the camera, with 15% hysteresis.</summary>
+    private bool NearChunk(Vector2I key)
+    {
+        float size = InstanceLayer.ChunkMetres;
+        Vector3 eye = _camera.GlobalPosition;
+        var nearest = new Vector3(
+            Mathf.Clamp(eye.X, key.X * size, (key.X + 1) * size), 0f, Mathf.Clamp(eye.Z, key.Y * size, (key.Y + 1) * size));
+        float reach = _bodyNearMetres * (_nearChunks.Contains(key) ? 1.15f : 1f);
+        bool near = eye.DistanceSquaredTo(nearest) <= reach * reach;
+        if (near) _nearChunks.Add(key);
+        else _nearChunks.Remove(key);
+        return near;
     }
 
     /// <summary>
@@ -186,6 +285,12 @@ public partial class Main
     /// <returns>The Building slot whose footprint covers the point, or -1.</returns>
     private int Covering(int slot, Vector3 point)
     {
+        if (_footprintTiles is not null)
+        {
+            var tile = (Mathf.FloorToInt(point.X / MetresPerTile), Mathf.FloorToInt(-point.Z / MetresPerTile));
+            return _footprintTiles.TryGetValue(tile, out int found) && found != slot ? found : -1;
+        }
+
         BuildingTable table = _world.Buildings;
         for (int other = 0; other < table.Rows.SlotCount; other++)
         {
@@ -193,6 +298,25 @@ public partial class Main
         }
 
         return -1;
+    }
+
+    /// <summary>The live Building slot on each footprint Tile, for a whole-city placement pass.</summary>
+    private Dictionary<(int East, int North), int> FootprintTiles()
+    {
+        var tiles = new Dictionary<(int East, int North), int>();
+        LotTable lots = _world.Lots;
+        BuildingTable table = _world.Buildings;
+        for (int slot = 0; slot < table.Rows.SlotCount; slot++)
+        {
+            if (!table.Rows.IsLive(slot) || !lots.Rows.TryResolve(table.Lot[slot], out int lot)) continue;
+            int x = lots.FootprintEast[lot].Raw, y = lots.FootprintNorth[lot].Raw;
+            for (int east = x; east < x + lots.FootprintWide[lot].Raw; east++)
+            {
+                for (int north = y; north < y + lots.FootprintDeep[lot].Raw; north++) tiles.TryAdd((east, north), slot);
+            }
+        }
+
+        return tiles;
     }
 
     private bool Covers(int building, Vector3 point)
@@ -204,13 +328,14 @@ public partial class Main
         return east >= x && east < x + lots.FootprintWide[lot].Raw && north >= y && north < y + lots.FootprintDeep[lot].Raw;
     }
 
-    private ArrayMesh BodyMesh(string family, FamilyBody body, float frontage, float depth, int storeys, AttachedSides attached)
+    private BodyShape BodyMesh(string family, FamilyBody body, float frontage, float depth, int storeys, AttachedSides attached)
     {
         var key = (family, Mathf.RoundToInt(frontage * 100f), Mathf.RoundToInt(depth * 100f), storeys, attached);
-        if (_familyBodyMeshes.TryGetValue(key, out ArrayMesh? cached)) return cached;
+        if (_familyBodyMeshes.TryGetValue(key, out BodyShape? cached)) return cached;
 
         Dictionary<string, Material> library = BodyLibrary(body.Library);
         var mesh = new ArrayMesh();
+        var built = new HashSet<string>();
         foreach ((string part, ShellMesh source) in FamilyBodyBuilder.Build(body, frontage, depth, storeys, attached).Parts)
         {
             var tool = new SurfaceTool();
@@ -229,10 +354,44 @@ public partial class Main
             tool.GenerateTangents();
             tool.SetMaterial(library.GetValueOrDefault(part) ?? new StandardMaterial3D { AlbedoColor = new Color(0.8f, 0.8f, 0.78f) });
             tool.Commit(mesh);
+            built.Add(part);
         }
 
-        _familyBodyMeshes[key] = mesh;
-        return mesh;
+        Color wall = MeanColour(library.GetValueOrDefault("wall"));
+        Color roof = MeanColour(RoofParts.Where(built.Contains).Select(library.GetValueOrDefault).FirstOrDefault(m => m is not null));
+        var shape = new BodyShape(mesh, wall, roof, body);
+        _familyBodyMeshes[key] = shape;
+        return shape;
+    }
+
+    /// <summary>A material's mean albedo in linear light, its texture sampled on a 32 × 32 grid.</summary>
+    private Color MeanColour(Material? material)
+    {
+        if (material is not BaseMaterial3D surface) return new Color(0.6f, 0.6f, 0.58f);
+        if (_meanColours.TryGetValue(material, out Color found)) return found;
+
+        Color tint = surface.AlbedoColor.SrgbToLinear();
+        Color mean = Colors.White;
+        if (surface.AlbedoTexture?.GetImage() is { } image)
+        {
+            if (image.IsCompressed()) image.Decompress();
+            const int Grid = 32;
+            float r = 0f, g = 0f, b = 0f;
+            for (int y = 0; y < Grid; y++)
+            {
+                for (int x = 0; x < Grid; x++)
+                {
+                    Color texel = image.GetPixel(((2 * x) + 1) * image.GetWidth() / (2 * Grid), ((2 * y) + 1) * image.GetHeight() / (2 * Grid)).SrgbToLinear();
+                    r += texel.R; g += texel.G; b += texel.B;
+                }
+            }
+
+            mean = new Color(r / (Grid * Grid), g / (Grid * Grid), b / (Grid * Grid));
+        }
+
+        Color colour = new(tint.R * mean.R, tint.G * mean.G, tint.B * mean.B);
+        _meanColours[material] = colour;
+        return colour;
     }
 
     /// <summary>The materials of an authored model, by the part each one dresses.</summary>

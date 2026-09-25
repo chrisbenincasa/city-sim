@@ -26,12 +26,21 @@ public partial class InstanceLayer : Node3D
     public InstanceBuffer Multimesh { get; }
     public InstanceLayer() => Multimesh = new InstanceBuffer(this);
     private Material? _material;
+    private Material? _overlay;
     private GeometryInstance3D.ShadowCastingSetting _shadows = GeometryInstance3D.ShadowCastingSetting.On;
     public Material? MaterialOverride
     {
         get => _material;
         set { _material = value; foreach (var batch in Multimesh.Batches) batch.Node.MaterialOverride = value; }
     }
+    public Material? MaterialOverlay
+    {
+        get => _overlay;
+        set { _overlay = value; foreach (var batch in Multimesh.Batches) batch.Node.MaterialOverlay = value; }
+    }
+
+    /// <summary>Instance shader parameters every batch node carries.</summary>
+    public Dictionary<StringName, Variant> InstanceParameters { get; } = [];
     public GeometryInstance3D.ShadowCastingSetting CastShadow
     {
         get => _shadows;
@@ -39,13 +48,15 @@ public partial class InstanceLayer : Node3D
     }
     internal MultiMeshInstance3D CreateBatch(MultiMesh mesh)
     {
-        var node = new MultiMeshInstance3D { Multimesh = mesh, MaterialOverride = _material, CastShadow = _shadows };
+        var node = new MultiMeshInstance3D { Multimesh = mesh, MaterialOverride = _material, MaterialOverlay = _overlay, CastShadow = _shadows };
+        foreach ((StringName name, Variant value) in InstanceParameters) node.SetInstanceShaderParameter(name, value);
         AddChild(node);
         return node;
     }
 }
 
-public readonly record struct InstanceValue(Transform3D Transform, Color Colour, Color Custom = default);
+/// <param name="Far">Drawn only while its chunk is not <see cref="InstanceBuffer.Near"/>.</param>
+public readonly record struct InstanceValue(Transform3D Transform, Color Colour, Color Custom = default, bool Far = false);
 
 public sealed class InstanceBuffer
 {
@@ -59,6 +70,7 @@ public sealed class InstanceBuffer
         public Transform3D Transform { get; internal set; }
         public Color Colour { get; internal set; } = Colors.White;
         public Color Custom { get; internal set; }
+        public bool Far { get; internal set; }
     }
     public sealed class Batch
     {
@@ -66,6 +78,7 @@ public sealed class InstanceBuffer
         internal readonly List<Entry> Entries = [];
         internal float[] Buffer = [];
         internal bool BoundsDirty = true;
+        internal bool Near;
         public MultiMeshInstance3D Node { get; internal set; } = null!;
         public bool Resident { get; internal set; } = true;
         public Aabb Bounds { get; internal set; }
@@ -84,6 +97,16 @@ public sealed class InstanceBuffer
     public Mesh Mesh { get; set; } = null!;
     public bool UseColors { get; set; }
     public bool UseCustomData { get; set; }
+
+    /// <summary>
+    /// Whether a chunk is inside the near band. A <see cref="NearOnly"/> layer draws only near
+    /// chunks; any other layer hides its <see cref="Entry.Far"/> entries in near chunks.
+    /// </summary>
+    public Func<Vector2I, bool>? Near { get; set; }
+    public bool NearOnly { get; set; }
+
+    /// <summary>Re-evaluates every chunk's residency at the next flush, as a camera move does.</summary>
+    public void Repartition() => _eye = null;
     public IEnumerable<Batch> Batches => _batches.Values;
     public int PendingBatches => _dirty.Count;
     public int BatchCount => _batches.Count;
@@ -174,6 +197,11 @@ public sealed class InstanceBuffer
         Entry entry = Writing(index);
         if (entry.Custom != custom) { entry.Custom = custom; _dirty.Add(entry.Batch); }
     }
+    public void SetInstanceFar(int index, bool far)
+    {
+        Entry entry = Writing(index);
+        if (entry.Far != far) { entry.Far = far; _dirty.Add(entry.Batch); }
+    }
     private void Remove(Entry entry)
     {
         Batch batch = entry.Batch;
@@ -214,10 +242,11 @@ public sealed class InstanceBuffer
             }
             geometry |= entry.Transform != value.Transform;
             SetTransform(entry, value.Transform);
-            if (entry.Colour != value.Colour || entry.Custom != value.Custom)
+            if (entry.Colour != value.Colour || entry.Custom != value.Custom || entry.Far != value.Far)
             {
                 entry.Colour = value.Colour;
                 entry.Custom = value.Custom;
+                entry.Far = value.Far;
                 _dirty.Add(entry.Batch);
             }
         }
@@ -236,10 +265,11 @@ public sealed class InstanceBuffer
     public Dictionary<(ulong Id, int Part), InstanceValue> Snapshot()
     {
         var snapshot = new Dictionary<(ulong, int), InstanceValue>(_order.Count);
-        foreach (Entry entry in _order) snapshot.Add(entry.Key, new(entry.Transform, entry.Colour, entry.Custom));
+        foreach (Entry entry in _order) snapshot.Add(entry.Key, new(entry.Transform, entry.Colour, entry.Custom, entry.Far));
         return snapshot;
     }
-    public bool IsResident(int index) => _order[index].Batch.Resident && _order[index].Slot < _order[index].Batch.Node.Multimesh.InstanceCount;
+    public bool IsResident(int index) => _order[index].Batch.Resident && _order[index].Slot < _order[index].Batch.Node.Multimesh.InstanceCount
+        && !(_order[index].Far && _order[index].Batch.Near);
     public ulong IdAt(int index) => _order[index].Key.Id;
     public Transform3D GetInstanceTransform(int index) => _order[index].Transform;
     public Color GetInstanceColor(int index) => _order[index].Colour;
@@ -257,14 +287,13 @@ public sealed class InstanceBuffer
     {
         if (eye != _eye || detailDistance != _detailDistance)
         {
-            bool partitioned = detailDistance > 0 || _detailDistance > 0;
+            bool partitioned = detailDistance > 0 || _detailDistance > 0 || Near is not null;
             _eye = eye;
             _detailDistance = detailDistance;
             if (partitioned)
                 foreach (Batch batch in _batches.Values)
                 {
-                    bool resident = Wants(batch.Bounds, batch.Resident);
-                    if (resident != batch.Resident) _dirty.Add(batch);
+                    if (Wants(batch) != batch.Resident || Hides(batch) != batch.Near) _dirty.Add(batch);
                 }
         }
         if (_dirty.Count == 0) return;
@@ -296,7 +325,8 @@ public sealed class InstanceBuffer
                 batch.BoundsDirty = false;
             }
             Aabb bounds = batch.Bounds;
-            batch.Resident = Wants(bounds, batch.Resident);
+            batch.Resident = Wants(batch);
+            batch.Near = Hides(batch);
             if (!batch.Resident)
             {
                 InstanceCount -= mesh.InstanceCount;
@@ -325,7 +355,7 @@ public sealed class InstanceBuffer
             for (int i = 0; i < count; i++)
             {
                 Entry entry = batch.Entries[i];
-                Transform3D t = entry.Transform;
+                Transform3D t = entry.Far && batch.Near ? new Transform3D(new Basis(Vector3.Zero, Vector3.Zero, Vector3.Zero), entry.Transform.Origin) : entry.Transform;
                 int at = i * stride;
                 float[] b = batch.Buffer;
                 b[at++] = t.Basis.X.X; b[at++] = t.Basis.Y.X; b[at++] = t.Basis.Z.X; b[at++] = t.Origin.X;
@@ -354,14 +384,17 @@ public sealed class InstanceBuffer
         }
         UploadMilliseconds += System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalMilliseconds;
     }
-    private bool Wants(Aabb bounds, bool resident)
+    private bool Wants(Batch batch)
     {
+        if (NearOnly && Near is not null) return Near(batch.Key);
         if (_eye is not { } eye || _detailDistance <= 0) return true;
-        Vector3 nearest = eye.Clamp(bounds.Position, bounds.End);
+        Vector3 nearest = eye.Clamp(batch.Bounds.Position, batch.Bounds.End);
         // Hysteresis prevents reallocating buffers while the camera hovers at a detail boundary.
-        float distance = _detailDistance * (resident ? 1.15f : 1f);
+        float distance = _detailDistance * (batch.Resident ? 1.15f : 1f);
         return eye.DistanceSquaredTo(nearest) <= distance * distance;
     }
+
+    private bool Hides(Batch batch) => !NearOnly && Near is not null && Near(batch.Key);
 
     private static void Put(float[] buffer, ref int at, Color value)
     {

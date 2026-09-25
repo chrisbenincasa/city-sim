@@ -13,6 +13,7 @@ public partial class Checks : Node
         {
             CheckFacades();
             CheckRoofs();
+            CheckNearBand();
             var layer = new InstanceLayer();
             AddChild(layer);
             InstanceBuffer b = layer.Multimesh;
@@ -100,6 +101,38 @@ public partial class Checks : Node
         buffer.SetInstanceTransform(index, new Transform3D(Basis.Identity, position));
         buffer.SetInstanceColor(index, Colors.White);
         buffer.SetInstanceCustomData(index, Colors.Black);
+    }
+
+    private void CheckNearBand()
+    {
+        bool near = true;
+        var bodies = new InstanceLayer();
+        var boxes = new InstanceLayer();
+        AddChild(bodies);
+        AddChild(boxes);
+        bodies.Multimesh.Mesh = boxes.Multimesh.Mesh = new BoxMesh();
+        bodies.Multimesh.Near = boxes.Multimesh.Near = _ => near;
+        bodies.Multimesh.NearOnly = true;
+        var at = new Transform3D(Basis.Identity, new Vector3(10, 0, 10));
+        bodies.Multimesh.Replace(7, [new InstanceValue(at, Colors.White)]);
+        boxes.Multimesh.Replace(7, [new InstanceValue(at, Colors.White, default, Far: true)]);
+        boxes.Multimesh.Replace(8, [new InstanceValue(at, Colors.White)]);
+        bodies.Multimesh.Flush(Vector3.Zero);
+        boxes.Multimesh.Flush(Vector3.Zero);
+        Require(bodies.Multimesh.ResidentInstances == 1 && !boxes.Multimesh.IsResident(0) && boxes.Multimesh.IsResident(1),
+            "a near chunk draws the body and hides its far box");
+        if (DisplayServer.GetName() != "headless")
+            Require(boxes.Multimesh.UploadedTransform(0).Basis.Scale == Vector3.Zero, "a hidden far box is collapsed");
+
+        near = false;
+        bodies.Multimesh.Repartition();
+        boxes.Multimesh.Repartition();
+        bodies.Multimesh.Flush(Vector3.Zero);
+        boxes.Multimesh.Flush(Vector3.Zero);
+        Require(bodies.Multimesh.ResidentInstances == 0 && boxes.Multimesh.IsResident(0) && boxes.Multimesh.IsResident(1),
+            "a far chunk drops the body and draws its far box");
+        bodies.QueueFree();
+        boxes.QueueFree();
     }
     private static void Require(bool condition, string name)
     {
