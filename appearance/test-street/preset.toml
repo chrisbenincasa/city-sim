@@ -43,6 +43,64 @@ back_upper = ["window*"]
 side_ground = ["blank*", "window", "blank*"]
 side_upper = ["blank*", "window", "blank*"]
 
+# Each house draws one scheme by its own id, so a terrace is painted house by house. Siding and
+# shingle photographs set how bright a paint can be: siding up to "dadada", shingles up to "757575".
+[[family.paint]]
+wall = "b9ad97"
+wall-end = "a39985"
+trim = "f0efe9"
+door = "4f5253"
+roof = "353e44"
+
+[[family.paint]]
+wall = "8e9b86"
+wall-end = "7e8a77"
+trim = "ece9df"
+door = "3e4a3c"
+roof = "353e44"
+
+[[family.paint]]
+wall = "6f8290"
+wall-end = "627380"
+trim = "eeeeea"
+door = "7a2f2a"
+roof = "2c2f31"
+
+[[family.paint]]
+wall = "4a4f52"
+wall-end = "414548"
+trim = "e6e2d6"
+door = "b5832f"
+roof = "2c2f31"
+
+[[family.paint]]
+wall = "7c3b33"
+wall-end = "6d342d"
+trim = "ede6d6"
+door = "2f3a3f"
+roof = "4a4540"
+
+[[family.paint]]
+wall = "a9b4b8"
+wall-end = "96a0a4"
+trim = "f3f1ea"
+door = "2d4a5a"
+roof = "5b5f60"
+
+[[family.paint]]
+wall = "d6ccb4"
+wall-end = "bfb6a0"
+trim = "f5f2ea"
+door = "3d5a4a"
+roof = "4a4540"
+
+[[family.paint]]
+wall = "7a7a5c"
+wall-end = "6c6c52"
+trim = "ebe6d8"
+door = "5a3325"
+roof = "353e44"
+
 [[family]]
 id = "corridor-apartments"
 model = "test-street/corridor-apartments"
@@ -67,6 +125,31 @@ back_ground = ["window*", "hall*", "window*"]
 back_upper = ["window*"]
 side_ground = ["blank*", "door", "blank*"]
 side_upper = ["blank*", "stair", "blank*"]
+
+# Render up to "dadada".
+[[family.paint]]
+wall = "cdc6b6"
+door = "4f5253"
+
+[[family.paint]]
+wall = "d4d0c6"
+door = "2f4a5c"
+
+[[family.paint]]
+wall = "b8b0a0"
+door = "4f5253"
+
+[[family.paint]]
+wall = "a7aeb0"
+door = "6a2f2a"
+
+[[family.paint]]
+wall = "c9b79c"
+door = "3a3d3f"
+
+[[family.paint]]
+wall = "9ea69a"
+door = "4f5253"
 
 [[family]]
 id = "two-unit-apartments"
@@ -94,6 +177,32 @@ back_upper = ["window*"]
 side_ground = ["blank*", "window", "blank", "window", "blank*"]
 side_upper = ["blank*", "window", "blank", "window", "blank*"]
 
+# Render up to "dadada".
+[[family.paint]]
+wall = "cdc6b6"
+wall-end = "b8b1a1"
+door = "4f5253"
+
+[[family.paint]]
+wall = "d4d0c6"
+wall-end = "bebbb2"
+door = "2f4a5c"
+
+[[family.paint]]
+wall = "b8b0a0"
+wall-end = "a59e8f"
+door = "4f5253"
+
+[[family.paint]]
+wall = "a7aeb0"
+wall-end = "959c9e"
+door = "6a2f2a"
+
+[[family.paint]]
+wall = "c9b79c"
+wall-end = "b4a48c"
+door = "3a3d3f"
+
 [[family]]
 id = "walkup-apartments"
 model = "test-street/walkup-apartments"
@@ -116,6 +225,31 @@ back_ground = ["balcony+window*"]
 back_upper = ["balcony+window*"]
 side_ground = ["window", "blank*", "window"]
 side_upper = ["window", "blank*", "window"]
+
+# Render up to "dadada".
+[[family.paint]]
+wall = "cdc6b6"
+door = "4f5253"
+
+[[family.paint]]
+wall = "d4d0c6"
+door = "2f4a5c"
+
+[[family.paint]]
+wall = "b8b0a0"
+door = "4f5253"
+
+[[family.paint]]
+wall = "a7aeb0"
+door = "6a2f2a"
+
+[[family.paint]]
+wall = "c9b79c"
+door = "3a3d3f"
+
+[[family.paint]]
+wall = "9ea69a"
+door = "4f5253"
 
 [[family]]
 id = "corner-shops-with-flats"
@@ -143,6 +277,23 @@ back_upper = ["window*"]
 side_ground = ["shop", "shop", "blank*", "door"]
 side_upper = ["window*", "stair"]
 
+# The brick keeps its photograph; trim and doors vary.
+[[family.paint]]
+trim = "f0efe9"
+door = "3a342e"
+
+[[family.paint]]
+trim = "2f3a3f"
+door = "2f3a3f"
+
+[[family.paint]]
+trim = "e6e0d0"
+door = "5a2a26"
+
+[[family.paint]]
+trim = "3e4a3c"
+door = "3e4a3c"
+
 [[family]]
 id = "office-warehouse"
 model = "test-street/office-warehouse"
@@ -167,6 +318,22 @@ back_upper = ["shop*"]
 side_ground = ["blank", "stair", "door"]
 side_upper = ["blank", "stair", "blank"]
 
+# Block up to "dadada".
+[[family.paint]]
+wall = "c3bcaa"
+wall-end = "ada691"
+door = "4f5253"
+
+[[family.paint]]
+wall = "b5b5ad"
+wall-end = "a1a19a"
+door = "2e4f6b"
+
+[[family.paint]]
+wall = "a89f8f"
+wall-end = "958d7f"
+door = "4f5253"
+
 [[family]]
 id = "workshop"
 model = "test-street/workshop"
@@ -190,3 +357,29 @@ back_ground = ["window*"]
 back_upper = ["window*"]
 side_ground = ["door", "blank*"]
 side_upper = ["blank*", "window"]
+
+# Sheet up to "dadada"; the unpainted end panels take their paint as it is.
+[[family.paint]]
+wall = "5d6a6e"
+wall-end = "4f5b5f"
+door = "8d9194"
+
+[[family.paint]]
+wall = "6f7a6c"
+wall-end = "5f695d"
+door = "8d9194"
+
+[[family.paint]]
+wall = "8a8f92"
+wall-end = "767b7e"
+door = "3f4a55"
+
+[[family.paint]]
+wall = "3f4a55"
+wall-end = "363f49"
+door = "b5b5ad"
+
+[[family.paint]]
+wall = "7b3f36"
+wall-end = "6a3630"
+door = "8d9194"

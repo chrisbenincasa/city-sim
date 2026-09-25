@@ -83,6 +83,17 @@ blocks carved into 8 × 12 m house plots with no setback. Its streets run every 
 depth of a real rowhouse block. Plots have no gardens yet; that is a board row. Its three denser bands admit only zone
 bit 1, which nothing builds on, so the middle of the city stays empty.
 
+A family may list paint schemes as `[[family.paint]]` tables. A scheme colours some of the body's
+parts by sRGB hex, with an optional weight. Each Building draws one scheme on its own id with
+`PurposeTag.AppearancePaint`, so the houses of one terrace are painted separately while the terrace
+keeps its family, material and bay rhythm. A part the scheme leaves out keeps its model's colour. The
+shell copies the part's material to take its colour from the vertices, and writes the paint into the
+vertex colour divided by the photograph's mean linear luminance, so the paint reads true on siding,
+render, block and shingles. Vertex colours stop at 1, so a paint cannot be brighter than its
+photograph's mean. That caps paint on the test-street siding, render and block at `dadada` and on
+shingles at `757575`; the shell warns and clamps a brighter one. Paint lives in the mesh, so it
+survives chunk merging. Each family's first scheme is its Blender body's colours.
+
 `FamilyBodyBuilder` ports the vocabulary of `scripts/art/test-street.py`. The shell draws the result
 in place of the massing with `ui family-bodies on`.
 
@@ -109,12 +120,17 @@ uniform. Godot linearises an instance uniform's Color, so the shell passes sRGB.
 | Corner shop at its Blender size | Side-street shops at its free end and none at its shared end; same street, back and height bounds |
 | Live city, `gridded.toml`, 2,000 Citizens, Tick 600 | Five generated walkups and one generated two-unit. Walkup balconies, canopies and end windows, and the two-unit's party upstand and two hatches, read in `body-walkup-*.png` and `body-two-unit.png`. `body-two-unit-blender.png` shows the Blender two-unit at Tile 107 137. All from `body-four.drive` |
 | Corner shop and workshop, the same city on a copied preset | No shipped fixture raises either, so the copy lets them take dwellings. Fascia, awnings, brick and plant on the corner shop; panels, roller, rooflights and vents on the workshop. `body-corner-workshop-*.png`; `body-corner-workshop.drive` records the copy's edits |
+| Painted rowhouses, `rowhouses.toml`, 1,000 Citizens, Tick 600 | All 66 houses drew a scheme, spread across all eight. Wall, end wall, trim, door and roof vary house by house. `paint-h1-*.png` from `paint-h1.drive` |
+| Painted apartments, `gridded.toml`, 2,000 Citizens, Tick 600 | Corridor, walkup, two-unit and office-warehouse bodies draw their schemes; the render palette is quiet by design. `paint-apartments.png` from `paint-apartments.drive` |
 | Corridor side-by-side | Walls, openings, canopies and roof hatch match. The two vents stand 4 m either side of the centre, where the Blender body puts them at 8 m. The ground windows sit 5 cm lower, and the back door is 10 cm taller |
 
 Limits of this slice:
 - An abandoned body keeps whole windows. The massing shader's stains and broken glass have no body
   equivalent yet.
-- Bodies take no per-Building value and warmth wander, so a terrace of one family is one colour.
+- Neighbours draw paint independently, so two or three adjacent houses sometimes share a scheme and
+  read as one wider house.
+- The party-wall upstand takes each house's wall paint, so two differently painted neighbours meet
+  in a two-tone upstand.
 - The generated corner shop has no stair overrun or scuppers, and its side-street canopy is 0.5 m
   deep where the Blender body's is 1.0 m. Both free ends get side-street shops.
 - The workshop's office bay is a plain door.

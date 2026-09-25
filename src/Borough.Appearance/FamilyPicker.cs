@@ -60,6 +60,28 @@ public static class FamilyPicker
     }
 
     /// <summary>
+    /// Chooses a body's paint scheme by a weighted draw on the Building's own id, so each house in an
+    /// attached run is painted on its own.
+    /// </summary>
+    /// <returns>The scheme's index in <see cref="AppearanceFamily.Paints"/>, or -1 where the family has none.</returns>
+    public static int Paint(AppearanceFamily family, WorldKey world, ulong building)
+    {
+        ArgumentNullException.ThrowIfNull(family);
+        if (family.Paints is not { Length: > 0 } schemes) return -1;
+
+        long total = 0;
+        foreach (PaintScheme scheme in schemes) total += scheme.Weight;
+        long at = (long)(Randomness.Draw(world, building, Ticks.Zero, PurposeTag.AppearancePaint) % (ulong)total);
+        for (int i = 0; i < schemes.Length; i++)
+        {
+            at -= schemes[i].Weight;
+            if (at < 0) return i;
+        }
+
+        return schemes.Length - 1;
+    }
+
+    /// <summary>
     /// The entity and Tick coordinates of a Building's draw. An attached Building draws on its block
     /// face and era; any other draws on its own id.
     /// </summary>
