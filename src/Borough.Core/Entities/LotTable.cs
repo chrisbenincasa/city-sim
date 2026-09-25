@@ -82,6 +82,7 @@ public sealed class LotTable
         FootprintDeep = _rows.Saved<Tiles>("footprint_deep");
         Storeys = _rows.Saved<byte>("storeys");
         Pattern = _rows.Saved<byte>("block_pattern", Touch.Cold);
+        PodiumStoreys = _rows.Derived<byte>("podium_storeys", Touch.Cold);
 
         _rows.Seal();
     }
@@ -195,6 +196,24 @@ public sealed class LotTable
     /// </remarks>
     public Column<byte> Pattern { get; }
 
+    /// <summary>The storeys a Tower's podium stands on this Lot, of its <see cref="Storeys"/>.</summary>
+    /// <remarks>
+    /// <b>Derived from the saved parcel corner</b> by <see cref="Rules.LotRuleset.PodiumOn"/>, so it
+    /// needs no saved bytes and a Ruleset without a podium range hashes as before. Every Lot holds
+    /// one and only a Tower reads it. <see cref="FloorTiles"/> reads it, so it is rebuilt before
+    /// anything that reads floor.
+    /// </remarks>
+    public Column<byte> PodiumStoreys { get; }
+
+    /// <summary>Draw every live Lot's podium from its saved parcel corner.</summary>
+    public void RebuildPodiums(Rules.LotRuleset rules, Determinism.WorldKey key)
+    {
+        for (int slot = 0; slot < _rows.SlotCount; slot++)
+        {
+            PodiumStoreys[slot] = _rows.IsLive(slot) ? rules.PodiumOn(key, ParcelEast[slot], ParcelNorth[slot]) : (byte)0;
+        }
+    }
+
     /// <summary>The decoded pattern; the column stores one-based so zero means not rebuilt.</summary>
     public Space.BlockPattern PatternOf(int slot) =>
         Pattern[slot] == 0
@@ -248,7 +267,7 @@ public sealed class LotTable
     /// </para>
     /// </remarks>
     public int FloorTiles(int slot) => BuildingPlan.FloorTiles(
-        PatternOf(slot), FootprintWide[slot].Raw, FootprintDeep[slot].Raw, Storeys[slot]);
+        PatternOf(slot), FootprintWide[slot].Raw, FootprintDeep[slot].Raw, Storeys[slot], PodiumStoreys[slot]);
 
     /// <summary>Position along the east axis, in whole Tiles.</summary>
     public Column<Tiles> East { get; }

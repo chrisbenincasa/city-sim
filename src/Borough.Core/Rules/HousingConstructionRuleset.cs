@@ -37,8 +37,9 @@ public sealed class HousingConstructionRuleset
                 || form.MaxDepth > CellGrid.WorldTiles || form.Storeys == 0 || form.Setback < 0 || form.Setback > CellGrid.WorldTiles
                 || form.Setback * 2 >= form.MinFrontage || form.Setback * 2 >= form.MinDepth
                 || form.Weight is < 1 or > 1000
+                // A podium as tall as the form bounds the floor of every podium a Tower Lot can draw.
                 || !BuildingPlan.TryFloorTiles(form.Pattern, form.MaxFrontage - form.Setback * 2,
-                    form.MaxDepth - form.Setback * 2, form.Storeys, out int floor)
+                    form.MaxDepth - form.Setback * 2, form.Storeys, out int floor, podiumStoreys: form.Storeys)
                 || CapacityRuleset.Holds(floor, floorTilesPerOccupant) > Supported(maxSeekers))
             { throw new ArgumentException("A housing form is invalid or exceeds the assessment's maximum supported capacity."); }
         }

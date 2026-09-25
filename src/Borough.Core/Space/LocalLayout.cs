@@ -181,7 +181,8 @@ public static class LocalLayout
         if (permission != PermissionRefusal.None) { return new(LocalLayoutRefusal.Permission, permission); }
         if ((world.Rules.Band(band).Admits & LotTable.Housing) == 0) { return new(LocalLayoutRefusal.Intensity); }
         if (!BuildingPlan.TryFloorTiles(building.Form, building.Footprint.Width, building.Footprint.Height,
-            building.Storeys, out int floor)) { return new(LocalLayoutRefusal.InvalidGeometry); }
+            building.Storeys, out int floor, world.Rules.Lots.PodiumOn(world.Key, new Tiles(site.X), new Tiles(site.Y))))
+        { return new(LocalLayoutRefusal.InvalidGeometry); }
         int occupancy = CapacityRuleset.Holds(floor, world.Rules.Capacity.FloorTilesPerOccupant);
         int housing = occupancy - (world.Rules.Kind(building.Kind).Business != 0 && occupancy > 1 ? 1 : 0);
         if (housing <= 0) { return new(LocalLayoutRefusal.NoHousingCapacity); }

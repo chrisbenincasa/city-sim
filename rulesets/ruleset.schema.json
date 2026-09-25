@@ -958,6 +958,14 @@
           "description": "Number of Addresses per Street Segment used by block-based subdivision and form ranking. Explicit residential frontage controls Detached and Perimeter parcel counts instead.",
           "type": "integer"
         },
+        "max_tower_podium_storeys": {
+          "description": "Most storeys a Tower's podium stands. Absent means min_tower_podium_storeys, which takes no draw. At most 12.",
+          "type": "integer"
+        },
+        "min_tower_podium_storeys": {
+          "description": "Fewest storeys a Tower's podium stands. Each Tower Lot draws its podium from this range on its parcel corner, and its storeys are solved against it, so a taller podium buys a shorter shaft at the same plot ratio. Absent means 2. At most 12.",
+          "type": "integer"
+        },
         "pattern_spread": {
           "description": "How many rungs either side of its band's own rung a block's pattern may be drawn, so a density is a mix of forms rather than one form. The band's rung stays the centre of what the band means; the draw is on the block's own ground, so a block cleared and zoned again is re-carved the same way and a re-plat can still never move a block down the ladder. Omitting it means every block takes its band's form exactly.",
           "type": "integer"

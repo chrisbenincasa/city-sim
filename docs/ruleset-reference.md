@@ -27,7 +27,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-53 sections, 366 keys.
+53 sections, 368 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
@@ -68,7 +68,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[jobs]`](#jobs) — 11 keys
 - [`[land_permissions]`](#land_permissions) — 1 key
 - [`[layers]`](#layers) — 20 keys
-- [`[lots]`](#lots) — 12 keys
+- [`[lots]`](#lots) — 14 keys
 - [`[lots] trade_form_weights`](#lots-trade_form_weights) — 7 keys
 - [`[market]`](#market) — 2 keys
 - [`[needs]`](#needs) — 9 keys
@@ -1414,6 +1414,14 @@ Detached house frontage in Tiles, centred inside its parcel. Fixed at world crea
 **`lots_per_segment`** · *whole number*
 
 Number of Addresses per Street Segment used by block-based subdivision and form ranking. Explicit residential frontage controls Detached and Perimeter parcel counts instead.
+
+**`max_tower_podium_storeys`** · *whole number*
+
+Most storeys a Tower's podium stands. Absent means min_tower_podium_storeys, which takes no draw. At most 12.
+
+**`min_tower_podium_storeys`** · *whole number*
+
+Fewest storeys a Tower's podium stands. Each Tower Lot draws its podium from this range on its parcel corner, and its storeys are solved against it, so a taller podium buys a shorter shaft at the same plot ratio. Absent means 2. At most 12.
 
 **`pattern_spread`** · *whole number*
 

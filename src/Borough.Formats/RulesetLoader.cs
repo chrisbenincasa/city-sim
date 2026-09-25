@@ -7726,6 +7726,32 @@ public static class RulesetLoader
                 return LotRuleset.None;
             }
 
+            // min/max_tower_podium_storeys: the range a Tower's podium is drawn from, per Lot. OPTIONAL,
+            // and absent means the fixed two-storey podium, which takes no draw, so a file that does
+            // not state them raises exactly the Towers it raised before the keys existed.
+            if (!TryInteger(_lotsTable, "min_tower_podium_storeys", out long minPodium, required: false))
+            {
+                minPodium = Core.Space.BuildingPlan.TowerPodiumStoreys;
+            }
+
+            if (!TryInteger(_lotsTable, "max_tower_podium_storeys", out long maxPodium, required: false))
+            {
+                maxPodium = minPodium;
+            }
+
+            // A podium above twelve storeys stops being a street wall under a tower and becomes a
+            // block of its own; the plot ratio then leaves the shaft almost nothing.
+            if (minPodium < 1 || maxPodium < minPodium || maxPodium > 12)
+            {
+                Refuse(LineOfLot("min_tower_podium_storeys"), null,
+                    $"min_tower_podium_storeys = {minPodium} and max_tower_podium_storeys = {maxPodium} "
+                    + "are out of range. A Tower's podium is at least 1 storey, the maximum is at least "
+                    + "the minimum, and neither is above 12, where the podium stops being a street wall "
+                    + "and becomes a block of its own.");
+
+                return LotRuleset.None;
+            }
+
             // PROVISIONAL: retain the shell's existing eight-metre Street width.
             if (!TryInteger(_lotsTable, "street_half_width_tiles", out long streetHalfWidth, required: false))
                 streetHalfWidth = 1;
@@ -7814,7 +7840,7 @@ public static class RulesetLoader
 
             return new LotRuleset(
                 (int)value, (int)setback, (int)step, (int)spread, (int)streetHalfWidth, dimensions, centres, byBand,
-                weights);
+                weights, (int)minPodium, (int)maxPodium);
         }
 
         private int Weight(InlineTableSyntax inline, string form) =>

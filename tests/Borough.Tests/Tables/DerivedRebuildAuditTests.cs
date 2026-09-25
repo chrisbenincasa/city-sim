@@ -262,7 +262,8 @@ public sealed class DerivedRebuildAuditTests
         // 52 -> 56: building.unit_head, building.unit_tail, unit.tenant and unit.building_next. The
         // Units of each Building and the Business holding each, rebuilt from unit.building and
         // business.unit.
-        Assert.Equal(56, all.Length);
+        // 56 -> 57: lot.podium_storeys, drawn for every live Lot, so any world with Lots exercises it.
+        Assert.Equal(57, all.Length);
         Assert.Single(ScratchColumns(Stepped(0)));
     }
 

@@ -1384,6 +1384,12 @@ public sealed partial class World
         if (rules.Lots.Plots != Rules.Lots.Plots)
             throw new NotSupportedException("Residential parcel dimensions are fixed at world creation.");
 
+        // A standing Tower's storeys were solved against its podium, so a new range would change
+        // its floor without raising anything.
+        if (rules.Lots.MinTowerPodiumStoreys != Rules.Lots.MinTowerPodiumStoreys
+            || rules.Lots.MaxTowerPodiumStoreys != Rules.Lots.MaxTowerPodiumStoreys)
+            throw new NotSupportedException("Tower podium storeys are fixed at world creation.");
+
         // [treasury] opening_balance is read once, when the world is made. Re-reading it here would
         // mint money into a standing city on every hot reload -- and MoneyIsConserved would stay
         // green, because the issuance is recorded. MapLayers.Adopt refuses kernel_metres the same
@@ -4309,6 +4315,9 @@ public sealed partial class World
         Lots.FrontageSlot.Span.Clear();
         Lots.FrontageOffset.Span.Clear();
         Bins.Capacity.Span.Clear();
+
+        // Before anything below that reads a Lot's floor.
+        Lots.RebuildPodiums(Rules.Lots, Key);
 
         RebuildUnits();
 

@@ -34,6 +34,7 @@ internal static class LocalLayoutCommit
         world.Lots.FootprintWide[row] = new Tiles(footprint.Width);
         world.Lots.FootprintDeep[row] = new Tiles(footprint.Height);
         world.Lots.Storeys[row] = proposal.Building.Storeys;
+        world.Lots.PodiumStoreys[row] = world.Rules.Lots.PodiumOn(world.Key, new Tiles(site.X), new Tiles(site.Y));
         world.Lots.Pattern[row] = (byte)((int)proposal.Building.Form + 1);
         world.Frontage.Rebuild(world.Lots, world.Roads.Streets);
         world.RefreshPermissionSummaries(site);
