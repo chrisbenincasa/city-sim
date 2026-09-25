@@ -3,23 +3,30 @@ using System.Text.Json;
 namespace Borough.Appearance;
 
 /// <summary>
-/// The textures a family body can be dressed from, as <c>art/materials/library/materials.json</c>
-/// lists them.
+/// The textures a family body can be dressed from, as
+/// <c>src/Borough.Godot/assets/city/library/materials.json</c> lists them.
 /// </summary>
 /// <param name="TileMetres">The width and height one tile of each texture covers, by texture name.</param>
-public sealed record TextureLibrary(IReadOnlyDictionary<string, (float Along, float Up)> TileMetres)
+/// <param name="Paintable">
+/// The textures made greyscale for a family's paint to colour. Any other texture keeps its own colour.
+/// </param>
+public sealed record TextureLibrary(
+    IReadOnlyDictionary<string, (float Along, float Up)> TileMetres,
+    IReadOnlySet<string> Paintable)
 {
     public static TextureLibrary Read(string json)
     {
         using JsonDocument document = JsonDocument.Parse(json);
         var tiles = new Dictionary<string, (float, float)>(StringComparer.Ordinal);
+        var paintable = new HashSet<string>(StringComparer.Ordinal);
         foreach (JsonProperty texture in document.RootElement.GetProperty("textures").EnumerateObject())
         {
             JsonElement size = texture.Value.GetProperty("tile_metres");
             tiles[texture.Name] = (size[0].GetSingle(), size[1].GetSingle());
+            if (texture.Value.TryGetProperty("paint", out JsonElement paint) && paint.GetBoolean()) paintable.Add(texture.Name);
         }
 
-        return new TextureLibrary(tiles);
+        return new TextureLibrary(tiles, paintable);
     }
 
     /// <summary>
