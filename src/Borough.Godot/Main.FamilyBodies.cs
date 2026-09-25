@@ -22,6 +22,7 @@ public partial class Main
     ];
 
     private readonly Dictionary<ulong, Node3D> _familyBodyNodes = [];
+    private readonly Dictionary<ulong, BodyNeighbours> _bodyNeighbours = [];
     private readonly Dictionary<(string Family, int Frontage, int Depth, int Storeys, AttachedSides Attached), ArrayMesh> _familyBodyMeshes = [];
     private readonly Dictionary<string, Dictionary<string, Material>> _bodyLibraries = [];
     private ShaderMaterial? _derelictBody;
@@ -30,6 +31,9 @@ public partial class Main
 
     /// <summary>How far an abandoned body's own materials give way to <see cref="Derelict"/>.</summary>
     private const float DerelictBodyShare = 0.75f;
+
+    /// <summary>Where a body probed for side neighbours, and the Buildings it found there; 0 is none.</summary>
+    private readonly record struct BodyNeighbours(int Slot, Vector3 LeftProbe, Vector3 RightProbe, ulong LeftId, ulong RightId);
 
     private void FamilyBodyStudy(string[] words)
     {
@@ -48,6 +52,7 @@ public partial class Main
     {
         foreach (Node3D node in _familyBodyNodes.Values) node.QueueFree();
         _familyBodyNodes.Clear();
+        _bodyNeighbours.Clear();
         for (int slot = 0; slot < _world.Buildings.Rows.SlotCount; slot++)
         {
             if (_world.Buildings.Rows.IsLive(slot)) PlaceFamilyBody(slot);
@@ -59,6 +64,7 @@ public partial class Main
     private void RemoveFamilyBody(ulong id)
     {
         if (_familyBodyNodes.Remove(id, out Node3D? node)) node.QueueFree();
+        _bodyNeighbours.Remove(id);
     }
 
     /// <returns><c>true</c> where the Building now draws as its family's body.</returns>
@@ -80,7 +86,7 @@ public partial class Main
         float depth = facesNorthSouth ? size.Z : size.X;
         int storeys = Mathf.Max(1, Mathf.RoundToInt(size.Y / StoreyMetres));
         float turn = Mathf.Atan2(faceEast, faceSouth);
-        AttachedSides attached = Attached(slot, one.Body.Origin, turn, frontage);
+        AttachedSides attached = Attached(slot, one.Body.Origin, turn, frontage, out BodyNeighbours neighbours);
 
         var node = new MeshInstance3D
         {
@@ -91,6 +97,7 @@ public partial class Main
         Dress(node, one);
         AddChild(node);
         _familyBodyNodes[one.Id] = node;
+        _bodyNeighbours[one.Id] = neighbours;
         if (_reportFamilyBodies)
         {
             GD.Print($"family_body\t{family.Id}\tbuilding {one.Id}\t{frontage}x{depth} m\t{storeys} storeys\tattached {attached}"
@@ -124,46 +131,77 @@ public partial class Main
     /// The side walls another Building's footprint touches, found half a metre outside the middle of
     /// each wall. Left and right are as seen from the street, the body's +Z.
     /// </summary>
-    /// <remarks>
-    /// A body reads its neighbours only when it is placed, so a neighbour raised later leaves its
-    /// shared wall windowed until the next full pass.
-    /// </remarks>
-    private AttachedSides Attached(int slot, Vector3 centre, float turn, float frontage)
+    private AttachedSides Attached(int slot, Vector3 centre, float turn, float frontage, out BodyNeighbours neighbours)
     {
         var right = new Vector3(Mathf.Cos(turn), 0f, -Mathf.Sin(turn));
         float reach = (frontage / 2f) + .5f;
         bool deepEast = Mathf.Abs(right.Z) > .5f;
+        Vector3 leftProbe = centre - (right * reach), rightProbe = centre + (right * reach);
+        int left = Covering(slot, leftProbe), rightSide = Covering(slot, rightProbe);
         AttachedSides attached = AttachedSides.None;
-        int left = Covering(slot, centre - (right * reach)), rightLot = Covering(slot, centre + (right * reach));
         if (left >= 0) attached |= AttachedSides.Left | (Crosswise(slot, left, deepEast) ? AttachedSides.LeftCrosswise : 0);
-        if (rightLot >= 0) attached |= AttachedSides.Right | (Crosswise(slot, rightLot, deepEast) ? AttachedSides.RightCrosswise : 0);
+        if (rightSide >= 0) attached |= AttachedSides.Right | (Crosswise(slot, rightSide, deepEast) ? AttachedSides.RightCrosswise : 0);
+        neighbours = new BodyNeighbours(slot, leftProbe, rightProbe, IdAt(left), IdAt(rightSide));
         return attached;
     }
+
+    /// <summary>
+    /// Re-places each body whose side wall touched a changed Building, or now falls inside a placed
+    /// one. A removed Building's Lot may already be freed, so the body's remembered neighbour ids
+    /// find the walls it leaves bare.
+    /// </summary>
+    private void RefreshNeighbourBodies(HashSet<ulong> changed, List<int> placed)
+    {
+        var stale = new List<(ulong Id, int Slot)>();
+        foreach ((ulong id, BodyNeighbours seen) in _bodyNeighbours)
+        {
+            if (changed.Contains(id)) continue;
+            if (changed.Contains(seen.LeftId) || changed.Contains(seen.RightId)
+                || placed.Exists(slot => Covers(slot, seen.LeftProbe) || Covers(slot, seen.RightProbe)))
+            {
+                stale.Add((id, seen.Slot));
+            }
+        }
+
+        foreach ((ulong id, int slot) in stale)
+        {
+            RemoveFamilyBody(id);
+            PlaceFamilyBody(slot);
+        }
+    }
+
+    private ulong IdAt(int slot) => slot >= 0 ? _world.Buildings.Rows.IdAt(slot) : 0;
 
     /// <summary>Whether the neighbour's footprint spans a different stretch of this Building's depth.</summary>
     private bool Crosswise(int slot, int neighbour, bool deepEast)
     {
         LotTable lots = _world.Lots;
-        if (!lots.Rows.TryResolve(_world.Buildings.Lot[slot], out int own)) return false;
+        if (!lots.Rows.TryResolve(_world.Buildings.Lot[slot], out int own)
+            || !lots.Rows.TryResolve(_world.Buildings.Lot[neighbour], out int other)) return false;
         return deepEast
-            ? lots.FootprintEast[own] != lots.FootprintEast[neighbour] || lots.FootprintWide[own] != lots.FootprintWide[neighbour]
-            : lots.FootprintNorth[own] != lots.FootprintNorth[neighbour] || lots.FootprintDeep[own] != lots.FootprintDeep[neighbour];
+            ? lots.FootprintEast[own] != lots.FootprintEast[other] || lots.FootprintWide[own] != lots.FootprintWide[other]
+            : lots.FootprintNorth[own] != lots.FootprintNorth[other] || lots.FootprintDeep[own] != lots.FootprintDeep[other];
     }
 
-    /// <returns>The Lot whose Building footprint covers the point, or -1.</returns>
+    /// <returns>The Building slot whose footprint covers the point, or -1.</returns>
     private int Covering(int slot, Vector3 point)
     {
-        float east = point.X / MetresPerTile, north = -point.Z / MetresPerTile;
         BuildingTable table = _world.Buildings;
-        LotTable lots = _world.Lots;
         for (int other = 0; other < table.Rows.SlotCount; other++)
         {
-            if (other == slot || !table.Rows.IsLive(other) || !lots.Rows.TryResolve(table.Lot[other], out int lot)) continue;
-            int x = lots.FootprintEast[lot].Raw, y = lots.FootprintNorth[lot].Raw;
-            if (east >= x && east < x + lots.FootprintWide[lot].Raw && north >= y && north < y + lots.FootprintDeep[lot].Raw) return lot;
+            if (other != slot && table.Rows.IsLive(other) && Covers(other, point)) return other;
         }
 
         return -1;
+    }
+
+    private bool Covers(int building, Vector3 point)
+    {
+        LotTable lots = _world.Lots;
+        if (!lots.Rows.TryResolve(_world.Buildings.Lot[building], out int lot)) return false;
+        float east = point.X / MetresPerTile, north = -point.Z / MetresPerTile;
+        int x = lots.FootprintEast[lot].Raw, y = lots.FootprintNorth[lot].Raw;
+        return east >= x && east < x + lots.FootprintWide[lot].Raw && north >= y && north < y + lots.FootprintDeep[lot].Raw;
     }
 
     private ArrayMesh BodyMesh(string family, FamilyBody body, float frontage, float depth, int storeys, AttachedSides attached)

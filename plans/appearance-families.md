@@ -75,7 +75,10 @@ A roof hatch stands over each street stair.
 A rowhouses Building is one house. The shell probes half a metre outside the middle of each side
 wall; where another Building's footprint covers the probe, that wall is a party wall. A party wall
 is blank, the gable stops at it rather than overhanging, and a half-thickness upstand rises above
-it, so two neighbours make one whole upstand. `rulesets/rowhouses.toml` is the fixture: perimeter
+it, so two neighbours make one whole upstand. A body remembers the Buildings its probes found. When
+the simulation raises or removes a Building, the shell re-places every body that touched it or
+whose probe now falls inside it. `BOROUGH_RENDER_VERIFY` re-probes every body after each update
+and throws if one was drawn against neighbours that have changed. `rulesets/rowhouses.toml` is the fixture: perimeter
 blocks carved into 8 × 12 m house plots with no setback. Its streets run every 64 m, about the
 depth of a real rowhouse block. Plots have no gardens yet; that is a board row. Its three denser bands admit only zone
 bit 1, which nothing builds on, so the middle of the city stays empty.
@@ -118,8 +121,7 @@ Limits of this slice:
 - A Building raised after the toggle gets no foliage footprint for its body until the next full pass.
 - One mesh per Building, with no chunking or far level yet.
 - Scuppers, downpipes and roof crickets are left for the minor-details pass.
-- A body reads its neighbours only when it is placed, so a neighbour raised later leaves the shared
-  wall windowed until the next full pass. Each placement scans every live Building; unmeasured.
+- Each body placement scans every live Building for its neighbours; unmeasured.
 - At a block corner the column's end house backs onto the row's corner houses, whose ridges run
   crosswise to its own. The shell flags that side as crosswise when the neighbour's footprint
   spans a different stretch of the house's depth. The house then hips its roof down to that side,
@@ -131,6 +133,5 @@ Limits of this slice:
 
 ## Next
 
-- Refresh a body when its neighbour is raised or removed.
 - Chunked upload and the far level, measured against the 6 ms Building frame share.
 - Author the rest of the families. The coverage report says which size bands and kinds need them.
