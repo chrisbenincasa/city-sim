@@ -77,6 +77,15 @@ public partial class Checks : Node
             b.Replace(5, new[] { new InstanceValue(new Transform3D(Basis.Identity, new Vector3(4097, 0, 0)), Colors.Red) });
             b.Flush(new Vector3(4100, 0, 0), 2000);
             Require(b.Uploads == uploads + 1 && b.IdAt(0) == 5, "incremental entity edit preserves identity");
+            layer.NearMesh = new SphereMesh();
+            layer.NearDistance = 100;
+            uploads = b.Uploads;
+            b.Flush(new Vector3(4097, 50, 0), 2000);
+            InstanceBuffer.Batch chunk = b.Batches.Single();
+            Require(chunk.Near && chunk.Node.Multimesh.Mesh == layer.NearMesh, "a chunk near the eye draws the near mesh");
+            b.Flush(new Vector3(4097, 1000, 0), 2000);
+            Require(!chunk.Near && chunk.Node.Multimesh.Mesh == b.Mesh && b.Uploads == uploads, "a receding eye restores the far mesh without an upload");
+            layer.NearMesh = null;
             b.Replace(5, Array.Empty<InstanceValue>());
             b.Flush();
             Require(b.VisibleInstanceCount == 0, "incremental entity removal");
