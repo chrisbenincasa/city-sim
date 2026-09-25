@@ -106,7 +106,7 @@ depth_metres = [12, 20]
 [family.body]
 library = "test-street/corridor-apartments"
 tile_metres = { wall = [2.0, 2.0] }
-materials = { membrane = "concrete-panels" }
+materials = { membrane = "bitumen" }
 bay_metres = 3.0
 parapet_metres = 0.7
 roof_hatch = true

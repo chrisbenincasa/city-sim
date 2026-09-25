@@ -1,0 +1,8 @@
+# Macro variation A/B: run once with macro_strength = 0.0 (-off) and once at 0.35 (-on), same frames.
+601 pause
+601 ui family-bodies on
+601 focus 167 131 160
+601 tilt 35
+601 shoot plans/evidence/appearance-families/macro-ab-apt-on.png
+601 speed 5
+603 quit
