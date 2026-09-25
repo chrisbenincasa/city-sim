@@ -1,0 +1,484 @@
+# The CC0 texture library for Building bodies. scripts/art/materials.py reads this list, fetches each
+# texture's 1K colour, OpenGL normal and roughness maps, and writes them beside this file with
+# materials.json.
+#
+# slots          Rows in research/textures/inventory.toml that the texture was kept for.
+# tile_metres    Width and height of one tile of the image, in metres.
+# measured       Where tile_metres comes from. "Assumed" marks a size nobody has checked.
+# paint          The colour map becomes greyscale at linear mean luminance 0.7, so a family's paint
+#                colour carries the hue. Otherwise the photograph keeps its colour.
+# detile_cycles  Brightness variation up to this many cycles per tile is divided out of the colour
+#                map. 4 removes only patches the size of the tile. 7.2 also removes smaller ones.
+
+[[texture]]
+name = "corrugated-iron-02"
+asset = "Corrugated Iron 02"
+publisher = "Poly Haven"
+id = "corrugated_iron_02"
+slots = ["R01", "W11"]
+tile_metres = [2.7, 2.7]
+measured = "Poly Haven states 2.7 x 2.7 m"
+paint = true
+detile_cycles = 4.0
+
+[[texture]]
+name = "factory-wall"
+asset = "Factory Wall"
+publisher = "Poly Haven"
+id = "factory_wall"
+slots = ["R01", "W11"]
+tile_metres = [3, 3]
+measured = "Poly Haven states 3 x 3 m"
+paint = true
+detile_cycles = 4.0
+
+[[texture]]
+name = "roofing-tiles-007"
+asset = "Roofing Tiles 007"
+publisher = "ambientCG"
+id = "RoofingTiles007"
+slots = ["R01"]
+tile_metres = [3.2, 3.2]
+measured = "ambientCG states 3.2 x 3.2 m"
+paint = false
+detile_cycles = 4.0
+
+[[texture]]
+name = "roofing-tiles-008"
+asset = "Roofing Tiles 008"
+publisher = "ambientCG"
+id = "RoofingTiles008"
+slots = ["R01"]
+tile_metres = [3.2, 3.2]
+measured = "ambientCG states 3.2 x 3.2 m"
+paint = false
+detile_cycles = 7.2
+
+[[texture]]
+name = "sheet-metal-004"
+asset = "Sheet Metal 004"
+publisher = "ambientCG"
+id = "SheetMetal004"
+slots = ["R02"]
+tile_metres = [2.0, 2.0]
+measured = "Assumed. No module to count"
+paint = true
+detile_cycles = 7.2
+
+[[texture]]
+name = "asphalt-04"
+asset = "Asphalt 04"
+publisher = "Poly Haven"
+id = "asphalt_04"
+slots = ["R03"]
+tile_metres = [4.04, 4.04]
+measured = "Poly Haven states 4.04 x 4.04 m"
+paint = false
+detile_cycles = 4.0
+
+[[texture]]
+name = "asphalt-track"
+asset = "Asphalt Track"
+publisher = "Poly Haven"
+id = "asphalt_track"
+slots = ["R03"]
+tile_metres = [2, 2]
+measured = "Poly Haven states 2 x 2 m"
+paint = false
+detile_cycles = 4.0
+
+[[texture]]
+name = "bitumen"
+asset = "Bitumen"
+publisher = "Poly Haven"
+id = "bitumen"
+slots = ["R03"]
+tile_metres = [20, 20]
+measured = "Poly Haven states 20 x 20 m"
+paint = false
+detile_cycles = 4.0
+
+[[texture]]
+name = "gravel-road"
+asset = "Gravel Road"
+publisher = "Poly Haven"
+id = "gravel_road"
+slots = ["R03"]
+tile_metres = [2, 2]
+measured = "Poly Haven states 2 x 2 m"
+paint = false
+detile_cycles = 4.0
+
+[[texture]]
+name = "road-damaged"
+asset = "Road Damaged"
+publisher = "Poly Haven"
+id = "road_damaged"
+slots = ["R03"]
+tile_metres = [2.2, 2.2]
+measured = "Poly Haven states 2.2 x 2.2 m"
+paint = false
+detile_cycles = 4.0
+
+[[texture]]
+name = "gravelly-sand"
+asset = "Gravelly Sand"
+publisher = "Poly Haven"
+id = "gravelly_sand"
+slots = ["R04"]
+tile_metres = [2.48, 2.48]
+measured = "Poly Haven states 2.48 x 2.48 m"
+paint = false
+detile_cycles = 4.0
+
+[[texture]]
+name = "aerial-grass-rock"
+asset = "Aerial Grass Rock"
+publisher = "Poly Haven"
+id = "aerial_grass_rock"
+slots = ["R07"]
+tile_metres = [15, 15]
+measured = "Poly Haven states 15 x 15 m"
+paint = false
+detile_cycles = 7.2
+
+[[texture]]
+name = "aerial-rocks-01"
+asset = "Aerial Rocks 01"
+publisher = "Poly Haven"
+id = "aerial_rocks_01"
+slots = ["R07"]
+tile_metres = [80, 80]
+measured = "Poly Haven states 80 x 80 m"
+paint = false
+detile_cycles = 4.0
+
+[[texture]]
+name = "forest-leaves-02"
+asset = "Forest Leaves 02"
+publisher = "Poly Haven"
+id = "forest_leaves_02"
+slots = ["R07"]
+tile_metres = [3, 3]
+measured = "Poly Haven states 3 x 3 m"
+paint = false
+detile_cycles = 7.2
+
+[[texture]]
+name = "clay-roof-tiles-02"
+asset = "Clay Roof Tiles 02"
+publisher = "Poly Haven"
+id = "clay_roof_tiles_02"
+slots = ["W03"]
+tile_metres = [2.5, 2.5]
+measured = "Poly Haven states 2.5 x 2.5 m"
+paint = false
+detile_cycles = 4.0
+
+[[texture]]
+name = "wood-siding-011"
+asset = "Wood Siding 011"
+publisher = "ambientCG"
+id = "WoodSiding011"
+slots = ["W03"]
+tile_metres = [1.4, 1.4]
+measured = "ambientCG states 1.4 x 1.4 m"
+paint = false
+detile_cycles = 4.0
+
+[[texture]]
+name = "wood-siding-012"
+asset = "Wood Siding 012"
+publisher = "ambientCG"
+id = "WoodSiding012"
+slots = ["W03"]
+tile_metres = [1.4, 1.4]
+measured = "ambientCG states 1.4 x 1.4 m"
+paint = false
+detile_cycles = 4.0
+
+[[texture]]
+name = "wood-siding-013"
+asset = "Wood Siding 013"
+publisher = "ambientCG"
+id = "WoodSiding013"
+slots = ["W03"]
+tile_metres = [1.4, 1.4]
+measured = "ambientCG states 1.4 x 1.4 m"
+paint = false
+detile_cycles = 4.0
+
+[[texture]]
+name = "concrete-panels"
+asset = "Concrete Panels"
+publisher = "Poly Haven"
+id = "concrete_panels"
+slots = ["W04"]
+tile_metres = [8, 8]
+measured = "Poly Haven states 8 x 8 m"
+paint = true
+detile_cycles = 4.0
+
+[[texture]]
+name = "concrete-wall-001"
+asset = "Concrete Wall 001"
+publisher = "Poly Haven"
+id = "concrete_wall_001"
+slots = ["W05"]
+tile_metres = [1.5, 1.5]
+measured = "Poly Haven states 1.5 x 1.5 m"
+paint = true
+detile_cycles = 4.0
+
+[[texture]]
+name = "concrete-wall-004"
+asset = "Concrete Wall 004"
+publisher = "Poly Haven"
+id = "concrete_wall_004"
+slots = ["W05"]
+tile_metres = [2, 2]
+measured = "Poly Haven states 2 x 2 m"
+paint = true
+detile_cycles = 4.0
+
+[[texture]]
+name = "painted-plaster-wall"
+asset = "Painted Plaster Wall"
+publisher = "Poly Haven"
+id = "painted_plaster_wall"
+slots = ["W05"]
+tile_metres = [2, 2]
+measured = "Poly Haven states 2 x 2 m"
+paint = true
+detile_cycles = 4.0
+
+[[texture]]
+name = "preconcrete-wall-001"
+asset = "Preconcrete Wall 001"
+publisher = "Poly Haven"
+id = "preconcrete_wall_001"
+slots = ["W05"]
+tile_metres = [4, 4]
+measured = "Poly Haven states 4 x 4 m"
+paint = true
+detile_cycles = 4.0
+
+[[texture]]
+name = "plaster-001"
+asset = "Plaster 001"
+publisher = "ambientCG"
+id = "Plaster001"
+slots = ["W05"]
+tile_metres = [2.0, 2.0]
+measured = "Assumed. No module to count"
+paint = true
+detile_cycles = 4.0
+
+[[texture]]
+name = "brick-wall-001"
+asset = "Brick Wall 001"
+publisher = "Poly Haven"
+id = "brick_wall_001"
+slots = ["W06"]
+tile_metres = [3, 3]
+measured = "Poly Haven states 3 x 3 m"
+paint = false
+detile_cycles = 4.0
+
+[[texture]]
+name = "bricks-051"
+asset = "Bricks 051"
+publisher = "ambientCG"
+id = "Bricks051"
+slots = ["W06"]
+tile_metres = [1.25, 1.25]
+measured = "ambientCG states 1.25 x 1.25 m"
+paint = false
+detile_cycles = 4.0
+
+[[texture]]
+name = "bricks-066"
+asset = "Bricks 066"
+publisher = "ambientCG"
+id = "Bricks066"
+slots = ["W06", "W07", "W08", "W13"]
+tile_metres = [2.4, 2.4]
+measured = "ambientCG states 2.4 x 2.4 m"
+paint = false
+detile_cycles = 4.0
+
+[[texture]]
+name = "bricks-085"
+asset = "Bricks 085"
+publisher = "ambientCG"
+id = "Bricks085"
+slots = ["W06"]
+tile_metres = [2.4, 1.2]
+measured = "ambientCG states 2.4 x 1.2 m"
+paint = false
+detile_cycles = 7.2
+
+[[texture]]
+name = "rough-block-wall"
+asset = "Rough Block Wall"
+publisher = "Poly Haven"
+id = "rough_block_wall"
+slots = ["W08", "W10"]
+tile_metres = [3.04, 3]
+measured = "Poly Haven states 3.04 x 3 m"
+paint = true
+detile_cycles = 7.2
+
+[[texture]]
+name = "bricks-088"
+asset = "Bricks 088"
+publisher = "ambientCG"
+id = "Bricks088"
+slots = ["W08"]
+tile_metres = [1.8, 1.8]
+measured = "ambientCG states 1.8 x 1.8 m"
+paint = true
+detile_cycles = 7.2
+
+[[texture]]
+name = "concrete-wall-008"
+asset = "Concrete Wall 008"
+publisher = "Poly Haven"
+id = "concrete_wall_008"
+slots = ["W09"]
+tile_metres = [2.71, 2.71]
+measured = "Poly Haven states 2.71 x 2.71 m"
+paint = false
+detile_cycles = 4.0
+
+[[texture]]
+name = "concrete-034"
+asset = "Concrete 034"
+publisher = "ambientCG"
+id = "Concrete034"
+slots = ["W09"]
+tile_metres = [1.1, 0.55]
+measured = "ambientCG states 1.1 x 0.55 m"
+paint = false
+detile_cycles = 4.0
+
+[[texture]]
+name = "patterned-brick-wall-03"
+asset = "Patterned Brick Wall 03"
+publisher = "Poly Haven"
+id = "patterned_brick_wall_03"
+slots = ["W12"]
+tile_metres = [1.8, 1.8]
+measured = "Poly Haven states 1.8 x 1.8 m"
+paint = false
+detile_cycles = 4.0
+
+[[texture]]
+name = "facade-001"
+asset = "Facade 001"
+publisher = "ambientCG"
+id = "Facade001"
+slots = ["W12"]
+tile_metres = [12.0, 12.0]
+measured = "Assumed. 16 x 10 glazed panels, taken as 0.75 x 1.2 m curtain-wall units"
+paint = false
+detile_cycles = 4.0
+
+[[texture]]
+name = "facade-005"
+asset = "Facade 005"
+publisher = "ambientCG"
+id = "Facade005"
+slots = ["W12"]
+tile_metres = [4.8, 4.8]
+measured = "Assumed. 32 x 24 tiles, taken as 150 x 200 mm facade tiles"
+paint = false
+detile_cycles = 4.0
+
+[[texture]]
+name = "rock-wall-16"
+asset = "Rock Wall 16"
+publisher = "Poly Haven"
+id = "rock_wall_16"
+slots = ["W13"]
+tile_metres = [2, 2]
+measured = "Poly Haven states 2 x 2 m"
+paint = false
+detile_cycles = 4.0
+
+[[texture]]
+name = "stone-wall"
+asset = "Stone Wall"
+publisher = "Poly Haven"
+id = "stone_wall"
+slots = ["W13"]
+tile_metres = [2, 2]
+measured = "Poly Haven states 2 x 2 m"
+paint = false
+detile_cycles = 4.0
+
+[[texture]]
+name = "hinoki-planks"
+asset = "Hinoki Planks"
+publisher = "Poly Haven"
+id = "hinoki_planks"
+slots = ["W14"]
+tile_metres = [1.89, 1.89]
+measured = "Poly Haven states 1.89 x 1.89 m"
+paint = false
+detile_cycles = 7.2
+
+[[texture]]
+name = "stained-pine"
+asset = "Stained Pine"
+publisher = "Poly Haven"
+id = "stained_pine"
+slots = ["W14"]
+tile_metres = [0.9, 0.9]
+measured = "Poly Haven states 0.9 x 0.9 m"
+paint = false
+detile_cycles = 4.0
+
+[[texture]]
+name = "wood-siding-005"
+asset = "Wood Siding 005"
+publisher = "ambientCG"
+id = "WoodSiding005"
+slots = ["W14"]
+tile_metres = [2.4, 2.4]
+measured = "16 boards over the image height at a 150 mm exposure"
+paint = false
+detile_cycles = 4.0
+
+[[texture]]
+name = "wood-siding-007"
+asset = "Wood Siding 007"
+publisher = "ambientCG"
+id = "WoodSiding007"
+slots = ["W14"]
+tile_metres = [2.1, 2.1]
+measured = "14 boards over the image height at a 150 mm exposure"
+paint = false
+detile_cycles = 4.0
+
+[[texture]]
+name = "oriented-strand-board"
+asset = "Oriented Strand Board"
+publisher = "Poly Haven"
+id = "oriented_strand_board"
+slots = ["W15"]
+tile_metres = [2.51, 2.51]
+measured = "Poly Haven states 2.51 x 2.51 m"
+paint = false
+detile_cycles = 4.0
+
+[[texture]]
+name = "chipboard-004"
+asset = "Chipboard 004"
+publisher = "ambientCG"
+id = "Chipboard004"
+slots = ["W15"]
+tile_metres = [1.0, 1.0]
+measured = "Assumed. Strands about a tenth of the width, taken as 100 mm OSB flakes"
+paint = false
+detile_cycles = 7.2

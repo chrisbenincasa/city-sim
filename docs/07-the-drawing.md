@@ -129,6 +129,16 @@ C# massing as the authoring workflow. Existing zoning, parcel and simulation geo
 5. Use the rudimentary roster for gameplay debugging; iterate on detailed visual design in a
    separate session. A blockout is a foundation, not finished art.
 
+**Surface textures come from the library in `src/Borough.Godot/assets/city/library/`.** It sits
+inside the Godot project so the shell can load it. `textures.toml` lists each CC0 texture with its
+tile size in metres, where that size comes from, whether a family paints it, and how strongly its
+colour map is flattened. `uv run scripts/art/materials.py` fetches the maps, writes them beside the
+list and records sources, transforms and hashes in `materials.json`.
+Flattening divides out brightness variation below `detile_cycles` cycles per tile, which hides the
+repeat of large stains. It cannot hide a repeated distinct mark. A painted texture is greyscale at
+linear mean luminance 0.7, so the family's paint carries the hue. `research/textures/` holds the
+slot inventory the textures were chosen against.
+
 **Three pipelines, and the project's answer is the third.**
 
 | | What it is | What it costs |
