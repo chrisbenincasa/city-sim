@@ -1,0 +1,13 @@
+# Library shader on the rowhouse terrace: rowhouses.toml, 1000 Citizens, --start-at 600, default test-street preset.
+601 pause
+601 ui family-bodies on
+601 focus 38 17 60
+601 tilt 20
+601 shoot plans/evidence/appearance-families/shader-rowhouses-street.png
+601 speed 5
+602 pause
+602 focus 40 24 130
+602 tilt 50
+602 shoot plans/evidence/appearance-families/shader-rowhouses-block.png
+602 speed 5
+604 quit

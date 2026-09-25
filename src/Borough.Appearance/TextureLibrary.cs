@@ -10,23 +10,27 @@ namespace Borough.Appearance;
 /// <param name="Paintable">
 /// The textures made greyscale for a family's paint to colour. Any other texture keeps its own colour.
 /// </param>
+/// <param name="MeanLuminance">Each texture's colour map mean linear luminance, which paint divides out.</param>
 public sealed record TextureLibrary(
     IReadOnlyDictionary<string, (float Along, float Up)> TileMetres,
-    IReadOnlySet<string> Paintable)
+    IReadOnlySet<string> Paintable,
+    IReadOnlyDictionary<string, float> MeanLuminance)
 {
     public static TextureLibrary Read(string json)
     {
         using JsonDocument document = JsonDocument.Parse(json);
         var tiles = new Dictionary<string, (float, float)>(StringComparer.Ordinal);
         var paintable = new HashSet<string>(StringComparer.Ordinal);
+        var means = new Dictionary<string, float>(StringComparer.Ordinal);
         foreach (JsonProperty texture in document.RootElement.GetProperty("textures").EnumerateObject())
         {
             JsonElement size = texture.Value.GetProperty("tile_metres");
             tiles[texture.Name] = (size[0].GetSingle(), size[1].GetSingle());
             if (texture.Value.TryGetProperty("paint", out JsonElement paint) && paint.GetBoolean()) paintable.Add(texture.Name);
+            means[texture.Name] = texture.Value.GetProperty("albedo_linear_mean_luminance").GetSingle();
         }
 
-        return new TextureLibrary(tiles, paintable);
+        return new TextureLibrary(tiles, paintable, means);
     }
 
     /// <summary>

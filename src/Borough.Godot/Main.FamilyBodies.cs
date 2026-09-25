@@ -350,11 +350,19 @@ public partial class Main
             Material material = dressed ? LibraryMaterial(texture!)
                 : library.GetValueOrDefault(part) ?? new StandardMaterial3D { AlbedoColor = new Color(0.8f, 0.8f, 0.78f) };
             bool paintable = !dressed || _textureLibrary!.Paintable.Contains(texture!);
-            Color? tint = null;
+            Color? tint = dressed ? new Color(1f, 1f, 1f, 0f) : null;
             reads[part] = MeanColour(material);
-            if (paintable && scheme is not null && scheme.TryGetValue(part, out Paint colour) && material is BaseMaterial3D authored)
+            if (paintable && scheme is not null && scheme.TryGetValue(part, out Paint colour))
             {
-                (material, tint) = Painted(authored, colour, family.Id, part);
+                if (dressed)
+                {
+                    tint = Color.Color8(colour.R, colour.G, colour.B);
+                }
+                else if (material is BaseMaterial3D authored)
+                {
+                    (material, tint) = Painted(authored, colour, family.Id, part);
+                }
+
                 reads[part] = Color.Color8(colour.R, colour.G, colour.B).SrgbToLinear();
             }
 
@@ -388,12 +396,17 @@ public partial class Main
     /// <summary>A material's mean albedo in linear light, its texture sampled on a 32 × 32 grid.</summary>
     private Color MeanColour(Material? material)
     {
-        if (material is not BaseMaterial3D surface) return new Color(0.6f, 0.6f, 0.58f);
+        (Texture2D? albedo, Color tint) = material switch
+        {
+            BaseMaterial3D surface => (surface.AlbedoTexture, surface.AlbedoColor.SrgbToLinear()),
+            ShaderMaterial shader => (shader.GetShaderParameter("albedo_map").As<Texture2D>(), Colors.White),
+            _ => (null, new Color(0.6f, 0.6f, 0.58f)),
+        };
+        if (material is not (BaseMaterial3D or ShaderMaterial)) return tint;
         if (_meanColours.TryGetValue(material, out Color found)) return found;
 
-        Color tint = surface.AlbedoColor.SrgbToLinear();
         Color mean = Colors.White;
-        if (surface.AlbedoTexture?.GetImage() is { } image)
+        if (albedo?.GetImage() is { } image)
         {
             if (image.IsCompressed()) image.Decompress();
             const int Grid = 32;
@@ -462,25 +475,20 @@ public partial class Main
         return sum / count;
     }
 
-    /// <summary>A texture library entry's albedo, normal and roughness maps as one material.</summary>
+    /// <summary>
+    /// A texture library entry's albedo, normal and roughness maps as one <c>library-body.gdshader</c>
+    /// material. The part's vertex colour carries its paint.
+    /// </summary>
     private Material LibraryMaterial(string texture)
     {
         if (_libraryMaterials.TryGetValue(texture, out Material? found)) return found;
 
         string stem = TextureLibraryDirectory + texture;
-        var material = new StandardMaterial3D
-        {
-            ResourceName = texture,
-            AlbedoTexture = GD.Load<Texture2D>(stem + "-albedo.jpg"),
-            NormalEnabled = true,
-            NormalTexture = GD.Load<Texture2D>(stem + "-normal.jpg"),
-            TextureFilter = BaseMaterial3D.TextureFilterEnum.LinearWithMipmapsAnisotropic,
-        };
-        if (ResourceLoader.Exists(stem + "-roughness.jpg"))
-        {
-            material.Roughness = 1f;
-            material.RoughnessTexture = GD.Load<Texture2D>(stem + "-roughness.jpg");
-        }
+        var material = new ShaderMaterial { ResourceName = texture, Shader = GD.Load<Shader>("res://library-body.gdshader") };
+        material.SetShaderParameter("albedo_map", GD.Load<Texture2D>(stem + "-albedo.jpg"));
+        material.SetShaderParameter("normal_map", GD.Load<Texture2D>(stem + "-normal.jpg"));
+        if (ResourceLoader.Exists(stem + "-roughness.jpg")) material.SetShaderParameter("roughness_map", GD.Load<Texture2D>(stem + "-roughness.jpg"));
+        material.SetShaderParameter("mean_luminance", _textureLibrary!.MeanLuminance[texture]);
 
         _libraryMaterials[texture] = material;
         return material;
