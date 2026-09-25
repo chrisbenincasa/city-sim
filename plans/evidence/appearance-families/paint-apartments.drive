@@ -1,0 +1,8 @@
+# Painted walkup and two-unit apartments: gridded.toml, 2000 Citizens, --start-at 600, default test-street preset.
+601 pause
+601 ui family-bodies on
+601 focus 167 131 160
+601 tilt 35
+601 shoot plans/evidence/appearance-families/paint-apartments.png
+601 speed 5
+603 quit

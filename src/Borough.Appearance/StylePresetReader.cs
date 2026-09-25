@@ -153,8 +153,25 @@ public static class StylePresetReader
 
                         break;
 
+                    case ("family.paint", true):
+                        PaintScheme? scheme = reading.Scheme();
+                        if (lastFamily is not { } painted)
+                        {
+                            if (!lastFamilyRefused) reading.Refuse(LineOf(table), "[[family.paint]] must follow the [[family]] it paints.");
+                        }
+                        else if (families[painted].Fallback)
+                        {
+                            reading.Refuse(LineOf(table), $"fallback family '{families[painted].Id}' draws the massing and takes no paint.");
+                        }
+                        else if (scheme is not null)
+                        {
+                            families[painted] = families[painted] with { Paints = [.. families[painted].Paints ?? [], scheme] };
+                        }
+
+                        break;
+
                     default:
-                        reading.Refuse(LineOf(table), $"unknown section '{NameOf(table.Name)}'. Expected [preset], [[family]] or [family.body].");
+                        reading.Refuse(LineOf(table), $"unknown section '{NameOf(table.Name)}'. Expected [preset], [[family]], [family.body] or [[family.paint]].");
                         break;
                 }
             }
@@ -210,6 +227,12 @@ public static class StylePresetReader
                 AppearanceFamily first = ids[family.Id];
                 errors.Add(new AppearanceDiagnostic(family.File, family.Line,
                     $"family id '{family.Id}' is already declared at {first.File}:{first.Line}."));
+            }
+
+            if (family.Paints is not null && family.Body is null)
+            {
+                errors.Add(new AppearanceDiagnostic(family.File, family.Line,
+                    $"family '{family.Id}' has paint but no [family.body] to paint."));
             }
 
             if (!family.Fallback) continue;
@@ -319,6 +342,30 @@ public static class StylePresetReader
                 : new FamilyBody(library, tiles, bay, parapet, pilasters, (int)plant,
                     new WallRule(rows[0], rows[1]), new WallRule(rows[2], rows[3]), new WallRule(rows[4], rows[5]),
                     hatch, (int)vents, openings, gable, chimney, steps, partyLine, shopfront, panels, rooflights, receiving);
+        }
+
+        public PaintScheme? Scheme()
+        {
+            int before = errors.Count;
+            Collect(["weight", .. FamilyBodyBuilder.PartNames]);
+            long weight = Integer("weight", required: false, least: 1) ?? 1;
+            var parts = new Dictionary<string, Paint>(StringComparer.Ordinal);
+            foreach (string part in FamilyBodyBuilder.PartNames)
+            {
+                string? code = Text(part, required: false);
+                if (code is null) continue;
+                if (code.Length == 6 && uint.TryParse(code, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out uint rgb))
+                {
+                    parts[part] = new Paint((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb);
+                }
+                else
+                {
+                    Refuse(LineOf(_keys[part]), $"'{part}' must be an sRGB colour of six hex digits, such as \"b9ad97\".");
+                }
+            }
+
+            if (parts.Count == 0 && errors.Count == before) Refuse(LineOf(table), "a paint scheme must colour at least one part.");
+            return errors.Count > before ? null : new PaintScheme(parts, (int)weight);
         }
 
         private Dictionary<BayKind, OpeningSize> Openings(string key)
