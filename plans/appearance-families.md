@@ -53,6 +53,10 @@ A family's `[family.body]` table says how it builds its body at any size it admi
 - a parapet or an 18° or steeper gable, pilasters, rooftop plant, vents, a roof hatch, a chimney
   and front steps
 - the authored model whose materials dress it
+- texture library entries that dress some parts in place of the model's materials, as
+  `materials = { wall = "bricks-088", roof = "clay-roof-tiles-02" }`. A dressed part tiles at the
+  texture's measured size unless `tile_metres` lists it. `TextureLibrary.Dress` refuses a name
+  that `src/Borough.Godot/assets/city/library/materials.json` does not hold.
 
 Spare bays split evenly among the `*` tokens. A remainder goes in pairs to the outermost tokens and
 a last odd bay to the middle one, so `["window*", "hall*", "window*"]` keeps its entrance central
@@ -94,6 +98,15 @@ photograph's mean. That caps paint on the test-street siding, render and block a
 shingles at `757575`; the shell warns and clamps a brighter one. Paint lives in the mesh, so it
 survives chunk merging. Each family's first scheme is its Blender body's colours.
 
+The shell draws a dressed part with the library texture's albedo, normal and roughness maps. A
+texture the library marks `paint` is greyscale at linear mean luminance 0.7, so a scheme paints it
+as it paints a model's material. Any other texture keeps its own colour, and a scheme that names the
+part leaves it alone. Brick and tile are the colour they are, while plaster and render take paint,
+and the library already records which is which. The test-street walkups wear `bricks-085`, so their
+schemes paint only the doors. The two-unit walls wear `painted-plaster-wall` and keep their schemes.
+A dressed part's far box takes the texture's mean colour, or the scheme's paint where it paints the
+part. Dressing adds no mesh and no layer, because a dressed surface only swaps its material.
+
 `FamilyBodyBuilder` ports the vocabulary of `scripts/art/test-street.py`. The shell draws the result
 in place of the massing with `ui family-bodies on`.
 
@@ -101,8 +114,19 @@ Bodies stay drawn under every overlay and follow the massing's overlay rule. A b
 (family, health, trouble, rung, age) covers the whole body in the Building's overlay colour, unlit,
 with the massing's fixed diagram light. A ground overlay (pollution, value, sealing) mutes the body
 to the context grey. With no overlay, an abandoned body takes a 75% tint of `Main.Derelict` over its
-own materials. `overlay-buildings.gdshader` reads a body's colour from the `body_ink` instance
-uniform. Godot linearises an instance uniform's Color, so the shell passes sRGB.
+own materials. A body's instance custom data carries its overlay colour, or the derelict grey with
+its share in alpha. `overlay-buildings.gdshader` and `derelict-body.gdshader` read it as
+`INSTANCE_CUSTOM`, because a painted material takes its albedo from `COLOR`.
+
+Bodies that share a generated mesh share one `InstanceLayer`, batched in 1024 m chunks, so a draw
+covers every body of that mesh in a chunk. Abandoned bodies take their own layers, which carry the
+derelict overlay. A chunk whose nearest point is within 500 m of the camera draws bodies, with 15%
+hysteresis. Beyond that the same Buildings draw as massing boxes in the family's own colours. A
+box takes the Building's paint scheme where it paints the wall or roof, and otherwise the linear
+mean of the material's albedo. The far box takes the family's roof. A flat
+family gets its parapet tray, and a pitched family keeps a pitched cap or gets a gable. Body and box
+layers decide from the same chunk key, so a Building is drawn once. `ui family-bodies on NEAR` sets
+the band in metres, and `on 0` draws every body as its far box.
 
 | Check | Result |
 |---|---|
@@ -122,6 +146,7 @@ uniform. Godot linearises an instance uniform's Color, so the shell passes sRGB.
 | Corner shop and workshop, the same city on a copied preset | No shipped fixture raises either, so the copy lets them take dwellings. Fascia, awnings, brick and plant on the corner shop; panels, roller, rooflights and vents on the workshop. `body-corner-workshop-*.png`; `body-corner-workshop.drive` records the copy's edits |
 | Painted rowhouses, `rowhouses.toml`, 1,000 Citizens, Tick 600 | All 66 houses drew a scheme, spread across all eight. Wall, end wall, trim, door and roof vary house by house. `paint-h1-*.png` from `paint-h1.drive` |
 | Painted apartments, `gridded.toml`, 2,000 Citizens, Tick 600 | Corridor, walkup, two-unit and office-warehouse bodies draw their schemes; the render palette is quiet by design. `paint-apartments.png` from `paint-apartments.drive` |
+| Dressed apartments, `gridded.toml`, 2,000 Citizens, Tick 600 | Five walkups draw red brick at 2.4 × 1.2 m a tile, with painted doors. Two two-unit bodies draw plaster in their schemes' wall paint. The walkup's far box is the brick's mean colour. `dress-*.png` from `dress-apartments.drive` |
 | Corridor side-by-side | Walls, openings, canopies and roof hatch match. The two vents stand 4 m either side of the centre, where the Blender body puts them at 8 m. The ground windows sit 5 cm lower, and the back door is 10 cm taller |
 
 Limits of this slice:
@@ -135,7 +160,10 @@ Limits of this slice:
   deep where the Blender body's is 1.0 m. Both free ends get side-street shops.
 - The workshop's office bay is a plain door.
 - A Building raised after the toggle gets no foliage footprint for its body until the next full pass.
-- One mesh per Building, with no chunking or far level yet.
+- A whole-city placement pass takes 0.46–0.74 s on the main thread for 14,891 bodies, and 1.7 s
+  the first time, while it generates the meshes. A change of overlay therefore hitches.
+- The far box keeps the massing's painted windows and masonry, not the body's openings.
+- Chunk switching pops a whole 1024 m chunk at the band edge.
 - Scuppers, downpipes and roof crickets are left for the minor-details pass.
 - Each body placement scans every live Building for its neighbours; unmeasured.
 - At a block corner the column's end house backs onto the row's corner houses, whose ridges run
@@ -149,5 +177,5 @@ Limits of this slice:
 
 ## Next
 
-- Chunked upload and the far level, measured against the 6 ms Building frame share.
+- Move the whole-city placement pass off the main thread, or spread it across frames.
 - Author the rest of the families. The coverage report says which size bands and kinds need them.

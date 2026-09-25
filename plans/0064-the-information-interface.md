@@ -324,10 +324,11 @@ label. The inspector and the Settings panel now start below that trim rather tha
 unconditional: `BOROUGH_PERFORMANCE_LOG` and the tooltip's six lines are what a driven run
 collects, and gating those on the build would make a release export unmeasurable.
 
-🔴 **`a Day in 4m16s` is gone, and so is the day counter that was commented out beside it.** The
-Day, the clock and `PhaseOfDay`'s name for the hour are the sky arc's tooltip now. ***A duration a
-person is not waiting on is a number that moves for no reason***, which is what made it a
-distraction rather than an orientation.
+🔴 **`a Day in 4m16s` is gone.** ***A duration a person is not waiting on is a number that moves
+for no reason***, which is what made it a distraction rather than an orientation. The Day and the
+clock sit beside the sky arc as `Day N · HH:MM` in tabular type, because the player could not tell
+how fast time moved from the arc alone (review 2026-09-25). `PhaseOfDay`'s name for the hour stays
+in the tooltip.
 
 🔴 **THE TEXT-SIZE CONTROL'S 100% WAS NOT 100%.** Point sizes were stated for a 1,080-pixel window
 and multiplied by up to **1.3×** on a taller one, so body text read at **21 point** where the panel

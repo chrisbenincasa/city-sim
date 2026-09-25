@@ -1,9 +1,13 @@
 shader_type spatial;
 
 // An overlay pass that greys an abandoned family body toward Main.Derelict, lit like the body.
+// INSTANCE_CUSTOM carries the linear grey and, in alpha, its share.
 
-// sRGB. Godot linearises an instance uniform's Color.
-instance uniform vec4 derelict = vec4(0.0);
+varying vec4 derelict;
+
+void vertex() {
+	derelict = INSTANCE_CUSTOM;
+}
 
 void fragment() {
 	ALBEDO = derelict.rgb;

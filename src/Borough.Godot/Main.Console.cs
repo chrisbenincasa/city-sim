@@ -60,6 +60,7 @@ public partial class Main
     private Control _toolSlot = null!;
     private SkyArc _skyArc = null!;
     private Label _rungLabel = null!;
+    private Label _clockLabel = null!;
     private Label _populationLabel = null!, _treasuryLabel = null!;
     private Label _refusalLabel = null!;
     private Button _pauseButton = null!, _slowerButton = null!, _fasterButton = null!;
@@ -120,6 +121,10 @@ public partial class Main
         sky.AddThemeConstantOverride("separation", 8);
         _skyArc = new SkyArc { CustomMinimumSize = new Vector2(64, 44), MouseFilter = Control.MouseFilterEnum.Stop };
         sky.AddChild(_skyArc);
+        _clockLabel = ConsoleLabel(string.Empty, BodyPoints);
+        _clockLabel.ThemeTypeVariation = InformationUi.Reading;
+        _clockLabel.CustomMinimumSize = new Vector2(120, 0);
+        sky.AddChild(_clockLabel);
         _consoleTop.AddChild(sky);
 
         // ---- the city ---------------------------------------------------------------------------
@@ -290,7 +295,9 @@ public partial class Main
         if (_skyArc.Minute != minute)
         {
             _skyArc.Minute = minute;
-            _skyArc.TooltipText = $"Day {_world.Tick.Raw / (ulong)Ticks.PerDay}, {minute / 60:00}:{minute % 60:00}"
+            ulong day = _world.Tick.Raw / (ulong)Ticks.PerDay + 1;
+            _clockLabel.Text = $"Day {day} · {minute / 60:00}:{minute % 60:00}";
+            _clockLabel.TooltipText = _skyArc.TooltipText = $"Day {day}, {minute / 60:00}:{minute % 60:00}"
                 + $" — {PhaseOfDay(minute)}.\nDawn left, noon above, dusk right, midnight below.";
             _skyArc.QueueRedraw();
         }

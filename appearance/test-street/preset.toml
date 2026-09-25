@@ -163,7 +163,9 @@ depth_metres = [12, 20]
 # a garden door, and a roof hatch over its stair.
 [family.body]
 library = "test-street/two-unit-apartments"
-tile_metres = { wall = [2.0, 2.0], wall-end = [2.0, 2.0], membrane = [20.0, 20.0] }
+tile_metres = { membrane = [20.0, 20.0] }
+# Plaster is greyscale, so each scheme's wall paint colours it.
+materials = { wall = "painted-plaster-wall", wall-end = "painted-plaster-wall" }
 bay_metres = 3.0
 parapet_metres = 0.7
 party_line = true
@@ -215,7 +217,8 @@ depth_metres = [8, 16]
 # balcony above it on every upper floor.
 [family.body]
 library = "test-street/walkup-apartments"
-tile_metres = { wall = [2.0, 2.0], membrane = [20.0, 20.0] }
+tile_metres = { membrane = [20.0, 20.0] }
+materials = { wall = "bricks-085" }
 bay_metres = 4.0
 parapet_metres = 0.7
 openings = { window = [1.4, 1.7], door = [2.0, 2.4], stair = [2.0, 2.6, 1.2], balcony = [2.4, 2.3] }
@@ -226,7 +229,7 @@ back_upper = ["balcony+window*"]
 side_ground = ["window", "blank*", "window"]
 side_upper = ["window", "blank*", "window"]
 
-# Render up to "dadada".
+# Render up to "dadada". The brick walls keep their own colour, so only the doors take these.
 [[family.paint]]
 wall = "cdc6b6"
 door = "4f5253"

@@ -52,6 +52,8 @@ public class StylePresetTests
     [InlineData("[[family]]\nid = \"a\"\nkinds = [\"dwelling\"]\n[family.body]\nlibrary = \"l\"\nbay_metres = 6\n[[family.paint]]\nglazing = \"ffffff\"\n", 12, "unknown key 'glazing'")]
     [InlineData("[[family]]\nid = \"a\"\nkinds = [\"dwelling\"]\n[family.body]\nlibrary = \"l\"\nbay_metres = 6\n[[family.paint]]\nweight = 2\n", 11, "must colour at least one part")]
     [InlineData("[[family]]\nid = \"a\"\nkinds = [\"dwelling\"]\n[[family.paint]]\nwall = \"ffffff\"\n", 5, "has paint but no [family.body]")]
+    [InlineData("[[family]]\nid = \"a\"\nkinds = [\"dwelling\"]\n[family.body]\nlibrary = \"l\"\nbay_metres = 6\nmaterials = { chimney = \"bricks-088\" }\n", 11, "'materials.chimney' names no body part")]
+    [InlineData("[[family]]\nid = \"a\"\nkinds = [\"dwelling\"]\n[family.body]\nlibrary = \"l\"\nbay_metres = 6\nmaterials = { wall = 3 }\n", 11, "'materials.wall' must name a texture library entry")]
     public void A_mistake_is_refused_at_its_line(string text, int line, string message)
     {
         StylePresetResult result = Read(text);
@@ -160,6 +162,40 @@ public class StylePresetTests
         string[] detached = [.. Enumerable.Range(1, 12).Select(id =>
             FamilyPicker.Pick(preset, World, Facts((ulong)id, face: 5)).Family!.Id)];
         Assert.True(detached.Distinct().Count() > 1);
+    }
+
+    [Fact]
+    public void A_dressed_part_tiles_at_its_texture_size_unless_the_body_lists_it_and_an_unknown_texture_is_refused()
+    {
+        var library = TextureLibrary.Read("""
+            { "textures": {
+                "bricks-088": { "tile_metres": [1.5, 1.5], "paint": true },
+                "clay-roof-tiles-02": { "tile_metres": [2, 2], "paint": false } } }
+            """);
+        Assert.Equal(["bricks-088"], library.Paintable);
+        StylePreset preset = Preset("""
+            [[family]]
+            id = "terrace"
+            kinds = ["dwelling"]
+
+            [family.body]
+            library = "l"
+            bay_metres = 6
+            tile_metres = { roof = [4, 4], trim = [1, 1] }
+            materials = { wall = "bricks-088", roof = "clay-roof-tiles-02" }
+            """);
+
+        FamilyBody body = library.Dress(preset).Preset!.Families[0].Body!;
+
+        Assert.Equal((1.5f, 1.5f), body.TileMetres["wall"]);
+        Assert.Equal((4f, 4f), body.TileMetres["roof"]);
+        Assert.Equal((1f, 1f), body.TileMetres["trim"]);
+        Assert.Equal("clay-roof-tiles-02", body.Materials["roof"]);
+
+        StylePresetResult refused = (library with { TileMetres = new Dictionary<string, (float, float)>() }).Dress(preset);
+        Assert.Null(refused.Preset);
+        Assert.Equal(2, refused.Errors.Count);
+        Assert.Contains(refused.Errors, e => e.Line == 5 && e.Message.Contains("dresses 'wall' in 'bricks-088'", StringComparison.Ordinal));
     }
 
     [Fact]
