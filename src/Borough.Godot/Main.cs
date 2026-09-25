@@ -1277,12 +1277,16 @@ public partial class Main : Node3D
         // is DepthFillLow's own bargain -- geometry the city does not have, invented so the
         // picture reads as a city, and labelled so nobody promotes it to a Ruleset key.
         _yards = Layer(Outbuilding, Vector3.One, perInstance: true);
-        _trees = Layer(Colors.White, TreeMesh(), perInstance: true);
+        var (nearTree, middleTree, farTree) = TreeMeshes();
+        _trees = Layer(Colors.White, farTree, perInstance: true);
+        nearTree.SurfaceSetMaterial(0, farTree.SurfaceGetMaterial(0));
+        middleTree.SurfaceSetMaterial(0, farTree.SurfaceGetMaterial(0));
         _rocks = Layer(Boulder, new SphereMesh { Radius = 0.5f, Height = 1f, RadialSegments = 7, Rings = 3 });
         _travellers = Layer(Colors.White, WalkerMesh(), perInstance: true);
         _cars = Layer(Colors.White, CarMesh(), perInstance: true);
         // PROVISIONAL detail distances. Woodland remains represented by the ground texture.
         _trees.DetailDistance = 8000f;
+        _trees.Details = [(400f, nearTree), (1500f, middleTree)];
         _rocks.DetailDistance = 4000f;
         _kerbs.DetailDistance = 5000f;
         _travellers.DetailDistance = 3000f;

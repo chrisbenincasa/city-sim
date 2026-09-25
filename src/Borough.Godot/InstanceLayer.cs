@@ -23,6 +23,12 @@ public partial class InstanceLayer : Node3D
         };
     }
     public float DetailDistance { get; set; }
+
+    /// <summary>
+    /// Meshes drawn instead of the buffer's mesh, nearest band first. A chunk draws the first mesh
+    /// whose distance reaches the nearest point of its bounds, and the buffer's mesh beyond them all.
+    /// </summary>
+    public IReadOnlyList<(float Within, Mesh Mesh)> Details { get; set; } = [];
     public InstanceBuffer Multimesh { get; }
     public InstanceLayer() => Multimesh = new InstanceBuffer(this);
     private Material? _material;
@@ -81,6 +87,8 @@ public sealed class InstanceBuffer
         internal bool Near;
         public MultiMeshInstance3D Node { get; internal set; } = null!;
         public bool Resident { get; internal set; } = true;
+        /// <summary>The index into <see cref="InstanceLayer.Details"/> drawn, or -1 for the buffer's mesh.</summary>
+        public int Detail { get; internal set; } = -1;
         public Aabb Bounds { get; internal set; }
         public IReadOnlyList<Entry> Instances => Entries;
     }
@@ -295,6 +303,7 @@ public sealed class InstanceBuffer
                 {
                     if (Wants(batch) != batch.Resident || Hides(batch) != batch.Near) _dirty.Add(batch);
                 }
+            foreach (Batch batch in _batches.Values) Choose(batch);
         }
         if (_dirty.Count == 0) return;
         long start = System.Diagnostics.Stopwatch.GetTimestamp();
@@ -365,6 +374,7 @@ public sealed class InstanceBuffer
                 if (UseCustomData) Put(b, ref at, entry.Custom);
             }
             batch.Bounds = bounds;
+            Choose(batch);
             mesh.CustomAabb = bounds;
             mesh.Buffer = batch.Buffer;
             mesh.VisibleInstanceCount = count;
@@ -392,6 +402,26 @@ public sealed class InstanceBuffer
         // Hysteresis prevents reallocating buffers while the camera hovers at a detail boundary.
         float distance = _detailDistance * (batch.Resident ? 1.15f : 1f);
         return eye.DistanceSquaredTo(nearest) <= distance * distance;
+    }
+
+    // Swapping the mesh keeps the uploaded instances, so a chunk changes detail without a transfer.
+    // A band the chunk already stands inside keeps it until 15% beyond, as residency does.
+    private void Choose(Batch batch)
+    {
+        var details = _owner.Details;
+        int detail = -1;
+        if (details.Count > 0 && _eye is { } eye)
+        {
+            float distance = eye.DistanceTo(eye.Clamp(batch.Bounds.Position, batch.Bounds.End));
+            for (int i = 0; i < details.Count && detail < 0; i++)
+            {
+                bool inside = batch.Detail >= 0 && batch.Detail <= i;
+                if (distance <= details[i].Within * (inside ? 1.15f : 1f)) detail = i;
+            }
+        }
+        if (detail == batch.Detail) return;
+        batch.Detail = detail;
+        batch.Node.Multimesh.Mesh = detail < 0 ? Mesh : details[detail].Mesh;
     }
 
     private bool Hides(Batch batch) => !NearOnly && Near is not null && Near(batch.Key);
