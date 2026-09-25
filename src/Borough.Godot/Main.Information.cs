@@ -134,7 +134,9 @@ public partial class Main
             _debugShown = (bool)preferences.GetValue("ui", "debug", false);
             _edgeScrolling = (bool)preferences.GetValue("ui", "edge_scrolling", true);
             _textPercent = Math.Clamp((int)preferences.GetValue("ui", "text_percent", 100), 100, 150);
+            _antialiasing = (bool)preferences.GetValue("ui", "antialiasing", true);
         }
+        SetAntialiasing(_antialiasing);
         BuildDiscovery();
         BuildSettings();
         BuildMenu();
@@ -662,6 +664,10 @@ public partial class Main
             case "layers" when words.Length == 2 && words[1] is "on" or "off":
                 _layersShown = words[1] == "on";
                 break;
+            case "antialias" when words.Length == 2 && words[1] is "on" or "off":
+                SetAntialiasing(words[1] == "on");
+                SaveInformationPreferences();
+                break;
             case "edge-scroll" when words.Length == 2 && words[1] is "on" or "off":
                 _edgeScrolling = words[1] == "on";
                 _edgeScrollButton.ButtonPressed = _edgeScrolling;
@@ -848,6 +854,7 @@ public partial class Main
         preferences.SetValue("ui", "debug", _debugShown);
         preferences.SetValue("ui", "edge_scrolling", _edgeScrolling);
         preferences.SetValue("ui", "text_percent", _textPercent);
+        preferences.SetValue("ui", "antialiasing", _antialiasing);
         preferences.Save("user://information.cfg");
     }
 

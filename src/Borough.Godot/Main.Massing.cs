@@ -715,8 +715,9 @@ public partial class Main
         _parapetIds.Clear();
         _yardIds.Clear();
 
-        foreach (Massing one in massing)
+        foreach (Massing each in massing)
         {
+            Massing one = each;
             if (buildings == 0 || one.Id != last)
             {
                 buildings++;
@@ -725,14 +726,17 @@ public partial class Main
 
             FoliageFootprint(one.Body, footprints++);
             if (one.Outhoused) FoliageFootprint(one.Yard, footprints++);
-            if (_shelled.Contains(one.Id) || _exactBodies.ContainsKey(one.Id) || _familyBodyNodes.ContainsKey(one.Id)) continue;
+            if (_shelled.Contains(one.Id) || _exactBodies.ContainsKey(one.Id)) continue;
+            bool far = _placedBodies.TryGetValue(one.Id, out PlacedBody placed);
+            if (far) one = FarMassing(one, placed.Shape.Body);
             _buildings.Multimesh.Identity(bodies, one.Id);
             _buildingIds.Add(one.Id);
             _buildings.Multimesh.SetInstanceTransform(bodies, one.Body);
-            _buildings.Multimesh.SetInstanceColor(bodies, one.Paint);
+            _buildings.Multimesh.SetInstanceColor(bodies, far ? FarPaint(one, placed.Shape.Wall, one.Paint) : one.Paint);
+            _buildings.Multimesh.SetInstanceFar(bodies, far);
             _buildings.Multimesh.SetInstanceCustomData(bodies++, one.Reads);
 
-            if (one.Outhoused)
+            if (one.Outhoused && !far)
             {
                 _yards.Multimesh.Identity(yards, one.Id);
                 _yardIds.Add(one.Id);
@@ -769,7 +773,8 @@ public partial class Main
             // ⚠ THE ROOF OF A SHELL IS THE SHELL'S COLOUR AND NOT THE ROOFING. An abandoned
             // Building that kept a warm red roof would read as the liveliest thing on the street.
             layer.Multimesh.SetInstanceColor(
-                at, RoofPaint(one));
+                at, far ? FarPaint(one, placed.Shape.Roof, RoofPaint(one)) : RoofPaint(one));
+            layer.Multimesh.SetInstanceFar(at, far);
 
             switch (one.Cap)
             {

@@ -101,8 +101,19 @@ Bodies stay drawn under every overlay and follow the massing's overlay rule. A b
 (family, health, trouble, rung, age) covers the whole body in the Building's overlay colour, unlit,
 with the massing's fixed diagram light. A ground overlay (pollution, value, sealing) mutes the body
 to the context grey. With no overlay, an abandoned body takes a 75% tint of `Main.Derelict` over its
-own materials. `overlay-buildings.gdshader` reads a body's colour from the `body_ink` instance
-uniform. Godot linearises an instance uniform's Color, so the shell passes sRGB.
+own materials. A body's instance custom data carries its overlay colour, or the derelict grey with
+its share in alpha. `overlay-buildings.gdshader` and `derelict-body.gdshader` read it as
+`INSTANCE_CUSTOM`, because a painted material takes its albedo from `COLOR`.
+
+Bodies that share a generated mesh share one `InstanceLayer`, batched in 1024 m chunks, so a draw
+covers every body of that mesh in a chunk. Abandoned bodies take their own layers, which carry the
+derelict overlay. A chunk whose nearest point is within 500 m of the camera draws bodies, with 15%
+hysteresis. Beyond that the same Buildings draw as massing boxes in the family's own colours. A
+box takes the Building's paint scheme where it paints the wall or roof, and otherwise the linear
+mean of the material's albedo. The far box takes the family's roof. A flat
+family gets its parapet tray, and a pitched family keeps a pitched cap or gets a gable. Body and box
+layers decide from the same chunk key, so a Building is drawn once. `ui family-bodies on NEAR` sets
+the band in metres, and `on 0` draws every body as its far box.
 
 | Check | Result |
 |---|---|
@@ -135,7 +146,10 @@ Limits of this slice:
   deep where the Blender body's is 1.0 m. Both free ends get side-street shops.
 - The workshop's office bay is a plain door.
 - A Building raised after the toggle gets no foliage footprint for its body until the next full pass.
-- One mesh per Building, with no chunking or far level yet.
+- A whole-city placement pass takes 0.46–0.74 s on the main thread for 14,891 bodies, and 1.7 s
+  the first time, while it generates the meshes. A change of overlay therefore hitches.
+- The far box keeps the massing's painted windows and masonry, not the body's openings.
+- Chunk switching pops a whole 1024 m chunk at the band edge.
 - Scuppers, downpipes and roof crickets are left for the minor-details pass.
 - Each body placement scans every live Building for its neighbours; unmeasured.
 - At a block corner the column's end house backs onto the row's corner houses, whose ridges run
@@ -149,5 +163,5 @@ Limits of this slice:
 
 ## Next
 
-- Chunked upload and the far level, measured against the 6 ms Building frame share.
+- Move the whole-city placement pass off the main thread, or spread it across frames.
 - Author the rest of the families. The coverage report says which size bands and kinds need them.

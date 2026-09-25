@@ -806,7 +806,7 @@ public partial class Main
                 // difference between these two and the three ground ones. A ground overlay mutes
                 // everything and lets the plane carry the reading; a building overlay mutes
                 // everything EXCEPT the thing being measured.
-                _ when BuildingWash && name is "building" or "roof" or "hip" or "paired-roof" => _categorical,
+                _ when BuildingWash && name is "building" or "roof" or "hip" or "paired-roof" or "family-body" => _categorical,
                 _ => _muted,
             };
         }

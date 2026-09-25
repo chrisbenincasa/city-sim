@@ -2,7 +2,9 @@
 
 The band suite takes research/procedural-buildings REPORT §3 measurements 2-4. The moving suite
 compares a paused city with the clock at 1x and 4x. The opening suite hides layer groups at the
-whole-city camera to attribute its cost. The ready suite only times the launch. The shell opens a
+whole-city camera to attribute its cost. The antialias suite compares family bodies with and
+without TAA; every other suite runs with anti-aliasing off, and the run leaves the
+saved preference on. The ready suite only times the launch. The shell opens a
 cached city save made by headless --save-city, keyed by Ruleset content hash, save format, Citizens
 and Tick; --simulate steps from Tick 0 instead. Build the shell in Release first:
   dotnet build src/Borough.Godot -c Release -p:OutputPath=$PWD/src/Borough.Godot/.godot/mono/temp/bin/Debug/
@@ -19,7 +21,7 @@ import subprocess
 import time
 
 # (name, focus command or None for the opening camera, cases)
-# A case is (label, render probe, shell-band arguments[, clock speed rung]).
+# A case is (label, render probe, shell-band arguments[, clock speed rung or shell command ...]).
 BAND = [
     ('boxes', 'baseline', '0 0 0 on'),
     ('boxes-sun-off', 'shadows-off', '0 0 0 on'),
@@ -50,6 +52,15 @@ MOVING = [
     ('1x', 'baseline', '0 0 0 on', 5),
     ('4x', 'baseline', '0 0 0 on', 8),
 ]
+BODIES = [
+    ('boxes', 'baseline', '0 0 0 on', 'ui family-bodies off'),
+    ('bodies', 'baseline', '0 0 0 on', 'ui family-bodies on'),
+    ('bodies-1000', 'baseline', '0 0 0 on', 'ui family-bodies on 1000'),
+]
+ANTIALIAS = [
+    ('bodies', 'baseline', '0 0 0 on', 'ui family-bodies on', 'ui antialias off'),
+    ('bodies-aa', 'baseline', '0 0 0 on', 'ui family-bodies on', 'ui antialias on'),
+]
 SUITES = {'band': [
     ('opening', None, [BAND[0], BAND[1]]),
     ('street', 'focus 1781 1656 150', BAND),
@@ -58,6 +69,14 @@ SUITES = {'band': [
     ('opening', None, MOVING),
     ('street', 'focus 1781 1656 150', MOVING),
     ('district', 'focus 1781 1656 600', MOVING),
+], 'bodies': [
+    ('opening', None, BODIES),
+    ('street', 'focus 1781 1656 150', BODIES),
+    ('district', 'focus 1781 1656 600', BODIES),
+], 'antialias': [
+    ('opening', None, ANTIALIAS),
+    ('street', 'focus 1781 1656 150', ANTIALIAS),
+    ('district', 'focus 1781 1656 600', ANTIALIAS),
 ], 'ready': []}
 MOVERS = ('traveller', 'car')
 
@@ -214,18 +233,19 @@ with (output / 'game.log').open('w') as log:
             assert initial['Rendering']['Configuration'] == 'Release', 'Build the shell in Release'
             assert initial['Rendering']['Vsync'] == 'Disabled' and initial['Rendering']['FrameLimit'] == 0
             send('ui debug off')
+            send('ui antialias off')
 
             for view, focus, cases in SUITES[args.suite]:
                 if focus:
                     send(focus)
                     send('tilt 35')
                 state(output / f'{view}-camera.json')
-                for label, probe, band, *speed in cases:
+                for label, probe, band, *extra in cases:
                     name = f'{view}-{label}'
                     send(f'ui render-probe {probe}')
                     send(f'ui shell-band {band}')
-                    if speed:
-                        send(f'speed {speed[0]}')
+                    for step in extra:
+                        send(f'speed {step}' if isinstance(step, int) else step)
                     send(f'draw {output / (name + ".tsv")}')
                     upload = profile(output / (name + '.tsv'))
                     (output / (name + '.tsv')).unlink()
@@ -259,6 +279,7 @@ with (output / 'game.log').open('w') as log:
                     print(json.dumps(result), flush=True)
             manifest['other_gpu_users_at_end'] = gpu_users()
             send('ui shell-band 0 0 0 on')
+            send('ui antialias on')
             send('quit')
         process.wait(timeout=120)
     finally:
