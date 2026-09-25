@@ -24,9 +24,11 @@ public partial class InstanceLayer : Node3D
     }
     public float DetailDistance { get; set; }
 
-    /// <summary>Drawn instead of the buffer's mesh by chunks within <see cref="NearDistance"/> of the eye.</summary>
-    public Mesh? NearMesh { get; set; }
-    public float NearDistance { get; set; }
+    /// <summary>
+    /// Meshes drawn instead of the buffer's mesh, nearest band first. A chunk draws the first mesh
+    /// whose distance reaches the nearest point of its bounds, and the buffer's mesh beyond them all.
+    /// </summary>
+    public IReadOnlyList<(float Within, Mesh Mesh)> Details { get; set; } = [];
     public InstanceBuffer Multimesh { get; }
     public InstanceLayer() => Multimesh = new InstanceBuffer(this);
     private Material? _material;
@@ -72,7 +74,8 @@ public sealed class InstanceBuffer
         internal bool BoundsDirty = true;
         public MultiMeshInstance3D Node { get; internal set; } = null!;
         public bool Resident { get; internal set; } = true;
-        public bool Near { get; internal set; }
+        /// <summary>The index into <see cref="InstanceLayer.Details"/> drawn, or -1 for the buffer's mesh.</summary>
+        public int Detail { get; internal set; } = -1;
         public Aabb Bounds { get; internal set; }
         public IReadOnlyList<Entry> Instances => Entries;
     }
@@ -371,18 +374,23 @@ public sealed class InstanceBuffer
     }
 
     // Swapping the mesh keeps the uploaded instances, so a chunk changes detail without a transfer.
+    // A band the chunk already stands inside keeps it until 15% beyond, as residency does.
     private void Choose(Batch batch)
     {
-        bool near = false;
-        if (_owner.NearMesh is not null && _eye is { } eye)
+        var details = _owner.Details;
+        int detail = -1;
+        if (details.Count > 0 && _eye is { } eye)
         {
-            Vector3 nearest = eye.Clamp(batch.Bounds.Position, batch.Bounds.End);
-            float reach = _owner.NearDistance * (batch.Near ? 1.15f : 1f);
-            near = eye.DistanceSquaredTo(nearest) <= reach * reach;
+            float distance = eye.DistanceTo(eye.Clamp(batch.Bounds.Position, batch.Bounds.End));
+            for (int i = 0; i < details.Count && detail < 0; i++)
+            {
+                bool inside = batch.Detail >= 0 && batch.Detail <= i;
+                if (distance <= details[i].Within * (inside ? 1.15f : 1f)) detail = i;
+            }
         }
-        if (near == batch.Near) return;
-        batch.Near = near;
-        batch.Node.Multimesh.Mesh = near ? _owner.NearMesh : Mesh;
+        if (detail == batch.Detail) return;
+        batch.Detail = detail;
+        batch.Node.Multimesh.Mesh = detail < 0 ? Mesh : details[detail].Mesh;
     }
 
     private static void Put(float[] buffer, ref int at, Color value)

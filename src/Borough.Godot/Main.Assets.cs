@@ -80,16 +80,18 @@ public partial class Main
             corners.Add(new Corner(at + (vertices[i] * size), (normals[i] / size).Normalized(), paint));
     }
 
-    /// <summary>The round tree near the camera, and a coarse stand-in for everywhere else.</summary>
+    /// <summary>The round tree near the camera, a coarse stand-in beyond it, and a blob far away.</summary>
     /// <remarks>
     /// The stand-in repeats the trunk and nine crowns of <c>tree()</c> in
-    /// <c>scripts/art/expanded-kit.py</c> with coarse spheres. Both are scaled by the detailed tree's
-    /// bounds, so a chunk that changes mesh keeps its silhouette.
+    /// <c>scripts/art/expanded-kit.py</c> with coarse spheres, and the blob is one crown round them
+    /// all. Each is scaled by the detailed tree's bounds, so a chunk that changes mesh keeps its
+    /// silhouette.
     /// </remarks>
-    private static (ArrayMesh Near, ArrayMesh Far) TreeMeshes()
+    private static (ArrayMesh Near, ArrayMesh Middle, ArrayMesh Far) TreeMeshes()
     {
         var (corners, paints) = Load("visual-study/expanded/round-tree");
         Aabb bounds = Bounds(corners);
+        var middle = new List<Corner>();
         var far = new List<Corner>();
         var crown = new SphereMesh { Radius = 1f, Height = 2f, RadialSegments = 5, Rings = 2 };
         var trunk = new CylinderMesh
@@ -103,16 +105,21 @@ public partial class Main
             CapBottom = false
         };
 
-        Add(far, trunk, new Vector3(0f, 2.75f, 0f), new Vector3(0.23f, 5.5f, 0.23f), paints["bark"]);
+        Add(middle, trunk, new Vector3(0f, 2.75f, 0f), new Vector3(0.23f, 5.5f, 0.23f), paints["bark"]);
         for (int j = 0; j < 9; j++)
         {
             float turn = j * 2.4f;
             float reach = j < 7 ? 1.4f : 0.5f;
             var at = new Vector3(Mathf.Cos(turn) * reach, 4.4f + (j % 3 * 0.65f), Mathf.Sin(turn) * reach);
-            Add(far, crown, at, new Vector3(1.45f, 1.35f, 1.25f), paints[j % 3 == 0 ? "foliage-dark" : "foliage"]);
+            Add(middle, crown, at, new Vector3(1.45f, 1.35f, 1.25f), paints[j % 3 == 0 ? "foliage-dark" : "foliage"]);
         }
 
-        return (Commit(corners, bounds), Commit(far, bounds));
+        trunk.RadialSegments = 3;
+        Add(far, trunk, new Vector3(0f, 1.75f, 0f), new Vector3(0.3f, 3.5f, 0.3f), paints["bark"]);
+        Add(far, new SphereMesh { Radius = 1f, Height = 2f, RadialSegments = 5, Rings = 1 },
+            new Vector3(0f, 5.05f, 0f), new Vector3(2.8f, 2f, 2.6f), paints["foliage"]);
+
+        return (Commit(corners, bounds), Commit(middle, bounds), Commit(far, bounds));
     }
 
     private static ArrayMesh WalkerMesh() => Commit(Load("visual-study/expanded/walker", "paint").Corners);
