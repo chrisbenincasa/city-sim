@@ -53,6 +53,10 @@ A family's `[family.body]` table says how it builds its body at any size it admi
 - a parapet or an 18° or steeper gable, pilasters, rooftop plant, vents, a roof hatch, a chimney
   and front steps
 - the authored model whose materials dress it
+- texture library entries that dress some parts in place of the model's materials, as
+  `materials = { wall = "bricks-088", roof = "clay-roof-tiles-02" }`. A dressed part tiles at the
+  texture's measured size unless `tile_metres` lists it. `TextureLibrary.Dress` refuses a name
+  that `art/materials/library/materials.json` does not hold. The shell does not draw them yet.
 
 Spare bays split evenly among the `*` tokens. A remainder goes in pairs to the outermost tokens and
 a last odd bay to the middle one, so `["window*", "hall*", "window*"]` keeps its entrance central

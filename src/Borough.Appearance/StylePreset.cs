@@ -150,7 +150,11 @@ public sealed record WallRule(BayRow Ground, BayRow Upper);
 /// How a family builds its body at any size it admits. Metres throughout.
 /// </summary>
 /// <param name="Library">The authored model whose materials dress the body's parts.</param>
-/// <param name="TileMetres">The size one texture tile covers, by part. Unlisted parts tile per metre.</param>
+/// <param name="TileMetres">
+/// The size one texture tile covers, by part. A part dressed from the texture library takes the
+/// texture's own size unless listed here. Other unlisted parts tile per metre.
+/// </param>
+/// <param name="Materials">The texture library entry that dresses each named part in place of its model's material.</param>
 /// <param name="Plant">Rooftop plant units, spaced evenly along the frontage.</param>
 /// <param name="Vents">Rooftop vents, spaced evenly along the frontage.</param>
 /// <param name="Openings">
@@ -175,6 +179,7 @@ public sealed record WallRule(BayRow Ground, BayRow Upper);
 public sealed record FamilyBody(
     string Library,
     IReadOnlyDictionary<string, (float Along, float Up)> TileMetres,
+    IReadOnlyDictionary<string, string> Materials,
     float BayMetres,
     float ParapetMetres,
     bool Pilasters,

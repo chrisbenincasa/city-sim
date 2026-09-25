@@ -316,9 +316,10 @@ public static class StylePresetReader
         public FamilyBody? Body()
         {
             int before = errors.Count;
-            Collect(["library", "tile_metres", "bay_metres", "parapet_metres", "pilasters", "plant", "roof_hatch", "vents", "openings", "gable_degrees", "chimney", "steps", "party_line", "shopfront", "panels", "rooflights", "receiving_canopy", .. Rows]);
+            Collect(["library", "tile_metres", "materials", "bay_metres", "parapet_metres", "pilasters", "plant", "roof_hatch", "vents", "openings", "gable_degrees", "chimney", "steps", "party_line", "shopfront", "panels", "rooflights", "receiving_canopy", .. Rows]);
             string? library = Text("library", required: true);
             Dictionary<string, (float, float)> tiles = Tiles("tile_metres");
+            Dictionary<string, string> materials = Materials("materials");
             float bay = Metres("bay_metres", required: true, least: 1f) ?? 0f;
             float parapet = Metres("parapet_metres", required: false, least: 0f) ?? 0f;
             bool pilasters = Boolean("pilasters") ?? false;
@@ -339,7 +340,7 @@ public static class StylePresetReader
             BayRow[] rows = [.. Rows.Select(Row)];
             return errors.Count > before || library is null
                 ? null
-                : new FamilyBody(library, tiles, bay, parapet, pilasters, (int)plant,
+                : new FamilyBody(library, tiles, materials, bay, parapet, pilasters, (int)plant,
                     new WallRule(rows[0], rows[1]), new WallRule(rows[2], rows[3]), new WallRule(rows[4], rows[5]),
                     hatch, (int)vents, openings, gable, chimney, steps, partyLine, shopfront, panels, rooflights, receiving);
         }
@@ -477,6 +478,38 @@ public static class StylePresetReader
                 default:
                     Refuse(LineOf(_keys[key]), $"'{key}' must be an inline table of part = [along, up].");
                     return tiles;
+            }
+        }
+
+        private Dictionary<string, string> Materials(string key)
+        {
+            var materials = new Dictionary<string, string>(StringComparer.Ordinal);
+            switch (Value(key, required: false))
+            {
+                case null:
+                    return materials;
+                case InlineTableSyntax table:
+                    foreach (KeyValueSyntax pair in table.Items.Select(i => i.KeyValue).OfType<KeyValueSyntax>())
+                    {
+                        string part = NameOf(pair.Key);
+                        if (Array.IndexOf(FamilyBodyBuilder.PartNames, part) < 0)
+                        {
+                            Refuse(LineOf(pair), $"'{key}.{part}' names no body part. Expected one of: {string.Join(", ", FamilyBodyBuilder.PartNames)}.");
+                        }
+                        else if (pair.Value is StringValueSyntax { Value: { Length: > 0 } texture })
+                        {
+                            materials[part] = texture;
+                        }
+                        else
+                        {
+                            Refuse(LineOf(pair), $"'{key}.{part}' must name a texture library entry, such as \"bricks-088\".");
+                        }
+                    }
+
+                    return materials;
+                default:
+                    Refuse(LineOf(_keys[key]), $"'{key}' must be an inline table of part = \"texture\".");
+                    return materials;
             }
         }
 
