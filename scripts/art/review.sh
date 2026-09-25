@@ -123,6 +123,12 @@ case "${1:-capture}" in
     dotnet build src/Borough.Godot --no-restore > artifacts/exact-bodies/build.log 2>&1
     "$godot_bin" --path src/Borough.Godot -- --ruleset rulesets/shopping.toml --citizens 400 --start-at 599 --drive scripts/art/exact-bodies.drive > artifacts/exact-bodies/capture.log 2>&1
     ;;
+  tall-families)
+    mkdir -p artifacts/tall-families
+    "$blender_bin" --background --factory-startup --python-exit-code 1 --python scripts/art/tall-families.py > artifacts/tall-families/export.log 2>&1
+    "$blender_bin" --background art/tall-families/stepped-towers-lineup.blend --python-exit-code 1 --python scripts/art/tall-families-render.py -- "$PWD/artifacts/tall-families" > artifacts/tall-families/render.log 2>&1
+    "$godot_bin" --headless --path src/Borough.Godot --editor --import > artifacts/tall-families/import.log 2>&1
+    ;;
   open-test-street)
     "$godot_bin" --path src/Borough.Godot res://ExpandedStudy.tscn -- --test-street
     ;;
