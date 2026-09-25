@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://blo0noyyu53km"
-path="res://.godot/imported/oriented-strand-board-albedo.jpg-32175acdf136a20e923e16b3cc83a9fa.ctex"
+path.s3tc="res://.godot/imported/oriented-strand-board-albedo.jpg-32175acdf136a20e923e16b3cc83a9fa.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/oriented-strand-board-albedo.jpg"
-dest_files=["res://.godot/imported/oriented-strand-board-albedo.jpg-32175acdf136a20e923e16b3cc83a9fa.ctex"]
+dest_files=["res://.godot/imported/oriented-strand-board-albedo.jpg-32175acdf136a20e923e16b3cc83a9fa.s3tc.ctex"]
 
 [params]
 

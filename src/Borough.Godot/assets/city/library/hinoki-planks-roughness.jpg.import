@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b04s0gypac4th"
-path="res://.godot/imported/hinoki-planks-roughness.jpg-b743f5a6ce274992c728fbec84364047.ctex"
+path.s3tc="res://.godot/imported/hinoki-planks-roughness.jpg-b743f5a6ce274992c728fbec84364047.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/hinoki-planks-roughness.jpg"
-dest_files=["res://.godot/imported/hinoki-planks-roughness.jpg-b743f5a6ce274992c728fbec84364047.ctex"]
+dest_files=["res://.godot/imported/hinoki-planks-roughness.jpg-b743f5a6ce274992c728fbec84364047.s3tc.ctex"]
 
 [params]
 

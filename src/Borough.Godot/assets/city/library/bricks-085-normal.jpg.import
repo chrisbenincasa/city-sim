@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://blii6ys6f7yl8"
-path="res://.godot/imported/bricks-085-normal.jpg-7fe754f9fde785f7c396388f9cc0def7.ctex"
+path.s3tc="res://.godot/imported/bricks-085-normal.jpg-7fe754f9fde785f7c396388f9cc0def7.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/bricks-085-normal.jpg"
-dest_files=["res://.godot/imported/bricks-085-normal.jpg-7fe754f9fde785f7c396388f9cc0def7.ctex"]
+dest_files=["res://.godot/imported/bricks-085-normal.jpg-7fe754f9fde785f7c396388f9cc0def7.s3tc.ctex"]
 
 [params]
 

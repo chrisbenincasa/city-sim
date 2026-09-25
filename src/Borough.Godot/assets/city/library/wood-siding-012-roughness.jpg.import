@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dbooav5gfqiou"
-path="res://.godot/imported/wood-siding-012-roughness.jpg-72de28915d51f2d50c1169854fd1fde3.ctex"
+path.s3tc="res://.godot/imported/wood-siding-012-roughness.jpg-72de28915d51f2d50c1169854fd1fde3.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/wood-siding-012-roughness.jpg"
-dest_files=["res://.godot/imported/wood-siding-012-roughness.jpg-72de28915d51f2d50c1169854fd1fde3.ctex"]
+dest_files=["res://.godot/imported/wood-siding-012-roughness.jpg-72de28915d51f2d50c1169854fd1fde3.s3tc.ctex"]
 
 [params]
 

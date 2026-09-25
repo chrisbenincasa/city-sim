@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dmhjh0w5u7g83"
-path="res://.godot/imported/facade-001-normal.jpg-170dc82d67cc82252e1f18582fc30041.ctex"
+path.s3tc="res://.godot/imported/facade-001-normal.jpg-170dc82d67cc82252e1f18582fc30041.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/facade-001-normal.jpg"
-dest_files=["res://.godot/imported/facade-001-normal.jpg-170dc82d67cc82252e1f18582fc30041.ctex"]
+dest_files=["res://.godot/imported/facade-001-normal.jpg-170dc82d67cc82252e1f18582fc30041.s3tc.ctex"]
 
 [params]
 

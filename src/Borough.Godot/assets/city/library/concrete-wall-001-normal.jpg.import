@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bat2wm1jjsowl"
-path="res://.godot/imported/concrete-wall-001-normal.jpg-5a3103328f8b1fd124aad2e7976a7a1c.ctex"
+path.s3tc="res://.godot/imported/concrete-wall-001-normal.jpg-5a3103328f8b1fd124aad2e7976a7a1c.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/concrete-wall-001-normal.jpg"
-dest_files=["res://.godot/imported/concrete-wall-001-normal.jpg-5a3103328f8b1fd124aad2e7976a7a1c.ctex"]
+dest_files=["res://.godot/imported/concrete-wall-001-normal.jpg-5a3103328f8b1fd124aad2e7976a7a1c.s3tc.ctex"]
 
 [params]
 

@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b2m0f8xtnvl87"
-path="res://.godot/imported/hinoki-planks-albedo.jpg-37c9f851f445f29dc4d87a7cae58afe4.ctex"
+path.s3tc="res://.godot/imported/hinoki-planks-albedo.jpg-37c9f851f445f29dc4d87a7cae58afe4.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/hinoki-planks-albedo.jpg"
-dest_files=["res://.godot/imported/hinoki-planks-albedo.jpg-37c9f851f445f29dc4d87a7cae58afe4.ctex"]
+dest_files=["res://.godot/imported/hinoki-planks-albedo.jpg-37c9f851f445f29dc4d87a7cae58afe4.s3tc.ctex"]
 
 [params]
 

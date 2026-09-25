@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://i8apngj5mwbg"
-path="res://.godot/imported/stone-wall-normal.jpg-bd532a33bc559ae9600fad85b304177a.ctex"
+path.s3tc="res://.godot/imported/stone-wall-normal.jpg-bd532a33bc559ae9600fad85b304177a.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/stone-wall-normal.jpg"
-dest_files=["res://.godot/imported/stone-wall-normal.jpg-bd532a33bc559ae9600fad85b304177a.ctex"]
+dest_files=["res://.godot/imported/stone-wall-normal.jpg-bd532a33bc559ae9600fad85b304177a.s3tc.ctex"]
 
 [params]
 

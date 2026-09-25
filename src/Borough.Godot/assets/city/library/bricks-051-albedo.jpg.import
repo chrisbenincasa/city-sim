@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dgugt5kc8lqcd"
-path="res://.godot/imported/bricks-051-albedo.jpg-82b636a247ed20a08432813bd6e11bd4.ctex"
+path.s3tc="res://.godot/imported/bricks-051-albedo.jpg-82b636a247ed20a08432813bd6e11bd4.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/bricks-051-albedo.jpg"
-dest_files=["res://.godot/imported/bricks-051-albedo.jpg-82b636a247ed20a08432813bd6e11bd4.ctex"]
+dest_files=["res://.godot/imported/bricks-051-albedo.jpg-82b636a247ed20a08432813bd6e11bd4.s3tc.ctex"]
 
 [params]
 

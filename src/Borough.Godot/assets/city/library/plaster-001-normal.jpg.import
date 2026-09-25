@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bnuw6i14q1cmr"
-path="res://.godot/imported/plaster-001-normal.jpg-cf22c22bba119902a5dbe7945cd7e743.ctex"
+path.s3tc="res://.godot/imported/plaster-001-normal.jpg-cf22c22bba119902a5dbe7945cd7e743.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/plaster-001-normal.jpg"
-dest_files=["res://.godot/imported/plaster-001-normal.jpg-cf22c22bba119902a5dbe7945cd7e743.ctex"]
+dest_files=["res://.godot/imported/plaster-001-normal.jpg-cf22c22bba119902a5dbe7945cd7e743.s3tc.ctex"]
 
 [params]
 

@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c13htmglup0xq"
-path="res://.godot/imported/stone-wall-roughness.jpg-028cfd1e4d4aed8741c91bcbbb84ed43.ctex"
+path.s3tc="res://.godot/imported/stone-wall-roughness.jpg-028cfd1e4d4aed8741c91bcbbb84ed43.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/stone-wall-roughness.jpg"
-dest_files=["res://.godot/imported/stone-wall-roughness.jpg-028cfd1e4d4aed8741c91bcbbb84ed43.ctex"]
+dest_files=["res://.godot/imported/stone-wall-roughness.jpg-028cfd1e4d4aed8741c91bcbbb84ed43.s3tc.ctex"]
 
 [params]
 

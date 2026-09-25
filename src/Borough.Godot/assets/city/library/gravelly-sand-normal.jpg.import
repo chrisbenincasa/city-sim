@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dnhvnlphhhl5r"
-path="res://.godot/imported/gravelly-sand-normal.jpg-446ef332fe9620df99bb07812706ba8e.ctex"
+path.s3tc="res://.godot/imported/gravelly-sand-normal.jpg-446ef332fe9620df99bb07812706ba8e.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/gravelly-sand-normal.jpg"
-dest_files=["res://.godot/imported/gravelly-sand-normal.jpg-446ef332fe9620df99bb07812706ba8e.ctex"]
+dest_files=["res://.godot/imported/gravelly-sand-normal.jpg-446ef332fe9620df99bb07812706ba8e.s3tc.ctex"]
 
 [params]
 

@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://csmenq8yhsk17"
-path="res://.godot/imported/bricks-066-roughness.jpg-8b761a11c9d222ec65f7d49c20368c2d.ctex"
+path.s3tc="res://.godot/imported/bricks-066-roughness.jpg-8b761a11c9d222ec65f7d49c20368c2d.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/bricks-066-roughness.jpg"
-dest_files=["res://.godot/imported/bricks-066-roughness.jpg-8b761a11c9d222ec65f7d49c20368c2d.ctex"]
+dest_files=["res://.godot/imported/bricks-066-roughness.jpg-8b761a11c9d222ec65f7d49c20368c2d.s3tc.ctex"]
 
 [params]
 

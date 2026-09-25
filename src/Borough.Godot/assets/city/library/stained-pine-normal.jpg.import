@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dqqwsindlyxi7"
-path="res://.godot/imported/stained-pine-normal.jpg-b0bc85fa85614cdab529c1ea1908c5c2.ctex"
+path.s3tc="res://.godot/imported/stained-pine-normal.jpg-b0bc85fa85614cdab529c1ea1908c5c2.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/stained-pine-normal.jpg"
-dest_files=["res://.godot/imported/stained-pine-normal.jpg-b0bc85fa85614cdab529c1ea1908c5c2.ctex"]
+dest_files=["res://.godot/imported/stained-pine-normal.jpg-b0bc85fa85614cdab529c1ea1908c5c2.s3tc.ctex"]
 
 [params]
 

@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c6xoqjikmvb8v"
-path="res://.godot/imported/sheet-metal-004-albedo.jpg-aba37e3e28aa44f96bc20c7b238cbf6e.ctex"
+path.s3tc="res://.godot/imported/sheet-metal-004-albedo.jpg-aba37e3e28aa44f96bc20c7b238cbf6e.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/sheet-metal-004-albedo.jpg"
-dest_files=["res://.godot/imported/sheet-metal-004-albedo.jpg-aba37e3e28aa44f96bc20c7b238cbf6e.ctex"]
+dest_files=["res://.godot/imported/sheet-metal-004-albedo.jpg-aba37e3e28aa44f96bc20c7b238cbf6e.s3tc.ctex"]
 
 [params]
 

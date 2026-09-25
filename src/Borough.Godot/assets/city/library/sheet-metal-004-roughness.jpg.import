@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dvfc2ascowwso"
-path="res://.godot/imported/sheet-metal-004-roughness.jpg-27778e472e868f6c9de5fd2f0469835e.ctex"
+path.s3tc="res://.godot/imported/sheet-metal-004-roughness.jpg-27778e472e868f6c9de5fd2f0469835e.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/sheet-metal-004-roughness.jpg"
-dest_files=["res://.godot/imported/sheet-metal-004-roughness.jpg-27778e472e868f6c9de5fd2f0469835e.ctex"]
+dest_files=["res://.godot/imported/sheet-metal-004-roughness.jpg-27778e472e868f6c9de5fd2f0469835e.s3tc.ctex"]
 
 [params]
 

@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cth1y8w7kv77r"
-path="res://.godot/imported/bitumen-normal.jpg-689ee148076874aa7adb22f54a42014a.ctex"
+path.s3tc="res://.godot/imported/bitumen-normal.jpg-689ee148076874aa7adb22f54a42014a.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/bitumen-normal.jpg"
-dest_files=["res://.godot/imported/bitumen-normal.jpg-689ee148076874aa7adb22f54a42014a.ctex"]
+dest_files=["res://.godot/imported/bitumen-normal.jpg-689ee148076874aa7adb22f54a42014a.s3tc.ctex"]
 
 [params]
 

@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://82fgeygq0h1s"
-path="res://.godot/imported/corrugated-iron-02-normal.jpg-6bdfb680b16993181572e40df0b7b99c.ctex"
+path.s3tc="res://.godot/imported/corrugated-iron-02-normal.jpg-6bdfb680b16993181572e40df0b7b99c.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/corrugated-iron-02-normal.jpg"
-dest_files=["res://.godot/imported/corrugated-iron-02-normal.jpg-6bdfb680b16993181572e40df0b7b99c.ctex"]
+dest_files=["res://.godot/imported/corrugated-iron-02-normal.jpg-6bdfb680b16993181572e40df0b7b99c.s3tc.ctex"]
 
 [params]
 

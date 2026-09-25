@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b8yoob025epjw"
-path="res://.godot/imported/concrete-034-normal.jpg-2abe29c6c4c580cf3a2e72d79149e77d.ctex"
+path.s3tc="res://.godot/imported/concrete-034-normal.jpg-2abe29c6c4c580cf3a2e72d79149e77d.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/concrete-034-normal.jpg"
-dest_files=["res://.godot/imported/concrete-034-normal.jpg-2abe29c6c4c580cf3a2e72d79149e77d.ctex"]
+dest_files=["res://.godot/imported/concrete-034-normal.jpg-2abe29c6c4c580cf3a2e72d79149e77d.s3tc.ctex"]
 
 [params]
 

@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cma4w6mt3pxpc"
-path="res://.godot/imported/clay-roof-tiles-02-roughness.jpg-64ab2b8d2f3aeb773ec8691ce8ef335c.ctex"
+path.s3tc="res://.godot/imported/clay-roof-tiles-02-roughness.jpg-64ab2b8d2f3aeb773ec8691ce8ef335c.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/clay-roof-tiles-02-roughness.jpg"
-dest_files=["res://.godot/imported/clay-roof-tiles-02-roughness.jpg-64ab2b8d2f3aeb773ec8691ce8ef335c.ctex"]
+dest_files=["res://.godot/imported/clay-roof-tiles-02-roughness.jpg-64ab2b8d2f3aeb773ec8691ce8ef335c.s3tc.ctex"]
 
 [params]
 

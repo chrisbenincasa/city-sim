@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bywp708umrppl"
-path="res://.godot/imported/facade-005-roughness.jpg-7a2f3134f5784aad595dc4443bdb54b5.ctex"
+path.s3tc="res://.godot/imported/facade-005-roughness.jpg-7a2f3134f5784aad595dc4443bdb54b5.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/facade-005-roughness.jpg"
-dest_files=["res://.godot/imported/facade-005-roughness.jpg-7a2f3134f5784aad595dc4443bdb54b5.ctex"]
+dest_files=["res://.godot/imported/facade-005-roughness.jpg-7a2f3134f5784aad595dc4443bdb54b5.s3tc.ctex"]
 
 [params]
 

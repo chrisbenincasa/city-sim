@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cjkcqsi1mree"
-path="res://.godot/imported/patterned-brick-wall-03-normal.jpg-a44193ae264cc31e40f7186e49dd6ff8.ctex"
+path.s3tc="res://.godot/imported/patterned-brick-wall-03-normal.jpg-a44193ae264cc31e40f7186e49dd6ff8.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/patterned-brick-wall-03-normal.jpg"
-dest_files=["res://.godot/imported/patterned-brick-wall-03-normal.jpg-a44193ae264cc31e40f7186e49dd6ff8.ctex"]
+dest_files=["res://.godot/imported/patterned-brick-wall-03-normal.jpg-a44193ae264cc31e40f7186e49dd6ff8.s3tc.ctex"]
 
 [params]
 

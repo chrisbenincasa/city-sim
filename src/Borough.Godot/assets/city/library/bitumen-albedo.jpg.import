@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://63282ut4wdy4"
-path="res://.godot/imported/bitumen-albedo.jpg-3333e0a878153607f2f67e33a571da26.ctex"
+path.s3tc="res://.godot/imported/bitumen-albedo.jpg-3333e0a878153607f2f67e33a571da26.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/bitumen-albedo.jpg"
-dest_files=["res://.godot/imported/bitumen-albedo.jpg-3333e0a878153607f2f67e33a571da26.ctex"]
+dest_files=["res://.godot/imported/bitumen-albedo.jpg-3333e0a878153607f2f67e33a571da26.s3tc.ctex"]
 
 [params]
 

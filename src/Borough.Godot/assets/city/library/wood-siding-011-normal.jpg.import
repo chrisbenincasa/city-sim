@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dn23swx8eb047"
-path="res://.godot/imported/wood-siding-011-normal.jpg-519f6558fa026ba1d9a0cb732f23a3b1.ctex"
+path.s3tc="res://.godot/imported/wood-siding-011-normal.jpg-519f6558fa026ba1d9a0cb732f23a3b1.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/wood-siding-011-normal.jpg"
-dest_files=["res://.godot/imported/wood-siding-011-normal.jpg-519f6558fa026ba1d9a0cb732f23a3b1.ctex"]
+dest_files=["res://.godot/imported/wood-siding-011-normal.jpg-519f6558fa026ba1d9a0cb732f23a3b1.s3tc.ctex"]
 
 [params]
 
