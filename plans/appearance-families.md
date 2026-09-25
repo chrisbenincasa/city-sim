@@ -56,7 +56,7 @@ A family's `[family.body]` table says how it builds its body at any size it admi
 - texture library entries that dress some parts in place of the model's materials, as
   `materials = { wall = "bricks-088", roof = "clay-roof-tiles-02" }`. A dressed part tiles at the
   texture's measured size unless `tile_metres` lists it. `TextureLibrary.Dress` refuses a name
-  that `art/materials/library/materials.json` does not hold. The shell does not draw them yet.
+  that `src/Borough.Godot/assets/city/library/materials.json` does not hold.
 
 Spare bays split evenly among the `*` tokens. A remainder goes in pairs to the outermost tokens and
 a last odd bay to the middle one, so `["window*", "hall*", "window*"]` keeps its entrance central
@@ -98,6 +98,14 @@ photograph's mean. That caps paint on the test-street siding, render and block a
 shingles at `757575`; the shell warns and clamps a brighter one. Paint lives in the mesh, so it
 survives chunk merging. Each family's first scheme is its Blender body's colours.
 
+A part dressed from the texture library draws with `library-body.gdshader`. Its vertex colour
+carries the sRGB paint, and alpha marks the part painted, so the shader divides out the texture's
+mean luminance with no clamp. Only a texture the library marks `paint` takes a scheme's colour, so
+Clay Roof Tiles 02 keeps its terracotta under every rowhouse scheme. Each Building shifts the
+texture by an offset hashed from its instance origin, so meshes stay shared across a chunk's
+MultiMesh. World-space value noise at 24, 12 and 6 m, soft-light blended at `macro_strength`
+0.35, varies brightness across a wall.
+
 `FamilyBodyBuilder` ports the vocabulary of `scripts/art/test-street.py`. The shell draws the result
 in place of the massing with `ui family-bodies on`.
 
@@ -137,6 +145,8 @@ the band in metres, and `on 0` draws every body as its far box.
 | Corner shop and workshop, the same city on a copied preset | No shipped fixture raises either, so the copy lets them take dwellings. Fascia, awnings, brick and plant on the corner shop; panels, roller, rooflights and vents on the workshop. `body-corner-workshop-*.png`; `body-corner-workshop.drive` records the copy's edits |
 | Painted rowhouses, `rowhouses.toml`, 1,000 Citizens, Tick 600 | All 66 houses drew a scheme, spread across all eight. Wall, end wall, trim, door and roof vary house by house. `paint-h1-*.png` from `paint-h1.drive` |
 | Painted apartments, `gridded.toml`, 2,000 Citizens, Tick 600 | Corridor, walkup, two-unit and office-warehouse bodies draw their schemes; the render palette is quiet by design. `paint-apartments.png` from `paint-apartments.drive` |
+| Library-dressed rowhouses, `rowhouses.toml`, 1,000 Citizens, Tick 600 | Painted Bricks 088 walls and Clay Roof Tiles 02 roofs; each house keeps its scheme's wall colour and every roof keeps the photograph's. `lib-h1-street.png`, `lib-h1-block.png` from `lib-h1.drive` |
+| Concrete-panel corridor roofs, `gridded.toml`, 2,000 Citizens, Tick 600 | The membrane draws Concrete Panels. Its ribs read as streaks from above, because the photograph is ribbed wall cladding. `lib-apts-roof.png` from `lib-apts.drive` |
 | Corridor side-by-side | Walls, openings, canopies and roof hatch match. The two vents stand 4 m either side of the centre, where the Blender body puts them at 8 m. The ground windows sit 5 cm lower, and the back door is 10 cm taller |
 
 Limits of this slice:

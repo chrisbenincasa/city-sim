@@ -10,6 +10,8 @@ namespace Borough.Shell;
 public partial class Main
 {
     private const string DefaultStylePreset = "appearance/test-street";
+    private const string TextureLibraryDirectory = "res://assets/city/library";
+    private const string TextureLibraryIndex = TextureLibraryDirectory + "/materials.json";
 
     private static readonly Color FallbackFamily = new(0.55f, 0.55f, 0.55f);
     private static readonly Color MissingFamily = new(1f, 0f, 1f);
@@ -42,6 +44,7 @@ public partial class Main
         string directory = Globalize(at >= 0 && at + 1 < given.Length ? given[at + 1] : DefaultStylePreset);
 
         StylePresetResult read = StylePresetReader.Read(directory);
+        if (read.Preset is not null) read = Library().Dress(read.Preset);
         if (read.Preset is null)
         {
             _stylePresetRefusal = string.Join("; ", read.Errors.Select(e => e.ToString()));

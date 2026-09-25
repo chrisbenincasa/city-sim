@@ -2,24 +2,32 @@ using System.Text.Json;
 
 namespace Borough.Appearance;
 
+/// <summary>One texture in the library.</summary>
+/// <param name="Along">The width one tile of the texture covers, in metres.</param>
+/// <param name="Up">The height one tile of the texture covers, in metres.</param>
+/// <param name="MeanLuminance">The colour map's mean linear luminance, which paint divides out.</param>
+/// <param name="Paint">A family's paint carries the hue. Otherwise the photograph keeps its colour and takes no paint.</param>
+public readonly record struct LibraryTexture(float Along, float Up, float MeanLuminance, bool Paint);
+
 /// <summary>
-/// The textures a family body can be dressed from, as <c>art/materials/library/materials.json</c>
-/// lists them.
+/// The textures a family body can be dressed from, as <c>assets/city/library/materials.json</c>
+/// in the Godot project lists them.
 /// </summary>
-/// <param name="TileMetres">The width and height one tile of each texture covers, by texture name.</param>
-public sealed record TextureLibrary(IReadOnlyDictionary<string, (float Along, float Up)> TileMetres)
+public sealed record TextureLibrary(IReadOnlyDictionary<string, LibraryTexture> Textures)
 {
     public static TextureLibrary Read(string json)
     {
         using JsonDocument document = JsonDocument.Parse(json);
-        var tiles = new Dictionary<string, (float, float)>(StringComparer.Ordinal);
+        var textures = new Dictionary<string, LibraryTexture>(StringComparer.Ordinal);
         foreach (JsonProperty texture in document.RootElement.GetProperty("textures").EnumerateObject())
         {
             JsonElement size = texture.Value.GetProperty("tile_metres");
-            tiles[texture.Name] = (size[0].GetSingle(), size[1].GetSingle());
+            textures[texture.Name] = new LibraryTexture(size[0].GetSingle(), size[1].GetSingle(),
+                texture.Value.GetProperty("albedo_linear_mean_luminance").GetSingle(),
+                texture.Value.GetProperty("paint").GetBoolean());
         }
 
-        return new TextureLibrary(tiles);
+        return new TextureLibrary(textures);
     }
 
     /// <summary>
@@ -36,15 +44,15 @@ public sealed record TextureLibrary(IReadOnlyDictionary<string, (float Along, fl
             var tiles = new Dictionary<string, (float Along, float Up)>(body.TileMetres, StringComparer.Ordinal);
             foreach (string part in FamilyBodyBuilder.PartNames)
             {
-                if (!body.Materials.TryGetValue(part, out string? texture)) continue;
-                if (!TileMetres.TryGetValue(texture, out (float, float) size))
+                if (!body.Materials.TryGetValue(part, out string? name)) continue;
+                if (!Textures.TryGetValue(name, out LibraryTexture texture))
                 {
                     errors.Add(new AppearanceDiagnostic(family.File, family.Line,
-                        $"family '{family.Id}' dresses '{part}' in '{texture}', which the texture library does not hold."));
+                        $"family '{family.Id}' dresses '{part}' in '{name}', which the texture library does not hold."));
                 }
                 else
                 {
-                    tiles.TryAdd(part, size);
+                    tiles.TryAdd(part, (texture.Along, texture.Up));
                 }
             }
 

@@ -33,6 +33,8 @@ public partial class Main
     private readonly Dictionary<string, Dictionary<string, Material>> _bodyLibraries = [];
     private readonly Dictionary<Material, (Material Painted, float Mean)> _paintedMaterials = [];
     private readonly Dictionary<Material, Color> _meanColours = [];
+    private readonly Dictionary<string, (ShaderMaterial Material, LibraryTexture Texture, Color Mean)> _libraryMaterials = [];
+    private TextureLibrary? _textureLibrary;
     private readonly HashSet<Vector2I> _nearChunks = [];
     private readonly List<ulong> _bodyLayerIds = [];
     private Dictionary<(int East, int North), int>? _footprintTiles;
@@ -345,13 +347,29 @@ public partial class Main
         var reads = new Dictionary<string, Color>();
         foreach ((string part, ShellMesh source) in FamilyBodyBuilder.Build(body, frontage, depth, storeys, attached).Parts)
         {
-            Material material = library.GetValueOrDefault(part) ?? new StandardMaterial3D { AlbedoColor = new Color(0.8f, 0.8f, 0.78f) };
+            Material material;
             Color? tint = null;
-            reads[part] = MeanColour(material);
-            if (scheme is not null && scheme.TryGetValue(part, out Paint colour) && material is BaseMaterial3D authored)
+            if (body.Materials.TryGetValue(part, out string? dressing))
             {
-                (material, tint) = Painted(authored, colour, family.Id, part);
-                reads[part] = Color.Color8(colour.R, colour.G, colour.B).SrgbToLinear();
+                (ShaderMaterial dressed, LibraryTexture texture, Color mean) = LibraryMaterial(dressing);
+                material = dressed;
+                tint = new Color(1f, 1f, 1f, 0f);
+                reads[part] = mean;
+                if (texture.Paint && scheme is not null && scheme.TryGetValue(part, out Paint colour))
+                {
+                    tint = Color.Color8(colour.R, colour.G, colour.B);
+                    reads[part] = tint.Value.SrgbToLinear();
+                }
+            }
+            else
+            {
+                material = library.GetValueOrDefault(part) ?? new StandardMaterial3D { AlbedoColor = new Color(0.8f, 0.8f, 0.78f) };
+                reads[part] = MeanColour(material);
+                if (scheme is not null && scheme.TryGetValue(part, out Paint colour) && material is BaseMaterial3D authored)
+                {
+                    (material, tint) = Painted(authored, colour, family.Id, part);
+                    reads[part] = Color.Color8(colour.R, colour.G, colour.B).SrgbToLinear();
+                }
             }
 
             var tool = new SurfaceTool();
@@ -388,8 +406,17 @@ public partial class Main
         if (_meanColours.TryGetValue(material, out Color found)) return found;
 
         Color tint = surface.AlbedoColor.SrgbToLinear();
+        Color mean = TextureMean(surface.AlbedoTexture);
+        Color colour = new(tint.R * mean.R, tint.G * mean.G, tint.B * mean.B);
+        _meanColours[material] = colour;
+        return colour;
+    }
+
+    /// <summary>A texture's mean colour in linear light, sampled on a 32 × 32 grid, or white where there is none.</summary>
+    private static Color TextureMean(Texture2D? texture)
+    {
         Color mean = Colors.White;
-        if (surface.AlbedoTexture?.GetImage() is { } image)
+        if (texture?.GetImage() is { } image)
         {
             if (image.IsCompressed()) image.Decompress();
             const int Grid = 32;
@@ -406,9 +433,27 @@ public partial class Main
             mean = new Color(r / (Grid * Grid), g / (Grid * Grid), b / (Grid * Grid));
         }
 
-        Color colour = new(tint.R * mean.R, tint.G * mean.G, tint.B * mean.B);
-        _meanColours[material] = colour;
-        return colour;
+        return mean;
+    }
+
+    private TextureLibrary Library() => _textureLibrary ??= TextureLibrary.Read(Godot.FileAccess.GetFileAsString(TextureLibraryIndex));
+
+    /// <summary>The shader material that dresses a part in a library texture, the texture's entry and its mean colour.</summary>
+    private (ShaderMaterial Material, LibraryTexture Texture, Color Mean) LibraryMaterial(string name)
+    {
+        if (_libraryMaterials.TryGetValue(name, out var found)) return found;
+
+        LibraryTexture texture = Library().Textures[name];
+        var albedo = GD.Load<Texture2D>($"{TextureLibraryDirectory}/{name}-albedo.jpg");
+        var material = new ShaderMaterial { Shader = GD.Load<Shader>("res://library-body.gdshader") };
+        material.SetShaderParameter("albedo_map", albedo);
+        material.SetShaderParameter("normal_map", GD.Load<Texture2D>($"{TextureLibraryDirectory}/{name}-normal.jpg"));
+        string roughness = $"{TextureLibraryDirectory}/{name}-roughness.jpg";
+        if (ResourceLoader.Exists(roughness)) material.SetShaderParameter("roughness_map", GD.Load<Texture2D>(roughness));
+        material.SetShaderParameter("mean_luminance", texture.MeanLuminance);
+        found = (material, texture, TextureMean(albedo));
+        _libraryMaterials[name] = found;
+        return found;
     }
 
     /// <summary>

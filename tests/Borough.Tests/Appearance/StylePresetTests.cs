@@ -40,6 +40,18 @@ public class StylePresetTests
         Assert.Contains(result.Preset.Families, f => f.Fallback && f.Kinds.Contains("dwelling"));
     }
 
+    [Fact]
+    public void The_shipped_test_street_preset_dresses_only_from_textures_the_library_holds()
+    {
+        StylePreset preset = StylePresetReader.Read(Path.Combine(AppContext.BaseDirectory, "Appearance", "test-street")).Preset!;
+        var library = TextureLibrary.Read(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Appearance", "library", "materials.json")));
+
+        StylePresetResult dressed = library.Dress(preset);
+
+        Assert.Empty(dressed.Errors);
+        Assert.Contains(dressed.Preset!.Families, f => f.Body?.Materials.Count > 0);
+    }
+
     [Theory]
     [InlineData("[[family]]\nid = \"a\"\nkinds = [\"dwelling\"]\ncolour = \"red\"\n", 8, "unknown key 'colour'")]
     [InlineData("[[family]]\nid = \"a\"\nkinds = [\"dwelling\"]\nstoreys = [3, 2]\n", 8, "'storeys' must be [low, high]")]
@@ -169,8 +181,8 @@ public class StylePresetTests
     {
         var library = TextureLibrary.Read("""
             { "textures": {
-                "bricks-088": { "tile_metres": [1.5, 1.5] },
-                "clay-roof-tiles-02": { "tile_metres": [2, 2] } } }
+                "bricks-088": { "tile_metres": [1.5, 1.5], "albedo_linear_mean_luminance": 0.64, "paint": true },
+                "clay-roof-tiles-02": { "tile_metres": [2, 2], "albedo_linear_mean_luminance": 0.13, "paint": false } } }
             """);
         StylePreset preset = Preset("""
             [[family]]
@@ -190,8 +202,9 @@ public class StylePresetTests
         Assert.Equal((4f, 4f), body.TileMetres["roof"]);
         Assert.Equal((1f, 1f), body.TileMetres["trim"]);
         Assert.Equal("clay-roof-tiles-02", body.Materials["roof"]);
+        Assert.Equal(0.64f, library.Textures["bricks-088"].MeanLuminance);
 
-        StylePresetResult refused = (library with { TileMetres = new Dictionary<string, (float, float)>() }).Dress(preset);
+        StylePresetResult refused = (library with { Textures = new Dictionary<string, LibraryTexture>() }).Dress(preset);
         Assert.Null(refused.Preset);
         Assert.Equal(2, refused.Errors.Count);
         Assert.Contains(refused.Errors, e => e.Line == 5 && e.Message.Contains("dresses 'wall' in 'bricks-088'", StringComparison.Ordinal));

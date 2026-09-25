@@ -1,0 +1,13 @@
+# Concrete-panel corridor roofs: gridded.toml, 2000 Citizens, --start-at 600, default test-street preset.
+601 pause
+601 ui family-bodies on
+601 focus 167 131 160
+601 tilt 35
+601 shoot plans/evidence/appearance-families/lib-apts.png
+601 speed 5
+602 pause
+602 focus 167 131 70
+602 tilt 60
+602 shoot plans/evidence/appearance-families/lib-apts-roof.png
+602 speed 5
+604 quit
