@@ -9,6 +9,7 @@ public sealed class StylePresetSchemaTests
     [Theory]
     [InlineData("preset", "[preset]\nname = \"x\"\nera_days = 1\nzz = 1\n")]
     [InlineData("family", "[preset]\nname = \"x\"\nera_days = 1\n[[family]]\nid = \"a\"\nkinds = [\"dwelling\"]\nzz = 1\n")]
+    [InlineData("paint", "[preset]\nname = \"x\"\nera_days = 1\n[[family]]\nid = \"a\"\nkinds = [\"dwelling\"]\n[family.body]\nlibrary = \"l\"\nbay_metres = 6\n[[family.paint]]\nzz = 1\n")]
     [InlineData("body", "[preset]\nname = \"x\"\nera_days = 1\n[[family]]\nid = \"a\"\nkinds = [\"dwelling\"]\n[family.body]\nlibrary = \"l\"\nbay_metres = 6\nzz = 1\n")]
     public void The_schema_offers_the_keys_the_reader_accepts(string table, string text)
     {
@@ -28,9 +29,10 @@ public sealed class StylePresetSchemaTests
         {
             "preset" => root.GetProperty("preset").GetProperty("properties"),
             "body" => family.GetProperty("body").GetProperty("properties"),
+            "paint" => family.GetProperty("paint").GetProperty("items").GetProperty("properties"),
             _ => family,
         };
-        return [.. properties.EnumerateObject().Select(p => p.Name).Where(n => n != "body").Order(StringComparer.Ordinal)];
+        return [.. properties.EnumerateObject().Select(p => p.Name).Where(n => n is not ("body" or "paint")).Order(StringComparer.Ordinal)];
     }
 
     private static string RepoRoot()

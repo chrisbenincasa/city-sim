@@ -90,7 +90,7 @@ public partial class Checks : Node
             b.Flush(maxBytes: 1280, allowOversize: false);
             Require(b.PendingBatches == 0 && b.ResidentInstances == 2, "deferred uploads finish on subsequent frames");
             b.VisibleInstanceCount = 0; b.Flush();
-            GD.Print("Renderer checks passed: capacity, retention, identity, removal, migration, bounds, bulk buffers.");
+            GD.Print("Renderer checks passed: capacity, retention, identity, removal, migration, bounds, bulk buffers, near band.");
             GetTree().Quit();
         }
         catch (Exception error) { GD.PrintErr(error); GetTree().Quit(1); }

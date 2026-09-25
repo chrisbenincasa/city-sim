@@ -284,6 +284,72 @@
               "bay_metres"
             ],
             "additionalProperties": false
+          },
+          "paint": {
+            "description": "Paint schemes for the family's body. Each Building draws one scheme by its own id; a part a scheme does not name keeps its model's colour. Follows the [[family]] it paints; needs a [family.body].",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "weight": {
+                  "description": "The scheme's share of a draw among its family's schemes.",
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "wall": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{6}$",
+                  "description": "The sRGB colour of the body's wall part, as six hex digits. A textured part multiplies its photograph by it."
+                },
+                "wall-end": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{6}$",
+                  "description": "The sRGB colour of the body's wall-end part, as six hex digits. A textured part multiplies its photograph by it."
+                },
+                "trim": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{6}$",
+                  "description": "The sRGB colour of the body's trim part, as six hex digits. A textured part multiplies its photograph by it."
+                },
+                "roof": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{6}$",
+                  "description": "The sRGB colour of the body's roof part, as six hex digits. A textured part multiplies its photograph by it."
+                },
+                "membrane": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{6}$",
+                  "description": "The sRGB colour of the body's membrane part, as six hex digits. A textured part multiplies its photograph by it."
+                },
+                "glass": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{6}$",
+                  "description": "The sRGB colour of the body's glass part, as six hex digits. A textured part multiplies its photograph by it."
+                },
+                "door": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{6}$",
+                  "description": "The sRGB colour of the body's door part, as six hex digits. A textured part multiplies its photograph by it."
+                },
+                "frame": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{6}$",
+                  "description": "The sRGB colour of the body's frame part, as six hex digits. A textured part multiplies its photograph by it."
+                },
+                "metal": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{6}$",
+                  "description": "The sRGB colour of the body's metal part, as six hex digits. A textured part multiplies its photograph by it."
+                },
+                "plinth": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{6}$",
+                  "description": "The sRGB colour of the body's plinth part, as six hex digits. A textured part multiplies its photograph by it."
+                }
+              },
+              "additionalProperties": false,
+              "minProperties": 1
+            }
           }
         },
         "required": [

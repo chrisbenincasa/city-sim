@@ -20,6 +20,7 @@ public readonly record struct Bounds(long Low, long High)
 /// <param name="Model">The asset the shell resolves, or <c>null</c> where none is authored yet.</param>
 /// <param name="Zones">Admits a Lot carrying any of these permission bits.</param>
 /// <param name="Body">How the family builds its body, or <c>null</c> where the massing draws it.</param>
+/// <param name="Paints">The paint schemes a body draws one of, or none where it keeps its model's colours.</param>
 public sealed record AppearanceFamily(
     string Id,
     string File,
@@ -34,7 +35,8 @@ public sealed record AppearanceFamily(
     Bounds? RaisedDay,
     BlockPattern[]? Patterns,
     ushort Zones,
-    FamilyBody? Body = null)
+    FamilyBody? Body = null,
+    PaintScheme[]? Paints = null)
 {
     public bool Admits(in BuildingFacts facts)
     {
@@ -48,6 +50,16 @@ public sealed record AppearanceFamily(
             && (Zones == 0 || (Zones & facts.Zone) != 0);
     }
 }
+
+/// <summary>An sRGB colour, as authored.</summary>
+public readonly record struct Paint(byte R, byte G, byte B);
+
+/// <summary>
+/// Colours for some of a body's parts, drawn together. A part the scheme does not name keeps its
+/// model's colour.
+/// </summary>
+/// <param name="Weight">The scheme's share of a draw among its family's schemes.</param>
+public sealed record PaintScheme(IReadOnlyDictionary<string, Paint> Parts, int Weight);
 
 /// <summary>
 /// A Style Preset: the Appearance Families a city is drawn from, chosen by the player at map start.

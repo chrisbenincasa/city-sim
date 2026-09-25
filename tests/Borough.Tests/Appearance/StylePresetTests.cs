@@ -48,6 +48,10 @@ public class StylePresetTests
     [InlineData("[[family]]\nid = \"a\"\nfallback = true\nkinds = [\"dwelling\"]\nstoreys = [1, 2]\n", 9, "fallback family admits every Building")]
     [InlineData("[[family]]\nkinds = [\"dwelling\"]\n", 5, "'id' is required")]
     [InlineData("[[building]]\nid = \"a\"\n", 5, "unknown section 'building'")]
+    [InlineData("[[family]]\nid = \"a\"\nkinds = [\"dwelling\"]\n[family.body]\nlibrary = \"l\"\nbay_metres = 6\n[[family.paint]]\nwall = \"red\"\n", 12, "'wall' must be an sRGB colour")]
+    [InlineData("[[family]]\nid = \"a\"\nkinds = [\"dwelling\"]\n[family.body]\nlibrary = \"l\"\nbay_metres = 6\n[[family.paint]]\nglazing = \"ffffff\"\n", 12, "unknown key 'glazing'")]
+    [InlineData("[[family]]\nid = \"a\"\nkinds = [\"dwelling\"]\n[family.body]\nlibrary = \"l\"\nbay_metres = 6\n[[family.paint]]\nweight = 2\n", 11, "must colour at least one part")]
+    [InlineData("[[family]]\nid = \"a\"\nkinds = [\"dwelling\"]\n[[family.paint]]\nwall = \"ffffff\"\n", 5, "has paint but no [family.body]")]
     public void A_mistake_is_refused_at_its_line(string text, int line, string message)
     {
         StylePresetResult result = Read(text);
@@ -156,5 +160,39 @@ public class StylePresetTests
         string[] detached = [.. Enumerable.Range(1, 12).Select(id =>
             FamilyPicker.Pick(preset, World, Facts((ulong)id, face: 5)).Family!.Id)];
         Assert.True(detached.Distinct().Count() > 1);
+    }
+
+    [Fact]
+    public void Each_Building_draws_its_own_paint_scheme_by_weight_even_in_an_attached_run()
+    {
+        AppearanceFamily family = Assert.Single(Preset("""
+            [[family]]
+            id = "house"
+            kinds = ["dwelling"]
+
+            [family.body]
+            library = "l"
+            bay_metres = 6
+
+            [[family.paint]]
+            wall = "b9ad97"
+            door = "4f5253"
+
+            [[family.paint]]
+            wall = "7d8b87"
+
+            [[family.paint]]
+            wall = "5b6770"
+            weight = 2
+            """).Families);
+
+        int[] draws = [.. Enumerable.Range(1, 4000).Select(id => FamilyPicker.Paint(family, World, (ulong)id))];
+
+        Assert.Equal(new PaintScheme(new Dictionary<string, Paint> { ["wall"] = new(0xb9, 0xad, 0x97), ["door"] = new(0x4f, 0x52, 0x53) }, 1).Parts,
+            family.Paints![0].Parts);
+        Assert.InRange(draws.Count(d => d == 2), 1850, 2150);
+        Assert.Equal(FamilyPicker.Paint(family, World, 17), FamilyPicker.Paint(family, World, 17));
+        Assert.True(draws.Take(12).Distinct().Count() > 1);
+        Assert.Equal(-1, FamilyPicker.Paint(family with { Paints = null }, World, 17));
     }
 }

@@ -630,7 +630,7 @@ public partial class Main
     private (string Name, InstanceLayer Layer, bool Colours, List<ulong>? Ids)[] Layers() =>
     [
         .. FixedLayers(),
-        .. _bodyLayers.Values.Select(layer => ("family-body", layer, true, (List<ulong>?)_bodyLayerIds)),
+        .. _bodyLayers.Values.Select(layer => ("family-body", layer, false, (List<ulong>?)_bodyLayerIds)),
     ];
 
     private (string Name, InstanceLayer Layer, bool Colours, List<ulong>? Ids)[] FixedLayers() =>

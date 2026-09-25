@@ -918,4 +918,10 @@ public enum PurposeTag : ulong
     /// never by a Tick, so it moves no State Hash.
     /// </summary>
     AppearanceFamily = 60,
+
+    /// <summary>
+    /// Which paint scheme a Building's Appearance Family body is drawn in. Drawn by the shell, never
+    /// by a Tick, so it moves no State Hash.
+    /// </summary>
+    AppearancePaint = 61,
 }

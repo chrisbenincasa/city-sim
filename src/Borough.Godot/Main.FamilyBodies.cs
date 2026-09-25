@@ -28,9 +28,10 @@ public partial class Main
 
     private readonly Dictionary<ulong, PlacedBody> _placedBodies = [];
     private readonly Dictionary<ulong, BodyNeighbours> _bodyNeighbours = [];
-    private readonly Dictionary<(string Family, int Frontage, int Depth, int Storeys, AttachedSides Attached), BodyShape> _familyBodyMeshes = [];
+    private readonly Dictionary<(string Family, int Frontage, int Depth, int Storeys, AttachedSides Attached, int Paint), BodyShape> _familyBodyMeshes = [];
     private readonly Dictionary<(ArrayMesh Mesh, bool Abandoned), InstanceLayer> _bodyLayers = [];
     private readonly Dictionary<string, Dictionary<string, Material>> _bodyLibraries = [];
+    private readonly Dictionary<Material, (Material Painted, float Mean)> _paintedMaterials = [];
     private readonly Dictionary<Material, Color> _meanColours = [];
     private readonly HashSet<Vector2I> _nearChunks = [];
     private readonly List<ulong> _bodyLayerIds = [];
@@ -131,16 +132,17 @@ public partial class Main
         int storeys = Mathf.Max(1, Mathf.RoundToInt(size.Y / StoreyMetres));
         float turn = Mathf.Atan2(faceEast, faceSouth);
         AttachedSides attached = Attached(slot, one.Body.Origin, turn, frontage, out BodyNeighbours neighbours);
+        int paint = FamilyPicker.Paint(family, _world.Key, one.Id);
 
-        BodyShape shape = BodyMesh(family.Id, body, frontage, depth, storeys, attached);
+        BodyShape shape = BodyMesh(family, body, frontage, depth, storeys, attached, paint);
         InstanceLayer layer = BodyLayer(shape.Mesh, one.Abandoned);
         var at = new Transform3D(new Basis(Vector3.Up, turn), one.Body.Origin with { Y = 0f });
-        layer.Multimesh.Replace(one.Id, [new InstanceValue(at, Tint(one))]);
+        layer.Multimesh.Replace(one.Id, [new InstanceValue(at, Colors.White, Tint(one))]);
         _placedBodies[one.Id] = new PlacedBody(layer, shape);
         _bodyNeighbours[one.Id] = neighbours;
         if (_reportFamilyBodies)
         {
-            GD.Print($"family_body\t{family.Id}\tbuilding {one.Id}\t{frontage}x{depth} m\t{storeys} storeys\tattached {attached}"
+            GD.Print($"family_body\t{family.Id}\tbuilding {one.Id}\t{frontage}x{depth} m\t{storeys} storeys\tattached {attached}\tpaint {paint}"
                 + $"\ttile {Mathf.RoundToInt(one.Body.Origin.X / MetresPerTile)} {Mathf.RoundToInt(-one.Body.Origin.Z / MetresPerTile)}"
                 + (one.Abandoned ? "\tabandoned" : ""));
         }
@@ -149,9 +151,13 @@ public partial class Main
     }
 
     /// <summary>
-    /// A body's instance colour: its Building's overlay colour under a Building wash, or the share of
-    /// <see cref="Derelict"/> an abandoned body's overlay greys it by.
+    /// A body's instance custom data: its Building's overlay colour under a Building wash, or the
+    /// share of <see cref="Derelict"/> an abandoned body's overlay greys it by.
     /// </summary>
+    /// <remarks>
+    /// It is custom data because a painted material takes its albedo from COLOR, which a MultiMesh
+    /// multiplies by the instance colour.
+    /// </remarks>
     private Color Tint(Massing one)
     {
         if (_washing != Wash.None) return BuildingWash ? one.Paint with { A = 1f } : Colors.White;
@@ -198,7 +204,7 @@ public partial class Main
 
         var layer = new InstanceLayer();
         layer.Multimesh.Mesh = mesh;
-        layer.Multimesh.UseColors = true;
+        layer.Multimesh.UseCustomData = true;
         layer.Multimesh.Near = NearChunk;
         layer.Multimesh.NearOnly = true;
         layer.InstanceParameters["body_ink"] = Colors.White;
@@ -328,20 +334,31 @@ public partial class Main
         return east >= x && east < x + lots.FootprintWide[lot].Raw && north >= y && north < y + lots.FootprintDeep[lot].Raw;
     }
 
-    private BodyShape BodyMesh(string family, FamilyBody body, float frontage, float depth, int storeys, AttachedSides attached)
+    private BodyShape BodyMesh(AppearanceFamily family, FamilyBody body, float frontage, float depth, int storeys, AttachedSides attached, int paint)
     {
-        var key = (family, Mathf.RoundToInt(frontage * 100f), Mathf.RoundToInt(depth * 100f), storeys, attached);
+        var key = (family.Id, Mathf.RoundToInt(frontage * 100f), Mathf.RoundToInt(depth * 100f), storeys, attached, paint);
         if (_familyBodyMeshes.TryGetValue(key, out BodyShape? cached)) return cached;
 
         Dictionary<string, Material> library = BodyLibrary(body.Library);
         var mesh = new ArrayMesh();
-        var built = new HashSet<string>();
+        IReadOnlyDictionary<string, Paint>? scheme = paint >= 0 ? family.Paints![paint].Parts : null;
+        var reads = new Dictionary<string, Color>();
         foreach ((string part, ShellMesh source) in FamilyBodyBuilder.Build(body, frontage, depth, storeys, attached).Parts)
         {
+            Material material = library.GetValueOrDefault(part) ?? new StandardMaterial3D { AlbedoColor = new Color(0.8f, 0.8f, 0.78f) };
+            Color? tint = null;
+            reads[part] = MeanColour(material);
+            if (scheme is not null && scheme.TryGetValue(part, out Paint colour) && material is BaseMaterial3D authored)
+            {
+                (material, tint) = Painted(authored, colour, family.Id, part);
+                reads[part] = Color.Color8(colour.R, colour.G, colour.B).SrgbToLinear();
+            }
+
             var tool = new SurfaceTool();
             tool.Begin(Mesh.PrimitiveType.Triangles);
             for (int i = 0; i < source.VertexCount; i++)
             {
+                if (tint is { } t) tool.SetColor(t);
                 System.Numerics.Vector3 n = source.Normals[i];
                 System.Numerics.Vector2 uv = source.Uvs[i];
                 System.Numerics.Vector3 p = source.Positions[i];
@@ -352,13 +369,13 @@ public partial class Main
 
             foreach (int index in source.Indices) tool.AddIndex(index);
             tool.GenerateTangents();
-            tool.SetMaterial(library.GetValueOrDefault(part) ?? new StandardMaterial3D { AlbedoColor = new Color(0.8f, 0.8f, 0.78f) });
+            tool.SetMaterial(material);
             tool.Commit(mesh);
-            built.Add(part);
         }
 
-        Color wall = MeanColour(library.GetValueOrDefault("wall"));
-        Color roof = MeanColour(RoofParts.Where(built.Contains).Select(library.GetValueOrDefault).FirstOrDefault(m => m is not null));
+        Color fallback = MeanColour(null);
+        Color wall = reads.GetValueOrDefault("wall", fallback);
+        Color roof = RoofParts.Where(reads.ContainsKey).Select(part => reads[part]).DefaultIfEmpty(fallback).First();
         var shape = new BodyShape(mesh, wall, roof, body);
         _familyBodyMeshes[key] = shape;
         return shape;
@@ -392,6 +409,53 @@ public partial class Main
         Color colour = new(tint.R * mean.R, tint.G * mean.G, tint.B * mean.B);
         _meanColours[material] = colour;
         return colour;
+    }
+
+    /// <summary>
+    /// A copy of an authored material that takes its colour from the vertices, and the vertex colour
+    /// that paints it. A photograph's mean linear luminance divides out, so the paint reads true.
+    /// </summary>
+    /// <remarks>Vertex colours stop at 1, so a paint brighter than its photograph's mean is clamped.</remarks>
+    private (Material Painted, Color Tint) Painted(BaseMaterial3D authored, Paint paint, string family, string part)
+    {
+        if (!_paintedMaterials.TryGetValue(authored, out (Material Painted, float Mean) found))
+        {
+            var copy = (BaseMaterial3D)authored.Duplicate();
+            copy.AlbedoColor = Colors.White;
+            copy.VertexColorUseAsAlbedo = true;
+            found = (copy, MeanLuminance(authored.AlbedoTexture));
+            _paintedMaterials[authored] = found;
+        }
+
+        Color linear = Color.Color8(paint.R, paint.G, paint.B).SrgbToLinear();
+        var tint = new Color(linear.R / found.Mean, linear.G / found.Mean, linear.B / found.Mean);
+        if (tint.R > 1f || tint.G > 1f || tint.B > 1f)
+        {
+            GD.PushWarning($"family '{family}' paints {part} brighter than its photograph allows; the paint is clamped.");
+            tint = new Color(Mathf.Min(tint.R, 1f), Mathf.Min(tint.G, 1f), Mathf.Min(tint.B, 1f));
+        }
+
+        return (found.Painted, tint);
+    }
+
+    /// <returns>The mean linear luminance of an albedo photograph, or 1 where there is none.</returns>
+    private static float MeanLuminance(Texture2D? albedo)
+    {
+        if (albedo?.GetImage() is not { } image) return 1f;
+        if (image.IsCompressed()) image.Decompress();
+        image.Convert(Image.Format.Rgb8);
+        float sum = 0f;
+        int count = 0;
+        for (int y = 0; y < image.GetHeight(); y += 3)
+        {
+            for (int x = 0; x < image.GetWidth(); x += 3, count++)
+            {
+                Color c = image.GetPixel(x, y).SrgbToLinear();
+                sum += (0.2126f * c.R) + (0.7152f * c.G) + (0.0722f * c.B);
+            }
+        }
+
+        return sum / count;
     }
 
     /// <summary>The materials of an authored model, by the part each one dresses.</summary>

@@ -6,25 +6,27 @@ uniform int treatment = 2;
 uniform bool context_only = false;
 uniform vec3 context_colour : source_color = vec3(0.08, 0.10, 0.095);
 
-// Set on a family body's MultiMesh, whose instance COLOR is the body's paint. Its alpha is zero on
-// the massing, which is a unit box the edge test can read.
+// Set on a family body's MultiMesh, whose INSTANCE_CUSTOM is the body's overlay colour. Its alpha
+// is zero on the massing, which is a unit box the edge test can read.
 instance uniform vec4 body_ink = vec4(0.0);
 
 varying vec3 local_position;
 varying vec3 world_normal;
 varying vec3 triangle;
 varying flat int roof_mask;
+varying vec3 instance_ink;
 
 void vertex() {
     local_position = VERTEX;
     triangle = vec3(UV2, 1.0 - UV2.x - UV2.y);
     roof_mask = UV.y < -16.0 ? int(UV.x + 0.5) : -1;
     world_normal = normalize(MODEL_NORMAL_MATRIX * NORMAL);
+    instance_ink = INSTANCE_CUSTOM.rgb;
 }
 
 void fragment() {
     bool body = body_ink.a > 0.0;
-    vec3 paint = body ? body_ink.rgb * COLOR.rgb : COLOR.rgb;
+    vec3 paint = body ? instance_ink : COLOR.rgb;
     vec3 ink = context_only ? context_colour : paint;
     if (treatment > 0) {
         // A fixed diagram light: the reading cannot change with time of day.
