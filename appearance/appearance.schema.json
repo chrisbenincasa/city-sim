@@ -135,7 +135,7 @@
                 "type": "string"
               },
               "tile_metres": {
-                "description": "The size one texture tile covers, by part, as [along, up] in metres. Unlisted parts tile per metre.",
+                "description": "The size one texture tile covers, by part, as [along, up] in metres. A part named in materials takes its texture's size unless listed here. Other unlisted parts tile per metre.",
                 "type": "object",
                 "additionalProperties": {
                   "type": "array",
@@ -145,6 +145,17 @@
                   },
                   "minItems": 2,
                   "maxItems": 2
+                }
+              },
+              "materials": {
+                "description": "The texture library entry that dresses each named part in place of its model's material. The part tiles at the texture's own size unless tile_metres lists it.",
+                "type": "object",
+                "propertyNames": {
+                  "enum": ["wall", "wall-end", "trim", "roof", "membrane", "glass", "door", "frame", "metal", "plinth"]
+                },
+                "additionalProperties": {
+                  "type": "string",
+                  "minLength": 1
                 }
               },
               "bay_metres": {
