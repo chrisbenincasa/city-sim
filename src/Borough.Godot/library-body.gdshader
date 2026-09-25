@@ -5,14 +5,14 @@ shader_type spatial;
 // COLOR carries the part's sRGB paint in rgb, and 1 in alpha where the part is painted. Paint
 // multiplies the photograph with its mean luminance divided out, so the paint reads true.
 // Each Building shifts the texture by an offset hashed from its origin, so neighbours built from
-// one mesh do not repeat in step. World-space noise at 24, 12 and 6 m, soft-light blended, breaks
-// the tile repeat across a wall.
+// one mesh do not repeat in step. World-space noise at 24, 12 and 6 m scales brightness by up to
+// macro_strength either way, which breaks the tile repeat across a wall.
 
 uniform sampler2D albedo_map : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D normal_map : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D roughness_map : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform float mean_luminance = 0.7;
-uniform float macro_strength = 0.35;
+uniform float macro_strength = 0.15;
 
 varying vec3 world;
 varying vec2 offset;
@@ -45,12 +45,6 @@ float macro(vec3 p) {
 	return (0.5 * value_noise(p / 24.0) + 0.3 * value_noise(p / 12.0 + 17.0) + 0.2 * value_noise(p / 6.0 + 41.0));
 }
 
-vec3 soft_light(vec3 base, float blend) {
-	vec3 darker = base - (1.0 - 2.0 * blend) * base * (1.0 - base);
-	vec3 lighter = base + (2.0 * blend - 1.0) * (sqrt(base) - base);
-	return blend < 0.5 ? darker : lighter;
-}
-
 void vertex() {
 	world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	offset = hash22(floor(MODEL_MATRIX[3].xz * 10.0 + 0.5));
@@ -62,8 +56,8 @@ void fragment() {
 	vec3 srgb = COLOR.rgb;
 	vec3 paint = mix(srgb / 12.92, pow((srgb + 0.055) / 1.055, vec3(2.4)), step(0.04045, srgb)) / mean_luminance;
 	vec3 albedo = mix(photo, photo * paint, COLOR.a);
-	float blend = 0.5 + macro_strength * 2.0 * (macro(world) - 0.5);
-	ALBEDO = clamp(soft_light(clamp(albedo, 0.0, 1.0), blend), 0.0, 1.0);
+	float shade = 1.0 + macro_strength * clamp((macro(world) - 0.5) / 0.2, -1.0, 1.0);
+	ALBEDO = clamp(albedo * shade, 0.0, 1.0);
 	NORMAL_MAP = texture(normal_map, uv).rgb;
 	ROUGHNESS = texture(roughness_map, uv).r;
 }

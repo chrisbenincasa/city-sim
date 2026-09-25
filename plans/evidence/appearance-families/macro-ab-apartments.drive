@@ -1,4 +1,4 @@
-# Macro variation A/B: run once with macro_strength = 0.0 (-off) and once at 0.35 (-on), same frames.
+# Macro variation A/B: run once with macro_strength = 0.0 (-off) and once with the blend under test (-on), same frames.
 601 pause
 601 ui family-bodies on
 601 focus 167 131 160
