@@ -28,46 +28,66 @@ public partial class Main
         return surface.Commit();
     }
 
-    private static BoxMesh Box(float x, float y, float z) => new() { Size = new Vector3(x, y, z) };
-    private static SphereMesh CrownMesh(float radius, float height) =>
-        new() { Radius = radius, Height = height, RadialSegments = 7, Rings = 4 };
-
-    private static ArrayMesh TreeMesh() => Assemble(
-        (new CylinderMesh
-        {
-            TopRadius = 0.025f,
-            BottomRadius = 0.045f,
-            Height = 0.52f,
-            RadialSegments = 6,
-            Rings = 0
-        }, new Vector3(0f, 0.26f, 0f), new Color(0.32f, 0.25f, 0.17f)),
-        (CrownMesh(0.31f, 0.55f), new Vector3(-0.17f, 0.57f, 0.01f), new Color(0.29f, 0.42f, 0.18f)),
-        (CrownMesh(0.30f, 0.52f), new Vector3(0.18f, 0.62f, 0.08f), new Color(0.25f, 0.38f, 0.16f)),
-        (CrownMesh(0.29f, 0.55f), new Vector3(0f, 0.74f, -0.10f), new Color(0.35f, 0.46f, 0.21f)));
-
-    private static ArrayMesh WalkerMesh() => Assemble(
-        (Box(0.40f, 0.65f, 0.27f), new Vector3(0f, 1.12f, 0f), Colors.White),
-        (CrownMesh(0.16f, 0.33f), new Vector3(0f, 1.62f, 0f), new Color(0.85f, 0.68f, 0.52f)),
-        (Box(0.14f, 0.77f, 0.20f), new Vector3(-0.12f, 0.40f, 0f), new Color(0.22f, 0.25f, 0.29f)),
-        (Box(0.14f, 0.77f, 0.20f), new Vector3(0.12f, 0.40f, 0f), new Color(0.22f, 0.25f, 0.29f)));
-
-    private static ArrayMesh CarMesh()
+    /// <summary>
+    /// A flat-coloured Blender export merged into one mesh. Each material's albedo becomes a vertex
+    /// colour, so the layer's stock material draws it and the instance colour multiplies it.
+    /// </summary>
+    /// <param name="painted">Materials baked white, so the instance colour is their paint.</param>
+    /// <param name="unit">Rescale each axis to span 1, for layers whose instances carry the size.</param>
+    private static ArrayMesh Baked(string asset, bool unit, params string[] painted)
     {
-        var tyre = new Color(0.085f, 0.09f, 0.10f);
-        var glass = new Color(0.24f, 0.34f, 0.40f);
-        return Assemble(
-            (Box(1.8f, 0.62f, 4.2f), new Vector3(0f, 0.64f, 0f), Colors.White),
-            (Box(1.54f, 0.55f, 2.15f), new Vector3(0f, 1.21f, -0.12f), glass),
-            (Box(1.6f, 0.10f, 2.18f), new Vector3(0f, 1.51f, -0.12f), Colors.White),
-            (Box(0.12f, 0.57f, 0.12f), new Vector3(-0.79f, 1.20f, -0.12f), Colors.White),
-            (Box(0.12f, 0.57f, 0.12f), new Vector3(0.79f, 1.20f, -0.12f), Colors.White),
-            (CrownMesh(0.33f, 0.64f), new Vector3(-0.84f, 0.34f, -1.3f), tyre),
-            (CrownMesh(0.33f, 0.64f), new Vector3(0.84f, 0.34f, -1.3f), tyre),
-            (CrownMesh(0.33f, 0.64f), new Vector3(-0.84f, 0.34f, 1.3f), tyre),
-            (CrownMesh(0.33f, 0.64f), new Vector3(0.84f, 0.34f, 1.3f), tyre),
-            (Box(1.4f, 0.16f, 0.03f), new Vector3(0f, 0.72f, 2.11f), new Color(0.93f, 0.90f, 0.70f)),
-            (Box(1.4f, 0.14f, 0.03f), new Vector3(0f, 0.72f, -2.11f), new Color(0.60f, 0.10f, 0.07f)));
+        var scene = GD.Load<PackedScene>($"res://assets/{asset}.glb").Instantiate<Node3D>();
+        var parts = new List<(Vector3 At, Vector3 Normal, Color Paint)>();
+        var bounds = new Aabb();
+        bool first = true;
+
+        foreach (MeshInstance3D part in scene.FindChildren("*", nameof(MeshInstance3D), owned: false))
+        {
+            Transform3D place = part.Transform;
+            for (Node? up = part.GetParent(); up is Node3D parent && up != scene; up = up.GetParent())
+                place = parent.Transform * place;
+
+            for (int s = 0; s < part.Mesh.GetSurfaceCount(); s++)
+            {
+                var arrays = part.Mesh.SurfaceGetArrays(s);
+                Vector3[] vertices = arrays[(int)Mesh.ArrayType.Vertex].AsVector3Array();
+                Vector3[] normals = arrays[(int)Mesh.ArrayType.Normal].AsVector3Array();
+                int[] indices = arrays[(int)Mesh.ArrayType.Index].AsInt32Array();
+                if (indices.Length == 0) indices = Enumerable.Range(0, vertices.Length).ToArray();
+                var material = part.GetActiveMaterial(s) as BaseMaterial3D;
+                Color paint = material is null || painted.Contains(material.ResourceName)
+                    ? Colors.White
+                    : material.AlbedoColor.SrgbToLinear();
+
+                foreach (int at in indices)
+                {
+                    Vector3 point = place * vertices[at];
+                    parts.Add((point, (place.Basis * normals[at]).Normalized(), paint));
+                    bounds = first ? new Aabb(point, Vector3.Zero) : bounds.Expand(point);
+                    first = false;
+                }
+            }
+        }
+
+        scene.Free();
+        Vector3 scale = unit ? Vector3.One / bounds.Size : Vector3.One;
+        var surface = new SurfaceTool();
+        surface.Begin(Mesh.PrimitiveType.Triangles);
+        foreach (var (at, normal, paint) in parts)
+        {
+            surface.SetNormal((normal / scale).Normalized());
+            surface.SetColor(paint);
+            surface.AddVertex(new Vector3(at.X * scale.X, (at.Y - bounds.Position.Y) * scale.Y, at.Z * scale.Z));
+        }
+
+        return surface.Commit();
     }
+
+    private static ArrayMesh TreeMesh() => Baked("visual-study/expanded/round-tree", unit: true);
+
+    private static ArrayMesh WalkerMesh() => Baked("visual-study/expanded/walker", unit: false, "paint");
+
+    private static ArrayMesh CarMesh() => Baked("visual-study/kit/car-middle", unit: false, "paint");
 
     private void DressSurfaces()
     {
