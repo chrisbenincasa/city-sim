@@ -3,7 +3,7 @@
 # requires-python = ">=3.12"
 # dependencies = ["numpy==2.5.3", "Pillow==12.3.0"]
 # ///
-"""Build the Building texture library in art/materials/library/ from its textures.toml.
+"""Build the Building texture library in src/Borough.Godot/assets/city/library/ from its textures.toml.
 
 Each texture keeps its 1K colour, OpenGL normal and roughness maps. The colour map is flattened and,
 for a painted texture, made greyscale at PAINT_MEAN. Every map is re-encoded at JPEG quality 90,
@@ -24,7 +24,7 @@ import numpy as np
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT / 'art/materials/library'
+OUT = ROOT / 'src/Borough.Godot/assets/city/library'
 CACHE = Path.home() / '.cache/borough-textures/sources'
 AGENT = {'User-Agent': 'borough-materials'}
 PAINT_MEAN = .7

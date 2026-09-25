@@ -21,20 +21,20 @@
       "albedo_linear_mean_luminance": 0.125,
       "files": {
         "albedo": {
-          "file": "art/materials/library/aerial-grass-rock-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/aerial-grass-rock-albedo.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/aerial_grass_rock/aerial_grass_rock_diff_1k.jpg",
           "source_sha256": "57b8041bfe0d0f01430e4dbaad45e7ddddf0a9fc97317f90dbc51f7b0d9e1b5d",
           "transform": "flattened below 7.2 cycles per tile",
           "sha256": "fe34d47a7597c8ef22aabd3c3a04518d1bb158cbfcf1abb65325aacb33d8dc25"
         },
         "normal": {
-          "file": "art/materials/library/aerial-grass-rock-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/aerial-grass-rock-normal.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/aerial_grass_rock/aerial_grass_rock_nor_gl_1k.jpg",
           "source_sha256": "1aa3e23bff453f152e089b9f83aa36b4901651e019f7e2ca01d5331a9bbbda78",
           "sha256": "0b3e89b2abc7605b7f5512dca508502f939853d548ee78c0c6d8a06752fa2ee1"
         },
         "roughness": {
-          "file": "art/materials/library/aerial-grass-rock-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/aerial-grass-rock-roughness.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/aerial_grass_rock/aerial_grass_rock_rough_1k.jpg",
           "source_sha256": "b9f3f76aba74007f708333c0dbe73c52eb83ea0c4187a13e2e994f888a25114a",
           "sha256": "3db0075b6b01c4160cf284308fc31b4d016b84cde1fa0218832834dec3f68b99"
@@ -59,20 +59,20 @@
       "albedo_linear_mean_luminance": 0.1979,
       "files": {
         "albedo": {
-          "file": "art/materials/library/aerial-rocks-01-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/aerial-rocks-01-albedo.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/aerial_rocks_01/aerial_rocks_01_diff_1k.jpg",
           "source_sha256": "0f184f4a1da57342d240086b5abfb804bb129bc649024c9546b054bb918264b7",
           "transform": "flattened below 4.0 cycles per tile",
           "sha256": "a066e662faeb40b5c2c5d2d2acd7a1b6495114525bd363a30723175295d2cc7a"
         },
         "normal": {
-          "file": "art/materials/library/aerial-rocks-01-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/aerial-rocks-01-normal.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/aerial_rocks_01/aerial_rocks_01_nor_gl_1k.jpg",
           "source_sha256": "641120d07a70d7bb04032defae96e2b549edfa0e59d73c80a32668e432dc0beb",
           "sha256": "45fb6584888104dcf8561662486297ddd1de65868011d15c62dce7b91240ef83"
         },
         "roughness": {
-          "file": "art/materials/library/aerial-rocks-01-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/aerial-rocks-01-roughness.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/aerial_rocks_01/aerial_rocks_01_rough_1k.jpg",
           "source_sha256": "165a51a04c35cef89151f1e5766615bf10cd4397eb46ff547868b5f3c2a3311f",
           "sha256": "c6c334721962f2206891c6855e364a31ca0c24782e4b3d64f96a329db4982204"
@@ -97,20 +97,20 @@
       "albedo_linear_mean_luminance": 0.2265,
       "files": {
         "albedo": {
-          "file": "art/materials/library/asphalt-04-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/asphalt-04-albedo.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/asphalt_04/asphalt_04_diff_1k.jpg",
           "source_sha256": "837a78bb1e94864c221f847c85480484e953a9ee958772481dd2c501e18def2e",
           "transform": "flattened below 4.0 cycles per tile",
           "sha256": "287070029803339b50231856d1402e4c5c8400cbadff2800d3f6cb3924448b57"
         },
         "normal": {
-          "file": "art/materials/library/asphalt-04-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/asphalt-04-normal.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/asphalt_04/asphalt_04_nor_gl_1k.jpg",
           "source_sha256": "18b91c2a6d83a8fbaa8d7fe84e80a66bd6451e4ec2774a09bf4429498c8f3912",
           "sha256": "bb0cac5d462ae78bc8e55d4d9e69d86af2e284b547c1b15ddbb34c86a6da407e"
         },
         "roughness": {
-          "file": "art/materials/library/asphalt-04-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/asphalt-04-roughness.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/asphalt_04/asphalt_04_rough_1k.jpg",
           "source_sha256": "0e91a8117a8ec8c89e210dcd680186e66058b92028e89a858cc2fbde4bbfe6da",
           "sha256": "04c9bedf66a3cfcbd95034f2214653ad3e98deac2d4edd4a6dc99d3047ca0606"
@@ -135,20 +135,20 @@
       "albedo_linear_mean_luminance": 0.0143,
       "files": {
         "albedo": {
-          "file": "art/materials/library/asphalt-track-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/asphalt-track-albedo.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/asphalt_track/asphalt_track_diff_1k.jpg",
           "source_sha256": "05c4e79cd99160075969d37bfc6ef72be262153a410bb45510b2c23f7303894c",
           "transform": "flattened below 4.0 cycles per tile",
           "sha256": "fe5cee3e963d537314373086a486ccf7d8d8eb526b246e7fb6a655c8f1353c60"
         },
         "normal": {
-          "file": "art/materials/library/asphalt-track-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/asphalt-track-normal.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/asphalt_track/asphalt_track_nor_gl_1k.jpg",
           "source_sha256": "18caf02427a7cd9cd577ceae5aa9daa7bb3ffba60598e2df8aaf75d1925a8a94",
           "sha256": "fed60022f29bc3ed699342b03083a1952fbeae8c7088ce802f7ee5416083ee2c"
         },
         "roughness": {
-          "file": "art/materials/library/asphalt-track-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/asphalt-track-roughness.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/asphalt_track/asphalt_track_rough_1k.jpg",
           "source_sha256": "0646d0cfbe6bf9ea4a8a9e43aec826e7ec32a10b8aff61bf5a4ec02b1bc3c363",
           "sha256": "0fe4e704f76b83b8715faf8dbad2deee2ca498613e358170b9227f3b161d5bf4"
@@ -173,20 +173,20 @@
       "albedo_linear_mean_luminance": 0.0384,
       "files": {
         "albedo": {
-          "file": "art/materials/library/bitumen-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/bitumen-albedo.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bitumen/bitumen_diff_1k.jpg",
           "source_sha256": "fa09ed33d59c3bb90ef70d36352207e2e1ca5564cfc61295c0124d1a7d785808",
           "transform": "flattened below 4.0 cycles per tile",
           "sha256": "f89768b2b7cd0ad38d3c036578ab9c5fcd38433a2a3837d0f3c9436561d9cee6"
         },
         "normal": {
-          "file": "art/materials/library/bitumen-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/bitumen-normal.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bitumen/bitumen_nor_gl_1k.jpg",
           "source_sha256": "a584bd64cac6ce37153b48a481612bc20be5d5f1d36cac572119560f67c1c756",
           "sha256": "68a1e2c85cf51592bde223ab6faf2cfb4a5ed981f7a6eb7815958fbe2659aacd"
         },
         "roughness": {
-          "file": "art/materials/library/bitumen-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/bitumen-roughness.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bitumen/bitumen_rough_1k.jpg",
           "source_sha256": "ae78d0e22b3c771d8ae8fd392c721daf545bbc24f137aad978ddd899dd376b39",
           "sha256": "a083db2ddc3586ea3360ae838e07ac7608dc6f451812902648555ac902690d66"
@@ -211,20 +211,20 @@
       "albedo_linear_mean_luminance": 0.0868,
       "files": {
         "albedo": {
-          "file": "art/materials/library/brick-wall-001-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/brick-wall-001-albedo.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brick_wall_001/brick_wall_001_diffuse_1k.jpg",
           "source_sha256": "6a1233ec0186703de830354d89f122991e61e67fb67e0846c7eaf6c5aefea902",
           "transform": "flattened below 4.0 cycles per tile",
           "sha256": "b4e80d4853360301fbce20c909d9c6e298745aa2b91a252976fe735ed46bfc37"
         },
         "normal": {
-          "file": "art/materials/library/brick-wall-001-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/brick-wall-001-normal.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brick_wall_001/brick_wall_001_nor_gl_1k.jpg",
           "source_sha256": "8afbe3919308b168a6b7235fe7b930f670cfffa1a34de39ee790d55c9d7bda09",
           "sha256": "85121140c5124ca2c54c6d3c3803dedc2984e29f54dd76c5e490404f1327157f"
         },
         "roughness": {
-          "file": "art/materials/library/brick-wall-001-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/brick-wall-001-roughness.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brick_wall_001/brick_wall_001_rough_1k.jpg",
           "source_sha256": "a23342b02e6c5af106aaece16130aa9153a801cb1a84d5f3e0d06ce248677f38",
           "sha256": "735153929802d52551f5ce34b919c8dd886e7d102f7ed5ad066b1300935e20fa"
@@ -249,20 +249,20 @@
       "albedo_linear_mean_luminance": 0.2143,
       "files": {
         "albedo": {
-          "file": "art/materials/library/bricks-051-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/bricks-051-albedo.jpg",
           "from": "https://ambientcg.com/get?file=Bricks051_1K-JPG.zip#Bricks051_1K-JPG_Color.jpg",
           "source_sha256": "9d081cd13d764a012e0ba894d00bf438d4ce5c614b3b02d6a12709c4c4060709",
           "transform": "flattened below 4.0 cycles per tile",
           "sha256": "14ffafe173b08493ba758c6bfc89c4ca4861527df25046c5b4a11623ec5121da"
         },
         "normal": {
-          "file": "art/materials/library/bricks-051-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/bricks-051-normal.jpg",
           "from": "https://ambientcg.com/get?file=Bricks051_1K-JPG.zip#Bricks051_1K-JPG_NormalGL.jpg",
           "source_sha256": "384f9a65b4115c48cc9e303a193e1b00c86e87bda65db2eeacd77ade9ccb5fe5",
           "sha256": "c1352adbc03d9bdc937addc44e9d77ec1af60346e90a9c746931c4f1fe00b0c3"
         },
         "roughness": {
-          "file": "art/materials/library/bricks-051-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/bricks-051-roughness.jpg",
           "from": "https://ambientcg.com/get?file=Bricks051_1K-JPG.zip#Bricks051_1K-JPG_Roughness.jpg",
           "source_sha256": "4d135bc907e058cbbd7178a11344d33a427ee862771966ef755e258a94597484",
           "sha256": "55414b3b7214390cd6e2832037dd54de819c97b4a77e3c41c5a44c02ae5fddc5"
@@ -290,20 +290,20 @@
       "albedo_linear_mean_luminance": 0.2393,
       "files": {
         "albedo": {
-          "file": "art/materials/library/bricks-066-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/bricks-066-albedo.jpg",
           "from": "https://ambientcg.com/get?file=Bricks066_1K-JPG.zip#Bricks066_1K-JPG_Color.jpg",
           "source_sha256": "3a5b51dce8b672cbe022537d51c3cabf7af116d8e2e258e5da45b734fe02eca9",
           "transform": "flattened below 4.0 cycles per tile",
           "sha256": "57d4ab06534e521b375fc4480393d1b2e5a8299cb2f05bd535c965f71ed33e20"
         },
         "normal": {
-          "file": "art/materials/library/bricks-066-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/bricks-066-normal.jpg",
           "from": "https://ambientcg.com/get?file=Bricks066_1K-JPG.zip#Bricks066_1K-JPG_NormalGL.jpg",
           "source_sha256": "2c6fede28d4f5a5fd6228b3114ad6363da766e154389e442573bed9e860c0e54",
           "sha256": "bc1493f8017779c048c0e1a1fce64f9a9773172284f639782e64260841e28699"
         },
         "roughness": {
-          "file": "art/materials/library/bricks-066-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/bricks-066-roughness.jpg",
           "from": "https://ambientcg.com/get?file=Bricks066_1K-JPG.zip#Bricks066_1K-JPG_Roughness.jpg",
           "source_sha256": "aba34eacf347961cb3a606f80a52260c5b978b27451df8df6d99a57f6787be50",
           "sha256": "11bd9aa6ecbc3f0220fe1883740ade0a3c184a15b39f83629d7cff16bbdbda5f"
@@ -328,20 +328,20 @@
       "albedo_linear_mean_luminance": 0.2181,
       "files": {
         "albedo": {
-          "file": "art/materials/library/bricks-085-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/bricks-085-albedo.jpg",
           "from": "https://ambientcg.com/get?file=Bricks085_1K-JPG.zip#Bricks085_1K-JPG_Color.jpg",
           "source_sha256": "d0c822cdb5c001e66d087eeced710c652391f69ecada3c19dc9e236c15095a46",
           "transform": "flattened below 7.2 cycles per tile",
           "sha256": "6da9377cc68b75a851d437a56c6a405728d73e0a5217edd79a1c50659afcfbdc"
         },
         "normal": {
-          "file": "art/materials/library/bricks-085-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/bricks-085-normal.jpg",
           "from": "https://ambientcg.com/get?file=Bricks085_1K-JPG.zip#Bricks085_1K-JPG_NormalGL.jpg",
           "source_sha256": "96a09057e96518eea5212b090fab7f983278f5bb429fae8fed4dc066d291995e",
           "sha256": "23a901d0f3471a3aed28a66351b4719afcfcd68e81576c1e01dda2f0490af46d"
         },
         "roughness": {
-          "file": "art/materials/library/bricks-085-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/bricks-085-roughness.jpg",
           "from": "https://ambientcg.com/get?file=Bricks085_1K-JPG.zip#Bricks085_1K-JPG_Roughness.jpg",
           "source_sha256": "987c5c169d5880db2820fb649aa6e9d88697cf544fb138c730cb1617845840b6",
           "sha256": "e3b6e944b875cb42a6fd5cdf9b618ec05ad68394c59a6eb70022dd592bec9d15"
@@ -366,20 +366,20 @@
       "albedo_linear_mean_luminance": 0.638,
       "files": {
         "albedo": {
-          "file": "art/materials/library/bricks-088-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/bricks-088-albedo.jpg",
           "from": "https://ambientcg.com/get?file=Bricks088_1K-JPG.zip#Bricks088_1K-JPG_Color.jpg",
           "source_sha256": "6e660cae5e5d903976117b57c4fc9695b676f1534dc2d2f461ccf2ff99ed0a7e",
           "transform": "flattened below 7.2 cycles per tile, greyscale at linear mean luminance 0.7",
           "sha256": "16f40a0297378f30e2692bd14569e32fd754d93ad9d7b2c26d0c201bbf602288"
         },
         "normal": {
-          "file": "art/materials/library/bricks-088-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/bricks-088-normal.jpg",
           "from": "https://ambientcg.com/get?file=Bricks088_1K-JPG.zip#Bricks088_1K-JPG_NormalGL.jpg",
           "source_sha256": "750f3d3ce4c7d59bc15f4341c0d0df287b514a86e0c0c16bec341f454e0c96c1",
           "sha256": "422681bafcbcecbb0064be7549cfed4ff2b2abf79a669fe73595b918bef512d2"
         },
         "roughness": {
-          "file": "art/materials/library/bricks-088-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/bricks-088-roughness.jpg",
           "from": "https://ambientcg.com/get?file=Bricks088_1K-JPG.zip#Bricks088_1K-JPG_Roughness.jpg",
           "source_sha256": "31ffd7eb496c880e6b968e80fa8a47632270236f10089b522ad49b5bdf898e82",
           "sha256": "4a1a33551e5b9251e2bb7275cc69f3fc518f7cde2eef217155926b30c51733b0"
@@ -404,20 +404,20 @@
       "albedo_linear_mean_luminance": 0.429,
       "files": {
         "albedo": {
-          "file": "art/materials/library/chipboard-004-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/chipboard-004-albedo.jpg",
           "from": "https://ambientcg.com/get?file=Chipboard004_1K-JPG.zip#Chipboard004_1K-JPG_Color.jpg",
           "source_sha256": "52039b8aaa07b4652e50879134f9ed50f97afd8bb6992437c4bb12fc89c74b56",
           "transform": "flattened below 7.2 cycles per tile",
           "sha256": "761278658281f68382bc313dc543f643248bc68d1b9e79343bb27e661559fad1"
         },
         "normal": {
-          "file": "art/materials/library/chipboard-004-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/chipboard-004-normal.jpg",
           "from": "https://ambientcg.com/get?file=Chipboard004_1K-JPG.zip#Chipboard004_1K-JPG_NormalGL.jpg",
           "source_sha256": "24eb8aaec34fbaff448ac3a0d55063a965e27221fe1d441a63739b6a551824a1",
           "sha256": "b300e11b25f2249bae6b29060d8705700794991e6cba6d649794faa1146bb85e"
         },
         "roughness": {
-          "file": "art/materials/library/chipboard-004-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/chipboard-004-roughness.jpg",
           "from": "https://ambientcg.com/get?file=Chipboard004_1K-JPG.zip#Chipboard004_1K-JPG_Roughness.jpg",
           "source_sha256": "e735afcc3c63f1afc32d00b3416afa3c99556fc3eabcebc0d1e4904f122ed984",
           "sha256": "82dc5de449a7a597ac4e07d4661ce52b76810be27485ec3f73aa6de7174b7490"
@@ -442,20 +442,20 @@
       "albedo_linear_mean_luminance": 0.1292,
       "files": {
         "albedo": {
-          "file": "art/materials/library/clay-roof-tiles-02-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/clay-roof-tiles-02-albedo.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/clay_roof_tiles_02/clay_roof_tiles_02_diff_1k.jpg",
           "source_sha256": "227a062b38b170e02c27eaa513dae45dc8bc893a62cbd8d0c08e2c32b381fc25",
           "transform": "flattened below 4.0 cycles per tile",
           "sha256": "6759d4f9a11839a88d914cce4b5a0abe37a0b345bfd1b1fb67757aa1368f1e80"
         },
         "normal": {
-          "file": "art/materials/library/clay-roof-tiles-02-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/clay-roof-tiles-02-normal.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/clay_roof_tiles_02/clay_roof_tiles_02_nor_gl_1k.jpg",
           "source_sha256": "1548d3ebce335a4590d9e421556c4189a7b63852c793a568c71b9e533f8b62d5",
           "sha256": "ee04a6af5e9e9ed97bb883c307ba94881d42db3a26eb104962c292be392dd1f1"
         },
         "roughness": {
-          "file": "art/materials/library/clay-roof-tiles-02-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/clay-roof-tiles-02-roughness.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/clay_roof_tiles_02/clay_roof_tiles_02_rough_1k.jpg",
           "source_sha256": "6d7596c4f3644ac50237381aeadf58f9b68a6dddeb66b6eef4f64462dcbbf82f",
           "sha256": "44013c4daba568a2d23276641bff9a909070115846d89c6e3f5ca4e0838aa95c"
@@ -480,20 +480,20 @@
       "albedo_linear_mean_luminance": 0.4817,
       "files": {
         "albedo": {
-          "file": "art/materials/library/concrete-034-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/concrete-034-albedo.jpg",
           "from": "https://ambientcg.com/get?file=Concrete034_1K-JPG.zip#Concrete034_1K-JPG_Color.jpg",
           "source_sha256": "8ceb9186d990b31fce785e06fdc6974c160f1d27c43f6160266f164deba713aa",
           "transform": "flattened below 4.0 cycles per tile",
           "sha256": "348cb685781a9acec38d8193b429c46b2ad0e6fc741e0a4e1112f967f7f26a6f"
         },
         "normal": {
-          "file": "art/materials/library/concrete-034-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/concrete-034-normal.jpg",
           "from": "https://ambientcg.com/get?file=Concrete034_1K-JPG.zip#Concrete034_1K-JPG_NormalGL.jpg",
           "source_sha256": "e509eb9dfa978e780fbebfd2acacc2ce158b5b7ced722ddc0759039dd51e18ca",
           "sha256": "78640e0de384a56f31c11a21ebf2bbb2c5461ec6332c1932d43a1430a1cdf470"
         },
         "roughness": {
-          "file": "art/materials/library/concrete-034-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/concrete-034-roughness.jpg",
           "from": "https://ambientcg.com/get?file=Concrete034_1K-JPG.zip#Concrete034_1K-JPG_Roughness.jpg",
           "source_sha256": "a4a9e39857a19afd23a778e5abf44fcdf6bd7f93918f1cf6878b41933e553511",
           "sha256": "63d5f425104b3407a38ff144331830e3c9b32c93c2a1e4daf82215d0f39660cc"
@@ -518,20 +518,20 @@
       "albedo_linear_mean_luminance": 0.6987,
       "files": {
         "albedo": {
-          "file": "art/materials/library/concrete-panels-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/concrete-panels-albedo.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_panels/concrete_panels_diff_1k.jpg",
           "source_sha256": "f7f9d5102b2daa199b42cae7d67d0b7a2977d98d80f45c302f93454224ebd140",
           "transform": "flattened below 4.0 cycles per tile, greyscale at linear mean luminance 0.7",
           "sha256": "e62658364bbcb0c46c26fe772b3ed4f1bf3a1a1711b17f864998cedc23189e57"
         },
         "normal": {
-          "file": "art/materials/library/concrete-panels-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/concrete-panels-normal.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_panels/concrete_panels_nor_gl_1k.jpg",
           "source_sha256": "c971054512ff5e5b7c98db866d6018160161071a730bdfee11cada2d3d5fbcb5",
           "sha256": "2248c1469987377f819c34838188c8d185403c9e780ebc405735b313a805856d"
         },
         "roughness": {
-          "file": "art/materials/library/concrete-panels-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/concrete-panels-roughness.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_panels/concrete_panels_rough_1k.jpg",
           "source_sha256": "256ddcddfdf011be8ba397a3ccc92fd98ba452f57fab44e5db6d1aefb5d9286f",
           "sha256": "d22179eadfa596ef989fa002b2a683474f0418df25f3609f6b4358d96ec95c5b"
@@ -556,20 +556,20 @@
       "albedo_linear_mean_luminance": 0.7,
       "files": {
         "albedo": {
-          "file": "art/materials/library/concrete-wall-001-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/concrete-wall-001-albedo.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_wall_001/concrete_wall_001_diff_1k.jpg",
           "source_sha256": "c3c936da86d57997d9fc4022371c3798c8d438aeecb8f41546104da6d3947c02",
           "transform": "flattened below 4.0 cycles per tile, greyscale at linear mean luminance 0.7",
           "sha256": "158105ab63b413ed195987d02f17cce178c79f80ba446b76e33bc073bfddcfb0"
         },
         "normal": {
-          "file": "art/materials/library/concrete-wall-001-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/concrete-wall-001-normal.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_wall_001/concrete_wall_001_nor_gl_1k.jpg",
           "source_sha256": "6f10711d123c8dff26375555196eae9e16d874c137acdacd44d1ba90168b6d46",
           "sha256": "ddf8f557ece928306c913e16d0d40abd9603390f3b2d04c5f79c3aec58920fe0"
         },
         "roughness": {
-          "file": "art/materials/library/concrete-wall-001-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/concrete-wall-001-roughness.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_wall_001/concrete_wall_001_rough_1k.jpg",
           "source_sha256": "d0964c690a8de99fb4f6657e0d3474eea9f9f293d080f4e5c871a55857d9448b",
           "sha256": "629e73f80db6a613d03cd3773b66667f5e145d85097c3d7c9c5b6228cf7e290f"
@@ -594,20 +594,20 @@
       "albedo_linear_mean_luminance": 0.7,
       "files": {
         "albedo": {
-          "file": "art/materials/library/concrete-wall-004-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/concrete-wall-004-albedo.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_wall_004/concrete_wall_004_diff_1k.jpg",
           "source_sha256": "446261c8d9ae49e5ca9858fe590a71a53cbd3c3b5fcf54f6adcc5c14a649c14f",
           "transform": "flattened below 4.0 cycles per tile, greyscale at linear mean luminance 0.7",
           "sha256": "8476b538650d362b5ae2994914db854105c213cef44edc1118a81526f26d1ec5"
         },
         "normal": {
-          "file": "art/materials/library/concrete-wall-004-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/concrete-wall-004-normal.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_wall_004/concrete_wall_004_nor_gl_1k.jpg",
           "source_sha256": "91fb0da4686d6735e6091974c235c0eefd26fd27840547cbfe03b1e6fcde3544",
           "sha256": "c92dee179fb3cee46c567b087655da4ffb3824559abe103ceba18010ed1fd298"
         },
         "roughness": {
-          "file": "art/materials/library/concrete-wall-004-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/concrete-wall-004-roughness.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_wall_004/concrete_wall_004_rough_1k.jpg",
           "source_sha256": "ca10ef32dd1cc81c87fbb6a711ede7fde317a4caa0b4f574cc8203b642c05d03",
           "sha256": "486c895064676de162d412908c2daaa4018c6be478aa93ec6dc40d017c24cce4"
@@ -632,20 +632,20 @@
       "albedo_linear_mean_luminance": 0.2379,
       "files": {
         "albedo": {
-          "file": "art/materials/library/concrete-wall-008-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/concrete-wall-008-albedo.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_wall_008/concrete_wall_008_diff_1k.jpg",
           "source_sha256": "a203166d280d3cfc6a91bbc9ffdae406eb9555b4a4f658cd92619063eb17c147",
           "transform": "flattened below 4.0 cycles per tile",
           "sha256": "9f3aefaeac0ccbf49b57dc62b1f36bbdb1cb002787f057dfecd3d14bfa8978f1"
         },
         "normal": {
-          "file": "art/materials/library/concrete-wall-008-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/concrete-wall-008-normal.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_wall_008/concrete_wall_008_nor_gl_1k.jpg",
           "source_sha256": "83cd3fa2c7cbf4c81402386065daf8fa6f72e1f1f77e02ccb1eedb28496909ae",
           "sha256": "2b166eabe0c35a593d2e5a3f7c24fe99ccf634c7cb6443b353d26c6fef98b3dd"
         },
         "roughness": {
-          "file": "art/materials/library/concrete-wall-008-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/concrete-wall-008-roughness.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_wall_008/concrete_wall_008_rough_1k.jpg",
           "source_sha256": "2344fe72c4dc2fb9e4ce9b47079524ee8969f22c4af4bee85667511073fbf14a",
           "sha256": "cee9db515efc73bd7bdcef7e666a34b9f1713253d3aae0949f75f481263a434d"
@@ -671,20 +671,20 @@
       "albedo_linear_mean_luminance": 0.7,
       "files": {
         "albedo": {
-          "file": "art/materials/library/corrugated-iron-02-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/corrugated-iron-02-albedo.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/corrugated_iron_02/corrugated_iron_02_diff_1k.jpg",
           "source_sha256": "7a7b43099d015c1b08ebb175da5965caeae44b86de65a727b3fffa20a7c69a93",
           "transform": "flattened below 4.0 cycles per tile, greyscale at linear mean luminance 0.7",
           "sha256": "bd6fab5db8ddd15eb2575f3a8d7be77512c1e22a2e0e6fea7434366cf64560a9"
         },
         "normal": {
-          "file": "art/materials/library/corrugated-iron-02-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/corrugated-iron-02-normal.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/corrugated_iron_02/corrugated_iron_02_nor_gl_1k.jpg",
           "source_sha256": "9743c93668689c36a67e9c4dc8d6a0870fe91202f82dcdaf70ddc330c12f9ecb",
           "sha256": "42dc53b55abc3f2e3ac1aa48bbe5e8ccb11b33886845e0476f2cf54448276b89"
         },
         "roughness": {
-          "file": "art/materials/library/corrugated-iron-02-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/corrugated-iron-02-roughness.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/corrugated_iron_02/corrugated_iron_02_rough_1k.jpg",
           "source_sha256": "56ec8d8b04bac56b5d85ee2f35256b7b00d8c7a0ef13e6791cdabc5c05ed2f4b",
           "sha256": "68927d418dc16e9fee75a13fb48556dfa9aa9bfe2ecd195349b1a44cbcb60fbb"
@@ -709,20 +709,20 @@
       "albedo_linear_mean_luminance": 0.0785,
       "files": {
         "albedo": {
-          "file": "art/materials/library/facade-001-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/facade-001-albedo.jpg",
           "from": "https://ambientcg.com/get?file=Facade001_1K-JPG.zip#Facade001_1K-JPG_Color.jpg",
           "source_sha256": "4e0aca5797c390bba9efd80a589b9569a3efb5cd22cfbb2780fc6ef811181736",
           "transform": "flattened below 4.0 cycles per tile",
           "sha256": "bfedf5f75eb196bbf233d5cdd7327311f853bcb1ebae26791d7bae69d11d041c"
         },
         "normal": {
-          "file": "art/materials/library/facade-001-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/facade-001-normal.jpg",
           "from": "https://ambientcg.com/get?file=Facade001_1K-JPG.zip#Facade001_1K-JPG_NormalGL.jpg",
           "source_sha256": "1ac56b097fef1a042610914f3a319bdc28f93bd523b01239bccb746faf172000",
           "sha256": "15b3afafd6d053a5a07d6495b82433344b64dcb433dd7eeb0923261fe70a0164"
         },
         "roughness": {
-          "file": "art/materials/library/facade-001-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/facade-001-roughness.jpg",
           "from": "https://ambientcg.com/get?file=Facade001_1K-JPG.zip#Facade001_1K-JPG_Roughness.jpg",
           "source_sha256": "1bc7ae78aec982f296b470a697d340494e6a9575832a42915a3043c0cc2de9dd",
           "sha256": "84347f1aec686843a960ade1726fd328950be134c3b3b5fcd3ef9b4fcd5240f6"
@@ -747,20 +747,20 @@
       "albedo_linear_mean_luminance": 0.0865,
       "files": {
         "albedo": {
-          "file": "art/materials/library/facade-005-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/facade-005-albedo.jpg",
           "from": "https://ambientcg.com/get?file=Facade005_1K-JPG.zip#Facade005_1K-JPG_Color.jpg",
           "source_sha256": "61c1baa1312034b3644377c0ae442020109e918b57de6421bea0f2edff312dc0",
           "transform": "flattened below 4.0 cycles per tile",
           "sha256": "f3643170b1aec361b5fadc6b1ab9d5f27acc52fb1269c527893ee7c932cf3052"
         },
         "normal": {
-          "file": "art/materials/library/facade-005-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/facade-005-normal.jpg",
           "from": "https://ambientcg.com/get?file=Facade005_1K-JPG.zip#Facade005_1K-JPG_NormalGL.jpg",
           "source_sha256": "3b37a4df21d17bc3ee1c1dc951f756f8f64d964c279999f07663ef9d70716b30",
           "sha256": "835e8949ea64231c3848a3d72e510660348d17b94087652908c150a725ba01da"
         },
         "roughness": {
-          "file": "art/materials/library/facade-005-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/facade-005-roughness.jpg",
           "from": "https://ambientcg.com/get?file=Facade005_1K-JPG.zip#Facade005_1K-JPG_Roughness.jpg",
           "source_sha256": "93f0533d65ba80b4ca4c3e6a99c5c56cff549e9638b38658858190fd126dfed4",
           "sha256": "13fa731333f424889161198152e6e2b364566f644bac82049e51c3786439090c"
@@ -786,20 +786,20 @@
       "albedo_linear_mean_luminance": 0.6976,
       "files": {
         "albedo": {
-          "file": "art/materials/library/factory-wall-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/factory-wall-albedo.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/factory_wall/factory_wall_diff_1k.jpg",
           "source_sha256": "6a8d2d4decc7754e56b5c4a3371d98ac5c521ebc732f255ddaa3b1bdd2f1a564",
           "transform": "flattened below 4.0 cycles per tile, greyscale at linear mean luminance 0.7",
           "sha256": "dfe2904facbdcfc111010e26e455246ef59df2f84d9081aa96ed3012e4fe16aa"
         },
         "normal": {
-          "file": "art/materials/library/factory-wall-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/factory-wall-normal.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/factory_wall/factory_wall_nor_gl_1k.jpg",
           "source_sha256": "0500e643299efb2e716673ded425d27d8a71c04047e3143a0aee84aa067cabe3",
           "sha256": "20ba49dc52001a4a361e1706b0021b97c60b58eb100348fd213fc7d85beee125"
         },
         "roughness": {
-          "file": "art/materials/library/factory-wall-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/factory-wall-roughness.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/factory_wall/factory_wall_rough_1k.jpg",
           "source_sha256": "e53fef4bb77a942915b74a169d1406d2d0269100bcae99ac7ca81594fb7e8789",
           "sha256": "de4491bef015aa3d0a73b52b5f531caa07478df7ce43357cacceaa5cd2f2ffae"
@@ -824,20 +824,20 @@
       "albedo_linear_mean_luminance": 0.1909,
       "files": {
         "albedo": {
-          "file": "art/materials/library/forest-leaves-02-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/forest-leaves-02-albedo.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/forest_leaves_02/forest_leaves_02_diffuse_1k.jpg",
           "source_sha256": "2bac85cdc76927fa7dc311037bbbc4dfa2633ea56eb0a24c9cabe163a68c9aa5",
           "transform": "flattened below 7.2 cycles per tile",
           "sha256": "8c3cb38452329ef0195e325264dbca6341fc6bb65fd7373b46290385701a7b9e"
         },
         "normal": {
-          "file": "art/materials/library/forest-leaves-02-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/forest-leaves-02-normal.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/forest_leaves_02/forest_leaves_02_nor_gl_1k.jpg",
           "source_sha256": "cf6a40ab24f44d3e891a92a1c252416ed1192af54ac92a5704bdfbda0805e290",
           "sha256": "6c03d11e27975e666a84969c1092c9601eea62224023e2d08e967327aab0b5cb"
         },
         "roughness": {
-          "file": "art/materials/library/forest-leaves-02-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/forest-leaves-02-roughness.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/forest_leaves_02/forest_leaves_02_rough_1k.jpg",
           "source_sha256": "3d2163acb9e22801caa4d34cb3e9bb443dfd0e6f2bebbd559c61e9b14f945dd4",
           "sha256": "c2a0a3c2214e416cf74bee04174ca1048a3ecb3cc92ed17824f13760644511d0"
@@ -862,20 +862,20 @@
       "albedo_linear_mean_luminance": 0.1153,
       "files": {
         "albedo": {
-          "file": "art/materials/library/gravel-road-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/gravel-road-albedo.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/gravel_road/gravel_road_diff_1k.jpg",
           "source_sha256": "bccbb077a825bdd0eb6f607939578a6ee549822824278fb3a828f6eed3d05d45",
           "transform": "flattened below 4.0 cycles per tile",
           "sha256": "51392acedc89f8c9257630f280c000e12559b0b9130d2a9a9c714f6300bc663d"
         },
         "normal": {
-          "file": "art/materials/library/gravel-road-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/gravel-road-normal.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/gravel_road/gravel_road_nor_gl_1k.jpg",
           "source_sha256": "0920996cab9f2d62a2eb73a3589804527aa0273c4ca61b9f526ce4cba37edebc",
           "sha256": "ed5c9ec4324852f2f677e70340d6073246017f43903b2d7553b37ddaaf7c1d49"
         },
         "roughness": {
-          "file": "art/materials/library/gravel-road-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/gravel-road-roughness.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/gravel_road/gravel_road_rough_1k.jpg",
           "source_sha256": "de602a8ce72aea4ef931b25c9b15fb5e38636bfb32c7df91d0656f7aace193b0",
           "sha256": "ffc18b9b42dec40b2b077f03888405f3d2121e25b544deb1662cd26dc5dd5fde"
@@ -900,20 +900,20 @@
       "albedo_linear_mean_luminance": 0.1827,
       "files": {
         "albedo": {
-          "file": "art/materials/library/gravelly-sand-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/gravelly-sand-albedo.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/gravelly_sand/gravelly_sand_diff_1k.jpg",
           "source_sha256": "bc1624594ce807f04eaa023f6f9df93ffefd20904570cd46ca302b954ef80eec",
           "transform": "flattened below 4.0 cycles per tile",
           "sha256": "9bce095665b5f2a933cdbf5729083053b07241b4a549cc5706df9d3906d8d19a"
         },
         "normal": {
-          "file": "art/materials/library/gravelly-sand-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/gravelly-sand-normal.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/gravelly_sand/gravelly_sand_nor_gl_1k.jpg",
           "source_sha256": "7ccb08525d46520a6d00262f4f73483b3569cc6cbc2908da069f033290d1c2f8",
           "sha256": "3f1dbb13a34fa67767f9d93f1bf9ccbd685d5fc3d5430a7bc0194832fd3391d6"
         },
         "roughness": {
-          "file": "art/materials/library/gravelly-sand-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/gravelly-sand-roughness.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/gravelly_sand/gravelly_sand_rough_1k.jpg",
           "source_sha256": "57188f62c17950f96a5f2b8ce11bc9776e2b5bff8eff5c903402d89553ba3654",
           "sha256": "2b848f0c62c904f66addfe90e05f1a69729c07292c44da9a40348207cbab6198"
@@ -938,20 +938,20 @@
       "albedo_linear_mean_luminance": 0.2073,
       "files": {
         "albedo": {
-          "file": "art/materials/library/hinoki-planks-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/hinoki-planks-albedo.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/hinoki_planks/hinoki_planks_diff_1k.jpg",
           "source_sha256": "a0166cad69a255971bf25f336c9947d2853b4dae5707c84a86f25f79aec347a5",
           "transform": "flattened below 7.2 cycles per tile",
           "sha256": "c0e9b274f018669642c3381dfbaba22751fbd77c6db01a77ba844569bd5101e5"
         },
         "normal": {
-          "file": "art/materials/library/hinoki-planks-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/hinoki-planks-normal.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/hinoki_planks/hinoki_planks_nor_gl_1k.jpg",
           "source_sha256": "90c97139c4a6e086c67b9e2c23c138c92df59070de0414763bcd3e7fc3c878a1",
           "sha256": "9a0cc21acca08d7e186b6f9b1ac36be96e7490ae4fe4096d2e2866c620b36f4e"
         },
         "roughness": {
-          "file": "art/materials/library/hinoki-planks-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/hinoki-planks-roughness.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/hinoki_planks/hinoki_planks_rough_1k.jpg",
           "source_sha256": "20d2dc9fdbd2b76b267d68617836efb4af74397716f7ad9b5dff3752bdb097f5",
           "sha256": "d17b664715f3d55732c103cc0cd12e2d9c4721f1131535735a126e190e1ab37d"
@@ -976,20 +976,20 @@
       "albedo_linear_mean_luminance": 0.3479,
       "files": {
         "albedo": {
-          "file": "art/materials/library/oriented-strand-board-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/oriented-strand-board-albedo.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oriented_strand_board/oriented_strand_board_diff_1k.jpg",
           "source_sha256": "f2564c203e5ad37dfa240b43e9e954f9638592159fc52ac37fcefb78b8cea682",
           "transform": "flattened below 4.0 cycles per tile",
           "sha256": "b1aff73a5ba9a83f2e8b9bc183509d3f7624645ed7b8872f2a126075c67bce4d"
         },
         "normal": {
-          "file": "art/materials/library/oriented-strand-board-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/oriented-strand-board-normal.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oriented_strand_board/oriented_strand_board_nor_gl_1k.jpg",
           "source_sha256": "25e4d581f7915de432591a7bd449c2e3a98bf62585a5b644c2cb6455d5da2448",
           "sha256": "d251763fe5a862879b98b0ebacf2ab4543c62e03b815315be7c6e14532ff3b21"
         },
         "roughness": {
-          "file": "art/materials/library/oriented-strand-board-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/oriented-strand-board-roughness.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oriented_strand_board/oriented_strand_board_rough_1k.jpg",
           "source_sha256": "c21332de7809bb02dfffb60426f5a2c6c3da126609e8cf57ae7f1e7617b7ca11",
           "sha256": "d98401b60ff3352c61c9e04ba3c44bdbcbc5e4be09b824d6327b42da147ea652"
@@ -1014,20 +1014,20 @@
       "albedo_linear_mean_luminance": 0.7,
       "files": {
         "albedo": {
-          "file": "art/materials/library/painted-plaster-wall-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/painted-plaster-wall-albedo.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/painted_plaster_wall/painted_plaster_wall_diff_1k.jpg",
           "source_sha256": "440310f05af089f2c93353167573403cbc3f805948203237b5d26431eeb9e19c",
           "transform": "flattened below 4.0 cycles per tile, greyscale at linear mean luminance 0.7",
           "sha256": "4088d1762e0ff5c172cf5e1cc272b4e1b865c6a78ac9d54925b40e9253d842f7"
         },
         "normal": {
-          "file": "art/materials/library/painted-plaster-wall-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/painted-plaster-wall-normal.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/painted_plaster_wall/painted_plaster_wall_nor_gl_1k.jpg",
           "source_sha256": "8eb01647d126eb5341e2c325821ad48c8ca11349dbef53447c95422c5d91cc9d",
           "sha256": "419360028de2e3204a06d0f697c575d729a21a004d276ae08eeb1e8cd5080c43"
         },
         "roughness": {
-          "file": "art/materials/library/painted-plaster-wall-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/painted-plaster-wall-roughness.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/painted_plaster_wall/painted_plaster_wall_rough_1k.jpg",
           "source_sha256": "e0564c297b22ab1cf4ef02a82157b84ce3b92eb4fd49d9c64b7256a8b300af82",
           "sha256": "a23a3338d0cdbffce0a563f4484c6423c612073631ef17c84761ae7c818976e2"
@@ -1052,20 +1052,20 @@
       "albedo_linear_mean_luminance": 0.1043,
       "files": {
         "albedo": {
-          "file": "art/materials/library/patterned-brick-wall-03-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/patterned-brick-wall-03-albedo.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/patterned_brick_wall_03/patterned_brick_wall_03_diff_1k.jpg",
           "source_sha256": "32411ede77aee27130d68c151bee3872ded585907c9bc72b9911a063357f2394",
           "transform": "flattened below 4.0 cycles per tile",
           "sha256": "73f1f8dee2bc0021671884852198d35a47c4cb01d6bfc143ba7d8f356d090833"
         },
         "normal": {
-          "file": "art/materials/library/patterned-brick-wall-03-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/patterned-brick-wall-03-normal.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/patterned_brick_wall_03/patterned_brick_wall_03_nor_gl_1k.jpg",
           "source_sha256": "b900a1cb812a714b6a3a7a8d06ed88de78c140759d6aa2526408560786100bda",
           "sha256": "7628c9e0487a2ff9e9f503f09a68a3321e5a67f0d0b1b3174b4b4196dccabb8a"
         },
         "roughness": {
-          "file": "art/materials/library/patterned-brick-wall-03-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/patterned-brick-wall-03-roughness.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/patterned_brick_wall_03/patterned_brick_wall_03_rough_1k.jpg",
           "source_sha256": "d86f95f886661f7c86680005510dfe28f84e4cdad14341ecdee2242582572218",
           "sha256": "ebca6ec204ff7d9bbb0cd67f173f57d0959ae653ac13b4c9d3789b3dc5b498a7"
@@ -1090,20 +1090,20 @@
       "albedo_linear_mean_luminance": 0.7,
       "files": {
         "albedo": {
-          "file": "art/materials/library/plaster-001-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/plaster-001-albedo.jpg",
           "from": "https://ambientcg.com/get?file=Plaster001_1K-JPG.zip#Plaster001_1K-JPG_Color.jpg",
           "source_sha256": "d3fe43282859ab7293ad41f2fa3c29f02df077e5bc326cf90a65cc588a4ac5a4",
           "transform": "flattened below 4.0 cycles per tile, greyscale at linear mean luminance 0.7",
           "sha256": "e32ac3261836aa0e0fe45a09f4c878e93f034b9fe8050314019bd9df4970f913"
         },
         "normal": {
-          "file": "art/materials/library/plaster-001-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/plaster-001-normal.jpg",
           "from": "https://ambientcg.com/get?file=Plaster001_1K-JPG.zip#Plaster001_1K-JPG_NormalGL.jpg",
           "source_sha256": "ea293c335a0b9243f0a825573b81304b8f99e60b2c067e493d0792adf96dfc72",
           "sha256": "190ad91390c86971f82d7902fadc51874d78ac98351ec0eff267ca89c9edc7f7"
         },
         "roughness": {
-          "file": "art/materials/library/plaster-001-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/plaster-001-roughness.jpg",
           "from": "https://ambientcg.com/get?file=Plaster001_1K-JPG.zip#Plaster001_1K-JPG_Roughness.jpg",
           "source_sha256": "6028dbe3cb2ea250eacf3fb87d2c4e5ae8c2a7ff10ecad7883c27d721f2f8e88",
           "sha256": "160190842baa6e200ad1dcc77451be5ab0b9875dbeb7cc65e498502fbbca7064"
@@ -1128,20 +1128,20 @@
       "albedo_linear_mean_luminance": 0.7,
       "files": {
         "albedo": {
-          "file": "art/materials/library/preconcrete-wall-001-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/preconcrete-wall-001-albedo.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/preconcrete_wall_001/preconcrete_wall_001_diff_1k.jpg",
           "source_sha256": "7c97b7bf04629ad4b7604c3f9a44b5558ba447e93f1a5cf83d794feba411f97c",
           "transform": "flattened below 4.0 cycles per tile, greyscale at linear mean luminance 0.7",
           "sha256": "45890acbd72e7bab5a507b355dc6a79fa7e719fd04e099daee4d36ed04ad7e77"
         },
         "normal": {
-          "file": "art/materials/library/preconcrete-wall-001-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/preconcrete-wall-001-normal.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/preconcrete_wall_001/preconcrete_wall_001_nor_gl_1k.jpg",
           "source_sha256": "bed16af476b3fdbb50392c135ea22cf645d4541b03c3d197cfc112136ea2787e",
           "sha256": "d01ed09b849c751127b46d8d3e2e945c33b07fc6d2eff5696dfb4b5abeda8eb0"
         },
         "roughness": {
-          "file": "art/materials/library/preconcrete-wall-001-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/preconcrete-wall-001-roughness.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/preconcrete_wall_001/preconcrete_wall_001_rough_1k.jpg",
           "source_sha256": "f8b3903533e35e6aae879e806fb327491fa38fa26a33027f48b9ab550eae0359",
           "sha256": "58891ff6acbf20d2e20c7634853a7eae1b4df56f2c1e9251f7ca608db088b838"
@@ -1166,20 +1166,20 @@
       "albedo_linear_mean_luminance": 0.0456,
       "files": {
         "albedo": {
-          "file": "art/materials/library/road-damaged-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/road-damaged-albedo.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/road_damaged/road_damaged_diff_1k.jpg",
           "source_sha256": "40286b168d8e2990a68c1a97e0162218cc4222b686f2810b8047783d573eddff",
           "transform": "flattened below 4.0 cycles per tile",
           "sha256": "20539abd1396a8860dafb5670262ea47363f30e8dd99f23df6decdb81e1c5da1"
         },
         "normal": {
-          "file": "art/materials/library/road-damaged-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/road-damaged-normal.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/road_damaged/road_damaged_nor_gl_1k.jpg",
           "source_sha256": "9510546d571fe98e74ec6ebad0ddb5b3350f72f98aed3b23a80ec7bbc2e0c848",
           "sha256": "fe7a469dcc674bf8dc4babea8940963e695c843cd6e80707e9fa2a5e5e51ec9f"
         },
         "roughness": {
-          "file": "art/materials/library/road-damaged-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/road-damaged-roughness.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/road_damaged/road_damaged_rough_1k.jpg",
           "source_sha256": "a148f34c1e27a41edc35eab2def3e02bdbff3c15dd655263e8b8de230aaf9bec",
           "sha256": "8a0350f525e907b469215ccba0cd9acc9558686d0f91ef7d93220b32e65da165"
@@ -1204,20 +1204,20 @@
       "albedo_linear_mean_luminance": 0.0282,
       "files": {
         "albedo": {
-          "file": "art/materials/library/rock-wall-16-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/rock-wall-16-albedo.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_wall_16/rock_wall_16_diff_1k.jpg",
           "source_sha256": "602183be039d7403e61e4a2f2b643f7f2738d14708be312fdb4d08c45bbce598",
           "transform": "flattened below 4.0 cycles per tile",
           "sha256": "5a375695aca7a46b2ecd203349c1f1686a36e728d1b8fc1f7688f114475c1bdf"
         },
         "normal": {
-          "file": "art/materials/library/rock-wall-16-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/rock-wall-16-normal.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_wall_16/rock_wall_16_nor_gl_1k.jpg",
           "source_sha256": "a4f602dd2c68e95b53a6069d3b094e23f8c6049be1d4c53daa98d5bdd9c1eb6e",
           "sha256": "e9e17e549e0c449932b65dcf77c2b8ff512eb2cf673ce8908ebf89cb768eaefb"
         },
         "roughness": {
-          "file": "art/materials/library/rock-wall-16-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/rock-wall-16-roughness.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_wall_16/rock_wall_16_rough_1k.jpg",
           "source_sha256": "9bb8d66c7c1965ea212cc7fd617da9bce74f63b870fd6e534563a96da501c51d",
           "sha256": "040ce9b634e58e61910a13194859b437cb092f1c092820fe63d58eeba9562a4c"
@@ -1242,20 +1242,20 @@
       "albedo_linear_mean_luminance": 0.0574,
       "files": {
         "albedo": {
-          "file": "art/materials/library/roofing-tiles-007-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/roofing-tiles-007-albedo.jpg",
           "from": "https://ambientcg.com/get?file=RoofingTiles007_1K-JPG.zip#RoofingTiles007_1K-JPG_Color.jpg",
           "source_sha256": "49fd8ea5c6a5ae65593387c2415aeb0962d3f590bd83dbb295f039f0b139993f",
           "transform": "flattened below 4.0 cycles per tile",
           "sha256": "a6ca028cf14732ecb82d85a1f366ebf88481a94e2970bdc9000c9c61255836a9"
         },
         "normal": {
-          "file": "art/materials/library/roofing-tiles-007-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/roofing-tiles-007-normal.jpg",
           "from": "https://ambientcg.com/get?file=RoofingTiles007_1K-JPG.zip#RoofingTiles007_1K-JPG_NormalGL.jpg",
           "source_sha256": "e1b1adb648b16d42675bea87be53b8fa5a722d9ccddd330771342d96e642dce9",
           "sha256": "99537b1ddd56367cbc10eb13ca2bc8901313ab55ad51af5d030510d3e88b662a"
         },
         "roughness": {
-          "file": "art/materials/library/roofing-tiles-007-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/roofing-tiles-007-roughness.jpg",
           "from": "https://ambientcg.com/get?file=RoofingTiles007_1K-JPG.zip#RoofingTiles007_1K-JPG_Roughness.jpg",
           "source_sha256": "9284b512606a44f139055433bdf94eeb181e5ec027f3ebfde2a291b7fd667638",
           "sha256": "721cb3a2fe983256c300f70002ab3312ddd51862827ca5475543f7fc4b837b19"
@@ -1280,20 +1280,20 @@
       "albedo_linear_mean_luminance": 0.0217,
       "files": {
         "albedo": {
-          "file": "art/materials/library/roofing-tiles-008-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/roofing-tiles-008-albedo.jpg",
           "from": "https://ambientcg.com/get?file=RoofingTiles008_1K-JPG.zip#RoofingTiles008_1K-JPG_Color.jpg",
           "source_sha256": "73a454fd0ee6c8688ff5a6676721a12f5a431908e451e7db2768a8b633b656bb",
           "transform": "flattened below 7.2 cycles per tile",
           "sha256": "6ee8ecef060e501bc4ae11a1b92957faa9a1c188fe5e4437b9a974d302663e60"
         },
         "normal": {
-          "file": "art/materials/library/roofing-tiles-008-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/roofing-tiles-008-normal.jpg",
           "from": "https://ambientcg.com/get?file=RoofingTiles008_1K-JPG.zip#RoofingTiles008_1K-JPG_NormalGL.jpg",
           "source_sha256": "67fd7bfdeccd78d737b13543b64e7c69158b113b3f7e5e36fc7bc760e134bdcb",
           "sha256": "b986eec54bebb6ae2157303c86f3c1713067215e60f25747ac0d5ba6d503e696"
         },
         "roughness": {
-          "file": "art/materials/library/roofing-tiles-008-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/roofing-tiles-008-roughness.jpg",
           "from": "https://ambientcg.com/get?file=RoofingTiles008_1K-JPG.zip#RoofingTiles008_1K-JPG_Roughness.jpg",
           "source_sha256": "d8875d824fba7fb4fbb8482030d80355871bcf9bb7f4090b18e134da02c1ce0e",
           "sha256": "d72a70e7f044b0464631ba4106a37a51732fc551e5bcad6a701e2b89c95fe1da"
@@ -1319,20 +1319,20 @@
       "albedo_linear_mean_luminance": 0.6361,
       "files": {
         "albedo": {
-          "file": "art/materials/library/rough-block-wall-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/rough-block-wall-albedo.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_block_wall/rough_block_wall_diff_1k.jpg",
           "source_sha256": "a906c5d3cf22d4b8da0bd11c91c27327181e30337995437b1fc58eb18c1667d5",
           "transform": "flattened below 7.2 cycles per tile, greyscale at linear mean luminance 0.7",
           "sha256": "162c0e61ba56a80ec56cc237d956e4611a796de53ec812903679cacae7f4e123"
         },
         "normal": {
-          "file": "art/materials/library/rough-block-wall-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/rough-block-wall-normal.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_block_wall/rough_block_wall_nor_gl_1k.jpg",
           "source_sha256": "8814f67d9924dffc3919258ed135b4a4572e63afa2579549717eb8e585f32de7",
           "sha256": "0df1a21d11e519cb53b6da1a840e4720a3e20b30a79f1bc9d292659e4972a22d"
         },
         "roughness": {
-          "file": "art/materials/library/rough-block-wall-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/rough-block-wall-roughness.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_block_wall/rough_block_wall_rough_1k.jpg",
           "source_sha256": "1af7b6c9bdeed362029af1e1f3a819262444ff40fb5734ae7fad62a758acbebc",
           "sha256": "8f397924ef8678f171a5e3c32405521c5b5838d0c8521035361d2b2240259170"
@@ -1357,20 +1357,20 @@
       "albedo_linear_mean_luminance": 0.5666,
       "files": {
         "albedo": {
-          "file": "art/materials/library/sheet-metal-004-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/sheet-metal-004-albedo.jpg",
           "from": "https://ambientcg.com/get?file=SheetMetal004_1K-JPG.zip#SheetMetal004_1K-JPG_Color.jpg",
           "source_sha256": "f47dd177027cd8619de0db7c7cc4153ff2b6f5084c19a5054188fa0e491a4cbd",
           "transform": "flattened below 7.2 cycles per tile, greyscale at linear mean luminance 0.7",
           "sha256": "605e09a39c863c1c37bd09594b993cc85390a2df2ac6cde2171ada0fbd034528"
         },
         "normal": {
-          "file": "art/materials/library/sheet-metal-004-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/sheet-metal-004-normal.jpg",
           "from": "https://ambientcg.com/get?file=SheetMetal004_1K-JPG.zip#SheetMetal004_1K-JPG_NormalGL.jpg",
           "source_sha256": "9424b1384b0e2c1668ca52c4b6da2f20f2a1e2bca0f22f822b5d9fb30402a9e5",
           "sha256": "8edb92488df68f6e107ae88f4edf276fbc8dc2968def087d1fd9d173c61c77c9"
         },
         "roughness": {
-          "file": "art/materials/library/sheet-metal-004-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/sheet-metal-004-roughness.jpg",
           "from": "https://ambientcg.com/get?file=SheetMetal004_1K-JPG.zip#SheetMetal004_1K-JPG_Roughness.jpg",
           "source_sha256": "e4a9f39b5f8fc84748f59cb71ce870e8cee904a04f133c73e12a9edb317e61f9",
           "sha256": "1ff67205e0a8585db36cde26f5242813073ccd7ee5c3391c72251b0ab11ccd95"
@@ -1395,20 +1395,20 @@
       "albedo_linear_mean_luminance": 0.0477,
       "files": {
         "albedo": {
-          "file": "art/materials/library/stained-pine-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/stained-pine-albedo.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stained_pine/stained_pine_diff_1k.jpg",
           "source_sha256": "bab73315eb57f942a98e3201ef7f00515f3a4c5b74bb9aba9c00007a3029e594",
           "transform": "flattened below 4.0 cycles per tile",
           "sha256": "cbb1e14aed049360e1e125e7a4e00bd16dbad3d2e0daae2e4b60a8a04ad083e3"
         },
         "normal": {
-          "file": "art/materials/library/stained-pine-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/stained-pine-normal.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stained_pine/stained_pine_nor_gl_1k.jpg",
           "source_sha256": "528a97d37a751965a6d97f6e0c58cddc33295f2588e47fa87a6c5afe82ade693",
           "sha256": "83f061ba20f9199353c8ea9cc7d03849337808f2bdf7eb4b14dbfb4acf28bd0e"
         },
         "roughness": {
-          "file": "art/materials/library/stained-pine-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/stained-pine-roughness.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stained_pine/stained_pine_rough_1k.jpg",
           "source_sha256": "f955b0561d5a868c7fc67f5d6dcb540b4d5c85234a0060164ef5d0d20cdb50f8",
           "sha256": "84337f295ac5dd87d885423385c67cec835f4f1d0188dfbe5bb58f553bba54a2"
@@ -1433,20 +1433,20 @@
       "albedo_linear_mean_luminance": 0.3044,
       "files": {
         "albedo": {
-          "file": "art/materials/library/stone-wall-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/stone-wall-albedo.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stone_wall/stone_wall_diff_1k.jpg",
           "source_sha256": "390969aead48d9a10ac731a5e0af8761cc4ed89faa02ba775b913930b4398d87",
           "transform": "flattened below 4.0 cycles per tile",
           "sha256": "6b8f4e4710b3f90cc5418a68160f5426aa56954089fd82dc0389299c7fa07607"
         },
         "normal": {
-          "file": "art/materials/library/stone-wall-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/stone-wall-normal.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stone_wall/stone_wall_nor_gl_1k.jpg",
           "source_sha256": "801d7ff8bc472e5ad95872546c19a4c63cc776060b4ced629fece2d08591964e",
           "sha256": "624cfe11861994cf923f5e46d53a00dbe0d576b9a9999f894ccefc0f715ca699"
         },
         "roughness": {
-          "file": "art/materials/library/stone-wall-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/stone-wall-roughness.jpg",
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stone_wall/stone_wall_rough_1k.jpg",
           "source_sha256": "8c06e7c67d0d9701966732cc90c4e356b5bd5656aa35bf82650576e78322cbdd",
           "sha256": "857b5e73598886b027c711d84cdf227a64769374f46c57b72bcb012a6367a954"
@@ -1471,20 +1471,20 @@
       "albedo_linear_mean_luminance": 0.046,
       "files": {
         "albedo": {
-          "file": "art/materials/library/wood-siding-005-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/wood-siding-005-albedo.jpg",
           "from": "https://ambientcg.com/get?file=WoodSiding005_1K-JPG.zip#WoodSiding005_1K-JPG_Color.jpg",
           "source_sha256": "015b50587c65e388c27a16807e6edf4d723c6d78676acb80868eba34154494c9",
           "transform": "flattened below 4.0 cycles per tile",
           "sha256": "de9674d6c65164dabbda7294ea57342d24531352c4ed27a51fee9c82daf3cd4c"
         },
         "normal": {
-          "file": "art/materials/library/wood-siding-005-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/wood-siding-005-normal.jpg",
           "from": "https://ambientcg.com/get?file=WoodSiding005_1K-JPG.zip#WoodSiding005_1K-JPG_NormalGL.jpg",
           "source_sha256": "14d274c9f2e021c3f9e228e42466aaac026ba60d6cd8bed2d7f347f0cb8cbcc9",
           "sha256": "e08b45824df9783b551290a1af46122d66b0f0df4bfd43e4b8c9966904d01274"
         },
         "roughness": {
-          "file": "art/materials/library/wood-siding-005-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/wood-siding-005-roughness.jpg",
           "from": "https://ambientcg.com/get?file=WoodSiding005_1K-JPG.zip#WoodSiding005_1K-JPG_Roughness.jpg",
           "source_sha256": "021b2bd667e4ba5217f9d12aeb4861208316f43d81af8ef3998fff165d4e66cc",
           "sha256": "95adbf0ffa8c8cd18c49f8fd673c3cdda60f692fc1203920925ee87f5ad86783"
@@ -1509,20 +1509,20 @@
       "albedo_linear_mean_luminance": 0.0503,
       "files": {
         "albedo": {
-          "file": "art/materials/library/wood-siding-007-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/wood-siding-007-albedo.jpg",
           "from": "https://ambientcg.com/get?file=WoodSiding007_1K-JPG.zip#WoodSiding007_1K-JPG_Color.jpg",
           "source_sha256": "26cd225f70b126efa963ba380d3f5520801dfb3755fc9d8886a283fe9cade93b",
           "transform": "flattened below 4.0 cycles per tile",
           "sha256": "7467da4ca8f5546d0aacfd7e85703e4fbef1c9a3b9d5165d597cbf841169d827"
         },
         "normal": {
-          "file": "art/materials/library/wood-siding-007-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/wood-siding-007-normal.jpg",
           "from": "https://ambientcg.com/get?file=WoodSiding007_1K-JPG.zip#WoodSiding007_1K-JPG_NormalGL.jpg",
           "source_sha256": "2b8ffbfe53d7ef1d2f14108bd7bd880071ae0e4ea228b687ab2ed382191ab35c",
           "sha256": "0f0fd819d2191c1a6dd84b6632bb751e4a3590b62ba083c9b480079105095ad7"
         },
         "roughness": {
-          "file": "art/materials/library/wood-siding-007-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/wood-siding-007-roughness.jpg",
           "from": "https://ambientcg.com/get?file=WoodSiding007_1K-JPG.zip#WoodSiding007_1K-JPG_Roughness.jpg",
           "source_sha256": "42d2c4a391bfc0aff57f69b0862c6c54630c0ec14baff48a7751aef195598f04",
           "sha256": "d9e34479b2b8df062f400ae41a8dc19078f3f5b669ba362a679d001deea931d4"
@@ -1547,14 +1547,14 @@
       "albedo_linear_mean_luminance": 0.1075,
       "files": {
         "albedo": {
-          "file": "art/materials/library/wood-siding-011-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/wood-siding-011-albedo.jpg",
           "from": "https://ambientcg.com/get?file=WoodSiding011_1K-JPG.zip#WoodSiding011_1K-JPG_Color.jpg",
           "source_sha256": "a6a62b84acd1604df9ce823fcf96481584a82060c0953c7842f8edd44d0f53dc",
           "transform": "flattened below 4.0 cycles per tile",
           "sha256": "9e832263419f685849bc54c7d22b7849ab5f606dd6330cead60bfda4caad5e87"
         },
         "normal": {
-          "file": "art/materials/library/wood-siding-011-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/wood-siding-011-normal.jpg",
           "from": "https://ambientcg.com/get?file=WoodSiding011_1K-JPG.zip#WoodSiding011_1K-JPG_NormalGL.jpg",
           "source_sha256": "3648e6b74fe90378428019850c62cfff974d50ea9c224f240b31d84fa319e7a7",
           "sha256": "b8add767f98db2741dbaadb47264348aa2e1ef754ab87571290f72e4c4211a1b"
@@ -1579,20 +1579,20 @@
       "albedo_linear_mean_luminance": 0.0495,
       "files": {
         "albedo": {
-          "file": "art/materials/library/wood-siding-012-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/wood-siding-012-albedo.jpg",
           "from": "https://ambientcg.com/get?file=WoodSiding012_1K-JPG.zip#WoodSiding012_1K-JPG_Color.jpg",
           "source_sha256": "f4cca355e1caa581e14e491a06c6c82fad9e74d0dd6fa253afb5a497dbb20765",
           "transform": "flattened below 4.0 cycles per tile",
           "sha256": "631be3479ff22a368357eeb4e85cfaa7450411835afdb4d88ff9424a4321f2ab"
         },
         "normal": {
-          "file": "art/materials/library/wood-siding-012-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/wood-siding-012-normal.jpg",
           "from": "https://ambientcg.com/get?file=WoodSiding012_1K-JPG.zip#WoodSiding012_1K-JPG_NormalGL.jpg",
           "source_sha256": "faa721ca8f3ef787e069a270e4682760a4d760905d228edf90d2e5d58650f875",
           "sha256": "587957c27166fa8a4088d4b557346ba9464bc66b14492a0d9478cebfc2a5e3bf"
         },
         "roughness": {
-          "file": "art/materials/library/wood-siding-012-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/wood-siding-012-roughness.jpg",
           "from": "https://ambientcg.com/get?file=WoodSiding012_1K-JPG.zip#WoodSiding012_1K-JPG_Roughness.jpg",
           "source_sha256": "237fc5c8fd450257d5d456943ca0a393723b66c2c5e69e32619b5a1ccc1fca87",
           "sha256": "6b102cab093afa04e9e1f3b3b4d1148b9cf8507b713e7193557052917c0ba61e"
@@ -1617,20 +1617,20 @@
       "albedo_linear_mean_luminance": 0.1048,
       "files": {
         "albedo": {
-          "file": "art/materials/library/wood-siding-013-albedo.jpg",
+          "file": "src/Borough.Godot/assets/city/library/wood-siding-013-albedo.jpg",
           "from": "https://ambientcg.com/get?file=WoodSiding013_1K-JPG.zip#WoodSiding013_1K-JPG_Color.jpg",
           "source_sha256": "1d02899d68bdf1aa7b73580a8ec0cf666da3c5d85d74314223ee83ae1c2c35cb",
           "transform": "flattened below 4.0 cycles per tile",
           "sha256": "efa05be18a7cd90920510c4611935c128d5c96f9d0b58afda23fcf231009f204"
         },
         "normal": {
-          "file": "art/materials/library/wood-siding-013-normal.jpg",
+          "file": "src/Borough.Godot/assets/city/library/wood-siding-013-normal.jpg",
           "from": "https://ambientcg.com/get?file=WoodSiding013_1K-JPG.zip#WoodSiding013_1K-JPG_NormalGL.jpg",
           "source_sha256": "4a69a76e6d7c66d5a82eceb9a597824415d424f6a90a3d45445057650824b161",
           "sha256": "ea7bed021638f2a509c8b9e360b0df8f37d8bc257f5f1ccdc65918bda96b3cfd"
         },
         "roughness": {
-          "file": "art/materials/library/wood-siding-013-roughness.jpg",
+          "file": "src/Borough.Godot/assets/city/library/wood-siding-013-roughness.jpg",
           "from": "https://ambientcg.com/get?file=WoodSiding013_1K-JPG.zip#WoodSiding013_1K-JPG_Roughness.jpg",
           "source_sha256": "2b9ef2bb3a151df137a317736174be3909989ce309f3c660bce6c1a88ea80181",
           "sha256": "682cfc834ec3f79b3c6ea697b95ddcc92d5e36cf6e70bf9cd680f2ff2ed69952"
