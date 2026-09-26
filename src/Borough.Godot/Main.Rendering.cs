@@ -24,7 +24,8 @@ public partial class Main
             _troubleRepaint = false;
             _fullBuildingPasses++;
             _visualWash = _washing;
-            PlaceFamilyBodies();
+            if (changes.Full) PlaceFamilyBodies();
+            else RefreshFamilyBodies(changes.Buildings);
             _drawnBuildings = Massings(Buildings());
             _vacantLots = Fill(_plots, Plots(), _plotIds);
             _renderedBuildings.Clear();

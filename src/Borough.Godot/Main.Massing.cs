@@ -728,7 +728,12 @@ public partial class Main
             if (one.Outhoused) FoliageFootprint(one.Yard, footprints++);
             if (_shelled.Contains(one.Id) || _exactBodies.ContainsKey(one.Id)) continue;
             bool far = _placedBodies.TryGetValue(one.Id, out PlacedBody placed);
-            if (far) one = FarMassing(one, placed.Shape.Body);
+            if (far)
+            {
+                placed.Layer.Multimesh.Replace(one.Id, [new InstanceValue(placed.At, Colors.White, Tint(one))]);
+                one = FarMassing(one, placed.Shape.Body);
+            }
+
             _buildings.Multimesh.Identity(bodies, one.Id);
             _buildingIds.Add(one.Id);
             _buildings.Multimesh.SetInstanceTransform(bodies, one.Body);

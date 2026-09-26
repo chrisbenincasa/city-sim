@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Borough.Appearance;
@@ -28,7 +29,7 @@ public partial class Main
 
     private readonly Dictionary<ulong, PlacedBody> _placedBodies = [];
     private readonly Dictionary<ulong, BodyNeighbours> _bodyNeighbours = [];
-    private readonly Dictionary<(string Family, int Frontage, int Depth, int Storeys, AttachedSides Attached, int Paint), BodyShape> _familyBodyMeshes = [];
+    private readonly Dictionary<BodyKey, BodyShape> _familyBodyMeshes = [];
     private readonly Dictionary<(ArrayMesh Mesh, bool Abandoned), InstanceLayer> _bodyLayers = [];
     private readonly Dictionary<string, Dictionary<string, Material>> _bodyLibraries = [];
     private readonly Dictionary<string, Material> _libraryMaterials = [];
@@ -36,7 +37,7 @@ public partial class Main
     private readonly Dictionary<Material, Color> _meanColours = [];
     private readonly HashSet<Vector2I> _nearChunks = [];
     private readonly List<ulong> _bodyLayerIds = [];
-    private Dictionary<(int East, int North), int>? _footprintTiles;
+    private Dictionary<(int East, int North), List<int>>? _footprints;
     private ShaderMaterial? _derelictBody;
     private bool _familyBodies;
     private bool _reportFamilyBodies;
@@ -48,13 +49,26 @@ public partial class Main
     /// <summary>PROVISIONAL reach of the body band, from the camera to the nearest point of a chunk.</summary>
     private const float BodyNearMetres = 500f;
 
+    /// <summary>The side of the square, in Tiles, that <see cref="Footprints"/> files Buildings under.</summary>
+    private const int FootprintSquareTiles = 64;
+
     /// <summary>Where a body probed for side neighbours, and the Buildings it found there; 0 is none.</summary>
     private readonly record struct BodyNeighbours(int Slot, Vector3 LeftProbe, Vector3 RightProbe, ulong LeftId, ulong RightId);
 
     /// <summary>A generated body, and the linear mean colours its far box is painted with.</summary>
     private sealed record BodyShape(ArrayMesh Mesh, Color Wall, Color Roof, FamilyBody Body);
 
-    private readonly record struct PlacedBody(InstanceLayer Layer, BodyShape Shape);
+    private readonly record struct PlacedBody(InstanceLayer Layer, BodyShape Shape, Transform3D At);
+
+    private readonly record struct BodyKey(string Family, int Frontage, int Depth, int Storeys, AttachedSides Attached, int Paint);
+
+    /// <summary>Everything a Building's body is placed from, read from the World.</summary>
+    private readonly record struct BodyRequest(
+        Massing One, AppearanceFamily Family, FamilyBody Body, float Frontage, float Depth, int Storeys,
+        AttachedSides Attached, int Paint, float Turn, BodyNeighbours Neighbours)
+    {
+        public BodyKey Key => new(Family.Id, Mathf.RoundToInt(Frontage * 100f), Mathf.RoundToInt(Depth * 100f), Storeys, Attached, Paint);
+    }
 
     /// <summary><c>ui family-bodies on|off [NEAR]</c>; NEAR is the body band's reach in metres.</summary>
     private void FamilyBodyStudy(string[] words)
@@ -88,24 +102,63 @@ public partial class Main
         foreach ((ulong id, PlacedBody placed) in _placedBodies) placed.Layer.Multimesh.Replace(id, []);
         _placedBodies.Clear();
         _bodyNeighbours.Clear();
+        OverlayAbandonedBodies();
+        if (!_familyBodies) return;
+
+        long start = System.Diagnostics.Stopwatch.GetTimestamp();
+        _footprints = Footprints();
+        var requests = new List<BodyRequest>();
+        for (int slot = 0; slot < _world.Buildings.Rows.SlotCount; slot++)
+        {
+            if (_world.Buildings.Rows.IsLive(slot) && RequestBody(slot) is { } request) requests.Add(request);
+        }
+
+        _footprints = null;
+        BuildBodyMeshes(requests);
+        foreach (BodyRequest request in requests) PlaceBody(request);
+
+        GD.Print($"family_bodies\t{_placedBodies.Count}\t{_familyBodyMeshes.Count} meshes\t{_bodyLayers.Count} layers"
+            + $"\t{System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalMilliseconds:F1} ms");
+        _reportFamilyBodies = false;
+    }
+
+    /// <summary>
+    /// Keeps the placed bodies through a pass that changed no geometry beyond the changed
+    /// Buildings. Their bodies and their neighbours' are placed again; <see cref="Massings"/>
+    /// retints the rest.
+    /// </summary>
+    private void RefreshFamilyBodies(ReadOnlySpan<int> changed)
+    {
+        OverlayAbandonedBodies();
+        if (!_familyBodies) return;
+
+        var changedIds = new HashSet<ulong>();
+        var placed = new List<int>();
+        foreach (int slot in changed)
+        {
+            if (_renderedBuildings.TryGetValue(slot, out (ulong Id, bool Drawn) old))
+            {
+                RemoveFamilyBody(old.Id);
+                changedIds.Add(old.Id);
+            }
+
+            if (!_world.Buildings.Rows.IsLive(slot)) continue;
+            ulong id = IdAt(slot);
+            changedIds.Add(id);
+            placed.Add(slot);
+            RemoveFamilyBody(id);
+            PlaceFamilyBody(slot);
+        }
+
+        RefreshNeighbourBodies(changedIds, placed);
+    }
+
+    private void OverlayAbandonedBodies()
+    {
         foreach (((ArrayMesh _, bool abandoned), InstanceLayer layer) in _bodyLayers)
         {
             if (abandoned) layer.MaterialOverlay = _washing == Wash.None ? DerelictBody() : null;
         }
-
-        if (!_familyBodies) return;
-
-        long start = System.Diagnostics.Stopwatch.GetTimestamp();
-        _footprintTiles = FootprintTiles();
-        for (int slot = 0; slot < _world.Buildings.Rows.SlotCount; slot++)
-        {
-            if (_world.Buildings.Rows.IsLive(slot)) PlaceFamilyBody(slot);
-        }
-
-        _footprintTiles = null;
-        GD.Print($"family_bodies\t{_placedBodies.Count}\t{_familyBodyMeshes.Count} meshes\t{_bodyLayers.Count} layers"
-            + $"\t{System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalMilliseconds:F1} ms");
-        _reportFamilyBodies = false;
     }
 
     private void RemoveFamilyBody(ulong id)
@@ -117,13 +170,20 @@ public partial class Main
     /// <returns><c>true</c> where the Building now draws as its family's body.</returns>
     private bool PlaceFamilyBody(int slot)
     {
-        if (!_familyBodies) return false;
-        if (FamilyOf(slot).Family is not { Body: { } body } family) return false;
+        if (RequestBody(slot) is not { } request) return false;
+        PlaceBody(request);
+        return true;
+    }
+
+    private BodyRequest? RequestBody(int slot)
+    {
+        if (!_familyBodies) return null;
+        if (FamilyOf(slot).Family is not { Body: { } body } family) return null;
 
         using IEnumerator<Massing> parts = Buildings(slot).GetEnumerator();
-        if (!parts.MoveNext()) return false;
+        if (!parts.MoveNext()) return null;
         Massing one = parts.Current;
-        if (parts.MoveNext() || _exactBodies.ContainsKey(one.Id)) return false;
+        if (parts.MoveNext() || _exactBodies.ContainsKey(one.Id)) return null;
 
         Vector3 size = one.Body.Basis.Scale;
         float faceEast = (one.Reads.R * 2f) - 1f;
@@ -135,21 +195,25 @@ public partial class Main
         float turn = Mathf.Atan2(faceEast, faceSouth);
         AttachedSides attached = Attached(slot, one.Body.Origin, turn, frontage, out BodyNeighbours neighbours);
         int paint = FamilyPicker.Paint(family, _world.Key, one.Id);
+        return new BodyRequest(one, family, body, frontage, depth, storeys, attached, paint, turn, neighbours);
+    }
 
-        BodyShape shape = BodyMesh(family, body, frontage, depth, storeys, attached, paint);
+    private void PlaceBody(BodyRequest request)
+    {
+        Massing one = request.One;
+        BodyShape shape = BodyMesh(request);
         InstanceLayer layer = BodyLayer(shape.Mesh, one.Abandoned);
-        var at = new Transform3D(new Basis(Vector3.Up, turn), one.Body.Origin with { Y = 0f });
+        var at = new Transform3D(new Basis(Vector3.Up, request.Turn), one.Body.Origin with { Y = 0f });
         layer.Multimesh.Replace(one.Id, [new InstanceValue(at, Colors.White, Tint(one))]);
-        _placedBodies[one.Id] = new PlacedBody(layer, shape);
-        _bodyNeighbours[one.Id] = neighbours;
+        _placedBodies[one.Id] = new PlacedBody(layer, shape, at);
+        _bodyNeighbours[one.Id] = request.Neighbours;
         if (_reportFamilyBodies)
         {
-            GD.Print($"family_body\t{family.Id}\tbuilding {one.Id}\t{frontage}x{depth} m\t{storeys} storeys\tattached {attached}\tpaint {paint}"
+            GD.Print($"family_body\t{request.Family.Id}\tbuilding {one.Id}\t{request.Frontage}x{request.Depth} m\t{request.Storeys} storeys"
+                + $"\tattached {request.Attached}\tpaint {request.Paint}"
                 + $"\ttile {Mathf.RoundToInt(one.Body.Origin.X / MetresPerTile)} {Mathf.RoundToInt(-one.Body.Origin.Z / MetresPerTile)}"
                 + (one.Abandoned ? "\tabandoned" : ""));
         }
-
-        return true;
     }
 
     /// <summary>
@@ -293,10 +357,16 @@ public partial class Main
     /// <returns>The Building slot whose footprint covers the point, or -1.</returns>
     private int Covering(int slot, Vector3 point)
     {
-        if (_footprintTiles is not null)
+        if (_footprints is not null)
         {
-            var tile = (Mathf.FloorToInt(point.X / MetresPerTile), Mathf.FloorToInt(-point.Z / MetresPerTile));
-            return _footprintTiles.TryGetValue(tile, out int found) && found != slot ? found : -1;
+            float square = MetresPerTile * FootprintSquareTiles;
+            if (!_footprints.TryGetValue((Mathf.FloorToInt(point.X / square), Mathf.FloorToInt(-point.Z / square)), out List<int>? near)) return -1;
+            foreach (int other in near)
+            {
+                if (other != slot && Covers(other, point)) return other;
+            }
+
+            return -1;
         }
 
         BuildingTable table = _world.Buildings;
@@ -308,23 +378,32 @@ public partial class Main
         return -1;
     }
 
-    /// <summary>The live Building slot on each footprint Tile, for a whole-city placement pass.</summary>
-    private Dictionary<(int East, int North), int> FootprintTiles()
+    /// <summary>
+    /// The live Building slots whose footprint overlaps each square of <see cref="FootprintSquareTiles"/>,
+    /// in slot order, for a whole-city placement pass.
+    /// </summary>
+    private Dictionary<(int East, int North), List<int>> Footprints()
     {
-        var tiles = new Dictionary<(int East, int North), int>();
+        var squares = new Dictionary<(int East, int North), List<int>>();
         LotTable lots = _world.Lots;
         BuildingTable table = _world.Buildings;
         for (int slot = 0; slot < table.Rows.SlotCount; slot++)
         {
             if (!table.Rows.IsLive(slot) || !lots.Rows.TryResolve(table.Lot[slot], out int lot)) continue;
             int x = lots.FootprintEast[lot].Raw, y = lots.FootprintNorth[lot].Raw;
-            for (int east = x; east < x + lots.FootprintWide[lot].Raw; east++)
+            int lastEast = Mathf.FloorToInt((x + lots.FootprintWide[lot].Raw - 1) / (float)FootprintSquareTiles);
+            int lastNorth = Mathf.FloorToInt((y + lots.FootprintDeep[lot].Raw - 1) / (float)FootprintSquareTiles);
+            for (int east = Mathf.FloorToInt(x / (float)FootprintSquareTiles); east <= lastEast; east++)
             {
-                for (int north = y; north < y + lots.FootprintDeep[lot].Raw; north++) tiles.TryAdd((east, north), slot);
+                for (int north = Mathf.FloorToInt(y / (float)FootprintSquareTiles); north <= lastNorth; north++)
+                {
+                    if (!squares.TryGetValue((east, north), out List<int>? square)) squares[(east, north)] = square = [];
+                    square.Add(slot);
+                }
             }
         }
 
-        return tiles;
+        return squares;
     }
 
     private bool Covers(int building, Vector3 point)
@@ -336,16 +415,65 @@ public partial class Main
         return east >= x && east < x + lots.FootprintWide[lot].Raw && north >= y && north < y + lots.FootprintDeep[lot].Raw;
     }
 
-    private BodyShape BodyMesh(AppearanceFamily family, FamilyBody body, float frontage, float depth, int storeys, AttachedSides attached, int paint)
+    /// <summary>Generates the surfaces of every body the requests need and no mesh yet holds, across worker threads.</summary>
+    private void BuildBodyMeshes(List<BodyRequest> requests)
     {
-        var key = (family.Id, Mathf.RoundToInt(frontage * 100f), Mathf.RoundToInt(depth * 100f), storeys, attached, paint);
-        if (_familyBodyMeshes.TryGetValue(key, out BodyShape? cached)) return cached;
+        var missing = new List<BodyRequest>();
+        var seen = new HashSet<BodyKey>();
+        foreach (BodyRequest request in requests)
+        {
+            if (!_familyBodyMeshes.ContainsKey(request.Key) && seen.Add(request.Key)) missing.Add(request);
+        }
 
+        var surfaces = new List<BodySurface>[missing.Count];
+        System.Threading.Tasks.Parallel.For(0, missing.Count, i => surfaces[i] = BodySurfaces(missing[i]));
+        for (int i = 0; i < missing.Count; i++) BodyMesh(missing[i], surfaces[i]);
+    }
+
+    private readonly record struct BodySurface(string Part, Godot.Collections.Array Arrays, int VertexCount);
+
+    /// <summary>A body's surfaces with tangents and no colour. Touches no scene or rendering server, so any thread may call it.</summary>
+    private static List<BodySurface> BodySurfaces(BodyRequest request)
+    {
+        var surfaces = new List<BodySurface>();
+        foreach ((string part, ShellMesh source) in FamilyBodyBuilder.Build(request.Body, request.Frontage, request.Depth, request.Storeys, request.Attached).Parts)
+        {
+            var positions = new Vector3[source.VertexCount];
+            var normals = new Vector3[source.VertexCount];
+            var uvs = new Vector2[source.VertexCount];
+            for (int i = 0; i < source.VertexCount; i++)
+            {
+                System.Numerics.Vector3 p = source.Positions[i], n = source.Normals[i];
+                positions[i] = new Vector3(p.X, p.Y, p.Z);
+                normals[i] = new Vector3(n.X, n.Y, n.Z);
+                uvs[i] = new Vector2(source.Uvs[i].X, source.Uvs[i].Y);
+            }
+
+            var arrays = new Godot.Collections.Array();
+            arrays.Resize((int)Mesh.ArrayType.Max);
+            arrays[(int)Mesh.ArrayType.Vertex] = positions;
+            arrays[(int)Mesh.ArrayType.Normal] = normals;
+            arrays[(int)Mesh.ArrayType.TexUV] = uvs;
+            arrays[(int)Mesh.ArrayType.Index] = source.Indices.ToArray();
+            var tool = new SurfaceTool();
+            tool.CreateFromArrays(arrays);
+            tool.GenerateTangents();
+            surfaces.Add(new BodySurface(part, tool.CommitToArrays(), source.VertexCount));
+        }
+
+        return surfaces;
+    }
+
+    private BodyShape BodyMesh(BodyRequest request, List<BodySurface>? surfaces = null)
+    {
+        if (_familyBodyMeshes.TryGetValue(request.Key, out BodyShape? cached)) return cached;
+
+        (AppearanceFamily family, FamilyBody body, int paint) = (request.Family, request.Body, request.Paint);
         Dictionary<string, Material> library = BodyLibrary(body.Library);
         var mesh = new ArrayMesh();
         IReadOnlyDictionary<string, Paint>? scheme = paint >= 0 ? family.Paints![paint].Parts : null;
         var reads = new Dictionary<string, Color>();
-        foreach ((string part, ShellMesh source) in FamilyBodyBuilder.Build(body, frontage, depth, storeys, attached).Parts)
+        foreach ((string part, Godot.Collections.Array arrays, int vertexCount) in surfaces ?? BodySurfaces(request))
         {
             bool dressed = body.Materials.TryGetValue(part, out string? texture);
             Material material = dressed ? LibraryMaterial(texture!)
@@ -367,30 +495,16 @@ public partial class Main
                 reads[part] = Color.Color8(colour.R, colour.G, colour.B).SrgbToLinear();
             }
 
-            var tool = new SurfaceTool();
-            tool.Begin(Mesh.PrimitiveType.Triangles);
-            for (int i = 0; i < source.VertexCount; i++)
-            {
-                if (tint is { } t) tool.SetColor(t);
-                System.Numerics.Vector3 n = source.Normals[i];
-                System.Numerics.Vector2 uv = source.Uvs[i];
-                System.Numerics.Vector3 p = source.Positions[i];
-                tool.SetNormal(new Vector3(n.X, n.Y, n.Z));
-                tool.SetUV(new Vector2(uv.X, uv.Y));
-                tool.AddVertex(new Vector3(p.X, p.Y, p.Z));
-            }
-
-            foreach (int index in source.Indices) tool.AddIndex(index);
-            tool.GenerateTangents();
-            tool.SetMaterial(material);
-            tool.Commit(mesh);
+            if (tint is { } t) arrays[(int)Mesh.ArrayType.Color] = Enumerable.Repeat(t, vertexCount).ToArray();
+            mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
+            mesh.SurfaceSetMaterial(mesh.GetSurfaceCount() - 1, material);
         }
 
         Color fallback = MeanColour(null);
         Color wall = reads.GetValueOrDefault("wall", fallback);
         Color roof = RoofParts.Where(reads.ContainsKey).Select(part => reads[part]).DefaultIfEmpty(fallback).First();
         var shape = new BodyShape(mesh, wall, roof, body);
-        _familyBodyMeshes[key] = shape;
+        _familyBodyMeshes[request.Key] = shape;
         return shape;
     }
 

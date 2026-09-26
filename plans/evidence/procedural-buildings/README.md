@@ -299,3 +299,35 @@ runs are this branch. The undressed run uses the preset from `ac0a977`, so it dr
   At the district view that gives 1,005 visible and 3,102 shadow draws, against 767 and 2,052.
 - With paint schemes the first placement pass takes 3.5–3.7 s and later passes 0.48–1.03 s.
 
+## Placement pass
+
+Taken 2026-09-25 on `zeus`, Debug shell, the 1,000,000-Citizen `stress-shopping.toml` save at Tick
+600, 14,891 bodies from 426 meshes. Load average was 0.5–2.2. Each run turns bodies on, then
+switches the `rung` wash on and off twice.
+
+| Pass | `main` at `919290a` | `body-placement-thread` |
+|---|---:|---:|
+| Body placement, bodies turned on | 4,342 ms | 2,227 ms |
+| Body placement, before retinting | 1,021–1,115 ms | 250–270 ms |
+| Whole Building pass, bodies turned on | 4,678 ms | 2,525 ms |
+| Whole Building pass, four wash changes | 1,344–1,455 ms | 344–371 ms |
+
+- Body placement is the `family_bodies` line. The whole pass was timed around the full branch of
+  `UpdateBuildings` with a temporary timer in both trees.
+- The branch places every body only on a full World change. A wash change keeps the placed bodies
+  and retints each one in the massing refill. Changed Buildings and their neighbours are placed
+  again.
+
+- On `main`, 0.9 s of each later pass built a dictionary of all 4.86 million footprint Tiles to
+  answer about 30,000 neighbour probes. The branch files each footprint under the 64-Tile squares
+  it overlaps.
+- On `main`, the first pass spent 2.8 s generating meshes: 0.35 s building geometry, 0.43 s
+  passing vertices to `SurfaceTool` one call at a time, 0.81 s generating tangents and 0.3 s
+  committing. The branch builds geometry and tangents on worker threads from whole arrays and
+  uploads on the main thread.
+- Per-Building placement lines and a checksum of every surface array of all 426 meshes match
+  `main` exactly.
+- A temporary probe compared each retinted pass with a full re-placement: every body instance and
+  every remembered neighbour. It matched on 61 passes of the 1M city and on 3,841 Age-wash passes of
+  `declining.toml` at 2,000 Citizens from Tick 6,000. In that run 50 Buildings collapsed, 118 passes
+  carried changed Buildings, and the body count moved between 16 and 27.
