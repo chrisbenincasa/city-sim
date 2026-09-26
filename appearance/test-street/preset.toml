@@ -388,3 +388,105 @@ kinds = ["shopfront"]
 patterns = ["car-park-centre"]
 anchored = true
 parking = ["surface"]
+
+# ---------------------------------------------------------------------------------------------
+# The four tower families. A Tower Lot is one Building over its whole site: a low podium closing
+# the street wall and a shaft above it, which the shell builds in code rather than from a model
+# (docs/07-the-drawing.md). The library holds untextured swatches for the parts the texture
+# library does not dress, so a scheme's paint is what colours them.
+
+[[family]]
+id = "tower-point"
+kinds = ["dwelling", "shopfront"]
+patterns = ["tower"]
+
+# Four square towers on the podium's quadrants, banded and crowned.
+[family.body]
+library = "tall-families/library"
+shape = "tower"
+variant = "point"
+materials = { wall = "preconcrete-wall-001", wall-end = "brick-wall-001", membrane = "bitumen", paving = "concrete-panels" }
+
+[[family.paint]]
+wall = "cdc8bc"
+trim = "efece2"
+
+[[family.paint]]
+wall = "9aa4a8"
+trim = "e4e6e4"
+
+[[family.paint]]
+wall = "b6a893"
+trim = "f2eee0"
+
+[[family]]
+id = "tower-stepped-point"
+kinds = ["dwelling", "shopfront"]
+patterns = ["tower"]
+
+# The same four, each a low street front stepping back to a taller spine.
+[family.body]
+library = "tall-families/library"
+shape = "tower"
+variant = "stepped-point"
+materials = { wall = "preconcrete-wall-001", wall-end = "brick-wall-001", membrane = "bitumen", paving = "concrete-panels" }
+
+[[family.paint]]
+wall = "c4bdae"
+trim = "eeeae0"
+
+[[family.paint]]
+wall = "8f9aa0"
+trim = "e2e6e8"
+
+[[family.paint]]
+wall = "a8968a"
+trim = "f0ece4"
+
+[[family]]
+id = "tower-l"
+kinds = ["dwelling", "shopfront"]
+patterns = ["tower"]
+
+# One arm along the whole frontage and one running back from its west end.
+[family.body]
+library = "tall-families/library"
+shape = "tower"
+variant = "l"
+materials = { wall = "preconcrete-wall-001", wall-end = "brick-wall-001", membrane = "bitumen", paving = "concrete-panels" }
+
+[[family.paint]]
+wall = "d0c9b8"
+trim = "f0eee6"
+
+[[family.paint]]
+wall = "94a09c"
+trim = "e6e8e4"
+
+[[family.paint]]
+wall = "b09a88"
+trim = "efe8da"
+
+[[family]]
+id = "tower-h"
+kinds = ["dwelling", "shopfront"]
+patterns = ["tower"]
+
+# Two bars running back from the Street, joined across the middle by a link.
+[family.body]
+library = "tall-families/library"
+shape = "tower"
+variant = "h"
+materials = { wall = "preconcrete-wall-001", wall-end = "brick-wall-001", membrane = "bitumen", paving = "concrete-panels" }
+
+[[family.paint]]
+wall = "c8c2b4"
+trim = "eceade"
+
+[[family.paint]]
+wall = "9ba2a6"
+trim = "e4e6e6"
+
+[[family.paint]]
+wall = "ad9d8c"
+trim = "f0ebdd"

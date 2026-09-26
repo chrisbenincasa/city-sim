@@ -1,0 +1,10 @@
+# Close on one Tower's podium, against the Blender render in podium.png. It shows the paved deck,
+# the planters along its parapet, the brick podium wall below and the shaft facade above.
+2 pause
+2 ui family-bodies on 600
+2 roads on
+2 focus 592 592 300
+2 tilt 12
+2 shoot artifacts/tall-families/drive/tower-podium.png
+2 draw artifacts/tall-families/drive/tower-podium.tsv
+2 quit

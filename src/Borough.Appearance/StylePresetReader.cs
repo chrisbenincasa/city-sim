@@ -85,6 +85,14 @@ public static class StylePresetReader
 
     private static readonly string[] Conditions = ["storeys", "frontage_metres", "depth_metres", "raised_day", "patterns", "zones", "units", "anchored", "parking", "corner"];
 
+    private static readonly string[] LowRiseBodyKeys =
+    [
+        "bay_metres", .. Rows, "openings", "gable_degrees", "chimney", "steps", "pilasters", "party_line", "shopfront",
+        "panels", "rooflights", "receiving_canopy", "plant", "vents", "roof_hatch", "parapet_metres",
+    ];
+
+    internal static IReadOnlyList<string> BlockOnlyBodyKeys => LowRiseBodyKeys;
+
     public static StylePresetResult Read(string directory)
     {
         ArgumentNullException.ThrowIfNull(directory);
@@ -338,33 +346,97 @@ public static class StylePresetReader
         public FamilyBody? Body()
         {
             int before = errors.Count;
-            Collect(["library", "tile_metres", "materials", "bay_metres", "parapet_metres", "pilasters", "plant", "roof_hatch", "vents", "openings", "gable_degrees", "chimney", "steps", "party_line", "shopfront", "panels", "rooflights", "receiving_canopy", .. Rows]);
+            Collect(["library", "shape", "variant", "tile_metres", "materials", "bay_metres", "parapet_metres", "pilasters", "plant", "roof_hatch", "vents", "openings", "gable_degrees", "chimney", "steps", "party_line", "shopfront", "panels", "rooflights", "receiving_canopy", .. Rows]);
             string? library = Text("library", required: true);
             Dictionary<string, (float, float)> tiles = Tiles("tile_metres");
             Dictionary<string, string> materials = Materials("materials");
-            float bay = Metres("bay_metres", required: true, least: 1f) ?? 0f;
-            float parapet = Metres("parapet_metres", required: false, least: 0f) ?? 0f;
-            bool pilasters = Boolean("pilasters") ?? false;
-            long plant = Integer("plant", required: false, least: 0) ?? 0;
-            bool hatch = Boolean("roof_hatch") ?? false;
-            long vents = Integer("vents", required: false, least: 0) ?? 0;
-            Dictionary<BayKind, OpeningSize> openings = Openings("openings");
-            float gable = Metres("gable_degrees", required: false, least: 18f, unit: "degrees") ?? 0f;
-            bool chimney = Boolean("chimney") ?? false;
-            bool steps = Boolean("steps") ?? false;
-            bool partyLine = Boolean("party_line") ?? false;
-            bool shopfront = Boolean("shopfront") ?? false;
-            bool panels = Boolean("panels") ?? false;
-            bool rooflights = Boolean("rooflights") ?? false;
-            bool receiving = Boolean("receiving_canopy") ?? false;
-            if (gable > 0f && parapet > 0f) Refuse(LineOf(_keys["gable_degrees"]), "a gable roof takes no parapet: give 'gable_degrees' or 'parapet_metres', not both.");
-            if (chimney && gable == 0f) Refuse(LineOf(_keys["chimney"]), "a chimney stands on a gable roof: 'chimney' needs 'gable_degrees'.");
-            BayRow[] rows = [.. Rows.Select(Row)];
-            return errors.Count > before || library is null
+            string? authoredShape = Text("shape", required: false);
+            string shape = authoredShape ?? (_keys.ContainsKey("shape") ? string.Empty : "block");
+            bool towerShape = shape == "tower";
+            bool blockShape = shape == "block";
+            if (!towerShape && !blockShape && authoredShape is not null)
+            {
+                Refuse(LineOf(_keys["shape"]), "'shape' must be \"block\" or \"tower\".");
+            }
+
+            TowerBody? tower = null;
+            if (towerShape)
+            {
+                string? variant = Text("variant", required: true);
+                TowerVariant? parsed = variant switch
+                {
+                    "point" => TowerVariant.Point,
+                    "stepped-point" => TowerVariant.SteppedPoint,
+                    "l" => TowerVariant.L,
+                    "h" => TowerVariant.H,
+                    null => null,
+                    _ => (TowerVariant?)null,
+                };
+                if (variant is not null && parsed is null)
+                {
+                    Refuse(LineOf(_keys["variant"]), "'variant' must be \"point\", \"stepped-point\", \"l\" or \"h\".");
+                }
+                else if (parsed is { } found)
+                {
+                    tower = new TowerBody(found);
+                }
+
+                foreach (string key in LowRiseBodyKeys)
+                {
+                    if (_keys.TryGetValue(key, out KeyValueSyntax? refused))
+                    {
+                        Refuse(LineOf(refused), $"'{key}' is only valid for a block body.");
+                    }
+                }
+            }
+            else if (_keys.TryGetValue("variant", out KeyValueSyntax? strayVariant))
+            {
+                Refuse(LineOf(strayVariant), "'variant' is only valid when 'shape' is \"tower\".");
+            }
+
+            float bay = 0f;
+            float parapet = 0f;
+            bool pilasters = false;
+            long plant = 0;
+            bool hatch = false;
+            long vents = 0;
+            Dictionary<BayKind, OpeningSize> openings = [];
+            float gable = 0f;
+            bool chimney = false;
+            bool steps = false;
+            bool partyLine = false;
+            bool shopfront = false;
+            bool panels = false;
+            bool rooflights = false;
+            bool receiving = false;
+            BayRow[] rows = [BayRow.Blank, BayRow.Blank, BayRow.Blank, BayRow.Blank, BayRow.Blank, BayRow.Blank];
+            if (blockShape)
+            {
+                bay = Metres("bay_metres", required: true, least: 1f) ?? 0f;
+                parapet = Metres("parapet_metres", required: false, least: 0f) ?? 0f;
+                pilasters = Boolean("pilasters") ?? false;
+                plant = Integer("plant", required: false, least: 0) ?? 0;
+                hatch = Boolean("roof_hatch") ?? false;
+                vents = Integer("vents", required: false, least: 0) ?? 0;
+                openings = Openings("openings");
+                gable = Metres("gable_degrees", required: false, least: 18f, unit: "degrees") ?? 0f;
+                chimney = Boolean("chimney") ?? false;
+                steps = Boolean("steps") ?? false;
+                partyLine = Boolean("party_line") ?? false;
+                shopfront = Boolean("shopfront") ?? false;
+                panels = Boolean("panels") ?? false;
+                rooflights = Boolean("rooflights") ?? false;
+                receiving = Boolean("receiving_canopy") ?? false;
+                if (gable > 0f && parapet > 0f) Refuse(LineOf(_keys["gable_degrees"]), "a gable roof takes no parapet: give 'gable_degrees' or 'parapet_metres', not both.");
+                if (chimney && gable == 0f) Refuse(LineOf(_keys["chimney"]), "a chimney stands on a gable roof: 'chimney' needs 'gable_degrees'.");
+                rows = [.. Rows.Select(Row)];
+            }
+
+            return errors.Count > before || library is null || !blockShape && tower is null
                 ? null
                 : new FamilyBody(library, tiles, materials, bay, parapet, pilasters, (int)plant,
                     new WallRule(rows[0], rows[1]), new WallRule(rows[2], rows[3]), new WallRule(rows[4], rows[5]),
-                    hatch, (int)vents, openings, gable, chimney, steps, partyLine, shopfront, panels, rooflights, receiving);
+                    hatch, (int)vents, openings, gable, chimney, steps, partyLine, shopfront, panels, rooflights, receiving, tower);
         }
 
         public PaintScheme? Scheme()
@@ -484,15 +556,20 @@ public static class StylePresetReader
                 case InlineTableSyntax table:
                     foreach (KeyValueSyntax pair in table.Items.Select(i => i.KeyValue).OfType<KeyValueSyntax>())
                     {
-                        if (pair.Value is ArraySyntax { Items.ChildrenCount: 2 } array
+                        string part = NameOf(pair.Key);
+                        if (Array.IndexOf(FamilyBodyBuilder.PartNames, part) < 0)
+                        {
+                            Refuse(LineOf(pair), $"'{key}.{part}' names no body part. Expected one of: {string.Join(", ", FamilyBodyBuilder.PartNames)}.");
+                        }
+                        else if (pair.Value is ArraySyntax { Items.ChildrenCount: 2 } array
                             && Number(array.Items.GetChild(0)?.Value) is { } along and > 0f
                             && Number(array.Items.GetChild(1)?.Value) is { } up and > 0f)
                         {
-                            tiles[NameOf(pair.Key)] = (along, up);
+                            tiles[part] = (along, up);
                         }
                         else
                         {
-                            Refuse(LineOf(pair), $"'{key}.{NameOf(pair.Key)}' must be [along, up]: two positive numbers of metres.");
+                            Refuse(LineOf(pair), $"'{key}.{part}' must be [along, up]: two positive numbers of metres.");
                         }
                     }
 

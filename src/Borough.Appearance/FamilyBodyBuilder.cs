@@ -32,14 +32,18 @@ public sealed class FamilyBodyMesh
 /// each polygon is emitted, so the two sources stay line-for-line comparable. UVs are projected
 /// the way the script's <c>project_uvs</c> does, at each part's true tile size.
 /// </remarks>
-public static class FamilyBodyBuilder
+public static partial class FamilyBodyBuilder
 {
     private const float Storey = ShellBuilder.StoreyMetres;
     private const float Reveal = .18f;
     private const float PlinthHeight = .3f;
 
     /// <summary>The material parts a body is built from.</summary>
-    public static readonly string[] PartNames = ["wall", "wall-end", "trim", "roof", "membrane", "glass", "door", "frame", "metal", "plinth"];
+    public static readonly string[] PartNames =
+    [
+        "wall", "wall-end", "trim", "roof", "membrane", "glass", "door", "frame", "metal", "plinth",
+        "spandrel", "reveal", "paving", "planter", "tree",
+    ];
 
     private static readonly int[][] BoxFaces = [[0, 3, 2, 1], [4, 5, 6, 7], [0, 1, 5, 4], [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7]];
 
@@ -48,6 +52,7 @@ public static class FamilyBodyBuilder
         AttachedSides attached = AttachedSides.None)
     {
         ArgumentNullException.ThrowIfNull(body);
+        if (body.Tower is not null) throw new ArgumentException("A tower body must be built with BuildTower().", nameof(body));
         var mesh = new FamilyBodyMesh();
         var writer = new Writer(mesh, body);
         float height = storeys * Storey;

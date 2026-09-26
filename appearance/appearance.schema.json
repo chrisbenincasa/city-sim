@@ -165,9 +165,20 @@
                 "description": "The authored model whose materials dress the body's parts, relative to the shell's assets.",
                 "type": "string"
               },
+              "shape": {
+                "description": "The body's geometry. Defaults to block.",
+                "enum": ["block", "tower"]
+              },
+              "variant": {
+                "description": "The tower layout. Required for a tower and refused for a block.",
+                "enum": ["point", "stepped-point", "l", "h"]
+              },
               "tile_metres": {
                 "description": "The size one texture tile covers, by part, as [along, up] in metres. A part named in materials takes its texture's size unless listed here. Other unlisted parts tile per metre.",
                 "type": "object",
+                "propertyNames": {
+                  "enum": ["wall", "wall-end", "trim", "roof", "membrane", "glass", "door", "frame", "metal", "plinth", "spandrel", "reveal", "paving", "planter", "tree"]
+                },
                 "additionalProperties": {
                   "type": "array",
                   "items": {
@@ -182,7 +193,7 @@
                 "description": "The texture library entry that dresses each named part in place of its model's material. The part tiles at the texture's own size unless tile_metres lists it.",
                 "type": "object",
                 "propertyNames": {
-                  "enum": ["wall", "wall-end", "trim", "roof", "membrane", "glass", "door", "frame", "metal", "plinth"]
+                  "enum": ["wall", "wall-end", "trim", "roof", "membrane", "glass", "door", "frame", "metal", "plinth", "spandrel", "reveal", "paving", "planter", "tree"]
                 },
                 "additionalProperties": {
                   "type": "string",
@@ -322,8 +333,53 @@
               }
             },
             "required": [
-              "library",
-              "bay_metres"
+              "library"
+            ],
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "shape": {
+                      "const": "tower"
+                    }
+                  },
+                  "required": ["shape"]
+                },
+                "then": {
+                  "required": ["variant"],
+                  "not": {
+                    "anyOf": [
+                      { "required": ["bay_metres"] },
+                      { "required": ["street_ground"] },
+                      { "required": ["street_upper"] },
+                      { "required": ["back_ground"] },
+                      { "required": ["back_upper"] },
+                      { "required": ["side_ground"] },
+                      { "required": ["side_upper"] },
+                      { "required": ["openings"] },
+                      { "required": ["gable_degrees"] },
+                      { "required": ["chimney"] },
+                      { "required": ["steps"] },
+                      { "required": ["pilasters"] },
+                      { "required": ["party_line"] },
+                      { "required": ["shopfront"] },
+                      { "required": ["panels"] },
+                      { "required": ["rooflights"] },
+                      { "required": ["receiving_canopy"] },
+                      { "required": ["plant"] },
+                      { "required": ["vents"] },
+                      { "required": ["roof_hatch"] },
+                      { "required": ["parapet_metres"] }
+                    ]
+                  }
+                },
+                "else": {
+                  "required": ["bay_metres"],
+                  "not": {
+                    "required": ["variant"]
+                  }
+                }
+              }
             ],
             "additionalProperties": false
           },
@@ -387,6 +443,31 @@
                   "type": "string",
                   "pattern": "^[0-9a-fA-F]{6}$",
                   "description": "The sRGB colour of the body's plinth part, as six hex digits. A textured part multiplies its photograph by it."
+                },
+                "spandrel": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{6}$",
+                  "description": "The sRGB colour of the body's spandrel part, as six hex digits."
+                },
+                "reveal": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{6}$",
+                  "description": "The sRGB colour of the body's reveal part, as six hex digits."
+                },
+                "paving": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{6}$",
+                  "description": "The sRGB colour of the body's paving part, as six hex digits. A textured part multiplies its photograph by it."
+                },
+                "planter": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{6}$",
+                  "description": "The sRGB colour of the body's planter part, as six hex digits."
+                },
+                "tree": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{6}$",
+                  "description": "The sRGB colour of the body's tree part, as six hex digits."
                 }
               },
               "additionalProperties": false,

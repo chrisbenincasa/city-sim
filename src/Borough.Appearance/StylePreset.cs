@@ -209,7 +209,20 @@ public sealed record FamilyBody(
     bool Shopfront = false,
     bool Panels = false,
     bool Rooflights = false,
-    bool ReceivingCanopy = false);
+    bool ReceivingCanopy = false,
+    TowerBody? Tower = null);
+
+/// <summary>A tower body's authored layout.</summary>
+public sealed record TowerBody(TowerVariant Variant);
+
+/// <summary>The four tower layouts a body can build.</summary>
+public enum TowerVariant
+{
+    Point,
+    SteppedPoint,
+    L,
+    H,
+}
 
 /// <summary>The side walls a body shares with a neighbour, left and right as seen from the street.</summary>
 [Flags]

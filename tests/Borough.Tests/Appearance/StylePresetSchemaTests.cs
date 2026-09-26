@@ -20,6 +20,24 @@ public sealed class StylePresetSchemaTests
         Assert.Equal(accepted, Offered(table));
     }
 
+    [Fact]
+    public void The_tower_schema_forbids_every_key_the_reader_reserves_for_blocks()
+    {
+        using JsonDocument schema = JsonDocument.Parse(
+            File.ReadAllText(Path.Combine(RepoRoot(), "appearance", "appearance.schema.json")));
+        JsonElement body = schema.RootElement.GetProperty("properties")
+            .GetProperty("family").GetProperty("items").GetProperty("properties").GetProperty("body");
+        JsonElement forbidden = body.GetProperty("allOf")[0].GetProperty("then")
+            .GetProperty("not").GetProperty("anyOf");
+        string[] schemaKeys =
+        [
+            .. forbidden.EnumerateArray().Select(rule => rule.GetProperty("required")[0].GetString()!)
+                .Order(StringComparer.Ordinal),
+        ];
+
+        Assert.Equal(StylePresetReader.BlockOnlyBodyKeys.Order(StringComparer.Ordinal), schemaKeys);
+    }
+
     private static string[] Offered(string table)
     {
         using JsonDocument schema = JsonDocument.Parse(File.ReadAllText(Path.Combine(RepoRoot(), "appearance", "appearance.schema.json")));

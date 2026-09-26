@@ -130,6 +130,15 @@ C# massing as the authoring workflow. Existing zoning, parcel and simulation geo
 5. Use the rudimentary roster for gameplay debugging; iterate on detailed visual design in a
    separate session. A blockout is a foundation, not finished art.
 
+**Tower families are an exception, and they are built in code.** A Tower covers its whole site and
+rises to whatever storeys its Lot carries, so no exported mesh fits it. `scripts/art/tall-families.py`
+is the Blender reference — it writes the four blockouts in `art/tall-families/` and the facade
+parameters and layout reports in `art/tall-families/bodies.json` — and
+`FamilyBodyBuilder.BuildTower` rebuilds the same geometry at the Lot's size. Change a spandrel
+depth or a fin spacing in the script first, regenerate `bodies.json`, then follow it in the builder.
+`src/Borough.Godot/assets/tall-families/library.glb` carries only the untextured swatches for the
+parts the texture library does not dress.
+
 **Surface textures come from the library in `src/Borough.Godot/assets/city/library/`.** It sits
 inside the Godot project so the shell can load it. `textures.toml` lists each CC0 texture with its
 tile size in metres, where that size comes from, whether a family paints it, and how strongly its
