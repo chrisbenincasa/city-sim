@@ -10,6 +10,7 @@ public partial class Main
     private Button _edgeScrollButton = null!;
     private bool _antialiasing = true;
     private Button _antialiasButton = null!;
+    private Button? _bodiesButton;
 
     private void BuildSettings()
     {
@@ -44,6 +45,11 @@ public partial class Main
         _antialiasButton.ButtonPressed = _antialiasing;
         _antialiasButton.TooltipText = "Smooth thin edges such as kerbs and roof ridges (TAA)";
         body.AddChild(_antialiasButton);
+        _bodiesButton = InformationButton("Building bodies", () => Ui(_familyBodies ? "family-bodies off" : "family-bodies on"));
+        _bodiesButton.ToggleMode = true;
+        _bodiesButton.ButtonPressed = _familyBodies;
+        _bodiesButton.TooltipText = "Draw each Building's family body near the camera, in place of its box";
+        body.AddChild(_bodiesButton);
         body.AddChild(InformationButton("Help & shortcuts", () => Ui("help on")));
         ScrollAuxiliary(_settingsPanel, body);
         _settingsPanel.Visible = false;
@@ -62,7 +68,7 @@ public partial class Main
         float width = Math.Min(360 * _textPercent / 100f, size.X - 2 * margin);
         float top = margin + _chrome.Size.Y + 8;
         SetPanel(_settingsPanel, size.X - width - margin, top, width,
-            Math.Min(380 * _textPercent / 100f, size.Y - top - margin));
+            Math.Min(500 * _textPercent / 100f, size.Y - top - margin));
         if (_settingsPanel.Visible && !_helpPanel.Visible) _hud.MoveChild(_settingsPanel, -1);
     }
 }

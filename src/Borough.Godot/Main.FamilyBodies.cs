@@ -68,6 +68,7 @@ public partial class Main
         }
 
         _familyBodies = words[1] == "on";
+        _bodiesButton?.SetPressedNoSignal(_familyBodies);
         _bodyNearMetres = near;
         _reportFamilyBodies = _familyBodies;
         _nearChunks.Clear();
