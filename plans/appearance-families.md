@@ -170,8 +170,12 @@ Limits of this slice:
   deep where the Blender body's is 1.0 m. Both free ends get side-street shops.
 - The workshop's office bay is a plain door.
 - A Building raised after the toggle gets no foliage footprint for its body until the next full pass.
-- A whole-city placement pass takes 0.46–0.74 s on the main thread for 14,891 bodies, and 1.7 s
-  the first time, while it generates the meshes. A change of overlay therefore hitches.
+- A whole-city placement pass takes 0.25–0.27 s on the main thread for 14,891 bodies, and 2.2 s
+  the first time, while it generates the meshes. Mesh geometry and tangents are built on worker
+  threads; materials, uploads and every World read stay on the main thread. Only a full World
+  change or turning bodies on places every body. A wash change retints the placed bodies, and the
+  whole pass takes 0.34–0.37 s, most of it refilling every Building's massing
+  ([evidence](evidence/procedural-buildings/README.md#placement-pass)).
 - The far box keeps the massing's painted windows and masonry, not the body's openings.
 - Chunk switching pops a whole 1024 m chunk at the band edge.
 - Scuppers, downpipes and roof crickets are left for the minor-details pass.
@@ -187,5 +191,6 @@ Limits of this slice:
 
 ## Next
 
-- Move the whole-city placement pass off the main thread, or spread it across frames.
+- A wash change still refills every Building's massing on the main thread, which hitches for about
+  0.35 s at 1M Citizens. The Age wash does so on every update.
 - Author the rest of the families. The coverage report says which size bands and kinds need them.
