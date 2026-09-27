@@ -100,14 +100,24 @@ Types that differ only in looks are Appearance Families of a kept type.
 
 ### Jobs
 
-- A Business's posts equal its Unit's ceiling: one worker per floor Tile (16 m²), derived from the
-  Tile.
+- A Business's posts are its Unit's floor over `[capacity] floor_tiles_per_job`.
+- The real density is one worker per floor Tile (16 m²). The UK Employment Density Guide (2015)
+  gives high-street retail about 15–20 m² per worker.
+- `pictured.toml` states `floor_tiles_per_job = 1`. Its shopfronts stand on setback parcels of
+  real size.
+- Every other Ruleset keeps 3, and the key stays for now.
+  - Their floors are about 4× a real building's (`minimal.toml`'s header), and 3 compensates.
+  - At 1, those worlds reached full employment. Checked 2026-09-26 on `insolvent.toml` at 2,000
+    Citizens over 20 Days: 2,000 employed against 1,824, and 0 short paydays against 27. Workers
+    filled the till-less dwelling shops, so no grocer paid wages or went bankrupt.
+  - That broke the insolvency, business-pool (`levied.toml`) and evidence (`diagnosed.toml`) tests.
+- Retire the key once floor areas are realistic. That is the carve defect in `plans/0053`.
 - The founder is still the first worker (adr/0146).
-- `[capacity] floor_tiles_per_job` is retired, and the loader rejects it.
-- The kind's `premises` replaces the key's role as the switch for whether anyone is employed.
-  That includes the `[founding]` check at `RulesetLoader.cs:10150`.
 - Posts that follow a Business's daily margin belong to the Employment feedback row. When that
   lands, the ceiling here becomes the most a Unit can hold.
+- In `pictured.toml` the rate has nothing to act on until phase 2. Over 20 Days, 1,023 of its
+  1,025 Businesses were founded with no premises, each employed only its founder, and the job
+  pass assigned nobody.
 
 ### Type choice
 
@@ -213,7 +223,7 @@ geometry owns footprint and access.
 
 | Phase | Work | Acceptance |
 |---|---|---|
-| 1. Units and the jobs ceiling | Unit table, premises name a Unit, one worker per floor Tile, retire `floor_tiles_per_job`, `premises` as the switch, shop-house ground-floor Unit, CONTEXT.md Unit entry | Replay, save/reload and thread-count equivalence hold. `DerivedRebuildAuditTests` passes. Goldens are re-recorded deliberately. |
+| 1. Units and the jobs ceiling | Unit table, premises name a Unit, posts from the Unit's floor, shop-house ground-floor Unit, CONTEXT.md Unit entry. `pictured.toml` at one worker per Tile is done. | Replay, save/reload and thread-count equivalence hold. `DerivedRebuildAuditTests` passes. Goldens are re-recorded deliberately. |
 | 2. Car-park centre | New block pattern, rear footprint, Unit row, stall layout and capacity, world-creation raising, a new meaning for `DistrictWatershed.HeldForTrade` | `pictured.toml` at 2,000 Citizens employs a large share of working-age Citizens at world creation. A driven screenshot shows centres with their car parks. |
 | 3. Facts for the drawing | Form, parcel, Units, ground uses, corner and live Unit facts in `BuildingFacts`, and the new preset filters | The graphics session can draw a test preset of centres. Drawn stalls equal capacity. |
 | 4. Type choice | Band set, seeded draw, Arterial and missing-seller nudges, zone exclusion; shop-house parade, town supermarket with deck, high-street block | A banded Ruleset shows every kept type in its bands. |
