@@ -1,0 +1,171 @@
+using Borough.Core;
+using Borough.Core.Determinism;
+using Borough.Core.Entities;
+using Borough.Core.Quantities;
+using Borough.Core.Rules;
+using Borough.Core.Space;
+using Borough.Core.Tables;
+
+namespace Borough.Tests.Entities;
+
+public sealed class CarParkCentreBuildingTests
+{
+    private const byte Shopfront = 1;
+    private const byte Trade = 1;
+    private const ushort AnyZone = 1;
+    private const int BlockTiles = 32;
+    private const int RowWide = BlockTiles - 2;
+
+    private static readonly WorldKey Key = WorldKey.FromSeed(0x0C3A_7C3A_0000_0002UL);
+
+    private static Ruleset Centres() =>
+        new(
+            resources: [],
+            rules: [],
+            kinds:
+            [
+                new KindDefinition(0, 0, 0, 0) { Houses = true, Premises = true, Business = Trade },
+            ],
+            inputs: [],
+            outputs: [],
+            emissions: [],
+            bins: [],
+            kindRules: [],
+            zoneRules: [])
+        {
+            Capacity = new CapacityRuleset(25, 1, 12),
+            BusinessKindCount = 1,
+            Lots = new LotRuleset(5, 2, CarParkCentres: true),
+            Parking = new ParkingRuleset(400, 24, new StallSizes(250, 500, 600)),
+        };
+
+    private static (World World, int Building) Raised()
+    {
+        var world = new World(1_000, Centres());
+
+        Handle<Lot> lot = world.Lots.Create(
+            new Tiles(0), new Tiles(0), AnyZone, wide: new Tiles(BlockTiles), deep: new Tiles(BlockTiles));
+        int slot = world.Lots.Rows.Resolve(lot);
+        var parcel = new Parcel(
+            BlockFace.South, StreetSide.Left, Tiles.Zero, new Tiles(0), new Tiles(0),
+            new Tiles(BlockTiles), new Tiles(BlockTiles));
+        var foot = CarParkCentre.Footprint(parcel, BlockGround.Square(BlockTiles), 1);
+
+        world.Lots.FootprintEast[slot] = foot.East;
+        world.Lots.FootprintNorth[slot] = foot.North;
+        world.Lots.FootprintWide[slot] = foot.Wide;
+        world.Lots.FootprintDeep[slot] = foot.Deep;
+        world.Lots.Storeys[slot] = 1;
+        world.Lots.Pattern[slot] = (byte)((byte)BlockPattern.CarParkCentre + 1);
+
+        Handle<Building> building = world.CreateBuilding(lot, Shopfront, Ticks.Zero, Key);
+
+        return (world, world.Buildings.Rows.Resolve(building));
+    }
+
+    private static List<int> UnitsOf(World world, int building)
+    {
+        var units = new List<int>();
+
+        foreach (int unit in world.BuildingUnits.Walk(building))
+        {
+            units.Add(unit);
+        }
+
+        return units;
+    }
+
+    [Fact]
+    public void A_centre_raises_a_row_of_units_that_tiles_its_footprint()
+    {
+        (World world, int building) = Raised();
+
+        List<int> units = UnitsOf(world, building);
+
+        Assert.Equal(CarParkCentre.UnitCount(RowWide), units.Count);
+        Assert.Single(units, unit => world.Units.Anchor[unit] == 1);
+
+        int east = 0;
+        int floor = 0;
+
+        foreach (int unit in units.OrderBy(unit => world.Units.East[unit].Raw))
+        {
+            Assert.Equal(east, world.Units.East[unit].Raw);
+            Assert.Equal(CarParkCentre.RowDepthTiles, world.Units.Deep[unit].Raw);
+            Assert.Equal((byte)BlockFace.South, world.Units.Side[unit]);
+            Assert.Equal(world.Units.Wide[unit].Raw * CarParkCentre.RowDepthTiles, world.Units.Floor[unit]);
+            east += world.Units.Wide[unit].Raw;
+            floor += world.Units.Floor[unit];
+        }
+
+        Assert.Equal(RowWide, east);
+        Assert.Equal(world.FloorTilesOf(building), floor);
+    }
+
+    [Fact]
+    public void A_centre_houses_nobody()
+    {
+        (World world, int building) = Raised();
+
+        Assert.False(world.HasRoomForHousehold(building));
+    }
+
+    [Fact]
+    public void A_centre_lets_every_unit_and_no_more()
+    {
+        (World world, int building) = Raised();
+
+        int units = UnitsOf(world, building).Count;
+
+        for (int let = 1; let < units; let++)
+        {
+            Assert.True(world.HasRoomForPremises(building));
+            world.CreateBusiness(world.Buildings.Rows.At(building), Trade);
+        }
+
+        Assert.False(world.HasRoomForPremises(building));
+        Assert.All(UnitsOf(world, building), unit => Assert.False(world.Units.IsVacant(unit)));
+    }
+
+    [Fact]
+    public void A_centre_business_has_the_posts_of_its_unit()
+    {
+        (World world, int building) = Raised();
+
+        var businesses = new List<int>();
+
+        foreach (int held in world.BuildingBusinesses.Walk(building))
+        {
+            businesses.Add(held);
+        }
+
+        int business = Assert.Single(businesses);
+
+        Assert.True(world.TryDeclaredJobs(Trade, business, out int posts));
+        Assert.Equal(world.UnitFloorOf(business), posts);
+        Assert.True(posts > 0);
+    }
+
+    [Fact]
+    public void A_centre_has_one_car_park_of_its_stall_count_whatever_its_kind_says()
+    {
+        (World world, int building) = Raised();
+
+        Assert.True(world.Buildings.HasCarPark(building));
+        Assert.Equal(new StallLayout(7, 36).Stalls, world.CarParks.Capacity[world.Buildings.CarParkOf(building)]);
+    }
+
+    [Fact]
+    public void A_rebuild_keeps_the_centre_row_and_its_tenants()
+    {
+        (World world, int building) = Raised();
+
+        List<int> before = UnitsOf(world, building);
+        int tenant = world.Units.TenantSlot(before[0]);
+
+        world.RebuildDerived();
+
+        Assert.Equal(before, UnitsOf(world, building));
+        Assert.Equal(tenant, world.Units.TenantSlot(before[0]));
+    }
+}

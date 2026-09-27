@@ -924,4 +924,10 @@ public enum PurposeTag : ulong
     /// by a Tick, so it moves no State Hash.
     /// </summary>
     AppearancePaint = 61,
+
+    /// <summary>
+    /// Which end of a car-park centre's row the anchor takes, and where the small Units' spare bays
+    /// fall.
+    /// </summary>
+    CentreUnits = 62,
 }

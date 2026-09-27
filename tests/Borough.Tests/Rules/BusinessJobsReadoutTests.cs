@@ -192,7 +192,8 @@ public sealed class BusinessJobsReadoutTests
 
         // Both kind sets are 1-based -- `Declares(0)` is false, and a Business of kind 0 is a trade
         // the Ruleset does not name and therefore declares no post.
-        Handle<Building> building = world.Buildings.Create(world.Lots, lot, kind: 1);
+        Handle<Building> building = world.CreateBuilding(
+            lot, kind: 1, Ticks.Zero, WorldKey.FromSeed(0x0B5_1AB5UL));
         Handle<Business> business = world.CreateBusiness(building, kind: 1);
 
         return (

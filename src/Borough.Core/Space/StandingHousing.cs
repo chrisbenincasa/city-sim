@@ -34,6 +34,7 @@ public sealed class StandingHousing
             if (!world.Buildings.Rows.IsLive(slot)) { continue; }
             byte kind = world.Buildings.Kind[slot];
             if (!world.Rules.Declares(kind) || !world.Rules.Kind(kind).Houses
+                || world.IsTradeCentre(slot)
                 || !world.Lots.Rows.TryResolve(world.Buildings.Lot[slot], out int lot)) { continue; }
             _entries[_count++] = new(world.Buildings.Rows.IdAt(slot), lot);
         }

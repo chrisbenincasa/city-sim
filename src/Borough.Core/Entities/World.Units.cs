@@ -31,11 +31,74 @@ public sealed partial class World
         return Rows.NoSlot;
     }
 
+    /// <summary>Whether a Building stands on a car-park centre's Lot.</summary>
+    public bool IsTradeCentre(int buildingSlot) =>
+        buildingSlot >= 0
+        && Buildings.Rows.IsLive(buildingSlot)
+        && Lots.Rows.TryResolve(Buildings.Lot[buildingSlot], out int lotSlot)
+        && Lots.PatternOf(lotSlot) == Space.BlockPattern.CarParkCentre;
+
+    private int CentreUnitCount(int buildingSlot) =>
+        Space.CarParkCentre.UnitCount(Lots.FootprintWide[Lots.Rows.Resolve(Buildings.Lot[buildingSlot])].Raw);
+
+    /// <summary>
+    /// How many stalls a car-park centre's surface car park holds. The kind's <c>parked</c> does not
+    /// apply, because the car park is part of the form.
+    /// </summary>
+    private int CentreStalls(int buildingSlot)
+    {
+        int lotSlot = Lots.Rows.Resolve(Buildings.Lot[buildingSlot]);
+
+        return Space.CarParkCentre.Stalls(
+            Lots.ParcelNorth[lotSlot].Raw, Lots.FootprintNorth[lotSlot].Raw, Lots.FootprintWide[lotSlot].Raw,
+            Rules.Lots.StreetHalfWidthTiles, Rules.Parking.Stalls).Stalls;
+    }
+
     private void RaiseUnits(int buildingSlot)
     {
-        if (TryDeclaredOccupancy(Buildings.Kind[buildingSlot], buildingSlot, out int tenancies))
+        if (IsTradeCentre(buildingSlot))
+        {
+            RaiseCentreUnits(buildingSlot);
+        }
+        else if (TryDeclaredOccupancy(Buildings.Kind[buildingSlot], buildingSlot, out int tenancies))
         {
             ShapeEqualUnits(buildingSlot, tenancies);
+        }
+    }
+
+    /// <summary>
+    /// Lays a car-park centre's row of Units along its footprint, west to east, doors facing south.
+    /// </summary>
+    /// <remarks>
+    /// The draw is keyed on the parcel's corner, so the same ground raises the same row.
+    /// </remarks>
+    private void RaiseCentreUnits(int buildingSlot)
+    {
+        int lotSlot = Lots.Rows.Resolve(Buildings.Lot[buildingSlot]);
+        int wide = Lots.FootprintWide[lotSlot].Raw;
+        Tiles deep = Lots.FootprintDeep[lotSlot];
+        byte storeys = Lots.Storeys[lotSlot];
+
+        ulong patch = ((ulong)(uint)Lots.ParcelEast[lotSlot].Raw << 32) | (uint)Lots.ParcelNorth[lotSlot].Raw;
+        ulong draw = Determinism.Randomness.Draw(Key, patch, Ticks.Zero, Determinism.PurposeTag.CentreUnits);
+
+        int count = Space.CarParkCentre.UnitCount(wide);
+        Span<int> widths = count <= 64 ? stackalloc int[64] : new int[count];
+
+        count = Space.CarParkCentre.UnitWidths(wide, draw, widths);
+
+        int anchor = Space.CarParkCentre.AnchorIndex(count, draw);
+        int east = 0;
+
+        for (int i = 0; i < count; i++)
+        {
+            Handle<Unit> added = Units.Create(
+                Buildings.Rows.At(buildingSlot), new Tiles(east), new Tiles(0), new Tiles(widths[i]), deep,
+                0, storeys, (byte)Space.BlockFace.South, anchor: i == anchor,
+                floor: widths[i] * deep.Raw * storeys);
+
+            BuildingUnits.InsertOrdered(buildingSlot, Units.Rows.Resolve(added));
+            east += widths[i];
         }
     }
 
@@ -147,11 +210,13 @@ public sealed partial class World
     /// <summary>
     /// Brings every equal-Unit Building's Units to its current tenancy count after a Ruleset change.
     /// </summary>
+    /// <remarks>A car-park centre's row is fixed by its geometry and is left alone.</remarks>
     private void ReshapeUnits()
     {
         for (int slot = 0; slot < Buildings.Rows.SlotCount; slot++)
         {
             if (Buildings.Rows.IsLive(slot)
+                && !IsTradeCentre(slot)
                 && TryDeclaredOccupancy(Buildings.Kind[slot], slot, out int tenancies))
             {
                 ShapeEqualUnits(slot, tenancies);

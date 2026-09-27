@@ -27,7 +27,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-52 sections, 354 keys.
+52 sections, 358 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
@@ -68,10 +68,10 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[jobs]`](#jobs) — 11 keys
 - [`[land_permissions]`](#land_permissions) — 1 key
 - [`[layers]`](#layers) — 20 keys
-- [`[lots]`](#lots) — 10 keys
+- [`[lots]`](#lots) — 11 keys
 - [`[market]`](#market) — 2 keys
 - [`[needs]`](#needs) — 9 keys
-- [`[parking]`](#parking) — 2 keys
+- [`[parking]`](#parking) — 5 keys
 - [`[placement]`](#placement) — 10 keys
 - [`[roads]`](#roads) — 12 keys
 - [`[school]`](#school) — 7 keys
@@ -1438,6 +1438,10 @@ Step between density rungs. Block-based forms use it in their plot-ratio target;
 
 Ground reserved on each side of a Street centreline, in Tiles. Footprints clear this strip on all four block edges; the shell draws the same Street width. Fixed at world creation.
 
+**`trade_form`** · *quoted string*
+
+How trade blocks are laid out. "car_park_centre" makes each trade block one Lot with a single-storey row of Units at the rear and a surface car park in front, and needs the [parking] stall sizes. Omitted, trade blocks follow their density band. Fixed at world creation.
+
 ---
 
 ## `[market]`
@@ -1494,6 +1498,10 @@ How far Sustenance rises when a Household is fed.
 
 ## `[parking]`
 
+**`aisle_width_centimetres`** · *whole number*
+
+Width of a surface car park's driving aisle, in centimetres.
+
 **`radius_metres`** · *whole number*
 
 How far a driver will walk from a Car Park to where they were going. Omitting the whole [parking] table is a city with no Parking Shed at all; a radius of zero would be a city whose Car Parks all exist and none can be reached.
@@ -1501,6 +1509,14 @@ How far a driver will walk from a Car Park to where they were going. Omitting th
 **`shed_keeps`** · *whole number*
 
 How many Car Parks a Building's Parking Shed holds, and therefore how far a query walks before it stops. Not redundant with the radius: the cap bounds the work and the radius bounds the walk, and they bind in different worlds. A shed is stored for every Building at this width, so it is a per-city cost rather than a per-query one.
+
+**`stall_length_centimetres`** · *whole number*
+
+Length of one surface car-park stall, in centimetres.
+
+**`stall_width_centimetres`** · *whole number*
+
+Width of one surface car-park stall, in centimetres. Comes with the other two stall sizes; a car-park centre's Car Park holds one car per stall.
 
 ---
 

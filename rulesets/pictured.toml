@@ -414,6 +414,8 @@ lots_per_segment = 5
 # The most ground a Building leaves on each side of its parcel. A LENGTH and not a fraction, so
 # coverage rises with the parcel -- see minimal.toml, which carries the argument.
 setback_tiles = 2
+# Each trade block is one car-park centre: a row of Units at the rear, stalls in front.
+trade_form = "car_park_centre"
 
 [capacity]
 # How much floor one tenancy, job or parking space takes, in Tiles -- see minimal.toml, which carries
@@ -430,6 +432,10 @@ floor_tiles_per_parking_space = 12
 [parking]
 radius_metres = 400
 shed_keeps = 24
+# Surface car-park stalls: 2.5 × 5 m with a 6 m aisle.
+stall_width_centimetres = 250
+stall_length_centimetres = 500
+aisle_width_centimetres = 600
 
 [trips]
 crossing_seconds = 30

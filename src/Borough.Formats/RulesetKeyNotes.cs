@@ -929,6 +929,12 @@ public static class RulesetKeyNotes
             "Ground reserved on each side of a Street centreline, in Tiles. Footprints clear this "
             + "strip on all four block edges; the shell draws the same Street width. Fixed at world creation.",
 
+        ["[lots] trade_form"] =
+            "How trade blocks are laid out. \"car_park_centre\" makes each trade block one Lot with "
+            + "a single-storey row of Units at the rear and a surface car park in front, and needs "
+            + "the [parking] stall sizes. Omitted, trade blocks follow their density band. Fixed at "
+            + "world creation.",
+
         ["[lots] setback_tiles"] =
             "Maximum independent random inset in Tiles for block-based footprints and explicit Perimeter parcels. Explicit Detached houses use centred house dimensions instead. Reserved Street ground is always excluded.",
 
@@ -1005,6 +1011,13 @@ public static class RulesetKeyNotes
             + "before it stops. Not redundant with the radius: the cap bounds the work and the "
             + "radius bounds the walk, and they bind in different worlds. A shed is stored for every "
             + "Building at this width, so it is a per-city cost rather than a per-query one.",
+        ["[parking] stall_width_centimetres"] =
+            "Width of one surface car-park stall, in centimetres. Comes with the other two stall "
+            + "sizes; a car-park centre's Car Park holds one car per stall.",
+        ["[parking] stall_length_centimetres"] =
+            "Length of one surface car-park stall, in centimetres.",
+        ["[parking] aisle_width_centimetres"] =
+            "Width of a surface car park's driving aisle, in centimetres.",
 
         // ---- [water] --------------------------------------------------------------------------
         ["[water] sea_level_percent"] =

@@ -184,7 +184,7 @@ public static class LotSubdivider
         if (slot == Rows.NoSlot) { return 0; }
         BlockPattern old = world.PatternOf(slot, out bool chosen);
         LandPermissionSummary permission = world.LandPermissions.Summary(world.BlockGroundRectangle(column, row));
-        if (!chosen || permission.MixedPermissions) { return 0; }
+        if (!chosen || permission.MixedPermissions || old == BlockPattern.CarParkCentre) { return 0; }
         BlockPattern wanted = BlockPatterns.ForBand(permission.Band, world.Rules.Bands.Length, world.Roads.Streets.BlockTiles,
             world.Rules.Lots.LotsPerSegment, world.Key, column, row, world.Rules.Lots.PatternSpread);
         if (BlockPatterns.Rung(wanted, world.Roads.Streets.BlockTiles, world.Rules.Lots.LotsPerSegment)

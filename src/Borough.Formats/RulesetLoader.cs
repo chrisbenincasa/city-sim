@@ -7755,7 +7755,35 @@ public static class RulesetLoader
             }
             var dimensions = plots ? new Core.Space.ResidentialPlots((int)frontage, (int)depth,
                 (int)houseWidth, (int)houseDepth, (int)houseStoreys) : default;
-            return new LotRuleset((int)value, (int)setback, (int)step, (int)spread, (int)streetHalfWidth, dimensions);
+
+            bool centres = false;
+            if (TryString(_lotsTable, "trade_form", out string? tradeForm, required: false))
+            {
+                if (tradeForm != "car_park_centre")
+                {
+                    Refuse(LineOfLot("trade_form"), null,
+                        $"trade_form = \"{tradeForm}\" is not a trade form. The only one is "
+                        + "\"car_park_centre\"; omit the key to lay trade blocks out like any other.");
+                    return LotRuleset.None;
+                }
+
+                // A centre's Car Park is sized by its stalls, so a centre without stall sizes would
+                // stand with no parking at all.
+                if (_parkingTable is null
+                    || !TryInteger(_parkingTable, "stall_width_centimetres", out _, required: false))
+                {
+                    Refuse(LineOfLot("trade_form"), null,
+                        "trade_form = \"car_park_centre\" needs [parking] stall_width_centimetres, "
+                        + "stall_length_centimetres and aisle_width_centimetres, because a centre's "
+                        + "Car Park holds as many cars as its stalls.");
+                    return LotRuleset.None;
+                }
+
+                centres = true;
+            }
+
+            return new LotRuleset(
+                (int)value, (int)setback, (int)step, (int)spread, (int)streetHalfWidth, dimensions, centres);
         }
 
         private HousingConstructionRuleset? ReadHousingConstruction(CapacityRuleset capacity)
@@ -8557,7 +8585,32 @@ public static class RulesetLoader
                 return ParkingRuleset.None;
             }
 
-            return new ParkingRuleset((int)metres, (int)keeps);
+            bool hasWidth = TryInteger(_parkingTable, "stall_width_centimetres", out long width, required: false);
+            bool hasLength = TryInteger(_parkingTable, "stall_length_centimetres", out long length, required: hasWidth);
+            bool hasAisle = TryInteger(_parkingTable, "aisle_width_centimetres", out long aisle, required: hasWidth);
+            if (!hasWidth && (hasLength || hasAisle))
+            {
+                Refuse(LineOfParking(hasLength ? "stall_length_centimetres" : "aisle_width_centimetres"), null,
+                    "Stall sizes come as a set: stall_width_centimetres, stall_length_centimetres "
+                    + "and aisle_width_centimetres.");
+                return ParkingRuleset.None;
+            }
+
+            if (!hasWidth)
+            {
+                return new ParkingRuleset((int)metres, (int)keeps);
+            }
+
+            if (width is < 1 or > 10_000 || length is < 1 or > 10_000 || aisle is < 1 or > 10_000)
+            {
+                Refuse(LineOfParking("stall_width_centimetres"), null,
+                    $"Stall sizes are {width} × {length} cm with a {aisle} cm aisle. Each must be "
+                    + "between 1 and 10000 centimetres.");
+                return ParkingRuleset.None;
+            }
+
+            return new ParkingRuleset(
+                (int)metres, (int)keeps, new Core.Space.StallSizes((int)width, (int)length, (int)aisle));
         }
 
         /// <summary>Reads <c>[water]</c>, or answers that the world has none.</summary>

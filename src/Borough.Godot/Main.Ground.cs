@@ -778,9 +778,9 @@ public partial class Main
 
         if (_washing == Wash.Rung)
         {
-            _rungOf = new int[BlockPatterns.Count];
+            _rungOf = new int[BlockPatterns.FormCount];
 
-            for (int i = 0; i < BlockPatterns.Count; i++)
+            for (int i = 0; i < BlockPatterns.FormCount; i++)
             {
                 _rungOf[i] = BlockPatterns.Rung(
                     (BlockPattern)i,

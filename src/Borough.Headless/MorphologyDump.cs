@@ -611,7 +611,7 @@ internal static class MorphologyDump
     /// </remarks>
     private static void Fabric(World world, TextWriter output)
     {
-        int count = BlockPatterns.Count;
+        int count = BlockPatterns.FormCount;
         var blocks = new long[count];
         var ground = new long[count];
         var parcels = new long[count];

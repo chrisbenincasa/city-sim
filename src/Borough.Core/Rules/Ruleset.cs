@@ -3027,9 +3027,12 @@ public readonly record struct CapacityRuleset(
 /// <param name="SetbackTiles">
 /// The most ground a Building leaves on each side of its parcel, in Tiles.
 /// </param>
+/// <param name="CarParkCentres">
+/// Whether trade blocks are carved as <see cref="Space.BlockPattern.CarParkCentre"/>s.
+/// </param>
 public readonly record struct LotRuleset(
     int LotsPerSegment, int SetbackTiles, int StoreysPerRung = 1, int PatternSpread = 0,
-    int StreetHalfWidthTiles = 1, Space.ResidentialPlots Plots = default)
+    int StreetHalfWidthTiles = 1, Space.ResidentialPlots Plots = default, bool CarParkCentres = false)
 {
     /// <summary>A Ruleset whose land cannot be subdivided at all.</summary>
     public static LotRuleset None => default;
@@ -3048,6 +3051,11 @@ public readonly record struct LotRuleset(
 
     public byte Height(WorldKey key, Space.Parcel parcel, Space.BlockPattern pattern, int blockTiles)
     {
+        if (pattern == Space.BlockPattern.CarParkCentre)
+        {
+            return 1;
+        }
+
         if (Plots.Applies(pattern))
         {
             int added = pattern == Space.BlockPattern.Detached ? 0
@@ -3062,6 +3070,8 @@ public readonly record struct LotRuleset(
     public (Quantities.Tiles East, Quantities.Tiles North, Quantities.Tiles Wide, Quantities.Tiles Deep)
         Footprint(WorldKey key, Space.Parcel parcel, Space.BlockGround ground, Space.BlockPattern pattern)
     {
+        if (pattern == Space.BlockPattern.CarParkCentre)
+            return Space.CarParkCentre.Footprint(parcel, ground, StreetHalfWidthTiles);
         if (!Plots.Applies(pattern) || pattern != Space.BlockPattern.Detached)
             return Footprint(key, parcel, ground);
         bool horizontal = parcel.Face is Space.BlockFace.South or Space.BlockFace.North;
@@ -3699,7 +3709,11 @@ public readonly record struct TreasuryRuleset(Money OpeningBalance)
 /// than only as <see cref="Radius"/></b>: a diagnostic that reported a rounded Tile count would be
 /// reporting a number the designer never wrote, and reload comparison is against the file.
 /// </param>
-public readonly record struct ParkingRuleset(int RadiusMetres, int ShedKeeps)
+/// <param name="Stalls">
+/// The stall and aisle sizes a car-park centre's surface car park is laid out with.
+/// </param>
+public readonly record struct ParkingRuleset(
+    int RadiusMetres, int ShedKeeps, Space.StallSizes Stalls = default)
 {
     /// <summary>
     /// A Ruleset whose cities have no Parking Shed.

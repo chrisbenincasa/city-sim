@@ -981,6 +981,10 @@
         "street_half_width_tiles": {
           "description": "Ground reserved on each side of a Street centreline, in Tiles. Footprints clear this strip on all four block edges; the shell draws the same Street width. Fixed at world creation.",
           "type": "integer"
+        },
+        "trade_form": {
+          "description": "How trade blocks are laid out. \"car_park_centre\" makes each trade block one Lot with a single-storey row of Units at the rear and a surface car park in front, and needs the [parking] stall sizes. Omitted, trade blocks follow their density band. Fixed at world creation.",
+          "type": "string"
         }
       }
     },
@@ -1041,12 +1045,24 @@
     "parking": {
       "type": "object",
       "properties": {
+        "aisle_width_centimetres": {
+          "description": "Width of a surface car park's driving aisle, in centimetres.",
+          "type": "integer"
+        },
         "radius_metres": {
           "description": "How far a driver will walk from a Car Park to where they were going. Omitting the whole [parking] table is a city with no Parking Shed at all; a radius of zero would be a city whose Car Parks all exist and none can be reached.",
           "type": "integer"
         },
         "shed_keeps": {
           "description": "How many Car Parks a Building's Parking Shed holds, and therefore how far a query walks before it stops. Not redundant with the radius: the cap bounds the work and the radius bounds the walk, and they bind in different worlds. A shed is stored for every Building at this width, so it is a per-city cost rather than a per-query one.",
+          "type": "integer"
+        },
+        "stall_length_centimetres": {
+          "description": "Length of one surface car-park stall, in centimetres.",
+          "type": "integer"
+        },
+        "stall_width_centimetres": {
+          "description": "Width of one surface car-park stall, in centimetres. Comes with the other two stall sizes; a car-park centre's Car Park holds one car per stall.",
           "type": "integer"
         }
       }

@@ -174,6 +174,16 @@ public enum BlockPattern : byte
     /// </para>
     /// </remarks>
     Tower = 5,
+
+    /// <summary>
+    /// <b>One Lot, a single-storey row of Units along the rear, and a surface car park in front.</b>
+    /// A trade form rather than a density rung.
+    /// </summary>
+    /// <remarks>
+    /// It sits outside the density ladder, so <see cref="BlockPatterns.Count"/> excludes it and no
+    /// band selects it. <see cref="CarParkCentre"/> holds its geometry.
+    /// </remarks>
+    CarParkCentre = 6,
 }
 
 /// <summary>
@@ -272,7 +282,7 @@ public static class BlockPatterns
     /// </remarks>
     public static bool Exhaustive(BlockPattern pattern) =>
         pattern is BlockPattern.BackToBack or BlockPattern.Perimeter or BlockPattern.Slab
-            or BlockPattern.Tower;
+            or BlockPattern.Tower or BlockPattern.CarParkCentre;
 
     /// <summary>
     /// <b>How deep a shallow strip is, in Tiles</b> — the one authored-looking number in this file,
@@ -367,7 +377,8 @@ public static class BlockPatterns
     /// </para>
     /// </remarks>
     public static int ParcelsPerFace(BlockPattern pattern) =>
-        pattern is BlockPattern.Courtyard or BlockPattern.Slab or BlockPattern.Tower ? 1 : 0;
+        pattern is BlockPattern.Courtyard or BlockPattern.Slab or BlockPattern.Tower
+            or BlockPattern.CarParkCentre ? 1 : 0;
 
     /// <summary>Whether a pattern lays Addresses on this face at all.</summary>
     /// <remarks>
@@ -382,7 +393,7 @@ public static class BlockPatterns
             // ⚠ ONE face and not two, which is what makes it one Building rather than two. The pair
             // below take the north face as well and meet along the centre line; a tower has no
             // second half to meet.
-            BlockPattern.Tower => face is BlockFace.South,
+            BlockPattern.Tower or BlockPattern.CarParkCentre => face is BlockFace.South,
             BlockPattern.BackToBack or BlockPattern.Slab => face is BlockFace.South or BlockFace.North,
             _ => true,
         };
@@ -445,7 +456,7 @@ public static class BlockPatterns
             // an empty centre wherever the densest form appeared. The open part belongs in the
             // Building plan instead: one Lot holds the block, a podium occupies its footprint, and
             // a smaller shaft rises from it. plans/0062.
-            BlockPattern.Tower => acrossTiles,
+            BlockPattern.Tower or BlockPattern.CarParkCentre => acrossTiles,
             _ => StripTiles(alongTiles, acrossTiles, lotsPerSegment),
         };
     }
@@ -857,8 +868,15 @@ public static class BlockPatterns
             : claimed[(int)left] < claimed[(int)right];
     }
 
-    /// <summary>How many patterns there are. <b>Open by construction</b> — see <see cref="BlockPattern"/>.</summary>
+    /// <summary>
+    /// How many patterns the density ladder holds. <b>Open by construction</b> — see
+    /// <see cref="BlockPattern"/>.
+    /// </summary>
+    /// <remarks>Trade forms number from here and are not on the ladder.</remarks>
     public const int Count = 6;
+
+    /// <summary>How many patterns there are, trade forms included.</summary>
+    public const int FormCount = 7;
 
     /// <summary>Which side of a face's Segment the block behind it stands on.</summary>
     /// <remarks>
@@ -1126,6 +1144,23 @@ public static class BlockPatterns
         Determinism.WorldKey key, int column, int row, BlockFace face,
         int unit, int reach, int groups, Span<int> into)
     {
+        // The face in the id, not only the block: PurposeTag.PlotWidths' own remark. Four faces
+        // keyed alike would take their spare modules at one position and a block would read as four
+        // copies of one terrace.
+        ulong patch = ((ulong)(uint)column << 32) | (uint)row;
+        ulong draw = Determinism.Randomness.Draw(
+            key, patch ^ ((ulong)face << 60), Quantities.Ticks.Zero,
+            Determinism.PurposeTag.PlotWidths);
+
+        Widths(draw, unit, reach, groups, into);
+    }
+
+    /// <summary>
+    /// Divides <paramref name="reach"/> Tiles into <paramref name="groups"/> slices of whole
+    /// <paramref name="unit"/>s, giving the spare units from a position <paramref name="draw"/> picks.
+    /// </summary>
+    public static void Widths(ulong draw, int unit, int reach, int groups, Span<int> into)
+    {
         if (groups <= 0)
         {
             return;
@@ -1148,14 +1183,6 @@ public static class BlockPatterns
 
         int baseUnits = IntegerMath.FloorDiv(units, groups);
         int spare = units - (baseUnits * groups);
-
-        // The face in the id, not only the block: PurposeTag.PlotWidths' own remark. Four faces
-        // keyed alike would take their spare modules at one position and a block would read as four
-        // copies of one terrace.
-        ulong patch = ((ulong)(uint)column << 32) | (uint)row;
-        ulong draw = Determinism.Randomness.Draw(
-            key, patch ^ ((ulong)face << 60), Quantities.Ticks.Zero,
-            Determinism.PurposeTag.PlotWidths);
 
         int from = (int)(draw % (ulong)groups);
 

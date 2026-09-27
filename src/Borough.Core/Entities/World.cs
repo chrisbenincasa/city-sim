@@ -6920,9 +6920,9 @@ public sealed partial class World
         // a Building admitting nobody has none at all.
         KindDefinition declaration = Rules.Kind(kind);
 
-        occupants = declaration.Houses || declaration.Premises
-            ? CapacityRuleset.Holds(FloorTilesOf(buildingSlot), Rules.Capacity.FloorTilesPerOccupant)
-            : 0;
+        occupants = !(declaration.Houses || declaration.Premises) ? 0
+            : IsTradeCentre(buildingSlot) ? CentreUnitCount(buildingSlot)
+            : CapacityRuleset.Holds(FloorTilesOf(buildingSlot), Rules.Capacity.FloorTilesPerOccupant);
 
         return true;
     }
@@ -7261,7 +7261,7 @@ public sealed partial class World
         // F1). Before the split this could not arise -- a ceiling above zero implied `tenanted`,
         // which implied housing -- and anything sizing a city off this would now count an office
         // block's tenancies as homes and build too few of the real ones.
-        if (!Rules.Kind(kind).Houses)
+        if (!Rules.Kind(kind).Houses || IsTradeCentre(buildingSlot))
         {
             households = 0;
             return true;
@@ -7379,6 +7379,7 @@ public sealed partial class World
     public bool HasRoomForHousehold(int buildingSlot) =>
         Rules.Declares(Buildings.Kind[buildingSlot])
         && Rules.Kind(Buildings.Kind[buildingSlot]).Houses
+        && !IsTradeCentre(buildingSlot)
         && HasRoom(buildingSlot);
 
     /// <summary>
@@ -7671,24 +7672,11 @@ public sealed partial class World
             return false;
         }
 
-        // 🔴 A TRADE'S SHARE OF ITS PREMISES' FLOOR, and not a number on the trade. A Business takes
-        // ONE of the Building's tenancies (adr/0141), so its share is the floor divided by how many
-        // tenancies the Building has -- which is why this divides twice and neither divisor is
-        // authored per trade. ⚠ An UNPREMISED Business has no floor and therefore no jobs, which is
-        // the honest answer: nobody works somewhere that does not exist yet.
-        int floor = businessSlot >= 0 && Businesses.Rows.IsLive(businessSlot)
-                && Buildings.Rows.TryResolve(Businesses.Building[businessSlot], out int premises)
-            ? FloorTilesOf(premises)
-            : 0;
+        // The floor of the Unit the Business holds, so a bigger Unit employs more. An unpremised
+        // Business holds no Unit and so has no posts: nobody works somewhere that does not exist yet.
+        int floor = UnitFloorOf(businessSlot);
 
-        int tenancies = floor <= 0
-            ? 0
-            : CapacityRuleset.Holds(floor, Rules.Capacity.FloorTilesPerOccupant);
-
-        jobs = tenancies <= 0
-            ? 0
-            : CapacityRuleset.Holds(
-                Arithmetic.IntegerMath.FloorDiv(floor, tenancies), Rules.Capacity.FloorTilesPerJob);
+        jobs = floor <= 0 ? 0 : CapacityRuleset.Holds(floor, Rules.Capacity.FloorTilesPerJob);
 
         return true;
     }
@@ -7716,10 +7704,11 @@ public sealed partial class World
         // is DERELICT and keeps its cars -- dereliction must not evict a city's cars any more than
         // it may sack a District -- and a kind that says `parked = false` is EXEMPT, which is
         // adr/0009's "a tower may not [carry a driveway]" and is the half a rate alone cannot say.
-        spaces = Rules.Kind(kind).Parked
-            ? CapacityRuleset.Holds(
-                FloorTilesOf(buildingSlot), Rules.Capacity.FloorTilesPerParkingSpace)
-            : 0;
+        spaces = IsTradeCentre(buildingSlot) ? CentreStalls(buildingSlot)
+            : Rules.Kind(kind).Parked
+                ? CapacityRuleset.Holds(
+                    FloorTilesOf(buildingSlot), Rules.Capacity.FloorTilesPerParkingSpace)
+                : 0;
 
         return true;
     }
