@@ -89,6 +89,10 @@ Types that differ only in looks are Appearance Families of a kept type.
   a Unit.
 - Units are stored as an intrusive list per Building in flat arrays.
 - Placement and eviction match a Business to a Unit, because Units stop being interchangeable.
+- A Building of an existing kind, such as a terraced `dwelling`, `shopfront` or `officeblock`,
+  holds one Unit per tenancy. Each Unit is an equal slice of its floor, and Households and
+  Businesses still compete for the same tenancies. The slice's storey and side carry no meaning
+  until the shop-house form replaces trade in terraces.
 - A shop-house has one ground-floor Unit. Its upper storeys house Households at
   `floor_tiles_per_occupant`.
 - CONTEXT.md's Building entry notes that GlassBox used "Unit" to mean a Building. The new entry
