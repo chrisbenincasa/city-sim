@@ -223,10 +223,10 @@ geometry owns footprint and access.
 
 | Phase | Work | Acceptance |
 |---|---|---|
-| 1. Units and the jobs ceiling | Unit table, premises name a Unit, posts from the Unit's floor, shop-house ground-floor Unit, CONTEXT.md Unit entry. `pictured.toml` at one worker per Tile is done. | Replay, save/reload and thread-count equivalence hold. `DerivedRebuildAuditTests` passes. Goldens are re-recorded deliberately. |
-| 2. Car-park centre | New block pattern, rear footprint, Unit row, stall layout and capacity, world-creation raising, a new meaning for `DistrictWatershed.HeldForTrade` | `pictured.toml` at 2,000 Citizens employs a large share of working-age Citizens at world creation. A driven screenshot shows centres with their car parks. |
+| 1. Jobs rate on real floors | `pictured.toml` employs one worker per floor Tile. Done in `11993982`. | Every shipped Ruleset loads, and the scarcity worlds keep their rate of 3. |
+| 2. Units and the car-park centre | Diagnose #63 first. Unit table as an intrusive list per Building; premises name a Unit; placement and eviction match a Business to a Unit; posts from the Unit's floor; existing kinds hold one equal Unit per tenancy; CONTEXT.md Unit entry. Then the new block pattern, rear footprint, Unit row, stall layout and capacity, world-creation raising, and a new meaning for `DistrictWatershed.HeldForTrade`. | Replay, save/reload and thread-count equivalence hold. `DerivedRebuildAuditTests` passes. Goldens are re-recorded deliberately. `pictured.toml` at 2,000 Citizens employs a large share of working-age Citizens at world creation. A driven screenshot shows centres with their car parks. |
 | 3. Facts for the drawing | Form, parcel, Units, ground uses, corner and live Unit facts in `BuildingFacts`, and the new preset filters | The graphics session can draw a test preset of centres. Drawn stalls equal capacity. |
-| 4. Type choice | Band set, seeded draw, Arterial and missing-seller nudges, zone exclusion; shop-house parade, town supermarket with deck, high-street block | A banded Ruleset shows every kept type in its bands. |
+| 4. Type choice | Band set, seeded draw, shop-house ground-floor Unit, Arterial and missing-seller nudges, zone exclusion; shop-house parade, town supermarket with deck, high-street block | A banded Ruleset shows every kept type in its bands. |
 | 5. Remaining types | Pad sites, sales-yard trades, precinct / arcade, market hall | Each type appears in a fixture world and draws with a family. |
 
 Deferred: enclosed mall, mixed-use podium and underground parking with a Building above, open-air
