@@ -259,7 +259,10 @@ public sealed class DerivedRebuildAuditTests
         // Geographic permission page links are populated by PaintedGround.
         // Lot use and block use/band summaries are rebuilt from geographic permissions.
         // bin.expiry_row is populated by ExpiryTests.Spoiling.
-        Assert.Equal(52, all.Length);
+        // 52 -> 56: building.unit_head, building.unit_tail, unit.tenant and unit.building_next. The
+        // Units of each Building and the Business holding each, rebuilt from unit.building and
+        // business.unit.
+        Assert.Equal(56, all.Length);
         Assert.Single(ScratchColumns(Stepped(0)));
     }
 

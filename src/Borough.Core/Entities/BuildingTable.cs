@@ -34,6 +34,8 @@ public sealed class BuildingTable
         OccupantTail = _rows.Derived<int>("occupant_tail");
         BusinessHead = _rows.Derived<int>("business_head");
         BusinessTail = _rows.Derived<int>("business_tail");
+        UnitHead = _rows.Derived<int>("unit_head");
+        UnitTail = _rows.Derived<int>("unit_tail");
         BinHead = _rows.Derived<int>("bin_head", Touch.PerTick);
         BinTail = _rows.Derived<int>("bin_tail");
         RuleHead = _rows.Derived<int>("rule_head");
@@ -186,6 +188,12 @@ public sealed class BuildingTable
 
     /// <summary>Tail of the Business list, so a Business appends rather than push-fronts.</summary>
     public Column<int> BusinessTail { get; }
+
+    /// <summary>Head of the Building's Unit list, which <see cref="UnitTable.BuildingNext"/> threads.</summary>
+    public Column<int> UnitHead { get; }
+
+    /// <summary>Tail of the Building's Unit list.</summary>
+    public Column<int> UnitTail { get; }
 
     /// <summary>
     /// Head of this Building's Bins — see <see cref="Rules.BinTable.BinNext"/>.

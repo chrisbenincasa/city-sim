@@ -197,7 +197,10 @@ public sealed partial class World
         // rows it addresses have to exist first. The reverse dependency does not exist and must not
         // be created -- a Business points at its premises and at no Citizen, and the worker list is
         // an intrusive index list whose `next` column lives on the Citizen.
-        Businesses = new BusinessTable(PerThousand(citizens, 150), Buildings, Bins);
+        // One Unit per tenancy, so the Household ratio bounds it.
+        Units = new UnitTable(PerThousand(citizens, 360), Buildings);
+
+        Businesses = new BusinessTable(PerThousand(citizens, 150), Buildings, Bins, Units);
 
         Citizens = new CitizenTable(citizens, Households, Buildings, Businesses, CarParks);
 
@@ -498,6 +501,9 @@ public sealed partial class World
 
             // Appended: the age of stock whose Resource declares a shelf life.
             Expiries.Rows,
+
+            // Appended: the Units a Building is divided into, and which Business holds each.
+            Units.Rows,
         ];
 
         // The same list minus the tables no Tick phase can write, for the Decide guard alone. See
@@ -784,6 +790,9 @@ public sealed partial class World
     /// The Businesses, each occupying a Building and holding its own balance (<c>adr/0113</c>).
     /// </summary>
     public BusinessTable Businesses { get; }
+
+    /// <summary>The Units every Building is divided into, one tenancy each.</summary>
+    public UnitTable Units { get; }
 
     /// <summary>
     /// How much money has been issued into this world, as one saved row. The anchor
@@ -1956,6 +1965,7 @@ public sealed partial class World
         if (premised)
         {
             BuildingBusinesses.InsertOrdered(buildingSlot, slot);
+            LetUnit(buildingSlot, slot);
         }
 
         return handle;
@@ -3574,6 +3584,7 @@ public sealed partial class World
         // is the StaleHandleException milestone 27 task 9 died of, arriving from the other side.
         UnfitBusiness(business);
 
+        VacateUnit(slot);
         Businesses.Building[slot] = default;
 
         // ⚠ AND OFF THE COMMUTE ROSTER, every worker of this employer. Both departure buckets are
@@ -3635,6 +3646,7 @@ public sealed partial class World
 
         Businesses.Building[slot] = premises;
         BuildingBusinesses.InsertOrdered(buildingSlot, slot);
+        LetUnit(buildingSlot, slot);
 
         // Its Bins and its Rules, which live exactly as long as this tenancy (adr/0166). After the
         // handle is written, because FitBusiness reads it to find the kind that declares the
@@ -3748,6 +3760,8 @@ public sealed partial class World
         {
             BuildingBusinesses.Remove(buildingSlot, slot);
         }
+
+        VacateUnit(slot);
 
         // ⚠ THE STAFF COME OFF THE LIST AND THEIR HANDLES ARE LEFT TO GO STALE, which is the split
         // that matters. The list is (derived AND rebuilt) and threads Citizens.WorkerNext through the
@@ -4241,6 +4255,8 @@ public sealed partial class World
         Lots.FrontageOffset.Span.Clear();
         Bins.Capacity.Span.Clear();
 
+        RebuildUnits();
+
         // Rebuild the derived composition lookup and per-edge lists from saved live rows.
         HinterlandPopulation.RebuildIndexes(Hinterlands);
         HinterlandCompositions.Rebuild(HinterlandPopulation);
@@ -4719,6 +4735,10 @@ public sealed partial class World
     /// <inheritdoc cref="Occupants"/>
     public IndexList BuildingBins => new(Buildings.BinHead, Buildings.BinTail, Bins.BinNext);
 
+    /// <summary>The Units of each Building.</summary>
+    /// <inheritdoc cref="Occupants"/>
+    public IndexList BuildingUnits => new(Buildings.UnitHead, Buildings.UnitTail, Units.BuildingNext);
+
     /// <summary>
     /// The treasury's Bins — the city's own balance sheet (<c>adr/0114</c>).
     /// </summary>
@@ -4966,6 +4986,7 @@ public sealed partial class World
         // the Tick that starts the age.
         Buildings.MarkRaised(Buildings.Rows.Resolve(building), now);
 
+        RaiseUnits(Buildings.Rows.Resolve(building));
         Fit(building, kind, now, key);
         Changes?.Building(Buildings.Rows.Resolve(building));
 
@@ -7371,7 +7392,8 @@ public sealed partial class World
     public bool HasRoomForPremises(int buildingSlot) =>
         Rules.Declares(Buildings.Kind[buildingSlot])
         && Rules.Kind(Buildings.Kind[buildingSlot]).Premises
-        && HasRoom(buildingSlot);
+        && HasRoom(buildingSlot)
+        && HasVacantUnit(buildingSlot);
 
     /// <summary>
     /// How many tenants of <em>any</em> kind <paramref name="buildingSlot"/> holds — Households and
@@ -7494,6 +7516,8 @@ public sealed partial class World
             }
 
         }
+
+        ReshapeUnits();
 
         // 🔴 THE JOBS CEILING MOVED OUT OF THE BUILDING LOOP, and it had to. It used to sit inside it,
         // passing Buildings.Kind[slot] to TryDeclaredJobs and indexing Workers by a Building slot --
@@ -8631,6 +8655,7 @@ public sealed partial class World
         int slot = Buildings.Rows.Resolve(building);
 
         EmptyPremises(slot, tick);
+        FreeUnits(slot);
 
         // The Car Park, and it goes with the Building because the parking a garage provides stops
         // existing when the garage does. The cars in it are NOT unparked here, and that is deliberate
