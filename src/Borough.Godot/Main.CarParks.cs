@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Borough.Appearance;
 using Borough.Core.Entities;
 using Borough.Core.Space;
 using Godot;
@@ -155,9 +156,10 @@ public partial class Main
                 float wide = (units.Wide[unit].Raw * MetresPerTile) - FasciaGapMetres;
                 float x = (footEast + units.East[unit].Raw + (units.Wide[unit].Raw * .5f)) * MetresPerTile;
                 float z = ((footNorth + units.North[unit].Raw) * MetresPerTile) - (FasciaProudMetres * .5f);
+                UnitLiveFacts.TryOf(_world, unit, out UnitLiveFacts live);
                 Color colour = units.Anchor[unit] != 0 ? AnchorFascia
-                    : units.IsVacant(unit) ? VacantFascia
-                    : LetFascia;
+                    : live.Let ? LetFascia
+                    : VacantFascia;
 
                 yield return (
                     units.Rows.IdAt(unit),

@@ -140,6 +140,10 @@
             "description": "true admits only Buildings with an anchor Unit; false admits only those without one.",
             "type": "boolean"
           },
+          "corner": {
+            "description": "true admits only Buildings whose parcel reaches two perpendicular edges of its block; false admits only those that do not.",
+            "type": "boolean"
+          },
           "parking": {
             "description": "The car park forms this family admits.",
             "type": "array",

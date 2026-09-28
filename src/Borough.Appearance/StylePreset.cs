@@ -24,6 +24,7 @@ public readonly record struct Bounds(long Low, long High)
 /// <param name="Units">The Unit counts this family admits.</param>
 /// <param name="Anchored">Admits only Buildings with an anchor Unit, or only those without one.</param>
 /// <param name="Parking">The car park forms this family admits.</param>
+/// <param name="Corner">Admits only corner Buildings, or only those off the corner.</param>
 public sealed record AppearanceFamily(
     string Id,
     string File,
@@ -42,7 +43,8 @@ public sealed record AppearanceFamily(
     PaintScheme[]? Paints = null,
     Bounds? Units = null,
     bool? Anchored = null,
-    ParkingForm[]? Parking = null)
+    ParkingForm[]? Parking = null,
+    bool? Corner = null)
 {
     public bool Admits(in BuildingFacts facts)
     {
@@ -56,7 +58,8 @@ public sealed record AppearanceFamily(
             && (Zones == 0 || (Zones & facts.Zone) != 0)
             && (Units is not { } units || units.Holds(facts.Units))
             && (Anchored is not { } anchored || anchored == facts.Anchored)
-            && (Parking is not { } parking || Array.IndexOf(parking, facts.Parking) >= 0);
+            && (Parking is not { } parking || Array.IndexOf(parking, facts.Parking) >= 0)
+            && (Corner is not { } corner || corner == facts.Corner);
     }
 }
 

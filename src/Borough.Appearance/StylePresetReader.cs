@@ -74,7 +74,7 @@ public static class StylePresetReader
         ["balcony"] = BayKind.Balcony,
     };
 
-    private static readonly string[] Conditions = ["storeys", "frontage_metres", "depth_metres", "raised_day", "patterns", "zones", "units", "anchored", "parking"];
+    private static readonly string[] Conditions = ["storeys", "frontage_metres", "depth_metres", "raised_day", "patterns", "zones", "units", "anchored", "parking", "corner"];
 
     public static StylePresetResult Read(string directory)
     {
@@ -302,6 +302,7 @@ public static class StylePresetReader
             Bounds? units = Range("units");
             bool? anchored = Boolean("anchored");
             ParkingForm[]? parking = Names("parking", ParkingNames);
+            bool? corner = Boolean("corner");
 
             if (fallback)
             {
@@ -322,7 +323,7 @@ public static class StylePresetReader
             if (errors.Count > before || id is null || kinds is null) return null;
             return new AppearanceFamily(id, file, LineOf(table), kinds, (int)weight, fallback, model,
                 storeys, frontage, depth, raised, patterns, (ushort)(zones?.Aggregate(0, (a, z) => a | z) ?? 0),
-                Units: units, Anchored: anchored, Parking: parking);
+                Units: units, Anchored: anchored, Parking: parking, Corner: corner);
         }
 
         public FamilyBody? Body()

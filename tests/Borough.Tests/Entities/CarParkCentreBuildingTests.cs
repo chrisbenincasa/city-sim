@@ -199,6 +199,12 @@ public sealed class CarParkCentreBuildingTests
             int building = world.Lots.BuildingOn(slot);
 
             Assert.All(UnitsOf(world, building), unit => Assert.False(world.Units.IsVacant(unit)));
+            Assert.All(UnitsOf(world, building), unit =>
+            {
+                Assert.True(UnitLiveFacts.TryOf(world, unit, out UnitLiveFacts live));
+                Assert.True(live.Let);
+            });
+            Assert.True(BuildingFacts.IsCorner(world.Roads.Streets.Lattice, world.Lots, slot));
             centres++;
         }
 
@@ -215,6 +221,45 @@ public sealed class CarParkCentreBuildingTests
         Assert.Equal(CarParkCentre.UnitCount(RowWide), facts.Units);
         Assert.True(facts.Anchored);
         Assert.Equal(ParkingForm.Surface, facts.Parking);
+    }
+
+    [Fact]
+    public void A_vacant_unit_is_neither_let_nor_open()
+    {
+        (World world, int building) = Raised();
+
+        List<int> vacant = UnitsOf(world, building).FindAll(world.Units.IsVacant);
+        Assert.NotEmpty(vacant);
+
+        Assert.All(vacant, unit =>
+        {
+            Assert.True(UnitLiveFacts.TryOf(world, unit, out UnitLiveFacts live));
+            Assert.Equal(world.Units.Rows.IdAt(unit), live.Id);
+            Assert.False(live.Let);
+            Assert.False(live.Open);
+        });
+    }
+
+    [Theory]
+    [InlineData(0, 0, BlockTiles, BlockTiles, true)]
+    [InlineData(0, 0, 8, 10, true)]
+    [InlineData(24, 22, 8, 10, true)]
+    [InlineData(8, 0, 8, 10, false)]
+    [InlineData(0, 10, 8, 10, false)]
+    [InlineData(BlockTiles, 0, 8, 10, true)]
+    [InlineData(BlockTiles + 8, BlockTiles, 8, 10, false)]
+    public void A_parcel_is_a_corner_when_it_reaches_two_perpendicular_block_edges(
+        int east, int north, int wide, int deep, bool corner)
+    {
+        var world = new World(1_000, Centres());
+        int slot = world.Lots.Rows.Resolve(world.Lots.Create(new Tiles(east), new Tiles(north), AnyZone));
+
+        world.Lots.ParcelEast[slot] = new Tiles(east);
+        world.Lots.ParcelNorth[slot] = new Tiles(north);
+        world.Lots.ParcelWide[slot] = new Tiles(wide);
+        world.Lots.ParcelDeep[slot] = new Tiles(deep);
+
+        Assert.Equal(corner, BuildingFacts.IsCorner(BlockLattice.Even(BlockTiles), world.Lots, slot));
     }
 
     [Fact]

@@ -21,6 +21,7 @@ namespace Borough.Appearance;
 /// <param name="Units">How many Units the Building holds.</param>
 /// <param name="Anchored">Whether one of its Units is an anchor.</param>
 /// <param name="Parking">The car park laid on the Building's own ground.</param>
+/// <param name="Corner">The Lot's parcel reaches both an east–west and a north–south edge of its block.</param>
 public readonly record struct BuildingFacts(
     ulong Id,
     string Kind,
@@ -34,7 +35,8 @@ public readonly record struct BuildingFacts(
     StreetSide Side,
     int Units = 0,
     bool Anchored = false,
-    ParkingForm Parking = ParkingForm.None)
+    ParkingForm Parking = ParkingForm.None,
+    bool Corner = false)
 {
     /// <summary>Reads the facts of the live Building in <paramref name="slot"/>.</summary>
     /// <returns><c>false</c> where the slot is dead or the Building has no Lot or no footprint.</returns>
@@ -84,8 +86,33 @@ public readonly record struct BuildingFacts(
             address.Side,
             units,
             anchored,
-            pattern == BlockPattern.CarParkCentre ? ParkingForm.Surface : ParkingForm.None);
+            pattern == BlockPattern.CarParkCentre ? ParkingForm.Surface : ParkingForm.None,
+            IsCorner(world.Roads.Streets.Lattice, lots, lot));
         return true;
+    }
+
+    /// <summary>
+    /// Whether the Lot's parcel reaches both an east–west and a north–south edge of its block, so its
+    /// Building meets two street faces.
+    /// </summary>
+    public static bool IsCorner(BlockLattice lattice, LotTable lots, int lot)
+    {
+        ArgumentNullException.ThrowIfNull(lattice);
+        ArgumentNullException.ThrowIfNull(lots);
+
+        int west = lots.ParcelEast[lot].Raw;
+        int south = lots.ParcelNorth[lot].Raw;
+        int wide = lots.ParcelWide[lot].Raw;
+        int deep = lots.ParcelDeep[lot].Raw;
+        if (lattice.Nominal <= 0 || wide <= 0 || deep <= 0)
+        {
+            return false;
+        }
+
+        BlockGround block = BlockGround.At(lattice, lattice.LineAt(west), lattice.LineAt(south));
+        bool eastOrWest = west == block.East || west + wide == block.East + block.Wide;
+        bool northOrSouth = south == block.North || south + deep == block.North + block.Deep;
+        return eastOrWest && northOrSouth;
     }
 
     /// <summary>Whether the Lot's Street runs east–west, read off the lattice line the Lot sits on.</summary>
@@ -94,6 +121,37 @@ public readonly record struct BuildingFacts(
         ArgumentNullException.ThrowIfNull(lattice);
         ArgumentNullException.ThrowIfNull(lots);
         return lattice.Nominal > 0 && lattice.EdgeOf(lattice.LineAt(lots.North[lot].Raw)) == lots.North[lot].Raw;
+    }
+}
+
+/// <summary>
+/// The facts about one Unit that change while its Building stands. They dress a Building and never
+/// pick its Appearance Family.
+/// </summary>
+/// <param name="Id">The Unit's monotonic id.</param>
+/// <param name="Let">A Business holds the Unit.</param>
+/// <param name="Open">The Unit's Business keeps its shop hours at the world's current Tick.</param>
+public readonly record struct UnitLiveFacts(ulong Id, bool Let, bool Open)
+{
+    /// <summary>Reads the live facts of the Unit in <paramref name="slot"/>.</summary>
+    /// <returns><c>false</c> where the slot is dead.</returns>
+    public static bool TryOf(World world, int slot, out UnitLiveFacts facts)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        facts = default;
+
+        UnitTable units = world.Units;
+        if (!units.Rows.IsLive(slot))
+        {
+            return false;
+        }
+
+        int business = units.TenantSlot(slot);
+        bool let = business >= 0;
+        bool open = let
+            && world.Rules.BusinessKind(world.Businesses.Kind[business]).ShopHours.IsOpen(world.Tick);
+        facts = new UnitLiveFacts(units.Rows.IdAt(slot), let, open);
+        return true;
     }
 }
 

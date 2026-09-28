@@ -165,6 +165,23 @@ public class StylePresetTests
     }
 
     [Fact]
+    public void A_corner_family_admits_only_corner_buildings()
+    {
+        StylePreset preset = Preset("""
+            [[family]]
+            id = "domed"
+            kinds = ["shopfront"]
+            corner = true
+            """);
+
+        AppearanceFamily domed = preset.Families[0];
+        BuildingFacts shop = Facts(1, storeys: 3, pattern: BlockPattern.Perimeter, kind: "shopfront");
+
+        Assert.True(domed.Admits(shop with { Corner = true }));
+        Assert.False(domed.Admits(shop with { Corner = false }));
+    }
+
+    [Fact]
     public void Weights_share_the_draw_and_a_Building_always_draws_the_same_family()
     {
         StylePreset preset = Preset("""
