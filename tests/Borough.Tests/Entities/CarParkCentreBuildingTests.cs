@@ -218,6 +218,21 @@ public sealed class CarParkCentreBuildingTests
     }
 
     [Fact]
+    public void The_stalls_placed_on_the_centre_car_park_are_its_capacity()
+    {
+        (World world, int building) = Raised();
+
+        int lot = world.Lots.Rows.Resolve(world.Buildings.Lot[building]);
+        (_, _, int along, int toward) = CarParkCentre.CarPark(
+            world.Lots.ParcelNorth[lot].Raw, world.Lots.FootprintEast[lot].Raw, world.Lots.FootprintNorth[lot].Raw,
+            world.Lots.FootprintWide[lot].Raw, world.Rules.Lots.StreetHalfWidthTiles);
+
+        int placed = StallLayout.Place(along, toward, world.Rules.Parking.Stalls, new Stall[1_000]);
+
+        Assert.Equal(world.CarParks.Capacity[world.Buildings.CarParkOf(building)], placed);
+    }
+
+    [Fact]
     public void A_rebuild_keeps_the_centre_row_and_its_tenants()
     {
         (World world, int building) = Raised();

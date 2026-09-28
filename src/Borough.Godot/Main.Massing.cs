@@ -797,6 +797,8 @@ public partial class Main
         _parapets.Multimesh.VisibleInstanceCount = parapets;
         _yards.Multimesh.VisibleInstanceCount = yards;
 
+        foreach ((_, Transform3D surface) in CarParkSurfaces()) FoliageFootprint(surface, footprints++);
+
         RefreshFoliage(footprints);
         return buildings;
     }

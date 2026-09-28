@@ -28,6 +28,7 @@ public partial class Main
             else RefreshFamilyBodies(changes.Buildings);
             _drawnBuildings = Massings(Buildings());
             _vacantLots = Fill(_plots, Plots(), _plotIds);
+            FillCarParks();
             _renderedBuildings.Clear();
             var drawn = new HashSet<ulong>();
             for (int i = 0; i < _buildings.Multimesh.VisibleInstanceCount; i++) drawn.Add(_buildings.Multimesh.IdAt(i));
@@ -85,8 +86,10 @@ public partial class Main
                     foreach (var entry in batch.Instances) FoliageFootprint(entry.Transform, at++);
                 foreach (var batch in _yards.Multimesh.Batches)
                     foreach (var entry in batch.Instances) FoliageFootprint(entry.Transform, at++);
+                foreach ((_, var surface) in CarParkSurfaces()) FoliageFootprint(surface, at++);
                 RefreshFoliage(at);
                 _vacantLots = Fill(_plots, Plots(), _plotIds);
+                FillCarParks();
             }
         }
         changes.Clear();

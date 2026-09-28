@@ -53,8 +53,24 @@ public static class CarParkCentre
     /// The stalls between the Unit row's front and the street edge of the parcel.
     /// </summary>
     public static StallLayout Stalls(
-        int parcelNorth, int footprintNorth, int footprintWide, int streetHalfWidthTiles, StallSizes sizes) =>
-        StallLayout.Of(footprintWide, footprintNorth - (parcelNorth + streetHalfWidthTiles), sizes);
+        int parcelNorth, int footprintNorth, int footprintWide, int streetHalfWidthTiles, StallSizes sizes)
+    {
+        (_, _, int along, int toward) = CarPark(parcelNorth, 0, footprintNorth, footprintWide, streetHalfWidthTiles);
+
+        return StallLayout.Of(along, toward, sizes);
+    }
+
+    /// <summary>
+    /// The surface car park's rectangle in Tiles: as wide as the Unit row, from the street edge of the
+    /// parcel up to the row's front.
+    /// </summary>
+    public static (int East, int North, int Along, int Toward) CarPark(
+        int parcelNorth, int footprintEast, int footprintNorth, int footprintWide, int streetHalfWidthTiles)
+    {
+        int south = parcelNorth + streetHalfWidthTiles;
+
+        return (footprintEast, south, footprintWide, footprintNorth - south);
+    }
 
     /// <summary>How many Units a row <paramref name="wide"/> Tiles long holds.</summary>
     public static int UnitCount(int wide)
