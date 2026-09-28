@@ -1,3 +1,4 @@
+using Borough.Appearance;
 using Borough.Core;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
@@ -202,6 +203,18 @@ public sealed class CarParkCentreBuildingTests
         }
 
         Assert.True(centres > 0, "pictured.toml laid no car-park centre.");
+    }
+
+    [Fact]
+    public void A_centre_reports_its_units_anchor_and_surface_car_park_to_the_drawing()
+    {
+        (World world, int building) = Raised();
+
+        Assert.True(BuildingFacts.TryOf(world, RulesetNames.None, building, out BuildingFacts facts));
+        Assert.Equal(BlockPattern.CarParkCentre, facts.Pattern);
+        Assert.Equal(CarParkCentre.UnitCount(RowWide), facts.Units);
+        Assert.True(facts.Anchored);
+        Assert.Equal(ParkingForm.Surface, facts.Parking);
     }
 
     [Fact]

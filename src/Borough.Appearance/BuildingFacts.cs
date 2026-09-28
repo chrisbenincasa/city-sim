@@ -18,6 +18,9 @@ namespace Borough.Appearance;
 /// </param>
 /// <param name="Zone">The Lot's zone permission bits (<see cref="LotTable.Housing"/>, <see cref="LotTable.Trade"/>).</param>
 /// <param name="RaisedDay">The game Day the Building was raised on.</param>
+/// <param name="Units">How many Units the Building holds.</param>
+/// <param name="Anchored">Whether one of its Units is an anchor.</param>
+/// <param name="Parking">The car park laid on the Building's own ground.</param>
 public readonly record struct BuildingFacts(
     ulong Id,
     string Kind,
@@ -28,7 +31,10 @@ public readonly record struct BuildingFacts(
     ushort Zone,
     long RaisedDay,
     ulong Face,
-    StreetSide Side)
+    StreetSide Side,
+    int Units = 0,
+    bool Anchored = false,
+    ParkingForm Parking = ParkingForm.None)
 {
     /// <summary>Reads the facts of the live Building in <paramref name="slot"/>.</summary>
     /// <returns><c>false</c> where the slot is dead or the Building has no Lot or no footprint.</returns>
@@ -55,6 +61,15 @@ public readonly record struct BuildingFacts(
         bool eastWest = RunsEastWest(world.Roads.Streets.Lattice, lots, lot);
         Address address = lots.AddressOf(lot);
         byte kind = buildings.Kind[slot];
+        BlockPattern pattern = lots.PatternOf(lot);
+        int units = 0;
+        bool anchored = false;
+
+        foreach (int unit in world.BuildingUnits.Walk(slot))
+        {
+            units++;
+            anchored |= world.Units.Anchor[unit] != 0;
+        }
 
         facts = new BuildingFacts(
             buildings.Rows.IdAt(slot),
@@ -62,11 +77,14 @@ public readonly record struct BuildingFacts(
             eastWest ? wide : deep,
             eastWest ? deep : wide,
             Math.Max(1, (int)lots.Storeys[lot]),
-            lots.PatternOf(lot),
+            pattern,
             lots.Zone[lot],
             (long)(buildings.RaisedAt[slot].Raw / Ticks.PerDay),
             address.Exists ? world.Roads.Segments.Rows.IdAt(address.Segment) : 0UL,
-            address.Side);
+            address.Side,
+            units,
+            anchored,
+            pattern == BlockPattern.CarParkCentre ? ParkingForm.Surface : ParkingForm.None);
         return true;
     }
 
@@ -77,4 +95,12 @@ public readonly record struct BuildingFacts(
         ArgumentNullException.ThrowIfNull(lots);
         return lattice.Nominal > 0 && lattice.EdgeOf(lattice.LineAt(lots.North[lot].Raw)) == lots.North[lot].Raw;
     }
+}
+
+/// <summary>The car park a Building lays on its own ground.</summary>
+public enum ParkingForm : byte
+{
+    None,
+    Surface,
+    Deck,
 }

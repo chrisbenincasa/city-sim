@@ -126,6 +126,33 @@
             "minItems": 1,
             "uniqueItems": true
           },
+          "units": {
+            "description": "The Unit counts this family admits. Given as [low, high], both inclusive and not negative.",
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "anchored": {
+            "description": "true admits only Buildings with an anchor Unit; false admits only those without one.",
+            "type": "boolean"
+          },
+          "parking": {
+            "description": "The car park forms this family admits.",
+            "type": "array",
+            "items": {
+              "enum": [
+                "none",
+                "surface",
+                "deck"
+              ]
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
           "body": {
             "description": "How the family builds its body at any size it admits. Follows the [[family]] it builds; a fallback takes none.",
             "type": "object",
@@ -380,7 +407,8 @@
         "back-to-back",
         "courtyard",
         "slab",
-        "tower"
+        "tower",
+        "car-park-centre"
       ]
     }
   }

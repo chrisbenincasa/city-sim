@@ -21,6 +21,9 @@ public readonly record struct Bounds(long Low, long High)
 /// <param name="Zones">Admits a Lot carrying any of these permission bits.</param>
 /// <param name="Body">How the family builds its body, or <c>null</c> where the massing draws it.</param>
 /// <param name="Paints">The paint schemes a body draws one of, or none where it keeps its model's colours.</param>
+/// <param name="Units">The Unit counts this family admits.</param>
+/// <param name="Anchored">Admits only Buildings with an anchor Unit, or only those without one.</param>
+/// <param name="Parking">The car park forms this family admits.</param>
 public sealed record AppearanceFamily(
     string Id,
     string File,
@@ -36,7 +39,10 @@ public sealed record AppearanceFamily(
     BlockPattern[]? Patterns,
     ushort Zones,
     FamilyBody? Body = null,
-    PaintScheme[]? Paints = null)
+    PaintScheme[]? Paints = null,
+    Bounds? Units = null,
+    bool? Anchored = null,
+    ParkingForm[]? Parking = null)
 {
     public bool Admits(in BuildingFacts facts)
     {
@@ -47,7 +53,10 @@ public sealed record AppearanceFamily(
             && (DepthMetres is not { } depth || depth.Holds(facts.DepthMetres))
             && (RaisedDay is not { } raised || raised.Holds(facts.RaisedDay))
             && (Patterns is not { } patterns || Array.IndexOf(patterns, facts.Pattern) >= 0)
-            && (Zones == 0 || (Zones & facts.Zone) != 0);
+            && (Zones == 0 || (Zones & facts.Zone) != 0)
+            && (Units is not { } units || units.Holds(facts.Units))
+            && (Anchored is not { } anchored || anchored == facts.Anchored)
+            && (Parking is not { } parking || Array.IndexOf(parking, facts.Parking) >= 0);
     }
 }
 

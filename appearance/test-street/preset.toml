@@ -379,3 +379,12 @@ door = "b5b5ad"
 wall = "7b3f36"
 wall-end = "6a3630"
 door = "8d9194"
+
+# A car-park centre: one flat-roofed row of Units with an anchor, behind a surface car park. No
+# model is authored yet, so the massing draws it.
+[[family]]
+id = "centre-strip"
+kinds = ["shopfront"]
+patterns = ["car-park-centre"]
+anchored = true
+parking = ["surface"]
