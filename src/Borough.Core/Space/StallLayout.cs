@@ -63,4 +63,56 @@ public readonly record struct StallLayout(int Modules, int StallsPerColumn)
 
         return modules < 1 || perColumn < 1 ? default : new StallLayout(modules, perColumn);
     }
+
+    /// <summary>
+    /// Writes every stall of <see cref="Of"/>'s layout into <paramref name="stalls"/>, and returns
+    /// how many it wrote.
+    /// </summary>
+    /// <remarks>
+    /// Rectangles are in centimetres from the car park's south-west corner, where south is the
+    /// street and north is the Unit row. The cross aisle lies against the row, and the stalls run
+    /// south from it. The modules are centred across the car park, so any width left over is split
+    /// between its two sides. Leftover depth lies along the street.
+    /// </remarks>
+    public static int Place(int alongTiles, int towardTiles, StallSizes sizes, Span<Stall> stalls)
+    {
+        StallLayout layout = Of(alongTiles, towardTiles, sizes);
+
+        if (stalls.Length < layout.Stalls)
+        {
+            throw new ArgumentException(
+                $"{layout.Stalls} stalls need placing and the buffer holds {stalls.Length}.", nameof(stalls));
+        }
+
+        int length = sizes.LengthCentimetres;
+        int width = sizes.WidthCentimetres;
+        int module = (2 * length) + sizes.AisleCentimetres;
+        int slack = (alongTiles * CentimetresPerTile) - (layout.Modules * module);
+        int west = IntegerMath.FloorDiv(slack, 2);
+        int top = (towardTiles * CentimetresPerTile) - sizes.AisleCentimetres;
+        int written = 0;
+
+        for (int m = 0; m < layout.Modules; m++)
+        {
+            int moduleWest = west + (m * module);
+
+            for (int side = 0; side < 2; side++)
+            {
+                int east = side == 0 ? moduleWest : moduleWest + length + sizes.AisleCentimetres;
+
+                for (int s = 0; s < layout.StallsPerColumn; s++)
+                {
+                    stalls[written++] = new Stall(east, top - ((s + 1) * width), length, width);
+                }
+            }
+        }
+
+        return written;
+    }
 }
+
+/// <summary>
+/// One parking stall's rectangle, in centimetres.
+/// </summary>
+public readonly record struct Stall(
+    int EastCentimetres, int NorthCentimetres, int WideCentimetres, int DeepCentimetres);
