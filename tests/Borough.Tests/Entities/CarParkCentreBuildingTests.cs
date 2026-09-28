@@ -5,6 +5,7 @@ using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
 using Borough.Core.Tables;
+using Borough.Formats;
 
 namespace Borough.Tests.Entities;
 
@@ -153,6 +154,54 @@ public sealed class CarParkCentreBuildingTests
 
         Assert.True(world.Buildings.HasCarPark(building));
         Assert.Equal(new StallLayout(7, 36).Stalls, world.CarParks.Capacity[world.Buildings.CarParkOf(building)]);
+    }
+
+    [Fact]
+    public void Filling_a_centre_lets_every_vacant_unit_to_a_business_it_originates()
+    {
+        (World world, int building) = Raised();
+
+        int units = UnitsOf(world, building).Count;
+
+        Assert.Equal(units - 1, world.FillUnits(building));
+        Assert.All(UnitsOf(world, building), unit => Assert.False(world.Units.IsVacant(unit)));
+
+        foreach (int business in world.BuildingBusinesses.Walk(building))
+        {
+            Assert.Equal(world.Buildings.Rows.At(building), world.Businesses.Origin[business]);
+        }
+
+        Assert.Equal(0, world.FillUnits(building));
+    }
+
+    [Fact]
+    public void Pictured_raises_every_centre_full_of_businesses_at_world_creation()
+    {
+        RulesetLoadResult loaded =
+            RulesetLoader.Load(Path.Combine(AppContext.BaseDirectory, "Rulesets", "pictured.toml"));
+        Assert.True(loaded.Ok, loaded.Describe());
+
+        var world = new World(1_000, loaded.Ruleset!, Key);
+        SyntheticCity.PopulateInto(world, Key, Ticks.Zero, 200);
+
+        int centres = 0;
+
+        for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
+        {
+            if (!world.Lots.Rows.IsLive(slot) || world.Lots.PatternOf(slot) != BlockPattern.CarParkCentre)
+            {
+                continue;
+            }
+
+            Assert.False(world.Lots.IsVacant(slot), $"centre Lot {slot} stands unbuilt.");
+
+            int building = world.Lots.BuildingOn(slot);
+
+            Assert.All(UnitsOf(world, building), unit => Assert.False(world.Units.IsVacant(unit)));
+            centres++;
+        }
+
+        Assert.True(centres > 0, "pictured.toml laid no car-park centre.");
     }
 
     [Fact]

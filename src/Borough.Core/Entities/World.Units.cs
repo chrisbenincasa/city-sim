@@ -164,6 +164,37 @@ public sealed partial class World
         }
     }
 
+    /// <summary>
+    /// Lets every vacant Unit of a Building to a new Business of its kind's trade.
+    /// </summary>
+    /// <remarks>
+    /// Each Business names the Building as its origin, as the one that comes with a Building does.
+    /// </remarks>
+    /// <returns>How many Businesses were founded.</returns>
+    public int FillUnits(int buildingSlot)
+    {
+        byte trade = Rules.Kind(Buildings.Kind[buildingSlot]).Business;
+
+        if (trade == 0)
+        {
+            return 0;
+        }
+
+        Handle<Building> building = Buildings.Rows.At(buildingSlot);
+        int founded = 0;
+
+        while (VacantUnit(buildingSlot) != Rows.NoSlot)
+        {
+            Handle<Business> came = CreateBusiness(building, trade);
+
+            Businesses.Origin[Businesses.Rows.Resolve(came)] = building;
+            FitBusiness(came);
+            founded++;
+        }
+
+        return founded;
+    }
+
     private void LetUnit(int buildingSlot, int businessSlot)
     {
         int unit = VacantUnit(buildingSlot);

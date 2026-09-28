@@ -404,6 +404,9 @@ public static class SyntheticCity
 
         int buildings = raised;
 
+        // After the dwellings, so their slots stay the contiguous run Dwelling indexes.
+        RaiseCentres(world, now, key);
+
         HouseholdRuleset rules = world.Rules.Households;
 
         // 🔴 A CURSOR AND NO LONGER A ROUND ROBIN (plans/0053). `i % buildings` was sound for exactly
@@ -1508,6 +1511,52 @@ public static class SyntheticCity
         {
             LotSubdivider.SubdivideBlock(world, column, row, Housing);
         }
+    }
+
+    /// <summary>
+    /// Raises the trade kind on every vacant car-park centre Lot and fills its Units with Businesses.
+    /// </summary>
+    /// <remarks>
+    /// The kind is the one the trade Zone Rule raises, so creation builds what the city would.
+    /// </remarks>
+    private static void RaiseCentres(World world, Ticks now, WorldKey key)
+    {
+        if (!world.Rules.Lots.CarParkCentres || !TryTradeKind(world, out byte kind))
+        {
+            return;
+        }
+
+        for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
+        {
+            if (!world.Lots.Rows.IsLive(slot)
+                || !world.Lots.IsVacant(slot)
+                || world.Lots.PatternOf(slot) != BlockPattern.CarParkCentre
+                || (world.Lots.Zone[slot] & world.BandAdmitting(slot) & Trade) == 0)
+            {
+                continue;
+            }
+
+            Handle<Building> centre = world.CreateBuilding(world.Lots.Rows.At(slot), kind, now, key);
+
+            world.FillUnits(world.Buildings.Rows.Resolve(centre));
+        }
+    }
+
+    private static bool TryTradeKind(World world, out byte kind)
+    {
+        foreach (ZoneRuleDefinition rule in world.Rules.ZoneRules)
+        {
+            if (IntegerMath.ShiftLeft(1, rule.Zone) == Trade
+                && world.Rules.Declares(rule.Kind)
+                && world.Rules.Kind(rule.Kind).Business != 0)
+            {
+                kind = rule.Kind;
+                return true;
+            }
+        }
+
+        kind = 0;
+        return false;
     }
 
     /// <summary>
