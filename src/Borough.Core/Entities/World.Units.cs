@@ -38,12 +38,32 @@ public sealed partial class World
         && Lots.Rows.TryResolve(Buildings.Lot[buildingSlot], out int lotSlot)
         && Lots.PatternOf(lotSlot) == Space.BlockPattern.CarParkCentre;
 
-    /// <summary>Whether a Building stands on a shop-house parade's Lot.</summary>
+    /// <summary>
+    /// Whether a Building is a shop-house, on a shop-house parade or off a high-street block's south face.
+    /// </summary>
     public bool IsShopHouse(int buildingSlot) =>
         buildingSlot >= 0
         && Buildings.Rows.IsLive(buildingSlot)
         && Lots.Rows.TryResolve(Buildings.Lot[buildingSlot], out int lotSlot)
-        && Lots.PatternOf(lotSlot) == Space.BlockPattern.ShopHouseParade;
+        && (Lots.PatternOf(lotSlot) == Space.BlockPattern.ShopHouseParade
+            || Lots.PatternOf(lotSlot) == Space.BlockPattern.HighStreetBlock && FaceOf(lotSlot) != Space.BlockFace.South);
+
+    /// <summary>Whether a Building is a high-street block's department store, on its south face.</summary>
+    public bool IsDepartmentStore(int buildingSlot) =>
+        buildingSlot >= 0
+        && Buildings.Rows.IsLive(buildingSlot)
+        && Lots.Rows.TryResolve(Buildings.Lot[buildingSlot], out int lotSlot)
+        && Lots.PatternOf(lotSlot) == Space.BlockPattern.HighStreetBlock
+        && FaceOf(lotSlot) == Space.BlockFace.South;
+
+    private Space.BlockFace FaceOf(int lotSlot)
+    {
+        Space.Frontage.BlockOf(
+            Roads.Streets, Lots.East[lotSlot], Lots.North[lotSlot], (Space.StreetSide)Lots.Side[lotSlot],
+            out _, out _, out Space.BlockFace face);
+
+        return face;
+    }
 
     /// <summary>Whether a Building stands on a town supermarket's Lot, with either parking.</summary>
     public bool IsSupermarket(int buildingSlot) =>
@@ -79,6 +99,13 @@ public sealed partial class World
         return Core.Rules.CapacityRuleset.Holds(FloorTilesOf(buildingSlot) - ground, Rules.Capacity.FloorTilesPerOccupant);
     }
 
+    private int DepartmentStoreUnitCount(int buildingSlot)
+    {
+        Span<Space.DepartmentStore.Bay> bays = stackalloc Space.DepartmentStore.Bay[Space.DepartmentStore.MaxUnits];
+
+        return Space.DepartmentStore.Units(Lots.FootprintWide[Lots.Rows.Resolve(Buildings.Lot[buildingSlot])].Raw, bays);
+    }
+
     private int CentreUnitCount(int buildingSlot) =>
         Space.CarParkCentre.UnitCount(Lots.FootprintWide[Lots.Rows.Resolve(Buildings.Lot[buildingSlot])].Raw);
 
@@ -108,6 +135,10 @@ public sealed partial class World
         else if (IsSupermarket(buildingSlot))
         {
             RaiseSupermarketUnit(buildingSlot);
+        }
+        else if (IsDepartmentStore(buildingSlot))
+        {
+            RaiseDepartmentStoreUnits(buildingSlot);
         }
         else if (TryDeclaredOccupancy(Buildings.Kind[buildingSlot], buildingSlot, out int tenancies))
         {
@@ -160,13 +191,9 @@ public sealed partial class World
         int lotSlot = Lots.Rows.Resolve(Buildings.Lot[buildingSlot]);
         Tiles wide = Lots.FootprintWide[lotSlot];
         Tiles deep = Lots.FootprintDeep[lotSlot];
-        Space.Frontage.BlockOf(
-            Roads.Streets, Lots.East[lotSlot], Lots.North[lotSlot], (Space.StreetSide)Lots.Side[lotSlot],
-            out _, out _, out Space.BlockFace face);
-
         Handle<Unit> added = Units.Create(
             Buildings.Rows.At(buildingSlot), Tiles.Zero, Tiles.Zero, wide, deep,
-            0, 1, (byte)face, anchor: false, floor: wide.Raw * deep.Raw);
+            0, 1, (byte)FaceOf(lotSlot), anchor: false, floor: wide.Raw * deep.Raw);
 
         BuildingUnits.InsertOrdered(buildingSlot, Units.Rows.Resolve(added));
     }
@@ -185,6 +212,31 @@ public sealed partial class World
             0, 1, (byte)Space.BlockFace.South, anchor: true, floor: wide.Raw * deep.Raw);
 
         BuildingUnits.InsertOrdered(buildingSlot, Units.Rows.Resolve(added));
+    }
+
+    /// <summary>
+    /// Lays a department store's anchor Unit between its two corner Units, each over every storey,
+    /// doors facing south onto the high street.
+    /// </summary>
+    private void RaiseDepartmentStoreUnits(int buildingSlot)
+    {
+        int lotSlot = Lots.Rows.Resolve(Buildings.Lot[buildingSlot]);
+        int wide = Lots.FootprintWide[lotSlot].Raw;
+        Tiles deep = Lots.FootprintDeep[lotSlot];
+        byte storeys = Lots.Storeys[lotSlot];
+        Span<Space.DepartmentStore.Bay> bays = stackalloc Space.DepartmentStore.Bay[Space.DepartmentStore.MaxUnits];
+        int count = Space.DepartmentStore.Units(wide, bays);
+
+        for (int i = 0; i < count; i++)
+        {
+            Space.DepartmentStore.Bay bay = bays[i];
+            Handle<Unit> added = Units.Create(
+                Buildings.Rows.At(buildingSlot), new Tiles(bay.East), Tiles.Zero, new Tiles(bay.Wide), deep,
+                0, storeys, (byte)Space.BlockFace.South, anchor: bay.Anchor,
+                floor: bay.Wide * deep.Raw * storeys);
+
+            BuildingUnits.InsertOrdered(buildingSlot, Units.Rows.Resolve(added));
+        }
     }
 
     /// <summary>
@@ -335,6 +387,7 @@ public sealed partial class World
                 && !IsTradeCentre(slot)
                 && !IsShopHouse(slot)
                 && !IsSupermarket(slot)
+                && !IsDepartmentStore(slot)
                 && TryDeclaredOccupancy(Buildings.Kind[slot], slot, out int tenancies))
             {
                 ShapeEqualUnits(slot, tenancies);

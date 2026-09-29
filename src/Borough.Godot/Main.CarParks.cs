@@ -41,6 +41,7 @@ public partial class Main
         Fill(_stalls, StallLines(), _stallIds);
         Fill(_units, Fascias(), _unitIds);
         FillSupermarkets();
+        FillDepartmentStores();
     }
 
     private IEnumerable<(ulong Id, int Lot)> Centres()

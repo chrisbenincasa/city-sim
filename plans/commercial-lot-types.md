@@ -191,7 +191,7 @@ dwellings now.
 | Town supermarket | Whole-block Lot fronting south, carved as a car-park centre | Front of the parcel, 10 Tiles deep | 1 anchor + optional small Units | Deck behind the footprint | No |
 | Precinct / arcade | Whole-block Lot | Two rows either side of an internal walkway | Units face the walkway or the street | Walkway, deck behind | No |
 | Market hall | Half-block Lot | Hall shell | Grid of 1-Tile stalls facing inward | None | No |
-| High-street block | Perimeter carve | Existing | Anchor spanning several storeys, small Units around it | None | Carve |
+| High-street block | Perimeter carve, with the south face joined into one department-store Lot | Existing | Anchor spanning several storeys, small Units around it | None | Carve |
 
 Rules shared by every form:
 
@@ -207,6 +207,17 @@ the store is 30 × 10 Tiles (4,800 m²), the top of its size range. Other market
 forms are deferred, such as a half-block store, a discount box or a store with rooftop parking.
 Revisit when a second supermarket form is wanted. A half-block store needs a carve that mixes two
 forms in one block.
+
+The high-street block's department store takes the whole south face, about 30 × 6 Tiles over the
+band's storeys (about 8,600 m² at 3 storeys). One perimeter Lot holds at most about 1,700 m², below
+the department store's size range. The other three faces stay shop-houses, with homes above.
+The store's anchor Unit takes the middle of the face over every storey. A corner Unit 2 Tiles wide
+stands at each end, also over every storey, which leaves the anchor about 7,500 m². The layout is
+fixed and draws nothing. A high-tier trade block draws a high-street block or a shop-house parade
+at even odds. The store fills its whole parcel up to the street edges, with no drawn setbacks,
+because setbacks halved its depth to 3 Tiles. On `traded.toml` at 8,000 Citizens, seed 0, the
+shell draws two stores of 30 × 6 Tiles over 3 storeys, each with its entrance at the middle of the
+anchor and a domed tower over each corner Unit.
 
 ## Appearance Family contract
 

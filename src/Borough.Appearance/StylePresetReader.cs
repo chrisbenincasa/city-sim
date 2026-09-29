@@ -37,6 +37,7 @@ public static class StylePresetReader
         ["shop-house-parade"] = BlockPattern.ShopHouseParade,
         ["supermarket"] = BlockPattern.Supermarket,
         ["decked-supermarket"] = BlockPattern.DeckedSupermarket,
+        ["high-street-block"] = BlockPattern.HighStreetBlock,
     };
 
     private static readonly Dictionary<string, ParkingForm> ParkingNames = new()

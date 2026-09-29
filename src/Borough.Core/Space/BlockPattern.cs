@@ -202,6 +202,13 @@ public enum BlockPattern : byte
     /// <see cref="TownSupermarket.DeckLevels"/> levels.
     /// </summary>
     DeckedSupermarket = 9,
+
+    /// <summary>
+    /// <b>A department store along the south face, and shop-houses on the other three.</b> A trade
+    /// form carved as a <see cref="Perimeter"/> block whose south face is one parcel.
+    /// <see cref="DepartmentStore"/> holds the store's geometry.
+    /// </summary>
+    HighStreetBlock = 10,
 }
 
 /// <summary>
@@ -894,12 +901,13 @@ public static class BlockPatterns
     public const int Count = 6;
 
     /// <summary>How many patterns there are, trade forms included.</summary>
-    public const int FormCount = 10;
+    public const int FormCount = 11;
 
     /// <summary>The pattern whose carve a form takes.</summary>
+    /// <remarks>A <see cref="BlockPattern.HighStreetBlock"/> also joins its south face into one parcel.</remarks>
     public static BlockPattern CarveAs(BlockPattern pattern) => pattern switch
     {
-        BlockPattern.ShopHouseParade => BlockPattern.Perimeter,
+        BlockPattern.ShopHouseParade or BlockPattern.HighStreetBlock => BlockPattern.Perimeter,
         BlockPattern.Supermarket or BlockPattern.DeckedSupermarket => BlockPattern.CarParkCentre,
         _ => pattern,
     };
@@ -915,7 +923,7 @@ public static class BlockPatterns
     /// The tier is the rung <see cref="ForBand"/> gives the band before its scatter, so every block
     /// of a band shares one tier. Rungs 0–1 are Low, 2–3 Middle and 4–5 High. Low allows a
     /// car-park centre. Middle allows a shop-house parade or a supermarket, and High a shop-house
-    /// parade. A supermarket on rung 3 parks on a deck.
+    /// parade or a high-street block. A supermarket on rung 3 parks on a deck.
     /// </remarks>
     public static BlockPattern TradeForm(byte band, int bandCount, Determinism.WorldKey key, int column, int row)
     {
@@ -944,7 +952,8 @@ public static class BlockPatterns
     private static ReadOnlySpan<BlockPattern> MiddleTradeForms =>
         [BlockPattern.ShopHouseParade, BlockPattern.Supermarket];
 
-    private static ReadOnlySpan<BlockPattern> HighTradeForms => [BlockPattern.ShopHouseParade];
+    private static ReadOnlySpan<BlockPattern> HighTradeForms =>
+        [BlockPattern.ShopHouseParade, BlockPattern.HighStreetBlock];
 
     /// <summary>Which side of a face's Segment the block behind it stands on.</summary>
     /// <remarks>
@@ -1008,6 +1017,7 @@ public static class BlockPatterns
             return 0;
         }
 
+        bool joinSouth = pattern == BlockPattern.HighStreetBlock;
         pattern = CarveAs(pattern);
         int written = 0;
 
@@ -1060,7 +1070,7 @@ public static class BlockPatterns
 
             // How many parcels this face is actually cut into. A coarse pattern joins Addresses; it
             // can never split one, so the ask is capped by what the face carries.
-            int wanted = ParcelsPerFace(pattern);
+            int wanted = joinSouth && face == BlockFace.South ? 1 : ParcelsPerFace(pattern);
             int groups = wanted <= 0 || wanted >= count ? count : wanted;
             int placed = 0;
             int last = -1;

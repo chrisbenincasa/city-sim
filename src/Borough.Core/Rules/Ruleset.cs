@@ -3054,7 +3054,7 @@ public readonly record struct LotRuleset(
 
     public int Carve(WorldKey key, Space.BlockPattern pattern, Space.BlockGround ground,
         Span<Space.Parcel> into) => Plots.Applies(Space.BlockPatterns.CarveAs(pattern))
-        ? Plots.Carve(ground, StreetHalfWidthTiles, into)
+        ? Plots.Carve(ground, StreetHalfWidthTiles, into, pattern == Space.BlockPattern.HighStreetBlock)
         : Space.BlockPatterns.Carve(key, pattern, ground, LotsPerSegment, into);
 
     public byte Height(WorldKey key, Space.Parcel parcel, Space.BlockPattern pattern, int blockTiles)
@@ -3083,6 +3083,8 @@ public readonly record struct LotRuleset(
             return Space.CarParkCentre.Footprint(parcel, ground, StreetHalfWidthTiles);
         if (Space.BlockPatterns.IsSupermarket(pattern))
             return Space.TownSupermarket.Footprint(parcel, ground, StreetHalfWidthTiles);
+        if (pattern == Space.BlockPattern.HighStreetBlock && parcel.Face == Space.BlockFace.South)
+            return Clipped(parcel.East.Raw, parcel.North.Raw, parcel.Wide.Raw, parcel.Deep.Raw, ground);
         if (!Plots.Applies(pattern) || pattern != Space.BlockPattern.Detached)
             return Footprint(key, parcel, ground);
         bool horizontal = parcel.Face is Space.BlockFace.South or Space.BlockFace.North;
@@ -3101,10 +3103,15 @@ public readonly record struct LotRuleset(
         Footprint(WorldKey key, Space.Parcel parcel, Space.BlockGround ground)
     {
         var footprint = Footprint(key, parcel.East, parcel.North, parcel.Wide, parcel.Deep);
-        int east = footprint.East.Raw;
-        int north = footprint.North.Raw;
-        int right = east + footprint.Wide.Raw;
-        int top = north + footprint.Deep.Raw;
+        return Clipped(footprint.East.Raw, footprint.North.Raw, footprint.Wide.Raw, footprint.Deep.Raw, ground);
+    }
+
+    /// <summary>A rectangle clipped to the block's street edges.</summary>
+    private (Quantities.Tiles East, Quantities.Tiles North, Quantities.Tiles Wide, Quantities.Tiles Deep)
+        Clipped(int east, int north, int wide, int deep, Space.BlockGround ground)
+    {
+        int right = east + wide;
+        int top = north + deep;
         int westEdge = ground.East + StreetHalfWidthTiles;
         int southEdge = ground.North + StreetHalfWidthTiles;
         int eastEdge = ground.East + ground.Wide - StreetHalfWidthTiles;

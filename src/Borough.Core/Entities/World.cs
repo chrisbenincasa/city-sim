@@ -6924,6 +6924,7 @@ public sealed partial class World
             : IsTradeCentre(buildingSlot) ? CentreUnitCount(buildingSlot)
             : IsShopHouse(buildingSlot) ? 1 + ShopHouseHomes(buildingSlot)
             : IsSupermarket(buildingSlot) ? 1
+            : IsDepartmentStore(buildingSlot) ? DepartmentStoreUnitCount(buildingSlot)
             : CapacityRuleset.Holds(FloorTilesOf(buildingSlot), Rules.Capacity.FloorTilesPerOccupant);
 
         return true;
@@ -7263,7 +7264,8 @@ public sealed partial class World
         // F1). Before the split this could not arise -- a ceiling above zero implied `tenanted`,
         // which implied housing -- and anything sizing a city off this would now count an office
         // block's tenancies as homes and build too few of the real ones.
-        if (!Rules.Kind(kind).Houses || IsTradeCentre(buildingSlot) || IsSupermarket(buildingSlot))
+        if (!Rules.Kind(kind).Houses || IsTradeCentre(buildingSlot) || IsSupermarket(buildingSlot)
+            || IsDepartmentStore(buildingSlot))
         {
             households = 0;
             return true;
@@ -7389,6 +7391,7 @@ public sealed partial class World
         && Rules.Kind(Buildings.Kind[buildingSlot]).Houses
         && !IsTradeCentre(buildingSlot)
         && !IsSupermarket(buildingSlot)
+        && !IsDepartmentStore(buildingSlot)
         && HasRoom(buildingSlot)
         && (!IsShopHouse(buildingSlot) || Occupants.Length(buildingSlot) < ShopHouseHomes(buildingSlot));
 

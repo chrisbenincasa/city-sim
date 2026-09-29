@@ -26,7 +26,9 @@ public partial class Main
     private readonly List<ulong> _deckSlabIds = [];
     private readonly List<ulong> _deckEdgeIds = [];
     private readonly List<ulong> _supermarketStallIds = [];
-    private readonly HashSet<ulong> _supermarketIds = [];
+
+    /// <summary>Which Buildings the Blender modules draw, so the massing pass leaves them out.</summary>
+    private readonly HashSet<ulong> _moduleDrawnIds = [];
 
     private readonly record struct Supermarket(ulong Id, int Lot, int Levels);
 
@@ -52,16 +54,18 @@ public partial class Main
         Fill(_supermarketStalls, White(SupermarketStalls()), _supermarketStallIds);
     }
 
-    /// <summary>
-    /// Which Buildings the supermarket modules draw, so the massing pass leaves them out.
-    /// </summary>
-    private void RefreshSupermarketIds()
+    private void RefreshModuleDrawnIds()
     {
-        _supermarketIds.Clear();
+        _moduleDrawnIds.Clear();
 
         foreach (Supermarket each in Supermarkets())
         {
-            _supermarketIds.Add(each.Id);
+            _moduleDrawnIds.Add(each.Id);
+        }
+
+        foreach (Store each in DepartmentStores())
+        {
+            _moduleDrawnIds.Add(each.Id);
         }
     }
 

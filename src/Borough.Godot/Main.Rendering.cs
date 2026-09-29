@@ -37,7 +37,7 @@ public partial class Main
             {
                 if (!rows.IsLive(slot)) continue;
                 ulong id = rows.IdAt(slot);
-                _renderedBuildings[slot] = (id, drawn.Contains(id) || _placedBodies.ContainsKey(id) || _exactBodies.ContainsKey(id) || _shelled.Contains(id) || _supermarketIds.Contains(id));
+                _renderedBuildings[slot] = (id, drawn.Contains(id) || _placedBodies.ContainsKey(id) || _exactBodies.ContainsKey(id) || _shelled.Contains(id) || _moduleDrawnIds.Contains(id));
             }
         }
         else
@@ -64,9 +64,9 @@ public partial class Main
                 RemoveFamilyBody(id);
                 bool far = PlaceFamilyBody(slot);
                 BodyShape? shape = far ? _placedBodies[id].Shape : null;
-                bool supermarket = _world.IsSupermarket(slot);
-                if (supermarket) _supermarketIds.Add(id); else _supermarketIds.Remove(id);
-                foreach (Massing each in supermarket ? [] : Buildings(slot))
+                bool modules = _world.IsSupermarket(slot) || _world.IsDepartmentStore(slot);
+                if (modules) _moduleDrawnIds.Add(id); else _moduleDrawnIds.Remove(id);
+                foreach (Massing each in modules ? [] : Buildings(slot))
                 {
                     Massing one = far ? FarMassing(each, shape!.Body) : each;
                     _bodyEdits.Add(new(one.Body, far ? FarPaint(one, shape!.Wall, one.Paint) : one.Paint, one.Reads, far));
@@ -76,7 +76,7 @@ public partial class Main
                     roof?.Add(new(one.Roof, far ? FarPaint(one, shape!.Roof, RoofPaint(one)) : RoofPaint(one), RoofWall(one), far));
                 }
                 geometry |= ReplaceBuilding(id);
-                bool drawn = far || supermarket || _bodyEdits.Count != 0;
+                bool drawn = far || modules || _bodyEdits.Count != 0;
                 _renderedBuildings[slot] = (id, drawn);
                 if (drawn) _drawnBuildings++;
             }
