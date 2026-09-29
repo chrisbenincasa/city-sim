@@ -7756,34 +7756,35 @@ public static class RulesetLoader
             var dimensions = plots ? new Core.Space.ResidentialPlots((int)frontage, (int)depth,
                 (int)houseWidth, (int)houseDepth, (int)houseStoreys) : default;
 
-            bool centres = false;
+            bool centres = false, byBand = false;
             if (TryString(_lotsTable, "trade_form", out string? tradeForm, required: false))
             {
-                if (tradeForm != "car_park_centre")
+                if (tradeForm is not ("car_park_centre" or "by_band"))
                 {
                     Refuse(LineOfLot("trade_form"), null,
-                        $"trade_form = \"{tradeForm}\" is not a trade form. The only one is "
-                        + "\"car_park_centre\"; omit the key to lay trade blocks out like any other.");
+                        $"trade_form = \"{tradeForm}\" is not a trade form setting. It is "
+                        + "\"car_park_centre\" or \"by_band\"; omit the key to lay trade blocks out like any other.");
                     return LotRuleset.None;
                 }
 
                 // A centre's Car Park is sized by its stalls, so a centre without stall sizes would
-                // stand with no parking at all.
+                // stand with no parking at all. A banded Ruleset's lowest tier raises centres.
                 if (_parkingTable is null
                     || !TryInteger(_parkingTable, "stall_width_centimetres", out _, required: false))
                 {
                     Refuse(LineOfLot("trade_form"), null,
-                        "trade_form = \"car_park_centre\" needs [parking] stall_width_centimetres, "
+                        $"trade_form = \"{tradeForm}\" needs [parking] stall_width_centimetres, "
                         + "stall_length_centimetres and aisle_width_centimetres, because a centre's "
                         + "Car Park holds as many cars as its stalls.");
                     return LotRuleset.None;
                 }
 
-                centres = true;
+                centres = tradeForm == "car_park_centre";
+                byBand = tradeForm == "by_band";
             }
 
             return new LotRuleset(
-                (int)value, (int)setback, (int)step, (int)spread, (int)streetHalfWidth, dimensions, centres);
+                (int)value, (int)setback, (int)step, (int)spread, (int)streetHalfWidth, dimensions, centres, byBand);
         }
 
         private HousingConstructionRuleset? ReadHousingConstruction(CapacityRuleset capacity)

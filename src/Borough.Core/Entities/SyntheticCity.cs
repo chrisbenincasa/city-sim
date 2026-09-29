@@ -405,7 +405,7 @@ public static class SyntheticCity
         int buildings = raised;
 
         // After the dwellings, so their slots stay the contiguous run Dwelling indexes.
-        RaiseCentres(world, now, key);
+        RaiseTradeForms(world, now, key);
 
         HouseholdRuleset rules = world.Rules.Households;
 
@@ -1514,14 +1514,14 @@ public static class SyntheticCity
     }
 
     /// <summary>
-    /// Raises the trade kind on every vacant car-park centre Lot and fills its Units with Businesses.
+    /// Raises the trade kind on every vacant trade-form Lot and fills its Units with Businesses.
     /// </summary>
     /// <remarks>
     /// The kind is the one the trade Zone Rule raises, so creation builds what the city would.
     /// </remarks>
-    private static void RaiseCentres(World world, Ticks now, WorldKey key)
+    private static void RaiseTradeForms(World world, Ticks now, WorldKey key)
     {
-        if (!world.Rules.Lots.CarParkCentres || !TryTradeKind(world, out byte kind))
+        if (!world.Rules.Lots.TradeForms || !TryTradeKind(world, out byte kind))
         {
             return;
         }
@@ -1530,7 +1530,7 @@ public static class SyntheticCity
         {
             if (!world.Lots.Rows.IsLive(slot)
                 || !world.Lots.IsVacant(slot)
-                || world.Lots.PatternOf(slot) != BlockPattern.CarParkCentre
+                || (int)world.Lots.PatternOf(slot) < BlockPatterns.Count
                 || (world.Lots.Zone[slot] & world.BandAdmitting(slot) & Trade) == 0)
             {
                 continue;

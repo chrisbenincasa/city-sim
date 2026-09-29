@@ -95,6 +95,10 @@ Types that differ only in looks are Appearance Families of a kept type.
   until the shop-house form replaces trade in terraces.
 - A shop-house has one ground-floor Unit. Its upper storeys house Households at
   `floor_tiles_per_occupant`.
+  - The two ceilings are separate. Only a Business takes the Unit, whose floor is the footprint,
+    and Households take only the upper floors.
+  - Existing trade kinds such as `shopfront` keep the shared ceiling, so only worlds that raise
+    shop-houses change.
 - CONTEXT.md's Building entry notes that GlassBox used "Unit" to mean a Building. The new entry
   must say that Unit here means a tenancy's space.
 
@@ -122,11 +126,28 @@ Types that differ only in looks are Appearance Families of a kept type.
 ### Type choice
 
 - The density band gives the set of types a block allows.
+- A band's tier comes from the housing ladder rung `BlockPatterns.ForBand` gives it, before the
+  per-block scatter, so every block of a band shares its tier. Rungs 0–1
+  are Low, 2–3 Middle and 4–5 High. No Ruleset key names a tier.
 - A seeded draw per block picks one type from that set, using the world seed, the block and a
   `purpose_tag`.
-- A block beside an Arterial favours pad sites and car-park centres.
-- A District with no seller of a Good favours a market hall or a town supermarket.
-- A zone may forbid a type, but a zone never places one.
+- The draw runs in `LotSubdivider`, beside `BlockPatterns.ForBand`. `SyntheticCity` draws no
+  randomness, and adr/0165 relies on that.
+- Gap: only world creation (`SyntheticCity` through `LotSubdivider.SubdivideBlock`) draws a trade
+  form. Player zoning carves blocks in play through `PaintAt` and `PaintParcelAt`, but those keep
+  the housing ladder, because `World.ConstructionPermission` refuses forms off the ladder and the
+  Zone Rule engine could never build on one. So commercial forms reach generated cities only. The
+  shipped game needs an in-play path before these forms count as a player-facing feature.
+- A block beside an Arterial favours pad sites and car-park centres. Deferred: Arterials run off
+  the block lattice, no helper finds a block beside one, and every city-modelling Ruleset sets
+  `arterial_count = 0`. Revisit when a Ruleset has both Arterials and trade forms.
+- A District with no seller of a Good favours a market hall or a town supermarket. Deferred:
+  `SyntheticCity` evaluates Districts only after every Building stands, so none exists when a
+  block's form is drawn. Revisit with the in-play path for trade forms, alongside the Employment
+  feedback row's construction response.
+- A zone may forbid a type, but a zone never places one. Deferred: only tests paint the form mask
+  in `GroundPermissions`, so nothing shipped can forbid a form. Revisit with the in-play path,
+  where `World.ConstructionPermission` would enforce it.
 - No Ruleset key sets these weights.
 - `pictured.toml` declares no bands, so every trade block becomes a car-park centre.
 
@@ -224,10 +245,18 @@ geometry owns footprint and access.
 | Phase | Work | Acceptance |
 |---|---|---|
 | 1. Jobs rate on real floors | `pictured.toml` employs one worker per floor Tile. Done in `11993982`. | Every shipped Ruleset loads, and the scarcity worlds keep their rate of 3. |
-| 2. Units and the car-park centre | Diagnose #63 first. Unit table as an intrusive list per Building; premises name a Unit; placement and eviction match a Business to a Unit; posts from the Unit's floor; existing kinds hold one equal Unit per tenancy; CONTEXT.md Unit entry. Then the new block pattern, rear footprint, Unit row, stall layout and capacity, world-creation raising. The meaning of `DistrictWatershed.HeldForTrade` under merged trade Lots moved to [#65](https://github.com/chrisbenincasa/city-sim/issues/65) and does not block the phase. | Replay, save/reload and thread-count equivalence hold. `DerivedRebuildAuditTests` passes. Goldens are re-recorded deliberately. `pictured.toml` at 2,000 Citizens employs a large share of working-age Citizens at world creation. A driven screenshot shows centres with their car parks. |
-| 3. Facts for the drawing | Form, parcel, Units, ground uses, corner and live Unit facts in `BuildingFacts`, and the new preset filters | The graphics session can draw a test preset of centres. Drawn stalls equal capacity. |
-| 4. Type choice | Band set, seeded draw, shop-house ground-floor Unit, Arterial and missing-seller nudges, zone exclusion; shop-house parade, town supermarket with deck, high-street block | A banded Ruleset shows every kept type in its bands. |
+| 2. Units and the car-park centre | Done in `12c07713`–`7d139e1d`. Diagnose #63 first. Unit table as an intrusive list per Building; premises name a Unit; placement and eviction match a Business to a Unit; posts from the Unit's floor; existing kinds hold one equal Unit per tenancy; CONTEXT.md Unit entry. Then the new block pattern, rear footprint, Unit row, stall layout and capacity, world-creation raising. The meaning of `DistrictWatershed.HeldForTrade` under merged trade Lots moved to [#65](https://github.com/chrisbenincasa/city-sim/issues/65) and does not block the phase. | Replay, save/reload and thread-count equivalence hold. `DerivedRebuildAuditTests` passes. Goldens are re-recorded deliberately. `pictured.toml` at 2,000 Citizens employs a large share of working-age Citizens at world creation. A driven screenshot shows centres with their car parks. |
+| 3. Facts for the drawing | Done in `f9934f7b` and `8b751dea`; the form is the `patterns` filter. Form, parcel, Units, ground uses, corner and live Unit facts in `BuildingFacts`, and the new preset filters | The graphics session can draw a test preset of centres. Drawn stalls equal capacity. |
+| 4. Type choice | Band set, seeded draw, shop-house ground-floor Unit; shop-house parade, town supermarket with deck, high-street block | A banded Ruleset shows every kept type in its bands. |
 | 5. Remaining types | Pad sites, sales-yard trades, precinct / arcade, market hall | Each type appears in a fixture world and draws with a family. |
+
+Phase 2 observation, 2026-09-28 at `8b751dea`: `pictured.toml` at 2,000 Citizens raises 48
+centre Businesses with 1,440 posts. Nobody is employed at world creation, because the job pass
+has not run. By Day 10, 816 Citizens work in those posts. By Day 20, 22 of the 48 have lost
+their Unit and 237 Citizens work in posts. The headless census of the same Ruleset over 20 Days
+(`--citizens 2000 --ticks 40960 --census`) shows money leaving Households; the cause is not
+diagnosed. Household money falls from
+7,357,906 to 4,027, the treasury rises from 976,462 to 9,239,629, and 25 tenancies end.
 
 Deferred: enclosed mall, mixed-use podium and underground parking with a Building above, open-air
 market, hotel, and a commercial parking minimum Policy.

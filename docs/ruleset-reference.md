@@ -1440,7 +1440,7 @@ Ground reserved on each side of a Street centreline, in Tiles. Footprints clear 
 
 **`trade_form`** · *quoted string*
 
-How trade blocks are laid out. "car_park_centre" makes each trade block one Lot with a single-storey row of Units at the rear and a surface car park in front, and needs the [parking] stall sizes. Omitted, trade blocks follow their density band. Fixed at world creation.
+How trade blocks are laid out. "car_park_centre" makes each trade block one Lot with a single-storey row of Units at the rear and a surface car park in front, and needs the [parking] stall sizes. "by_band" draws each trade block's form from its band's tier: a car-park centre in the low tier, a shop-house parade in the middle and high tiers. It also needs the stall sizes. Only world creation lays trade forms out; a block zoned for trade in play follows its density band. Omitted, trade blocks follow their density band. Fixed at world creation.
 
 ---
 

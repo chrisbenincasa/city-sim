@@ -91,26 +91,31 @@ public static class LotSubdivider
     public static int SubdivideBlock(World world, int column, int row, ushort zone)
     {
         if (world.ZoneBlock(column, row, zone) == Rows.NoSlot) { return 0; }
-        return CarveBlock(world, column, row);
+        return CarveBlock(world, column, row, zone == LotTable.Trade && world.Rules.Lots.TradeFormsByBand);
     }
 
-    private static BlockPattern Pattern(World world, int column, int row)
+    // Only world creation draws a trade form. The Zone Rule engine cannot build on one, so a block
+    // zoned for trade in play keeps the housing ladder.
+    private static BlockPattern Pattern(World world, int column, int row, bool tradeForm = false)
     {
         int block = world.BlockIndex.Contains(column, row) ? world.BlockIndex.Slot(column, row) : Rows.NoSlot;
         BlockPattern pattern = world.PatternOf(block, out bool chosen);
+        if (chosen) { return pattern; }
         LandPermissionSummary permission = world.LandPermissions.Summary(world.BlockGroundRectangle(column, row));
-        return chosen ? pattern : BlockPatterns.ForBand(permission.MixedIntensity ? (byte)0 : permission.Band,
-            world.Rules.Bands.Length, world.Roads.Streets.BlockTiles, world.Rules.Lots.LotsPerSegment,
-            world.Key, column, row, world.Rules.Lots.PatternSpread);
+        byte band = permission.MixedIntensity ? (byte)0 : permission.Band;
+        return tradeForm
+            ? BlockPatterns.TradeForm(band, world.Rules.Bands.Length, world.Key, column, row)
+            : BlockPatterns.ForBand(band, world.Rules.Bands.Length, world.Roads.Streets.BlockTiles,
+                world.Rules.Lots.LotsPerSegment, world.Key, column, row, world.Rules.Lots.PatternSpread);
     }
 
-    private static int CarveBlock(World world, int column, int row)
+    private static int CarveBlock(World world, int column, int row, bool tradeForm = false)
     {
         LandRectangle area = world.BlockGroundRectangle(column, row);
         if (!area.IsValid || world.LandPermissions.Summary(area).AnyUses == 0) { return 0; }
         var streets = world.Roads.Streets;
         BlockGround ground = BlockGround.At(streets.Lattice, column, row);
-        BlockPattern pattern = Pattern(world, column, row);
+        BlockPattern pattern = Pattern(world, column, row, tradeForm);
         int ceiling = world.Rules.Lots.ParcelCeiling(ground);
         Span<Parcel> parcels = ceiling <= 128 ? stackalloc Parcel[128] : new Parcel[ceiling];
         int count = world.Rules.Lots.Carve(world.Key, pattern, ground, parcels), created = 0;

@@ -390,6 +390,7 @@ public sealed class TerrainRulesetLoadTests
         // TwinLatticeTests carries the whole argument for exempting it from a test of this shape.
         // ⚠ varied.toml is still the only file that DEMONSTRATES priced ground: this one turns it
         // on beside sixteen other mechanisms, so nothing measured here could be attributed to it.
-        Assert.Equal(["pictured.toml", "varied.toml"], priced);
+        // traded.toml is pictured.toml with banded trade forms, so it inherits the ground.
+        Assert.Equal(["pictured.toml", "traded.toml", "varied.toml"], priced);
     }
 }

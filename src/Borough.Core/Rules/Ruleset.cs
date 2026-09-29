@@ -3030,10 +3030,18 @@ public readonly record struct CapacityRuleset(
 /// <param name="CarParkCentres">
 /// Whether trade blocks are carved as <see cref="Space.BlockPattern.CarParkCentre"/>s.
 /// </param>
+/// <param name="TradeFormsByBand">
+/// Whether each trade block draws its form from its band's tier, by
+/// <see cref="Space.BlockPatterns.TradeForm"/>.
+/// </param>
 public readonly record struct LotRuleset(
     int LotsPerSegment, int SetbackTiles, int StoreysPerRung = 1, int PatternSpread = 0,
-    int StreetHalfWidthTiles = 1, Space.ResidentialPlots Plots = default, bool CarParkCentres = false)
+    int StreetHalfWidthTiles = 1, Space.ResidentialPlots Plots = default, bool CarParkCentres = false,
+    bool TradeFormsByBand = false)
 {
+    /// <summary>Whether trade blocks take trade forms at all.</summary>
+    public bool TradeForms => CarParkCentres || TradeFormsByBand;
+
     /// <summary>A Ruleset whose land cannot be subdivided at all.</summary>
     public static LotRuleset None => default;
 
@@ -3045,7 +3053,7 @@ public readonly record struct LotRuleset(
         : Space.BlockPatterns.Ceiling(LotsPerSegment);
 
     public int Carve(WorldKey key, Space.BlockPattern pattern, Space.BlockGround ground,
-        Span<Space.Parcel> into) => Plots.Applies(pattern)
+        Span<Space.Parcel> into) => Plots.Applies(Space.BlockPatterns.CarveAs(pattern))
         ? Plots.Carve(ground, StreetHalfWidthTiles, into)
         : Space.BlockPatterns.Carve(key, pattern, ground, LotsPerSegment, into);
 
@@ -3056,6 +3064,7 @@ public readonly record struct LotRuleset(
             return 1;
         }
 
+        pattern = Space.BlockPatterns.CarveAs(pattern);
         if (Plots.Applies(pattern))
         {
             int added = pattern == Space.BlockPattern.Detached ? 0

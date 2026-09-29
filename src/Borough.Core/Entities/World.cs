@@ -6922,6 +6922,7 @@ public sealed partial class World
 
         occupants = !(declaration.Houses || declaration.Premises) ? 0
             : IsTradeCentre(buildingSlot) ? CentreUnitCount(buildingSlot)
+            : IsShopHouse(buildingSlot) ? 1 + ShopHouseHomes(buildingSlot)
             : CapacityRuleset.Holds(FloorTilesOf(buildingSlot), Rules.Capacity.FloorTilesPerOccupant);
 
         return true;
@@ -7267,6 +7268,12 @@ public sealed partial class World
             return true;
         }
 
+        if (IsShopHouse(buildingSlot))
+        {
+            households = ShopHouseHomes(buildingSlot);
+            return true;
+        }
+
         households = Rules.Kind(kind).Business != 0 && occupants > 0
             ? occupants - 1
             : occupants;
@@ -7380,7 +7387,8 @@ public sealed partial class World
         Rules.Declares(Buildings.Kind[buildingSlot])
         && Rules.Kind(Buildings.Kind[buildingSlot]).Houses
         && !IsTradeCentre(buildingSlot)
-        && HasRoom(buildingSlot);
+        && HasRoom(buildingSlot)
+        && (!IsShopHouse(buildingSlot) || Occupants.Length(buildingSlot) < ShopHouseHomes(buildingSlot));
 
     /// <summary>
     /// Whether a <b>Business</b> may take premises in <paramref name="buildingSlot"/> right now.

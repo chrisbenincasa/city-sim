@@ -212,7 +212,7 @@ public partial class Main
             float wide = Mathf.Min(along * 0.45f, 14f);
             float gap = 5f;
             float shedHeight = shed * .8f;
-            if (_world.Rules.Lots.Plots.Applies(lots.PatternOf(lot)))
+            if (_world.Rules.Lots.Plots.Applies(BlockPatterns.CarveAs(lots.PatternOf(lot))))
             {
                 float plotLow = (horizontal ? lots.ParcelNorth[lot].Raw : lots.ParcelEast[lot].Raw) * MetresPerTile;
                 float plotHigh = plotLow + (horizontal ? deepTiles : wideTiles) * MetresPerTile;

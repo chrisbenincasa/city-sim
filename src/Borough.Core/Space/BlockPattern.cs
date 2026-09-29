@@ -184,6 +184,12 @@ public enum BlockPattern : byte
     /// band selects it. <see cref="CarParkCentre"/> holds its geometry.
     /// </remarks>
     CarParkCentre = 6,
+
+    /// <summary>
+    /// <b>A terrace of shop-houses</b>: one ground-floor Unit each, with Households on the storeys
+    /// above. A trade form carved as a <see cref="Perimeter"/> block.
+    /// </summary>
+    ShopHouseParade = 7,
 }
 
 /// <summary>
@@ -876,7 +882,43 @@ public static class BlockPatterns
     public const int Count = 6;
 
     /// <summary>How many patterns there are, trade forms included.</summary>
-    public const int FormCount = 7;
+    public const int FormCount = 8;
+
+    /// <summary>The pattern whose carve, footprint and storeys a form takes.</summary>
+    public static BlockPattern CarveAs(BlockPattern pattern) =>
+        pattern == BlockPattern.ShopHouseParade ? BlockPattern.Perimeter : pattern;
+
+    /// <summary>
+    /// The trade form a trade block takes, drawn from the forms its band's tier allows.
+    /// </summary>
+    /// <remarks>
+    /// The tier is the rung <see cref="ForBand"/> gives the band before its scatter, so every block
+    /// of a band shares one tier. Rungs 0–1 are Low, 2–3 Middle and 4–5 High. Low allows a
+    /// car-park centre. Middle and High allow a shop-house parade.
+    /// </remarks>
+    public static BlockPattern TradeForm(byte band, int bandCount, Determinism.WorldKey key, int column, int row)
+    {
+        int rung = band == 0 || bandCount <= 0 ? 0
+            : bandCount <= 1 ? Count - 1
+            : IntegerMath.FloorDiv((band - 1) * (Count - 1), bandCount - 1);
+
+        ReadOnlySpan<BlockPattern> allowed = IntegerMath.FloorDiv(rung, 2) switch
+        {
+            0 => LowTradeForms,
+            1 => MiddleTradeForms,
+            _ => HighTradeForms,
+        };
+
+        ulong patch = ((ulong)(uint)column << 32) | (uint)row;
+        ulong draw = Determinism.Randomness.Draw(key, patch, Quantities.Ticks.Zero, Determinism.PurposeTag.TradeForm);
+        return allowed[(int)((draw >> 16) % (ulong)allowed.Length)];
+    }
+
+    private static ReadOnlySpan<BlockPattern> LowTradeForms => [BlockPattern.CarParkCentre];
+
+    private static ReadOnlySpan<BlockPattern> MiddleTradeForms => [BlockPattern.ShopHouseParade];
+
+    private static ReadOnlySpan<BlockPattern> HighTradeForms => [BlockPattern.ShopHouseParade];
 
     /// <summary>Which side of a face's Segment the block behind it stands on.</summary>
     /// <remarks>
@@ -940,6 +982,7 @@ public static class BlockPatterns
             return 0;
         }
 
+        pattern = CarveAs(pattern);
         int written = 0;
 
         // plans/0045 row 24. Hoisted out of the face loop -- four stackallocs in a loop is a stack

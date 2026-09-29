@@ -38,6 +38,25 @@ public sealed partial class World
         && Lots.Rows.TryResolve(Buildings.Lot[buildingSlot], out int lotSlot)
         && Lots.PatternOf(lotSlot) == Space.BlockPattern.CarParkCentre;
 
+    /// <summary>Whether a Building stands on a shop-house parade's Lot.</summary>
+    public bool IsShopHouse(int buildingSlot) =>
+        buildingSlot >= 0
+        && Buildings.Rows.IsLive(buildingSlot)
+        && Lots.Rows.TryResolve(Buildings.Lot[buildingSlot], out int lotSlot)
+        && Lots.PatternOf(lotSlot) == Space.BlockPattern.ShopHouseParade;
+
+    /// <summary>
+    /// How many Households a shop-house's upper storeys hold: the floor above its ground-floor Unit
+    /// over <c>[capacity] floor_tiles_per_occupant</c>.
+    /// </summary>
+    private int ShopHouseHomes(int buildingSlot)
+    {
+        int lotSlot = Lots.Rows.Resolve(Buildings.Lot[buildingSlot]);
+        int ground = Lots.FootprintWide[lotSlot].Raw * Lots.FootprintDeep[lotSlot].Raw;
+
+        return Core.Rules.CapacityRuleset.Holds(FloorTilesOf(buildingSlot) - ground, Rules.Capacity.FloorTilesPerOccupant);
+    }
+
     private int CentreUnitCount(int buildingSlot) =>
         Space.CarParkCentre.UnitCount(Lots.FootprintWide[Lots.Rows.Resolve(Buildings.Lot[buildingSlot])].Raw);
 
@@ -59,6 +78,10 @@ public sealed partial class World
         if (IsTradeCentre(buildingSlot))
         {
             RaiseCentreUnits(buildingSlot);
+        }
+        else if (IsShopHouse(buildingSlot))
+        {
+            RaiseShopHouseUnit(buildingSlot);
         }
         else if (TryDeclaredOccupancy(Buildings.Kind[buildingSlot], buildingSlot, out int tenancies))
         {
@@ -100,6 +123,26 @@ public sealed partial class World
             BuildingUnits.InsertOrdered(buildingSlot, Units.Rows.Resolve(added));
             east += widths[i];
         }
+    }
+
+    /// <summary>
+    /// Lays a shop-house's one ground-floor Unit over its whole footprint, its door facing the Street
+    /// the Lot fronts.
+    /// </summary>
+    private void RaiseShopHouseUnit(int buildingSlot)
+    {
+        int lotSlot = Lots.Rows.Resolve(Buildings.Lot[buildingSlot]);
+        Tiles wide = Lots.FootprintWide[lotSlot];
+        Tiles deep = Lots.FootprintDeep[lotSlot];
+        Space.Frontage.BlockOf(
+            Roads.Streets, Lots.East[lotSlot], Lots.North[lotSlot], (Space.StreetSide)Lots.Side[lotSlot],
+            out _, out _, out Space.BlockFace face);
+
+        Handle<Unit> added = Units.Create(
+            Buildings.Rows.At(buildingSlot), Tiles.Zero, Tiles.Zero, wide, deep,
+            0, 1, (byte)face, anchor: false, floor: wide.Raw * deep.Raw);
+
+        BuildingUnits.InsertOrdered(buildingSlot, Units.Rows.Resolve(added));
     }
 
     /// <summary>
@@ -241,13 +284,14 @@ public sealed partial class World
     /// <summary>
     /// Brings every equal-Unit Building's Units to its current tenancy count after a Ruleset change.
     /// </summary>
-    /// <remarks>A car-park centre's row is fixed by its geometry and is left alone.</remarks>
+    /// <remarks>A trade form's Units are fixed by its geometry and are left alone.</remarks>
     private void ReshapeUnits()
     {
         for (int slot = 0; slot < Buildings.Rows.SlotCount; slot++)
         {
             if (Buildings.Rows.IsLive(slot)
                 && !IsTradeCentre(slot)
+                && !IsShopHouse(slot)
                 && TryDeclaredOccupancy(Buildings.Kind[slot], slot, out int tenancies))
             {
                 ShapeEqualUnits(slot, tenancies);

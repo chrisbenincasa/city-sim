@@ -930,4 +930,10 @@ public enum PurposeTag : ulong
     /// fall.
     /// </summary>
     CentreUnits = 62,
+
+    /// <summary>
+    /// Which trade form a trade block takes from the forms its band's tier allows. Drawn on block
+    /// coordinates at Tick zero, like <see cref="BlockPattern"/>.
+    /// </summary>
+    TradeForm = 63,
 }
