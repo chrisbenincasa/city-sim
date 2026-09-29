@@ -413,7 +413,9 @@
         "slab",
         "tower",
         "car-park-centre",
-        "shop-house-parade"
+        "shop-house-parade",
+        "supermarket",
+        "decked-supermarket"
       ]
     }
   }

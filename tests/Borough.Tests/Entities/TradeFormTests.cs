@@ -12,24 +12,34 @@ public sealed class TradeFormTests
     private static readonly WorldKey Key = WorldKey.FromSeed(0x7EAD_ED00_0000_0004UL);
 
     [Theory]
-    [InlineData(0, 0, BlockPattern.CarParkCentre)]
-    [InlineData(1, 3, BlockPattern.CarParkCentre)]
-    [InlineData(2, 3, BlockPattern.ShopHouseParade)]
-    [InlineData(3, 3, BlockPattern.ShopHouseParade)]
-    [InlineData(1, 1, BlockPattern.ShopHouseParade)]
-    public void A_band_draws_from_its_tier(byte band, int bandCount, BlockPattern expected)
+    [InlineData(0, 0, new[] { BlockPattern.CarParkCentre })]
+    [InlineData(1, 3, new[] { BlockPattern.CarParkCentre })]
+    [InlineData(2, 5, new[] { BlockPattern.CarParkCentre })]
+    [InlineData(2, 3, new[] { BlockPattern.ShopHouseParade, BlockPattern.Supermarket })]
+    [InlineData(4, 5, new[] { BlockPattern.ShopHouseParade, BlockPattern.DeckedSupermarket })]
+    [InlineData(3, 3, new[] { BlockPattern.ShopHouseParade })]
+    [InlineData(1, 1, new[] { BlockPattern.ShopHouseParade })]
+    public void A_band_draws_every_form_of_its_tier_and_nothing_else(
+        byte band, int bandCount, BlockPattern[] tier)
     {
-        for (int column = 0; column < 4; column++)
+        var drawn = new HashSet<BlockPattern>();
+
+        for (int column = 0; column < 64; column++)
         {
-            Assert.Equal(expected, BlockPatterns.TradeForm(band, bandCount, Key, column, 0));
+            drawn.Add(BlockPatterns.TradeForm(band, bandCount, Key, column, 0));
         }
+
+        Assert.Equal(tier.ToHashSet(), drawn);
     }
 
-    [Fact]
-    public void A_shop_house_carves_as_a_perimeter_block()
+    [Theory]
+    [InlineData(BlockPattern.ShopHouseParade, BlockPattern.Perimeter)]
+    [InlineData(BlockPattern.CarParkCentre, BlockPattern.CarParkCentre)]
+    [InlineData(BlockPattern.Supermarket, BlockPattern.CarParkCentre)]
+    [InlineData(BlockPattern.DeckedSupermarket, BlockPattern.CarParkCentre)]
+    public void A_trade_form_carves_as_its_housing_pattern(BlockPattern form, BlockPattern carve)
     {
-        Assert.Equal(BlockPattern.Perimeter, BlockPatterns.CarveAs(BlockPattern.ShopHouseParade));
-        Assert.Equal(BlockPattern.CarParkCentre, BlockPatterns.CarveAs(BlockPattern.CarParkCentre));
+        Assert.Equal(carve, BlockPatterns.CarveAs(form));
     }
 
     [Fact]
@@ -81,6 +91,65 @@ public sealed class TradeFormTests
         Assert.True(upstairs > 0, "no shop-house has a home above its shop.");
 
         AssertHouseholdsTakeOnlyTheUpperFloors(world, first);
+    }
+
+    [Fact]
+    public void Traded_raises_supermarkets_with_surface_and_deck_parking_at_world_creation()
+    {
+        RulesetLoadResult loaded =
+            RulesetLoader.Load(Path.Combine(AppContext.BaseDirectory, "Rulesets", "traded.toml"));
+        Assert.True(loaded.Ok, loaded.Describe());
+
+        // The middle bands hold trade blocks only in a city this large, and this seed draws both
+        // parking forms there.
+        const int citizens = 30_000;
+        WorldKey key = WorldKey.FromSeed(0x7EAD_ED00_0000_0001UL);
+        var world = new World(citizens, loaded.Ruleset!, key);
+        SyntheticCity.PopulateInto(world, key, Ticks.Zero, citizens);
+
+        int surface = 0, decked = 0;
+
+        for (int building = 0; building < world.Buildings.Rows.SlotCount; building++)
+        {
+            if (world.IsSupermarket(building))
+            {
+                AssertSupermarket(world, building, ref surface, ref decked);
+            }
+        }
+
+        Assert.True(surface > 0, "traded.toml raised no supermarket with surface parking.");
+        Assert.True(decked > 0, "traded.toml raised no decked supermarket.");
+    }
+
+    private static void AssertSupermarket(World world, int building, ref int surface, ref int decked)
+    {
+        int lot = world.Lots.Rows.Resolve(world.Buildings.Lot[building]);
+        BlockPattern form = world.Lots.PatternOf(lot);
+        if (form == BlockPattern.DeckedSupermarket) { decked++; } else { surface++; }
+
+        var units = new List<int>();
+        foreach (int unit in world.BuildingUnits.Walk(building))
+        {
+            units.Add(unit);
+        }
+
+        int only = Assert.Single(units);
+        Assert.True(world.Units.Anchor[only] != 0, $"supermarket {building}'s one Unit is not its anchor.");
+        Assert.False(world.Units.IsVacant(only), $"supermarket {building} stands with its store vacant.");
+        Assert.Equal((byte)BlockFace.South, world.Units.Side[only]);
+        Assert.Equal(1, world.Lots.Storeys[lot]);
+
+        Assert.True(world.TryDeclaredHousing(world.Buildings.Kind[building], building, out int homes));
+        Assert.Equal(0, homes);
+        Assert.False(world.HasRoomForHousehold(building));
+
+        int level = TownSupermarket.Stalls(
+            world.Lots.ParcelNorth[lot].Raw, world.Lots.ParcelDeep[lot].Raw, world.Lots.FootprintNorth[lot].Raw,
+            world.Lots.FootprintWide[lot].Raw, world.Lots.FootprintDeep[lot].Raw,
+            world.Rules.Lots.StreetHalfWidthTiles, world.Rules.Parking.Stalls).Stalls;
+        Assert.True(level > 0, $"supermarket {building} has no room for a stall.");
+        Assert.True(world.TryDeclaredParking(world.Buildings.Kind[building], building, out int spaces));
+        Assert.Equal(level * TownSupermarket.Levels(form), spaces);
     }
 
     private static void AssertHouseholdsTakeOnlyTheUpperFloors(World world, int shopHouse)

@@ -124,8 +124,9 @@ C# massing as the authoring workflow. Existing zoning, parcel and simulation geo
 3. Export the assets for Godot to import, instance and assemble. Keep Building art iteration in
    Blender rather than growing a catalogue of hand-coded Godot/C# mesh constructions.
 4. Check supported footprints and storeys against simulation geometry: floor area, open courtyards,
-   Street access and parking capacity must agree with what is drawn. Procedural geometry remains
-   useful for these constraints and for fallback/debug rendering.
+   Street access and parking capacity must agree with what is drawn. Everything drawn is authored
+   in Blender, including ground uses such as car parks, stalls and parking decks. The simulation
+   supplies positions and counts, and Godot places the authored modules there.
 5. Use the rudimentary roster for gameplay debugging; iterate on detailed visual design in a
    separate session. A blockout is a foundation, not finished art.
 

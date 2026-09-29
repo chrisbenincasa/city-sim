@@ -86,7 +86,12 @@ public readonly record struct BuildingFacts(
             address.Side,
             units,
             anchored,
-            pattern == BlockPattern.CarParkCentre ? ParkingForm.Surface : ParkingForm.None,
+            pattern switch
+            {
+                BlockPattern.CarParkCentre or BlockPattern.Supermarket => ParkingForm.Surface,
+                BlockPattern.DeckedSupermarket => ParkingForm.Deck,
+                _ => ParkingForm.None,
+            },
             IsCorner(world.Roads.Streets.Lattice, lots, lot));
         return true;
     }

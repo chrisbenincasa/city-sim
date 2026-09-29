@@ -569,6 +569,20 @@ confirm it hits.
   test-driven because the simulation is a pure function and can assert far more about itself than
   most games can.
 
+## C3. Blender
+
+Building models are authored in Blender ([the authoring procedure](07-the-drawing.md#building-authoring-procedure)).
+The scripts in `scripts/art/` run it in the background:
+
+```sh
+"$BLENDER_BIN" --background --factory-startup --python-exit-code 1 --python scripts/art/<script>.py
+```
+
+| Machine | `BLENDER_BIN` |
+|---|---|
+| Linux workstation | `/home/christian/Downloads/blender-5.2.1-linux-x64/blender` (5.2.1 LTS) |
+| Mac | `/Applications/Blender.app/Contents/MacOS/Blender`, the default in `scripts/art/review.sh` |
+
 ---
 
 ## Verifying the whole thing

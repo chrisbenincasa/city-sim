@@ -40,6 +40,7 @@ public partial class Main
         Fill(_carParks, CarParkSurfaces(), _carParkIds);
         Fill(_stalls, StallLines(), _stallIds);
         Fill(_units, Fascias(), _unitIds);
+        FillSupermarkets();
     }
 
     private IEnumerable<(ulong Id, int Lot)> Centres()

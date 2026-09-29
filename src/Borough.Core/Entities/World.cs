@@ -6923,6 +6923,7 @@ public sealed partial class World
         occupants = !(declaration.Houses || declaration.Premises) ? 0
             : IsTradeCentre(buildingSlot) ? CentreUnitCount(buildingSlot)
             : IsShopHouse(buildingSlot) ? 1 + ShopHouseHomes(buildingSlot)
+            : IsSupermarket(buildingSlot) ? 1
             : CapacityRuleset.Holds(FloorTilesOf(buildingSlot), Rules.Capacity.FloorTilesPerOccupant);
 
         return true;
@@ -7262,7 +7263,7 @@ public sealed partial class World
         // F1). Before the split this could not arise -- a ceiling above zero implied `tenanted`,
         // which implied housing -- and anything sizing a city off this would now count an office
         // block's tenancies as homes and build too few of the real ones.
-        if (!Rules.Kind(kind).Houses || IsTradeCentre(buildingSlot))
+        if (!Rules.Kind(kind).Houses || IsTradeCentre(buildingSlot) || IsSupermarket(buildingSlot))
         {
             households = 0;
             return true;
@@ -7387,6 +7388,7 @@ public sealed partial class World
         Rules.Declares(Buildings.Kind[buildingSlot])
         && Rules.Kind(Buildings.Kind[buildingSlot]).Houses
         && !IsTradeCentre(buildingSlot)
+        && !IsSupermarket(buildingSlot)
         && HasRoom(buildingSlot)
         && (!IsShopHouse(buildingSlot) || Occupants.Length(buildingSlot) < ShopHouseHomes(buildingSlot));
 
@@ -7713,6 +7715,7 @@ public sealed partial class World
         // it may sack a District -- and a kind that says `parked = false` is EXEMPT, which is
         // adr/0009's "a tower may not [carry a driveway]" and is the half a rate alone cannot say.
         spaces = IsTradeCentre(buildingSlot) ? CentreStalls(buildingSlot)
+            : IsSupermarket(buildingSlot) ? SupermarketStalls(buildingSlot)
             : Rules.Kind(kind).Parked
                 ? CapacityRuleset.Holds(
                     FloorTilesOf(buildingSlot), Rules.Capacity.FloorTilesPerParkingSpace)

@@ -1,10 +1,16 @@
 # ===================================================================================================
-# traded.toml -- `pictured.toml` PLUS THREE [[band]] TABLES AND trade_form = "by_band".
+# traded.toml -- `pictured.toml` PLUS FIVE [[band]] TABLES AND trade_form = "by_band".
 #
 # WHAT IT EXISTS TO SHOW: that each trade block takes the commercial form its density band allows.
-# Three bands land on ladder rungs 0, 2 and 5, which are the low, middle and high tiers, so a
-# generated city holds every tier. The low tier raises car-park centres. The middle and high tiers
-# raise shop-house parades: one ground-floor Unit each, with Households on the storeys above.
+# Five bands land on ladder rungs 0, 1, 2, 3 and 5, so a generated city holds every tier and both
+# halves of the middle one. The low tier (rungs 0 and 1) raises car-park centres. The middle tier
+# (rungs 2 and 3) raises shop-house parades and supermarkets, and a supermarket on rung 3 parks on
+# a deck. The high tier raises shop-house parades: one ground-floor Unit each, with Households on
+# the storeys above.
+#
+# ⚠ SUPERMARKETS NEED A LARGE CITY. The populator zones one block in a fixed stride for trade, and
+# the middle bands are narrow rings, so they hold trade blocks only at about 30,000 Citizens. At
+# 8,000 there are centres and shop-houses but no supermarket.
 #
 # ⚠ WHAT IT MUST NOT BE READ AS. This is a fixture, not a balanced city. Everything below the
 # header is `pictured.toml`'s, and that file's header warns against citing any number it produces.
@@ -15,11 +21,19 @@
 # ===================================================================================================
 
 [[band]]
+name   = "edge"
+admits = [0, 1]
+
+[[band]]
 name   = "outer"
 admits = [0, 1]
 
 [[band]]
 name   = "middle"
+admits = [0, 1]
+
+[[band]]
+name   = "inner"
 admits = [0, 1]
 
 [[band]]

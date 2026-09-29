@@ -708,6 +708,7 @@ public partial class Main
         ulong last = 0;
         int footprints = 0;
 
+        RefreshSupermarketIds();
         _buildingIds.Clear();
         _roofIds.Clear();
         _hipIds.Clear();
@@ -726,7 +727,7 @@ public partial class Main
 
             FoliageFootprint(one.Body, footprints++);
             if (one.Outhoused) FoliageFootprint(one.Yard, footprints++);
-            if (_shelled.Contains(one.Id) || _exactBodies.ContainsKey(one.Id)) continue;
+            if (_shelled.Contains(one.Id) || _exactBodies.ContainsKey(one.Id) || _supermarketIds.Contains(one.Id)) continue;
             bool far = _placedBodies.TryGetValue(one.Id, out PlacedBody placed);
             if (far)
             {

@@ -3059,7 +3059,7 @@ public readonly record struct LotRuleset(
 
     public byte Height(WorldKey key, Space.Parcel parcel, Space.BlockPattern pattern, int blockTiles)
     {
-        if (pattern == Space.BlockPattern.CarParkCentre)
+        if (pattern == Space.BlockPattern.CarParkCentre || Space.BlockPatterns.IsSupermarket(pattern))
         {
             return 1;
         }
@@ -3081,6 +3081,8 @@ public readonly record struct LotRuleset(
     {
         if (pattern == Space.BlockPattern.CarParkCentre)
             return Space.CarParkCentre.Footprint(parcel, ground, StreetHalfWidthTiles);
+        if (Space.BlockPatterns.IsSupermarket(pattern))
+            return Space.TownSupermarket.Footprint(parcel, ground, StreetHalfWidthTiles);
         if (!Plots.Applies(pattern) || pattern != Space.BlockPattern.Detached)
             return Footprint(key, parcel, ground);
         bool horizontal = parcel.Face is Space.BlockFace.South or Space.BlockFace.North;

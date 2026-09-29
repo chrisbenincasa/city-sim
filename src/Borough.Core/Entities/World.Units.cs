@@ -45,6 +45,28 @@ public sealed partial class World
         && Lots.Rows.TryResolve(Buildings.Lot[buildingSlot], out int lotSlot)
         && Lots.PatternOf(lotSlot) == Space.BlockPattern.ShopHouseParade;
 
+    /// <summary>Whether a Building stands on a town supermarket's Lot, with either parking.</summary>
+    public bool IsSupermarket(int buildingSlot) =>
+        buildingSlot >= 0
+        && Buildings.Rows.IsLive(buildingSlot)
+        && Lots.Rows.TryResolve(Buildings.Lot[buildingSlot], out int lotSlot)
+        && Space.BlockPatterns.IsSupermarket(Lots.PatternOf(lotSlot));
+
+    /// <summary>
+    /// How many stalls a supermarket's car park holds, over every level of a deck. The kind's
+    /// <c>parked</c> does not apply, because the car park is part of the form.
+    /// </summary>
+    private int SupermarketStalls(int buildingSlot)
+    {
+        int lotSlot = Lots.Rows.Resolve(Buildings.Lot[buildingSlot]);
+        int level = Space.TownSupermarket.Stalls(
+            Lots.ParcelNorth[lotSlot].Raw, Lots.ParcelDeep[lotSlot].Raw, Lots.FootprintNorth[lotSlot].Raw,
+            Lots.FootprintWide[lotSlot].Raw, Lots.FootprintDeep[lotSlot].Raw,
+            Rules.Lots.StreetHalfWidthTiles, Rules.Parking.Stalls).Stalls;
+
+        return level * Space.TownSupermarket.Levels(Lots.PatternOf(lotSlot));
+    }
+
     /// <summary>
     /// How many Households a shop-house's upper storeys hold: the floor above its ground-floor Unit
     /// over <c>[capacity] floor_tiles_per_occupant</c>.
@@ -82,6 +104,10 @@ public sealed partial class World
         else if (IsShopHouse(buildingSlot))
         {
             RaiseShopHouseUnit(buildingSlot);
+        }
+        else if (IsSupermarket(buildingSlot))
+        {
+            RaiseSupermarketUnit(buildingSlot);
         }
         else if (TryDeclaredOccupancy(Buildings.Kind[buildingSlot], buildingSlot, out int tenancies))
         {
@@ -141,6 +167,22 @@ public sealed partial class World
         Handle<Unit> added = Units.Create(
             Buildings.Rows.At(buildingSlot), Tiles.Zero, Tiles.Zero, wide, deep,
             0, 1, (byte)face, anchor: false, floor: wide.Raw * deep.Raw);
+
+        BuildingUnits.InsertOrdered(buildingSlot, Units.Rows.Resolve(added));
+    }
+
+    /// <summary>
+    /// Lays a supermarket's one anchor Unit over its whole store, its door facing south onto the Street.
+    /// </summary>
+    private void RaiseSupermarketUnit(int buildingSlot)
+    {
+        int lotSlot = Lots.Rows.Resolve(Buildings.Lot[buildingSlot]);
+        Tiles wide = Lots.FootprintWide[lotSlot];
+        Tiles deep = Lots.FootprintDeep[lotSlot];
+
+        Handle<Unit> added = Units.Create(
+            Buildings.Rows.At(buildingSlot), Tiles.Zero, Tiles.Zero, wide, deep,
+            0, 1, (byte)Space.BlockFace.South, anchor: true, floor: wide.Raw * deep.Raw);
 
         BuildingUnits.InsertOrdered(buildingSlot, Units.Rows.Resolve(added));
     }
@@ -292,6 +334,7 @@ public sealed partial class World
             if (Buildings.Rows.IsLive(slot)
                 && !IsTradeCentre(slot)
                 && !IsShopHouse(slot)
+                && !IsSupermarket(slot)
                 && TryDeclaredOccupancy(Buildings.Kind[slot], slot, out int tenancies))
             {
                 ShapeEqualUnits(slot, tenancies);

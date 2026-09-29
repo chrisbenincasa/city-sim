@@ -148,7 +148,9 @@ Types that differ only in looks are Appearance Families of a kept type.
 - A zone may forbid a type, but a zone never places one. Deferred: only tests paint the form mask
   in `GroundPermissions`, so nothing shipped can forbid a form. Revisit with the in-play path,
   where `World.ConstructionPermission` would enforce it.
-- No Ruleset key sets these weights.
+- No Ruleset key sets these weights. Every type in a tier's set is equally likely, so about half
+  of the middle band's trade blocks draw a town supermarket. That suits fixtures and tests. Capping
+  supermarkets per District waits for the in-play path, with the missing-seller nudge.
 - `pictured.toml` declares no bands, so every trade block becomes a car-park centre.
 
 ### World creation
@@ -161,7 +163,15 @@ dwellings now.
 - Storeys follow the band ladder, as housing does through `storeys_per_rung`.
 - Parking builds up first and down only when necessary.
   - Low band: surface parking.
-  - Middle band: a deck, with one level per band rung.
+  - Middle band: surface parking on rung 2. Rung 3 raises a deck with one level per rung, so 3
+    levels counting the ground. Decks stay rare and sit toward the centre.
+  - A deck has no ramp yet. Every level repeats the surface stall layout, which reserves no room
+    for one, so a drawn ramp would cover stalls the capacity counts. Adding one needs the layout
+    to give up a lane of stalls on each level for the ramp module.
+  - The target is a land-driven rule: build a deck only when the ground cannot hold the stalls
+    the store needs, so a small Lot builds up and an edge Lot spreads out. It waits for the
+    commercial parking minimum Policy's demand number or for smaller supermarket forms. Every
+    supermarket takes a whole block today, so Lot size cannot vary yet.
   - High band: underground, which is deferred.
 - Capacity is the number of stalls in a derived layout: 2.5 × 5 m stalls, 6 m aisles, double rows
   perpendicular to the Unit row. The drawing paints the same stalls.
@@ -178,7 +188,7 @@ dwellings now.
 | Pad site | Corner Lots, about 8 × 8 Tiles, carved from the front of a centre block | Centred | 1 | Forecourt or drive lane | Ordinary Lots |
 | Sales-yard trade | One Lot fronting one face | At one side of the parcel | 1 | Yard, typed by the Building kind | No |
 | Shop-house parade | Existing perimeter and back-to-back carves | Existing | 1 per ground floor, 1 or 2 Tiles wide | None | Carve and kinds |
-| Town supermarket | Half-block or whole-block Lot | Front of the parcel | 1 anchor + optional small Units | Deck | No |
+| Town supermarket | Whole-block Lot fronting south, carved as a car-park centre | Front of the parcel, 10 Tiles deep | 1 anchor + optional small Units | Deck behind the footprint | No |
 | Precinct / arcade | Whole-block Lot | Two rows either side of an internal walkway | Units face the walkway or the street | Walkway, deck behind | No |
 | Market hall | Half-block Lot | Hall shell | Grid of 1-Tile stalls facing inward | None | No |
 | High-street block | Perimeter carve | Existing | Anchor spanning several storeys, small Units around it | None | Carve |
@@ -191,6 +201,12 @@ Rules shared by every form:
 - Every form has one Address and one Access Point. Customers who drive park in the Building's own
   Car Park, which the Parking Shed finds first.
 - Ground-use rectangles are derived from the parcel and footprint. They are never saved.
+
+The town supermarket takes a whole block because that reuses the centre carve. On `pictured.toml`
+the store is 30 × 10 Tiles (4,800 m²), the top of its size range. Other market and supermarket
+forms are deferred, such as a half-block store, a discount box or a store with rooftop parking.
+Revisit when a second supermarket form is wanted. A half-block store needs a carve that mixes two
+forms in one block.
 
 ## Appearance Family contract
 
@@ -255,8 +271,8 @@ centre Businesses with 1,440 posts. Nobody is employed at world creation, becaus
 has not run. By Day 10, 816 Citizens work in those posts. By Day 20, 22 of the 48 have lost
 their Unit and 237 Citizens work in posts. The headless census of the same Ruleset over 20 Days
 (`--citizens 2000 --ticks 40960 --census`) shows money leaving Households; the cause is not
-diagnosed. Household money falls from
-7,357,906 to 4,027, the treasury rises from 976,462 to 9,239,629, and 25 tenancies end.
+diagnosed ([#67](https://github.com/chrisbenincasa/city-sim/issues/67)). Household money falls
+from 7,357,906 to 4,027, the treasury rises from 976,462 to 9,239,629, and 25 tenancies end.
 
 Deferred: enclosed mall, mixed-use podium and underground parking with a Building above, open-air
 market, hotel, and a commercial parking minimum Policy.

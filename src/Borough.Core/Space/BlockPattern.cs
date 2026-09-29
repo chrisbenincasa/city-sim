@@ -190,6 +190,18 @@ public enum BlockPattern : byte
     /// above. A trade form carved as a <see cref="Perimeter"/> block.
     /// </summary>
     ShopHouseParade = 7,
+
+    /// <summary>
+    /// <b>One Lot, a single-storey store along the front, and a surface car park behind.</b> A trade
+    /// form carved as a <see cref="CarParkCentre"/>. <see cref="TownSupermarket"/> holds its geometry.
+    /// </summary>
+    Supermarket = 8,
+
+    /// <summary>
+    /// A <see cref="Supermarket"/> whose car park is a deck of
+    /// <see cref="TownSupermarket.DeckLevels"/> levels.
+    /// </summary>
+    DeckedSupermarket = 9,
 }
 
 /// <summary>
@@ -882,11 +894,19 @@ public static class BlockPatterns
     public const int Count = 6;
 
     /// <summary>How many patterns there are, trade forms included.</summary>
-    public const int FormCount = 8;
+    public const int FormCount = 10;
 
-    /// <summary>The pattern whose carve, footprint and storeys a form takes.</summary>
-    public static BlockPattern CarveAs(BlockPattern pattern) =>
-        pattern == BlockPattern.ShopHouseParade ? BlockPattern.Perimeter : pattern;
+    /// <summary>The pattern whose carve a form takes.</summary>
+    public static BlockPattern CarveAs(BlockPattern pattern) => pattern switch
+    {
+        BlockPattern.ShopHouseParade => BlockPattern.Perimeter,
+        BlockPattern.Supermarket or BlockPattern.DeckedSupermarket => BlockPattern.CarParkCentre,
+        _ => pattern,
+    };
+
+    /// <summary>Whether a form is a town supermarket, with either parking.</summary>
+    public static bool IsSupermarket(BlockPattern pattern) =>
+        pattern is BlockPattern.Supermarket or BlockPattern.DeckedSupermarket;
 
     /// <summary>
     /// The trade form a trade block takes, drawn from the forms its band's tier allows.
@@ -894,7 +914,8 @@ public static class BlockPatterns
     /// <remarks>
     /// The tier is the rung <see cref="ForBand"/> gives the band before its scatter, so every block
     /// of a band shares one tier. Rungs 0–1 are Low, 2–3 Middle and 4–5 High. Low allows a
-    /// car-park centre. Middle and High allow a shop-house parade.
+    /// car-park centre. Middle allows a shop-house parade or a supermarket, and High a shop-house
+    /// parade. A supermarket on rung 3 parks on a deck.
     /// </remarks>
     public static BlockPattern TradeForm(byte band, int bandCount, Determinism.WorldKey key, int column, int row)
     {
@@ -911,12 +932,17 @@ public static class BlockPatterns
 
         ulong patch = ((ulong)(uint)column << 32) | (uint)row;
         ulong draw = Determinism.Randomness.Draw(key, patch, Quantities.Ticks.Zero, Determinism.PurposeTag.TradeForm);
-        return allowed[(int)((draw >> 16) % (ulong)allowed.Length)];
+        BlockPattern form = allowed[(int)((draw >> 16) % (ulong)allowed.Length)];
+
+        return form == BlockPattern.Supermarket && rung == DeckRung ? BlockPattern.DeckedSupermarket : form;
     }
+
+    private const int DeckRung = 3;
 
     private static ReadOnlySpan<BlockPattern> LowTradeForms => [BlockPattern.CarParkCentre];
 
-    private static ReadOnlySpan<BlockPattern> MiddleTradeForms => [BlockPattern.ShopHouseParade];
+    private static ReadOnlySpan<BlockPattern> MiddleTradeForms =>
+        [BlockPattern.ShopHouseParade, BlockPattern.Supermarket];
 
     private static ReadOnlySpan<BlockPattern> HighTradeForms => [BlockPattern.ShopHouseParade];
 
