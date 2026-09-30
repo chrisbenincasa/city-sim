@@ -280,7 +280,7 @@ Those two numbers produce every behaviour with no taxonomy of water types. A pon
 Lineage: this layer is adapted from SimCity 2013's **GlassBox** engine, whose production model was excellent even though its movement model was not.
 
 **Building**
-Anything that occupies a Lot, holds Bins, and runs Rules. Houses, shops, factories, farms, and service buildings are all Buildings. A Building has a footprint (the set of Tiles it covers) and interacts with Map Layers through that footprint. GlassBox called this a "Unit"; we say Building because we have no non-building instances of the abstraction.
+Anything that occupies a Lot, holds Bins, and runs Rules. Houses, shops, factories, farms, and service buildings are all Buildings. A Building has a footprint (the set of Tiles it covers) and interacts with Map Layers through that footprint. GlassBox called this a "Unit"; we say Building because we have no non-building instances of the abstraction. Here a **Unit** is something else, one tenancy's space inside a Building.
 
 A Building holds **zero or more Occupants**, up to a capacity **declared by its kind** — an apartment block is one Building and many Households. This is the only structure in the design that sits between a person and their dwelling, and it is bounded by a hard invariant:
 
@@ -294,7 +294,7 @@ It may hold Bins its Occupants draw from, one Access Point they all share, and o
 
 **Zero is a real state**, because construction and placement are different mechanisms (`adr/0069`): a Zone Rule raises a Building and houses nobody, and the placement pass fills it over the following Days.
 
-**How many it *employs* is declared the same way and is a separate number** (`[[building]] jobs`, milestone 5b-bis). A workplace houses nobody and employs a hundred, a dwelling the reverse, and a mixed-use Building both — so employment is a fourth key on the kind rather than a reading of occupancy. It follows the ceiling's disposition exactly: derived from the Ruleset in force, never saved, and a Building standing over a lowered one **dismisses** the overflow. The reason is occupancy's rather than an analogy — a Bin over its ceiling is left to drain because a Bin has a consumer, and a job has a holder and no consumer, so nothing would ever spend the surplus down. **It counts Citizens and never Households**: employment sits on the person, beside Experience and Skill Tier, and two adults in one Household working opposite sides of the city is the case a per-Household count could not express.
+**How many it *employs* is a separate number, derived from floor area.** A Business employs its tenancy share of its premises' floor over `[capacity] floor_tiles_per_job`; the retired `[[building]] jobs` key is refused. A workplace houses nobody and employs a hundred, a dwelling the reverse, and a mixed-use Building both. It follows the ceiling's disposition exactly: derived from the Ruleset in force, never saved, and a Building standing over a lowered one **dismisses** the overflow. The reason is occupancy's rather than an analogy — a Bin over its ceiling is left to drain because a Bin has a consumer, and a job has a holder and no consumer, so nothing would ever spend the surplus down. **It counts Citizens and never Households**: employment sits on the person, beside Experience and Skill Tier, and two adults in one Household working opposite sides of the city is the case a per-Household count could not express.
 
 **Appearance Family**
 An authored architectural style a Building is drawn in, such as a brick terrace house or a board school. A Building kind maps to one or more Appearance Families, and each Building is drawn in exactly one. It belongs to the drawing and never to the simulation.
@@ -572,6 +572,11 @@ The other demographic channel: the city's mix changes because **different kinds 
 Between them, Sorting and Life Stages give the city two independent demographic engines. They pull against each other: **affordability drives internal generation, attractiveness drives immigration, and attractiveness raises prices.** A city can be dying of its own desirability.
 
 See `docs/adr/0010-one-clock-and-demographics-by-sorting.md` and `docs/adr/0011-household-life-stages-and-self-generating-population.md`.
+
+**Unit**
+One tenancy's space inside a Building: a rectangle within the footprint, a first storey, a storey span, a facing side and an anchor flag. A Building's Units are fixed when it is raised. A Business's premises name a Building and one of its Units, and a Unit holds at most one Business. A Business's posts are its Unit's floor over `[capacity] floor_tiles_per_job`.
+
+A Building of a kind without a trade form holds one equal Unit per tenancy, each an equal share of the floor, and its storey and side mean nothing. Households take tenancies by count and name no Unit, so Households and Businesses still compete for one ceiling. ⚠ GlassBox used "Unit" to mean a Building. Here it never does. See `plans/commercial-lot-types.md`.
 
 **Business**
 The commercial or industrial economic actor occupying a Building. Consumes inputs, produces outputs, employs Citizens, and offers Goods or services to the market.
@@ -1204,7 +1209,7 @@ Ground where a Disaster can occur, derived from terrain at world generation and 
 - **"A Detailed Citizen" / "a Statistical Citizen"** — a category error since `adr/0007`. Citizens do not have fidelity; Segments do. Say "a Traveller on a Microscopic Segment," or just name the Segment.
 - **"Year" / "month" / "season"** — there is no calendar. Say Day. Anything that would naturally be annual must be expressed in Days or must not exist.
 - **"Hour" / "minute"** — there is no clock face either. Time of day is a **sun arc** with named phases (dawn, morning peak, midday, evening peak, night), and durations are Ticks internally and arc wedges on screen. An hour would not land on a Tick boundary, and more importantly an arc makes no numeric claim, so it cannot be caught contradicting what the player is watching. Say Tick, Day, or a phase name.
-- **"Unit"** — collides with RTS usage. Say Building.
+- **"Unit" for a Building** — collides with RTS usage and with GlassBox's name for a Building. Say Building. A **Unit** is a tenancy's space inside one.
 - **"Demand"** — there is no global demand scalar in this design. Say what actually drives growth: reachable jobs, delivered Goods, satisfied Needs. A "recession that shifts demand parameters" is the RCI bar wearing a new name; say what moved in which **Hinterland**.
 - **"Tax tolerance"** — no such scalar. Tolerance is emergent: a Household compares the city against a Hinterland using the same utility function everyone uses, and leaves or does not. Any named tunable that is really an outcome of the choice model should be suspected of the same error.
 - **"Difficulty modifier"** — nothing in the city is scaled by intensity. The **Intensity Dial** acts only on the world outside the map. A proposal to make construction slower or decline steeper at a higher setting is a proposal to abandon that.

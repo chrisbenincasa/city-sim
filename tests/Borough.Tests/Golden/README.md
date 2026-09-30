@@ -743,3 +743,14 @@ hashes and the hash seed are unchanged; no shipped Ruleset was edited.
 against format 7 and main re-recorded twice against 8 and 9, each correctly. A merged hash is not
 either parent's hash and cannot be checked against one, so the numbers here are a fresh recording
 rather than a reconciliation of two.
+
+### Units (2026-09-27)
+
+A Building is divided into Units, one tenancy each, and a Business names the Unit it holds
+(`plans/commercial-lot-types.md`, phase 2). The Unit table joins `World._tables` at the end and the
+Business table gains a saved `unit` handle, so Core save format is **12**. All three artefacts moved
+on their hashes alone: `world-hash.txt`'s row counts are unchanged. Both traces and `world-hash.txt`
+were regenerated with the commands above. Baseline Ruleset content hashes and the hash seed are
+unchanged. Behaviour did not move: census readings of twelve shipped Rulesets over 10 Days at 2,000
+Citizens, and of two sessions that reload a Ruleset mid-run, are identical before and after once the
+State Hash lines and the new table's own rows are removed.

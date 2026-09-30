@@ -174,6 +174,70 @@ public enum BlockPattern : byte
     /// </para>
     /// </remarks>
     Tower = 5,
+
+    /// <summary>
+    /// <b>One Lot, a single-storey row of Units along the rear, and a surface car park in front.</b>
+    /// A trade form rather than a density rung.
+    /// </summary>
+    /// <remarks>
+    /// It sits outside the density ladder, so <see cref="BlockPatterns.Count"/> excludes it and no
+    /// band selects it. <see cref="CarParkCentre"/> holds its geometry.
+    /// </remarks>
+    CarParkCentre = 6,
+
+    /// <summary>
+    /// <b>A terrace of shop-houses</b>: one ground-floor Unit each, with Households on the storeys
+    /// above. A trade form carved as a <see cref="Perimeter"/> block.
+    /// </summary>
+    ShopHouseParade = 7,
+
+    /// <summary>
+    /// <b>One Lot, a single-storey store along the front, and a surface car park behind.</b> A trade
+    /// form carved as a <see cref="CarParkCentre"/>. <see cref="TownSupermarket"/> holds its geometry.
+    /// </summary>
+    Supermarket = 8,
+
+    /// <summary>
+    /// A <see cref="Supermarket"/> whose car park is a deck of
+    /// <see cref="TownSupermarket.DeckLevels"/> levels.
+    /// </summary>
+    DeckedSupermarket = 9,
+
+    /// <summary>
+    /// <b>A department store along the south face, and shop-houses on the other three.</b> A trade
+    /// form carved as a <see cref="Perimeter"/> block whose south face is one parcel.
+    /// <see cref="DepartmentStore"/> holds the store's geometry.
+    /// </summary>
+    HighStreetBlock = 10,
+
+    /// <summary>
+    /// <b>One small shop on its own Lot, with a forecourt and a stall band.</b> The Lot's form only:
+    /// a <see cref="CarParkCentre"/> block carves its pads, and no block takes this pattern.
+    /// <see cref="PadSite"/> holds the geometry.
+    /// </summary>
+    PadSite = 11,
+
+    /// <summary>
+    /// <b>A block of 4 sales-yard trades</b>: two Lots face the south street and two the north, each
+    /// with a stall band along its street, a shed at one side and a yard beside it.
+    /// <see cref="SalesYard"/> holds the geometry.
+    /// </summary>
+    SalesYard = 12,
+
+    /// <summary>
+    /// <b>One Lot of single-storey shop rows either side of walkways, and a deck behind.</b> A trade
+    /// form carved as a <see cref="CarParkCentre"/>. <see cref="Space.Precinct"/> holds the geometry.
+    /// </summary>
+    Precinct = 13,
+
+    /// <summary>A <see cref="Precinct"/> of 2 storeys, its upper Units opening off a gallery.</summary>
+    GalleryPrecinct = 14,
+
+    /// <summary>
+    /// <b>One Lot holding a market hall on its south half and a market square on its north.</b> A
+    /// trade form carved as a <see cref="CarParkCentre"/>. <see cref="Space.MarketHall"/> holds the geometry.
+    /// </summary>
+    MarketHall = 15,
 }
 
 /// <summary>
@@ -272,7 +336,7 @@ public static class BlockPatterns
     /// </remarks>
     public static bool Exhaustive(BlockPattern pattern) =>
         pattern is BlockPattern.BackToBack or BlockPattern.Perimeter or BlockPattern.Slab
-            or BlockPattern.Tower;
+            or BlockPattern.Tower or BlockPattern.CarParkCentre;
 
     /// <summary>
     /// <b>How deep a shallow strip is, in Tiles</b> — the one authored-looking number in this file,
@@ -367,7 +431,8 @@ public static class BlockPatterns
     /// </para>
     /// </remarks>
     public static int ParcelsPerFace(BlockPattern pattern) =>
-        pattern is BlockPattern.Courtyard or BlockPattern.Slab or BlockPattern.Tower ? 1 : 0;
+        pattern is BlockPattern.Courtyard or BlockPattern.Slab or BlockPattern.Tower
+            or BlockPattern.CarParkCentre ? 1 : 0;
 
     /// <summary>Whether a pattern lays Addresses on this face at all.</summary>
     /// <remarks>
@@ -382,7 +447,7 @@ public static class BlockPatterns
             // ⚠ ONE face and not two, which is what makes it one Building rather than two. The pair
             // below take the north face as well and meet along the centre line; a tower has no
             // second half to meet.
-            BlockPattern.Tower => face is BlockFace.South,
+            BlockPattern.Tower or BlockPattern.CarParkCentre => face is BlockFace.South,
             BlockPattern.BackToBack or BlockPattern.Slab => face is BlockFace.South or BlockFace.North,
             _ => true,
         };
@@ -445,7 +510,7 @@ public static class BlockPatterns
             // an empty centre wherever the densest form appeared. The open part belongs in the
             // Building plan instead: one Lot holds the block, a podium occupies its footprint, and
             // a smaller shaft rises from it. plans/0062.
-            BlockPattern.Tower => acrossTiles,
+            BlockPattern.Tower or BlockPattern.CarParkCentre => acrossTiles,
             _ => StripTiles(alongTiles, acrossTiles, lotsPerSegment),
         };
     }
@@ -857,8 +922,113 @@ public static class BlockPatterns
             : claimed[(int)left] < claimed[(int)right];
     }
 
-    /// <summary>How many patterns there are. <b>Open by construction</b> — see <see cref="BlockPattern"/>.</summary>
+    /// <summary>
+    /// How many patterns the density ladder holds. <b>Open by construction</b> — see
+    /// <see cref="BlockPattern"/>.
+    /// </summary>
+    /// <remarks>Trade forms number from here and are not on the ladder.</remarks>
     public const int Count = 6;
+
+    /// <summary>How many patterns there are, trade forms included.</summary>
+    public const int FormCount = 16;
+
+    /// <summary>The pattern whose carve a form takes.</summary>
+    /// <remarks>A <see cref="BlockPattern.HighStreetBlock"/> also joins its south face into one parcel.</remarks>
+    public static BlockPattern CarveAs(BlockPattern pattern) => pattern switch
+    {
+        BlockPattern.ShopHouseParade or BlockPattern.HighStreetBlock => BlockPattern.Perimeter,
+        BlockPattern.Supermarket or BlockPattern.DeckedSupermarket
+            or BlockPattern.Precinct or BlockPattern.GalleryPrecinct
+            or BlockPattern.MarketHall => BlockPattern.CarParkCentre,
+        _ => pattern,
+    };
+
+    /// <summary>The form a parcel's Lot takes. A centre block's side-face parcels are its pads.</summary>
+    public static BlockPattern FormOf(BlockPattern pattern, BlockFace face) =>
+        pattern == BlockPattern.CarParkCentre && face is BlockFace.West or BlockFace.East
+            ? BlockPattern.PadSite
+            : pattern;
+
+    /// <summary>Whether a form is a town supermarket, with either parking.</summary>
+    public static bool IsSupermarket(BlockPattern pattern) =>
+        pattern is BlockPattern.Supermarket or BlockPattern.DeckedSupermarket;
+
+    /// <summary>Whether a form is a precinct, of either height.</summary>
+    public static bool IsPrecinct(BlockPattern pattern) =>
+        pattern is BlockPattern.Precinct or BlockPattern.GalleryPrecinct;
+
+    /// <summary>
+    /// The trade form a trade block takes, drawn from the forms its band's tier allows.
+    /// </summary>
+    /// <remarks>
+    /// The tier is the rung <see cref="ForBand"/> gives the band before its scatter, so every block
+    /// of a band shares one tier. Rungs 0–1 are Low, 2–3 Middle and 4–5 High. Low allows a
+    /// car-park centre or a sales yard. Middle allows a shop-house parade, a supermarket, a precinct or a market hall,
+    /// and High a shop-house parade or a high-street block. On rung 3 a supermarket parks on a deck
+    /// and a precinct rises to 2 storeys.
+    /// </remarks>
+    public static BlockPattern TradeForm(byte band, int bandCount, Determinism.WorldKey key, int column, int row) =>
+        TradeForm(band, bandCount, TradeFormWeights.Even, key, column, row);
+
+    public static BlockPattern TradeForm(
+        byte band, int bandCount, TradeFormWeights weights, Determinism.WorldKey key, int column, int row)
+    {
+        int rung = band == 0 || bandCount <= 0 ? 0
+            : bandCount <= 1 ? Count - 1
+            : IntegerMath.FloorDiv((band - 1) * (Count - 1), bandCount - 1);
+
+        ReadOnlySpan<BlockPattern> allowed = IntegerMath.FloorDiv(rung, 2) switch
+        {
+            0 => LowTradeForms,
+            1 => MiddleTradeForms,
+            _ => HighTradeForms,
+        };
+
+        ulong patch = ((ulong)(uint)column << 32) | (uint)row;
+        ulong draw = Determinism.Randomness.Draw(key, patch, Quantities.Ticks.Zero, Determinism.PurposeTag.TradeForm);
+        int total = 0;
+
+        foreach (BlockPattern each in allowed)
+        {
+            total += weights.Of(each);
+        }
+
+        // A Ruleset built in code rather than loaded carries no weights, and draws every form of the tier evenly.
+        if (total <= 0)
+        {
+            weights = TradeFormWeights.Even;
+            total = allowed.Length;
+        }
+
+        int pick = (int)((draw >> 16) % (ulong)total);
+        BlockPattern form = allowed[0];
+
+        foreach (BlockPattern each in allowed)
+        {
+            form = each;
+            pick -= weights.Of(each);
+
+            if (pick < 0)
+            {
+                break;
+            }
+        }
+
+        return rung != DeckRung ? form
+            : form == BlockPattern.Supermarket ? BlockPattern.DeckedSupermarket
+            : form == BlockPattern.Precinct ? BlockPattern.GalleryPrecinct
+            : form;
+    }
+
+    private const int DeckRung = 3;
+
+    private static ReadOnlySpan<BlockPattern> LowTradeForms => [BlockPattern.CarParkCentre, BlockPattern.SalesYard];
+
+    private static ReadOnlySpan<BlockPattern> MiddleTradeForms =>
+        [BlockPattern.ShopHouseParade, BlockPattern.Supermarket, BlockPattern.Precinct, BlockPattern.MarketHall];
+
+    private static ReadOnlySpan<BlockPattern> HighTradeForms =>
+        [BlockPattern.ShopHouseParade, BlockPattern.HighStreetBlock];
 
     /// <summary>Which side of a face's Segment the block behind it stands on.</summary>
     /// <remarks>
@@ -922,6 +1092,8 @@ public static class BlockPatterns
             return 0;
         }
 
+        bool joinSouth = pattern == BlockPattern.HighStreetBlock;
+        pattern = CarveAs(pattern);
         int written = 0;
 
         // plans/0045 row 24. Hoisted out of the face loop -- four stackallocs in a loop is a stack
@@ -973,7 +1145,7 @@ public static class BlockPatterns
 
             // How many parcels this face is actually cut into. A coarse pattern joins Addresses; it
             // can never split one, so the ask is capped by what the face carries.
-            int wanted = ParcelsPerFace(pattern);
+            int wanted = joinSouth && face == BlockFace.South ? 1 : ParcelsPerFace(pattern);
             int groups = wanted <= 0 || wanted >= count ? count : wanted;
             int placed = 0;
             int last = -1;
@@ -1126,6 +1298,23 @@ public static class BlockPatterns
         Determinism.WorldKey key, int column, int row, BlockFace face,
         int unit, int reach, int groups, Span<int> into)
     {
+        // The face in the id, not only the block: PurposeTag.PlotWidths' own remark. Four faces
+        // keyed alike would take their spare modules at one position and a block would read as four
+        // copies of one terrace.
+        ulong patch = ((ulong)(uint)column << 32) | (uint)row;
+        ulong draw = Determinism.Randomness.Draw(
+            key, patch ^ ((ulong)face << 60), Quantities.Ticks.Zero,
+            Determinism.PurposeTag.PlotWidths);
+
+        Widths(draw, unit, reach, groups, into);
+    }
+
+    /// <summary>
+    /// Divides <paramref name="reach"/> Tiles into <paramref name="groups"/> slices of whole
+    /// <paramref name="unit"/>s, giving the spare units from a position <paramref name="draw"/> picks.
+    /// </summary>
+    public static void Widths(ulong draw, int unit, int reach, int groups, Span<int> into)
+    {
         if (groups <= 0)
         {
             return;
@@ -1148,14 +1337,6 @@ public static class BlockPatterns
 
         int baseUnits = IntegerMath.FloorDiv(units, groups);
         int spare = units - (baseUnits * groups);
-
-        // The face in the id, not only the block: PurposeTag.PlotWidths' own remark. Four faces
-        // keyed alike would take their spare modules at one position and a block would read as four
-        // copies of one terrace.
-        ulong patch = ((ulong)(uint)column << 32) | (uint)row;
-        ulong draw = Determinism.Randomness.Draw(
-            key, patch ^ ((ulong)face << 60), Quantities.Ticks.Zero,
-            Determinism.PurposeTag.PlotWidths);
 
         int from = (int)(draw % (ulong)groups);
 

@@ -197,7 +197,10 @@ public sealed partial class World
         // rows it addresses have to exist first. The reverse dependency does not exist and must not
         // be created -- a Business points at its premises and at no Citizen, and the worker list is
         // an intrusive index list whose `next` column lives on the Citizen.
-        Businesses = new BusinessTable(PerThousand(citizens, 150), Buildings, Bins);
+        // One Unit per tenancy, so the Household ratio bounds it.
+        Units = new UnitTable(PerThousand(citizens, 360), Buildings);
+
+        Businesses = new BusinessTable(PerThousand(citizens, 150), Buildings, Bins, Units);
 
         Citizens = new CitizenTable(citizens, Households, Buildings, Businesses, CarParks);
 
@@ -498,6 +501,9 @@ public sealed partial class World
 
             // Appended: the age of stock whose Resource declares a shelf life.
             Expiries.Rows,
+
+            // Appended: the Units a Building is divided into, and which Business holds each.
+            Units.Rows,
         ];
 
         // The same list minus the tables no Tick phase can write, for the Decide guard alone. See
@@ -784,6 +790,9 @@ public sealed partial class World
     /// The Businesses, each occupying a Building and holding its own balance (<c>adr/0113</c>).
     /// </summary>
     public BusinessTable Businesses { get; }
+
+    /// <summary>The Units every Building is divided into, one tenancy each.</summary>
+    public UnitTable Units { get; }
 
     /// <summary>
     /// How much money has been issued into this world, as one saved row. The anchor
@@ -1956,6 +1965,7 @@ public sealed partial class World
         if (premised)
         {
             BuildingBusinesses.InsertOrdered(buildingSlot, slot);
+            LetUnit(buildingSlot, slot);
         }
 
         return handle;
@@ -3574,6 +3584,7 @@ public sealed partial class World
         // is the StaleHandleException milestone 27 task 9 died of, arriving from the other side.
         UnfitBusiness(business);
 
+        VacateUnit(slot);
         Businesses.Building[slot] = default;
 
         // ⚠ AND OFF THE COMMUTE ROSTER, every worker of this employer. Both departure buckets are
@@ -3635,6 +3646,7 @@ public sealed partial class World
 
         Businesses.Building[slot] = premises;
         BuildingBusinesses.InsertOrdered(buildingSlot, slot);
+        LetUnit(buildingSlot, slot);
 
         // Its Bins and its Rules, which live exactly as long as this tenancy (adr/0166). After the
         // handle is written, because FitBusiness reads it to find the kind that declares the
@@ -3748,6 +3760,8 @@ public sealed partial class World
         {
             BuildingBusinesses.Remove(buildingSlot, slot);
         }
+
+        VacateUnit(slot);
 
         // ⚠ THE STAFF COME OFF THE LIST AND THEIR HANDLES ARE LEFT TO GO STALE, which is the split
         // that matters. The list is (derived AND rebuilt) and threads Citizens.WorkerNext through the
@@ -4241,6 +4255,8 @@ public sealed partial class World
         Lots.FrontageOffset.Span.Clear();
         Bins.Capacity.Span.Clear();
 
+        RebuildUnits();
+
         // Rebuild the derived composition lookup and per-edge lists from saved live rows.
         HinterlandPopulation.RebuildIndexes(Hinterlands);
         HinterlandCompositions.Rebuild(HinterlandPopulation);
@@ -4497,6 +4513,7 @@ public sealed partial class World
         // re-run the generator (FloodCellTable's own remark on why it is Saved), so this is the one
         // path that ever rebuilds it after world creation. plans/0045 row 12.
         FloodInCells.Rebuild(Flood);
+        WaterInCells.Rebuild(WaterCells);
 
         // Geographic paint owns permission. Rebuild land summaries and standing housing separately.
         RefreshPermissionSummaries();
@@ -4718,6 +4735,10 @@ public sealed partial class World
     /// <summary>The Bins on each Building.</summary>
     /// <inheritdoc cref="Occupants"/>
     public IndexList BuildingBins => new(Buildings.BinHead, Buildings.BinTail, Bins.BinNext);
+
+    /// <summary>The Units of each Building.</summary>
+    /// <inheritdoc cref="Occupants"/>
+    public IndexList BuildingUnits => new(Buildings.UnitHead, Buildings.UnitTail, Units.BuildingNext);
 
     /// <summary>
     /// The treasury's Bins — the city's own balance sheet (<c>adr/0114</c>).
@@ -4966,6 +4987,7 @@ public sealed partial class World
         // the Tick that starts the age.
         Buildings.MarkRaised(Buildings.Rows.Resolve(building), now);
 
+        RaiseUnits(Buildings.Rows.Resolve(building));
         Fit(building, kind, now, key);
         Changes?.Building(Buildings.Rows.Resolve(building));
 
@@ -6899,9 +6921,14 @@ public sealed partial class World
         // a Building admitting nobody has none at all.
         KindDefinition declaration = Rules.Kind(kind);
 
-        occupants = declaration.Houses || declaration.Premises
-            ? CapacityRuleset.Holds(FloorTilesOf(buildingSlot), Rules.Capacity.FloorTilesPerOccupant)
-            : 0;
+        occupants = !(declaration.Houses || declaration.Premises) ? 0
+            : IsTradeCentre(buildingSlot) ? CentreUnitCount(buildingSlot)
+            : IsShopHouse(buildingSlot) ? 1 + ShopHouseHomes(buildingSlot)
+            : IsSupermarket(buildingSlot) || IsPadSite(buildingSlot) || IsSalesYard(buildingSlot) ? 1
+            : IsDepartmentStore(buildingSlot) ? DepartmentStoreUnitCount(buildingSlot)
+            : IsPrecinct(buildingSlot) ? PrecinctUnitCount(buildingSlot)
+            : IsMarketHall(buildingSlot) ? MarketHallUnitCount(buildingSlot)
+            : CapacityRuleset.Holds(FloorTilesOf(buildingSlot), Rules.Capacity.FloorTilesPerOccupant);
 
         return true;
     }
@@ -7240,9 +7267,15 @@ public sealed partial class World
         // F1). Before the split this could not arise -- a ceiling above zero implied `tenanted`,
         // which implied housing -- and anything sizing a city off this would now count an office
         // block's tenancies as homes and build too few of the real ones.
-        if (!Rules.Kind(kind).Houses)
+        if (!Rules.Kind(kind).Houses || IsShopOnly(buildingSlot))
         {
             households = 0;
+            return true;
+        }
+
+        if (IsShopHouse(buildingSlot))
+        {
+            households = ShopHouseHomes(buildingSlot);
             return true;
         }
 
@@ -7358,7 +7391,9 @@ public sealed partial class World
     public bool HasRoomForHousehold(int buildingSlot) =>
         Rules.Declares(Buildings.Kind[buildingSlot])
         && Rules.Kind(Buildings.Kind[buildingSlot]).Houses
-        && HasRoom(buildingSlot);
+        && !IsShopOnly(buildingSlot)
+        && HasRoom(buildingSlot)
+        && (!IsShopHouse(buildingSlot) || Occupants.Length(buildingSlot) < ShopHouseHomes(buildingSlot));
 
     /// <summary>
     /// Whether a <b>Business</b> may take premises in <paramref name="buildingSlot"/> right now.
@@ -7371,7 +7406,8 @@ public sealed partial class World
     public bool HasRoomForPremises(int buildingSlot) =>
         Rules.Declares(Buildings.Kind[buildingSlot])
         && Rules.Kind(Buildings.Kind[buildingSlot]).Premises
-        && HasRoom(buildingSlot);
+        && HasRoom(buildingSlot)
+        && HasVacantUnit(buildingSlot);
 
     /// <summary>
     /// How many tenants of <em>any</em> kind <paramref name="buildingSlot"/> holds — Households and
@@ -7494,6 +7530,8 @@ public sealed partial class World
             }
 
         }
+
+        ReshapeUnits();
 
         // 🔴 THE JOBS CEILING MOVED OUT OF THE BUILDING LOOP, and it had to. It used to sit inside it,
         // passing Buildings.Kind[slot] to TryDeclaredJobs and indexing Workers by a Building slot --
@@ -7647,24 +7685,11 @@ public sealed partial class World
             return false;
         }
 
-        // 🔴 A TRADE'S SHARE OF ITS PREMISES' FLOOR, and not a number on the trade. A Business takes
-        // ONE of the Building's tenancies (adr/0141), so its share is the floor divided by how many
-        // tenancies the Building has -- which is why this divides twice and neither divisor is
-        // authored per trade. ⚠ An UNPREMISED Business has no floor and therefore no jobs, which is
-        // the honest answer: nobody works somewhere that does not exist yet.
-        int floor = businessSlot >= 0 && Businesses.Rows.IsLive(businessSlot)
-                && Buildings.Rows.TryResolve(Businesses.Building[businessSlot], out int premises)
-            ? FloorTilesOf(premises)
-            : 0;
+        // The floor of the Unit the Business holds, so a bigger Unit employs more. An unpremised
+        // Business holds no Unit and so has no posts: nobody works somewhere that does not exist yet.
+        int floor = UnitFloorOf(businessSlot);
 
-        int tenancies = floor <= 0
-            ? 0
-            : CapacityRuleset.Holds(floor, Rules.Capacity.FloorTilesPerOccupant);
-
-        jobs = tenancies <= 0
-            ? 0
-            : CapacityRuleset.Holds(
-                Arithmetic.IntegerMath.FloorDiv(floor, tenancies), Rules.Capacity.FloorTilesPerJob);
+        jobs = floor <= 0 ? 0 : CapacityRuleset.Holds(floor, Rules.Capacity.FloorTilesPerJob);
 
         return true;
     }
@@ -7692,10 +7717,16 @@ public sealed partial class World
         // is DERELICT and keeps its cars -- dereliction must not evict a city's cars any more than
         // it may sack a District -- and a kind that says `parked = false` is EXEMPT, which is
         // adr/0009's "a tower may not [carry a driveway]" and is the half a rate alone cannot say.
-        spaces = Rules.Kind(kind).Parked
-            ? CapacityRuleset.Holds(
-                FloorTilesOf(buildingSlot), Rules.Capacity.FloorTilesPerParkingSpace)
-            : 0;
+        spaces = IsTradeCentre(buildingSlot) ? CentreStalls(buildingSlot)
+            : IsSupermarket(buildingSlot) ? SupermarketStalls(buildingSlot)
+            : IsPadSite(buildingSlot) ? PadStalls(buildingSlot)
+            : IsSalesYard(buildingSlot) ? SalesYardStalls(buildingSlot)
+            : IsPrecinct(buildingSlot) ? PrecinctStalls(buildingSlot)
+            : IsMarketHall(buildingSlot) ? 0
+            : Rules.Kind(kind).Parked
+                ? CapacityRuleset.Holds(
+                    FloorTilesOf(buildingSlot), Rules.Capacity.FloorTilesPerParkingSpace)
+                : 0;
 
         return true;
     }
@@ -8357,6 +8388,7 @@ public sealed partial class World
             amount <= Bins.SpaceAt(slot), Invariant.BinLevelIsWithinCapacity, slot, amount);
 
         Bins.Move(slot, amount);
+        Markets.Moved(this, slot, Bins.LevelAt(slot) - amount, Bins.LevelAt(slot));
         AgeDeposit(slot, amount);
         Drain(slot, Blocking.Supply, tick);
         RingMarket(slot, tick);
@@ -8437,6 +8469,7 @@ public sealed partial class World
             amount <= Bins.LevelAt(slot), Invariant.BinLevelIsWithinCapacity, slot, amount);
 
         Bins.Move(slot, -amount);
+        Markets.Moved(this, slot, Bins.LevelAt(slot) + amount, Bins.LevelAt(slot));
 
         int aged = Expiries.RowOf(Bins, slot);
 
@@ -8496,6 +8529,7 @@ public sealed partial class World
             if (discarded > 0)
             {
                 Bins.Move(bin, -discarded);
+                Markets.Moved(this, bin, Bins.LevelAt(bin) + discarded, Bins.LevelAt(bin));
                 Drain(bin, Blocking.Space, tick);
                 spoiled += discarded;
             }
@@ -8631,6 +8665,7 @@ public sealed partial class World
         int slot = Buildings.Rows.Resolve(building);
 
         EmptyPremises(slot, tick);
+        FreeUnits(slot);
 
         // The Car Park, and it goes with the Building because the parking a garage provides stops
         // existing when the garage does. The cars in it are NOT unparked here, and that is deliberate
@@ -9034,7 +9069,7 @@ public sealed partial class World
 
         return row == Space.DistrictMarkets.NoRow
             ? Bins.LevelAt(binSlot)
-            : Markets.Stock(this, row).Largest;
+            : Markets.Largest(this, row);
     }
 
     /// <summary>Empties both of a Bin's wait lists, for a Bin that is about to stop existing.</summary>

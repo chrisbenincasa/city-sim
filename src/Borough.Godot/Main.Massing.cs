@@ -212,7 +212,7 @@ public partial class Main
             float wide = Mathf.Min(along * 0.45f, 14f);
             float gap = 5f;
             float shedHeight = shed * .8f;
-            if (_world.Rules.Lots.Plots.Applies(lots.PatternOf(lot)))
+            if (_world.Rules.Lots.Plots.Applies(BlockPatterns.CarveAs(lots.PatternOf(lot))))
             {
                 float plotLow = (horizontal ? lots.ParcelNorth[lot].Raw : lots.ParcelEast[lot].Raw) * MetresPerTile;
                 float plotHigh = plotLow + (horizontal ? deepTiles : wideTiles) * MetresPerTile;
@@ -708,6 +708,7 @@ public partial class Main
         ulong last = 0;
         int footprints = 0;
 
+        RefreshModuleDrawnIds();
         _buildingIds.Clear();
         _roofIds.Clear();
         _hipIds.Clear();
@@ -726,7 +727,7 @@ public partial class Main
 
             FoliageFootprint(one.Body, footprints++);
             if (one.Outhoused) FoliageFootprint(one.Yard, footprints++);
-            if (_shelled.Contains(one.Id) || _exactBodies.ContainsKey(one.Id)) continue;
+            if (_shelled.Contains(one.Id) || _exactBodies.ContainsKey(one.Id) || _moduleDrawnIds.Contains(one.Id)) continue;
             bool far = _placedBodies.TryGetValue(one.Id, out PlacedBody placed);
             if (far)
             {
@@ -796,6 +797,8 @@ public partial class Main
         _pairedRoofs.Multimesh.VisibleInstanceCount = pairedRoofs;
         _parapets.Multimesh.VisibleInstanceCount = parapets;
         _yards.Multimesh.VisibleInstanceCount = yards;
+
+        foreach ((_, Transform3D surface) in CarParkSurfaces()) FoliageFootprint(surface, footprints++);
 
         RefreshFoliage(footprints);
         return buildings;

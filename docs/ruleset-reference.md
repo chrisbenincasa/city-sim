@@ -27,7 +27,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-52 sections, 354 keys.
+53 sections, 366 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
@@ -68,10 +68,11 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[jobs]`](#jobs) — 11 keys
 - [`[land_permissions]`](#land_permissions) — 1 key
 - [`[layers]`](#layers) — 20 keys
-- [`[lots]`](#lots) — 10 keys
+- [`[lots]`](#lots) — 12 keys
+- [`[lots] trade_form_weights`](#lots-trade_form_weights) — 7 keys
 - [`[market]`](#market) — 2 keys
 - [`[needs]`](#needs) — 9 keys
-- [`[parking]`](#parking) — 2 keys
+- [`[parking]`](#parking) — 5 keys
 - [`[placement]`](#placement) — 10 keys
 - [`[roads]`](#roads) — 12 keys
 - [`[school]`](#school) — 7 keys
@@ -1438,6 +1439,46 @@ Step between density rungs. Block-based forms use it in their plot-ratio target;
 
 Ground reserved on each side of a Street centreline, in Tiles. Footprints clear this strip on all four block edges; the shell draws the same Street width. Fixed at world creation.
 
+**`trade_form`** · *quoted string*
+
+How trade blocks are laid out. "car_park_centre" makes each trade block one Lot with a single-storey row of Units at the rear and a surface car park in front, and needs the [parking] stall sizes. A centre alone on its block gives up a side strip to three pad sites. "by_band" draws each trade block's form from its band's tier: a car-park centre or a sales yard in the low tier, a shop-house parade, a supermarket, a precinct or a market hall in the middle, a shop-house parade or a high-street block in the high tier. It also needs the stall sizes. Only world creation lays trade forms out; a block zoned for trade in play follows its density band. Omitted, trade blocks follow their density band. Fixed at world creation.
+
+**`trade_form_weights`** · *inline table*
+
+How often each trade form is drawn within its tier, relative to the others in that tier, as an inline table. An omitted form weighs 1. Needs trade_form = "by_band". No weight may be negative, and each tier needs a form of positive weight. Fixed at world creation.
+
+---
+
+## `[lots] trade_form_weights`
+
+**`car_park_centre`** · *whole number*
+
+The weight of a car-park centre in the low tier.
+
+**`high_street_block`** · *whole number*
+
+The weight of a high-street block in the high tier.
+
+**`market_hall`** · *whole number*
+
+The weight of a market hall in the middle tier: a whole block with a hall of small stalls on its south half and a market square on its north. It has no parking.
+
+**`precinct`** · *whole number*
+
+The weight of a precinct in the middle tier: a whole block of shop rows either side of walkways, with a deck behind. On the tier's upper rung it rises to 2 storeys.
+
+**`sales_yard`** · *whole number*
+
+The weight of a sales yard in the low tier: a block of four Lots, each a shed and a yard behind a band of parking.
+
+**`shop_house_parade`** · *whole number*
+
+The weight of a shop-house parade, in both the middle and the high tier.
+
+**`supermarket`** · *whole number*
+
+The weight of a town supermarket in the middle tier.
+
 ---
 
 ## `[market]`
@@ -1494,6 +1535,10 @@ How far Sustenance rises when a Household is fed.
 
 ## `[parking]`
 
+**`aisle_width_centimetres`** · *whole number*
+
+Width of a surface car park's driving aisle, in centimetres.
+
 **`radius_metres`** · *whole number*
 
 How far a driver will walk from a Car Park to where they were going. Omitting the whole [parking] table is a city with no Parking Shed at all; a radius of zero would be a city whose Car Parks all exist and none can be reached.
@@ -1501,6 +1546,14 @@ How far a driver will walk from a Car Park to where they were going. Omitting th
 **`shed_keeps`** · *whole number*
 
 How many Car Parks a Building's Parking Shed holds, and therefore how far a query walks before it stops. Not redundant with the radius: the cap bounds the work and the radius bounds the walk, and they bind in different worlds. A shed is stored for every Building at this width, so it is a per-city cost rather than a per-query one.
+
+**`stall_length_centimetres`** · *whole number*
+
+Length of one surface car-park stall, in centimetres.
+
+**`stall_width_centimetres`** · *whole number*
+
+Width of one surface car-park stall, in centimetres. Comes with the other two stall sizes; a car-park centre's Car Park holds one car per stall.
 
 ---
 

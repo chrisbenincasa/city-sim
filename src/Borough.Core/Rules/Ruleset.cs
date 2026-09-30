@@ -3027,10 +3027,22 @@ public readonly record struct CapacityRuleset(
 /// <param name="SetbackTiles">
 /// The most ground a Building leaves on each side of its parcel, in Tiles.
 /// </param>
+/// <param name="CarParkCentres">
+/// Whether trade blocks are carved as <see cref="Space.BlockPattern.CarParkCentre"/>s.
+/// </param>
+/// <param name="TradeFormsByBand">
+/// Whether each trade block draws its form from its band's tier, by
+/// <see cref="Space.BlockPatterns.TradeForm(byte, int, Space.TradeFormWeights, WorldKey, int, int)"/>.
+/// </param>
+/// <param name="TradeFormWeights">How often each form is drawn within its tier.</param>
 public readonly record struct LotRuleset(
     int LotsPerSegment, int SetbackTiles, int StoreysPerRung = 1, int PatternSpread = 0,
-    int StreetHalfWidthTiles = 1, Space.ResidentialPlots Plots = default)
+    int StreetHalfWidthTiles = 1, Space.ResidentialPlots Plots = default, bool CarParkCentres = false,
+    bool TradeFormsByBand = false, Space.TradeFormWeights TradeFormWeights = default)
 {
+    /// <summary>Whether trade blocks take trade forms at all.</summary>
+    public bool TradeForms => CarParkCentres || TradeFormsByBand;
+
     /// <summary>A Ruleset whose land cannot be subdivided at all.</summary>
     public static LotRuleset None => default;
 
@@ -3042,12 +3054,46 @@ public readonly record struct LotRuleset(
         : Space.BlockPatterns.Ceiling(LotsPerSegment);
 
     public int Carve(WorldKey key, Space.BlockPattern pattern, Space.BlockGround ground,
-        Span<Space.Parcel> into) => Plots.Applies(pattern)
-        ? Plots.Carve(ground, StreetHalfWidthTiles, into)
-        : Space.BlockPatterns.Carve(key, pattern, ground, LotsPerSegment, into);
+        Span<Space.Parcel> into)
+    {
+        if (Plots.Applies(Space.BlockPatterns.CarveAs(pattern)))
+        {
+            return Plots.Carve(ground, StreetHalfWidthTiles, into, pattern == Space.BlockPattern.HighStreetBlock);
+        }
+
+        if (pattern == Space.BlockPattern.SalesYard)
+        {
+            return Space.SalesYard.Carve(ground, into);
+        }
+
+        int count = Space.BlockPatterns.Carve(key, pattern, ground, LotsPerSegment, into);
+
+        if (pattern != Space.BlockPattern.CarParkCentre || count != 1)
+        {
+            return count;
+        }
+
+        ulong patch = ((ulong)(uint)ground.Column << 32) | (uint)ground.Row;
+        ulong draw = Determinism.Randomness.Draw(key, patch, Quantities.Ticks.Zero, Determinism.PurposeTag.PadSide);
+
+        return Space.PadSite.Split(into[0], ground, StreetHalfWidthTiles, (draw & 1) != 0, into);
+    }
 
     public byte Height(WorldKey key, Space.Parcel parcel, Space.BlockPattern pattern, int blockTiles)
     {
+        if (Space.BlockPatterns.IsPrecinct(pattern))
+        {
+            return (byte)Space.Precinct.Storeys(pattern);
+        }
+
+        if (pattern is Space.BlockPattern.CarParkCentre or Space.BlockPattern.PadSite or Space.BlockPattern.SalesYard
+                or Space.BlockPattern.MarketHall
+            || Space.BlockPatterns.IsSupermarket(pattern))
+        {
+            return 1;
+        }
+
+        pattern = Space.BlockPatterns.CarveAs(pattern);
         if (Plots.Applies(pattern))
         {
             int added = pattern == Space.BlockPattern.Detached ? 0
@@ -3062,6 +3108,20 @@ public readonly record struct LotRuleset(
     public (Quantities.Tiles East, Quantities.Tiles North, Quantities.Tiles Wide, Quantities.Tiles Deep)
         Footprint(WorldKey key, Space.Parcel parcel, Space.BlockGround ground, Space.BlockPattern pattern)
     {
+        if (pattern == Space.BlockPattern.CarParkCentre)
+            return Space.CarParkCentre.Footprint(parcel, ground, StreetHalfWidthTiles);
+        if (pattern == Space.BlockPattern.PadSite)
+            return Space.PadSite.Footprint(parcel, ground, StreetHalfWidthTiles);
+        if (pattern == Space.BlockPattern.SalesYard)
+            return Space.SalesYard.Footprint(parcel, ground, StreetHalfWidthTiles, ShedOnEast(key, parcel));
+        if (Space.BlockPatterns.IsSupermarket(pattern))
+            return Space.TownSupermarket.Footprint(parcel, ground, StreetHalfWidthTiles);
+        if (Space.BlockPatterns.IsPrecinct(pattern))
+            return Space.Precinct.Footprint(parcel, ground, StreetHalfWidthTiles);
+        if (pattern == Space.BlockPattern.MarketHall)
+            return Space.MarketHall.Footprint(parcel, ground, StreetHalfWidthTiles);
+        if (pattern == Space.BlockPattern.HighStreetBlock && parcel.Face == Space.BlockFace.South)
+            return Clipped(parcel.East.Raw, parcel.North.Raw, parcel.Wide.Raw, parcel.Deep.Raw, ground);
         if (!Plots.Applies(pattern) || pattern != Space.BlockPattern.Detached)
             return Footprint(key, parcel, ground);
         bool horizontal = parcel.Face is Space.BlockFace.South or Space.BlockFace.North;
@@ -3074,16 +3134,27 @@ public readonly record struct LotRuleset(
             new(wide), new(deep));
     }
 
+    private static bool ShedOnEast(WorldKey key, Space.Parcel parcel)
+    {
+        ulong patch = ((ulong)(uint)parcel.East.Raw << 32) | (uint)parcel.North.Raw;
+
+        return (Determinism.Randomness.Draw(key, patch, Quantities.Ticks.Zero, Determinism.PurposeTag.YardSide) & 1) != 0;
+    }
 
     /// <summary>Clips the drawn setbacks to the block's reserved Street edges.</summary>
     public (Quantities.Tiles East, Quantities.Tiles North, Quantities.Tiles Wide, Quantities.Tiles Deep)
         Footprint(WorldKey key, Space.Parcel parcel, Space.BlockGround ground)
     {
         var footprint = Footprint(key, parcel.East, parcel.North, parcel.Wide, parcel.Deep);
-        int east = footprint.East.Raw;
-        int north = footprint.North.Raw;
-        int right = east + footprint.Wide.Raw;
-        int top = north + footprint.Deep.Raw;
+        return Clipped(footprint.East.Raw, footprint.North.Raw, footprint.Wide.Raw, footprint.Deep.Raw, ground);
+    }
+
+    /// <summary>A rectangle clipped to the block's street edges.</summary>
+    private (Quantities.Tiles East, Quantities.Tiles North, Quantities.Tiles Wide, Quantities.Tiles Deep)
+        Clipped(int east, int north, int wide, int deep, Space.BlockGround ground)
+    {
+        int right = east + wide;
+        int top = north + deep;
         int westEdge = ground.East + StreetHalfWidthTiles;
         int southEdge = ground.North + StreetHalfWidthTiles;
         int eastEdge = ground.East + ground.Wide - StreetHalfWidthTiles;
@@ -3699,7 +3770,11 @@ public readonly record struct TreasuryRuleset(Money OpeningBalance)
 /// than only as <see cref="Radius"/></b>: a diagnostic that reported a rounded Tile count would be
 /// reporting a number the designer never wrote, and reload comparison is against the file.
 /// </param>
-public readonly record struct ParkingRuleset(int RadiusMetres, int ShedKeeps)
+/// <param name="Stalls">
+/// The stall and aisle sizes a car-park centre's surface car park is laid out with.
+/// </param>
+public readonly record struct ParkingRuleset(
+    int RadiusMetres, int ShedKeeps, Space.StallSizes Stalls = default)
 {
     /// <summary>
     /// A Ruleset whose cities have no Parking Shed.

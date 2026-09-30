@@ -1,0 +1,316 @@
+{
+  "tile_metres": 4.0,
+  "modules": [
+    {
+      "module": "iron-wall",
+      "vertices": 40,
+      "faces": 30,
+      "bounds_min": [
+        -2.0,
+        -2.2,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        -1.5,
+        7.0
+      ],
+      "materials": [
+        "brick",
+        "glass",
+        "iron",
+        "stone"
+      ],
+      "geometry_sha256": "a6ee0e4d5ca252d50d0f5f35b8c3546a5bbe57e62bb6d28aa5eff99363a7f384"
+    },
+    {
+      "module": "iron-entrance",
+      "vertices": 40,
+      "faces": 30,
+      "bounds_min": [
+        -2.0,
+        -2.2,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        -1.5,
+        7.0
+      ],
+      "materials": [
+        "brick",
+        "door",
+        "iron",
+        "roof-glass",
+        "stone"
+      ],
+      "geometry_sha256": "3ddc03ec1bed314dd40ecd3bcd79da11f8355d8c2c44f7fd11612a45ab64f55d"
+    },
+    {
+      "module": "iron-roof",
+      "vertices": 16,
+      "faces": 12,
+      "bounds_min": [
+        -2.0,
+        -2.0,
+        6.75
+      ],
+      "bounds_max": [
+        2.0,
+        2.0,
+        8.15
+      ],
+      "materials": [
+        "iron"
+      ],
+      "geometry_sha256": "8b448ef57ca8cceb761bae9d48651ad730e1f21fe88fa2ccb1e5cff1e23bdf60"
+    },
+    {
+      "module": "concrete-wall",
+      "vertices": 24,
+      "faces": 18,
+      "bounds_min": [
+        -2.0,
+        -2.25,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        -1.6,
+        5.5
+      ],
+      "materials": [
+        "concrete",
+        "concrete-dark",
+        "glass"
+      ],
+      "geometry_sha256": "74c96193a43dd1c932bcd34ba0780e6a7e507df7688f07a32f253c85d99001d8"
+    },
+    {
+      "module": "concrete-entrance",
+      "vertices": 32,
+      "faces": 24,
+      "bounds_min": [
+        -2.0,
+        -3.6,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        -1.6,
+        5.5
+      ],
+      "materials": [
+        "concrete",
+        "concrete-dark",
+        "door",
+        "glass"
+      ],
+      "geometry_sha256": "a17c3e39306985964c0b2e906465dbf6a7c7e64b99c24cc1e5a65207f675bef6"
+    },
+    {
+      "module": "concrete-roof",
+      "vertices": 24,
+      "faces": 18,
+      "bounds_min": [
+        -2.0,
+        -2.0,
+        5.5
+      ],
+      "bounds_max": [
+        2.0,
+        2.0,
+        6.25
+      ],
+      "materials": [
+        "concrete",
+        "concrete-dark",
+        "rooflight"
+      ],
+      "geometry_sha256": "3e7d5cb2ad8d74bec1a0234b5e77c7face5ebd2f3e646176d4ec33cfb91ce843"
+    },
+    {
+      "module": "shed-wall",
+      "vertices": 16,
+      "faces": 12,
+      "bounds_min": [
+        -2.0,
+        -2.0,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        -1.8,
+        4.2
+      ],
+      "materials": [
+        "steel"
+      ],
+      "geometry_sha256": "ec212ac8af11dd847c9f9e2de7ce5636b0cbb00769b5a516dbb71082e38e8e94"
+    },
+    {
+      "module": "shed-entrance",
+      "vertices": 24,
+      "faces": 18,
+      "bounds_min": [
+        -2.0,
+        -2.05,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        -1.8,
+        4.2
+      ],
+      "materials": [
+        "sign",
+        "steel"
+      ],
+      "geometry_sha256": "ffc01ddd888b7c0ff580bea2fc9b99f72a1728021cd28625968d9314af139cb8"
+    },
+    {
+      "module": "shed-roof",
+      "vertices": 16,
+      "faces": 12,
+      "bounds_min": [
+        -2.0,
+        -2.0,
+        4.2
+      ],
+      "bounds_max": [
+        2.0,
+        2.0,
+        4.82
+      ],
+      "materials": [
+        "sheet",
+        "steel"
+      ],
+      "geometry_sha256": "4d9343559fff3acdcaa3fe63fd018ba2699f0dada9174ab513dcc18c1ffe47be"
+    },
+    {
+      "module": "stall-open",
+      "vertices": 72,
+      "faces": 54,
+      "bounds_min": [
+        -2.0,
+        -2.4,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        1.9,
+        2.56
+      ],
+      "materials": [
+        "awning",
+        "awning-stripe",
+        "counter",
+        "crate",
+        "fruit",
+        "greens"
+      ],
+      "geometry_sha256": "9412406d409ba91ccfad7ef02248e948b738345add00bf70bbdd4ca0aab85262"
+    },
+    {
+      "module": "stall-shut",
+      "vertices": 40,
+      "faces": 30,
+      "bounds_min": [
+        -1.9,
+        -1.9,
+        0.0
+      ],
+      "bounds_max": [
+        1.9,
+        1.9,
+        2.55
+      ],
+      "materials": [
+        "counter",
+        "shutter"
+      ],
+      "geometry_sha256": "372fd055b94e2de293885b05d6cf2681ebbc593dc642ca6b9af0c5daa5ddb229"
+    },
+    {
+      "module": "square-paving",
+      "vertices": 24,
+      "faces": 18,
+      "bounds_min": [
+        -2.0,
+        -2.0,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        2.0,
+        0.065
+      ],
+      "materials": [
+        "flags",
+        "joint"
+      ],
+      "geometry_sha256": "d8f4b509f2952234e3036b8818b0b7d20bec3741aaa6e4ebe434ad75de584862"
+    },
+    {
+      "module": "square-tree",
+      "vertices": 32,
+      "faces": 24,
+      "bounds_min": [
+        -1.9,
+        -1.9,
+        0.0
+      ],
+      "bounds_max": [
+        1.9,
+        1.9,
+        7.4
+      ],
+      "materials": [
+        "joint",
+        "leaf",
+        "trunk"
+      ],
+      "geometry_sha256": "20476208a102202b0eae70c5fef8b3b349d8d1ec8c9029a72cc13afebb799071"
+    },
+    {
+      "module": "square-bench",
+      "vertices": 32,
+      "faces": 24,
+      "bounds_min": [
+        -1.2,
+        -0.25,
+        0.0
+      ],
+      "bounds_max": [
+        1.2,
+        0.28,
+        0.95
+      ],
+      "materials": [
+        "bench",
+        "steel"
+      ],
+      "geometry_sha256": "1f06da99ab110dc8887bbaacf1d084293800b95ff8e2da52e71754b5e4b55fff"
+    },
+    {
+      "module": "iron-glass",
+      "vertices": 6,
+      "faces": 5,
+      "bounds_min": [
+        -2.0,
+        -2.0,
+        7.0
+      ],
+      "bounds_max": [
+        2.0,
+        2.0,
+        8.1
+      ],
+      "materials": [
+        "roof-glass"
+      ],
+      "geometry_sha256": "af2e6b1dc6bcedd385ebd224ec82d8874f815b238361cb9e67597ab487b2af24"
+    }
+  ]
+}

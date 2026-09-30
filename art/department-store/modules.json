@@ -1,0 +1,172 @@
+{
+  "tile_metres": 4.0,
+  "storey_metres": 3.5,
+  "modules": [
+    {
+      "module": "body",
+      "vertices": 8,
+      "faces": 6,
+      "bounds_min": [
+        -2.0,
+        -2.0,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        2.0,
+        3.5
+      ],
+      "materials": [
+        "stone"
+      ],
+      "geometry_sha256": "e4d9d1bbb64ebeca8a0d471641ce21d485c2ef11f34b12c8b156933d9bc309fb"
+    },
+    {
+      "module": "roof",
+      "vertices": 8,
+      "faces": 6,
+      "bounds_min": [
+        -2.0,
+        -2.0,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        2.0,
+        0.15
+      ],
+      "materials": [
+        "membrane"
+      ],
+      "geometry_sha256": "b1cef658d7e82f2fad0bc8e933c2f5f6b680b806da874094b6936f14c4e75c24"
+    },
+    {
+      "module": "parapet",
+      "vertices": 16,
+      "faces": 12,
+      "bounds_min": [
+        -2.0,
+        -0.1,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        0.45,
+        1.02
+      ],
+      "materials": [
+        "stone",
+        "string"
+      ],
+      "geometry_sha256": "55a597d5cabe9d446608ee28969758bafb3933242117cf6648d8aca0fb2aab40"
+    },
+    {
+      "module": "window-bay",
+      "vertices": 32,
+      "faces": 24,
+      "bounds_min": [
+        -2.0,
+        -0.2,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        0.0,
+        3.05
+      ],
+      "materials": [
+        "frame",
+        "glass",
+        "string"
+      ],
+      "geometry_sha256": "7d29ff31ab738253f7cc8759dd6c1e6438f7c2e77e594772f53b13e074d4876e"
+    },
+    {
+      "module": "anchor-bay",
+      "vertices": 24,
+      "faces": 18,
+      "bounds_min": [
+        -2.0,
+        -0.25,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        0.0,
+        3.5
+      ],
+      "materials": [
+        "fascia",
+        "glass",
+        "stone"
+      ],
+      "geometry_sha256": "14751a17b8b15649294efed58b4af2621df00d44672be6ae43a7c8930c4fdaf2"
+    },
+    {
+      "module": "entrance",
+      "vertices": 48,
+      "faces": 36,
+      "bounds_min": [
+        -2.0,
+        -2.4,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        0.0,
+        3.5
+      ],
+      "materials": [
+        "canopy",
+        "door",
+        "fascia",
+        "glass",
+        "sign",
+        "stone"
+      ],
+      "geometry_sha256": "b9f0a9296d28630c43b9dcfcac5db679e4f4aa03cce2b96baf89230731600cff"
+    },
+    {
+      "module": "corner-bay",
+      "vertices": 24,
+      "faces": 18,
+      "bounds_min": [
+        -2.0,
+        -0.25,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        0.0,
+        3.5
+      ],
+      "materials": [
+        "corner-fascia",
+        "glass",
+        "stone"
+      ],
+      "geometry_sha256": "14751a17b8b15649294efed58b4af2621df00d44672be6ae43a7c8930c4fdaf2"
+    },
+    {
+      "module": "corner-tower",
+      "vertices": 96,
+      "faces": 60,
+      "bounds_min": [
+        -3.4,
+        -3.4,
+        0.0
+      ],
+      "bounds_max": [
+        3.4,
+        3.4,
+        7.6
+      ],
+      "materials": [
+        "copper",
+        "stone",
+        "string"
+      ],
+      "geometry_sha256": "881ec9a7088521ec7600b7695312eedada3500f67d0e871217c79019b436c7b0"
+    }
+  ]
+}

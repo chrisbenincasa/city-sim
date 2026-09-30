@@ -404,6 +404,9 @@ public static class SyntheticCity
 
         int buildings = raised;
 
+        // After the dwellings, so their slots stay the contiguous run Dwelling indexes.
+        RaiseTradeForms(world, now, key);
+
         HouseholdRuleset rules = world.Rules.Households;
 
         // 🔴 A CURSOR AND NO LONGER A ROUND ROBIN (plans/0053). `i % buildings` was sound for exactly
@@ -1178,6 +1181,11 @@ public static class SyntheticCity
                     // Counting a commercial block toward a housing target would silently shrink
                     // every generated city by the trade's share -- a population change wearing a
                     // zoning change's clothes.
+                    if (world.Rules.Lots.CarParkCentres)
+                    {
+                        world.PatternBlock(column, row, BlockPattern.CarParkCentre);
+                    }
+
                     LotSubdivider.SubdivideBlock(world, column, row, Trade);
                     continue;
                 }
@@ -1503,6 +1511,52 @@ public static class SyntheticCity
         {
             LotSubdivider.SubdivideBlock(world, column, row, Housing);
         }
+    }
+
+    /// <summary>
+    /// Raises the trade kind on every vacant trade-form Lot and fills its Units with Businesses.
+    /// </summary>
+    /// <remarks>
+    /// The kind is the one the trade Zone Rule raises, so creation builds what the city would.
+    /// </remarks>
+    private static void RaiseTradeForms(World world, Ticks now, WorldKey key)
+    {
+        if (!world.Rules.Lots.TradeForms || !TryTradeKind(world, out byte kind))
+        {
+            return;
+        }
+
+        for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
+        {
+            if (!world.Lots.Rows.IsLive(slot)
+                || !world.Lots.IsVacant(slot)
+                || (int)world.Lots.PatternOf(slot) < BlockPatterns.Count
+                || (world.Lots.Zone[slot] & world.BandAdmitting(slot) & Trade) == 0)
+            {
+                continue;
+            }
+
+            Handle<Building> centre = world.CreateBuilding(world.Lots.Rows.At(slot), kind, now, key);
+
+            world.FillUnits(world.Buildings.Rows.Resolve(centre));
+        }
+    }
+
+    private static bool TryTradeKind(World world, out byte kind)
+    {
+        foreach (ZoneRuleDefinition rule in world.Rules.ZoneRules)
+        {
+            if (IntegerMath.ShiftLeft(1, rule.Zone) == Trade
+                && world.Rules.Declares(rule.Kind)
+                && world.Rules.Kind(rule.Kind).Business != 0)
+            {
+                kind = rule.Kind;
+                return true;
+            }
+        }
+
+        kind = 0;
+        return false;
     }
 
     /// <summary>

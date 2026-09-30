@@ -130,6 +130,13 @@ public sealed class DistrictMarkets
     /// </remarks>
     private int[] _poolOf = [];
 
+    // Each market row's largest seller stock, and how many sellers hold exactly that much. Kept
+    // current by Moved on every level write, so a purchase or a wake reads it without walking the
+    // row. The count lets a sale by one of several tied sellers leave the maximum standing.
+    private long[] _largest = [];
+
+    private int[] _atLargest = [];
+
     private bool _stale = true;
 
     /// <summary>Marks the index out of date. The next query rebuilds it.</summary>
@@ -230,6 +237,56 @@ public sealed class DistrictMarkets
         }
 
         return new Offered(held, largest);
+    }
+
+    /// <summary>The largest stock any one seller in a market row holds.</summary>
+    /// <remarks>
+    /// Equal to <see cref="Stock"/>'s <see cref="Offered.Largest"/>, read in constant time. A buyer
+    /// needing more than this cannot be served by anyone in the row.
+    /// </remarks>
+    public long Largest(World world, int poolRow)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+
+        Ensure(world);
+
+        return poolRow < 0 || poolRow >= _largest.Length ? 0 : _largest[poolRow];
+    }
+
+    /// <summary>Records that a Bin's level moved, keeping its market row's largest stock current.</summary>
+    /// <remarks>
+    /// Called by every write that can change a seller's level: a deposit, a withdrawal and spoilage.
+    /// A stale index is left alone, because the rebuild reads every level afresh.
+    /// </remarks>
+    public void Moved(World world, int binSlot, long before, long after)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+
+        if (_stale || binSlot < 0 || binSlot >= _marketOf.Length || before == after)
+        {
+            return;
+        }
+
+        int row = _marketOf[binSlot] - 1;
+
+        if (row < 0)
+        {
+            return;
+        }
+
+        if (after > _largest[row])
+        {
+            _largest[row] = after;
+            _atLargest[row] = 1;
+        }
+        else if (after == _largest[row])
+        {
+            _atLargest[row]++;
+        }
+        else if (before == _largest[row] && --_atLargest[row] == 0)
+        {
+            Measure(world, row);
+        }
     }
 
     /// <summary>
@@ -399,6 +456,41 @@ public sealed class DistrictMarkets
                 }
             }
         }
+
+        if (_largest.Length < buckets - 1)
+        {
+            _largest = new long[buckets - 1];
+            _atLargest = new int[buckets - 1];
+        }
+
+        for (int row = 0; row < buckets - 1; row++)
+        {
+            Measure(world, row);
+        }
+    }
+
+    private void Measure(World world, int row)
+    {
+        long largest = 0;
+        int at = 0;
+
+        for (int entry = _starts[row]; entry < _starts[row + 1]; entry++)
+        {
+            long level = world.Bins.LevelAt(_entries[entry]);
+
+            if (level > largest)
+            {
+                largest = level;
+                at = 1;
+            }
+            else if (level == largest)
+            {
+                at++;
+            }
+        }
+
+        _largest[row] = largest;
+        _atLargest[row] = at;
     }
 
     /// <summary>

@@ -1209,6 +1209,13 @@ public partial class Main : Node3D
         // this layer existed the only way to see one was to wait for the simulation to build on it,
         // which on a world with an empty Unplaced Pool never happens.
         _plots = Layer(new Color(0.42f, 0.52f, 0.30f), Vector3.One, perInstance: true, casts: false);
+        CreateCarParkLayers();
+        CreateSupermarketLayers();
+        CreateDepartmentStoreLayers();
+        CreatePadSiteLayers();
+        CreateSalesYardLayers();
+        CreatePrecinctLayers();
+        CreateMarketHallLayers();
 
         // OFF by default. It is an instrument rather than scenery -- it answers "how big is a Cell
         // against this Building", and a person who has not asked that question does not want a

@@ -1,0 +1,132 @@
+{
+  "tile_metres": 4.0,
+  "storey_metres": 3.5,
+  "deck_level_metres": 3.0,
+  "modules": [
+    {
+      "module": "store-bay",
+      "vertices": 48,
+      "faces": 36,
+      "bounds_min": [
+        -2.0,
+        -20.15,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        20.0,
+        4.3
+      ],
+      "materials": [
+        "fascia",
+        "glass",
+        "membrane",
+        "trim",
+        "wall"
+      ],
+      "geometry_sha256": "bbc348846b3f63cd9c99ed286d5516bdaff4016e899fb6db2bb1395fdb5a8243"
+    },
+    {
+      "module": "store-entrance",
+      "vertices": 72,
+      "faces": 54,
+      "bounds_min": [
+        -2.0,
+        -23.0,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        20.0,
+        4.9
+      ],
+      "materials": [
+        "canopy",
+        "door",
+        "fascia",
+        "glass",
+        "membrane",
+        "sign",
+        "trim",
+        "wall"
+      ],
+      "geometry_sha256": "1ffef6b0395809b1a3f0cdecce2f1e6abb0f41dd3180f04bac56fee4347334b2"
+    },
+    {
+      "module": "parking-surface",
+      "vertices": 8,
+      "faces": 6,
+      "bounds_min": [
+        -2.0,
+        -2.0,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        2.0,
+        0.05
+      ],
+      "materials": [
+        "asphalt"
+      ],
+      "geometry_sha256": "e9d41030a5bb3ea1b5125c97e3405c1db4cce5abcacc3a8fb88b871358411f73"
+    },
+    {
+      "module": "stall",
+      "vertices": 8,
+      "faces": 6,
+      "bounds_min": [
+        -2.5,
+        1.19,
+        0.05
+      ],
+      "bounds_max": [
+        2.5,
+        1.31,
+        0.06
+      ],
+      "materials": [
+        "paint"
+      ],
+      "geometry_sha256": "dce1a76072c340840496b5e7d3972c9131de418877b2b8c49b98c5c451cb0b63"
+    },
+    {
+      "module": "deck-slab",
+      "vertices": 16,
+      "faces": 12,
+      "bounds_min": [
+        -2.0,
+        -2.0,
+        -2.95
+      ],
+      "bounds_max": [
+        2.0,
+        2.0,
+        0.0
+      ],
+      "materials": [
+        "concrete"
+      ],
+      "geometry_sha256": "01bcffa307203e36d29160c2548aecdf6fba6b1432f8f942d230bbae41a3f3ad"
+    },
+    {
+      "module": "deck-edge",
+      "vertices": 8,
+      "faces": 6,
+      "bounds_min": [
+        -2.0,
+        -0.1,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        0.1,
+        1.1
+      ],
+      "materials": [
+        "barrier"
+      ],
+      "geometry_sha256": "aaa2ebea75af39586e81cb8726389c03c12ad9363b37ada157a6aa16cc140178"
+    }
+  ]
+}

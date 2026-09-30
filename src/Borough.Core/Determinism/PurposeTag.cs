@@ -924,4 +924,27 @@ public enum PurposeTag : ulong
     /// by a Tick, so it moves no State Hash.
     /// </summary>
     AppearancePaint = 61,
+
+    /// <summary>
+    /// Which end of a car-park centre's row the anchor takes, and where the small Units' spare bays
+    /// fall.
+    /// </summary>
+    CentreUnits = 62,
+
+    /// <summary>
+    /// Which trade form a trade block takes from the forms its band's tier allows. Drawn on block
+    /// coordinates at Tick zero, like <see cref="BlockPattern"/>.
+    /// </summary>
+    TradeForm = 63,
+
+    /// <summary>
+    /// Which side face of a car-park centre block its pad sites take. Drawn on block coordinates at
+    /// Tick zero, like <see cref="TradeForm"/>.
+    /// </summary>
+    PadSide = 64,
+
+    /// <summary>
+    /// Which side of its Lot a sales yard's shed stands on. Drawn on the parcel's corner at Tick zero.
+    /// </summary>
+    YardSide = 65,
 }

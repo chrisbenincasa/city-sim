@@ -56,6 +56,8 @@ public class StylePresetTests
     [InlineData("[[family]]\nid = \"a\"\nkinds = [\"dwelling\"]\ncolour = \"red\"\n", 8, "unknown key 'colour'")]
     [InlineData("[[family]]\nid = \"a\"\nkinds = [\"dwelling\"]\nstoreys = [3, 2]\n", 8, "'storeys' must be [low, high]")]
     [InlineData("[[family]]\nid = \"a\"\nkinds = [\"dwelling\"]\npatterns = [\"terrace\"]\n", 8, "'terrace' is not a patterns value")]
+    [InlineData("[[family]]\nid = \"a\"\nkinds = [\"dwelling\"]\nparking = [\"garage\"]\n", 8, "'garage' is not a parking value")]
+    [InlineData("[[family]]\nid = \"a\"\nkinds = [\"dwelling\"]\nanchored = 1\n", 8, "'anchored' must be true or false")]
     [InlineData("[[family]]\nid = \"a\"\nkinds = [\"dwelling\"]\nweight = 0\n", 8, "'weight' must be a whole number of at least 1")]
     [InlineData("[[family]]\nid = \"a\"\nfallback = true\nkinds = [\"dwelling\"]\nstoreys = [1, 2]\n", 9, "fallback family admits every Building")]
     [InlineData("[[family]]\nkinds = [\"dwelling\"]\n", 5, "'id' is required")]
@@ -132,6 +134,51 @@ public class StylePresetTests
         Assert.Equal("workplace", FamilyPicker.Pick(preset, World, Facts(1)).Family!.Id);
         Assert.Equal(new FamilyPick(preset.Families[0], FamilyChoice.Fallback), FamilyPicker.Pick(preset, World, Facts(2, storeys: 3)));
         Assert.Equal(FamilyChoice.Missing, FamilyPicker.Pick(preset, World, Facts(3, kind: "school")).Choice);
+    }
+
+    [Fact]
+    public void A_centre_family_admits_centres_by_form_units_anchor_and_parking()
+    {
+        StylePreset preset = Preset("""
+            [[family]]
+            id = "strip"
+            kinds = ["shopfront"]
+            patterns = ["car-park-centre"]
+            units = [4, 12]
+            anchored = true
+            parking = ["surface"]
+            """);
+
+        AppearanceFamily strip = preset.Families[0];
+        BuildingFacts centre = Facts(1, storeys: 1, pattern: BlockPattern.CarParkCentre, kind: "shopfront") with
+        {
+            Units = 8,
+            Anchored = true,
+            Parking = ParkingForm.Surface,
+        };
+
+        Assert.True(strip.Admits(centre));
+        Assert.False(strip.Admits(centre with { Units = 13 }));
+        Assert.False(strip.Admits(centre with { Anchored = false }));
+        Assert.False(strip.Admits(centre with { Parking = ParkingForm.Deck }));
+        Assert.False(strip.Admits(centre with { Pattern = BlockPattern.Perimeter }));
+    }
+
+    [Fact]
+    public void A_corner_family_admits_only_corner_buildings()
+    {
+        StylePreset preset = Preset("""
+            [[family]]
+            id = "domed"
+            kinds = ["shopfront"]
+            corner = true
+            """);
+
+        AppearanceFamily domed = preset.Families[0];
+        BuildingFacts shop = Facts(1, storeys: 3, pattern: BlockPattern.Perimeter, kind: "shopfront");
+
+        Assert.True(domed.Admits(shop with { Corner = true }));
+        Assert.False(domed.Admits(shop with { Corner = false }));
     }
 
     [Fact]

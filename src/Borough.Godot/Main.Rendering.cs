@@ -28,6 +28,7 @@ public partial class Main
             else RefreshFamilyBodies(changes.Buildings);
             _drawnBuildings = Massings(Buildings());
             _vacantLots = Fill(_plots, Plots(), _plotIds);
+            FillCarParks();
             _renderedBuildings.Clear();
             var drawn = new HashSet<ulong>();
             for (int i = 0; i < _buildings.Multimesh.VisibleInstanceCount; i++) drawn.Add(_buildings.Multimesh.IdAt(i));
@@ -36,7 +37,7 @@ public partial class Main
             {
                 if (!rows.IsLive(slot)) continue;
                 ulong id = rows.IdAt(slot);
-                _renderedBuildings[slot] = (id, drawn.Contains(id) || _placedBodies.ContainsKey(id) || _exactBodies.ContainsKey(id) || _shelled.Contains(id));
+                _renderedBuildings[slot] = (id, drawn.Contains(id) || _placedBodies.ContainsKey(id) || _exactBodies.ContainsKey(id) || _shelled.Contains(id) || _moduleDrawnIds.Contains(id));
             }
         }
         else
@@ -63,7 +64,10 @@ public partial class Main
                 RemoveFamilyBody(id);
                 bool far = PlaceFamilyBody(slot);
                 BodyShape? shape = far ? _placedBodies[id].Shape : null;
-                foreach (Massing each in Buildings(slot))
+                bool modules = _world.IsSupermarket(slot) || _world.IsDepartmentStore(slot) || _world.IsPadSite(slot)
+                    || _world.IsSalesYard(slot) || _world.IsPrecinct(slot) || _world.IsMarketHall(slot);
+                if (modules) _moduleDrawnIds.Add(id); else _moduleDrawnIds.Remove(id);
+                foreach (Massing each in modules ? [] : Buildings(slot))
                 {
                     Massing one = far ? FarMassing(each, shape!.Body) : each;
                     _bodyEdits.Add(new(one.Body, far ? FarPaint(one, shape!.Wall, one.Paint) : one.Paint, one.Reads, far));
@@ -73,7 +77,7 @@ public partial class Main
                     roof?.Add(new(one.Roof, far ? FarPaint(one, shape!.Roof, RoofPaint(one)) : RoofPaint(one), RoofWall(one), far));
                 }
                 geometry |= ReplaceBuilding(id);
-                bool drawn = far || _bodyEdits.Count != 0;
+                bool drawn = far || modules || _bodyEdits.Count != 0;
                 _renderedBuildings[slot] = (id, drawn);
                 if (drawn) _drawnBuildings++;
             }
@@ -85,8 +89,10 @@ public partial class Main
                     foreach (var entry in batch.Instances) FoliageFootprint(entry.Transform, at++);
                 foreach (var batch in _yards.Multimesh.Batches)
                     foreach (var entry in batch.Instances) FoliageFootprint(entry.Transform, at++);
+                foreach ((_, var surface) in CarParkSurfaces()) FoliageFootprint(surface, at++);
                 RefreshFoliage(at);
                 _vacantLots = Fill(_plots, Plots(), _plotIds);
+                FillCarParks();
             }
         }
         changes.Clear();

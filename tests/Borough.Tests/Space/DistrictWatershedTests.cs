@@ -779,9 +779,10 @@ public sealed class DistrictWatershedTests
             // taxing.toml IS shopping.toml with an income tax over the wages it already pays --
             // plans/0072 row 33 -- so it inherits both for that file's reason. It is the one shipped
             // world that both PAYS A WAGE and holds a treasury Bin, which is what withholding needs.
+            // traded.toml IS pictured.toml with banded trade forms, so it inherits the table.
             bool expected = file is "twinned.toml" or "provisioned.toml" or "oversupplied.toml"
                 or "waged.toml" or "pictured.toml" or "shopping.toml" or "insolvent.toml" or "stress-shopping.toml" or "profile-services.toml"
-                or "schooling.toml" or "taxing.toml";
+                or "schooling.toml" or "taxing.toml" or "traded.toml";
 
             Assert.Equal(expected, states);
         }

@@ -7755,8 +7755,72 @@ public static class RulesetLoader
             }
             var dimensions = plots ? new Core.Space.ResidentialPlots((int)frontage, (int)depth,
                 (int)houseWidth, (int)houseDepth, (int)houseStoreys) : default;
-            return new LotRuleset((int)value, (int)setback, (int)step, (int)spread, (int)streetHalfWidth, dimensions);
+
+            bool centres = false, byBand = false;
+            if (TryString(_lotsTable, "trade_form", out string? tradeForm, required: false))
+            {
+                if (tradeForm is not ("car_park_centre" or "by_band"))
+                {
+                    Refuse(LineOfLot("trade_form"), null,
+                        $"trade_form = \"{tradeForm}\" is not a trade form setting. It is "
+                        + "\"car_park_centre\" or \"by_band\"; omit the key to lay trade blocks out like any other.");
+                    return LotRuleset.None;
+                }
+
+                // A centre's Car Park is sized by its stalls, so a centre without stall sizes would
+                // stand with no parking at all. A banded Ruleset's lowest tier raises centres.
+                if (_parkingTable is null
+                    || !TryInteger(_parkingTable, "stall_width_centimetres", out _, required: false))
+                {
+                    Refuse(LineOfLot("trade_form"), null,
+                        $"trade_form = \"{tradeForm}\" needs [parking] stall_width_centimetres, "
+                        + "stall_length_centimetres and aisle_width_centimetres, because a centre's "
+                        + "Car Park holds as many cars as its stalls.");
+                    return LotRuleset.None;
+                }
+
+                centres = tradeForm == "car_park_centre";
+                byBand = tradeForm == "by_band";
+            }
+
+            Core.Space.TradeFormWeights weights = Core.Space.TradeFormWeights.Even;
+            KeyValueSyntax? weightEntry = Find(_lotsTable, "trade_form_weights", RulesetKeyKind.Table);
+            if (weightEntry is not null)
+            {
+                if (!byBand || weightEntry.Value is not InlineTableSyntax inline)
+                {
+                    Refuse(LineOf(weightEntry), null,
+                        "trade_form_weights is an inline table of weights, and needs trade_form = \"by_band\".");
+                    return LotRuleset.None;
+                }
+
+                weights = new Core.Space.TradeFormWeights(
+                    Weight(inline, "car_park_centre"), Weight(inline, "sales_yard"),
+                    Weight(inline, "shop_house_parade"), Weight(inline, "supermarket"),
+                    Weight(inline, "precinct"), Weight(inline, "market_hall"), Weight(inline, "high_street_block"));
+
+                if (weights.CarParkCentre < 0 || weights.SalesYard < 0 || weights.ShopHouseParade < 0
+                    || weights.Supermarket < 0 || weights.Precinct < 0 || weights.MarketHall < 0
+                    || weights.HighStreetBlock < 0
+                    || weights.CarParkCentre + weights.SalesYard == 0
+                    || weights.ShopHouseParade + weights.Supermarket + weights.Precinct + weights.MarketHall == 0
+                    || weights.ShopHouseParade + weights.HighStreetBlock == 0)
+                {
+                    Refuse(LineOf(weightEntry), null,
+                        "trade_form_weights must not be negative, and every tier needs a form of positive weight.");
+                    return LotRuleset.None;
+                }
+            }
+
+            return new LotRuleset(
+                (int)value, (int)setback, (int)step, (int)spread, (int)streetHalfWidth, dimensions, centres, byBand,
+                weights);
         }
+
+        private int Weight(InlineTableSyntax inline, string form) =>
+            TryInteger(inline, form, out long weight, required: false)
+                ? (int)(weight > int.MaxValue ? int.MaxValue : weight < int.MinValue ? int.MinValue : weight)
+                : 1;
 
         private HousingConstructionRuleset? ReadHousingConstruction(CapacityRuleset capacity)
         {
@@ -8557,7 +8621,32 @@ public static class RulesetLoader
                 return ParkingRuleset.None;
             }
 
-            return new ParkingRuleset((int)metres, (int)keeps);
+            bool hasWidth = TryInteger(_parkingTable, "stall_width_centimetres", out long width, required: false);
+            bool hasLength = TryInteger(_parkingTable, "stall_length_centimetres", out long length, required: hasWidth);
+            bool hasAisle = TryInteger(_parkingTable, "aisle_width_centimetres", out long aisle, required: hasWidth);
+            if (!hasWidth && (hasLength || hasAisle))
+            {
+                Refuse(LineOfParking(hasLength ? "stall_length_centimetres" : "aisle_width_centimetres"), null,
+                    "Stall sizes come as a set: stall_width_centimetres, stall_length_centimetres "
+                    + "and aisle_width_centimetres.");
+                return ParkingRuleset.None;
+            }
+
+            if (!hasWidth)
+            {
+                return new ParkingRuleset((int)metres, (int)keeps);
+            }
+
+            if (width is < 1 or > 10_000 || length is < 1 or > 10_000 || aisle is < 1 or > 10_000)
+            {
+                Refuse(LineOfParking("stall_width_centimetres"), null,
+                    $"Stall sizes are {width} × {length} cm with a {aisle} cm aisle. Each must be "
+                    + "between 1 and 10000 centimetres.");
+                return ParkingRuleset.None;
+            }
+
+            return new ParkingRuleset(
+                (int)metres, (int)keeps, new Core.Space.StallSizes((int)width, (int)length, (int)aisle));
         }
 
         /// <summary>Reads <c>[water]</c>, or answers that the world has none.</summary>

@@ -981,6 +981,44 @@
         "street_half_width_tiles": {
           "description": "Ground reserved on each side of a Street centreline, in Tiles. Footprints clear this strip on all four block edges; the shell draws the same Street width. Fixed at world creation.",
           "type": "integer"
+        },
+        "trade_form": {
+          "description": "How trade blocks are laid out. \"car_park_centre\" makes each trade block one Lot with a single-storey row of Units at the rear and a surface car park in front, and needs the [parking] stall sizes. A centre alone on its block gives up a side strip to three pad sites. \"by_band\" draws each trade block's form from its band's tier: a car-park centre or a sales yard in the low tier, a shop-house parade, a supermarket, a precinct or a market hall in the middle, a shop-house parade or a high-street block in the high tier. It also needs the stall sizes. Only world creation lays trade forms out; a block zoned for trade in play follows its density band. Omitted, trade blocks follow their density band. Fixed at world creation.",
+          "type": "string"
+        },
+        "trade_form_weights": {
+          "description": "How often each trade form is drawn within its tier, relative to the others in that tier, as an inline table. An omitted form weighs 1. Needs trade_form = \"by_band\". No weight may be negative, and each tier needs a form of positive weight. Fixed at world creation.",
+          "type": "object",
+          "properties": {
+            "car_park_centre": {
+              "description": "The weight of a car-park centre in the low tier.",
+              "type": "integer"
+            },
+            "high_street_block": {
+              "description": "The weight of a high-street block in the high tier.",
+              "type": "integer"
+            },
+            "market_hall": {
+              "description": "The weight of a market hall in the middle tier: a whole block with a hall of small stalls on its south half and a market square on its north. It has no parking.",
+              "type": "integer"
+            },
+            "precinct": {
+              "description": "The weight of a precinct in the middle tier: a whole block of shop rows either side of walkways, with a deck behind. On the tier's upper rung it rises to 2 storeys.",
+              "type": "integer"
+            },
+            "sales_yard": {
+              "description": "The weight of a sales yard in the low tier: a block of four Lots, each a shed and a yard behind a band of parking.",
+              "type": "integer"
+            },
+            "shop_house_parade": {
+              "description": "The weight of a shop-house parade, in both the middle and the high tier.",
+              "type": "integer"
+            },
+            "supermarket": {
+              "description": "The weight of a town supermarket in the middle tier.",
+              "type": "integer"
+            }
+          }
         }
       }
     },
@@ -1041,12 +1079,24 @@
     "parking": {
       "type": "object",
       "properties": {
+        "aisle_width_centimetres": {
+          "description": "Width of a surface car park's driving aisle, in centimetres.",
+          "type": "integer"
+        },
         "radius_metres": {
           "description": "How far a driver will walk from a Car Park to where they were going. Omitting the whole [parking] table is a city with no Parking Shed at all; a radius of zero would be a city whose Car Parks all exist and none can be reached.",
           "type": "integer"
         },
         "shed_keeps": {
           "description": "How many Car Parks a Building's Parking Shed holds, and therefore how far a query walks before it stops. Not redundant with the radius: the cap bounds the work and the radius bounds the walk, and they bind in different worlds. A shed is stored for every Building at this width, so it is a per-city cost rather than a per-query one.",
+          "type": "integer"
+        },
+        "stall_length_centimetres": {
+          "description": "Length of one surface car-park stall, in centimetres.",
+          "type": "integer"
+        },
+        "stall_width_centimetres": {
+          "description": "Width of one surface car-park stall, in centimetres. Comes with the other two stall sizes; a car-park centre's Car Park holds one car per stall.",
           "type": "integer"
         }
       }

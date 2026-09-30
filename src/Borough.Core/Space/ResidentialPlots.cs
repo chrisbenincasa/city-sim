@@ -17,7 +17,8 @@ public readonly record struct ResidentialPlots(
         2 * (IntegerMath.FloorDiv(ground.Wide, FrontageTiles)
             + IntegerMath.FloorDiv(ground.Deep, FrontageTiles) + 2);
 
-    public int Carve(BlockGround ground, int streetInset, Span<Parcel> into)
+    /// <param name="joinSouth">Whether the south face is one parcel, as a high-street block's is.</param>
+    public int Carve(BlockGround ground, int streetInset, Span<Parcel> into, bool joinSouth = false)
     {
         int written = 0;
         int availableDepth = ground.Deep - 2 * streetInset;
@@ -31,6 +32,7 @@ public readonly record struct ResidentialPlots(
             int reach = high - low;
             int groups = IntegerMath.FloorDiv(reach, FrontageTiles);
             if (groups <= 0) continue;
+            if (joinSouth && face == BlockFace.South) groups = 1;
             int faceDepth = horizontal ? depth
                 : Min(DepthTiles, IntegerMath.FloorDiv(ground.Wide - 2 * streetInset, 2));
             if (faceDepth <= 0) continue;

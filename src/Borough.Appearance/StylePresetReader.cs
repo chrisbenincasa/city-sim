@@ -33,6 +33,23 @@ public static class StylePresetReader
         ["courtyard"] = BlockPattern.Courtyard,
         ["slab"] = BlockPattern.Slab,
         ["tower"] = BlockPattern.Tower,
+        ["car-park-centre"] = BlockPattern.CarParkCentre,
+        ["shop-house-parade"] = BlockPattern.ShopHouseParade,
+        ["supermarket"] = BlockPattern.Supermarket,
+        ["decked-supermarket"] = BlockPattern.DeckedSupermarket,
+        ["high-street-block"] = BlockPattern.HighStreetBlock,
+        ["pad-site"] = BlockPattern.PadSite,
+        ["sales-yard"] = BlockPattern.SalesYard,
+        ["precinct"] = BlockPattern.Precinct,
+        ["gallery-precinct"] = BlockPattern.GalleryPrecinct,
+        ["market-hall"] = BlockPattern.MarketHall,
+    };
+
+    private static readonly Dictionary<string, ParkingForm> ParkingNames = new()
+    {
+        ["none"] = ParkingForm.None,
+        ["surface"] = ParkingForm.Surface,
+        ["deck"] = ParkingForm.Deck,
     };
 
     private static readonly Dictionary<string, ushort> ZoneNames = new()
@@ -66,7 +83,7 @@ public static class StylePresetReader
         ["balcony"] = BayKind.Balcony,
     };
 
-    private static readonly string[] Conditions = ["storeys", "frontage_metres", "depth_metres", "raised_day", "patterns", "zones"];
+    private static readonly string[] Conditions = ["storeys", "frontage_metres", "depth_metres", "raised_day", "patterns", "zones", "units", "anchored", "parking", "corner"];
 
     public static StylePresetResult Read(string directory)
     {
@@ -291,6 +308,10 @@ public static class StylePresetReader
             Bounds? raised = Range("raised_day");
             BlockPattern[]? patterns = Names("patterns", PatternNames);
             ushort[]? zones = Names("zones", ZoneNames);
+            Bounds? units = Range("units");
+            bool? anchored = Boolean("anchored");
+            ParkingForm[]? parking = Names("parking", ParkingNames);
+            bool? corner = Boolean("corner");
 
             if (fallback)
             {
@@ -310,7 +331,8 @@ public static class StylePresetReader
 
             if (errors.Count > before || id is null || kinds is null) return null;
             return new AppearanceFamily(id, file, LineOf(table), kinds, (int)weight, fallback, model,
-                storeys, frontage, depth, raised, patterns, (ushort)(zones?.Aggregate(0, (a, z) => a | z) ?? 0));
+                storeys, frontage, depth, raised, patterns, (ushort)(zones?.Aggregate(0, (a, z) => a | z) ?? 0),
+                Units: units, Anchored: anchored, Parking: parking, Corner: corner);
         }
 
         public FamilyBody? Body()

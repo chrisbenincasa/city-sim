@@ -52,9 +52,10 @@ public sealed class BusinessTable
     /// <param name="capacity">Initial slot count.</param>
     /// <param name="buildings">The table this one's premises handles address.</param>
     /// <param name="bins">The table this one's balance handles address.</param>
-    public BusinessTable(int capacity, BuildingTable buildings, BinTable bins)
+    public BusinessTable(int capacity, BuildingTable buildings, BinTable bins, UnitTable units)
     {
         ArgumentNullException.ThrowIfNull(buildings);
+        ArgumentNullException.ThrowIfNull(units);
         ArgumentNullException.ThrowIfNull(bins);
 
         _rows = new Rows<Business>("business", capacity, Buffering.OneCopy);
@@ -66,6 +67,7 @@ public sealed class BusinessTable
         // the State Hash for a reason that has nothing to do with the demolition.
         Building = _rows.SavedHandle("building", buildings.Rows, reference: Reference.Severable);
         Kind = _rows.Saved<byte>("kind");
+        Unit = _rows.SavedHandle("unit", units.Rows, reference: Reference.Severable);
 
         // 🔴 adr/0148, AMENDED by milestone 27 task 10: which premises INSTANTIATED this Business,
         // and the amendment is here because the ADR asked DestroyBuilding to identify "the trade this
@@ -142,6 +144,9 @@ public sealed class BusinessTable
 
     /// <summary>The Building this Business occupies.</summary>
     public HandleColumn<Building> Building { get; }
+
+    /// <summary>The Unit of <see cref="Building"/> this Business holds; none while unpremised.</summary>
+    public HandleColumn<Unit> Unit { get; }
 
     /// <summary>
     /// The premises that <b>instantiated</b> this Business, or none if nothing did.
