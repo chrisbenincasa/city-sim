@@ -122,6 +122,89 @@ public sealed class TradeFormTests
         Assert.True(decked > 0, "traded.toml raised no decked supermarket.");
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void A_centre_gives_up_a_side_strip_of_pads_that_tiles_its_block(bool east)
+    {
+        BlockGround ground = BlockGround.Square(32);
+        const int half = 1;
+        var centre = new Parcel(BlockFace.South, StreetSide.Left, new Tiles(2),
+            new Tiles(0), new Tiles(0), new Tiles(32), new Tiles(32));
+        Span<Parcel> parcels = stackalloc Parcel[4];
+
+        int count = PadSite.Split(centre, ground, half, east, parcels);
+
+        Assert.Equal(1 + PadSite.Pads, count);
+        Assert.Equal(32 - PadSite.DepthTiles - half, parcels[0].Wide.Raw);
+        Assert.Equal(32 * 32, parcels[..count].ToArray().Sum(parcel => parcel.AreaTiles));
+        Assert.InRange(parcels[0].Offset.Raw, parcels[0].East.Raw, parcels[0].East.Raw + parcels[0].Wide.Raw - 1);
+
+        for (int pad = 1; pad < count; pad++)
+        {
+            Parcel each = parcels[pad];
+            Assert.Equal(east ? BlockFace.East : BlockFace.West, each.Face);
+            Assert.Equal(east ? 32 - each.Wide.Raw : 0, each.East.Raw);
+            Assert.InRange(each.Offset.Raw, each.North.Raw, each.North.Raw + each.Deep.Raw - 1);
+
+            var foot = PadSite.Footprint(each, ground, half);
+            Assert.Equal(PadSite.DepthTiles - PadSite.ForecourtTiles, foot.Wide.Raw);
+            Assert.Equal(east ? 32 - half - PadSite.DepthTiles : half + PadSite.ForecourtTiles, foot.East.Raw);
+            Assert.True(foot.Deep.Raw > 0);
+
+            (int carEast, int carNorth, int along, int toward) =
+                PadSite.CarPark(foot.East.Raw, foot.North.Raw, foot.Wide.Raw, each.Face);
+            Assert.Equal(east ? foot.East.Raw : half, carEast);
+            Assert.Equal(PadSite.DepthTiles, along);
+            Assert.Equal(foot.North.Raw, carNorth + toward);
+        }
+    }
+
+    [Fact]
+    public void Traded_raises_pad_sites_beside_its_centres_at_world_creation()
+    {
+        RulesetLoadResult loaded =
+            RulesetLoader.Load(Path.Combine(AppContext.BaseDirectory, "Rulesets", "traded.toml"));
+        Assert.True(loaded.Ok, loaded.Describe());
+
+        var world = new World(8_000, loaded.Ruleset!, Key);
+        SyntheticCity.PopulateInto(world, Key, Ticks.Zero, 8_000);
+
+        int pads = 0;
+
+        for (int building = 0; building < world.Buildings.Rows.SlotCount; building++)
+        {
+            if (!world.IsPadSite(building))
+            {
+                continue;
+            }
+
+            pads++;
+            int lot = world.Lots.Rows.Resolve(world.Buildings.Lot[building]);
+            Assert.Equal(1, world.Lots.Storeys[lot]);
+
+            var units = new List<int>();
+            foreach (int unit in world.BuildingUnits.Walk(building))
+            {
+                units.Add(unit);
+            }
+
+            int only = Assert.Single(units);
+            Assert.False(world.Units.IsVacant(only), $"pad {building} stands with its shop vacant.");
+            Assert.Equal(world.Lots.FootprintTiles(lot), world.Units.Floor[only]);
+
+            Assert.True(world.TryDeclaredHousing(world.Buildings.Kind[building], building, out int homes));
+            Assert.Equal(0, homes);
+            Assert.False(world.HasRoomForHousehold(building));
+
+            Assert.True(world.TryDeclaredParking(world.Buildings.Kind[building], building, out int spaces));
+            Assert.Equal(PadSite.Stalls(world.Lots.FootprintWide[lot].Raw, world.Rules.Parking.Stalls).Stalls, spaces);
+            Assert.True(spaces > 0, $"pad {building} has no stalls.");
+        }
+
+        Assert.True(pads > 0, "traded.toml raised no pad site.");
+    }
+
     [Fact]
     public void Traded_raises_every_kept_form_in_its_bands_in_one_city()
     {
@@ -135,7 +218,7 @@ public sealed class TradeFormTests
         SyntheticCity.PopulateInto(world, key, Ticks.Zero, citizens);
 
         // traded.toml's five bands land on rungs 0, 1, 2, 3 and 5. A mixed block reads as band 0.
-        BlockPattern[] low = [BlockPattern.CarParkCentre];
+        BlockPattern[] low = [BlockPattern.CarParkCentre, BlockPattern.PadSite];
         BlockPattern[] middle = [BlockPattern.ShopHouseParade, BlockPattern.Supermarket, BlockPattern.DeckedSupermarket];
         BlockPattern[] high = [BlockPattern.ShopHouseParade, BlockPattern.HighStreetBlock];
         BlockPattern[][] tierOfBand = [low, low, low, middle, middle, high];

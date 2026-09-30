@@ -936,4 +936,10 @@ public enum PurposeTag : ulong
     /// coordinates at Tick zero, like <see cref="BlockPattern"/>.
     /// </summary>
     TradeForm = 63,
+
+    /// <summary>
+    /// Which side face of a car-park centre block its pad sites take. Drawn on block coordinates at
+    /// Tick zero, like <see cref="TradeForm"/>.
+    /// </summary>
+    PadSide = 64,
 }

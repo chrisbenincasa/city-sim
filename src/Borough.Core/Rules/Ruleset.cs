@@ -3053,13 +3053,30 @@ public readonly record struct LotRuleset(
         : Space.BlockPatterns.Ceiling(LotsPerSegment);
 
     public int Carve(WorldKey key, Space.BlockPattern pattern, Space.BlockGround ground,
-        Span<Space.Parcel> into) => Plots.Applies(Space.BlockPatterns.CarveAs(pattern))
-        ? Plots.Carve(ground, StreetHalfWidthTiles, into, pattern == Space.BlockPattern.HighStreetBlock)
-        : Space.BlockPatterns.Carve(key, pattern, ground, LotsPerSegment, into);
+        Span<Space.Parcel> into)
+    {
+        if (Plots.Applies(Space.BlockPatterns.CarveAs(pattern)))
+        {
+            return Plots.Carve(ground, StreetHalfWidthTiles, into, pattern == Space.BlockPattern.HighStreetBlock);
+        }
+
+        int count = Space.BlockPatterns.Carve(key, pattern, ground, LotsPerSegment, into);
+
+        if (pattern != Space.BlockPattern.CarParkCentre || count != 1)
+        {
+            return count;
+        }
+
+        ulong patch = ((ulong)(uint)ground.Column << 32) | (uint)ground.Row;
+        ulong draw = Determinism.Randomness.Draw(key, patch, Quantities.Ticks.Zero, Determinism.PurposeTag.PadSide);
+
+        return Space.PadSite.Split(into[0], ground, StreetHalfWidthTiles, (draw & 1) != 0, into);
+    }
 
     public byte Height(WorldKey key, Space.Parcel parcel, Space.BlockPattern pattern, int blockTiles)
     {
-        if (pattern == Space.BlockPattern.CarParkCentre || Space.BlockPatterns.IsSupermarket(pattern))
+        if (pattern is Space.BlockPattern.CarParkCentre or Space.BlockPattern.PadSite
+            || Space.BlockPatterns.IsSupermarket(pattern))
         {
             return 1;
         }
@@ -3081,6 +3098,8 @@ public readonly record struct LotRuleset(
     {
         if (pattern == Space.BlockPattern.CarParkCentre)
             return Space.CarParkCentre.Footprint(parcel, ground, StreetHalfWidthTiles);
+        if (pattern == Space.BlockPattern.PadSite)
+            return Space.PadSite.Footprint(parcel, ground, StreetHalfWidthTiles);
         if (Space.BlockPatterns.IsSupermarket(pattern))
             return Space.TownSupermarket.Footprint(parcel, ground, StreetHalfWidthTiles);
         if (pattern == Space.BlockPattern.HighStreetBlock && parcel.Face == Space.BlockFace.South)

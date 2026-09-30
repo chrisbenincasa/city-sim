@@ -209,6 +209,13 @@ public enum BlockPattern : byte
     /// <see cref="DepartmentStore"/> holds the store's geometry.
     /// </summary>
     HighStreetBlock = 10,
+
+    /// <summary>
+    /// <b>One small shop on its own Lot, with a forecourt and a stall band.</b> The Lot's form only:
+    /// a <see cref="CarParkCentre"/> block carves its pads, and no block takes this pattern.
+    /// <see cref="PadSite"/> holds the geometry.
+    /// </summary>
+    PadSite = 11,
 }
 
 /// <summary>
@@ -901,7 +908,7 @@ public static class BlockPatterns
     public const int Count = 6;
 
     /// <summary>How many patterns there are, trade forms included.</summary>
-    public const int FormCount = 11;
+    public const int FormCount = 12;
 
     /// <summary>The pattern whose carve a form takes.</summary>
     /// <remarks>A <see cref="BlockPattern.HighStreetBlock"/> also joins its south face into one parcel.</remarks>
@@ -911,6 +918,12 @@ public static class BlockPatterns
         BlockPattern.Supermarket or BlockPattern.DeckedSupermarket => BlockPattern.CarParkCentre,
         _ => pattern,
     };
+
+    /// <summary>The form a parcel's Lot takes. A centre block's side-face parcels are its pads.</summary>
+    public static BlockPattern FormOf(BlockPattern pattern, BlockFace face) =>
+        pattern == BlockPattern.CarParkCentre && face is BlockFace.West or BlockFace.East
+            ? BlockPattern.PadSite
+            : pattern;
 
     /// <summary>Whether a form is a town supermarket, with either parking.</summary>
     public static bool IsSupermarket(BlockPattern pattern) =>

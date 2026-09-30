@@ -185,7 +185,7 @@ dwellings now.
 | Type | Carve | Footprint | Units | Ground uses | Exists today |
 |---|---|---|---|---|---|
 | Car-park centre | New `BlockPattern` member: one Lot per block fronting one face; the other faces carry no Address | Against the rear of the parcel | Row split by `BlockPatterns.Widths` on an 8 m (2-Tile) bay; the anchor takes half the row; a big box takes all of it | Surface car park between the footprint and the street | Parcel and footprint storage, `Widths`, Car Park rows |
-| Pad site | Corner Lots, about 8 × 8 Tiles, carved from the front of a centre block | Centred | 1 | Forecourt or drive lane | Ordinary Lots |
+| Pad site | A strip 8 Tiles deep along the west or east face of every car-park centre block, cut into 3 Lots facing the side street | At the back of the pad, beside a stall band | 1 | Forecourt between footprint and street; stall band along the south side | Ordinary Lots |
 | Sales-yard trade | One Lot fronting one face | At one side of the parcel | 1 | Yard, typed by the Building kind | No |
 | Shop-house parade | Existing perimeter and back-to-back carves | Existing | 1 per ground floor, 1 or 2 Tiles wide | None | Carve and kinds |
 | Town supermarket | Whole-block Lot fronting south, carved as a car-park centre | Front of the parcel, 10 Tiles deep | 1 anchor + optional small Units | Deck behind the footprint | No |
@@ -207,6 +207,25 @@ the store is 30 × 10 Tiles (4,800 m²), the top of its size range. Other market
 forms are deferred, such as a half-block store, a discount box or a store with rooftop parking.
 Revisit when a second supermarket form is wanted. A half-block store needs a carve that mixes two
 forms in one block.
+
+Pad sites, decided 2026-09-29:
+
+- Every car-park centre block gives up a strip 8 Tiles deep along its west or east face. A seeded
+  draw per block picks the side. The centre's parcel narrows from 30 to 22 Tiles and loses about a
+  quarter of its Units and stalls.
+- The strip holds 3 pads facing the side street, each about 8 × 10 Tiles. The Lot table keeps one
+  rectangle per parcel, so pads cannot stand at the front corners of the centre's parcel.
+  Overlapping parcels were rejected, because other code assumes parcels never overlap.
+- The Lot's pattern is the pad form. The block's pattern stays the car-park centre.
+- A pad is 1 Unit of the ordinary trade kind, 1 storey, with its own Car Park. No fuel or food
+  Good exists, so the petrol, fast-food and bank looks are Appearance Families drawn by a seeded
+  pick. A drawn petrol station sells what every other shop sells.
+- Ground layout, counted from the pad's street edge: a forecourt 4 Tiles deep with no stalls, then
+  the footprint at the back. A stall band 4 Tiles deep runs along the pad's south side, the full
+  depth of the pad, with its aisle against the footprint. Stalls are counted from that band, and
+  the drawing paints the same stalls.
+- The family fills the forecourt with pumps and a canopy, a drive lane or a drive-up lane. The
+  simulation does not know which.
 
 The high-street block's department store takes the whole south face, about 30 × 6 Tiles over the
 band's storeys (about 8,600 m² at 3 storeys). One perimeter Lot holds at most about 1,700 m², below

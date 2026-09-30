@@ -134,11 +134,12 @@ public static class LotSubdivider
             world.Lots.FrontageOffset[slot] = parcel.Offset;
             world.Lots.ParcelEast[slot] = parcel.East; world.Lots.ParcelNorth[slot] = parcel.North;
             world.Lots.ParcelWide[slot] = parcel.Wide; world.Lots.ParcelDeep[slot] = parcel.Deep;
-            var foot = world.Rules.Lots.Footprint(world.Key, parcel, ground, pattern);
+            BlockPattern form = BlockPatterns.FormOf(pattern, parcel.Face);
+            var foot = world.Rules.Lots.Footprint(world.Key, parcel, ground, form);
             world.Lots.FootprintEast[slot] = foot.East; world.Lots.FootprintNorth[slot] = foot.North;
             world.Lots.FootprintWide[slot] = foot.Wide; world.Lots.FootprintDeep[slot] = foot.Deep;
-            world.Lots.Storeys[slot] = world.Rules.Lots.Height(world.Key, parcel, pattern, streets.BlockTiles);
-            world.Lots.Pattern[slot] = (byte)((byte)pattern + 1);
+            world.Lots.Storeys[slot] = world.Rules.Lots.Height(world.Key, parcel, form, streets.BlockTiles);
+            world.Lots.Pattern[slot] = (byte)((byte)form + 1);
             world.Frontage.Claim(segment, parcel.Side);
             created++;
         }

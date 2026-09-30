@@ -257,7 +257,8 @@ public static class BuildingPlan
     public static bool Hollow(
         BlockPattern pattern, int wide, int deep, out int holeWide, out int holeDeep)
     {
-        if (pattern is BlockPattern.Tower or BlockPattern.CarParkCentre || BlockPatterns.IsSupermarket(pattern))
+        if (pattern is BlockPattern.Tower or BlockPattern.CarParkCentre or BlockPattern.PadSite
+            || BlockPatterns.IsSupermarket(pattern))
         {
             holeWide = 0;
             holeDeep = 0;

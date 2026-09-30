@@ -88,7 +88,7 @@ public readonly record struct BuildingFacts(
             anchored,
             pattern switch
             {
-                BlockPattern.CarParkCentre or BlockPattern.Supermarket => ParkingForm.Surface,
+                BlockPattern.CarParkCentre or BlockPattern.Supermarket or BlockPattern.PadSite => ParkingForm.Surface,
                 BlockPattern.DeckedSupermarket => ParkingForm.Deck,
                 _ => ParkingForm.None,
             },
