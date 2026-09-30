@@ -123,6 +123,52 @@ public sealed class TradeFormTests
     }
 
     [Fact]
+    public void Traded_raises_every_kept_form_in_its_bands_in_one_city()
+    {
+        RulesetLoadResult loaded =
+            RulesetLoader.Load(Path.Combine(AppContext.BaseDirectory, "Rulesets", "traded.toml"));
+        Assert.True(loaded.Ok, loaded.Describe());
+
+        const int citizens = 30_000;
+        WorldKey key = WorldKey.FromSeed(0x7EAD_ED00_0000_0001UL);
+        var world = new World(citizens, loaded.Ruleset!, key);
+        SyntheticCity.PopulateInto(world, key, Ticks.Zero, citizens);
+
+        // traded.toml's five bands land on rungs 0, 1, 2, 3 and 5. A mixed block reads as band 0.
+        BlockPattern[] low = [BlockPattern.CarParkCentre];
+        BlockPattern[] middle = [BlockPattern.ShopHouseParade, BlockPattern.Supermarket, BlockPattern.DeckedSupermarket];
+        BlockPattern[] high = [BlockPattern.ShopHouseParade, BlockPattern.HighStreetBlock];
+        BlockPattern[][] tierOfBand = [low, low, low, middle, middle, high];
+
+        var raised = new HashSet<BlockPattern>[3] { [], [], [] };
+
+        for (int building = 0; building < world.Buildings.Rows.SlotCount; building++)
+        {
+            if (!world.Buildings.Rows.IsLive(building)
+                || !world.Lots.Rows.TryResolve(world.Buildings.Lot[building], out int lot))
+            {
+                continue;
+            }
+
+            BlockPattern form = world.Lots.PatternOf(lot);
+            if (!low.Concat(middle).Concat(high).Contains(form))
+            {
+                continue;
+            }
+
+            LandPermissionSummary ground = world.LandPermissions.Summary(world.LotGround(lot));
+            int band = ground.MixedIntensity ? 0 : ground.Band;
+            BlockPattern[] tier = tierOfBand[band];
+            Assert.True(tier.Contains(form), $"band {band} raised a {form} on Lot {lot}.");
+            raised[tier == low ? 0 : tier == middle ? 1 : 2].Add(form);
+        }
+
+        Assert.Equal(low.ToHashSet(), raised[0]);
+        Assert.Equal(middle.ToHashSet(), raised[1]);
+        Assert.Equal(high.ToHashSet(), raised[2]);
+    }
+
+    [Fact]
     public void Traded_raises_high_street_blocks_with_a_department_store_on_the_south_face()
     {
         RulesetLoadResult loaded =
