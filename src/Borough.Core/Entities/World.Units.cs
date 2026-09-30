@@ -93,10 +93,25 @@ public sealed partial class World
         && Lots.Rows.TryResolve(Buildings.Lot[buildingSlot], out int lotSlot)
         && Space.BlockPatterns.IsPrecinct(Lots.PatternOf(lotSlot));
 
+    /// <summary>Whether a Building is a market hall.</summary>
+    public bool IsMarketHall(int buildingSlot) =>
+        buildingSlot >= 0
+        && Buildings.Rows.IsLive(buildingSlot)
+        && Lots.Rows.TryResolve(Buildings.Lot[buildingSlot], out int lotSlot)
+        && Lots.PatternOf(lotSlot) == Space.BlockPattern.MarketHall;
+
     /// <summary>Whether the Building is a commercial form that only Businesses occupy.</summary>
     public bool IsShopOnly(int buildingSlot) =>
         IsTradeCentre(buildingSlot) || IsSupermarket(buildingSlot) || IsDepartmentStore(buildingSlot)
-        || IsPadSite(buildingSlot) || IsSalesYard(buildingSlot) || IsPrecinct(buildingSlot);
+        || IsPadSite(buildingSlot) || IsSalesYard(buildingSlot) || IsPrecinct(buildingSlot)
+        || IsMarketHall(buildingSlot);
+
+    private int MarketHallUnitCount(int buildingSlot)
+    {
+        int lotSlot = Lots.Rows.Resolve(Buildings.Lot[buildingSlot]);
+
+        return Space.MarketHall.Stalls(Lots.FootprintWide[lotSlot].Raw, Lots.FootprintDeep[lotSlot].Raw);
+    }
 
     private int PrecinctUnitCount(int buildingSlot)
     {
@@ -216,6 +231,10 @@ public sealed partial class World
         else if (IsPrecinct(buildingSlot))
         {
             RaisePrecinctUnits(buildingSlot);
+        }
+        else if (IsMarketHall(buildingSlot))
+        {
+            RaiseMarketHallUnits(buildingSlot);
         }
         else if (TryDeclaredOccupancy(Buildings.Kind[buildingSlot], buildingSlot, out int tenancies))
         {
@@ -338,6 +357,33 @@ public sealed partial class World
                         Buildings.Rows.At(buildingSlot), new Tiles(rows[row].East), new Tiles(north),
                         new Tiles(rows[row].Wide), new Tiles(along), storey, 1, (byte)rows[row].Face,
                         anchor: false, floor: rows[row].Wide * along);
+
+                    BuildingUnits.InsertOrdered(buildingSlot, Units.Rows.Resolve(added));
+                }
+            }
+        }
+    }
+
+    private void RaiseMarketHallUnits(int buildingSlot)
+    {
+        int lotSlot = Lots.Rows.Resolve(Buildings.Lot[buildingSlot]);
+        int wide = Lots.FootprintWide[lotSlot].Raw;
+        int pairs = Space.MarketHall.Pairs(wide);
+        int perColumn = Space.MarketHall.StallsPerColumn(Lots.FootprintDeep[lotSlot].Raw);
+
+        for (int pair = 0; pair < pairs; pair++)
+        {
+            int west = Space.MarketHall.PairEast(wide, pair);
+
+            for (int column = 0; column < 2; column++)
+            {
+                Space.BlockFace face = column == 0 ? Space.BlockFace.West : Space.BlockFace.East;
+
+                for (int stall = 0; stall < perColumn; stall++)
+                {
+                    Handle<Unit> added = Units.Create(
+                        Buildings.Rows.At(buildingSlot), new Tiles(west + column), new Tiles(1 + stall),
+                        new Tiles(1), new Tiles(1), 0, 1, (byte)face, anchor: false, floor: 1);
 
                     BuildingUnits.InsertOrdered(buildingSlot, Units.Rows.Resolve(added));
                 }

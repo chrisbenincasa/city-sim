@@ -6,9 +6,10 @@ namespace Borough.Core.Space;
 /// and a <see cref="BlockPattern.GalleryPrecinct"/> as a <see cref="BlockPattern.Precinct"/>.
 /// </summary>
 public readonly record struct TradeFormWeights(
-    int CarParkCentre, int SalesYard, int ShopHouseParade, int Supermarket, int Precinct, int HighStreetBlock)
+    int CarParkCentre, int SalesYard, int ShopHouseParade, int Supermarket, int Precinct, int MarketHall,
+    int HighStreetBlock)
 {
-    public static TradeFormWeights Even => new(1, 1, 1, 1, 1, 1);
+    public static TradeFormWeights Even => new(1, 1, 1, 1, 1, 1, 1);
 
     public int Of(BlockPattern form) => form switch
     {
@@ -17,6 +18,7 @@ public readonly record struct TradeFormWeights(
         BlockPattern.ShopHouseParade => ShopHouseParade,
         BlockPattern.Supermarket or BlockPattern.DeckedSupermarket => Supermarket,
         BlockPattern.Precinct or BlockPattern.GalleryPrecinct => Precinct,
+        BlockPattern.MarketHall => MarketHall,
         BlockPattern.HighStreetBlock => HighStreetBlock,
         _ => 0,
     };

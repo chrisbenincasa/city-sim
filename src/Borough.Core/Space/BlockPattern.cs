@@ -232,6 +232,12 @@ public enum BlockPattern : byte
 
     /// <summary>A <see cref="Precinct"/> of 2 storeys, its upper Units opening off a gallery.</summary>
     GalleryPrecinct = 14,
+
+    /// <summary>
+    /// <b>One Lot holding a market hall on its south half and a market square on its north.</b> A
+    /// trade form carved as a <see cref="CarParkCentre"/>. <see cref="Space.MarketHall"/> holds the geometry.
+    /// </summary>
+    MarketHall = 15,
 }
 
 /// <summary>
@@ -924,7 +930,7 @@ public static class BlockPatterns
     public const int Count = 6;
 
     /// <summary>How many patterns there are, trade forms included.</summary>
-    public const int FormCount = 15;
+    public const int FormCount = 16;
 
     /// <summary>The pattern whose carve a form takes.</summary>
     /// <remarks>A <see cref="BlockPattern.HighStreetBlock"/> also joins its south face into one parcel.</remarks>
@@ -932,7 +938,8 @@ public static class BlockPatterns
     {
         BlockPattern.ShopHouseParade or BlockPattern.HighStreetBlock => BlockPattern.Perimeter,
         BlockPattern.Supermarket or BlockPattern.DeckedSupermarket
-            or BlockPattern.Precinct or BlockPattern.GalleryPrecinct => BlockPattern.CarParkCentre,
+            or BlockPattern.Precinct or BlockPattern.GalleryPrecinct
+            or BlockPattern.MarketHall => BlockPattern.CarParkCentre,
         _ => pattern,
     };
 
@@ -956,7 +963,7 @@ public static class BlockPatterns
     /// <remarks>
     /// The tier is the rung <see cref="ForBand"/> gives the band before its scatter, so every block
     /// of a band shares one tier. Rungs 0–1 are Low, 2–3 Middle and 4–5 High. Low allows a
-    /// car-park centre or a sales yard. Middle allows a shop-house parade, a supermarket or a precinct,
+    /// car-park centre or a sales yard. Middle allows a shop-house parade, a supermarket, a precinct or a market hall,
     /// and High a shop-house parade or a high-street block. On rung 3 a supermarket parks on a deck
     /// and a precinct rises to 2 storeys.
     /// </remarks>
@@ -1018,7 +1025,7 @@ public static class BlockPatterns
     private static ReadOnlySpan<BlockPattern> LowTradeForms => [BlockPattern.CarParkCentre, BlockPattern.SalesYard];
 
     private static ReadOnlySpan<BlockPattern> MiddleTradeForms =>
-        [BlockPattern.ShopHouseParade, BlockPattern.Supermarket, BlockPattern.Precinct];
+        [BlockPattern.ShopHouseParade, BlockPattern.Supermarket, BlockPattern.Precinct, BlockPattern.MarketHall];
 
     private static ReadOnlySpan<BlockPattern> HighTradeForms =>
         [BlockPattern.ShopHouseParade, BlockPattern.HighStreetBlock];

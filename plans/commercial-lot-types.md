@@ -281,6 +281,19 @@ Precincts, decided 2026-09-29:
   galleria's flat glass roof is opaque, so the galleries under it do not show from above. The deck
   behind is drawn by the supermarket's modules.
 
+Market halls, decided 2026-09-29:
+
+- A middle-tier block form takes the whole block as one Lot fronting south, carved as a car-park
+  centre. The hall takes the south half, about 30 × 14 Tiles. A market square fills the north half.
+  The square is drawn only, with paving, trees and benches, and later holds the deferred open-air
+  market. A hall among shop-houses was rejected, because it needs a new mixed carve. A hall on the
+  whole block was rejected, because it holds over 300 stalls.
+- Each stall is its own Unit, 1 × 1 Tile (16 m²). Stalls stand back to back in pairs of columns
+  with 2-Tile aisles, about 168 to a hall. A hall held as one Unit was rejected, because it loses
+  the many small traders that set a market apart from a supermarket.
+- A hall has no Car Park. `trade_form_weights` gains a `market_hall` weight.
+- Families are an iron-and-glass hall, a 1960s concrete hall and a stall shed.
+
 The high-street block's department store takes the whole south face, about 30 × 6 Tiles over the
 band's storeys (about 8,600 m² at 3 storeys). One perimeter Lot holds at most about 1,700 m², below
 the department store's size range. The other three faces stay shop-houses, with homes above.

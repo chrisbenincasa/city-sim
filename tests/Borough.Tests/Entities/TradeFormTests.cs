@@ -11,16 +11,16 @@ public sealed class TradeFormTests
 {
     private static readonly WorldKey Key = WorldKey.FromSeed(0x7EAD_ED00_0000_0004UL);
 
-    // At 30,000 Citizens the middle tier's upper rung holds only 3 or 4 trade blocks, and this seed
-    // draws both a decked supermarket and a two-storey precinct there.
-    private static readonly WorldKey EveryForm = WorldKey.FromSeed(0x7EAD_ED00_0000_0006UL);
+    // At 30,000 Citizens the middle tier holds only a few trade blocks a rung, and this seed draws
+    // every form there, on both rungs.
+    private static readonly WorldKey EveryForm = WorldKey.FromSeed(0x7EAD_ED00_0000_0009UL);
 
     [Theory]
     [InlineData(0, 0, new[] { BlockPattern.CarParkCentre, BlockPattern.SalesYard })]
     [InlineData(1, 3, new[] { BlockPattern.CarParkCentre, BlockPattern.SalesYard })]
     [InlineData(2, 5, new[] { BlockPattern.CarParkCentre, BlockPattern.SalesYard })]
-    [InlineData(2, 3, new[] { BlockPattern.ShopHouseParade, BlockPattern.Supermarket, BlockPattern.Precinct })]
-    [InlineData(4, 5, new[] { BlockPattern.ShopHouseParade, BlockPattern.DeckedSupermarket, BlockPattern.GalleryPrecinct })]
+    [InlineData(2, 3, new[] { BlockPattern.ShopHouseParade, BlockPattern.Supermarket, BlockPattern.Precinct, BlockPattern.MarketHall })]
+    [InlineData(4, 5, new[] { BlockPattern.ShopHouseParade, BlockPattern.DeckedSupermarket, BlockPattern.GalleryPrecinct, BlockPattern.MarketHall })]
     [InlineData(3, 3, new[] { BlockPattern.ShopHouseParade, BlockPattern.HighStreetBlock })]
     [InlineData(1, 1, new[] { BlockPattern.ShopHouseParade, BlockPattern.HighStreetBlock })]
     public void A_band_draws_every_form_of_its_tier_and_nothing_else(
@@ -356,6 +356,78 @@ public sealed class TradeFormTests
         Assert.True(galleried > 0, "traded.toml raised no two-storey precinct.");
     }
 
+    [Theory]
+    [InlineData(30, 14, 7, 168)]
+    [InlineData(29, 14, 6, 144)]
+    [InlineData(6, 3, 1, 2)]
+    [InlineData(5, 14, 0, 0)]
+    public void A_market_hall_stands_its_stalls_in_pairs_between_aisles(int wide, int deep, int pairs, int stalls)
+    {
+        Assert.Equal(pairs, MarketHall.Pairs(wide));
+        Assert.Equal(stalls, MarketHall.Stalls(wide, deep));
+
+        if (pairs == 0)
+        {
+            return;
+        }
+
+        int west = MarketHall.PairEast(wide, 0);
+        int east = wide - (MarketHall.PairEast(wide, pairs - 1) + 2);
+        Assert.True(west >= MarketHall.AisleTiles && east >= MarketHall.AisleTiles);
+        Assert.InRange(east - west, 0, 1);
+    }
+
+    [Fact]
+    public void Traded_raises_market_halls_of_one_stall_Units_with_no_parking_at_world_creation()
+    {
+        RulesetLoadResult loaded =
+            RulesetLoader.Load(Path.Combine(AppContext.BaseDirectory, "Rulesets", "traded.toml"));
+        Assert.True(loaded.Ok, loaded.Describe());
+
+        const int citizens = 30_000;
+        WorldKey key = EveryForm;
+        var world = new World(citizens, loaded.Ruleset!, key);
+        SyntheticCity.PopulateInto(world, key, Ticks.Zero, citizens);
+
+        int halls = 0;
+
+        for (int building = 0; building < world.Buildings.Rows.SlotCount; building++)
+        {
+            if (!world.IsMarketHall(building))
+            {
+                continue;
+            }
+
+            halls++;
+            int lot = world.Lots.Rows.Resolve(world.Buildings.Lot[building]);
+            int wide = world.Lots.FootprintWide[lot].Raw;
+            int deep = world.Lots.FootprintDeep[lot].Raw;
+            Assert.Equal(1, world.Lots.Storeys[lot]);
+            Assert.InRange(world.Lots.ParcelDeep[lot].Raw, 2 * deep, (2 * deep) + 8);
+
+            int units = 0;
+            foreach (int unit in world.BuildingUnits.Walk(building))
+            {
+                units++;
+                Assert.Equal(1, world.Units.Floor[unit]);
+                Assert.Equal(1, world.Units.Wide[unit].Raw);
+                Assert.Equal(1, world.Units.Deep[unit].Raw);
+                Assert.InRange(world.Units.East[unit].Raw, 0, wide - 1);
+                Assert.InRange(world.Units.North[unit].Raw, 1, deep - 2);
+            }
+
+            Assert.Equal(MarketHall.Stalls(wide, deep), units);
+            Assert.InRange(units, 50, 200);
+
+            Assert.True(world.TryDeclaredHousing(world.Buildings.Kind[building], building, out int homes));
+            Assert.Equal(0, homes);
+            Assert.True(world.TryDeclaredParking(world.Buildings.Kind[building], building, out int spaces));
+            Assert.Equal(0, spaces);
+        }
+
+        Assert.True(halls > 0, "traded.toml raised no market hall.");
+    }
+
     [Fact]
     public void Traded_raises_sales_yards_of_one_shop_each_at_world_creation()
     {
@@ -422,7 +494,7 @@ public sealed class TradeFormTests
         BlockPattern[] middle =
         [
             BlockPattern.ShopHouseParade, BlockPattern.Supermarket, BlockPattern.DeckedSupermarket,
-            BlockPattern.Precinct, BlockPattern.GalleryPrecinct,
+            BlockPattern.Precinct, BlockPattern.GalleryPrecinct, BlockPattern.MarketHall,
         ];
         BlockPattern[] high = [BlockPattern.ShopHouseParade, BlockPattern.HighStreetBlock];
         BlockPattern[][] tierOfBand = [low, low, low, middle, middle, high];

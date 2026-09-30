@@ -3087,6 +3087,7 @@ public readonly record struct LotRuleset(
         }
 
         if (pattern is Space.BlockPattern.CarParkCentre or Space.BlockPattern.PadSite or Space.BlockPattern.SalesYard
+                or Space.BlockPattern.MarketHall
             || Space.BlockPatterns.IsSupermarket(pattern))
         {
             return 1;
@@ -3117,6 +3118,8 @@ public readonly record struct LotRuleset(
             return Space.TownSupermarket.Footprint(parcel, ground, StreetHalfWidthTiles);
         if (Space.BlockPatterns.IsPrecinct(pattern))
             return Space.Precinct.Footprint(parcel, ground, StreetHalfWidthTiles);
+        if (pattern == Space.BlockPattern.MarketHall)
+            return Space.MarketHall.Footprint(parcel, ground, StreetHalfWidthTiles);
         if (pattern == Space.BlockPattern.HighStreetBlock && parcel.Face == Space.BlockFace.South)
             return Clipped(parcel.East.Raw, parcel.North.Raw, parcel.Wide.Raw, parcel.Deep.Raw, ground);
         if (!Plots.Applies(pattern) || pattern != Space.BlockPattern.Detached)
