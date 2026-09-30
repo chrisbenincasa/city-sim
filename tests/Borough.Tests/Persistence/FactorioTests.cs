@@ -96,6 +96,16 @@ public sealed class FactorioTests(ITestOutputHelper output)
         AssertFactorio(Congested(), GoldenFixtures.Population, n, m, "congested");
 
     /// <summary>
+    /// The same, over a world with water, where land value reads shoreline fouling through
+    /// <see cref="World.WaterInCells"/>. The run crosses a land value Tick, which is the first Tick
+    /// that reads the index.
+    /// </summary>
+    [Theory]
+    [InlineData(0, 288)]
+    public void A_coastal_world_reloads_and_runs_on_identically(int n, int m) =>
+        AssertFactorio(Shipped("coastal.toml"), GoldenFixtures.Population, n, m, "coastal");
+
+    /// <summary>
     /// ⚠ <b>The structural test <c>adr/0086</c> names in its consequences and asks not to be discovered
     /// later as a gap: the file's column set is the hash's <c>Saved</c> set.</b>
     /// </summary>

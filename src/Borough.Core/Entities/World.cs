@@ -4513,6 +4513,7 @@ public sealed partial class World
         // re-run the generator (FloodCellTable's own remark on why it is Saved), so this is the one
         // path that ever rebuilds it after world creation. plans/0045 row 12.
         FloodInCells.Rebuild(Flood);
+        WaterInCells.Rebuild(WaterCells);
 
         // Geographic paint owns permission. Rebuild land summaries and standing housing separately.
         RefreshPermissionSummaries();
