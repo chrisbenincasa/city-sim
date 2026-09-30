@@ -255,6 +255,32 @@ Sales-yard trades, decided 2026-09-29:
   yard Tile and read as a solid floor. The yard now leaves an asphalt aisle every other row from
   the street.
 
+Precincts, decided 2026-09-29:
+
+- A middle-tier block form takes the whole block as one Lot fronting south, carved as a car-park
+  centre. A deck 8 Tiles deep runs along the rear, and the footprint fills the ground in front of it.
+- Walkways 2 Tiles wide run north–south through the footprint, one for every 14 Tiles of width.
+  A row of Units 6 Tiles deep stands on each side of every walkway, and the outer rows take any spare
+  width. On a 30-Tile block that is 2 walkways and 4 rows.
+- Units are 2 Tiles along their row (8 × 24 m, 192 m²) and face the walkway. A row 22 Tiles long
+  holds 11, so a storey holds about 44 Units.
+- Storeys follow the band. Rung 2 raises 1 storey. Rung 3 raises 2, and the upper storey's Units
+  open off a gallery. Each storey has its own Units.
+- The deck has 3 levels, as a decked supermarket's does, and counts its stalls the same way.
+- Citizens reach every Unit through the Lot's street address. The walkways are drawn only; the
+  foot-path network does not route through them.
+- `trade_form_weights` gains a `precinct` weight.
+- At 30,000 Citizens the middle tier's upper rung holds only 3 or 4 trade blocks. With three forms
+  there, seed `…0001` draws no decked supermarket, so the 30,000-Citizen tests use seed `…0006`,
+  which draws every kept form. Weighting supermarkets over precincts only moved the gap to another
+  form.
+- Observed 2026-09-29 on `traded.toml`, seed 0. At 30,000 Citizens there are 2 single-storey
+  precincts, both in the 1960s open family, and at 40,000 there are 3: an arcade, an open precinct
+  and a two-storey galleria. Each has 2 walkways and 4 rows of 22 front Tiles, so 44 Units a storey.
+  The draw list places 88 gallery pieces on the galleria, one for each upper front Tile. The
+  galleria's flat glass roof is opaque, so the galleries under it do not show from above. The deck
+  behind is drawn by the supermarket's modules.
+
 The high-street block's department store takes the whole south face, about 30 × 6 Tiles over the
 band's storeys (about 8,600 m² at 3 storeys). One perimeter Lot holds at most about 1,700 m², below
 the department store's size range. The other three faces stay shop-houses, with homes above.

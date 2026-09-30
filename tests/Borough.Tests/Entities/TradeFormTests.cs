@@ -11,12 +11,16 @@ public sealed class TradeFormTests
 {
     private static readonly WorldKey Key = WorldKey.FromSeed(0x7EAD_ED00_0000_0004UL);
 
+    // At 30,000 Citizens the middle tier's upper rung holds only 3 or 4 trade blocks, and this seed
+    // draws both a decked supermarket and a two-storey precinct there.
+    private static readonly WorldKey EveryForm = WorldKey.FromSeed(0x7EAD_ED00_0000_0006UL);
+
     [Theory]
     [InlineData(0, 0, new[] { BlockPattern.CarParkCentre, BlockPattern.SalesYard })]
     [InlineData(1, 3, new[] { BlockPattern.CarParkCentre, BlockPattern.SalesYard })]
     [InlineData(2, 5, new[] { BlockPattern.CarParkCentre, BlockPattern.SalesYard })]
-    [InlineData(2, 3, new[] { BlockPattern.ShopHouseParade, BlockPattern.Supermarket })]
-    [InlineData(4, 5, new[] { BlockPattern.ShopHouseParade, BlockPattern.DeckedSupermarket })]
+    [InlineData(2, 3, new[] { BlockPattern.ShopHouseParade, BlockPattern.Supermarket, BlockPattern.Precinct })]
+    [InlineData(4, 5, new[] { BlockPattern.ShopHouseParade, BlockPattern.DeckedSupermarket, BlockPattern.GalleryPrecinct })]
     [InlineData(3, 3, new[] { BlockPattern.ShopHouseParade, BlockPattern.HighStreetBlock })]
     [InlineData(1, 1, new[] { BlockPattern.ShopHouseParade, BlockPattern.HighStreetBlock })]
     public void A_band_draws_every_form_of_its_tier_and_nothing_else(
@@ -166,7 +170,7 @@ public sealed class TradeFormTests
         // The middle bands hold trade blocks only in a city this large, and this seed draws both
         // parking forms there.
         const int citizens = 30_000;
-        WorldKey key = WorldKey.FromSeed(0x7EAD_ED00_0000_0001UL);
+        WorldKey key = EveryForm;
         var world = new World(citizens, loaded.Ruleset!, key);
         SyntheticCity.PopulateInto(world, key, Ticks.Zero, citizens);
 
@@ -267,6 +271,91 @@ public sealed class TradeFormTests
         Assert.True(pads > 0, "traded.toml raised no pad site.");
     }
 
+    [Theory]
+    [InlineData(30, 22, 2, 44)]
+    [InlineData(28, 22, 2, 44)]
+    [InlineData(20, 10, 1, 10)]
+    [InlineData(3, 10, 1, 0)]
+    public void A_precinct_lines_its_walkways_with_rows_that_fill_its_width(int wide, int deep, int walkways, int units)
+    {
+        Span<Precinct.Row> rows = stackalloc Precinct.Row[Precinct.RowCount(wide)];
+        int count = Precinct.Rows(wide, rows);
+
+        Assert.Equal(units, Precinct.Units(wide, deep, 1));
+        Assert.Equal(2 * units, Precinct.Units(wide, deep, 2));
+
+        if (count == 0)
+        {
+            return;
+        }
+
+        Assert.Equal(2 * walkways, count);
+        Assert.Equal(0, rows[0].East);
+        Assert.Equal(wide, rows[count - 1].East + rows[count - 1].Wide);
+        Assert.Equal(wide - (walkways * Precinct.WalkwayTiles), rows[..count].ToArray().Sum(row => row.Wide));
+
+        for (int walkway = 0; walkway < walkways; walkway++)
+        {
+            Precinct.Row west = rows[2 * walkway];
+            Precinct.Row east = rows[(2 * walkway) + 1];
+            Assert.Equal(BlockFace.East, west.Face);
+            Assert.Equal(BlockFace.West, east.Face);
+            Assert.Equal(west.East + west.Wide + Precinct.WalkwayTiles, east.East);
+        }
+    }
+
+    [Fact]
+    public void Traded_raises_precincts_of_shop_rows_over_a_deck_at_world_creation()
+    {
+        RulesetLoadResult loaded =
+            RulesetLoader.Load(Path.Combine(AppContext.BaseDirectory, "Rulesets", "traded.toml"));
+        Assert.True(loaded.Ok, loaded.Describe());
+
+        const int citizens = 30_000;
+        WorldKey key = EveryForm;
+        var world = new World(citizens, loaded.Ruleset!, key);
+        SyntheticCity.PopulateInto(world, key, Ticks.Zero, citizens);
+
+        int single = 0, galleried = 0;
+
+        for (int building = 0; building < world.Buildings.Rows.SlotCount; building++)
+        {
+            if (!world.IsPrecinct(building))
+            {
+                continue;
+            }
+
+            int lot = world.Lots.Rows.Resolve(world.Buildings.Lot[building]);
+            int storeys = world.Lots.Storeys[lot];
+            int wide = world.Lots.FootprintWide[lot].Raw;
+            int deep = world.Lots.FootprintDeep[lot].Raw;
+            single += storeys == 1 ? 1 : 0;
+            galleried += storeys == 2 ? 1 : 0;
+
+            int units = 0, floor = 0;
+            foreach (int unit in world.BuildingUnits.Walk(building))
+            {
+                units++;
+                floor += world.Units.Floor[unit];
+                Assert.InRange(world.Units.FirstStorey[unit], 0, storeys - 1);
+            }
+
+            Assert.Equal(Precinct.Units(wide, deep, storeys), units);
+            Assert.InRange(units, 20 * storeys, 60 * storeys);
+            Assert.Equal((wide - (Precinct.Walkways(wide) * Precinct.WalkwayTiles)) * deep * storeys, floor);
+
+            Assert.True(world.TryDeclaredHousing(world.Buildings.Kind[building], building, out int homes));
+            Assert.Equal(0, homes);
+
+            Assert.True(world.TryDeclaredParking(world.Buildings.Kind[building], building, out int spaces));
+            Assert.Equal(0, spaces % TownSupermarket.DeckLevels);
+            Assert.True(spaces > 0, $"precinct {building} has no stalls.");
+        }
+
+        Assert.True(single > 0, "traded.toml raised no single-storey precinct.");
+        Assert.True(galleried > 0, "traded.toml raised no two-storey precinct.");
+    }
+
     [Fact]
     public void Traded_raises_sales_yards_of_one_shop_each_at_world_creation()
     {
@@ -276,7 +365,7 @@ public sealed class TradeFormTests
 
         // traded.toml weighs three centres to each yard, so a smaller city may draw none.
         const int citizens = 30_000;
-        WorldKey key = WorldKey.FromSeed(0x7EAD_ED00_0000_0001UL);
+        WorldKey key = EveryForm;
         var world = new World(citizens, loaded.Ruleset!, key);
         SyntheticCity.PopulateInto(world, key, Ticks.Zero, citizens);
 
@@ -324,13 +413,17 @@ public sealed class TradeFormTests
         Assert.True(loaded.Ok, loaded.Describe());
 
         const int citizens = 30_000;
-        WorldKey key = WorldKey.FromSeed(0x7EAD_ED00_0000_0001UL);
+        WorldKey key = EveryForm;
         var world = new World(citizens, loaded.Ruleset!, key);
         SyntheticCity.PopulateInto(world, key, Ticks.Zero, citizens);
 
         // traded.toml's five bands land on rungs 0, 1, 2, 3 and 5. A mixed block reads as band 0.
         BlockPattern[] low = [BlockPattern.CarParkCentre, BlockPattern.PadSite, BlockPattern.SalesYard];
-        BlockPattern[] middle = [BlockPattern.ShopHouseParade, BlockPattern.Supermarket, BlockPattern.DeckedSupermarket];
+        BlockPattern[] middle =
+        [
+            BlockPattern.ShopHouseParade, BlockPattern.Supermarket, BlockPattern.DeckedSupermarket,
+            BlockPattern.Precinct, BlockPattern.GalleryPrecinct,
+        ];
         BlockPattern[] high = [BlockPattern.ShopHouseParade, BlockPattern.HighStreetBlock];
         BlockPattern[][] tierOfBand = [low, low, low, middle, middle, high];
 

@@ -258,7 +258,7 @@ public static class BuildingPlan
         BlockPattern pattern, int wide, int deep, out int holeWide, out int holeDeep)
     {
         if (pattern is BlockPattern.Tower or BlockPattern.CarParkCentre or BlockPattern.PadSite or BlockPattern.SalesYard
-            || BlockPatterns.IsSupermarket(pattern))
+            || BlockPatterns.IsSupermarket(pattern) || BlockPatterns.IsPrecinct(pattern))
         {
             holeWide = 0;
             holeDeep = 0;

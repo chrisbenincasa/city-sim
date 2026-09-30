@@ -132,7 +132,7 @@ public sealed class CarParkCentreRulesetLoadTests
             + "trade_form_weights = { car_park_centre = 3, sales_yard = 0 }\n\n"
             + Parking(Stalls));
 
-        Assert.Equal(new TradeFormWeights(3, 0, 1, 1, 1), rules.Lots.TradeFormWeights);
+        Assert.Equal(new TradeFormWeights(3, 0, 1, 1, 1, 1), rules.Lots.TradeFormWeights);
     }
 
     [Theory]

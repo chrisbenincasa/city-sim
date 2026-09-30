@@ -6925,6 +6925,7 @@ public sealed partial class World
             : IsShopHouse(buildingSlot) ? 1 + ShopHouseHomes(buildingSlot)
             : IsSupermarket(buildingSlot) || IsPadSite(buildingSlot) || IsSalesYard(buildingSlot) ? 1
             : IsDepartmentStore(buildingSlot) ? DepartmentStoreUnitCount(buildingSlot)
+            : IsPrecinct(buildingSlot) ? PrecinctUnitCount(buildingSlot)
             : CapacityRuleset.Holds(FloorTilesOf(buildingSlot), Rules.Capacity.FloorTilesPerOccupant);
 
         return true;
@@ -7718,6 +7719,7 @@ public sealed partial class World
             : IsSupermarket(buildingSlot) ? SupermarketStalls(buildingSlot)
             : IsPadSite(buildingSlot) ? PadStalls(buildingSlot)
             : IsSalesYard(buildingSlot) ? SalesYardStalls(buildingSlot)
+            : IsPrecinct(buildingSlot) ? PrecinctStalls(buildingSlot)
             : Rules.Kind(kind).Parked
                 ? CapacityRuleset.Holds(
                     FloorTilesOf(buildingSlot), Rules.Capacity.FloorTilesPerParkingSpace)

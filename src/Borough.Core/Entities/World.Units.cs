@@ -86,10 +86,36 @@ public sealed partial class World
         && Lots.Rows.TryResolve(Buildings.Lot[buildingSlot], out int lotSlot)
         && Lots.PatternOf(lotSlot) == Space.BlockPattern.SalesYard;
 
+    /// <summary>Whether a Building is a precinct, of either height.</summary>
+    public bool IsPrecinct(int buildingSlot) =>
+        buildingSlot >= 0
+        && Buildings.Rows.IsLive(buildingSlot)
+        && Lots.Rows.TryResolve(Buildings.Lot[buildingSlot], out int lotSlot)
+        && Space.BlockPatterns.IsPrecinct(Lots.PatternOf(lotSlot));
+
     /// <summary>Whether the Building is a commercial form that only Businesses occupy.</summary>
     public bool IsShopOnly(int buildingSlot) =>
         IsTradeCentre(buildingSlot) || IsSupermarket(buildingSlot) || IsDepartmentStore(buildingSlot)
-        || IsPadSite(buildingSlot) || IsSalesYard(buildingSlot);
+        || IsPadSite(buildingSlot) || IsSalesYard(buildingSlot) || IsPrecinct(buildingSlot);
+
+    private int PrecinctUnitCount(int buildingSlot)
+    {
+        int lotSlot = Lots.Rows.Resolve(Buildings.Lot[buildingSlot]);
+
+        return Space.Precinct.Units(Lots.FootprintWide[lotSlot].Raw, Lots.FootprintDeep[lotSlot].Raw, Lots.Storeys[lotSlot]);
+    }
+
+    /// <summary>How many stalls a precinct's deck holds, over every level.</summary>
+    private int PrecinctStalls(int buildingSlot)
+    {
+        int lotSlot = Lots.Rows.Resolve(Buildings.Lot[buildingSlot]);
+        int level = Space.TownSupermarket.Stalls(
+            Lots.ParcelNorth[lotSlot].Raw, Lots.ParcelDeep[lotSlot].Raw, Lots.FootprintNorth[lotSlot].Raw,
+            Lots.FootprintWide[lotSlot].Raw, Lots.FootprintDeep[lotSlot].Raw,
+            Rules.Lots.StreetHalfWidthTiles, Rules.Parking.Stalls).Stalls;
+
+        return level * Space.TownSupermarket.DeckLevels;
+    }
 
     private int PadStalls(int buildingSlot) =>
         Space.PadSite.Stalls(
@@ -187,6 +213,10 @@ public sealed partial class World
         {
             RaiseDepartmentStoreUnits(buildingSlot);
         }
+        else if (IsPrecinct(buildingSlot))
+        {
+            RaisePrecinctUnits(buildingSlot);
+        }
         else if (TryDeclaredOccupancy(Buildings.Kind[buildingSlot], buildingSlot, out int tenancies))
         {
             ShapeEqualUnits(buildingSlot, tenancies);
@@ -283,6 +313,35 @@ public sealed partial class World
                 floor: bay.Wide * deep.Raw * storeys);
 
             BuildingUnits.InsertOrdered(buildingSlot, Units.Rows.Resolve(added));
+        }
+    }
+
+    private void RaisePrecinctUnits(int buildingSlot)
+    {
+        int lotSlot = Lots.Rows.Resolve(Buildings.Lot[buildingSlot]);
+        int wide = Lots.FootprintWide[lotSlot].Raw;
+        int deep = Lots.FootprintDeep[lotSlot].Raw;
+        byte storeys = Lots.Storeys[lotSlot];
+        Span<Space.Precinct.Row> rows = stackalloc Space.Precinct.Row[Space.Precinct.RowCount(wide)];
+        int count = Space.Precinct.Rows(wide, rows);
+        int perRow = Space.Precinct.UnitsPerRow(deep);
+
+        for (byte storey = 0; storey < storeys; storey++)
+        {
+            for (int row = 0; row < count; row++)
+            {
+                for (int j = 0; j < perRow; j++)
+                {
+                    int north = j * Space.Precinct.UnitTiles;
+                    int along = j == perRow - 1 ? deep - north : Space.Precinct.UnitTiles;
+                    Handle<Unit> added = Units.Create(
+                        Buildings.Rows.At(buildingSlot), new Tiles(rows[row].East), new Tiles(north),
+                        new Tiles(rows[row].Wide), new Tiles(along), storey, 1, (byte)rows[row].Face,
+                        anchor: false, floor: rows[row].Wide * along);
+
+                    BuildingUnits.InsertOrdered(buildingSlot, Units.Rows.Resolve(added));
+                }
+            }
         }
     }
 

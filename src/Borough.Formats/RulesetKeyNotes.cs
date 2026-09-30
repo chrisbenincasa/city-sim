@@ -934,8 +934,8 @@ public static class RulesetKeyNotes
             + "a single-storey row of Units at the rear and a surface car park in front, and needs "
             + "the [parking] stall sizes. A centre alone on its block gives up a side strip to three "
             + "pad sites. \"by_band\" draws each trade block's form from its band's tier: a car-park "
-            + "centre or a sales yard in the low tier, a shop-house parade or a supermarket in the "
-            + "middle, a shop-house parade or a high-street block in the high tier. It also needs the "
+            + "centre or a sales yard in the low tier, a shop-house parade, a supermarket or a "
+            + "precinct in the middle, a shop-house parade or a high-street block in the high tier. It also needs the "
             + "stall sizes. Only world creation lays trade forms out; a block zoned for trade in play "
             + "follows its density band. Omitted, trade blocks follow their density band. Fixed at "
             + "world creation.",
@@ -950,6 +950,9 @@ public static class RulesetKeyNotes
         ["[lots] trade_form_weights shop_house_parade"] =
             "The weight of a shop-house parade, in both the middle and the high tier.",
         ["[lots] trade_form_weights supermarket"] = "The weight of a town supermarket in the middle tier.",
+        ["[lots] trade_form_weights precinct"] =
+            "The weight of a precinct in the middle tier: a whole block of shop rows either side of "
+            + "walkways, with a deck behind. On the tier's upper rung it rises to 2 storeys.",
         ["[lots] trade_form_weights high_street_block"] = "The weight of a high-street block in the high tier.",
 
         ["[lots] setback_tiles"] =

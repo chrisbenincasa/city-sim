@@ -7797,12 +7797,12 @@ public static class RulesetLoader
                 weights = new Core.Space.TradeFormWeights(
                     Weight(inline, "car_park_centre"), Weight(inline, "sales_yard"),
                     Weight(inline, "shop_house_parade"), Weight(inline, "supermarket"),
-                    Weight(inline, "high_street_block"));
+                    Weight(inline, "precinct"), Weight(inline, "high_street_block"));
 
                 if (weights.CarParkCentre < 0 || weights.SalesYard < 0 || weights.ShopHouseParade < 0
-                    || weights.Supermarket < 0 || weights.HighStreetBlock < 0
+                    || weights.Supermarket < 0 || weights.Precinct < 0 || weights.HighStreetBlock < 0
                     || weights.CarParkCentre + weights.SalesYard == 0
-                    || weights.ShopHouseParade + weights.Supermarket == 0
+                    || weights.ShopHouseParade + weights.Supermarket + weights.Precinct == 0
                     || weights.ShopHouseParade + weights.HighStreetBlock == 0)
                 {
                     Refuse(LineOf(weightEntry), null,

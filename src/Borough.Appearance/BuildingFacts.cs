@@ -90,7 +90,8 @@ public readonly record struct BuildingFacts(
             {
                 BlockPattern.CarParkCentre or BlockPattern.Supermarket or BlockPattern.PadSite
                     or BlockPattern.SalesYard => ParkingForm.Surface,
-                BlockPattern.DeckedSupermarket => ParkingForm.Deck,
+                BlockPattern.DeckedSupermarket or BlockPattern.Precinct
+                    or BlockPattern.GalleryPrecinct => ParkingForm.Deck,
                 _ => ParkingForm.None,
             },
             IsCorner(world.Roads.Streets.Lattice, lots, lot));
