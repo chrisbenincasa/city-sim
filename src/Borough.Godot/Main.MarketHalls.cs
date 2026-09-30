@@ -13,7 +13,8 @@ namespace Borough.Shell;
 /// Draws each market hall and its square from the Blender modules in <c>assets/market-hall</c>,
 /// which <c>scripts/art/market-hall.py</c> authors. The simulation supplies the hall's footprint and
 /// one stall Unit per stall; the square fills the Lot north of the hall. A seeded pick per Building
-/// chooses the family, and a stall draws open while let and shuttered while vacant.
+/// chooses the family, and a stall draws open while let and shuttered while vacant. Stalls show from
+/// above through the iron hall's see-through glass and between the stall shed's aisle roofs.
 /// </summary>
 public partial class Main
 {
@@ -24,7 +25,7 @@ public partial class Main
         "iron-wall", "iron-entrance", "iron-roof",
         "concrete-wall", "concrete-entrance", "concrete-roof",
         "shed-wall", "shed-entrance", "shed-roof",
-        "stall-open", "stall-shut", "square-paving", "square-tree", "square-bench",
+        "stall-open", "stall-shut", "square-paving", "square-tree", "square-bench", "iron-glass",
     ];
 
     private const int HallWall = 0;
@@ -35,6 +36,9 @@ public partial class Main
     private const int SquarePaving = 11;
     private const int SquareTree = 12;
     private const int SquareBench = 13;
+    private const int IronGlass = 14;
+
+    private const float GlassOpacity = .3f;
 
     // Trees stand on a grid this many Tiles apart, with a bench on the Tile south of each.
     private const int TreeEvery = 6;
@@ -49,9 +53,13 @@ public partial class Main
         for (int i = 0; i < HallModules.Length; i++)
         {
             _hallLayers[i] = Layer(Colors.White, Commit(Load($"market-hall/{HallModules[i]}").Corners),
-                perInstance: true, casts: i != SquarePaving);
+                perInstance: true, casts: i != SquarePaving && i != IronGlass);
             _hallIds[i] = [];
         }
+
+        var glass = (StandardMaterial3D)((ArrayMesh)_hallLayers[IronGlass].Multimesh.Mesh).SurfaceGetMaterial(0);
+        glass.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
+        glass.AlbedoColor = new Color(1f, 1f, 1f, GlassOpacity);
     }
 
     private IEnumerable<(string Name, InstanceLayer Layer, bool Colours, List<ulong>? Ids)> MarketHallLayers()
@@ -114,7 +122,7 @@ public partial class Main
         void Put(int module, Basis facing, int x, int y) =>
             placed[module].Add((hall.Id, new Transform3D(facing, At(east + x + .5f, 0f, north + y + .5f)), Colors.White));
 
-        bool Aisle(int x)
+        bool Stall(int x)
         {
             for (int pair = 0; pair < MarketHall.Pairs(wide); pair++)
             {
@@ -122,12 +130,14 @@ public partial class Main
 
                 if (x == west || x == west + 1)
                 {
-                    return false;
+                    return true;
                 }
             }
 
-            return x > 0 && x < wide - 1;
+            return false;
         }
+
+        bool Aisle(int x) => !Stall(x) && x > 0 && x < wide - 1;
 
         for (int x = 0; x < wide; x++)
         {
@@ -137,7 +147,19 @@ public partial class Main
 
             for (int y = 0; y < deep; y++)
             {
-                Put(family + HallRoof, Basis.Identity, x, y);
+                if (hall.Family != HallFamily.Shed)
+                {
+                    Put(family + HallRoof, Basis.Identity, x, y);
+                }
+                else if (!Stall(x))
+                {
+                    Put(family + HallRoof, x > 0 && !Stall(x - 1) ? FacingEast : FacingWest, x, y);
+                }
+
+                if (hall.Family == HallFamily.Iron)
+                {
+                    Put(IronGlass, Basis.Identity, x, y);
+                }
             }
         }
 

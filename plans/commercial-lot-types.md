@@ -298,8 +298,17 @@ Market halls, decided 2026-09-29:
 - Observed 2026-09-29 on `traded.toml`, seed 0. At 30,000 Citizens there is no hall. At 40,000
   there are 2, a concrete hall and a stall shed, each 30 × 15 Tiles with 182 stalls and a
   30 × 15 square. The draw list places 450 roof Tiles and 182 stalls per hall, all open at boot,
-  with 10 trees and 10 benches per square. Every family's roof is opaque, so the stalls do not show
-  from above, and the shed's sheet roof reads as a flat gray slab.
+  with 10 trees and 10 benches per square.
+- Roofs, decided 2026-09-30, suit the family, so stalls show from above in two families of three.
+  The iron hall's glass is a separate module on a see-through layer that casts no shadow, and its
+  ribs stay solid. The stall shed roofs only its aisle Tiles, each aisle's two Tiles falling away
+  from a ridge between them, so the stall pairs stand open. The concrete hall keeps its slab.
+  Rejected: aisle roofs on every family, which leave iron and concrete walls round strips of open
+  sky; a shed with no roof, which reads as the deferred open-air market; and roofs that hide when
+  zoomed in, a new shell mechanism that leaves the shed a gray slab from afar.
+- Observed 2026-09-30 on `traded.toml`, seed 0. At 40,000 Citizens the shed draws 240 roof pieces
+  on its 16 aisle columns, and its awnings show between them. The first iron hall appears at
+  60,000 Citizens, near Tile (13104, 5224), with 450 glass pieces, and its stalls show through.
 
 The high-street block's department store takes the whole south face, about 30 × 6 Tiles over the
 band's storeys (about 8,600 m² at 3 storeys). One perimeter Lot holds at most about 1,700 m², below

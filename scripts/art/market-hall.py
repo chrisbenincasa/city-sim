@@ -5,7 +5,8 @@ Run with Blender in the background:
 
 The shell places each module whole at positions the simulation supplies, so every module is sized to
 the 4 m Tile grid and none is stretched to fit. A hall is built a Tile at a time: a wall or an
-entrance on each edge Tile, a roof over every Tile, and one stall on each stall Unit's Tile.
+entrance on each edge Tile, a roof over every Tile (over aisle Tiles only in the stall shed), and one
+stall on each stall Unit's Tile.
 
 Each module's origin is its Tile's centre at ground level. A wall's or a stall's front looks down -Y,
 which Godot receives as +Z, and the shell turns it outward or to face its aisle. Roof and square
@@ -122,10 +123,14 @@ def iron_entrance():
 
 
 def iron_roof():
-    """One Tile of ridge-and-furrow glazing on an iron rib, its ridge running north-south."""
-    ridge_along_y('glass', HALF, -HALF, HALF, IRON_EAVES, 1.1, 'roof-glass')
+    """One Tile of the roof's ironwork: a rib across the hall and a ridge bar running north-south."""
     box('rib', (-HALF, -.07, IRON_EAVES - .25), (HALF, .07, IRON_EAVES), 'iron')
     box('ridge', (-.1, -HALF, IRON_EAVES + 1.0), (.1, HALF, IRON_EAVES + 1.15), 'iron')
+
+
+def iron_glass():
+    """One Tile of ridge-and-furrow glazing over the ironwork. The shell draws it see-through."""
+    ridge_along_y('glass', HALF, -HALF, HALF, IRON_EAVES, 1.1, 'roof-glass')
 
 
 # 1960s concrete hall: ribbed board-marked walls, a flat slab roof with a rooflight to each Tile.
@@ -167,7 +172,11 @@ def shed_entrance():
 
 
 def shed_roof():
-    """One Tile of sheet roof, falling towards the south."""
+    """One Tile of aisle roof, falling from a ridge at its back to the eaves at its front.
+
+    The shell roofs only the aisles, turning each aisle's two Tiles to fall away from the ridge
+    between them, so the stall pairs stand open to the sky.
+    """
     slope_across_y('sheet', -HALF, HALF, SHED_EAVES, SHED_EAVES + .5, 'sheet')
     box('purlin', (-HALF, -.06, SHED_EAVES + .1), (HALF, .06, SHED_EAVES + .25), 'steel')
 
@@ -238,6 +247,7 @@ MODULES = {
     'square-paving': square_paving,
     'square-tree': square_tree,
     'square-bench': square_bench,
+    'iron-glass': iron_glass,
 }
 
 

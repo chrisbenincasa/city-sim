@@ -48,8 +48,8 @@
     },
     {
       "module": "iron-roof",
-      "vertices": 22,
-      "faces": 17,
+      "vertices": 16,
+      "faces": 12,
       "bounds_min": [
         -2.0,
         -2.0,
@@ -61,10 +61,9 @@
         8.15
       ],
       "materials": [
-        "iron",
-        "roof-glass"
+        "iron"
       ],
-      "geometry_sha256": "e059b0436baae09cbfe7cb8626be5092520b94f1a1a05c6b171c036c64b36324"
+      "geometry_sha256": "8b448ef57ca8cceb761bae9d48651ad730e1f21fe88fa2ccb1e5cff1e23bdf60"
     },
     {
       "module": "concrete-wall",
@@ -293,6 +292,25 @@
         "steel"
       ],
       "geometry_sha256": "1f06da99ab110dc8887bbaacf1d084293800b95ff8e2da52e71754b5e4b55fff"
+    },
+    {
+      "module": "iron-glass",
+      "vertices": 6,
+      "faces": 5,
+      "bounds_min": [
+        -2.0,
+        -2.0,
+        7.0
+      ],
+      "bounds_max": [
+        2.0,
+        2.0,
+        8.1
+      ],
+      "materials": [
+        "roof-glass"
+      ],
+      "geometry_sha256": "af2e6b1dc6bcedd385ebd224ec82d8874f815b238361cb9e67597ab487b2af24"
     }
   ]
 }
