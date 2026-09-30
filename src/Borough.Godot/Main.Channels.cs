@@ -668,6 +668,7 @@ public partial class Main
         ("department-entrance", _storeDoors, true, _storeDoorIds),
         ("department-corner-bay", _storeCornerBays, true, _storeCornerBayIds),
         ("department-corner-tower", _storeTowers, true, _storeTowerIds),
+        .. PadLayers(),
         ("zone", _zones, true, null),
         ("cursor", _cursor, true, null),
         ("building", _buildings, true, _buildingIds),

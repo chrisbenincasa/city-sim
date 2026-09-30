@@ -67,6 +67,11 @@ public partial class Main
         {
             _moduleDrawnIds.Add(each.Id);
         }
+
+        foreach (Pad each in PadSites())
+        {
+            _moduleDrawnIds.Add(each.Id);
+        }
     }
 
     private static IEnumerable<(ulong, Transform3D, Color)> White(IEnumerable<(ulong Id, Transform3D Where)> places)

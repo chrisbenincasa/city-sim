@@ -1,0 +1,267 @@
+{
+  "tile_metres": 4.0,
+  "storey_metres": 3.5,
+  "bay_deep_metres": 16.0,
+  "modules": [
+    {
+      "module": "kiosk-bay",
+      "vertices": 32,
+      "faces": 24,
+      "bounds_min": [
+        -2.0,
+        -8.15,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        8.0,
+        4.0
+      ],
+      "materials": [
+        "glass",
+        "membrane",
+        "petrol",
+        "render"
+      ],
+      "geometry_sha256": "dfc8b4e57e3f4d771743b06592aa29aeeaa7d57914a0c83925abad3f69f5ab6c"
+    },
+    {
+      "module": "kiosk-door",
+      "vertices": 48,
+      "faces": 36,
+      "bounds_min": [
+        -2.0,
+        -8.3,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        8.0,
+        4.8
+      ],
+      "materials": [
+        "door",
+        "glass",
+        "membrane",
+        "petrol",
+        "render",
+        "sign"
+      ],
+      "geometry_sha256": "f710d0efa3a013d6ed0c8ad2a0167eba7b2c9fcb8f0d9a7fa609dbcb88221823"
+    },
+    {
+      "module": "canopy",
+      "vertices": 16,
+      "faces": 12,
+      "bounds_min": [
+        -2.0,
+        -2.0,
+        4.8
+      ],
+      "bounds_max": [
+        2.0,
+        2.0,
+        5.7
+      ],
+      "materials": [
+        "canopy",
+        "petrol"
+      ],
+      "geometry_sha256": "1f03699420e9cb52fb5bf65ce5d060f0314dd5b2b0b3b301ce8b62a0c3c74270"
+    },
+    {
+      "module": "pump-island",
+      "vertices": 32,
+      "faces": 24,
+      "bounds_min": [
+        -0.6,
+        -1.6,
+        0.0
+      ],
+      "bounds_max": [
+        0.6,
+        1.6,
+        4.8
+      ],
+      "materials": [
+        "kerb",
+        "post",
+        "pump"
+      ],
+      "geometry_sha256": "2ff48b2dfcb3817f6feafc184bc9c2e8b78664ef240e20e92b8e002e6efe3f5a"
+    },
+    {
+      "module": "pavilion-bay",
+      "vertices": 32,
+      "faces": 24,
+      "bounds_min": [
+        -2.0,
+        -8.6,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        8.6,
+        4.7
+      ],
+      "materials": [
+        "brick",
+        "glass",
+        "roof"
+      ],
+      "geometry_sha256": "a87acb03c2b42faf10450c85b0084f7a505f5ce9a2875e06ee924ef697576905"
+    },
+    {
+      "module": "pavilion-door",
+      "vertices": 56,
+      "faces": 42,
+      "bounds_min": [
+        -2.0,
+        -8.6,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        8.6,
+        6.1
+      ],
+      "materials": [
+        "brick",
+        "burger",
+        "door",
+        "glass",
+        "roof"
+      ],
+      "geometry_sha256": "1bcf35b9cf7cc4d48a4e8677fa840b41bf44a7a149510917266749c6b7e70c42"
+    },
+    {
+      "module": "drive-lane",
+      "vertices": 40,
+      "faces": 30,
+      "bounds_min": [
+        -2.0,
+        -2.0,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        2.0,
+        0.06
+      ],
+      "materials": [
+        "asphalt",
+        "paint"
+      ],
+      "geometry_sha256": "5bc1ddea9f9f1d1c62d2e463f43911a45ebc5f1861e466f34e3ee9dd21bc35de"
+    },
+    {
+      "module": "menu-board",
+      "vertices": 32,
+      "faces": 24,
+      "bounds_min": [
+        -1.2,
+        -0.1,
+        0.0
+      ],
+      "bounds_max": [
+        1.2,
+        0.15,
+        2.4
+      ],
+      "materials": [
+        "burger",
+        "post",
+        "roof"
+      ],
+      "geometry_sha256": "3b67e55f93ba2dc8d927f8d8aa495694d89358570bbd6af7603dee20ff7fd608"
+    },
+    {
+      "module": "bank-bay",
+      "vertices": 24,
+      "faces": 18,
+      "bounds_min": [
+        -2.0,
+        -8.25,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        8.25,
+        4.5
+      ],
+      "materials": [
+        "cornice",
+        "glass",
+        "stone"
+      ],
+      "geometry_sha256": "655b7236392e5717a444c3ba5f16f1198b8abcc7e58b0a22d1e0212e7f8afda3"
+    },
+    {
+      "module": "bank-door",
+      "vertices": 64,
+      "faces": 48,
+      "bounds_min": [
+        -2.0,
+        -9.15,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        8.25,
+        4.5
+      ],
+      "materials": [
+        "bank",
+        "cornice",
+        "door",
+        "glass",
+        "stone"
+      ],
+      "geometry_sha256": "e49979d3a241073dbb41dc533d00fe4a8c09b57d295191fbac7f341ac4bec5da"
+    },
+    {
+      "module": "drive-up-lane",
+      "vertices": 32,
+      "faces": 24,
+      "bounds_min": [
+        -2.0,
+        -2.05,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        2.0,
+        4.0
+      ],
+      "materials": [
+        "asphalt",
+        "bank",
+        "paint",
+        "stone"
+      ],
+      "geometry_sha256": "3762faa5a6949e431e05385c209c168f762a42d1fdeb31d2d5df3d4da7c79fea"
+    },
+    {
+      "module": "teller",
+      "vertices": 32,
+      "faces": 24,
+      "bounds_min": [
+        -1.5,
+        -0.5,
+        0.0
+      ],
+      "bounds_max": [
+        1.5,
+        0.5,
+        3.6
+      ],
+      "materials": [
+        "glass",
+        "kerb",
+        "post",
+        "stone"
+      ],
+      "geometry_sha256": "5eb1418d4343f73a2a29766a66d837b43af0231ac652ef0d61c9114a4e8c1a0a"
+    }
+  ]
+}

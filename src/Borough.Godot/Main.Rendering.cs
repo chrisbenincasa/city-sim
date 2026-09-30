@@ -64,7 +64,7 @@ public partial class Main
                 RemoveFamilyBody(id);
                 bool far = PlaceFamilyBody(slot);
                 BodyShape? shape = far ? _placedBodies[id].Shape : null;
-                bool modules = _world.IsSupermarket(slot) || _world.IsDepartmentStore(slot);
+                bool modules = _world.IsSupermarket(slot) || _world.IsDepartmentStore(slot) || _world.IsPadSite(slot);
                 if (modules) _moduleDrawnIds.Add(id); else _moduleDrawnIds.Remove(id);
                 foreach (Massing each in modules ? [] : Buildings(slot))
                 {
