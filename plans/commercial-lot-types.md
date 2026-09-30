@@ -226,6 +226,10 @@ Pad sites, decided 2026-09-29:
   the drawing paints the same stalls.
 - The family fills the forecourt with pumps and a canopy, a drive lane or a drive-up lane. The
   simulation does not know which.
+- Observed 2026-09-29 at `25f01957` on `traded.toml` at 8,000 Citizens, seed 0: 6 centres and 18
+  pads, 8 petrol, 5 fast food and 5 bank. Strips stand on both west and east faces. Each pad has
+  16 stalls, and the draw list paints 288 stall markings, one per stall. The first driven run drew
+  no pads in the strip, and two reruns of the same script drew them; the cause is unknown.
 
 The high-street block's department store takes the whole south face, about 30 × 6 Tiles over the
 band's storeys (about 8,600 m² at 3 storeys). One perimeter Lot holds at most about 1,700 m², below
