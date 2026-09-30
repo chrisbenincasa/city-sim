@@ -467,7 +467,7 @@ public sealed class TradeFormTests
             Assert.True(world.TryDeclaredHousing(world.Buildings.Kind[building], building, out int homes));
             Assert.Equal(0, homes);
 
-            (Parcel parcel, BlockGround ground) = world.SalesYardGround(lot);
+            (Parcel parcel, BlockGround ground) = world.ParcelGround(lot);
             Assert.True(world.TryDeclaredParking(world.Buildings.Kind[building], building, out int spaces));
             Assert.Equal(SalesYard.Stalls(parcel, ground, world.Rules.Lots.StreetHalfWidthTiles,
                 world.Rules.Parking.Stalls).Stalls, spaces);

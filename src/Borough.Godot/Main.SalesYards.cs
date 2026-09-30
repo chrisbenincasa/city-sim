@@ -107,7 +107,7 @@ public partial class Main
     private void PlaceSalesYard(Yard yard, List<(ulong, Transform3D, Color)>[] placed)
     {
         LotTable lots = _world.Lots;
-        (Parcel parcel, BlockGround ground) = _world.SalesYardGround(yard.Lot);
+        (Parcel parcel, BlockGround ground) = _world.ParcelGround(yard.Lot);
         int half = _world.Rules.Lots.StreetHalfWidthTiles;
         int shedEast = lots.FootprintEast[yard.Lot].Raw;
         int shedNorth = lots.FootprintNorth[yard.Lot].Raw;

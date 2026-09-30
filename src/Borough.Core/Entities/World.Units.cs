@@ -137,7 +137,7 @@ public sealed partial class World
             Lots.FootprintWide[Lots.Rows.Resolve(Buildings.Lot[buildingSlot])].Raw, Rules.Parking.Stalls).Stalls;
 
     /// <summary>The Lot's parcel, and the block ground it was carved from.</summary>
-    public (Space.Parcel Parcel, Space.BlockGround Ground) SalesYardGround(int lotSlot)
+    public (Space.Parcel Parcel, Space.BlockGround Ground) ParcelGround(int lotSlot)
     {
         Space.Frontage.BlockOf(
             Roads.Streets, Lots.East[lotSlot], Lots.North[lotSlot], (Space.StreetSide)Lots.Side[lotSlot],
@@ -151,7 +151,7 @@ public sealed partial class World
 
     private int SalesYardStalls(int buildingSlot)
     {
-        (Space.Parcel parcel, Space.BlockGround ground) = SalesYardGround(Lots.Rows.Resolve(Buildings.Lot[buildingSlot]));
+        (Space.Parcel parcel, Space.BlockGround ground) = ParcelGround(Lots.Rows.Resolve(Buildings.Lot[buildingSlot]));
 
         return Space.SalesYard.Stalls(parcel, ground, Rules.Lots.StreetHalfWidthTiles, Rules.Parking.Stalls).Stalls;
     }

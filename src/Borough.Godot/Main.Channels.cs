@@ -671,6 +671,7 @@ public partial class Main
         .. PadLayers(),
         .. SalesYardLayers(),
         .. PrecinctLayers(),
+        .. MarketHallLayers(),
         ("zone", _zones, true, null),
         ("cursor", _cursor, true, null),
         ("building", _buildings, true, _buildingIds),

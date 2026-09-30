@@ -45,6 +45,7 @@ public partial class Main
         FillPadSites();
         FillSalesYards();
         FillPrecincts();
+        FillMarketHalls();
     }
 
     private IEnumerable<(ulong Id, int Lot)> Centres()

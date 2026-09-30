@@ -293,6 +293,13 @@ Market halls, decided 2026-09-29:
   the many small traders that set a market apart from a supermarket.
 - A hall has no Car Park. `trade_form_weights` gains a `market_hall` weight.
 - Families are an iron-and-glass hall, a 1960s concrete hall and a stall shed.
+- The 30,000-Citizen form tests use seed `…0009`, the first that draws every form with four
+  middle-tier forms.
+- Observed 2026-09-29 on `traded.toml`, seed 0. At 30,000 Citizens there is no hall. At 40,000
+  there are 2, a concrete hall and a stall shed, each 30 × 15 Tiles with 182 stalls and a
+  30 × 15 square. The draw list places 450 roof Tiles and 182 stalls per hall, all open at boot,
+  with 10 trees and 10 benches per square. Every family's roof is opaque, so the stalls do not show
+  from above, and the shed's sheet roof reads as a flat gray slab.
 
 The high-street block's department store takes the whole south face, about 30 × 6 Tiles over the
 band's storeys (about 8,600 m² at 3 storeys). One perimeter Lot holds at most about 1,700 m², below
