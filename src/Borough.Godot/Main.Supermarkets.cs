@@ -30,7 +30,8 @@ public partial class Main
     /// <summary>Which Buildings the Blender modules draw, so the massing pass leaves them out.</summary>
     private readonly HashSet<ulong> _moduleDrawnIds = [];
 
-    private readonly record struct Supermarket(ulong Id, int Lot, int Levels);
+    /// <summary>A Building whose car park this file draws. A precinct's shops are drawn elsewhere.</summary>
+    private readonly record struct Supermarket(ulong Id, int Lot, int Levels, bool Store);
 
     private void CreateSupermarketLayers()
     {
@@ -96,7 +97,12 @@ public partial class Main
             if (_world.IsSupermarket(slot))
             {
                 int lot = _world.Lots.Rows.Resolve(_world.Buildings.Lot[slot]);
-                yield return new(rows.IdAt(slot), lot, TownSupermarket.Levels(_world.Lots.PatternOf(lot)));
+                yield return new(rows.IdAt(slot), lot, TownSupermarket.Levels(_world.Lots.PatternOf(lot)), Store: true);
+            }
+            else if (_world.IsPrecinct(slot))
+            {
+                int lot = _world.Lots.Rows.Resolve(_world.Buildings.Lot[slot]);
+                yield return new(rows.IdAt(slot), lot, TownSupermarket.DeckLevels, Store: false);
             }
         }
     }
@@ -108,6 +114,11 @@ public partial class Main
 
         foreach (Supermarket each in Supermarkets())
         {
+            if (!each.Store)
+            {
+                continue;
+            }
+
             int wide = lots.FootprintWide[each.Lot].Raw;
             int middle = wide / 2;
             float east = lots.FootprintEast[each.Lot].Raw * MetresPerTile;

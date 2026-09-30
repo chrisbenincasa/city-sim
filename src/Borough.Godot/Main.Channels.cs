@@ -670,6 +670,7 @@ public partial class Main
         ("department-corner-tower", _storeTowers, true, _storeTowerIds),
         .. PadLayers(),
         .. SalesYardLayers(),
+        .. PrecinctLayers(),
         ("zone", _zones, true, null),
         ("cursor", _cursor, true, null),
         ("building", _buildings, true, _buildingIds),

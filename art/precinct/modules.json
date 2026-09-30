@@ -1,0 +1,342 @@
+{
+  "tile_metres": 4.0,
+  "storey_metres": 3.5,
+  "walkway_metres": 8.0,
+  "modules": [
+    {
+      "module": "arcade-front",
+      "vertices": 40,
+      "faces": 30,
+      "bounds_min": [
+        -2.0,
+        -2.3,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        2.0,
+        3.8
+      ],
+      "materials": [
+        "brick",
+        "glass",
+        "stone",
+        "timber"
+      ],
+      "geometry_sha256": "9d69679c15769bcf1a1f43b1f1a468a8c1330ea649630578690c371040f3a9f2"
+    },
+    {
+      "module": "arcade-door",
+      "vertices": 48,
+      "faces": 36,
+      "bounds_min": [
+        -2.0,
+        -2.3,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        2.0,
+        3.8
+      ],
+      "materials": [
+        "brick",
+        "door",
+        "glass",
+        "stone",
+        "timber"
+      ],
+      "geometry_sha256": "ad537184d4b634e90b7e1278c084d4185d4e692f2485d5e1c19ed227da5a0639"
+    },
+    {
+      "module": "arcade-body",
+      "vertices": 16,
+      "faces": 12,
+      "bounds_min": [
+        -2.0,
+        -2.0,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        2.0,
+        3.65
+      ],
+      "materials": [
+        "brick",
+        "membrane"
+      ],
+      "geometry_sha256": "ddcb28046b950b3f3006cfcda1f96089115d5e22953887de9f8bc32609d39427"
+    },
+    {
+      "module": "arcade-cover",
+      "vertices": 22,
+      "faces": 17,
+      "bounds_min": [
+        -4.0,
+        -2.0,
+        0.0
+      ],
+      "bounds_max": [
+        4.0,
+        2.0,
+        2.5
+      ],
+      "materials": [
+        "iron",
+        "roof-glass"
+      ],
+      "geometry_sha256": "6270837dacfe6c5e4259f84e9c53f246bb0a225b0a348edff1fa83454618dfde"
+    },
+    {
+      "module": "arcade-gallery",
+      "vertices": 32,
+      "faces": 24,
+      "bounds_min": [
+        -2.0,
+        -3.5,
+        -0.9
+      ],
+      "bounds_max": [
+        2.0,
+        -2.0,
+        1.05
+      ],
+      "materials": [
+        "iron",
+        "timber"
+      ],
+      "geometry_sha256": "1d71cbfdebf1e979eb3250423d5e8032262a7b01c5093bc9a9b0b6b7134c1298"
+    },
+    {
+      "module": "open-front",
+      "vertices": 40,
+      "faces": 30,
+      "bounds_min": [
+        -2.0,
+        -3.6,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        2.0,
+        3.9
+      ],
+      "materials": [
+        "concrete",
+        "fascia",
+        "glass"
+      ],
+      "geometry_sha256": "ec26d85ce0d08a729bd39bfa28334800d6252b77acc9e6c5df34dab8f31f062f"
+    },
+    {
+      "module": "open-door",
+      "vertices": 48,
+      "faces": 36,
+      "bounds_min": [
+        -2.0,
+        -3.6,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        2.0,
+        3.9
+      ],
+      "materials": [
+        "concrete",
+        "door",
+        "fascia",
+        "glass"
+      ],
+      "geometry_sha256": "c073d451d9121e7b5bd5b19ea03d2c8f7fb853487fbf5f00b98c732ae8c17547"
+    },
+    {
+      "module": "open-body",
+      "vertices": 16,
+      "faces": 12,
+      "bounds_min": [
+        -2.0,
+        -2.0,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        2.0,
+        3.65
+      ],
+      "materials": [
+        "membrane",
+        "tile"
+      ],
+      "geometry_sha256": "ddcb28046b950b3f3006cfcda1f96089115d5e22953887de9f8bc32609d39427"
+    },
+    {
+      "module": "open-cover",
+      "vertices": 32,
+      "faces": 24,
+      "bounds_min": [
+        -1.6,
+        -1.4,
+        0.0
+      ],
+      "bounds_max": [
+        1.6,
+        0.9,
+        1.4
+      ],
+      "materials": [
+        "concrete",
+        "leaf",
+        "soil",
+        "timber"
+      ],
+      "geometry_sha256": "33d9a89987a2b4cddd0c93f077cb7c89849a1eec25b68a16de81edfb88c0eb79"
+    },
+    {
+      "module": "open-gallery",
+      "vertices": 24,
+      "faces": 18,
+      "bounds_min": [
+        -2.0,
+        -4.0,
+        -3.5
+      ],
+      "bounds_max": [
+        2.0,
+        -2.0,
+        1.0
+      ],
+      "materials": [
+        "concrete"
+      ],
+      "geometry_sha256": "72abfd0386dac519cce1bcc2da4ab83f98db51962ed3f9ea0ece82ef6998a42d"
+    },
+    {
+      "module": "galleria-front",
+      "vertices": 40,
+      "faces": 30,
+      "bounds_min": [
+        -2.0,
+        -2.15,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        2.0,
+        3.8
+      ],
+      "materials": [
+        "accent",
+        "glass",
+        "panel",
+        "steel"
+      ],
+      "geometry_sha256": "d84c954244bf231afc1abb5d9b6cde302d870a35d474a304f70d79a1aef201be"
+    },
+    {
+      "module": "galleria-door",
+      "vertices": 56,
+      "faces": 42,
+      "bounds_min": [
+        -2.0,
+        -2.15,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        2.0,
+        3.8
+      ],
+      "materials": [
+        "accent",
+        "door",
+        "glass",
+        "panel",
+        "steel"
+      ],
+      "geometry_sha256": "3841f4fe16e3e6f4d75ff9ff8cccf087c21af9c5a13f451ae63d640cbb8faac6"
+    },
+    {
+      "module": "galleria-body",
+      "vertices": 16,
+      "faces": 12,
+      "bounds_min": [
+        -2.0,
+        -2.0,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        2.0,
+        3.65
+      ],
+      "materials": [
+        "membrane",
+        "panel"
+      ],
+      "geometry_sha256": "ddcb28046b950b3f3006cfcda1f96089115d5e22953887de9f8bc32609d39427"
+    },
+    {
+      "module": "galleria-cover",
+      "vertices": 32,
+      "faces": 24,
+      "bounds_min": [
+        -4.0,
+        -2.0,
+        0.0
+      ],
+      "bounds_max": [
+        4.0,
+        2.0,
+        1.3
+      ],
+      "materials": [
+        "roof-glass",
+        "steel"
+      ],
+      "geometry_sha256": "6882a0e18096d97676f3433db06e904d13ff4189703ec3290cb06d2fc115259c"
+    },
+    {
+      "module": "galleria-gallery",
+      "vertices": 24,
+      "faces": 18,
+      "bounds_min": [
+        -2.0,
+        -3.82,
+        -0.2
+      ],
+      "bounds_max": [
+        2.0,
+        -2.0,
+        1.06
+      ],
+      "materials": [
+        "glass",
+        "panel",
+        "steel"
+      ],
+      "geometry_sha256": "bf22a4e5edd3b52384e783d7b8bbd7ab7e7df130d123c98fb675b45e8870a350"
+    },
+    {
+      "module": "paving",
+      "vertices": 16,
+      "faces": 12,
+      "bounds_min": [
+        -2.0,
+        -2.0,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        2.0,
+        0.065
+      ],
+      "materials": [
+        "joint",
+        "paving"
+      ],
+      "geometry_sha256": "3fbc723d487dcd6b5db9ff2e20ff4dc855c75efb675f81206632a726a20c9205"
+    }
+  ]
+}
