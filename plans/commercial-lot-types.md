@@ -377,7 +377,7 @@ geometry owns footprint and access.
 | 2. Units and the car-park centre | Done in `12c07713`–`7d139e1d`. Diagnose #63 first. Unit table as an intrusive list per Building; premises name a Unit; placement and eviction match a Business to a Unit; posts from the Unit's floor; existing kinds hold one equal Unit per tenancy; CONTEXT.md Unit entry. Then the new block pattern, rear footprint, Unit row, stall layout and capacity, world-creation raising. The meaning of `DistrictWatershed.HeldForTrade` under merged trade Lots moved to [#65](https://github.com/chrisbenincasa/city-sim/issues/65) and does not block the phase. | Replay, save/reload and thread-count equivalence hold. `DerivedRebuildAuditTests` passes. Goldens are re-recorded deliberately. `pictured.toml` at 2,000 Citizens employs a large share of working-age Citizens at world creation. A driven screenshot shows centres with their car parks. |
 | 3. Facts for the drawing | Done in `f9934f7b` and `8b751dea`; the form is the `patterns` filter. Form, parcel, Units, ground uses, corner and live Unit facts in `BuildingFacts`, and the new preset filters | The graphics session can draw a test preset of centres. Drawn stalls equal capacity. |
 | 4. Type choice | Done in `f13b7384`–`29b49017`. Band set, seeded draw, shop-house ground-floor Unit; shop-house parade, town supermarket with deck, high-street block | A banded Ruleset shows every kept type in its bands. `TradeFormTests.Traded_raises_every_kept_form_in_its_bands_in_one_city` checks this on `traded.toml` at 30,000 Citizens. |
-| 5. Remaining types | Pad sites, sales-yard trades, precinct / arcade, market hall | Each type appears in a fixture world and draws with a family. |
+| 5. Remaining types | Done in `62a37dc6`–`eaf2a3ff`. Pad sites, sales-yard trades, precinct / arcade, market hall | Each type appears in a fixture world and draws with a family. |
 
 Phase 2 observation, 2026-09-28 at `8b751dea`: `pictured.toml` at 2,000 Citizens raises 48
 centre Businesses with 1,440 posts. Nobody is employed at world creation, because the job pass
@@ -386,6 +386,36 @@ their Unit and 237 Citizens work in posts. The headless census of the same Rules
 (`--citizens 2000 --ticks 40960 --census`) shows money leaving Households; the cause is not
 diagnosed ([#67](https://github.com/chrisbenincasa/city-sim/issues/67)). Household money falls
 from 7,357,906 to 4,027, the treasury rises from 976,462 to 9,239,629, and 25 tenancies end.
+
+Phase 5 observation, 2026-09-30 at `0961b651`:
+
+- A driven run of `pictured.toml` at 60,000 Citizens, seed 0, draws every phase 5 type:
+  - pad sites near Tile (12124, 5125)
+  - a sales yard near (11818, 5354)
+  - a galleria precinct near (11881, 5153)
+  - market halls near (12865, 5121) and (12961, 5345)
+- Unit and stall counts are the same at Tick 258 and Tick 1280. The run has 546 open stalls and 0 shut.
+- Invariants hold over 4,096 Ticks of `traded.toml` at 40,000 Citizens.
+- Save/reload diverged on any world with water. A load never rebuilt `World.WaterInCells`. The
+  bug predates this branch and is fixed in `0961b651` with a coastal Factorio test. No golden
+  value moves.
+- After the fix, the round trip agrees on `traded.toml` at 40,000 Citizens over 4,096 Ticks and
+  on `pictured.toml` at 60,000 over 2,048 Ticks.
+- Market purchases walked every seller and found none able to fill the batch. Over 256 Ticks
+  at 60,000 Citizens this cost 855M seller reads. `DistrictMarkets` now keeps each market's
+  largest seller stock, so such a buy fails at once (`9a9846cd`). The State Hash is unchanged.
+- Release `--profile` of `pictured.toml` at 60,000 Citizens, seed 0, 256 Ticks, no warmup, one
+  step thread, 12-core Ubuntu 24.04 workstation, load average about 2:
+
+  | Build | Mean Tick | P95 | Rule evaluations |
+  |---|---|---|---|
+  | main `919290a5` | 5.0 ms | 12.4 ms | 1.19M |
+  | `eaf2a3ff`, before the fix | 31.6 ms | 46.4 ms | 4.43M |
+  | `9a9846cd`, with the fix | 10.8 ms | 22.3 ms | 4.43M |
+
+  The branch city has more Buildings and staffed trades, so it evaluates 3.7 times as many
+  rules as main. Per evaluation it is cheaper than main.
+- The full suite passes: 4,213 tests.
 
 Deferred: enclosed mall, mixed-use podium and underground parking with a Building above, open-air
 market, hotel, and a commercial parking minimum Policy.
