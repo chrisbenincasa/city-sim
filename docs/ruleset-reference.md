@@ -27,7 +27,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-52 sections, 358 keys.
+53 sections, 364 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
@@ -68,7 +68,8 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[jobs]`](#jobs) — 11 keys
 - [`[land_permissions]`](#land_permissions) — 1 key
 - [`[layers]`](#layers) — 20 keys
-- [`[lots]`](#lots) — 11 keys
+- [`[lots]`](#lots) — 12 keys
+- [`[lots] trade_form_weights`](#lots-trade_form_weights) — 5 keys
 - [`[market]`](#market) — 2 keys
 - [`[needs]`](#needs) — 9 keys
 - [`[parking]`](#parking) — 5 keys
@@ -1440,7 +1441,35 @@ Ground reserved on each side of a Street centreline, in Tiles. Footprints clear 
 
 **`trade_form`** · *quoted string*
 
-How trade blocks are laid out. "car_park_centre" makes each trade block one Lot with a single-storey row of Units at the rear and a surface car park in front, and needs the [parking] stall sizes. "by_band" draws each trade block's form from its band's tier: a car-park centre in the low tier, a shop-house parade in the middle and high tiers. It also needs the stall sizes. Only world creation lays trade forms out; a block zoned for trade in play follows its density band. Omitted, trade blocks follow their density band. Fixed at world creation.
+How trade blocks are laid out. "car_park_centre" makes each trade block one Lot with a single-storey row of Units at the rear and a surface car park in front, and needs the [parking] stall sizes. A centre alone on its block gives up a side strip to three pad sites. "by_band" draws each trade block's form from its band's tier: a car-park centre or a sales yard in the low tier, a shop-house parade or a supermarket in the middle, a shop-house parade or a high-street block in the high tier. It also needs the stall sizes. Only world creation lays trade forms out; a block zoned for trade in play follows its density band. Omitted, trade blocks follow their density band. Fixed at world creation.
+
+**`trade_form_weights`** · *inline table*
+
+How often each trade form is drawn within its tier, relative to the others in that tier, as an inline table. An omitted form weighs 1. Needs trade_form = "by_band". No weight may be negative, and each tier needs a form of positive weight. Fixed at world creation.
+
+---
+
+## `[lots] trade_form_weights`
+
+**`car_park_centre`** · *whole number*
+
+The weight of a car-park centre in the low tier.
+
+**`high_street_block`** · *whole number*
+
+The weight of a high-street block in the high tier.
+
+**`sales_yard`** · *whole number*
+
+The weight of a sales yard in the low tier: a block of four Lots, each a shed and a yard behind a band of parking.
+
+**`shop_house_parade`** · *whole number*
+
+The weight of a shop-house parade, in both the middle and the high tier.
+
+**`supermarket`** · *whole number*
+
+The weight of a town supermarket in the middle tier.
 
 ---
 

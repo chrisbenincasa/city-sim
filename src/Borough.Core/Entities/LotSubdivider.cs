@@ -104,7 +104,8 @@ public static class LotSubdivider
         LandPermissionSummary permission = world.LandPermissions.Summary(world.BlockGroundRectangle(column, row));
         byte band = permission.MixedIntensity ? (byte)0 : permission.Band;
         return tradeForm
-            ? BlockPatterns.TradeForm(band, world.Rules.Bands.Length, world.Key, column, row)
+            ? BlockPatterns.TradeForm(
+                band, world.Rules.Bands.Length, world.Rules.Lots.TradeFormWeights, world.Key, column, row)
             : BlockPatterns.ForBand(band, world.Rules.Bands.Length, world.Roads.Streets.BlockTiles,
                 world.Rules.Lots.LotsPerSegment, world.Key, column, row, world.Rules.Lots.PatternSpread);
     }

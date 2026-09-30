@@ -186,7 +186,7 @@ dwellings now.
 |---|---|---|---|---|---|
 | Car-park centre | New `BlockPattern` member: one Lot per block fronting one face; the other faces carry no Address | Against the rear of the parcel | Row split by `BlockPatterns.Widths` on an 8 m (2-Tile) bay; the anchor takes half the row; a big box takes all of it | Surface car park between the footprint and the street | Parcel and footprint storage, `Widths`, Car Park rows |
 | Pad site | A strip 8 Tiles deep along the west or east face of every car-park centre block, cut into 3 Lots facing the side street | At the back of the pad, beside a stall band | 1 | Forecourt between footprint and street; stall band along the south side | Ordinary Lots |
-| Sales-yard trade | One Lot fronting one face | At one side of the parcel | 1 | Yard, typed by the Building kind | No |
+| Sales-yard trade | A yard block of 4 Lots, two facing south and two north, each about 15 × 15 net Tiles | At one side of the parcel, behind the stall band | 1 | Stall band along the street; yard beside the shed, drawn by family | No |
 | Shop-house parade | Existing perimeter and back-to-back carves | Existing | 1 per ground floor, 1 or 2 Tiles wide | None | Carve and kinds |
 | Town supermarket | Whole-block Lot fronting south, carved as a car-park centre | Front of the parcel, 10 Tiles deep | 1 anchor + optional small Units | Deck behind the footprint | No |
 | Precinct / arcade | Whole-block Lot | Two rows either side of an internal walkway | Units face the walkway or the street | Walkway, deck behind | No |
@@ -230,6 +230,30 @@ Pad sites, decided 2026-09-29:
   pads, 8 petrol, 5 fast food and 5 bank. Strips stand on both west and east faces. Each pad has
   16 stalls, and the draw list paints 288 stall markings, one per stall. The first driven run drew
   no pads in the strip, and two reruns of the same script drew them; the cause is unknown.
+
+Sales-yard trades, decided 2026-09-29:
+
+- A new low-band block form cuts its block into 4 yard Lots. Two face the south street and two
+  face the north street, each about 15 × 15 net Tiles (60 × 60 m). Putting yards on a centre
+  block's other side face was rejected, because the centre would shrink to 14 Tiles wide. One yard
+  per whole block was rejected, because 14,400 m² is about three times the top of the real range.
+- A Ruleset weight key sets how often each trade form is drawn within its tier. A form the key
+  leaves out weighs 1, so equal weights reproduce the earlier draw exactly.
+- A yard is 1 Unit of the ordinary trade kind, 1 storey. The car showroom, garden centre and
+  builders' merchant looks are Appearance Families drawn by a seeded pick. The plan's earlier
+  "yard typed by the Building kind" is dropped, because every trade form uses the one trade kind
+  and no Good exists for cars, plants or timber.
+- Ground layout, counted back from the street: a stall band 4 Tiles deep across the Lot, then the
+  shed at one side, picked by a seeded draw, with the yard beside it. The shed is 6 × 10 Tiles,
+  960 m². Jobs come from the shed's floor, and the yard adds no jobs and no stalls. The yard
+  rectangle is derived and never saved.
+- `traded.toml` weighs centres 3 to each yard. At 8,000 Citizens, seed `…0004`, that draws no yard,
+  so the yard test runs the 30,000-Citizen city.
+- Observed 2026-09-29 on `traded.toml` at 30,000 Citizens, seed 0: 32 yards on 8 blocks, 15
+  showrooms, 9 garden centres and 8 builders' merchants. Each yard has 24 stalls, and the draw list
+  paints 768 stall markings, one per stall. Sheds face their streets. The first drawing filled every
+  yard Tile and read as a solid floor. The yard now leaves an asphalt aisle every other row from
+  the street.
 
 The high-street block's department store takes the whole south face, about 30 × 6 Tiles over the
 band's storeys (about 8,600 m² at 3 storeys). One perimeter Lot holds at most about 1,700 m², below

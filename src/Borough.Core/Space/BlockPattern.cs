@@ -216,6 +216,13 @@ public enum BlockPattern : byte
     /// <see cref="PadSite"/> holds the geometry.
     /// </summary>
     PadSite = 11,
+
+    /// <summary>
+    /// <b>A block of 4 sales-yard trades</b>: two Lots face the south street and two the north, each
+    /// with a stall band along its street, a shed at one side and a yard beside it.
+    /// <see cref="SalesYard"/> holds the geometry.
+    /// </summary>
+    SalesYard = 12,
 }
 
 /// <summary>
@@ -908,7 +915,7 @@ public static class BlockPatterns
     public const int Count = 6;
 
     /// <summary>How many patterns there are, trade forms included.</summary>
-    public const int FormCount = 12;
+    public const int FormCount = 13;
 
     /// <summary>The pattern whose carve a form takes.</summary>
     /// <remarks>A <see cref="BlockPattern.HighStreetBlock"/> also joins its south face into one parcel.</remarks>
@@ -935,10 +942,14 @@ public static class BlockPatterns
     /// <remarks>
     /// The tier is the rung <see cref="ForBand"/> gives the band before its scatter, so every block
     /// of a band shares one tier. Rungs 0–1 are Low, 2–3 Middle and 4–5 High. Low allows a
-    /// car-park centre. Middle allows a shop-house parade or a supermarket, and High a shop-house
+    /// car-park centre or a sales yard. Middle allows a shop-house parade or a supermarket, and High a shop-house
     /// parade or a high-street block. A supermarket on rung 3 parks on a deck.
     /// </remarks>
-    public static BlockPattern TradeForm(byte band, int bandCount, Determinism.WorldKey key, int column, int row)
+    public static BlockPattern TradeForm(byte band, int bandCount, Determinism.WorldKey key, int column, int row) =>
+        TradeForm(band, bandCount, TradeFormWeights.Even, key, column, row);
+
+    public static BlockPattern TradeForm(
+        byte band, int bandCount, TradeFormWeights weights, Determinism.WorldKey key, int column, int row)
     {
         int rung = band == 0 || bandCount <= 0 ? 0
             : bandCount <= 1 ? Count - 1
@@ -953,14 +964,40 @@ public static class BlockPatterns
 
         ulong patch = ((ulong)(uint)column << 32) | (uint)row;
         ulong draw = Determinism.Randomness.Draw(key, patch, Quantities.Ticks.Zero, Determinism.PurposeTag.TradeForm);
-        BlockPattern form = allowed[(int)((draw >> 16) % (ulong)allowed.Length)];
+        int total = 0;
+
+        foreach (BlockPattern each in allowed)
+        {
+            total += weights.Of(each);
+        }
+
+        // A Ruleset built in code rather than loaded carries no weights, and draws every form of the tier evenly.
+        if (total <= 0)
+        {
+            weights = TradeFormWeights.Even;
+            total = allowed.Length;
+        }
+
+        int pick = (int)((draw >> 16) % (ulong)total);
+        BlockPattern form = allowed[0];
+
+        foreach (BlockPattern each in allowed)
+        {
+            form = each;
+            pick -= weights.Of(each);
+
+            if (pick < 0)
+            {
+                break;
+            }
+        }
 
         return form == BlockPattern.Supermarket && rung == DeckRung ? BlockPattern.DeckedSupermarket : form;
     }
 
     private const int DeckRung = 3;
 
-    private static ReadOnlySpan<BlockPattern> LowTradeForms => [BlockPattern.CarParkCentre];
+    private static ReadOnlySpan<BlockPattern> LowTradeForms => [BlockPattern.CarParkCentre, BlockPattern.SalesYard];
 
     private static ReadOnlySpan<BlockPattern> MiddleTradeForms =>
         [BlockPattern.ShopHouseParade, BlockPattern.Supermarket];

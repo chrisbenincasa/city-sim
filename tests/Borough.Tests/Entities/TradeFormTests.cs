@@ -12,9 +12,9 @@ public sealed class TradeFormTests
     private static readonly WorldKey Key = WorldKey.FromSeed(0x7EAD_ED00_0000_0004UL);
 
     [Theory]
-    [InlineData(0, 0, new[] { BlockPattern.CarParkCentre })]
-    [InlineData(1, 3, new[] { BlockPattern.CarParkCentre })]
-    [InlineData(2, 5, new[] { BlockPattern.CarParkCentre })]
+    [InlineData(0, 0, new[] { BlockPattern.CarParkCentre, BlockPattern.SalesYard })]
+    [InlineData(1, 3, new[] { BlockPattern.CarParkCentre, BlockPattern.SalesYard })]
+    [InlineData(2, 5, new[] { BlockPattern.CarParkCentre, BlockPattern.SalesYard })]
     [InlineData(2, 3, new[] { BlockPattern.ShopHouseParade, BlockPattern.Supermarket })]
     [InlineData(4, 5, new[] { BlockPattern.ShopHouseParade, BlockPattern.DeckedSupermarket })]
     [InlineData(3, 3, new[] { BlockPattern.ShopHouseParade, BlockPattern.HighStreetBlock })]
@@ -30,6 +30,68 @@ public sealed class TradeFormTests
         }
 
         Assert.Equal(tier.ToHashSet(), drawn);
+    }
+
+    [Fact]
+    public void A_weight_of_zero_keeps_a_form_out_and_a_heavier_form_is_drawn_more()
+    {
+        TradeFormWeights noYards = TradeFormWeights.Even with { SalesYard = 0 };
+        TradeFormWeights mostlyYards = TradeFormWeights.Even with { SalesYard = 7 };
+        int yards = 0;
+
+        for (int column = 0; column < 256; column++)
+        {
+            Assert.Equal(BlockPattern.CarParkCentre, BlockPatterns.TradeForm(1, 3, noYards, Key, column, 0));
+            yards += BlockPatterns.TradeForm(1, 3, mostlyYards, Key, column, 0) == BlockPattern.SalesYard ? 1 : 0;
+        }
+
+        Assert.InRange(yards, 192, 256);
+    }
+
+    [Theory]
+    [InlineData(BlockFace.South, false)]
+    [InlineData(BlockFace.South, true)]
+    [InlineData(BlockFace.North, false)]
+    [InlineData(BlockFace.North, true)]
+    public void A_sales_yard_lays_its_stall_band_on_the_street_and_its_shed_beside_the_yard(BlockFace face, bool east)
+    {
+        BlockGround ground = BlockGround.Square(32);
+        const int half = 1;
+        Span<Parcel> parcels = stackalloc Parcel[SalesYard.Lots];
+
+        Assert.Equal(SalesYard.Lots, SalesYard.Carve(ground, parcels));
+        Assert.Equal(32 * 32, parcels.ToArray().Sum(parcel => parcel.AreaTiles));
+
+        Parcel lot = face == BlockFace.South ? parcels[0] : parcels[3];
+        Assert.Equal(face, lot.Face);
+        Assert.InRange(lot.Offset.Raw, lot.East.Raw, lot.East.Raw + lot.Wide.Raw - 1);
+
+        var shed = SalesYard.Footprint(lot, ground, half, east);
+        (int carEast, int carNorth, int along, int toward) = SalesYard.CarPark(lot, ground, half);
+        (int yardEast, int yardNorth, int yardWide, int yardDeep) =
+            SalesYard.Yard(lot, ground, half, shed.East.Raw, shed.Wide.Raw);
+
+        Assert.Equal(SalesYard.ShedWideTiles, shed.Wide.Raw);
+        Assert.Equal(SalesYard.ShedDeepTiles, shed.Deep.Raw);
+        Assert.Equal(SalesYard.StallBandTiles, toward);
+        Assert.Equal(along, shed.Wide.Raw + yardWide);
+        Assert.Equal(carEast, east ? yardEast : shed.East.Raw);
+        Assert.Equal(east ? shed.East.Raw : shed.East.Raw + shed.Wide.Raw, east ? yardEast + yardWide : yardEast);
+
+        if (face == BlockFace.South)
+        {
+            Assert.Equal(half, carNorth);
+            Assert.Equal(carNorth + toward, shed.North.Raw);
+            Assert.Equal(shed.North.Raw, yardNorth);
+        }
+        else
+        {
+            Assert.Equal(32 - half, carNorth + toward);
+            Assert.Equal(carNorth, shed.North.Raw + shed.Deep.Raw);
+            Assert.Equal(carNorth, yardNorth + yardDeep);
+        }
+
+        Assert.True(SalesYard.Stalls(lot, ground, half, new StallSizes(250, 500, 600)).Stalls > 0);
     }
 
     [Theory]
@@ -206,6 +268,55 @@ public sealed class TradeFormTests
     }
 
     [Fact]
+    public void Traded_raises_sales_yards_of_one_shop_each_at_world_creation()
+    {
+        RulesetLoadResult loaded =
+            RulesetLoader.Load(Path.Combine(AppContext.BaseDirectory, "Rulesets", "traded.toml"));
+        Assert.True(loaded.Ok, loaded.Describe());
+
+        // traded.toml weighs three centres to each yard, so a smaller city may draw none.
+        const int citizens = 30_000;
+        WorldKey key = WorldKey.FromSeed(0x7EAD_ED00_0000_0001UL);
+        var world = new World(citizens, loaded.Ruleset!, key);
+        SyntheticCity.PopulateInto(world, key, Ticks.Zero, citizens);
+
+        int yards = 0;
+
+        for (int building = 0; building < world.Buildings.Rows.SlotCount; building++)
+        {
+            if (!world.IsSalesYard(building))
+            {
+                continue;
+            }
+
+            yards++;
+            int lot = world.Lots.Rows.Resolve(world.Buildings.Lot[building]);
+            Assert.Equal(1, world.Lots.Storeys[lot]);
+            Assert.Equal(SalesYard.ShedWideTiles * SalesYard.ShedDeepTiles, world.Lots.FootprintTiles(lot));
+
+            var units = new List<int>();
+            foreach (int unit in world.BuildingUnits.Walk(building))
+            {
+                units.Add(unit);
+            }
+
+            int only = Assert.Single(units);
+            Assert.False(world.Units.IsVacant(only), $"sales yard {building} stands with its shop vacant.");
+
+            Assert.True(world.TryDeclaredHousing(world.Buildings.Kind[building], building, out int homes));
+            Assert.Equal(0, homes);
+
+            (Parcel parcel, BlockGround ground) = world.SalesYardGround(lot);
+            Assert.True(world.TryDeclaredParking(world.Buildings.Kind[building], building, out int spaces));
+            Assert.Equal(SalesYard.Stalls(parcel, ground, world.Rules.Lots.StreetHalfWidthTiles,
+                world.Rules.Parking.Stalls).Stalls, spaces);
+            Assert.True(spaces > 0, $"sales yard {building} has no stalls.");
+        }
+
+        Assert.True(yards > 0, "traded.toml raised no sales yard.");
+    }
+
+    [Fact]
     public void Traded_raises_every_kept_form_in_its_bands_in_one_city()
     {
         RulesetLoadResult loaded =
@@ -218,7 +329,7 @@ public sealed class TradeFormTests
         SyntheticCity.PopulateInto(world, key, Ticks.Zero, citizens);
 
         // traded.toml's five bands land on rungs 0, 1, 2, 3 and 5. A mixed block reads as band 0.
-        BlockPattern[] low = [BlockPattern.CarParkCentre, BlockPattern.PadSite];
+        BlockPattern[] low = [BlockPattern.CarParkCentre, BlockPattern.PadSite, BlockPattern.SalesYard];
         BlockPattern[] middle = [BlockPattern.ShopHouseParade, BlockPattern.Supermarket, BlockPattern.DeckedSupermarket];
         BlockPattern[] high = [BlockPattern.ShopHouseParade, BlockPattern.HighStreetBlock];
         BlockPattern[][] tierOfBand = [low, low, low, middle, middle, high];

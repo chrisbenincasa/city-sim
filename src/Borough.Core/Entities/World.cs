@@ -6923,7 +6923,7 @@ public sealed partial class World
         occupants = !(declaration.Houses || declaration.Premises) ? 0
             : IsTradeCentre(buildingSlot) ? CentreUnitCount(buildingSlot)
             : IsShopHouse(buildingSlot) ? 1 + ShopHouseHomes(buildingSlot)
-            : IsSupermarket(buildingSlot) || IsPadSite(buildingSlot) ? 1
+            : IsSupermarket(buildingSlot) || IsPadSite(buildingSlot) || IsSalesYard(buildingSlot) ? 1
             : IsDepartmentStore(buildingSlot) ? DepartmentStoreUnitCount(buildingSlot)
             : CapacityRuleset.Holds(FloorTilesOf(buildingSlot), Rules.Capacity.FloorTilesPerOccupant);
 
@@ -7717,6 +7717,7 @@ public sealed partial class World
         spaces = IsTradeCentre(buildingSlot) ? CentreStalls(buildingSlot)
             : IsSupermarket(buildingSlot) ? SupermarketStalls(buildingSlot)
             : IsPadSite(buildingSlot) ? PadStalls(buildingSlot)
+            : IsSalesYard(buildingSlot) ? SalesYardStalls(buildingSlot)
             : Rules.Kind(kind).Parked
                 ? CapacityRuleset.Holds(
                     FloorTilesOf(buildingSlot), Rules.Capacity.FloorTilesPerParkingSpace)

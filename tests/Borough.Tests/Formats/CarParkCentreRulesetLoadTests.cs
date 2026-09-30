@@ -123,4 +123,27 @@ public sealed class CarParkCentreRulesetLoadTests
 
         Assert.Contains("needs [parking] stall_width_centimetres", refusal.Reason, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Trade_form_weights_load_and_an_omitted_form_weighs_one()
+    {
+        Ruleset rules = Accepted(
+            $"{Nothing}\n\n{Lots}\ntrade_form = \"by_band\"\n"
+            + "trade_form_weights = { car_park_centre = 3, sales_yard = 0 }\n\n"
+            + Parking(Stalls));
+
+        Assert.Equal(new TradeFormWeights(3, 0, 1, 1, 1), rules.Lots.TradeFormWeights);
+    }
+
+    [Theory]
+    [InlineData("car_park_centre = 0, sales_yard = 0", "\"by_band\"")]
+    [InlineData("supermarket = -1", "\"by_band\"")]
+    [InlineData("sales_yard = 2", "\"car_park_centre\"")]
+    public void Trade_form_weights_that_leave_a_tier_empty_or_lack_bands_are_refused(string weights, string form)
+    {
+        RulesetRefusal refusal = Refused(
+            $"{Nothing}\n\n{Lots}\ntrade_form = {form}\ntrade_form_weights = {{ {weights} }}\n\n{Parking(Stalls)}");
+
+        Assert.Contains("trade_form_weights", refusal.Reason, StringComparison.Ordinal);
+    }
 }

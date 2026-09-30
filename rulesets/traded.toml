@@ -414,6 +414,8 @@ lots_per_segment = 5
 setback_tiles = 2
 # Each trade block draws its form from its band's tier.
 trade_form = "by_band"
+# The low tier raises about three centres to each sales yard. Other forms weigh 1.
+trade_form_weights = { car_park_centre = 3, sales_yard = 1 }
 
 [capacity]
 # How much floor one tenancy, job or parking space takes, in Tiles -- see minimal.toml, which carries

@@ -7783,9 +7783,43 @@ public static class RulesetLoader
                 byBand = tradeForm == "by_band";
             }
 
+            Core.Space.TradeFormWeights weights = Core.Space.TradeFormWeights.Even;
+            KeyValueSyntax? weightEntry = Find(_lotsTable, "trade_form_weights", RulesetKeyKind.Table);
+            if (weightEntry is not null)
+            {
+                if (!byBand || weightEntry.Value is not InlineTableSyntax inline)
+                {
+                    Refuse(LineOf(weightEntry), null,
+                        "trade_form_weights is an inline table of weights, and needs trade_form = \"by_band\".");
+                    return LotRuleset.None;
+                }
+
+                weights = new Core.Space.TradeFormWeights(
+                    Weight(inline, "car_park_centre"), Weight(inline, "sales_yard"),
+                    Weight(inline, "shop_house_parade"), Weight(inline, "supermarket"),
+                    Weight(inline, "high_street_block"));
+
+                if (weights.CarParkCentre < 0 || weights.SalesYard < 0 || weights.ShopHouseParade < 0
+                    || weights.Supermarket < 0 || weights.HighStreetBlock < 0
+                    || weights.CarParkCentre + weights.SalesYard == 0
+                    || weights.ShopHouseParade + weights.Supermarket == 0
+                    || weights.ShopHouseParade + weights.HighStreetBlock == 0)
+                {
+                    Refuse(LineOf(weightEntry), null,
+                        "trade_form_weights must not be negative, and every tier needs a form of positive weight.");
+                    return LotRuleset.None;
+                }
+            }
+
             return new LotRuleset(
-                (int)value, (int)setback, (int)step, (int)spread, (int)streetHalfWidth, dimensions, centres, byBand);
+                (int)value, (int)setback, (int)step, (int)spread, (int)streetHalfWidth, dimensions, centres, byBand,
+                weights);
         }
+
+        private int Weight(InlineTableSyntax inline, string form) =>
+            TryInteger(inline, form, out long weight, required: false)
+                ? (int)(weight > int.MaxValue ? int.MaxValue : weight < int.MinValue ? int.MinValue : weight)
+                : 1;
 
         private HousingConstructionRuleset? ReadHousingConstruction(CapacityRuleset capacity)
         {

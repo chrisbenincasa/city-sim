@@ -72,25 +72,53 @@ public sealed partial class World
         && Lots.Rows.TryResolve(Buildings.Lot[buildingSlot], out int lotSlot)
         && Space.BlockPatterns.IsSupermarket(Lots.PatternOf(lotSlot));
 
-    /// <summary>
-    /// How many stalls a supermarket's car park holds, over every level of a deck. The kind's
-    /// <c>parked</c> does not apply, because the car park is part of the form.
-    /// </summary>
+    /// <summary>Whether a Building stands on a pad beside a car-park centre.</summary>
     public bool IsPadSite(int buildingSlot) =>
         buildingSlot >= 0
         && Buildings.Rows.IsLive(buildingSlot)
         && Lots.Rows.TryResolve(Buildings.Lot[buildingSlot], out int lotSlot)
         && Lots.PatternOf(lotSlot) == Space.BlockPattern.PadSite;
 
+    /// <summary>Whether a Building is a sales yard's shed.</summary>
+    public bool IsSalesYard(int buildingSlot) =>
+        buildingSlot >= 0
+        && Buildings.Rows.IsLive(buildingSlot)
+        && Lots.Rows.TryResolve(Buildings.Lot[buildingSlot], out int lotSlot)
+        && Lots.PatternOf(lotSlot) == Space.BlockPattern.SalesYard;
+
     /// <summary>Whether the Building is a commercial form that only Businesses occupy.</summary>
     public bool IsShopOnly(int buildingSlot) =>
         IsTradeCentre(buildingSlot) || IsSupermarket(buildingSlot) || IsDepartmentStore(buildingSlot)
-        || IsPadSite(buildingSlot);
+        || IsPadSite(buildingSlot) || IsSalesYard(buildingSlot);
 
     private int PadStalls(int buildingSlot) =>
         Space.PadSite.Stalls(
             Lots.FootprintWide[Lots.Rows.Resolve(Buildings.Lot[buildingSlot])].Raw, Rules.Parking.Stalls).Stalls;
 
+    /// <summary>The Lot's parcel, and the block ground it was carved from.</summary>
+    public (Space.Parcel Parcel, Space.BlockGround Ground) SalesYardGround(int lotSlot)
+    {
+        Space.Frontage.BlockOf(
+            Roads.Streets, Lots.East[lotSlot], Lots.North[lotSlot], (Space.StreetSide)Lots.Side[lotSlot],
+            out int column, out int row, out Space.BlockFace face);
+
+        Space.Parcel parcel = new(face, (Space.StreetSide)Lots.Side[lotSlot], Quantities.Tiles.Zero,
+            Lots.ParcelEast[lotSlot], Lots.ParcelNorth[lotSlot], Lots.ParcelWide[lotSlot], Lots.ParcelDeep[lotSlot]);
+
+        return (parcel, Space.BlockGround.At(Roads.Streets.Lattice, column, row));
+    }
+
+    private int SalesYardStalls(int buildingSlot)
+    {
+        (Space.Parcel parcel, Space.BlockGround ground) = SalesYardGround(Lots.Rows.Resolve(Buildings.Lot[buildingSlot]));
+
+        return Space.SalesYard.Stalls(parcel, ground, Rules.Lots.StreetHalfWidthTiles, Rules.Parking.Stalls).Stalls;
+    }
+
+    /// <summary>
+    /// How many stalls a supermarket's car park holds, over every level of a deck. The kind's
+    /// <c>parked</c> does not apply, because the car park is part of the form.
+    /// </summary>
     private int SupermarketStalls(int buildingSlot)
     {
         int lotSlot = Lots.Rows.Resolve(Buildings.Lot[buildingSlot]);
@@ -151,7 +179,7 @@ public sealed partial class World
         {
             RaiseSingleUnit(buildingSlot, anchor: true, Space.BlockFace.South);
         }
-        else if (IsPadSite(buildingSlot))
+        else if (IsPadSite(buildingSlot) || IsSalesYard(buildingSlot))
         {
             RaiseSingleUnit(buildingSlot, anchor: false, FaceOf(Lots.Rows.Resolve(Buildings.Lot[buildingSlot])));
         }

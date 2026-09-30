@@ -932,11 +932,25 @@ public static class RulesetKeyNotes
         ["[lots] trade_form"] =
             "How trade blocks are laid out. \"car_park_centre\" makes each trade block one Lot with "
             + "a single-storey row of Units at the rear and a surface car park in front, and needs "
-            + "the [parking] stall sizes. \"by_band\" draws each trade block's form from its band's "
-            + "tier: a car-park centre in the low tier, a shop-house parade in the middle and high "
-            + "tiers. It also needs the stall sizes. Only world creation lays trade forms out; a "
-            + "block zoned for trade in play follows its density band. Omitted, trade blocks follow "
-            + "their density band. Fixed at world creation.",
+            + "the [parking] stall sizes. A centre alone on its block gives up a side strip to three "
+            + "pad sites. \"by_band\" draws each trade block's form from its band's tier: a car-park "
+            + "centre or a sales yard in the low tier, a shop-house parade or a supermarket in the "
+            + "middle, a shop-house parade or a high-street block in the high tier. It also needs the "
+            + "stall sizes. Only world creation lays trade forms out; a block zoned for trade in play "
+            + "follows its density band. Omitted, trade blocks follow their density band. Fixed at "
+            + "world creation.",
+        ["[lots] trade_form_weights"] =
+            "How often each trade form is drawn within its tier, relative to the others in that tier, "
+            + "as an inline table. An omitted form weighs 1. Needs trade_form = \"by_band\". No weight "
+            + "may be negative, and each tier needs a form of positive weight. Fixed at world creation.",
+        ["[lots] trade_form_weights car_park_centre"] = "The weight of a car-park centre in the low tier.",
+        ["[lots] trade_form_weights sales_yard"] =
+            "The weight of a sales yard in the low tier: a block of four Lots, each a shed and a yard "
+            + "behind a band of parking.",
+        ["[lots] trade_form_weights shop_house_parade"] =
+            "The weight of a shop-house parade, in both the middle and the high tier.",
+        ["[lots] trade_form_weights supermarket"] = "The weight of a town supermarket in the middle tier.",
+        ["[lots] trade_form_weights high_street_block"] = "The weight of a high-street block in the high tier.",
 
         ["[lots] setback_tiles"] =
             "Maximum independent random inset in Tiles for block-based footprints and explicit Perimeter parcels. Explicit Detached houses use centred house dimensions instead. Reserved Street ground is always excluded.",

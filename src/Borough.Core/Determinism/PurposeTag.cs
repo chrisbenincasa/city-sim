@@ -942,4 +942,9 @@ public enum PurposeTag : ulong
     /// Tick zero, like <see cref="TradeForm"/>.
     /// </summary>
     PadSide = 64,
+
+    /// <summary>
+    /// Which side of its Lot a sales yard's shed stands on. Drawn on the parcel's corner at Tick zero.
+    /// </summary>
+    YardSide = 65,
 }
