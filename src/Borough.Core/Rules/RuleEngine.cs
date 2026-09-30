@@ -742,6 +742,11 @@ public sealed class RuleEngine
             return market;
         }
 
+        if (_world.Markets.Largest(_world, row) < batch)
+        {
+            return market;
+        }
+
         // Keyed on the buying Rule Instance's monotonic id, so it is a lottery number the buyer holds
         // rather than a rotation the whole District performs in step.
         ulong draw = Randomness.Draw(

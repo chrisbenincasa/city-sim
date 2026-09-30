@@ -8387,6 +8387,7 @@ public sealed partial class World
             amount <= Bins.SpaceAt(slot), Invariant.BinLevelIsWithinCapacity, slot, amount);
 
         Bins.Move(slot, amount);
+        Markets.Moved(this, slot, Bins.LevelAt(slot) - amount, Bins.LevelAt(slot));
         AgeDeposit(slot, amount);
         Drain(slot, Blocking.Supply, tick);
         RingMarket(slot, tick);
@@ -8467,6 +8468,7 @@ public sealed partial class World
             amount <= Bins.LevelAt(slot), Invariant.BinLevelIsWithinCapacity, slot, amount);
 
         Bins.Move(slot, -amount);
+        Markets.Moved(this, slot, Bins.LevelAt(slot) + amount, Bins.LevelAt(slot));
 
         int aged = Expiries.RowOf(Bins, slot);
 
@@ -8526,6 +8528,7 @@ public sealed partial class World
             if (discarded > 0)
             {
                 Bins.Move(bin, -discarded);
+                Markets.Moved(this, bin, Bins.LevelAt(bin) + discarded, Bins.LevelAt(bin));
                 Drain(bin, Blocking.Space, tick);
                 spoiled += discarded;
             }
@@ -9065,7 +9068,7 @@ public sealed partial class World
 
         return row == Space.DistrictMarkets.NoRow
             ? Bins.LevelAt(binSlot)
-            : Markets.Stock(this, row).Largest;
+            : Markets.Largest(this, row);
     }
 
     /// <summary>Empties both of a Bin's wait lists, for a Bin that is about to stop existing.</summary>
