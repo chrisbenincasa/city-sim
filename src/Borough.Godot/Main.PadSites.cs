@@ -162,19 +162,18 @@ public partial class Main
             Put(family + PadFeature, Across(1.1f), pad.North + door + .5f);
         }
 
-        PlacePadCarPark(pad, placed);
+        (int bandEast, int bandNorth, int along, int toward) = PadSite.CarPark(pad.East, pad.North, pad.Wide, pad.Face);
+        PlaceStallBand(pad.Id, bandEast, bandNorth, along, toward, placed[PadSurface], placed[PadStall]);
     }
 
-    private void PlacePadCarPark(Pad pad, List<(ulong, Transform3D, Color)>[] placed)
+    private void PlaceStallBand(ulong id, int east, int north, int along, int toward,
+        List<(ulong, Transform3D, Color)> surfaces, List<(ulong, Transform3D, Color)> stalls)
     {
-        (int east, int north, int along, int toward) = PadSite.CarPark(pad.East, pad.North, pad.Wide, pad.Face);
-
         for (int x = 0; x < along; x++)
         {
             for (int y = 0; y < toward; y++)
             {
-                placed[PadSurface].Add((pad.Id, new Transform3D(Basis.Identity, At(east + x + .5f, 0f, north + y + .5f)),
-                    Colors.White));
+                surfaces.Add((id, new Transform3D(Basis.Identity, At(east + x + .5f, 0f, north + y + .5f)), Colors.White));
             }
         }
 
@@ -196,7 +195,7 @@ public partial class Main
             float x = west + ((stall.EastCentimetres + (stall.WideCentimetres * .5f)) * .01f);
             float z = south + ((stall.NorthCentimetres + (stall.DeepCentimetres * .5f)) * .01f);
 
-            placed[PadStall].Add((pad.Id, new Transform3D(Basis.Identity, new Vector3(x, 0f, -z)), Colors.White));
+            stalls.Add((id, new Transform3D(Basis.Identity, new Vector3(x, 0f, -z)), Colors.White));
         }
     }
 }

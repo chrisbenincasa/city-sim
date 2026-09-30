@@ -1,0 +1,271 @@
+{
+  "tile_metres": 4.0,
+  "shed_deep_metres": 40.0,
+  "modules": [
+    {
+      "module": "showroom-bay",
+      "vertices": 32,
+      "faces": 24,
+      "bounds_min": [
+        -2.0,
+        -20.2,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        20.0,
+        7.4
+      ],
+      "materials": [
+        "cladding",
+        "dealer",
+        "glass",
+        "membrane"
+      ],
+      "geometry_sha256": "1153cc7025fe215c0c1940ab3aabaec65ddd5a5ea28e2ae0aee40fbaeac60a22"
+    },
+    {
+      "module": "showroom-door",
+      "vertices": 48,
+      "faces": 36,
+      "bounds_min": [
+        -2.0,
+        -20.35,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        20.0,
+        8.4
+      ],
+      "materials": [
+        "cladding",
+        "dealer",
+        "door",
+        "glass",
+        "membrane",
+        "sign"
+      ],
+      "geometry_sha256": "682c59f7bade872b66807b6658289e09d86455579c1746d136ae493704afbf45"
+    },
+    {
+      "module": "car-lot",
+      "vertices": 48,
+      "faces": 36,
+      "bounds_min": [
+        -2.0,
+        -2.0,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        2.0,
+        1.45
+      ],
+      "materials": [
+        "asphalt",
+        "car-red",
+        "car-silver",
+        "glass",
+        "paint"
+      ],
+      "geometry_sha256": "f378fe9f01bd4d936da6cb3d962782c0f3cc7bc6e59d073df0171de8e3e6f0d2"
+    },
+    {
+      "module": "totem",
+      "vertices": 48,
+      "faces": 36,
+      "bounds_min": [
+        -2.0,
+        -2.0,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        2.0,
+        7.5
+      ],
+      "materials": [
+        "asphalt",
+        "car-blue",
+        "dealer",
+        "glass",
+        "plinth",
+        "post"
+      ],
+      "geometry_sha256": "9f8bae56ba1895cf9fcf0531c69a04c105624d93a457c89eaa29ed5a36cb36b8"
+    },
+    {
+      "module": "glasshouse-bay",
+      "vertices": 46,
+      "faces": 35,
+      "bounds_min": [
+        -2.0,
+        -20.1,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        20.1,
+        6.4
+      ],
+      "materials": [
+        "frame",
+        "pane",
+        "pot"
+      ],
+      "geometry_sha256": "c931b966db8ba5a17d31eb080e2e963b10109847309c497575cbef389fb2ac8c"
+    },
+    {
+      "module": "glasshouse-door",
+      "vertices": 70,
+      "faces": 53,
+      "bounds_min": [
+        -2.0,
+        -22.05,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        20.1,
+        6.4
+      ],
+      "materials": [
+        "frame",
+        "leaf",
+        "pane",
+        "pot"
+      ],
+      "geometry_sha256": "c3eb36c4a2d7774c1ac666952769bfa0ca6c50fd2fe202259ec0b4da7f2a3d71"
+    },
+    {
+      "module": "plant-bench",
+      "vertices": 56,
+      "faces": 42,
+      "bounds_min": [
+        -2.0,
+        -2.0,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        2.0,
+        1.1
+      ],
+      "materials": [
+        "bench",
+        "bloom",
+        "gravel",
+        "leaf"
+      ],
+      "geometry_sha256": "25027618a8f55455792207e4f33ae72258a67f33166a81843a9557a9d744dea8"
+    },
+    {
+      "module": "tree-pot",
+      "vertices": 32,
+      "faces": 24,
+      "bounds_min": [
+        -2.0,
+        -2.0,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        2.0,
+        3.8
+      ],
+      "materials": [
+        "bench",
+        "gravel",
+        "leaf",
+        "pot"
+      ],
+      "geometry_sha256": "f28925b1d33e77e43057533f6f5f2ac6929c42cf94e57963bb93ae5c73e9996a"
+    },
+    {
+      "module": "warehouse-bay",
+      "vertices": 22,
+      "faces": 17,
+      "bounds_min": [
+        -2.0,
+        -20.05,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        20.0,
+        9.6
+      ],
+      "materials": [
+        "merchant",
+        "roof",
+        "steel"
+      ],
+      "geometry_sha256": "e02dc0331af248cac856abba941bc0a6d7c9b36879d25de675ef44c4cecaed6c"
+    },
+    {
+      "module": "warehouse-door",
+      "vertices": 38,
+      "faces": 29,
+      "bounds_min": [
+        -2.0,
+        -20.2,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        20.0,
+        9.6
+      ],
+      "materials": [
+        "merchant",
+        "roof",
+        "shutter",
+        "steel"
+      ],
+      "geometry_sha256": "2c80deb72b175625852c24797c4868cbc8ffe89aac3183da8760e7d4f842215d"
+    },
+    {
+      "module": "timber-rack",
+      "vertices": 48,
+      "faces": 36,
+      "bounds_min": [
+        -2.0,
+        -2.0,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        2.0,
+        3.2
+      ],
+      "materials": [
+        "concrete",
+        "post",
+        "timber"
+      ],
+      "geometry_sha256": "44f7b2b2f7dfc70930766530954a99ee31cbe265b97d9a61420938e8a810c188"
+    },
+    {
+      "module": "brick-pallets",
+      "vertices": 40,
+      "faces": 30,
+      "bounds_min": [
+        -2.0,
+        -2.0,
+        0.0
+      ],
+      "bounds_max": [
+        2.0,
+        2.0,
+        1.1
+      ],
+      "materials": [
+        "brick",
+        "concrete",
+        "pallet"
+      ],
+      "geometry_sha256": "dc680042cacc7299ec4807a9d172fa1b627602e0dce3eb9e5e1fcb424f5b57de"
+    }
+  ]
+}
