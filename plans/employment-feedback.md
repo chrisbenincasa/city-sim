@@ -28,7 +28,8 @@ so unemployment settles where customers can support the posts.
 
 ### Staff on Unit loss
 
-- A Business that loses its Unit dismisses its staff, except its founder (`adr/0146`).
+- A Business that loses its Unit dismisses all its staff, founder included. No column records the
+  founder, and an owner whose shop has closed looks for work like anyone else.
 - Dismissed Citizens return to the job pass and can register as jobless.
 
 ### Failure
