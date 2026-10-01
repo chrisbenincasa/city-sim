@@ -63,6 +63,22 @@
       "fin_part": "wall-end"
     }
   },
+  "far_cells": {
+    "blank": 0,
+    "point-podium-ground": 1,
+    "point-podium-typical": 2,
+    "point-shaft": 3,
+    "stepped-point-podium-ground": 4,
+    "stepped-point-podium-typical": 5,
+    "stepped-point-shaft": 6,
+    "l-podium-ground": 7,
+    "l-podium-typical": 8,
+    "l-shaft": 9,
+    "h-podium-ground": 10,
+    "h-podium-typical": 11,
+    "h-shaft": 12,
+    "crown": 13
+  },
   "sites": [
     {
       "variant": "point",
@@ -87,6 +103,25 @@
         [
           "t3",
           60
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 1104,
+        "membrane": 54,
+        "paving": 6,
+        "plinth": 6,
+        "trim": 120
+      },
+      "far_bounds": [
+        [
+          -58.05,
+          -58.05,
+          0
+        ],
+        [
+          58.05,
+          58.05,
+          221.0
         ]
       ]
     },
@@ -114,6 +149,25 @@
           "t3",
           57
         ]
+      ],
+      "far_faces": {
+        "far-facade": 1068,
+        "membrane": 54,
+        "paving": 6,
+        "plinth": 6,
+        "trim": 120
+      },
+      "far_bounds": [
+        [
+          -58.05,
+          -58.05,
+          0
+        ],
+        [
+          58.05,
+          58.05,
+          221.0
+        ]
       ]
     },
     {
@@ -139,6 +193,25 @@
         [
           "t3",
           54
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 1032,
+        "membrane": 54,
+        "paving": 6,
+        "plinth": 6,
+        "trim": 120
+      },
+      "far_bounds": [
+        [
+          -58.05,
+          -58.05,
+          0
+        ],
+        [
+          58.05,
+          58.05,
+          221.0
         ]
       ]
     },
@@ -198,6 +271,25 @@
           "t3-spine-high",
           26
         ]
+      ],
+      "far_faces": {
+        "far-facade": 1712,
+        "membrane": 78,
+        "paving": 30,
+        "plinth": 6,
+        "trim": 216
+      },
+      "far_bounds": [
+        [
+          -58.05,
+          -58.05,
+          0
+        ],
+        [
+          58.05,
+          58.05,
+          301.5
+        ]
       ]
     },
     {
@@ -255,6 +347,25 @@
         [
           "t3-spine-high",
           25
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 1650,
+        "membrane": 78,
+        "paving": 30,
+        "plinth": 6,
+        "trim": 216
+      },
+      "far_bounds": [
+        [
+          -58.05,
+          -58.05,
+          0
+        ],
+        [
+          58.05,
+          58.05,
+          298.0
         ]
       ]
     },
@@ -314,6 +425,25 @@
           "t3-spine-high",
           25
         ]
+      ],
+      "far_faces": {
+        "far-facade": 1588,
+        "membrane": 78,
+        "paving": 30,
+        "plinth": 6,
+        "trim": 216
+      },
+      "far_bounds": [
+        [
+          -58.05,
+          -58.05,
+          0
+        ],
+        [
+          58.05,
+          58.05,
+          294.5
+        ]
       ]
     },
     {
@@ -331,6 +461,25 @@
         [
           "back-arm",
           76
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 527,
+        "membrane": 30,
+        "paving": 6,
+        "plinth": 6,
+        "trim": 72
+      },
+      "far_bounds": [
+        [
+          -58.05,
+          -58.05,
+          0
+        ],
+        [
+          58.05,
+          58.05,
+          277.0
         ]
       ]
     },
@@ -350,6 +499,25 @@
           "back-arm",
           72
         ]
+      ],
+      "far_faces": {
+        "far-facade": 517,
+        "membrane": 30,
+        "paving": 6,
+        "plinth": 6,
+        "trim": 72
+      },
+      "far_bounds": [
+        [
+          -58.05,
+          -58.05,
+          0
+        ],
+        [
+          58.05,
+          58.05,
+          273.5
+        ]
       ]
     },
     {
@@ -367,6 +535,25 @@
         [
           "back-arm",
           69
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 508,
+        "membrane": 30,
+        "paving": 6,
+        "plinth": 6,
+        "trim": 72
+      },
+      "far_bounds": [
+        [
+          -58.05,
+          -58.05,
+          0
+        ],
+        [
+          58.05,
+          58.05,
+          273.5
         ]
       ]
     },
@@ -390,6 +577,25 @@
           "link",
           50
         ]
+      ],
+      "far_faces": {
+        "far-facade": 712,
+        "membrane": 36,
+        "paving": 6,
+        "plinth": 6,
+        "trim": 96
+      },
+      "far_bounds": [
+        [
+          -58.05,
+          -58.05,
+          0
+        ],
+        [
+          58.05,
+          58.05,
+          186.0
+        ]
       ]
     },
     {
@@ -412,6 +618,25 @@
           "link",
           48
         ]
+      ],
+      "far_faces": {
+        "far-facade": 700,
+        "membrane": 36,
+        "paving": 6,
+        "plinth": 6,
+        "trim": 96
+      },
+      "far_bounds": [
+        [
+          -58.05,
+          -58.05,
+          0
+        ],
+        [
+          58.05,
+          58.05,
+          189.5
+        ]
       ]
     },
     {
@@ -433,6 +658,25 @@
         [
           "link",
           45
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 676,
+        "membrane": 36,
+        "paving": 6,
+        "plinth": 6,
+        "trim": 96
+      },
+      "far_bounds": [
+        [
+          -58.05,
+          -58.05,
+          0
+        ],
+        [
+          58.05,
+          58.05,
+          189.5
         ]
       ]
     }

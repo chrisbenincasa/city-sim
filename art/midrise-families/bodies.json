@@ -84,6 +84,17 @@
       "parapet": 0.6
     }
   },
+  "far_cells": {
+    "mansion-party": 0,
+    "slab-party": 0,
+    "mansion-ground": 1,
+    "mansion-typical": 2,
+    "mansion-attic": 3,
+    "mansion-end": 4,
+    "slab-ground": 5,
+    "slab-typical": 6,
+    "slab-end": 7
+  },
   "sites": [
     {
       "name": "perimeter-terrace-a",
@@ -123,6 +134,25 @@
         [
           20.0,
           9.4,
+          21.25
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 25,
+        "membrane": 6,
+        "paving": 6,
+        "plinth": 18,
+        "trim": 36
+      },
+      "far_bounds": [
+        [
+          -20.5,
+          -8.35,
+          0
+        ],
+        [
+          20.0,
+          8.5,
           21.25
         ]
       ]
@@ -168,6 +198,25 @@
           11.4,
           24.75
         ]
+      ],
+      "far_faces": {
+        "far-facade": 30,
+        "membrane": 6,
+        "paving": 6,
+        "plinth": 12,
+        "trim": 24
+      },
+      "far_bounds": [
+        [
+          -16.0,
+          -10.35,
+          0
+        ],
+        [
+          16.0,
+          10.5,
+          24.75
+        ]
       ]
     },
     {
@@ -210,6 +259,25 @@
           9.4,
           17.75
         ]
+      ],
+      "far_faces": {
+        "far-facade": 21,
+        "membrane": 6,
+        "paving": 6,
+        "plinth": 18,
+        "trim": 36
+      },
+      "far_bounds": [
+        [
+          -24.0,
+          -8.35,
+          0
+        ],
+        [
+          24.5,
+          8.5,
+          17.75
+        ]
       ]
     },
     {
@@ -248,6 +316,25 @@
         [
           18.5,
           23.4,
+          35.25
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 40,
+        "membrane": 6,
+        "paving": 6,
+        "plinth": 24,
+        "trim": 48
+      },
+      "far_bounds": [
+        [
+          -18.5,
+          -22.35,
+          0
+        ],
+        [
+          18.5,
+          22.5,
           35.25
         ]
       ]
@@ -290,6 +377,25 @@
           28.9,
           24.75
         ]
+      ],
+      "far_faces": {
+        "far-facade": 84,
+        "membrane": 24,
+        "paving": 24,
+        "plinth": 72,
+        "trim": 144
+      },
+      "far_bounds": [
+        [
+          -28.35,
+          -28.35,
+          0
+        ],
+        [
+          28.35,
+          28.35,
+          24.75
+        ]
       ]
     },
     {
@@ -330,6 +436,25 @@
           26.9,
           35.25
         ]
+      ],
+      "far_faces": {
+        "far-facade": 120,
+        "membrane": 24,
+        "paving": 24,
+        "plinth": 72,
+        "trim": 144
+      },
+      "far_bounds": [
+        [
+          -30.35,
+          -26.35,
+          0
+        ],
+        [
+          30.35,
+          26.35,
+          35.25
+        ]
       ]
     },
     {
@@ -366,6 +491,24 @@
         [
           20.12,
           9.4,
+          22.0
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 48,
+        "membrane": 6,
+        "plinth": 24,
+        "trim": 48
+      },
+      "far_bounds": [
+        [
+          -20.08,
+          -8.35,
+          0
+        ],
+        [
+          20.08,
+          8.08,
           22.0
         ]
       ]
@@ -407,6 +550,25 @@
           11.4,
           17.75
         ]
+      ],
+      "far_faces": {
+        "far-facade": 20,
+        "membrane": 6,
+        "paving": 6,
+        "plinth": 24,
+        "trim": 48
+      },
+      "far_bounds": [
+        [
+          -24.5,
+          -10.35,
+          0
+        ],
+        [
+          24.5,
+          10.5,
+          17.75
+        ]
       ]
     },
     {
@@ -444,6 +606,24 @@
         [
           26.9,
           24.9,
+          29.0
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 168,
+        "membrane": 24,
+        "plinth": 72,
+        "trim": 144
+      },
+      "far_bounds": [
+        [
+          -26.35,
+          -24.35,
+          0
+        ],
+        [
+          26.35,
+          24.35,
           29.0
         ]
       ]
@@ -485,6 +665,25 @@
           16.8,
           52.15
         ]
+      ],
+      "far_faces": {
+        "far-facade": 80,
+        "membrane": 6,
+        "plinth": 24,
+        "trim": 48,
+        "wall-end": 24
+      },
+      "far_bounds": [
+        [
+          -58.05,
+          -15.05,
+          0
+        ],
+        [
+          58.05,
+          15.05,
+          52.15
+        ]
       ]
     },
     {
@@ -522,6 +721,25 @@
         [
           20.05,
           16.8,
+          48.65
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 76,
+        "membrane": 6,
+        "plinth": 24,
+        "trim": 30,
+        "wall-end": 6
+      },
+      "far_bounds": [
+        [
+          -20.05,
+          -15.05,
+          0
+        ],
+        [
+          20.05,
+          15.05,
           48.65
         ]
       ]
@@ -563,6 +781,25 @@
           28.2,
           59.15
         ]
+      ],
+      "far_faces": {
+        "far-facade": 264,
+        "membrane": 24,
+        "plinth": 72,
+        "trim": 120,
+        "wall-end": 48
+      },
+      "far_bounds": [
+        [
+          -58.05,
+          -27.05,
+          0
+        ],
+        [
+          58.05,
+          27.05,
+          59.15
+        ]
       ]
     },
     {
@@ -601,6 +838,25 @@
           16.2,
           48.65
         ]
+      ],
+      "far_faces": {
+        "far-facade": 76,
+        "membrane": 6,
+        "plinth": 24,
+        "trim": 36,
+        "wall-end": 12
+      },
+      "far_bounds": [
+        [
+          -30.05,
+          -15.05,
+          0
+        ],
+        [
+          30.05,
+          15.05,
+          48.65
+        ]
       ]
     },
     {
@@ -637,6 +893,25 @@
         [
           30.05,
           16.8,
+          52.15
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 80,
+        "membrane": 6,
+        "plinth": 24,
+        "trim": 36,
+        "wall-end": 12
+      },
+      "far_bounds": [
+        [
+          -30.05,
+          -15.05,
+          0
+        ],
+        [
+          30.05,
+          15.05,
           52.15
         ]
       ]

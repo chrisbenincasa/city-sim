@@ -22,6 +22,17 @@ untextured part materials; textured parts name their library texture in the Styl
 
 Each body's origin is its site centre at ground level. The street face looks down -Y, which Godot
 receives as +Z. Faces are wound counter-clockwise seen from outside.
+
+Far mode uses one `far-facade` part for every wall. Its UVMap counts facade bays in u and storeys
+from ground level in v; uv2.x carries one cell id per face. Roof membranes, paving and outline trim
+keep their near part names. The far cell table is:
+
+  0  blank                     1  point-podium-ground       2  point-podium-typical
+  3  point-shaft               4  stepped-point-podium-ground
+  5  stepped-point-podium-typical                         6  stepped-point-shaft
+  7  l-podium-ground           8  l-podium-typical         9  l-shaft
+ 10  h-podium-ground          11  h-podium-typical        12  h-shaft
+ 13  crown
 """
 import bmesh
 import bpy
@@ -76,18 +87,37 @@ FACADES = {
 }
 SIDES = ('s', 'e', 'n', 'w')
 
+FAR_CELLS = {
+    'blank': 0,
+    'point-podium-ground': 1,
+    'point-podium-typical': 2,
+    'point-shaft': 3,
+    'stepped-point-podium-ground': 4,
+    'stepped-point-podium-typical': 5,
+    'stepped-point-shaft': 6,
+    'l-podium-ground': 7,
+    'l-podium-typical': 8,
+    'l-shaft': 9,
+    'h-podium-ground': 10,
+    'h-podium-typical': 11,
+    'h-shaft': 12,
+    'crown': 13,
+}
+
 
 class Geometry:
     """Vertices and faces gathered per part, so a whole site becomes one object."""
 
     def __init__(self):
         self.parts = {}
+        self.grid_uvs = {}
 
-    def polygon(self, part, points):
+    def polygon(self, part, points, grid_uv=None, cell=0):
         vertices, faces = self.parts.setdefault(part, ([], []))
         base = len(vertices)
         vertices.extend(points)
         faces.append(tuple(range(base, base + len(points))))
+        self.grid_uvs.setdefault(part, []).append((grid_uv, cell) if grid_uv else None)
 
     def box(self, part, low, high):
         (x0, y0, z0), (x1, y1, z1) = low, high
@@ -99,6 +129,7 @@ class Geometry:
         base = len(vertices)
         vertices.extend(corners)
         faces.extend(tuple(base + i for i in face) for face in street.BOX_FACES)
+        self.grid_uvs.setdefault(part, []).extend([None] * len(street.BOX_FACES))
 
     def icosphere(self, part, centre, radius):
         bm = bmesh.new()
@@ -131,6 +162,12 @@ class Side:
         geometry.polygon(part, [self.point(u0, z0, depth), self.point(u1, z0, depth),
                                 self.point(u1, z1, depth), self.point(u0, z1, depth)])
 
+    def grid_plane(self, geometry, u0, u1, z0, z1, depth, grid_u0, grid_u1, cell):
+        geometry.polygon('far-facade', [self.point(u0, z0, depth), self.point(u1, z0, depth),
+                                        self.point(u1, z1, depth), self.point(u0, z1, depth)],
+                         [(grid_u0, z0 / STOREY), (grid_u1, z0 / STOREY),
+                          (grid_u1, z1 / STOREY), (grid_u0, z1 / STOREY)], cell)
+
 
 def facade(geometry, side, u0, u1, z0, z1, floor0, style):
     """A facade piece from u0 to u1 and z0 to z1. Storeys count up from floor0."""
@@ -148,6 +185,18 @@ def facade(geometry, side, u0, u1, z0, z1, floor0, style):
         u = side.length * i / count
         if u0 < u - width / 2 and u + width / 2 < u1:
             side.slab(geometry, look['fin_part'], u - width / 2, u + width / 2, z0, z1, front, back)
+
+
+def far_facade(geometry, side, u0, u1, z0, z1, bay, cell, depth=0.0):
+    """Plain storey quads whose u split matches the near facade's full-side bay split."""
+    count = max(1, round(side.length / bay))
+    grid_u0 = u0 * count / side.length
+    grid_u1 = u1 * count / side.length
+    first = round(z0 / STOREY)
+    last = round(z1 / STOREY)
+    for storey in range(first, last):
+        za, zb = storey * STOREY, (storey + 1) * STOREY
+        side.grid_plane(geometry, u0, u1, za, zb, depth, grid_u0, grid_u1, cell)
 
 
 def subtract(span, covers):
@@ -220,6 +269,39 @@ def draw_wing(geometry, w, wings):
         crown(geometry, w['rect'], z1)
 
 
+def draw_wing_far(geometry, w, wings, variant):
+    """The same wing stack as near mode, with one plain facade quad per open storey band."""
+    x0, y0, x1, y1 = w['rect']
+    z0, z1 = w['z0'], w['z0'] + w['storeys'] * STOREY
+    cell = FAR_CELLS[f'{variant}-shaft']
+    if w['style'] == 'reveal':
+        d = w['inset']
+        rect = (x0 + d, y0 + d, x1 - d, y1 - d)
+        for name in SIDES:
+            side = Side(rect, name)
+            side.grid_plane(geometry, 0, side.length, z0, z1, 0, 0, 1, cell)
+        return
+    for name in SIDES:
+        side = Side(w['rect'], name)
+        cuts = sorted({0.0, side.length} | {e for o in wings if o is not w and (t := touching(side, w['rect'], o['rect']))
+                                            for e in t})
+        for a, b in zip(cuts, cuts[1:]):
+            covers = [(o['z0'], o['z0'] + o['storeys'] * STOREY) for o in wings if o is not w and o['style'] != 'reveal'
+                      and (t := touching(side, w['rect'], o['rect'])) and t[0] <= a + 1e-4 and b - 1e-4 <= t[1]]
+            for za, zb in subtract((z0, z1), covers):
+                far_facade(geometry, side, a, b, za, zb, FACADES[w['style']]['fin_every'], cell)
+                if w['capped'] and abs(zb - z1) < 1e-4:
+                    side.slab(geometry, 'far-facade', a, b, z1, z1 + 1.2, -FACADES[w['style']]['out'], .3)
+                    side.slab(geometry, 'trim', a, b, z1 + 1.2, z1 + 1.3,
+                              -FACADES[w['style']]['out'] - .05, .35)
+    if w['capped']:
+        geometry.box('membrane', (x0 + .1, y0 + .1, z1 - .2), (x1 - .1, y1 - .1, z1 + .05))
+    if w['soffit']:
+        geometry.box('trim', (x0 - .05, y0 - .05, z0), (x1 + .05, y1 + .05, z0 + .3))
+    if w['crown']:
+        far_crown(geometry, w['rect'], z1)
+
+
 def crown(geometry, rect, z):
     """A louvred plant screen set back from the parapet, with plant behind it."""
     x0, y0, x1, y1 = rect
@@ -234,6 +316,18 @@ def crown(geometry, rect, z):
         for u in (0, side.length):
             side.slab(geometry, 'metal', max(u - .15, 0), min(u + .15, side.length), z, z + h, -.1, .3)
         side.slab(geometry, 'metal', 0, side.length, z + h - .3, z + h, -.15, .3)
+
+
+def far_crown(geometry, rect, z):
+    """A plain screen box that keeps the crown's outline and landmark height."""
+    x0, y0, x1, y1 = rect
+    s, h = 2.5, 4.0
+    screen = (x0 + s, y0 + s, x1 - s, y1 - s)
+    for name in SIDES:
+        side = Side(screen, name)
+        side.grid_plane(geometry, 0, side.length, z, z + h, 0, 0, 1, FAR_CELLS['crown'])
+    geometry.box('membrane', (screen[0] + .1, screen[1] + .1, z + h - .1),
+                 (screen[2] - .1, screen[3] - .1, z + h))
 
 
 def terrace(geometry, rect, z):
@@ -290,6 +384,25 @@ def podium(geometry, storeys, wings):
                 geometry.icosphere('tree', p, 1.8)
 
 
+def far_podium(geometry, storeys, variant):
+    """The podium mass and roof with openings, canopies, mullions and landscaping removed."""
+    half = SITE / 2
+    rect = (-half, -half, half, half)
+    top = storeys * STOREY
+    geometry.box('plinth', (-half - .05, -half - .05, 0), (half + .05, half + .05, .3))
+    for name in SIDES:
+        side = Side(rect, name)
+        far_facade(geometry, side, 0, side.length, 0, STOREY, 3.0,
+                   FAR_CELLS[f'{variant}-podium-ground'])
+        if storeys > 1:
+            far_facade(geometry, side, 0, side.length, STOREY, top,
+                       FACADES['podium']['fin_every'], FAR_CELLS[f'{variant}-podium-typical'])
+        side.slab(geometry, 'far-facade', 0, side.length, top, top + 1.1, 0, .3)
+        side.slab(geometry, 'trim', 0, side.length, top + 1.1, top + 1.2, -.05, .35)
+    geometry.box('membrane', (-half + .3, -half + .3, top - .2), (half - .3, half - .3, top))
+    geometry.box('paving', (-half + .3, -half + .3, top), (half - .3, half - .3, top + .15))
+
+
 def spine_and_front(name, x0, y0, spine_side, share, shaft):
     """One 29 m stepped tower: a full-height spine on spine_side and a lower front block."""
     tower, spine = 29, 17
@@ -336,14 +449,26 @@ def variant_wings(variant, shaft):
     raise ValueError(variant)
 
 
-def site(geometry, variant, podium_storeys):
+def site(geometry, variant, podium_storeys, far=False):
     shaft = TOTAL_STOREYS - podium_storeys
     wings = stack(variant_wings(variant, shaft), podium_storeys * STOREY)
-    podium(geometry, podium_storeys, wings)
+    if far:
+        far_podium(geometry, podium_storeys, variant)
+    else:
+        podium(geometry, podium_storeys, wings)
     for w in wings:
-        draw_wing(geometry, w, wings)
+        if far:
+            draw_wing_far(geometry, w, wings, variant)
+        else:
+            draw_wing(geometry, w, wings)
         if w['name'].endswith('-front'):
-            terrace(geometry, w['rect'], w['z0'] + w['storeys'] * STOREY)
+            if far:
+                x0, y0, x1, y1 = (w['rect'][0] + .4, w['rect'][1] + .4,
+                                  w['rect'][2] - .4, w['rect'][3] - .4)
+                geometry.box('paving', (x0, y0, w['z0'] + w['storeys'] * STOREY),
+                             (x1, y1, w['z0'] + w['storeys'] * STOREY + .2))
+            else:
+                terrace(geometry, w['rect'], w['z0'] + w['storeys'] * STOREY)
     drawn = sum((w['rect'][2] - w['rect'][0]) * (w['rect'][3] - w['rect'][1]) * w['storeys'] for w in wings)
     simulated = (SITE // 2) ** 2 * shaft
     top = max(w['z0'] + w['storeys'] * STOREY for w in wings)
@@ -367,16 +492,24 @@ def materials():
         shader.inputs['Metallic'].default_value = .6 if part in ('glass', 'metal', 'frame') else 0
         material.diffuse_color = rgba
         made[part] = material
+    far = bpy.data.materials.new('far-facade')
+    far.use_nodes = True
+    far.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = (.55, .58, .6, 1)
+    far.node_tree.nodes['Principled BSDF'].inputs['Roughness'].default_value = .8
+    made['far-facade'] = far
     return made
 
 
 def build(name, geometry, made, offset=(0, 0)):
-    vertices, faces, indices, used = [], [], [], []
+    vertices, faces, indices, grids, used = [], [], [], [], []
     for part, (vs, fs) in geometry.parts.items():
         base = len(vertices)
         vertices.extend((x + offset[0], y + offset[1], z) for x, y, z in vs)
         faces.extend(tuple(base + i for i in f) for f in fs)
         indices.extend([len(used)] * len(fs))
+        part_grids = geometry.grid_uvs.get(part, [None] * len(fs))
+        assert len(part_grids) == len(fs), (name, part, len(part_grids), len(fs))
+        grids.extend(part_grids)
         used.append(made[part])
     data = bpy.data.meshes.new(name)
     data.from_pydata(vertices, [], faces)
@@ -386,11 +519,34 @@ def build(name, geometry, made, offset=(0, 0)):
         polygon.material_index = index
     data.update()
     body = bpy.data.objects.new(name, data)
+    body['site_offset_x'] = offset[0]
+    body['site_offset_y'] = offset[1]
     bpy.context.scene.collection.objects.link(body)
     degenerate = sum(1 for p in data.polygons if p.area <= 1e-8)
     assert not degenerate, (name, degenerate)
     street.project_uvs(body)
+    if any(grids):
+        uv = data.uv_layers['UVMap']
+        uv2 = data.uv_layers.new(name='uv2')
+        for coordinate in uv2.data:
+            coordinate.uv = (0, 0)
+        for polygon, grid in zip(data.polygons, grids):
+            if not grid:
+                continue
+            coordinates, cell = grid
+            assert len(coordinates) == len(polygon.loop_indices), (name, polygon.index)
+            for loop, coordinate in zip(polygon.loop_indices, coordinates):
+                uv.data[loop].uv = coordinate
+                uv2.data[loop].uv = (cell, 0)
     return body
+
+
+def census(geometry):
+    """Faces per part and bounds for a generated site."""
+    points = [vertex for vertices, _ in geometry.parts.values() for vertex in vertices]
+    return {'faces': {part: len(faces) for part, (_, faces) in sorted(geometry.parts.items())},
+            'bounds': [[round(min(point[i] for point in points), 3) for i in range(3)],
+                       [round(max(point[i] for point in points), 3) for i in range(3)]]}
 
 
 def reset():
@@ -413,13 +569,24 @@ def main():
     reports = []
     for variant in VARIANTS:
         for podium_storeys in PODIUM_STOREYS:
-            report = site(Geometry(), variant, podium_storeys)
+            near = Geometry()
+            report = site(near, variant, podium_storeys)
             assert abs(report['difference_percent']) < 1, report
+            far = Geometry()
+            far_report = site(far, variant, podium_storeys, far=True)
+            assert far_report == report, (report, far_report)
+            far_census = census(far)
+            report.update({'far_faces': far_census['faces'], 'far_bounds': far_census['bounds']})
             reports.append(report)
+            print('TALL BOUNDS', variant, podium_storeys, census(near)['bounds'], far_census['bounds'])
         made = reset()
-        geometry = Geometry()
-        site(geometry, variant, EXPORTED_PODIUM)
-        build(variant, geometry, made)
+        near = Geometry()
+        far = Geometry()
+        site(near, variant, EXPORTED_PODIUM)
+        site(far, variant, EXPORTED_PODIUM, far=True)
+        spacing = SITE + 30
+        build(f'{variant}-near', near, made, (-spacing / 2, 0))
+        build(f'{variant}-far', far, made, (spacing / 2, 0))
         bpy.ops.wm.save_as_mainfile(filepath=str(SOURCES / f'{variant}.blend'))
 
     made = reset()
@@ -433,14 +600,20 @@ def main():
                               export_apply=True, export_yup=True)
 
     made = reset()
+    pair_spacing = 2 * SITE + 100
     for i, variant in enumerate(VARIANTS):
-        geometry = Geometry()
-        site(geometry, variant, EXPORTED_PODIUM)
-        build(variant, geometry, made, ((i - 1.5) * (SITE + 60), 0))
+        center = (i - 1.5) * pair_spacing
+        near = Geometry()
+        far = Geometry()
+        site(near, variant, EXPORTED_PODIUM)
+        site(far, variant, EXPORTED_PODIUM, far=True)
+        build(f'{variant}-near', near, made, (center - (SITE + 30) / 2, 0))
+        build(f'{variant}-far', far, made, (center + (SITE + 30) / 2, 0))
     bpy.ops.wm.save_as_mainfile(filepath=str(SOURCES / 'lineup.blend'))
 
     (SOURCES / 'bodies.json').write_text(json.dumps({'storey_metres': STOREY, 'total_storeys': TOTAL_STOREYS,
-                                                     'facades': FACADES, 'sites': reports}, indent=2) + '\n')
+                                                     'facades': FACADES, 'far_cells': FAR_CELLS,
+                                                     'sites': reports}, indent=2) + '\n')
     for report in reports:
         print('TALL', report)
 
