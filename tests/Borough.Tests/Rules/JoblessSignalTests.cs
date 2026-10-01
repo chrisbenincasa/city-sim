@@ -4,6 +4,7 @@ using Borough.Core.Entities;
 using Borough.Core.Input;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
+using Borough.Core.Tables;
 using Borough.Formats;
 
 namespace Borough.Tests.Rules;
@@ -52,6 +53,49 @@ public sealed class JoblessSignalTests
     {
         Assert.Equal(0, ShopsRaised(jobless: false));
         Assert.True(ShopsRaised(jobless: true) > 0, "no shop was raised on the jobless signal.");
+    }
+
+    [Fact]
+    public void A_vacant_unit_reopens_when_its_district_waits_for_work()
+    {
+        string toml = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "pictured.toml"));
+        RulesetLoadResult loaded = RulesetLoader.Parse(toml, "pictured.toml");
+        Assert.True(loaded.Ok, loaded.Describe());
+
+        var key = WorldKey.FromSeed(0);
+        var world = new World(2_000, loaded.Ruleset!, key);
+        SyntheticCity.PopulateInto(world, key, Ticks.Zero);
+        var simulation = new Simulation(world, key) { VerifyDecideWritesNothing = false };
+
+        Step(simulation, Ticks.PerDay);
+
+        for (int slot = 0; slot < world.Businesses.Rows.SlotCount; slot++)
+        {
+            if (world.Businesses.Rows.IsLive(slot)
+                && world.Buildings.Rows.TryResolve(world.Businesses.Building[slot], out _))
+            {
+                if (world.Bins.Rows.TryResolve(world.Businesses.Balance[slot], out int till))
+                {
+                    world.MoneySupply.Issued[MoneySupplyTable.Slot] -= new Money(world.Bins.LevelAt(till));
+                }
+
+                world.DestroyBusiness(world.Businesses.Rows.At(slot));
+            }
+        }
+
+        simulation.Zoning.Drain();
+        Step(simulation, 2 * Ticks.PerDay);
+
+        Assert.True(simulation.Zoning.Drain().Reopened.Sum > 0, "no vacant Unit reopened.");
+        simulation.CheckEndOfRun();
+    }
+
+    private static void Step(Simulation simulation, int ticks)
+    {
+        for (int tick = 0; tick < ticks; tick++)
+        {
+            simulation.Step(TickInput.Empty);
+        }
     }
 
     private static bool IsWaiting(World world, int slot) =>

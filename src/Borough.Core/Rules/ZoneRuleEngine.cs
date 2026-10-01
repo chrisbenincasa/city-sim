@@ -41,6 +41,9 @@ using Borough.Core.Tables;
 /// counters are what makes the split visible at all***, since before this the second outcome did not
 /// exist and a starving tenant was reported as a demolished Building.
 /// </param>
+/// <param name="Reopened">
+/// Businesses opened in a vacant Unit of a standing Building on District demand. No Building is raised.
+/// </param>
 public readonly record struct ZoneActivity(
     RuleFlow Triggers,
     RuleFlow Vacant,
@@ -49,7 +52,8 @@ public readonly record struct ZoneActivity(
     RuleFlow Demolished,
     RuleFlow Ended,
     RuleFlow Shed,
-    RuleFlow Unpremised)
+    RuleFlow Unpremised,
+    RuleFlow Reopened)
 {
     /// <summary>Lots evaluated over the interval, which is what a trigger is charged for.</summary>
     /// <remarks>
@@ -132,6 +136,7 @@ public sealed class ZoneRuleEngine
     private int _tickEnded;
     private int _tickShed;
     private int _tickUnpremised;
+    private int _tickReopened;
 
     private RuleFlow _triggerFlow;
     private RuleFlow _vacantFlow;
@@ -141,6 +146,7 @@ public sealed class ZoneRuleEngine
     private RuleFlow _endedFlow;
     private RuleFlow _shedFlow;
     private RuleFlow _unpremisedFlow;
+    private RuleFlow _reopenedFlow;
 
     /// <summary>Elapsed unserved need per District market row, recomputed each trigger.</summary>
     private long[] _demand = [];
@@ -181,7 +187,8 @@ public sealed class ZoneRuleEngine
             _demolishedFlow,
             _endedFlow,
             _shedFlow,
-            _unpremisedFlow);
+            _unpremisedFlow,
+            _reopenedFlow);
 
         _triggerFlow = default;
         _vacantFlow = default;
@@ -191,6 +198,7 @@ public sealed class ZoneRuleEngine
         _endedFlow = default;
         _shedFlow = default;
         _unpremisedFlow = default;
+        _reopenedFlow = default;
 
         return activity;
     }
@@ -312,6 +320,11 @@ public sealed class ZoneRuleEngine
                 {
                     _tickOccupied++;
                     Condemn(into[i], tick);
+
+                    if (definition.ReadsDemand)
+                    {
+                        Reopen(definition, into[i], tick);
+                    }
                 }
             }
 
@@ -363,7 +376,7 @@ public sealed class ZoneRuleEngine
     /// them apart exactly.
     /// </para>
     /// </remarks>
-    private bool Demanded(ZoneRuleDefinition definition, int lot, Ticks tick)
+    private bool Demanded(ZoneRuleDefinition definition, int lot, Ticks tick, bool raising = true)
     {
         int row = MarketFor(definition.Kind, lot);
 
@@ -376,7 +389,7 @@ public sealed class ZoneRuleEngine
             return false;
         }
 
-        if (definition.CooldownDays > 0)
+        if (raising && definition.CooldownDays > 0)
         {
             ulong since = tick.Raw - _world.DistrictPools.LastRaised[row].Raw;
 
@@ -398,9 +411,47 @@ public sealed class ZoneRuleEngine
             return false;
         }
 
-        _world.DistrictPools.LastRaised[row] = tick;
+        if (raising)
+        {
+            _world.DistrictPools.LastRaised[row] = tick;
+        }
 
         return true;
+    }
+
+    /// <summary>
+    /// Opens one Business of the Rule's trade in a vacant Unit of a standing Building of the Rule's
+    /// kind, when the District's demand would have justified raising one.
+    /// </summary>
+    /// <remarks>
+    /// The Building already stands, so the Lot's construction permission is not asked. Commercial
+    /// forms are refused construction in play, and re-opening their Units is how their trade returns.
+    /// The cooldown is skipped and not restarted. It gives a new Building time to stock before
+    /// demand is read again, and a re-opened Unit hires on the next job pass.
+    /// A founded Business takes a vacant Unit through placement on every pass, so it usually reaches
+    /// the Unit before demand has accumulated past a threshold.
+    /// </remarks>
+    private void Reopen(ZoneRuleDefinition definition, int lot, Ticks tick)
+    {
+        if (_world.Lots.IsVacant(lot))
+        {
+            return;
+        }
+
+        int building = _world.Lots.BuildingOn(lot);
+
+        if (_world.Buildings.Kind[building] != definition.Kind
+            || _world.Buildings.IsAbandoned(building)
+            || !_world.HasVacantUnit(building)
+            || !Demanded(definition, lot, tick, raising: false))
+        {
+            return;
+        }
+
+        if (_world.OpenInVacantUnit(building))
+        {
+            _tickReopened++;
+        }
     }
 
     private bool ClaimJobless(ZoneRuleDefinition definition, int lot)
@@ -1328,6 +1379,7 @@ public sealed class ZoneRuleEngine
         _endedFlow = _endedFlow.Fold(_tickEnded);
         _shedFlow = _shedFlow.Fold(_tickShed);
         _unpremisedFlow = _unpremisedFlow.Fold(_tickUnpremised);
+        _reopenedFlow = _reopenedFlow.Fold(_tickReopened);
 
         _tickTriggers = 0;
         _tickVacant = 0;
@@ -1337,5 +1389,6 @@ public sealed class ZoneRuleEngine
         _tickEnded = 0;
         _tickShed = 0;
         _tickUnpremised = 0;
+        _tickReopened = 0;
     }
 }

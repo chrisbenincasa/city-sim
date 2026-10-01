@@ -401,17 +401,19 @@ public static class RulesetKeyNotes
             + "a rate and not coverage.",
         ["[[zone_rule]] build_threshold_days"] =
             "How much unmet demand, in household-Days, must accumulate in a District before this "
-            + "Rule raises a Building there. It is the entry cost for a trade, and today it is the "
-            + "only brake on birth. Absent keeps the older predicate, which reads no demand at all.",
+            + "Rule raises a Building there, or opens its trade in a vacant Unit of a standing "
+            + "Building of its kind. It is the entry cost for a trade, and today it is the only "
+            + "brake on birth. Absent keeps the older predicate, which reads no demand at all.",
         ["[[zone_rule]] cooldown_days"] =
             "How many Days a District waits after raising a Building of this kind before it may "
-            + "raise another — what damps the response to the demand signal. Requires "
+            + "raise another — what damps the response to the demand signal. Opening a vacant "
+            + "Unit neither waits for it nor restarts it. Requires "
             + "build_threshold_days, since a Rule reading no demand has nothing to damp.",
         ["[[zone_rule]] jobless_threshold_days"] =
             "How much waiting, in Citizen-Days, by Citizens who found every post in reach full must "
-            + "accumulate in their home District before this Rule raises a Building there. A second "
-            + "trigger beside build_threshold_days, sharing its cooldown. Absent, the Rule does not "
-            + "read joblessness. Requires build_threshold_days.",
+            + "accumulate in their home District before this Rule raises a Building there or opens "
+            + "its trade in a vacant Unit. A second trigger beside build_threshold_days, sharing its "
+            + "cooldown. Absent, the Rule does not read joblessness. Requires build_threshold_days.",
 
         // ---- [[band]] -------------------------------------------------------------------------
         ["[[band]] name"] =

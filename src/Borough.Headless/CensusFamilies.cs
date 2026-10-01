@@ -71,6 +71,7 @@ internal static class CensusFamilies
         (ZoneCounter.Demolished, Aggregate.Peak, "demolished peak"),
         (ZoneCounter.Ended, Aggregate.Sum, "tenancies ended"),
         (ZoneCounter.Ended, Aggregate.Peak, "tenancies ended peak"),
+        (ZoneCounter.Reopened, Aggregate.Sum, "units reopened"),
     ];
 
     /// <summary>
