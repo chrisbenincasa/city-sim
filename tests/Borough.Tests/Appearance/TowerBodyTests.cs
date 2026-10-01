@@ -29,6 +29,75 @@ public sealed class TowerBodyTests
         }
     }
 
+    [Fact]
+    public void Each_far_reference_site_matches_the_authored_faces_bounds_and_grid()
+    {
+        using JsonDocument document = Bodies();
+        foreach (JsonElement site in document.RootElement.GetProperty("sites").EnumerateArray())
+        {
+            string variantName = site.GetProperty("variant").GetString()!;
+            TowerVariant variant = Variant(variantName);
+            int podium = site.GetProperty("podium_storeys").GetInt32();
+            FamilyBody body = Tower(variant);
+            FamilyBodyMesh far = FamilyBodyBuilder.BuildTower(body, 116f, 116f, 62, podium, 58f, 58f,
+                FamilyBodyDetail.Far);
+            Dictionary<string, int> expected = site.GetProperty("far_faces").EnumerateObject()
+                .ToDictionary(p => p.Name, p => p.Value.GetInt32());
+            Dictionary<string, int> actual = far.Parts.ToDictionary(p => p.Part, p => p.Mesh.Positions.Length / 4);
+            Assert.True(expected.OrderBy(p => p.Key).SequenceEqual(actual.OrderBy(p => p.Key)),
+                $"{variantName}/{podium}: authored {Describe(expected)}, built {Describe(actual)}");
+            AssertBounds($"{variantName}/{podium}", far, site.GetProperty("far_bounds"));
+
+            float[] nearBounds = MeshBounds(FamilyBodyBuilder.BuildTower(body, 116f, 116f, 62, podium, 58f, 58f));
+            float[] farBounds = MeshBounds(far);
+            foreach (int end in new[] { 2, 5 })
+            {
+                Assert.True(MathF.Abs(nearBounds[end] - farBounds[end]) <= .001f,
+                    $"{variantName}/{podium}: near height bound {nearBounds[end]} differs from far {farBounds[end]}");
+            }
+
+            ShellMesh facade = far.Parts.Single(p => p.Part == "far-facade").Mesh;
+            AssertStoreyGrid($"{variantName}/{podium}", facade);
+            if (variant == TowerVariant.SteppedPoint)
+            {
+                int blank = Enumerable.Range(0, facade.VertexCount / 4)
+                    .Count(face => IsGridQuad(facade, face * 4) && facade.Uv2s[face * 4].X == 0f);
+                Assert.Equal(16, blank);
+            }
+        }
+    }
+
+    [Fact]
+    public void Far_facade_grid_uses_the_near_fin_lines()
+    {
+        foreach (TowerVariant variant in Enum.GetValues<TowerVariant>())
+        {
+            FamilyBody body = Tower(variant);
+            FamilyBodyMesh near = FamilyBodyBuilder.BuildTower(body, 116f, 116f, 62, 5, 58f, 58f);
+            ShellMesh facade = FamilyBodyBuilder.BuildTower(body, 116f, 116f, 62, 5, 58f, 58f, FamilyBodyDetail.Far)
+                .Parts.Single(p => p.Part == "far-facade").Mesh;
+            int checkedLines = 0;
+            for (int at = 0; at < facade.VertexCount; at += 4)
+            {
+                float cell = facade.Uv2s[at].X;
+                if (!IsGridQuad(facade, at) || cell == 0f || cell == 13f || ((int)cell % 3) == 1) continue;
+                float low = MathF.Min(facade.Uvs[at].X, facade.Uvs[at + 1].X);
+                float high = MathF.Max(facade.Uvs[at].X, facade.Uvs[at + 1].X);
+                for (int line = (int)MathF.Floor(low) + 1; line < high - 1e-4f; line++)
+                {
+                    float t = (line - facade.Uvs[at].X) / (facade.Uvs[at + 1].X - facade.Uvs[at].X);
+                    Vector3 bottom = facade.Positions[at + 3] + ((facade.Positions[at + 2] - facade.Positions[at + 3]) * t);
+                    Vector3 top = facade.Positions[at] + ((facade.Positions[at + 1] - facade.Positions[at]) * t);
+                    Assert.True(HasNearFin(near, bottom, top, facade.Normals[at]),
+                        $"{variant}: far bay line u={line} from {bottom} to {top} has no near fin");
+                    checkedLines++;
+                }
+            }
+
+            Assert.True(checkedLines > 0, $"{variant}: no far bay lines were checked");
+        }
+    }
+
     [Theory]
     [InlineData(TowerVariant.Point)]
     [InlineData(TowerVariant.SteppedPoint)]
@@ -411,6 +480,79 @@ public sealed class TowerBodyTests
         "h" => TowerVariant.H,
         _ => throw new ArgumentOutOfRangeException(nameof(value)),
     };
+
+    private static void AssertBounds(string name, FamilyBodyMesh mesh, JsonElement bounds)
+    {
+        float[] actual = MeshBounds(mesh);
+        float[] expected = [.. bounds[0].EnumerateArray().Concat(bounds[1].EnumerateArray()).Select(v => v.GetSingle())];
+        for (int i = 0; i < expected.Length; i++)
+        {
+            Assert.True(MathF.Abs(expected[i] - actual[i]) <= .0011f,
+                $"{name}: bound {i} authored {expected[i]}, built {actual[i]}");
+        }
+    }
+
+    private static float[] MeshBounds(FamilyBodyMesh mesh)
+    {
+        Vector3[] all = [.. mesh.Parts.SelectMany(p => p.Mesh.Positions.ToArray())];
+        return [all.Min(p => p.X), -all.Max(p => p.Z), all.Min(p => p.Y),
+            all.Max(p => p.X), -all.Min(p => p.Z), all.Max(p => p.Y)];
+    }
+
+    private static void AssertStoreyGrid(string name, ShellMesh facade)
+    {
+        int grids = 0;
+        for (int at = 0; at < facade.VertexCount; at += 4)
+        {
+            if (!IsGridQuad(facade, at)) continue;
+            grids++;
+            for (int i = 0; i < 4; i++)
+            {
+                Assert.True(MathF.Abs(facade.Positions[at + i].Y - (facade.Uvs[at + i].Y * 3.5f)) <= .001f,
+                    $"{name}: v={facade.Uvs[at + i].Y} misses height {facade.Positions[at + i].Y}");
+            }
+        }
+
+        Assert.True(grids > 0, $"{name}: no gridded far facade quads");
+    }
+
+    private static bool HasNearFin(FamilyBodyMesh near, Vector3 bottom, Vector3 top, Vector3 normal)
+    {
+        Vector3 tangent = Vector3.Normalize(top == bottom ? Vector3.UnitX : Vector3.Cross(Vector3.UnitY, normal));
+        float line = Vector3.Dot(bottom, tangent);
+        foreach ((string part, ShellMesh mesh) in near.Parts)
+        {
+            if (part is "glass" or "membrane" or "paving" or "plinth" or "tree") continue;
+            for (int at = 0; at + 3 < mesh.VertexCount; at += 4)
+            {
+                Vector3 centre = (mesh.Positions[at] + mesh.Positions[at + 1]
+                    + mesh.Positions[at + 2] + mesh.Positions[at + 3]) / 4f;
+                float low = Math.Min(Math.Min(mesh.Positions[at].Y, mesh.Positions[at + 1].Y),
+                    Math.Min(mesh.Positions[at + 2].Y, mesh.Positions[at + 3].Y));
+                float high = Math.Max(Math.Max(mesh.Positions[at].Y, mesh.Positions[at + 1].Y),
+                    Math.Max(mesh.Positions[at + 2].Y, mesh.Positions[at + 3].Y));
+                if (high - low < 1.5f || low > bottom.Y + .01f || high < top.Y - .01f) continue;
+                if (MathF.Abs(Vector3.Dot(centre, tangent) - line) > .001f) continue;
+                if (MathF.Abs(Vector3.Dot(centre - bottom, normal)) > 1f) continue;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsGridQuad(ShellMesh mesh, int at)
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            if (MathF.Abs(mesh.Positions[at + i].Y - (mesh.Uvs[at + i].Y * 3.5f)) > .001f) return false;
+        }
+
+        return true;
+    }
+
+    private static string Describe(Dictionary<string, int> faces) =>
+        string.Join(", ", faces.OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => $"{p.Key} {p.Value}"));
 
     private static JsonDocument Bodies() => JsonDocument.Parse(
         File.ReadAllText(Path.Combine(RepoRoot(), "art", "tall-families", "bodies.json")));

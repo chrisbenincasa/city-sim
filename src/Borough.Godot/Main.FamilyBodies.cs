@@ -78,7 +78,13 @@ public partial class Main
     /// <summary>A generated body, and the linear mean colours its far box is painted with.</summary>
     private sealed record BodyShape(ArrayMesh Mesh, Color Wall, Color Roof, FamilyBody Body);
 
-    private readonly record struct PlacedBody(InstanceLayer Layer, BodyShape Shape, Transform3D At);
+    private readonly record struct PlacedBody(
+        ulong Id,
+        InstanceLayer NearLayer,
+        BodyShape NearShape,
+        InstanceLayer? FarLayer,
+        BodyShape? FarShape,
+        Transform3D At);
 
     /// <summary>
     /// Everything a generated mesh depends on, in centimetres where it is a length. A Tower's podium
@@ -87,16 +93,17 @@ public partial class Main
     /// </summary>
     private readonly record struct BodyKey(
         string Family, int Frontage, int Depth, int Storeys, AttachedSides Attached, int Paint,
-        int PodiumStoreys, int ShaftFrontage, int ShaftDepth, bool Ring);
+        int PodiumStoreys, int ShaftFrontage, int ShaftDepth, bool Ring, FamilyBodyDetail Detail);
 
     /// <summary>Everything a Building's body is placed from, read from the World.</summary>
     private readonly record struct BodyRequest(
         Massing One, AppearanceFamily Family, FamilyBody Body, float Frontage, float Depth, int Storeys,
         AttachedSides Attached, int Paint, float Turn, BodyNeighbours Neighbours, TowerSite? Site, Vector3 Origin, bool Ring)
     {
-        public BodyKey Key => new(Family.Id, Mathf.RoundToInt(Frontage * 100f), Mathf.RoundToInt(Depth * 100f), Storeys,
-            Attached, Paint, Site?.PodiumStoreys ?? 0, Mathf.RoundToInt((Site?.ShaftFrontage ?? 0f) * 100f),
-            Mathf.RoundToInt((Site?.ShaftDepth ?? 0f) * 100f), Ring);
+        public BodyKey Key(FamilyBodyDetail detail) => new(Family.Id, Mathf.RoundToInt(Frontage * 100f),
+            Mathf.RoundToInt(Depth * 100f), Storeys, Attached, Paint, Site?.PodiumStoreys ?? 0,
+            Mathf.RoundToInt((Site?.ShaftFrontage ?? 0f) * 100f),
+            Mathf.RoundToInt((Site?.ShaftDepth ?? 0f) * 100f), Ring, detail);
     }
 
     /// <summary><c>ui family-bodies on|off [NEAR]</c>; NEAR is the body band's reach in metres.</summary>
@@ -128,7 +135,11 @@ public partial class Main
 
     private void PlaceFamilyBodies()
     {
-        foreach ((ulong id, PlacedBody placed) in _placedBodies) placed.Layer.Multimesh.Replace(id, []);
+        foreach ((ulong id, PlacedBody placed) in _placedBodies)
+        {
+            placed.NearLayer.Multimesh.Replace(id, []);
+            placed.FarLayer?.Multimesh.Replace(id, []);
+        }
         _placedBodies.Clear();
         _bodyNeighbours.Clear();
         OverlayAbandonedBodies();
@@ -192,7 +203,11 @@ public partial class Main
 
     private void RemoveFamilyBody(ulong id)
     {
-        if (_placedBodies.Remove(id, out PlacedBody placed)) placed.Layer.Multimesh.Replace(id, []);
+        if (_placedBodies.Remove(id, out PlacedBody placed))
+        {
+            placed.NearLayer.Multimesh.Replace(id, []);
+            placed.FarLayer?.Multimesh.Replace(id, []);
+        }
         _bodyNeighbours.Remove(id);
     }
 
@@ -246,11 +261,21 @@ public partial class Main
     private void PlaceBody(BodyRequest request)
     {
         Massing one = request.One;
-        BodyShape shape = BodyMesh(request);
-        InstanceLayer layer = BodyLayer(shape.Mesh, one.Abandoned);
+        BodyShape nearShape = BodyMesh(request, FamilyBodyDetail.Near);
+        InstanceLayer nearLayer = BodyLayer(nearShape.Mesh, one.Abandoned, far: false);
         var at = new Transform3D(new Basis(Vector3.Up, request.Turn), request.Origin with { Y = 0f });
-        layer.Multimesh.Replace(one.Id, [new InstanceValue(at, Colors.White, Tint(one))]);
-        _placedBodies[one.Id] = new PlacedBody(layer, shape, at);
+        nearLayer.Multimesh.Replace(one.Id, [new InstanceValue(at, Colors.White, Tint(one))]);
+
+        BodyShape? farShape = null;
+        InstanceLayer? farLayer = null;
+        if (request.Body.Midrise is not null || request.Body.Tower is not null)
+        {
+            farShape = BodyMesh(request, FamilyBodyDetail.Far);
+            farLayer = BodyLayer(farShape.Mesh, one.Abandoned, far: true);
+            farLayer.Multimesh.Replace(one.Id, [new InstanceValue(at, Colors.White, Tint(one), Far: true)]);
+        }
+
+        _placedBodies[one.Id] = new PlacedBody(one.Id, nearLayer, nearShape, farLayer, farShape, at);
         _bodyNeighbours[one.Id] = request.Neighbours;
         if (_reportFamilyBodies)
         {
@@ -350,7 +375,7 @@ public partial class Main
         return one with { Cap = Cap.Gable, Roof = new Transform3D(capped, at with { Y = top + (rise * 0.5f) }) };
     }
 
-    private InstanceLayer BodyLayer(ArrayMesh mesh, bool abandoned)
+    private InstanceLayer BodyLayer(ArrayMesh mesh, bool abandoned, bool far)
     {
         if (_bodyLayers.TryGetValue((mesh, abandoned), out InstanceLayer? found)) return found;
 
@@ -358,7 +383,7 @@ public partial class Main
         layer.Multimesh.Mesh = mesh;
         layer.Multimesh.UseCustomData = true;
         layer.Multimesh.Near = NearChunk;
-        layer.Multimesh.NearOnly = true;
+        layer.Multimesh.NearOnly = !far;
         layer.InstanceParameters["body_ink"] = Colors.White;
         layer.MaterialOverride = _washing == Wash.None ? null : BuildingWash ? _categorical : _muted;
         if (abandoned && _washing == Wash.None) layer.MaterialOverlay = DerelictBody();
@@ -504,30 +529,42 @@ public partial class Main
     /// <summary>Generates the surfaces of every body the requests need and no mesh yet holds, across worker threads.</summary>
     private void BuildBodyMeshes(List<BodyRequest> requests)
     {
-        var missing = new List<BodyRequest>();
-        var seen = new HashSet<BodyKey>();
-        foreach (BodyRequest request in requests)
-        {
-            if (!_familyBodyMeshes.ContainsKey(request.Key) && seen.Add(request.Key)) missing.Add(request);
-        }
+        Build(FamilyBodyDetail.Near, requests);
+        long farStart = System.Diagnostics.Stopwatch.GetTimestamp();
+        int farMeshes = Build(FamilyBodyDetail.Far,
+            requests.Where(request => request.Body.Midrise is not null || request.Body.Tower is not null));
+        GD.Print($"far_body_meshes\t{farMeshes}\t{System.Diagnostics.Stopwatch.GetElapsedTime(farStart).TotalMilliseconds:F1} ms");
 
-        var surfaces = new List<BodySurface>[missing.Count];
-        System.Threading.Tasks.Parallel.For(0, missing.Count, i => surfaces[i] = BodySurfaces(missing[i]));
-        for (int i = 0; i < missing.Count; i++) BodyMesh(missing[i], surfaces[i]);
+        int Build(FamilyBodyDetail detail, IEnumerable<BodyRequest> source)
+        {
+            var missing = new List<BodyRequest>();
+            var seen = new HashSet<BodyKey>();
+            foreach (BodyRequest request in source)
+            {
+                BodyKey key = request.Key(detail);
+                if (!_familyBodyMeshes.ContainsKey(key) && seen.Add(key)) missing.Add(request);
+            }
+
+            var surfaces = new List<BodySurface>[missing.Count];
+            System.Threading.Tasks.Parallel.For(0, missing.Count,
+                i => surfaces[i] = BodySurfaces(missing[i], detail));
+            for (int i = 0; i < missing.Count; i++) BodyMesh(missing[i], detail, surfaces[i]);
+            return missing.Count;
+        }
     }
 
     private readonly record struct BodySurface(string Part, Godot.Collections.Array Arrays, int VertexCount);
 
     /// <summary>A body's surfaces with tangents and no colour. Touches no scene or rendering server, so any thread may call it.</summary>
-    private static List<BodySurface> BodySurfaces(BodyRequest request)
+    private static List<BodySurface> BodySurfaces(BodyRequest request, FamilyBodyDetail detail)
     {
         var surfaces = new List<BodySurface>();
         FamilyBodyMesh built = request switch
         {
             { Site: { } tower } => FamilyBodyBuilder.BuildTower(request.Body, request.Frontage, request.Depth,
-                request.Storeys, tower.PodiumStoreys, tower.ShaftFrontage, tower.ShaftDepth),
+                request.Storeys, tower.PodiumStoreys, tower.ShaftFrontage, tower.ShaftDepth, detail),
             { Body.Midrise: not null } => FamilyBodyBuilder.BuildMidrise(request.Body, request.Frontage, request.Depth,
-                request.Storeys, request.Ring, request.Attached),
+                request.Storeys, request.Ring, request.Attached, detail),
             _ => FamilyBodyBuilder.Build(request.Body, request.Frontage, request.Depth, request.Storeys, request.Attached),
         };
         foreach ((string part, ShellMesh source) in built.Parts)
@@ -535,12 +572,14 @@ public partial class Main
             var positions = new Vector3[source.VertexCount];
             var normals = new Vector3[source.VertexCount];
             var uvs = new Vector2[source.VertexCount];
+            var uv2s = new Vector2[source.VertexCount];
             for (int i = 0; i < source.VertexCount; i++)
             {
                 System.Numerics.Vector3 p = source.Positions[i], n = source.Normals[i];
                 positions[i] = new Vector3(p.X, p.Y, p.Z);
                 normals[i] = new Vector3(n.X, n.Y, n.Z);
                 uvs[i] = new Vector2(source.Uvs[i].X, source.Uvs[i].Y);
+                uv2s[i] = new Vector2(source.Uv2s[i].X, source.Uv2s[i].Y);
             }
 
             var arrays = new Godot.Collections.Array();
@@ -548,6 +587,7 @@ public partial class Main
             arrays[(int)Mesh.ArrayType.Vertex] = positions;
             arrays[(int)Mesh.ArrayType.Normal] = normals;
             arrays[(int)Mesh.ArrayType.TexUV] = uvs;
+            arrays[(int)Mesh.ArrayType.TexUV2] = uv2s;
             arrays[(int)Mesh.ArrayType.Index] = source.Indices.ToArray();
             var tool = new SurfaceTool();
             tool.CreateFromArrays(arrays);
@@ -558,17 +598,48 @@ public partial class Main
         return surfaces;
     }
 
-    private BodyShape BodyMesh(BodyRequest request, List<BodySurface>? surfaces = null)
+    private BodyShape BodyMesh(BodyRequest request, FamilyBodyDetail detail, List<BodySurface>? surfaces = null)
     {
-        if (_familyBodyMeshes.TryGetValue(request.Key, out BodyShape? cached)) return cached;
+        BodyKey key = request.Key(detail);
+        if (_familyBodyMeshes.TryGetValue(key, out BodyShape? cached)) return cached;
 
         (AppearanceFamily family, FamilyBody body, int paint) = (request.Family, request.Body, request.Paint);
         Dictionary<string, Material> library = BodyLibrary(body.Library);
         var mesh = new ArrayMesh();
         IReadOnlyDictionary<string, Paint>? scheme = paint >= 0 ? family.Paints![paint].Parts : null;
+        IReadOnlyDictionary<string, Color>? farPaints = detail == FamilyBodyDetail.Far
+            ? FarPaintColors(body, library, scheme)
+            : null;
+        FamilyBodyFarFacade? farFacade = detail == FamilyBodyDetail.Far
+            ? FamilyBodyBuilder.FarFacadeDescription(body)
+            : null;
+        FarWindowFactoryInput? farInput = farFacade is null
+            ? null
+            : new FarWindowFactoryInput(family.Id, farFacade.Variant, farPaints!, farFacade.Cells);
         var reads = new Dictionary<string, Color>();
-        foreach ((string part, Godot.Collections.Array arrays, int vertexCount) in surfaces ?? BodySurfaces(request))
+        foreach ((string part, Godot.Collections.Array arrays, int vertexCount) in surfaces ?? BodySurfaces(request, detail))
         {
+            if (part == "far-facade" && farInput is not null)
+            {
+                Material farMaterial = FarWindowMaterial(farInput);
+                Vector2[] cellIds = arrays[(int)Mesh.ArrayType.TexUV2].AsVector2Array();
+                Dictionary<int, FamilyBodyFarCell> cells = farInput.CellTable.ToDictionary(cell => cell.Id);
+                var colors = new Color[vertexCount];
+                Color wallPaint = farInput.PaintSrgb.GetValueOrDefault("wall", new Color(.65f, .65f, .62f));
+                for (int i = 0; i < colors.Length; i++)
+                {
+                    int cell = Mathf.RoundToInt(cellIds[i].X);
+                    string paintPart = cells.GetValueOrDefault(cell)?.PaintPart ?? "wall";
+                    colors[i] = farInput.PaintSrgb.GetValueOrDefault(paintPart, wallPaint).SrgbToLinear();
+                }
+
+                arrays[(int)Mesh.ArrayType.Color] = colors;
+                reads[part] = wallPaint.SrgbToLinear();
+                mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
+                mesh.SurfaceSetMaterial(mesh.GetSurfaceCount() - 1, farMaterial);
+                continue;
+            }
+
             bool dressed = body.Materials.TryGetValue(part, out string? texture);
             Material material = dressed ? LibraryMaterial(texture!)
                 : library.GetValueOrDefault(part) ?? new StandardMaterial3D { AlbedoColor = new Color(0.8f, 0.8f, 0.78f) };
@@ -598,8 +669,34 @@ public partial class Main
         Color wall = WallParts.Where(reads.ContainsKey).Select(part => reads[part]).DefaultIfEmpty(fallback).First();
         Color roof = RoofParts.Where(reads.ContainsKey).Select(part => reads[part]).DefaultIfEmpty(fallback).First();
         var shape = new BodyShape(mesh, wall, roof, body);
-        _familyBodyMeshes[request.Key] = shape;
+        _familyBodyMeshes[key] = shape;
         return shape;
+    }
+
+    private Dictionary<string, Color> FarPaintColors(FamilyBody body,
+        Dictionary<string, Material> library, IReadOnlyDictionary<string, Paint>? scheme)
+    {
+        string[] parts = ["wall", "wall-end", "trim", "glass", "frame", "spandrel"];
+        var colors = new Dictionary<string, Color>();
+        foreach (string part in parts)
+        {
+            bool dressed = body.Materials.TryGetValue(part, out string? texture);
+            bool present = dressed || library.ContainsKey(part) || (scheme?.ContainsKey(part) ?? false);
+            if (!present) continue;
+            Material material = dressed ? LibraryMaterial(texture!)
+                : library.GetValueOrDefault(part) ?? new StandardMaterial3D { AlbedoColor = new Color(.8f, .8f, .78f) };
+            Color color = MeanColour(material).LinearToSrgb();
+            bool paintable = !dressed || _textureLibrary!.Paintable.Contains(texture!);
+            if (paintable && scheme is not null && scheme.TryGetValue(part, out Paint paint))
+            {
+                color = Color.Color8(paint.R, paint.G, paint.B);
+            }
+
+            colors[part] = color;
+        }
+
+        colors.TryAdd("wall", new Color(.65f, .65f, .62f));
+        return colors;
     }
 
     /// <summary>A material's mean albedo in linear light, its texture sampled on a 32 × 32 grid.</summary>

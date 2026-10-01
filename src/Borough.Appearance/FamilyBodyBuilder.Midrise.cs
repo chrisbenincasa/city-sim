@@ -64,7 +64,7 @@ public static partial class FamilyBodyBuilder
     /// </param>
     /// <param name="attached">Flanks shared with a neighbour, drawn as blank party walls.</param>
     public static FamilyBodyMesh BuildMidrise(FamilyBody body, float frontage, float depth, int storeys, bool ring,
-        AttachedSides attached = AttachedSides.None)
+        AttachedSides attached = AttachedSides.None, FamilyBodyDetail detail = FamilyBodyDetail.Near)
     {
         ArgumentNullException.ThrowIfNull(body);
         if (body.Midrise is null) throw new ArgumentException("A mid-rise body must declare a mid-rise variant.", nameof(body));
@@ -87,15 +87,24 @@ public static partial class FamilyBodyBuilder
                 Role role = RoleOf(name, rect, bounds, ring, attached);
                 foreach ((float a, float b) in OpenStretches(side, rect, rects))
                 {
-                    if (mansion) MansionFace(writer, side, a, b, total, role, mansionLook, shape);
-                    else SlabFace(writer, side, a, b, total, role, slabLook, shape);
+                    if (mansion)
+                    {
+                        if (detail == FamilyBodyDetail.Far) MansionFaceFar(writer, side, a, b, total, role, mansionLook, shape);
+                        else MansionFace(writer, side, a, b, total, role, mansionLook, shape);
+                    }
+                    else
+                    {
+                        if (detail == FamilyBodyDetail.Far) SlabFaceFar(writer, side, a, b, total, role, slabLook);
+                        else SlabFace(writer, side, a, b, total, role, slabLook, shape);
+                    }
                 }
             }
         }
 
         if (mansion && shape.Attic)
         {
-            MansionRoofs(writer, rects, bounds, ring, attached, total, mansionLook);
+            if (detail == FamilyBodyDetail.Far) MansionRoofsFar(writer, rects, bounds, ring, attached, total, mansionLook);
+            else MansionRoofs(writer, rects, bounds, ring, attached, total, mansionLook);
         }
         else
         {
@@ -120,6 +129,21 @@ public static partial class FamilyBodyBuilder
         Yard,
         End,
         Party,
+    }
+
+    private static void FarWall(Writer writer, TowerFace side, float a, float b, int storey,
+        bool mansion, Role role, float bay, int? cell = null)
+    {
+        int count = MidriseBays(b - a, bay).Count;
+        int chosen = role switch
+        {
+            Role.Party => 0,
+            _ when cell is not null => cell.Value,
+            Role.End => mansion ? 4 : 7,
+            _ when mansion => storey == 0 ? 1 : 2,
+            _ => storey == 0 ? 5 : 6,
+        };
+        writer.GridPlane(side.Face, a, b, storey * Storey, (storey + 1) * Storey, 0f, 0f, count, chosen);
     }
 
     private readonly record struct Hole(float U0, float U1, float Z0, float Z1, string? Part = "glass");
@@ -375,6 +399,28 @@ public static partial class FamilyBodyBuilder
         }
     }
 
+    private static void MansionFaceFar(Writer writer, TowerFace side, float a, float b, int storeys, Role role,
+        MansionLook look, MidriseBody shape)
+    {
+        if (role == Role.Party)
+        {
+            for (int storey = 0; storey < storeys; storey++) FarWall(writer, side, a, b, storey, true, role, look.Bay);
+            return;
+        }
+
+        int full = shape.Attic ? storeys - 1 : storeys;
+        Slab(writer, side, "plinth", a, b, 0f, .4f, -.05f, MidriseWall);
+        for (int storey = 0; storey < full; storey++) FarWall(writer, side, a, b, storey, true, role, look.Bay);
+        float top = full * Storey;
+        (float height, float outward) = role == Role.Street ? look.Cornice : (.2f, .08f);
+        Slab(writer, side, "trim", a, b, top - .1f, top + height - .1f, -outward, MidriseWall);
+        if (!shape.Attic)
+        {
+            Slab(writer, side, "far-facade", a, b, top + height - .1f, top + look.Parapet, 0f, MidriseWall);
+            Slab(writer, side, "trim", a, b, top + look.Parapet, top + look.Parapet + .1f, -.05f, MidriseWall + .05f);
+        }
+    }
+
     private static void MansionAttic(Writer writer, TowerFace side, float a, float b, float z, MansionLook look)
     {
         var holes = new List<Hole>();
@@ -421,6 +467,47 @@ public static partial class FamilyBodyBuilder
                 if (RoleOf(name, rect, bounds, ring, attached) != Role.Street) continue;
                 TowerFace side = Side(rect, name);
                 Railing(writer, side, .2f, side.Length - .2f, fullTop + .05f, .1f);
+            }
+
+            Box(writer, new Vector3(attic.X0 + .1f, attic.Y0 + .1f, fullTop + Storey - .2f),
+                new Vector3(attic.X1 - .1f, attic.Y1 - .1f, fullTop + Storey + .05f), "membrane");
+        }
+    }
+
+    private static void MansionRoofsFar(Writer writer, Rect[] rects, Rect bounds, bool ring, AttachedSides attached,
+        int storeys, MansionLook look)
+    {
+        float fullTop = (storeys - 1) * Storey;
+        float setback = look.AtticSetback;
+        var attics = new Rect[rects.Length];
+        for (int i = 0; i < rects.Length; i++)
+        {
+            Rect rect = rects[i];
+            bool Street(TowerSide side) => RoleOf(side, rect, bounds, ring, attached) == Role.Street;
+            attics[i] = new Rect(
+                rect.X0 + (Street(TowerSide.West) ? setback : 0f),
+                rect.Y0 + (Street(TowerSide.South) ? setback : 0f),
+                rect.X1 - (Street(TowerSide.East) ? setback : 0f),
+                rect.Y1 - (Street(TowerSide.North) ? setback : 0f));
+            Box(writer, new Vector3(rect.X0 + .1f, rect.Y0 + .1f, fullTop - .2f),
+                new Vector3(rect.X1 - .1f, rect.Y1 - .1f, fullTop + .05f), "paving");
+        }
+
+        for (int i = 0; i < rects.Length; i++)
+        {
+            Rect attic = attics[i], rect = rects[i];
+            foreach (TowerSide name in TowerSides)
+            {
+                TowerFace side = Side(attic, name);
+                Role role = RoleOf(name, rect, bounds, ring, attached);
+                foreach ((float a, float b) in OpenStretches(side, attic, attics))
+                {
+                    FarWall(writer, side, a, b, storeys - 1, true, role, look.Bay, 3);
+                    if (role != Role.Party)
+                    {
+                        Slab(writer, side, "trim", a, b, fullTop + Storey, fullTop + Storey + .25f, -.5f, MidriseWall);
+                    }
+                }
             }
 
             Box(writer, new Vector3(attic.X0 + .1f, attic.Y0 + .1f, fullTop + Storey - .2f),
@@ -529,6 +616,22 @@ public static partial class FamilyBodyBuilder
         }
 
         Slab(writer, side, "wall", a, b, top, top + look.Parapet, 0f, MidriseWall);
+        Slab(writer, side, "trim", a, b, top + look.Parapet, top + look.Parapet + .1f, -.05f, MidriseWall + .05f);
+    }
+
+    private static void SlabFaceFar(Writer writer, TowerFace side, float a, float b, int storeys, Role role,
+        SlabLook look)
+    {
+        if (role == Role.Party)
+        {
+            for (int storey = 0; storey < storeys; storey++) FarWall(writer, side, a, b, storey, false, role, look.Bay);
+            return;
+        }
+
+        Slab(writer, side, "plinth", a, b, 0f, .3f, -.05f, MidriseWall);
+        for (int storey = 0; storey < storeys; storey++) FarWall(writer, side, a, b, storey, false, role, look.Bay);
+        float top = storeys * Storey;
+        Slab(writer, side, "far-facade", a, b, top, top + look.Parapet, 0f, MidriseWall);
         Slab(writer, side, "trim", a, b, top + look.Parapet, top + look.Parapet + .1f, -.05f, MidriseWall + .05f);
     }
 

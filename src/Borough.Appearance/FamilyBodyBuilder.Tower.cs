@@ -56,7 +56,7 @@ public static partial class FamilyBodyBuilder
     /// the difference stays within the larger of one percent or one requested shaft storey's area.
     /// </remarks>
     public static FamilyBodyMesh BuildTower(FamilyBody body, float frontage, float depth, int storeys,
-        int podiumStoreys, float shaftFrontage, float shaftDepth)
+        int podiumStoreys, float shaftFrontage, float shaftDepth, FamilyBodyDetail detail = FamilyBodyDetail.Near)
     {
         ArgumentNullException.ThrowIfNull(body);
         if (body.Tower is null) throw new ArgumentException("A tower body must declare a tower variant.", nameof(body));
@@ -64,13 +64,20 @@ public static partial class FamilyBodyBuilder
         TowerPlan plan = PlanTower(body.Tower.Variant, frontage, depth, storeys, podiumStoreys, shaftFrontage, shaftDepth);
         var mesh = new FamilyBodyMesh();
         var writer = new Writer(mesh, body);
-        Podium(writer, frontage, depth, plan.PodiumStoreys, plan.Wings);
+        if (detail == FamilyBodyDetail.Far) PodiumFar(writer, frontage, depth, plan.PodiumStoreys, body.Tower.Variant);
+        else Podium(writer, frontage, depth, plan.PodiumStoreys, plan.Wings);
         foreach (TowerWing wing in plan.Wings)
         {
-            DrawWing(writer, wing, plan.Wings);
+            if (detail == FamilyBodyDetail.Far) DrawWingFar(writer, wing, plan.Wings, body.Tower.Variant);
+            else DrawWing(writer, wing, plan.Wings);
             if (wing.Name.EndsWith("-front", StringComparison.Ordinal))
             {
-                Terrace(writer, wing.Rect, wing.Top);
+                if (detail == FamilyBodyDetail.Far)
+                {
+                    Rect rect = new(wing.Rect.X0 + .4f, wing.Rect.Y0 + .4f, wing.Rect.X1 - .4f, wing.Rect.Y1 - .4f);
+                    Box(writer, new Vector3(rect.X0, rect.Y0, wing.Top), new Vector3(rect.X1, rect.Y1, wing.Top + .2f), "paving");
+                }
+                else Terrace(writer, wing.Rect, wing.Top);
             }
         }
 
@@ -233,6 +240,85 @@ public static partial class FamilyBodyBuilder
         }
     }
 
+    private static int TowerCell(TowerVariant variant, int band) => variant switch
+    {
+        TowerVariant.Point => 1 + band,
+        TowerVariant.SteppedPoint => 4 + band,
+        TowerVariant.L => 7 + band,
+        TowerVariant.H => 10 + band,
+        _ => throw new ArgumentOutOfRangeException(nameof(variant)),
+    };
+
+    private static void DrawWingFar(Writer writer, TowerWing wing, List<TowerWing> wings, TowerVariant variant)
+    {
+        Rect rect = wing.Rect;
+        float z0 = wing.Z0, z1 = wing.Top;
+        if (wing.Style == "reveal")
+        {
+            float inset = wing.Inset;
+            Rect collar = new(rect.X0 + inset, rect.Y0 + inset, rect.X1 - inset, rect.Y1 - inset);
+            foreach (TowerSide sideName in TowerSides)
+            {
+                TowerFace side = Side(collar, sideName);
+                writer.GridPlane(side.Face, 0f, side.Length, z0, z1, 0f, 0f, 1f, 0);
+            }
+
+            return;
+        }
+
+        foreach (TowerSide sideName in TowerSides)
+        {
+            TowerFace side = Side(rect, sideName);
+            var cuts = new SortedSet<float> { 0f, side.Length };
+            foreach (TowerWing other in wings)
+            {
+                if (ReferenceEquals(other, wing) || Touching(side, rect, other.Rect) is not { } touch) continue;
+                cuts.Add(touch.Low);
+                cuts.Add(touch.High);
+            }
+
+            float[] positions = [.. cuts];
+            for (int i = 0; i + 1 < positions.Length; i++)
+            {
+                float a = positions[i], b = positions[i + 1];
+                var covers = new List<(float Low, float High)>();
+                foreach (TowerWing other in wings)
+                {
+                    if (ReferenceEquals(other, wing) || other.Style == "reveal") continue;
+                    if (Touching(side, rect, other.Rect) is not { } touch
+                        || touch.Low > a + 1e-4f || b - 1e-4f > touch.High) continue;
+                    covers.Add((other.Z0, other.Top));
+                }
+
+                foreach ((float low, float high) in Subtract((z0, z1), covers))
+                {
+                    FarFacade(writer, side, a, b, low, high, TowerFacades[wing.Style].FinEvery,
+                        TowerCell(variant, 2));
+                    if (wing.Capped && MathF.Abs(high - z1) < 1e-4f)
+                    {
+                        TowerFacadeParameters look = TowerFacades[wing.Style];
+                        writer.Slab(side.Face, a, b, z1, z1 + 1.2f, -look.Out, .3f, "far-facade");
+                        writer.Slab(side.Face, a, b, z1 + 1.2f, z1 + 1.3f, -look.Out - .05f, .35f, "trim");
+                    }
+                }
+            }
+        }
+
+        if (wing.Capped)
+        {
+            Box(writer, new Vector3(rect.X0 + .1f, rect.Y0 + .1f, z1 - .2f),
+                new Vector3(rect.X1 - .1f, rect.Y1 - .1f, z1 + .05f), "membrane");
+        }
+
+        if (wing.Soffit)
+        {
+            Box(writer, new Vector3(rect.X0 - .05f, rect.Y0 - .05f, z0),
+                new Vector3(rect.X1 + .05f, rect.Y1 + .05f, z0 + .3f), "trim");
+        }
+
+        if (wing.Crown) CrownFar(writer, rect, z1);
+    }
+
     private static void DrawWing(Writer writer, TowerWing wing, List<TowerWing> wings)
     {
         Rect rect = wing.Rect;
@@ -319,6 +405,19 @@ public static partial class FamilyBodyBuilder
             if (!(u0 < u - (look.FinWidth / 2f) && u + (look.FinWidth / 2f) < u1)) continue;
             writer.Slab(side.Face, u - (look.FinWidth / 2f), u + (look.FinWidth / 2f), z0, z1,
                 look.FinFront, look.FinBack, look.FinPart);
+        }
+    }
+
+    private static void FarFacade(Writer writer, TowerFace side, float u0, float u1, float z0, float z1,
+        float bay, int cell, float depth = 0f)
+    {
+        int count = Math.Max(1, RoundStoreys(side.Length / bay));
+        float gridU0 = u0 * count / side.Length, gridU1 = u1 * count / side.Length;
+        int first = RoundStoreys(z0 / Storey), last = RoundStoreys(z1 / Storey);
+        for (int storey = first; storey < last; storey++)
+        {
+            float low = storey * Storey, high = (storey + 1) * Storey;
+            writer.GridPlane(side.Face, u0, u1, low, high, depth, gridU0, gridU1, cell);
         }
     }
 
@@ -427,6 +526,20 @@ public static partial class FamilyBodyBuilder
         }
     }
 
+    private static void CrownFar(Writer writer, Rect rect, float z)
+    {
+        const float setback = 2.5f, height = 4f;
+        Rect screen = new(rect.X0 + setback, rect.Y0 + setback, rect.X1 - setback, rect.Y1 - setback);
+        foreach (TowerSide sideName in TowerSides)
+        {
+            TowerFace side = Side(screen, sideName);
+            writer.GridPlane(side.Face, 0f, side.Length, z, z + height, 0f, 0f, 1f, 13);
+        }
+
+        Box(writer, new Vector3(screen.X0 + .1f, screen.Y0 + .1f, z + height - .1f),
+            new Vector3(screen.X1 - .1f, screen.Y1 - .1f, z + height), "membrane");
+    }
+
     private static void Terrace(Writer writer, Rect source, float z)
     {
         Rect rect = new(source.X0 + .4f, source.Y0 + .4f, source.X1 - .4f, source.Y1 - .4f);
@@ -512,6 +625,34 @@ public static partial class FamilyBodyBuilder
                 Tree(writer, at, 1.8f);
             }
         }
+    }
+
+    private static void PodiumFar(Writer writer, float frontage, float depth, int storeys, TowerVariant variant)
+    {
+        if (storeys <= 0) return;
+        float halfX = frontage / 2f, halfY = depth / 2f;
+        Rect rect = new(-halfX, -halfY, halfX, halfY);
+        float top = storeys * Storey;
+        Box(writer, new Vector3(-halfX - .05f, -halfY - .05f, 0f),
+            new Vector3(halfX + .05f, halfY + .05f, .3f), "plinth");
+        foreach (TowerSide sideName in TowerSides)
+        {
+            TowerFace side = Side(rect, sideName);
+            FarFacade(writer, side, 0f, side.Length, 0f, Storey, 3f, TowerCell(variant, 0));
+            if (storeys > 1)
+            {
+                FarFacade(writer, side, 0f, side.Length, Storey, top,
+                    TowerFacades["podium"].FinEvery, TowerCell(variant, 1));
+            }
+
+            writer.Slab(side.Face, 0f, side.Length, top, top + 1.1f, 0f, .3f, "far-facade");
+            writer.Slab(side.Face, 0f, side.Length, top + 1.1f, top + 1.2f, -.05f, .35f, "trim");
+        }
+
+        Box(writer, new Vector3(-halfX + .3f, -halfY + .3f, top - .2f),
+            new Vector3(halfX - .3f, halfY - .3f, top), "membrane");
+        Box(writer, new Vector3(-halfX + .3f, -halfY + .3f, top),
+            new Vector3(halfX - .3f, halfY - .3f, top + .15f), "paving");
     }
 
     private static void Tree(Writer writer, Vector3 centre, float radius)

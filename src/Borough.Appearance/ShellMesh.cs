@@ -11,6 +11,7 @@ public sealed class ShellMesh
     private Vector3[] _positions = new Vector3[1024];
     private Vector3[] _normals = new Vector3[1024];
     private Vector2[] _uvs = new Vector2[1024];
+    private Vector2[] _uv2s = new Vector2[1024];
     private Vector4[] _colors = new Vector4[1024];
     private int[] _indices = new int[1536];
 
@@ -20,6 +21,7 @@ public sealed class ShellMesh
     public ReadOnlySpan<Vector3> Positions => _positions.AsSpan(0, VertexCount);
     public ReadOnlySpan<Vector3> Normals => _normals.AsSpan(0, VertexCount);
     public ReadOnlySpan<Vector2> Uvs => _uvs.AsSpan(0, VertexCount);
+    public ReadOnlySpan<Vector2> Uv2s => _uv2s.AsSpan(0, VertexCount);
 
     /// <summary>Linear RGBA, one per vertex.</summary>
     public ReadOnlySpan<Vector4> Colors => _colors.AsSpan(0, VertexCount);
@@ -67,7 +69,11 @@ public sealed class ShellMesh
     }
 
     /// <summary>Appends a planar polygon with its own UVs, fanned from its first corner. Corners run like <see cref="Quad"/>.</summary>
-    internal void Polygon(ReadOnlySpan<Vector3> corners, ReadOnlySpan<Vector2> uvs, Vector3 normal)
+    internal void Polygon(ReadOnlySpan<Vector3> corners, ReadOnlySpan<Vector2> uvs, Vector3 normal) =>
+        Polygon(corners, uvs, default, normal);
+
+    /// <summary>Appends a planar polygon with both UV channels, fanned from its first corner.</summary>
+    internal void Polygon(ReadOnlySpan<Vector3> corners, ReadOnlySpan<Vector2> uvs, ReadOnlySpan<Vector2> uv2s, Vector3 normal)
     {
         Reserve(corners.Length, (corners.Length - 2) * 3);
         int at = VertexCount;
@@ -76,6 +82,7 @@ public sealed class ShellMesh
             _positions[at + i] = corners[i];
             _normals[at + i] = normal;
             _uvs[at + i] = uvs[i];
+            _uv2s[at + i] = uv2s.IsEmpty ? Vector2.Zero : uv2s[i];
             _colors[at + i] = Vector4.One;
         }
 
@@ -94,6 +101,7 @@ public sealed class ShellMesh
         _positions[at] = frame.Point(local);
         _normals[at] = frame.Direction(normal);
         _uvs[at] = new Vector2(local.X + local.Z, local.Y);
+        _uv2s[at] = Vector2.Zero;
         _colors[at] = color;
     }
 
@@ -105,6 +113,7 @@ public sealed class ShellMesh
             Array.Resize(ref _positions, size);
             Array.Resize(ref _normals, size);
             Array.Resize(ref _uvs, size);
+            Array.Resize(ref _uv2s, size);
             Array.Resize(ref _colors, size);
         }
 
