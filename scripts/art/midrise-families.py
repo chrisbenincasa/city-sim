@@ -87,6 +87,14 @@ LOOKS = {
     },
 }
 
+# The settings a Style Preset family may change, with each family's default. street_openings is
+# 'loggias', 'balconies' or 'windows'; shops glazes the street ground storey; attic is the mansion's
+# set-back top storey; galleries are the slab's yard access decks.
+SETTINGS = {
+    'mansion': {'bay': 3.3, 'street_openings': 'loggias', 'shops': False, 'attic': True},
+    'slab': {'bay': 3.6, 'street_openings': 'loggias', 'shops': False, 'galleries': True},
+}
+
 
 def wall_with_openings(g, side, part, u0, u1, z0, z1, openings, d0=0.0, d1=WALL):
     """A wall slab from u0 to u1 and z0 to z1 with rectangular openings cut through it. Each
@@ -142,12 +150,13 @@ def mansion_face(g, side, a, b, storeys, role, look):
     if role == 'party':
         side.slab(g, 'wall', a, b, 0, storeys * STOREY, 0, WALL)
         return
-    full = storeys - 1
+    full = storeys - 1 if look['attic'] else storeys
     top = full * STOREY
     plaster = role == 'yard'
     body_part = 'wall-end' if plaster else 'wall'
     stretch = bays(b - a, look['bay'])
     doors = [a + e for e in entries(b - a, look['entry_every'])] if role == 'street' else []
+    shops = look['shops'] and role == 'street'
 
     side.slab(g, 'plinth', a, b, 0, .4, -.05, WALL)
     ground = []
@@ -156,6 +165,8 @@ def mansion_face(g, side, a, b, storeys, role, look):
         if any(u0 <= d < u1 for d in doors):
             w, h, sill = look['door']
             ground.append(centred(u0, u1, w, sill, h) + ('door',))
+        elif shops:
+            ground.append((u0 + .3, u1 - .3, .4, 2.9))
         elif role != 'end' or i % 2 == 0:
             w, h, sill = look['ground_window']
             ground.append(centred(u0, u1, w, sill, h))
@@ -163,6 +174,8 @@ def mansion_face(g, side, a, b, storeys, role, look):
                        + [(o[0], o[1], .4, o[3]) + o[4:] for o in ground if o[2] < .4])
     for u in doors:
         side.slab(g, 'trim', u - 1.3, u + 1.3, 3.05, 3.2, -.9, 0)
+    if shops:
+        side.slab(g, 'trim', a, b, 2.9, 3.25, -.15, WALL)
     h, out = look['string_course']
     side.slab(g, 'trim', a, b, STOREY - h, STOREY, -out, WALL)
 
@@ -172,11 +185,13 @@ def mansion_face(g, side, a, b, storeys, role, look):
         for i, (u0, u1) in enumerate(stretch):
             u0, u1 = a + u0, a + u1
             w, hgt, sill = look['window']
-            if role == 'street' and i % look['loggia_every'] == 1 and 0 < i < len(stretch) - 1:
+            street_loggia = role == 'street' and look['street_openings'] == 'loggias'
+            if street_loggia and i % look['loggia_every'] == 1 and 0 < i < len(stretch) - 1:
                 openings.append((u0 + .35, u1 - .35, z, z + 2.9, None))
             elif role != 'end' or i % 2 == 0:
                 openings.append(centred(u0, u1, w, z + sill, hgt))
-            if role == 'yard' and i % look['balcony_every'] == 1:
+            street_balcony = role == 'street' and look['street_openings'] == 'balconies'
+            if (role == 'yard' or street_balcony) and i % look['balcony_every'] == 1:
                 d = look['balcony_depth']
                 side.slab(g, 'trim', u0 + .2, u1 - .2, z - .15, z, -d, 0)
                 railing(g, side, u0 + .2, u1 - .2, z, -d + .05)
@@ -194,6 +209,9 @@ def mansion_face(g, side, a, b, storeys, role, look):
 
     ch, cout = look['cornice'] if role == 'street' else (.2, .08)
     side.slab(g, 'trim', a, b, top - .1, top + ch - .1, -cout, WALL)
+    if not look['attic']:
+        side.slab(g, body_part, a, b, top + ch - .1, top + look['parapet'], 0, WALL)
+        side.slab(g, 'trim', a, b, top + look['parapet'], top + look['parapet'] + .1, -.05, WALL + .05)
 
 
 def mansion_attic(g, side, a, b, z, look):
@@ -221,6 +239,8 @@ def slab_face(g, side, a, b, storeys, role, look):
         u0, u1 = a + u0, a + u1
         if any(u0 <= d < u1 for d in doors):
             ground.append(centred(u0, u1, 2.4, .3, 2.5) + ('door',))
+        elif look['shops'] and role == 'street':
+            ground.append((u0 + .2, u1 - .2, .3, 2.8))
         elif role != 'end':
             ground.append(centred(u0, u1, 2.8, .6, 2.2))
     wall_with_openings(g, side, 'wall-end', a, b, .3, STOREY, ground, recess, recess + WALL)
@@ -233,16 +253,17 @@ def slab_face(g, side, a, b, storeys, role, look):
         for d in doors:
             side.slab(g, 'trim', d - 2.0, d + 2.0, 2.9, 3.05, -1.2, recess)
 
+    galleries = role == 'yard' and look['galleries']
     for storey in range(1, storeys):
         z = storey * STOREY
         openings, loggias = [], []
         for i, (u0, u1) in enumerate(stretch):
             u0, u1 = a + u0, a + u1
             w, h, sill = look['window']
-            if role == 'street' and i % look['loggia_every'] == 2:
+            if role == 'street' and look['street_openings'] == 'loggias' and i % look['loggia_every'] == 2:
                 loggias.append((u0, u1))
                 openings.append((u0, u1, z, z + STOREY, None))
-            elif role == 'yard':
+            elif galleries:
                 dw, dh, _ = look['gallery_door']
                 ww, wh, ws = look['gallery_window']
                 third = (u1 - u0) / 3
@@ -250,6 +271,10 @@ def slab_face(g, side, a, b, storeys, role, look):
                 openings.append(centred(u0 + third * 1.4, u1, ww, z + ws, wh))
             elif role != 'end' or i % 4 == 1:
                 openings.append(centred(u0, u1, w if role != 'end' else .9, z + sill, h))
+            if role == 'street' and look['street_openings'] == 'balconies' and i % 2 == 1:
+                d = look['loggia_depth']
+                side.slab(g, 'trim', u0 + .15, u1 - .15, z - .2, z, -d, 0)
+                side.slab(g, 'spandrel', u0 + .15, u1 - .15, z, z + look['balustrade'], -d, -d + .12)
         wall_with_openings(g, side, 'wall', a, b, z, z + STOREY, openings)
         for u0, u1 in loggias:
             d = look['loggia_depth']
@@ -257,7 +282,7 @@ def slab_face(g, side, a, b, storeys, role, look):
                                [centred(u0, u1, 2.6, z, 2.5) + ('glass',)], d, d + .1)
             side.slab(g, 'trim', u0, u1, z + STOREY - .2, z + STOREY, WALL, d)
             side.slab(g, 'spandrel', u0, u1, z, z + look['balustrade'], 0, .15)
-        if role == 'yard':
+        if galleries:
             d = look['gallery_depth']
             side.slab(g, 'trim', a, b, z - .2, z, -d, 0)
             side.slab(g, 'spandrel', a, b, z, z + look['balustrade'], -d, -d + .12)
@@ -310,8 +335,9 @@ def role_of(side_name, rect, site, ring, attached):
     return {'s': 'street', 'n': 'yard'}.get(side_name, 'end')
 
 
-def site(g, family, frontage, depth, storeys, attached=()):
-    look = LOOKS[family]
+def site(g, family, frontage, depth, storeys, attached=(), settings=None):
+    chosen = {**SETTINGS[family], **(settings or {})}
+    look = {**LOOKS[family], **chosen}
     rects = wings(frontage, depth)
     ring = len(rects) > 1
     bounds = (-frontage / 2, -depth / 2, frontage / 2, depth / 2)
@@ -330,18 +356,18 @@ def site(g, family, frontage, depth, storeys, attached=()):
                 else:
                     slab_face(g, side, a, b, storeys, role, look)
 
-    if family == 'mansion':
+    if family == 'mansion' and look['attic']:
         mansion_roofs(g, rects, bounds, ring, attached, storeys, look)
     else:
         top = storeys * STOREY
         for rect in rects:
             x0, y0, x1, y1 = rect
             g.box('membrane', (x0 + .1, y0 + .1, top - .2), (x1 - .1, y1 - .1, top + .05))
-            if not ring or rect[2] - rect[0] > rect[3] - rect[1]:
+            if family == 'slab' and (not ring or rect[2] - rect[0] > rect[3] - rect[1]):
                 plant_rooms(g, (x0 + 4, y0 + 4, x1 - 4, y1 - 4), top, look)
     floor = sum((r[2] - r[0]) * (r[3] - r[1]) for r in rects) * storeys
     return {'family': family, 'frontage': frontage, 'depth': depth, 'storeys': storeys, 'ring': ring,
-            'attached': list(attached), 'floor_square_metres': round(floor)}
+            'attached': list(attached), 'settings': chosen, 'floor_square_metres': round(floor)}
 
 
 def mansion_roofs(g, rects, bounds, ring, attached, storeys, look):
@@ -386,11 +412,16 @@ LINEUP = {
         ('back-to-back-deep', 36, 44, 10, ()),
         ('perimeter-ring', 56, 56, 7, ()),
         ('back-to-back-ring', 60, 52, 10, ()),
+        ('balconies-no-attic', 40, 16, 6, (), {'street_openings': 'balconies', 'attic': False, 'bay': 3.0}),
+        ('shops-wide-bay', 48, 20, 5, (), {'shops': True, 'street_openings': 'windows', 'bay': 3.9}),
+        ('shops-ring', 52, 48, 8, (), {'shops': True, 'attic': False}),
     ],
     'slab': [
         ('courtyard-face', 116, 30, 14, ()),
         ('courtyard-flank', 40, 30, 13, ()),
         ('slab-ring', 116, 54, 16, ()),
+        ('windows-no-galleries', 60, 30, 13, (), {'street_openings': 'windows', 'galleries': False, 'bay': 3.0}),
+        ('balconies-shops', 60, 30, 14, (), {'street_openings': 'balconies', 'shops': True, 'bay': 4.2}),
     ],
 }
 
@@ -460,9 +491,9 @@ def main():
             bpy.data.materials.remove(material)
         made = materials()
         offsets = lineup_offsets()
-        for name, frontage, depth, storeys, attached in sites:
+        for name, frontage, depth, storeys, attached, *settings in sites:
             g = Geometry()
-            reports.append({'name': name, **site(g, family, frontage, depth, storeys, attached), **census(g)})
+            reports.append({'name': name, **site(g, family, frontage, depth, storeys, attached, *settings), **census(g)})
             tall.build(name, family_geometry(family, g), made, offsets[name])
         bpy.ops.wm.save_as_mainfile(filepath=str(SOURCES / f'{family}.blend'))
 
@@ -475,9 +506,9 @@ def main():
     made = materials()
     offsets = lineup_offsets()
     for family, sites in LINEUP.items():
-        for name, frontage, depth, storeys, attached in sites:
+        for name, frontage, depth, storeys, attached, *settings in sites:
             g = Geometry()
-            site(g, family, frontage, depth, storeys, attached)
+            site(g, family, frontage, depth, storeys, attached, *settings)
             tall.build(name, family_geometry(family, g), made, offsets[name])
     bpy.ops.wm.save_as_mainfile(filepath=str(SOURCES / 'lineup.blend'))
 

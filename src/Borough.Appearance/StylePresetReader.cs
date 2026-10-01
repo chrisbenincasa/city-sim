@@ -93,6 +93,10 @@ public static class StylePresetReader
 
     internal static IReadOnlyList<string> BlockOnlyBodyKeys => LowRiseBodyKeys;
 
+    private static readonly string[] MidriseBodyKeys = ["module_metres", "street_openings", "shops", "attic", "galleries"];
+
+    internal static IReadOnlyList<string> MidriseOnlyBodyKeys => MidriseBodyKeys;
+
     public static StylePresetResult Read(string directory)
     {
         ArgumentNullException.ThrowIfNull(directory);
@@ -346,7 +350,7 @@ public static class StylePresetReader
         public FamilyBody? Body()
         {
             int before = errors.Count;
-            Collect(["library", "shape", "variant", "tile_metres", "materials", "bay_metres", "parapet_metres", "pilasters", "plant", "roof_hatch", "vents", "openings", "gable_degrees", "chimney", "steps", "party_line", "shopfront", "panels", "rooflights", "receiving_canopy", .. Rows]);
+            Collect(["library", "shape", "variant", "tile_metres", "materials", "bay_metres", "parapet_metres", "pilasters", "plant", "roof_hatch", "vents", "openings", "gable_degrees", "chimney", "steps", "party_line", "shopfront", "panels", "rooflights", "receiving_canopy", .. MidriseBodyKeys, .. Rows]);
             string? library = Text("library", required: true);
             Dictionary<string, (float, float)> tiles = Tiles("tile_metres");
             Dictionary<string, string> materials = Materials("materials");
@@ -397,12 +401,23 @@ public static class StylePresetReader
                 }
                 else if (parsed is { } found)
                 {
-                    midrise = new MidriseBody(found);
+                    midrise = Midrise(found);
                 }
             }
             else if (_keys.TryGetValue("variant", out KeyValueSyntax? strayVariant))
             {
                 Refuse(LineOf(strayVariant), "'variant' is only valid when 'shape' is \"tower\" or \"midrise\".");
+            }
+
+            if (!midriseShape)
+            {
+                foreach (string key in MidriseBodyKeys)
+                {
+                    if (_keys.TryGetValue(key, out KeyValueSyntax? refused))
+                    {
+                        Refuse(LineOf(refused), $"'{key}' is only valid for a mid-rise body.");
+                    }
+                }
             }
 
             if (towerShape || midriseShape)
@@ -459,6 +474,34 @@ public static class StylePresetReader
                 : new FamilyBody(library, tiles, materials, bay, parapet, pilasters, (int)plant,
                     new WallRule(rows[0], rows[1]), new WallRule(rows[2], rows[3]), new WallRule(rows[4], rows[5]),
                     hatch, (int)vents, openings, gable, chimney, steps, partyLine, shopfront, panels, rooflights, receiving, tower, midrise);
+        }
+
+        private MidriseBody Midrise(MidriseVariant variant)
+        {
+            float? module = Metres("module_metres", required: false, least: 2.5f);
+            string? openings = Text("street_openings", required: false);
+            StreetOpenings street = openings switch
+            {
+                "balconies" => StreetOpenings.Balconies,
+                "windows" => StreetOpenings.Windows,
+                _ => StreetOpenings.Loggias,
+            };
+            if (openings is not null and not ("loggias" or "balconies" or "windows"))
+            {
+                Refuse(LineOf(_keys["street_openings"]), "'street_openings' must be \"loggias\", \"balconies\" or \"windows\".");
+            }
+
+            (string Key, MidriseVariant Variant)[] owned = [("attic", MidriseVariant.Mansion), ("galleries", MidriseVariant.PanelSlab)];
+            foreach ((string key, MidriseVariant owner) in owned)
+            {
+                if (owner != variant && _keys.TryGetValue(key, out KeyValueSyntax? refused))
+                {
+                    Refuse(LineOf(refused), $"'{key}' is only valid for a {(owner == MidriseVariant.Mansion ? "mansion" : "panel-slab")} body.");
+                }
+            }
+
+            return new MidriseBody(variant, module, street, Boolean("shops") ?? false,
+                Boolean("attic") ?? true, Boolean("galleries") ?? true);
         }
 
         public PaintScheme? Scheme()

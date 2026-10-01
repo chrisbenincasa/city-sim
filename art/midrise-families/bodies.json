@@ -95,6 +95,12 @@
       "attached": [
         "e"
       ],
+      "settings": {
+        "bay": 3.3,
+        "street_openings": "loggias",
+        "shops": false,
+        "attic": true
+      },
       "floor_square_metres": 3840,
       "faces": {
         "door": 2,
@@ -132,6 +138,12 @@
         "w",
         "e"
       ],
+      "settings": {
+        "bay": 3.3,
+        "street_openings": "loggias",
+        "shops": false,
+        "attic": true
+      },
       "floor_square_metres": 4480,
       "faces": {
         "door": 2,
@@ -168,6 +180,12 @@
       "attached": [
         "w"
       ],
+      "settings": {
+        "bay": 3.3,
+        "street_openings": "loggias",
+        "shops": false,
+        "attic": true
+      },
       "floor_square_metres": 3840,
       "faces": {
         "door": 3,
@@ -202,6 +220,12 @@
       "storeys": 10,
       "ring": false,
       "attached": [],
+      "settings": {
+        "bay": 3.3,
+        "street_openings": "loggias",
+        "shops": false,
+        "attic": true
+      },
       "floor_square_metres": 15840,
       "faces": {
         "door": 2,
@@ -236,6 +260,12 @@
       "storeys": 7,
       "ring": true,
       "attached": [],
+      "settings": {
+        "bay": 3.3,
+        "street_openings": "loggias",
+        "shops": false,
+        "attic": true
+      },
       "floor_square_metres": 17920,
       "faces": {
         "door": 16,
@@ -270,6 +300,12 @@
       "storeys": 10,
       "ring": true,
       "attached": [],
+      "settings": {
+        "bay": 3.3,
+        "street_openings": "loggias",
+        "shops": false,
+        "attic": true
+      },
       "floor_square_metres": 25600,
       "faces": {
         "door": 14,
@@ -297,6 +333,122 @@
       ]
     },
     {
+      "name": "balconies-no-attic",
+      "family": "mansion",
+      "frontage": 40,
+      "depth": 16,
+      "storeys": 6,
+      "ring": false,
+      "attached": [],
+      "settings": {
+        "bay": 3.0,
+        "street_openings": "balconies",
+        "shops": false,
+        "attic": false
+      },
+      "floor_square_metres": 3840,
+      "faces": {
+        "door": 2,
+        "glass": 190,
+        "membrane": 6,
+        "metal": 3600,
+        "plinth": 24,
+        "trim": 444,
+        "wall": 858,
+        "wall-end": 780
+      },
+      "bounds": [
+        [
+          -20.12,
+          -9.4,
+          0
+        ],
+        [
+          20.12,
+          9.4,
+          22.0
+        ]
+      ]
+    },
+    {
+      "name": "shops-wide-bay",
+      "family": "mansion",
+      "frontage": 48,
+      "depth": 20,
+      "storeys": 5,
+      "ring": false,
+      "attached": [],
+      "settings": {
+        "bay": 3.9,
+        "street_openings": "windows",
+        "shops": true,
+        "attic": true
+      },
+      "floor_square_metres": 4800,
+      "faces": {
+        "door": 3,
+        "glass": 151,
+        "membrane": 6,
+        "metal": 1140,
+        "paving": 6,
+        "plinth": 24,
+        "trim": 204,
+        "wall": 486,
+        "wall-end": 816
+      },
+      "bounds": [
+        [
+          -24.5,
+          -10.9,
+          0
+        ],
+        [
+          24.5,
+          11.4,
+          17.75
+        ]
+      ]
+    },
+    {
+      "name": "shops-ring",
+      "family": "mansion",
+      "frontage": 52,
+      "depth": 48,
+      "storeys": 8,
+      "ring": true,
+      "attached": [],
+      "settings": {
+        "bay": 3.3,
+        "street_openings": "loggias",
+        "shops": true,
+        "attic": false
+      },
+      "floor_square_metres": 17408,
+      "faces": {
+        "door": 12,
+        "glass": 772,
+        "membrane": 24,
+        "metal": 10920,
+        "plinth": 72,
+        "reveal": 4032,
+        "trim": 1428,
+        "wall": 6684,
+        "wall-end": 2244
+      },
+      "bounds": [
+        [
+          -26.9,
+          -24.9,
+          0
+        ],
+        [
+          26.9,
+          24.9,
+          29.0
+        ]
+      ]
+    },
+    {
       "name": "courtyard-face",
       "family": "slab",
       "frontage": 116,
@@ -304,6 +456,12 @@
       "storeys": 14,
       "ring": false,
       "attached": [],
+      "settings": {
+        "bay": 3.6,
+        "street_openings": "loggias",
+        "shops": false,
+        "galleries": true
+      },
       "floor_square_metres": 48720,
       "faces": {
         "door": 424,
@@ -337,6 +495,12 @@
       "storeys": 13,
       "ring": false,
       "attached": [],
+      "settings": {
+        "bay": 3.6,
+        "street_openings": "loggias",
+        "shops": false,
+        "galleries": true
+      },
       "floor_square_metres": 15600,
       "faces": {
         "door": 134,
@@ -370,6 +534,12 @@
       "storeys": 16,
       "ring": true,
       "attached": [],
+      "settings": {
+        "bay": 3.6,
+        "street_openings": "loggias",
+        "shops": false,
+        "galleries": true
+      },
       "floor_square_metres": 70656,
       "faces": {
         "door": 892,
@@ -392,6 +562,82 @@
           59.2,
           28.2,
           59.15
+        ]
+      ]
+    },
+    {
+      "name": "windows-no-galleries",
+      "family": "slab",
+      "frontage": 60,
+      "depth": 30,
+      "storeys": 13,
+      "ring": false,
+      "attached": [],
+      "settings": {
+        "bay": 3.0,
+        "street_openings": "windows",
+        "shops": false,
+        "galleries": false
+      },
+      "floor_square_metres": 23400,
+      "faces": {
+        "door": 4,
+        "glass": 588,
+        "membrane": 6,
+        "plinth": 24,
+        "spandrel": 12,
+        "trim": 3084,
+        "wall": 4308,
+        "wall-end": 324
+      },
+      "bounds": [
+        [
+          -30.05,
+          -16.2,
+          0
+        ],
+        [
+          30.05,
+          16.2,
+          48.65
+        ]
+      ]
+    },
+    {
+      "name": "balconies-shops",
+      "family": "slab",
+      "frontage": 60,
+      "depth": 30,
+      "storeys": 14,
+      "ring": false,
+      "attached": [],
+      "settings": {
+        "bay": 4.2,
+        "street_openings": "balconies",
+        "shops": true,
+        "galleries": true
+      },
+      "floor_square_metres": 25200,
+      "faces": {
+        "door": 186,
+        "glass": 440,
+        "membrane": 6,
+        "plinth": 24,
+        "spandrel": 636,
+        "trim": 3024,
+        "wall": 5748,
+        "wall-end": 234
+      },
+      "bounds": [
+        [
+          -30.05,
+          -16.2,
+          0
+        ],
+        [
+          30.05,
+          16.8,
+          52.15
         ]
       ]
     }

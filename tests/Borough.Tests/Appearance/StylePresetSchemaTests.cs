@@ -38,6 +38,26 @@ public sealed class StylePresetSchemaTests
         Assert.Equal(StylePresetReader.BlockOnlyBodyKeys.Order(StringComparer.Ordinal), schemaKeys);
     }
 
+    [Fact]
+    public void The_schema_forbids_every_midrise_key_outside_a_midrise_body()
+    {
+        using JsonDocument schema = JsonDocument.Parse(
+            File.ReadAllText(Path.Combine(RepoRoot(), "appearance", "appearance.schema.json")));
+        JsonElement body = schema.RootElement.GetProperty("properties")
+            .GetProperty("family").GetProperty("items").GetProperty("properties").GetProperty("body");
+        JsonElement rule = body.GetProperty("allOf").EnumerateArray().Single(r =>
+            r.TryGetProperty("else", out _)
+            && r.GetProperty("if").GetProperty("properties").GetProperty("shape").TryGetProperty("const", out JsonElement shape)
+            && shape.GetString() == "midrise");
+        string[] schemaKeys =
+        [
+            .. rule.GetProperty("else").GetProperty("not").GetProperty("anyOf").EnumerateArray()
+                .Select(r => r.GetProperty("required")[0].GetString()!).Order(StringComparer.Ordinal),
+        ];
+
+        Assert.Equal(StylePresetReader.MidriseOnlyBodyKeys.Order(StringComparer.Ordinal), schemaKeys);
+    }
+
     private static string[] Offered(string table)
     {
         using JsonDocument schema = JsonDocument.Parse(File.ReadAllText(Path.Combine(RepoRoot(), "appearance", "appearance.schema.json")));

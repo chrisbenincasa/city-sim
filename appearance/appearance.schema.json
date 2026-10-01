@@ -173,6 +173,27 @@
                 "description": "The tower layout or the mid-rise type. Required for a tower or a mid-rise body and refused for a block.",
                 "enum": ["point", "stepped-point", "l", "h", "mansion", "panel-slab"]
               },
+              "module_metres": {
+                "description": "A mid-rise body's window module along a face, in metres. Defaults to 3.3 for a mansion and 3.6 for a panel slab.",
+                "type": "number",
+                "minimum": 2.5
+              },
+              "street_openings": {
+                "description": "What a mid-rise body's upper street storeys open with. Defaults to loggias.",
+                "enum": ["loggias", "balconies", "windows"]
+              },
+              "shops": {
+                "description": "A mid-rise body's street ground storey is glazed as shopfronts.",
+                "type": "boolean"
+              },
+              "attic": {
+                "description": "A mansion's top storey is set back behind a terrace; false tops it with a parapet. Defaults to true.",
+                "type": "boolean"
+              },
+              "galleries": {
+                "description": "A panel slab's yard faces carry access galleries; false gives them windows. Defaults to true.",
+                "type": "boolean"
+              },
               "tile_metres": {
                 "description": "The size one texture tile covers, by part, as [along, up] in metres. A part named in materials takes its texture's size unless listed here. Other unlisted parts tile per metre.",
                 "type": "object",
@@ -386,7 +407,26 @@
               },
               {
                 "if": { "properties": { "shape": { "const": "midrise" } }, "required": ["shape"] },
-                "then": { "properties": { "variant": { "enum": ["mansion", "panel-slab"] } } }
+                "then": { "properties": { "variant": { "enum": ["mansion", "panel-slab"] } } },
+                "else": {
+                  "not": {
+                    "anyOf": [
+                      { "required": ["module_metres"] },
+                      { "required": ["street_openings"] },
+                      { "required": ["shops"] },
+                      { "required": ["attic"] },
+                      { "required": ["galleries"] }
+                    ]
+                  }
+                }
+              },
+              {
+                "if": { "properties": { "variant": { "const": "mansion" } }, "required": ["variant"] },
+                "then": { "not": { "required": ["galleries"] } }
+              },
+              {
+                "if": { "properties": { "variant": { "const": "panel-slab" } }, "required": ["variant"] },
+                "then": { "not": { "required": ["attic"] } }
               }
             ],
             "additionalProperties": false

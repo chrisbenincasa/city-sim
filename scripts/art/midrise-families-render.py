@@ -49,6 +49,8 @@ views = {
     'rings': ((330, -110, 150), (325, 10, 0), 1600, 1000, 30),
     'slab-street': ((80, 55, 8), (80, 140, 28), 1600, 1000, 16),
     'slab-yard': ((314, 95, 110), (314, 140, 18), 1600, 1000, 28),
+    'mansion-variants': ((540, -120, 50), (540, 0, 10), 1600, 1000, 22),
+    'slab-variants': ((505, 30, 40), (505, 140, 25), 1600, 1000, 22),
 }
 for monochrome in (False, True):
     scene.view_layers[0].material_override = grey if monochrome else None
