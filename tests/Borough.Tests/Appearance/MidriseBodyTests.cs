@@ -263,7 +263,7 @@ public sealed class MidriseBodyTests
             found = true;
             for (int i = 0; i < 4; i++)
             {
-                Assert.True(MathF.Abs(facade.Positions[at + i].Y - (facade.Uvs[at + i].Y * 3.5f)) <= .001f,
+                Assert.True(MathF.Abs(facade.Positions[at + i].Y - (facade.Uvs[at + i].Y * ShellBuilder.StoreyMetres)) <= .001f,
                     $"{name}: v={facade.Uvs[at + i].Y} misses height {facade.Positions[at + i].Y}");
             }
         }
@@ -300,7 +300,7 @@ public sealed class MidriseBodyTests
     {
         for (int i = 0; i < 4; i++)
         {
-            if (MathF.Abs(mesh.Positions[at + i].Y - (mesh.Uvs[at + i].Y * 3.5f)) > .001f) return false;
+            if (MathF.Abs(mesh.Positions[at + i].Y - (mesh.Uvs[at + i].Y * ShellBuilder.StoreyMetres)) > .001f) return false;
         }
 
         return true;

@@ -80,7 +80,7 @@ public sealed class TowerBodyTests
             for (int at = 0; at < facade.VertexCount; at += 4)
             {
                 float cell = facade.Uv2s[at].X;
-                if (!IsGridQuad(facade, at) || cell == 0f || cell == 13f || ((int)cell % 3) == 1) continue;
+                if (!IsGridQuad(facade, at) || cell == 0f || cell == 13f) continue;
                 float low = MathF.Min(facade.Uvs[at].X, facade.Uvs[at + 1].X);
                 float high = MathF.Max(facade.Uvs[at].X, facade.Uvs[at + 1].X);
                 for (int line = (int)MathF.Floor(low) + 1; line < high - 1e-4f; line++)
@@ -88,7 +88,8 @@ public sealed class TowerBodyTests
                     float t = (line - facade.Uvs[at].X) / (facade.Uvs[at + 1].X - facade.Uvs[at].X);
                     Vector3 bottom = facade.Positions[at + 3] + ((facade.Positions[at + 2] - facade.Positions[at + 3]) * t);
                     Vector3 top = facade.Positions[at] + ((facade.Positions[at + 1] - facade.Positions[at]) * t);
-                    Assert.True(HasNearFin(near, bottom, top, facade.Normals[at]),
+                    float verticalTolerance = ((int)cell % 3) == 1 ? .5f : .01f;
+                    Assert.True(HasNearFin(near, bottom, top, facade.Normals[at], verticalTolerance),
                         $"{variant}: far bay line u={line} from {bottom} to {top} has no near fin");
                     checkedLines++;
                 }
@@ -343,7 +344,7 @@ public sealed class TowerBodyTests
                 if (expected is not null) break;
             }
 
-            if (expected is null && high <= (podiumStoreys * 3.5f) + 1e-3f)
+            if (expected is null && high <= (podiumStoreys * ShellBuilder.StoreyMetres) + 1e-3f)
             {
                 expected = RectFaceNormal(centre, -frontage / 2f, -depth / 2f, frontage / 2f, depth / 2f, .3f)
                     ?? RectFaceNormal(centre, -frontage / 2f, -depth / 2f, frontage / 2f, depth / 2f, .4f);
@@ -508,7 +509,7 @@ public sealed class TowerBodyTests
             grids++;
             for (int i = 0; i < 4; i++)
             {
-                Assert.True(MathF.Abs(facade.Positions[at + i].Y - (facade.Uvs[at + i].Y * 3.5f)) <= .001f,
+                Assert.True(MathF.Abs(facade.Positions[at + i].Y - (facade.Uvs[at + i].Y * ShellBuilder.StoreyMetres)) <= .001f,
                     $"{name}: v={facade.Uvs[at + i].Y} misses height {facade.Positions[at + i].Y}");
             }
         }
@@ -516,7 +517,8 @@ public sealed class TowerBodyTests
         Assert.True(grids > 0, $"{name}: no gridded far facade quads");
     }
 
-    private static bool HasNearFin(FamilyBodyMesh near, Vector3 bottom, Vector3 top, Vector3 normal)
+    private static bool HasNearFin(FamilyBodyMesh near, Vector3 bottom, Vector3 top, Vector3 normal,
+        float verticalTolerance)
     {
         Vector3 tangent = Vector3.Normalize(top == bottom ? Vector3.UnitX : Vector3.Cross(Vector3.UnitY, normal));
         float line = Vector3.Dot(bottom, tangent);
@@ -531,7 +533,7 @@ public sealed class TowerBodyTests
                     Math.Min(mesh.Positions[at + 2].Y, mesh.Positions[at + 3].Y));
                 float high = Math.Max(Math.Max(mesh.Positions[at].Y, mesh.Positions[at + 1].Y),
                     Math.Max(mesh.Positions[at + 2].Y, mesh.Positions[at + 3].Y));
-                if (high - low < 1.5f || low > bottom.Y + .01f || high < top.Y - .01f) continue;
+                if (high - low < 1.5f || low > bottom.Y + verticalTolerance || high < top.Y - verticalTolerance) continue;
                 if (MathF.Abs(Vector3.Dot(centre, tangent) - line) > .001f) continue;
                 if (MathF.Abs(Vector3.Dot(centre - bottom, normal)) > 1f) continue;
                 return true;
@@ -545,7 +547,7 @@ public sealed class TowerBodyTests
     {
         for (int i = 0; i < 4; i++)
         {
-            if (MathF.Abs(mesh.Positions[at + i].Y - (mesh.Uvs[at + i].Y * 3.5f)) > .001f) return false;
+            if (MathF.Abs(mesh.Positions[at + i].Y - (mesh.Uvs[at + i].Y * ShellBuilder.StoreyMetres)) > .001f) return false;
         }
 
         return true;
