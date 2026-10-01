@@ -210,10 +210,24 @@ public sealed record FamilyBody(
     bool Panels = false,
     bool Rooflights = false,
     bool ReceivingCanopy = false,
-    TowerBody? Tower = null);
+    TowerBody? Tower = null,
+    MidriseBody? Midrise = null);
 
 /// <summary>A tower body's authored layout.</summary>
 public sealed record TowerBody(TowerVariant Variant);
+
+/// <summary>A mid-rise body's authored type, built over the whole footprint and as a ring when the Lot is hollow.</summary>
+public sealed record MidriseBody(MidriseVariant Variant);
+
+/// <summary>The two mid-rise types a body can build.</summary>
+public enum MidriseVariant
+{
+    /// <summary>A brick perimeter block with a set-back attic storey.</summary>
+    Mansion,
+
+    /// <summary>A precast panel slab with galleries on the yard side and a recessed ground storey.</summary>
+    PanelSlab,
+}
 
 /// <summary>The four tower layouts a body can build.</summary>
 public enum TowerVariant

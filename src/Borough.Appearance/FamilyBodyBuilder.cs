@@ -53,6 +53,7 @@ public static partial class FamilyBodyBuilder
     {
         ArgumentNullException.ThrowIfNull(body);
         if (body.Tower is not null) throw new ArgumentException("A tower body must be built with BuildTower().", nameof(body));
+        if (body.Midrise is not null) throw new ArgumentException("A mid-rise body must be built with BuildMidrise().", nameof(body));
         var mesh = new FamilyBodyMesh();
         var writer = new Writer(mesh, body);
         float height = storeys * Storey;

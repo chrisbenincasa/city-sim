@@ -1,0 +1,10 @@
+# The mid-rise blocks platted.toml raises at 40,000 Citizens, from above, over the Tower cluster's
+# neighbourhood. The band reaches far enough that every block in frame draws as a body.
+2 pause
+2 ui family-bodies on 2500
+2 roads on
+2 focus 578 572 520
+2 tilt 45
+2 shoot artifacts/midrise-families/drive/midrise-aerial.png
+2 draw artifacts/midrise-families/drive/midrise-aerial.tsv
+2 quit

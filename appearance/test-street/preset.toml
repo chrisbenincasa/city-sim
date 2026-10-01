@@ -490,3 +490,58 @@ trim = "e4e6e6"
 [[family.paint]]
 wall = "ad9d8c"
 trim = "f0ebdd"
+
+# ---------------------------------------------------------------------------------------------
+# The two mid-rise families. Each Building is one body over its whole footprint, and a hollow
+# footprint is built as the simulation's ring of four 16 m wings. The shell builds both in code
+# (docs/07-the-drawing.md); each library holds its family's untextured swatches.
+
+[[family]]
+id = "mansion-block"
+kinds = ["dwelling", "shopfront"]
+patterns = ["perimeter", "back-to-back"]
+storeys = [4, 11]
+
+# Brick over a rendered ground storey, street loggias, a cornice and a set-back attic.
+[family.body]
+library = "midrise-families/mansion"
+shape = "midrise"
+variant = "mansion"
+materials = { wall = "bricks-088", wall-end = "painted-plaster-wall", membrane = "bitumen", paving = "concrete-panels" }
+
+[[family.paint]]
+wall = "9a5b45"
+trim = "e9e4d8"
+
+[[family.paint]]
+wall = "b89a72"
+trim = "f0ebe0"
+
+[[family.paint]]
+wall = "74493b"
+trim = "ddd6c6"
+
+[[family]]
+id = "panel-slab"
+kinds = ["dwelling", "shopfront"]
+patterns = ["courtyard", "slab"]
+storeys = [12, 24]
+
+# A precast grid on pilotis, loggia columns on the street and access galleries on the yard.
+[family.body]
+library = "midrise-families/slab"
+shape = "midrise"
+variant = "panel-slab"
+materials = { wall = "preconcrete-wall-001", wall-end = "concrete-wall-004", membrane = "bitumen" }
+
+[[family.paint]]
+wall = "cfcbc0"
+spandrel = "a9a49a"
+
+[[family.paint]]
+wall = "c4bba8"
+spandrel = "8a6f5a"
+
+[[family.paint]]
+wall = "b3b8b6"
+spandrel = "6f8a8f"

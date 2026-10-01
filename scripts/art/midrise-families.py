@@ -25,9 +25,9 @@ street, a cornice and a rendered attic set back behind a terrace. Its yard is re
 projecting balconies. The panel slab is a precast grid on a recessed ground storey with pilotis,
 loggia columns on the street, access galleries on the yard, and plant rooms on the roof.
 
-The variants are saved as .blend references with a lineup for review. The only export is
-library.glb, which carries the untextured part materials; textured parts name their library texture
-in the Style Preset. Each body's origin is its site centre at ground level, and the street face
+The variants are saved as .blend references with a lineup for review. The only exports are
+mansion.glb and slab.glb, which carry each family's untextured part materials, named part first so
+the shell matches them by part; textured parts name their library texture in the Style Preset. Each body's origin is its site centre at ground level, and the street face
 looks down -Y, which Godot receives as +Z.
 """
 import bpy
@@ -77,7 +77,7 @@ LOOKS = {
     'mansion': {
         'bay': 3.3, 'window': (1.3, 1.9, .9), 'ground_window': (1.7, 2.1, .7), 'door': (1.6, 2.7, .3),
         'entry_every': 16.0, 'loggia_every': 3, 'loggia_depth': 1.4, 'balcony_every': 2, 'balcony_depth': 1.4,
-        'attic_setback': 1.8, 'cornice': (.45, .35), 'string_course': (.25, .12), 'parapet': .9,
+        'attic_setback': 1.8, 'attic_window': (2.4, 2.3, .5), 'cornice': (.45, .35), 'string_course': (.25, .12), 'parapet': .9,
     },
     'slab': {
         'bay': 3.6, 'window': (2.1, 1.5, .9), 'door': (1.2, 2.3, 0), 'gallery_door': (1.0, 2.2, 0),
@@ -198,7 +198,7 @@ def mansion_face(g, side, a, b, storeys, role, look):
 
 def mansion_attic(g, side, a, b, z, look):
     """The set-back attic storey: render, a window in every bay, a thin eave."""
-    openings = [centred(a + u0, a + u1, 1.6, z + .8, 2.0) for u0, u1 in bays(b - a, look['bay'])]
+    openings = [centred(a + u0, a + u1, look['attic_window'][0], z + look['attic_window'][2], look['attic_window'][1]) for u0, u1 in bays(b - a, look['bay'])]
     wall_with_openings(g, side, 'wall-end', a, b, z, z + STOREY, openings)
     side.slab(g, 'trim', a, b, z + STOREY, z + STOREY + .25, -.5, WALL)
 
@@ -399,7 +399,7 @@ def materials():
     made = {}
     for family, parts in PARTS.items():
         for part, (texture, colour) in parts.items():
-            name = f'{family}-{part}'
+            name = f'{part}-{family}'
             if texture:
                 made[name] = street.surface(f'{name}-{texture}', texture, colour)
                 continue
@@ -415,10 +415,18 @@ def materials():
     return made
 
 
+def census(g):
+    """Faces per part and the site's bounds, which the shell's builder is tested against."""
+    points = [v for vertices, _ in g.parts.values() for v in vertices]
+    return {'faces': {part: len(faces) for part, (_, faces) in sorted(g.parts.items())},
+            'bounds': [[round(min(p[i] for p in points), 3) for i in range(3)],
+                       [round(max(p[i] for p in points), 3) for i in range(3)]]}
+
+
 def family_geometry(family, g):
     """Renames each part to its family's material."""
     out = Geometry()
-    out.parts = {f'{family}-{part}': data for part, data in g.parts.items()}
+    out.parts = {f'{part}-{family}': data for part, data in g.parts.items()}
     return out
 
 
@@ -454,7 +462,7 @@ def main():
         offsets = lineup_offsets()
         for name, frontage, depth, storeys, attached in sites:
             g = Geometry()
-            reports.append({'name': name, **site(g, family, frontage, depth, storeys, attached)})
+            reports.append({'name': name, **site(g, family, frontage, depth, storeys, attached), **census(g)})
             tall.build(name, family_geometry(family, g), made, offsets[name])
         bpy.ops.wm.save_as_mainfile(filepath=str(SOURCES / f'{family}.blend'))
 
@@ -473,20 +481,20 @@ def main():
             tall.build(name, family_geometry(family, g), made, offsets[name])
     bpy.ops.wm.save_as_mainfile(filepath=str(SOURCES / 'lineup.blend'))
 
-    swatches = Geometry()
-    i = 0
     for family, parts in PARTS.items():
+        swatches = Geometry()
+        i = 0
         for part, (texture, _) in parts.items():
             if not texture:
-                swatches.box(f'{family}-{part}', (i * 2, 0, 0), (i * 2 + 1, 1, 1))
+                swatches.box(f'{part}-{family}', (i * 2, 0, 0), (i * 2 + 1, 1, 1))
                 i += 1
-    library = tall.build('library', swatches, made)
-    for other in bpy.data.objects:
-        other.select_set(False)
-    library.select_set(True)
-    bpy.context.view_layer.objects.active = library
-    bpy.ops.export_scene.gltf(filepath=str(EXPORT / 'library.glb'), export_format='GLB', use_selection=True,
-                              export_apply=True, export_yup=True)
+        library = tall.build(family, swatches, made)
+        for other in bpy.data.objects:
+            other.select_set(False)
+        library.select_set(True)
+        bpy.context.view_layer.objects.active = library
+        bpy.ops.export_scene.gltf(filepath=str(EXPORT / f'{family}.glb'), export_format='GLB', use_selection=True,
+                                  export_apply=True, export_yup=True)
 
     (SOURCES / 'bodies.json').write_text(json.dumps({'storey_metres': STOREY, 'wing_metres': WING,
                                                      'ring_minimum_metres': RING_MINIMUM, 'looks': LOOKS,

@@ -26,6 +26,11 @@
       "balcony_every": 2,
       "balcony_depth": 1.4,
       "attic_setback": 1.8,
+      "attic_window": [
+        2.4,
+        2.3,
+        0.5
+      ],
       "cornice": [
         0.45,
         0.35
@@ -90,7 +95,31 @@
       "attached": [
         "e"
       ],
-      "floor_square_metres": 3840
+      "floor_square_metres": 3840,
+      "faces": {
+        "door": 2,
+        "glass": 177,
+        "membrane": 6,
+        "metal": 2460,
+        "paving": 6,
+        "plinth": 18,
+        "reveal": 576,
+        "trim": 306,
+        "wall": 924,
+        "wall-end": 828
+      },
+      "bounds": [
+        [
+          -20.5,
+          -8.9,
+          0
+        ],
+        [
+          20.0,
+          9.4,
+          21.25
+        ]
+      ]
     },
     {
       "name": "perimeter-terrace-b",
@@ -103,7 +132,31 @@
         "w",
         "e"
       ],
-      "floor_square_metres": 4480
+      "floor_square_metres": 4480,
+      "faces": {
+        "door": 2,
+        "glass": 153,
+        "membrane": 6,
+        "metal": 2460,
+        "paving": 6,
+        "plinth": 12,
+        "reveal": 540,
+        "trim": 288,
+        "wall": 804,
+        "wall-end": 732
+      },
+      "bounds": [
+        [
+          -16.0,
+          -10.9,
+          0
+        ],
+        [
+          16.0,
+          11.4,
+          24.75
+        ]
+      ]
     },
     {
       "name": "perimeter-terrace-c",
@@ -115,7 +168,31 @@
       "attached": [
         "w"
       ],
-      "floor_square_metres": 3840
+      "floor_square_metres": 3840,
+      "faces": {
+        "door": 3,
+        "glass": 178,
+        "membrane": 6,
+        "metal": 2220,
+        "paving": 6,
+        "plinth": 18,
+        "reveal": 540,
+        "trim": 288,
+        "wall": 822,
+        "wall-end": 876
+      },
+      "bounds": [
+        [
+          -24.0,
+          -8.9,
+          0
+        ],
+        [
+          24.5,
+          9.4,
+          17.75
+        ]
+      ]
     },
     {
       "name": "back-to-back-deep",
@@ -125,7 +202,31 @@
       "storeys": 10,
       "ring": false,
       "attached": [],
-      "floor_square_metres": 15840
+      "floor_square_metres": 15840,
+      "faces": {
+        "door": 2,
+        "glass": 394,
+        "membrane": 6,
+        "metal": 3900,
+        "paving": 6,
+        "plinth": 24,
+        "reveal": 864,
+        "trim": 468,
+        "wall": 2256,
+        "wall-end": 1350
+      },
+      "bounds": [
+        [
+          -18.5,
+          -22.9,
+          0
+        ],
+        [
+          18.5,
+          23.4,
+          35.25
+        ]
+      ]
     },
     {
       "name": "perimeter-ring",
@@ -135,7 +236,31 @@
       "storeys": 7,
       "ring": true,
       "attached": [],
-      "floor_square_metres": 17920
+      "floor_square_metres": 17920,
+      "faces": {
+        "door": 16,
+        "glass": 740,
+        "membrane": 24,
+        "metal": 9480,
+        "paving": 24,
+        "plinth": 72,
+        "reveal": 3480,
+        "trim": 1212,
+        "wall": 5160,
+        "wall-end": 2988
+      },
+      "bounds": [
+        [
+          -28.9,
+          -28.9,
+          0
+        ],
+        [
+          28.9,
+          28.9,
+          24.75
+        ]
+      ]
     },
     {
       "name": "back-to-back-ring",
@@ -145,7 +270,31 @@
       "storeys": 10,
       "ring": true,
       "attached": [],
-      "floor_square_metres": 25600
+      "floor_square_metres": 25600,
+      "faces": {
+        "door": 14,
+        "glass": 1100,
+        "membrane": 24,
+        "metal": 16800,
+        "paving": 24,
+        "plinth": 72,
+        "reveal": 5760,
+        "trim": 1932,
+        "wall": 8640,
+        "wall-end": 3684
+      },
+      "bounds": [
+        [
+          -30.9,
+          -26.9,
+          0
+        ],
+        [
+          30.9,
+          26.9,
+          35.25
+        ]
+      ]
     },
     {
       "name": "courtyard-face",
@@ -155,7 +304,30 @@
       "storeys": 14,
       "ring": false,
       "attached": [],
-      "floor_square_metres": 48720
+      "floor_square_metres": 48720,
+      "faces": {
+        "door": 424,
+        "glass": 940,
+        "membrane": 6,
+        "plinth": 24,
+        "reveal": 1872,
+        "spandrel": 714,
+        "trim": 5946,
+        "wall": 12708,
+        "wall-end": 504
+      },
+      "bounds": [
+        [
+          -58.05,
+          -16.2,
+          0
+        ],
+        [
+          58.05,
+          16.8,
+          52.15
+        ]
+      ]
     },
     {
       "name": "courtyard-flank",
@@ -165,7 +337,30 @@
       "storeys": 13,
       "ring": false,
       "attached": [],
-      "floor_square_metres": 15600
+      "floor_square_metres": 15600,
+      "faces": {
+        "door": 134,
+        "glass": 332,
+        "membrane": 6,
+        "plinth": 24,
+        "reveal": 648,
+        "spandrel": 300,
+        "trim": 2058,
+        "wall": 4644,
+        "wall-end": 198
+      },
+      "bounds": [
+        [
+          -20.05,
+          -16.2,
+          0
+        ],
+        [
+          20.05,
+          16.8,
+          48.65
+        ]
+      ]
     },
     {
       "name": "slab-ring",
@@ -175,7 +370,30 @@
       "storeys": 16,
       "ring": true,
       "attached": [],
-      "floor_square_metres": 70656
+      "floor_square_metres": 70656,
+      "faces": {
+        "door": 892,
+        "glass": 2378,
+        "membrane": 24,
+        "plinth": 72,
+        "reveal": 5940,
+        "spandrel": 2412,
+        "trim": 16092,
+        "wall": 31740,
+        "wall-end": 1296
+      },
+      "bounds": [
+        [
+          -59.2,
+          -28.2,
+          0
+        ],
+        [
+          59.2,
+          28.2,
+          59.15
+        ]
+      ]
     }
   ]
 }

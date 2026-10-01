@@ -353,13 +353,15 @@ public static class StylePresetReader
             string? authoredShape = Text("shape", required: false);
             string shape = authoredShape ?? (_keys.ContainsKey("shape") ? string.Empty : "block");
             bool towerShape = shape == "tower";
+            bool midriseShape = shape == "midrise";
             bool blockShape = shape == "block";
-            if (!towerShape && !blockShape && authoredShape is not null)
+            if (!towerShape && !midriseShape && !blockShape && authoredShape is not null)
             {
-                Refuse(LineOf(_keys["shape"]), "'shape' must be \"block\" or \"tower\".");
+                Refuse(LineOf(_keys["shape"]), "'shape' must be \"block\", \"midrise\" or \"tower\".");
             }
 
             TowerBody? tower = null;
+            MidriseBody? midrise = null;
             if (towerShape)
             {
                 string? variant = Text("variant", required: true);
@@ -369,8 +371,7 @@ public static class StylePresetReader
                     "stepped-point" => TowerVariant.SteppedPoint,
                     "l" => TowerVariant.L,
                     "h" => TowerVariant.H,
-                    null => null,
-                    _ => (TowerVariant?)null,
+                    _ => null,
                 };
                 if (variant is not null && parsed is null)
                 {
@@ -380,7 +381,32 @@ public static class StylePresetReader
                 {
                     tower = new TowerBody(found);
                 }
+            }
+            else if (midriseShape)
+            {
+                string? variant = Text("variant", required: true);
+                MidriseVariant? parsed = variant switch
+                {
+                    "mansion" => MidriseVariant.Mansion,
+                    "panel-slab" => MidriseVariant.PanelSlab,
+                    _ => null,
+                };
+                if (variant is not null && parsed is null)
+                {
+                    Refuse(LineOf(_keys["variant"]), "'variant' must be \"mansion\" or \"panel-slab\".");
+                }
+                else if (parsed is { } found)
+                {
+                    midrise = new MidriseBody(found);
+                }
+            }
+            else if (_keys.TryGetValue("variant", out KeyValueSyntax? strayVariant))
+            {
+                Refuse(LineOf(strayVariant), "'variant' is only valid when 'shape' is \"tower\" or \"midrise\".");
+            }
 
+            if (towerShape || midriseShape)
+            {
                 foreach (string key in LowRiseBodyKeys)
                 {
                     if (_keys.TryGetValue(key, out KeyValueSyntax? refused))
@@ -388,10 +414,6 @@ public static class StylePresetReader
                         Refuse(LineOf(refused), $"'{key}' is only valid for a block body.");
                     }
                 }
-            }
-            else if (_keys.TryGetValue("variant", out KeyValueSyntax? strayVariant))
-            {
-                Refuse(LineOf(strayVariant), "'variant' is only valid when 'shape' is \"tower\".");
             }
 
             float bay = 0f;
@@ -432,11 +454,11 @@ public static class StylePresetReader
                 rows = [.. Rows.Select(Row)];
             }
 
-            return errors.Count > before || library is null || !blockShape && tower is null
+            return errors.Count > before || library is null || !blockShape && tower is null && midrise is null
                 ? null
                 : new FamilyBody(library, tiles, materials, bay, parapet, pilasters, (int)plant,
                     new WallRule(rows[0], rows[1]), new WallRule(rows[2], rows[3]), new WallRule(rows[4], rows[5]),
-                    hatch, (int)vents, openings, gable, chimney, steps, partyLine, shopfront, panels, rooflights, receiving, tower);
+                    hatch, (int)vents, openings, gable, chimney, steps, partyLine, shopfront, panels, rooflights, receiving, tower, midrise);
         }
 
         public PaintScheme? Scheme()
