@@ -698,3 +698,161 @@ spandrel = "7c8f4e"
 [[family.paint]]
 wall = "dad6cc"
 spandrel = "b8a23c"
+
+# ---------------------------------------------------------------------------------------------
+# The detached families. A Detached Lot stands its Building clear of its neighbours at 2 to 5
+# storeys, so each family reuses an apartment body above at the Lot's own size.
+
+[[family]]
+id = "detached-corridor"
+patterns = ["detached"]
+kinds = ["dwelling"]
+weight = 2
+storeys = [2, 5]
+frontage_metres = [16, 64]
+depth_metres = [12, 28]
+
+# Eight 3 m bays at 24 m. One central entrance; the stairs stand at both ends over their doors.
+[family.body]
+library = "test-street/corridor-apartments"
+tile_metres = { wall = [2.0, 2.0] }
+materials = { membrane = "bitumen" }
+bay_metres = 3.0
+parapet_metres = 0.7
+roof_hatch = true
+vents = 2
+openings = { window = [1.6, 1.7], door = [2.0, 2.4], stair = [2.0, 2.6, 1.2] }
+street_ground = ["window*", "hall*", "window*"]
+street_upper = ["window*"]
+back_ground = ["window*", "hall*", "window*"]
+back_upper = ["window*"]
+side_ground = ["blank*", "door", "blank*"]
+side_upper = ["blank*", "stair", "blank*"]
+
+# Render up to "dadada".
+[[family.paint]]
+wall = "cdc6b6"
+door = "4f5253"
+
+[[family.paint]]
+wall = "d4d0c6"
+door = "2f4a5c"
+
+[[family.paint]]
+wall = "b8b0a0"
+door = "4f5253"
+
+[[family.paint]]
+wall = "a7aeb0"
+door = "6a2f2a"
+
+[[family.paint]]
+wall = "c9b79c"
+door = "3a3d3f"
+
+[[family.paint]]
+wall = "9ea69a"
+door = "4f5253"
+
+[[family]]
+id = "detached-walkup"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [2, 5]
+frontage_metres = [28, 64]
+depth_metres = [8, 28]
+
+# Two stair stacks on the street, each serving two flats a floor. Each flat has a garden door with a
+# balcony above it on every upper floor.
+[family.body]
+library = "test-street/walkup-apartments"
+tile_metres = { membrane = [20.0, 20.0] }
+materials = { wall = "bricks-085" }
+bay_metres = 4.0
+parapet_metres = 0.7
+openings = { window = [1.4, 1.7], door = [2.0, 2.4], stair = [2.0, 2.6, 1.2], balcony = [2.4, 2.3] }
+street_ground = ["window*", "door", "window*", "door", "window*"]
+street_upper = ["window*", "stair", "window*", "stair", "window*"]
+back_ground = ["balcony+window*"]
+back_upper = ["balcony+window*"]
+side_ground = ["window", "blank*", "window"]
+side_upper = ["window", "blank*", "window"]
+
+# Render up to "dadada". The brick walls keep their own colour, so only the doors take these.
+[[family.paint]]
+wall = "cdc6b6"
+door = "4f5253"
+
+[[family.paint]]
+wall = "d4d0c6"
+door = "2f4a5c"
+
+[[family.paint]]
+wall = "b8b0a0"
+door = "4f5253"
+
+[[family.paint]]
+wall = "a7aeb0"
+door = "6a2f2a"
+
+[[family.paint]]
+wall = "c9b79c"
+door = "3a3d3f"
+
+[[family.paint]]
+wall = "9ea69a"
+door = "4f5253"
+
+[[family]]
+id = "detached-two-unit"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [2, 4]
+frontage_metres = [16, 32]
+depth_metres = [12, 28]
+
+# Two tenancies split at mid-frontage. Each has a street door under a stair stack at its outer end,
+# a garden door, and a roof hatch over its stair.
+[family.body]
+library = "test-street/two-unit-apartments"
+tile_metres = { membrane = [20.0, 20.0] }
+# Plaster is greyscale, so each scheme's wall paint colours it.
+materials = { wall = "painted-plaster-wall", wall-end = "painted-plaster-wall" }
+bay_metres = 3.0
+parapet_metres = 0.7
+party_line = true
+roof_hatch = true
+vents = 2
+openings = { window = [1.6, 1.7], door = [2.0, 2.5], stair = [2.0, 2.6, 1.2] }
+street_ground = ["door", "window*", "door"]
+street_upper = ["stair", "window*", "stair"]
+back_ground = ["window", "door", "window*", "door", "window"]
+back_upper = ["window*"]
+side_ground = ["blank*", "window", "blank", "window", "blank*"]
+side_upper = ["blank*", "window", "blank", "window", "blank*"]
+
+# Render up to "dadada".
+[[family.paint]]
+wall = "cdc6b6"
+wall-end = "b8b1a1"
+door = "4f5253"
+
+[[family.paint]]
+wall = "d4d0c6"
+wall-end = "bebbb2"
+door = "2f4a5c"
+
+[[family.paint]]
+wall = "b8b0a0"
+wall-end = "a59e8f"
+door = "4f5253"
+
+[[family.paint]]
+wall = "a7aeb0"
+wall-end = "959c9e"
+door = "6a2f2a"
+
+[[family.paint]]
+wall = "c9b79c"
+wall-end = "b4a48c"
+door = "3a3d3f"
