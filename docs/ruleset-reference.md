@@ -275,9 +275,9 @@ Which [[reserve]] supplies the Days this Bin holds. Every Bin naming it moves to
 
 The daily closing hour; purchases arriving at or after closing fail.
 
-**`goes_bankrupt_after_short_paydays`** · *whole number*
+**`goes_bankrupt_after_days_in_arrears`** · *whole number*
 
-How many paydays running this trade may fail to pay its workers in full before it is wound up: the staff are dismissed and the premises are left standing and empty. A payroll met in full resets the count. Absent means it never goes bankrupt.
+How many Days this trade may stay in arrears before it is wound up: the staff are dismissed and the premises are left standing and empty. A trade falls into arrears on a payday it cannot meet in full and leaves them on a payday it pays wages in full. Required on a trade that pays a wage, and refused on one that does not.
 
 **`id`** · *quoted string*
 

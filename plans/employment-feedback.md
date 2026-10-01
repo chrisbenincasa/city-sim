@@ -35,13 +35,23 @@ so unemployment settles where customers can support the posts.
 ### Failure
 
 - Replace `goes_bankrupt_after_short_paydays` with `[[business]] goes_bankrupt_after_days_in_arrears`.
-- A Business is in arrears while it owes wages it could not pay. Paying them in full ends it.
+- A Business falls into arrears on a payday it cannot meet in full. A payday that pays wages in
+  full ends arrears. A payday with nobody owed leaves them as they were, because unpaid staff
+  leave and an employer with no staff and no money must still fail.
+- Unpaid wages are written off, not carried, so arrears is a state and not a debt.
 - The key is required for a trade that declares a wage. Failure is always on; the Ruleset sets only
   the clock.
 - Days rather than paydays, so the pay period does not change how fast a Business fails.
 - A zero balance is not the test. A healthy shop that pays out what it earns, and a trade raised
   by a Zone Rule, both stand at zero.
 - Bankruptcy dismisses the staff and frees the Unit, as winding up does now.
+- Provisional values: `pictured.toml` 8 Days, to match its shopfront tenancy clock. `insolvent.toml`
+  21 and the two school files 14, which reproduce their old payday counts on weekly pay. Every
+  other waged file 28.
+- A founded Business without premises owes its founder a wage and sells nothing, so it now
+  fails. On `pictured.toml` at 2,000 Citizens, seed 0, 40,960 Ticks, 153 trades were wound up,
+  almost all of them founded and never premised, and premised employment rose from 1,425 to
+  1,472.
 
 ### Jobless signal
 
