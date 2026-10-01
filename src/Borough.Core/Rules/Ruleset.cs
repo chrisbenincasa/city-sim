@@ -1511,6 +1511,19 @@ public readonly record struct ZoneRuleDefinition(byte Kind, byte Zone, uint Inte
     /// </remarks>
     public int CooldownDays { get; init; }
 
+    /// <summary>
+    /// <b>How much waiting by jobless Citizens, in <em>Citizen-Days</em>, raises a Building of this
+    /// kind.</b> Zero means the Rule does not read joblessness.
+    /// </summary>
+    /// <remarks>
+    /// A jobless Citizen here is one who found every post in reach full
+    /// (<see cref="EmploymentState.NoVacancy"/>), counted in their home District. The signal is a
+    /// second trigger beside <see cref="BuildThresholdDays"/>, with its own threshold, because a
+    /// Building answers a fixed number of posts and not a fixed amount of hunger. It shares the
+    /// per-District cooldown.
+    /// </remarks>
+    public int JoblessThresholdDays { get; init; }
+
     /// <summary>Whether this Rule uses <c>adr/0163</c>'s tier-1 demand signal rather than the Pool.</summary>
     public bool ReadsDemand => BuildThresholdDays > 0;
 

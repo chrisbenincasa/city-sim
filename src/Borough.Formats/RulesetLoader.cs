@@ -4236,10 +4236,34 @@ public static class RulesetLoader
                     }
                 }
 
+                int joblessDays = 0;
+
+                if (TryInteger(table, "jobless_threshold_days", out long jobless, required: false, name))
+                {
+                    if (jobless < 1)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "jobless_threshold_days") ?? table), name,
+                            $"a jobless threshold of {jobless} Citizen-Days is not a threshold. Omit "
+                            + "the key and this Rule does not read joblessness.");
+                    }
+                    else if (thresholdDays == 0)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "jobless_threshold_days") ?? table), name,
+                            "jobless_threshold_days is stated without build_threshold_days. The jobless "
+                            + "signal is read beside market demand and shares its cooldown, so a Rule "
+                            + "with no build threshold reads neither.");
+                    }
+                    else
+                    {
+                        joblessDays = (int)jobless;
+                    }
+                }
+
                 definitions.Add(new ZoneRuleDefinition(kind, zone, interval, revisit)
                 {
                     BuildThresholdDays = thresholdDays,
                     CooldownDays = cooldownDays,
+                    JoblessThresholdDays = joblessDays,
                 });
             }
 

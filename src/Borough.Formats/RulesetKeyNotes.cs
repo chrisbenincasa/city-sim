@@ -407,6 +407,11 @@ public static class RulesetKeyNotes
             "How many Days a District waits after raising a Building of this kind before it may "
             + "raise another — what damps the response to the demand signal. Requires "
             + "build_threshold_days, since a Rule reading no demand has nothing to damp.",
+        ["[[zone_rule]] jobless_threshold_days"] =
+            "How much waiting, in Citizen-Days, by Citizens who found every post in reach full must "
+            + "accumulate in their home District before this Rule raises a Building there. A second "
+            + "trigger beside build_threshold_days, sharing its cooldown. Absent, the Rule does not "
+            + "read joblessness. Requires build_threshold_days.",
 
         // ---- [[band]] -------------------------------------------------------------------------
         ["[[band]] name"] =
