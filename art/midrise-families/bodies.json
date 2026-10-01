@@ -1,0 +1,181 @@
+{
+  "storey_metres": 3.5,
+  "wing_metres": 16.0,
+  "ring_minimum_metres": 48.0,
+  "looks": {
+    "mansion": {
+      "bay": 3.3,
+      "window": [
+        1.3,
+        1.9,
+        0.9
+      ],
+      "ground_window": [
+        1.7,
+        2.1,
+        0.7
+      ],
+      "door": [
+        1.6,
+        2.7,
+        0.3
+      ],
+      "entry_every": 16.0,
+      "loggia_every": 3,
+      "loggia_depth": 1.4,
+      "balcony_every": 2,
+      "balcony_depth": 1.4,
+      "attic_setback": 1.8,
+      "cornice": [
+        0.45,
+        0.35
+      ],
+      "string_course": [
+        0.25,
+        0.12
+      ],
+      "parapet": 0.9
+    },
+    "slab": {
+      "bay": 3.6,
+      "window": [
+        2.1,
+        1.5,
+        0.9
+      ],
+      "door": [
+        1.2,
+        2.3,
+        0
+      ],
+      "gallery_door": [
+        1.0,
+        2.2,
+        0
+      ],
+      "gallery_window": [
+        1.2,
+        1.0,
+        1.2
+      ],
+      "entry_every": 30.0,
+      "loggia_every": 4,
+      "loggia_depth": 1.2,
+      "gallery_depth": 1.8,
+      "balustrade": 1.1,
+      "ground_recess": 1.5,
+      "piloti_every": 7.2,
+      "piloti": 0.5,
+      "joint": [
+        0.06,
+        0.02
+      ],
+      "plant_every": 30.0,
+      "plant": [
+        6.0,
+        4.0,
+        3.0
+      ],
+      "parapet": 0.6
+    }
+  },
+  "sites": [
+    {
+      "name": "perimeter-terrace-a",
+      "family": "mansion",
+      "frontage": 40,
+      "depth": 16,
+      "storeys": 6,
+      "ring": false,
+      "attached": [
+        "e"
+      ],
+      "floor_square_metres": 3840
+    },
+    {
+      "name": "perimeter-terrace-b",
+      "family": "mansion",
+      "frontage": 32,
+      "depth": 20,
+      "storeys": 7,
+      "ring": false,
+      "attached": [
+        "w",
+        "e"
+      ],
+      "floor_square_metres": 4480
+    },
+    {
+      "name": "perimeter-terrace-c",
+      "family": "mansion",
+      "frontage": 48,
+      "depth": 16,
+      "storeys": 5,
+      "ring": false,
+      "attached": [
+        "w"
+      ],
+      "floor_square_metres": 3840
+    },
+    {
+      "name": "back-to-back-deep",
+      "family": "mansion",
+      "frontage": 36,
+      "depth": 44,
+      "storeys": 10,
+      "ring": false,
+      "attached": [],
+      "floor_square_metres": 15840
+    },
+    {
+      "name": "perimeter-ring",
+      "family": "mansion",
+      "frontage": 56,
+      "depth": 56,
+      "storeys": 7,
+      "ring": true,
+      "attached": [],
+      "floor_square_metres": 17920
+    },
+    {
+      "name": "back-to-back-ring",
+      "family": "mansion",
+      "frontage": 60,
+      "depth": 52,
+      "storeys": 10,
+      "ring": true,
+      "attached": [],
+      "floor_square_metres": 25600
+    },
+    {
+      "name": "courtyard-face",
+      "family": "slab",
+      "frontage": 116,
+      "depth": 30,
+      "storeys": 14,
+      "ring": false,
+      "attached": [],
+      "floor_square_metres": 48720
+    },
+    {
+      "name": "courtyard-flank",
+      "family": "slab",
+      "frontage": 40,
+      "depth": 30,
+      "storeys": 13,
+      "ring": false,
+      "attached": [],
+      "floor_square_metres": 15600
+    },
+    {
+      "name": "slab-ring",
+      "family": "slab",
+      "frontage": 116,
+      "depth": 54,
+      "storeys": 16,
+      "ring": true,
+      "attached": [],
+      "floor_square_metres": 70656
+    }
+  ]
+}
