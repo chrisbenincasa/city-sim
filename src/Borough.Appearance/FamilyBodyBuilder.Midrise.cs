@@ -291,7 +291,6 @@ public static partial class FamilyBodyBuilder
 
         int full = shape.Attic ? storeys - 1 : storeys;
         float top = full * Storey;
-        string bodyPart = role == Role.Yard ? "wall-end" : "wall";
         List<(float U0, float U1)> stretch = MidriseBays(b - a, look.Bay);
         List<float> doors = role == Role.Street ? [.. Entries(b - a, look.EntryEvery).Select(e => a + e)] : [];
         bool shops = shape.Shops && role == Role.Street;
@@ -350,7 +349,7 @@ public static partial class FamilyBodyBuilder
                 }
             }
 
-            WallWithHoles(writer, side, bodyPart, a, b, z, z + Storey, holes);
+            WallWithHoles(writer, side, "wall", a, b, z, z + Storey, holes);
             foreach (Hole l in loggias)
             {
                 float d = look.LoggiaDepth;
@@ -360,8 +359,8 @@ public static partial class FamilyBodyBuilder
                     Centred(l.U0, l.U0 + (w * .45f), 1f, l.Z0, 2.3f),
                     Centred(l.U0 + (w * .55f), l.U1, 1.2f, l.Z0 + .9f, 1.5f),
                 ], d, d + .1f);
-                Slab(writer, side, bodyPart, l.U0 - .1f, l.U0, l.Z0, l.Z1, MidriseWall, d);
-                Slab(writer, side, bodyPart, l.U1, l.U1 + .1f, l.Z0, l.Z1, MidriseWall, d);
+                Slab(writer, side, "wall", l.U0 - .1f, l.U0, l.Z0, l.Z1, MidriseWall, d);
+                Slab(writer, side, "wall", l.U1, l.U1 + .1f, l.Z0, l.Z1, MidriseWall, d);
                 Slab(writer, side, "trim", l.U0, l.U1, l.Z0, l.Z0 + .12f, -.05f, d);
                 Railing(writer, side, l.U0, l.U1, l.Z0 + .12f, .05f);
             }
@@ -371,7 +370,7 @@ public static partial class FamilyBodyBuilder
         Slab(writer, side, "trim", a, b, top - .1f, top + ch - .1f, -cout, MidriseWall);
         if (!shape.Attic)
         {
-            Slab(writer, side, bodyPart, a, b, top + ch - .1f, top + look.Parapet, 0f, MidriseWall);
+            Slab(writer, side, "wall", a, b, top + ch - .1f, top + look.Parapet, 0f, MidriseWall);
             Slab(writer, side, "trim", a, b, top + look.Parapet, top + look.Parapet + .1f, -.05f, MidriseWall + .05f);
         }
     }

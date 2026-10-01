@@ -111,8 +111,8 @@
         "plinth": 18,
         "reveal": 576,
         "trim": 306,
-        "wall": 924,
-        "wall-end": 828
+        "wall": 1284,
+        "wall-end": 468
       },
       "bounds": [
         [
@@ -154,8 +154,8 @@
         "plinth": 12,
         "reveal": 540,
         "trim": 288,
-        "wall": 804,
-        "wall-end": 732
+        "wall": 1194,
+        "wall-end": 342
       },
       "bounds": [
         [
@@ -196,8 +196,8 @@
         "plinth": 18,
         "reveal": 540,
         "trim": 288,
-        "wall": 822,
-        "wall-end": 876
+        "wall": 1146,
+        "wall-end": 552
       },
       "bounds": [
         [
@@ -236,8 +236,8 @@
         "plinth": 24,
         "reveal": 864,
         "trim": 468,
-        "wall": 2256,
-        "wall-end": 1350
+        "wall": 2928,
+        "wall-end": 678
       },
       "bounds": [
         [
@@ -276,8 +276,8 @@
         "plinth": 72,
         "reveal": 3480,
         "trim": 1212,
-        "wall": 5160,
-        "wall-end": 2988
+        "wall": 6360,
+        "wall-end": 1788
       },
       "bounds": [
         [
@@ -316,8 +316,8 @@
         "plinth": 72,
         "reveal": 5760,
         "trim": 1932,
-        "wall": 8640,
-        "wall-end": 3684
+        "wall": 10560,
+        "wall-end": 1764
       },
       "bounds": [
         [
@@ -354,8 +354,8 @@
         "metal": 3600,
         "plinth": 24,
         "trim": 444,
-        "wall": 858,
-        "wall-end": 780
+        "wall": 1344,
+        "wall-end": 294
       },
       "bounds": [
         [
@@ -393,8 +393,8 @@
         "paving": 6,
         "plinth": 24,
         "trim": 204,
-        "wall": 486,
-        "wall-end": 816
+        "wall": 756,
+        "wall-end": 546
       },
       "bounds": [
         [
@@ -432,8 +432,8 @@
         "plinth": 72,
         "reveal": 4032,
         "trim": 1428,
-        "wall": 6684,
-        "wall-end": 2244
+        "wall": 8136,
+        "wall-end": 792
       },
       "bounds": [
         [
