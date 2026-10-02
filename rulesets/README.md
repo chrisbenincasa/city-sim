@@ -113,6 +113,7 @@ historical implementation claims; use current code and tests to establish behavi
 | [congested.toml](congested.toml) | Cars on constrained Streets; inspect congestion at the chosen population and time. |
 | [scarce.toml](scarce.toml) | Parking scarcity with car ownership. |
 | [shopping.toml](shopping.toml) | Weekly work, shopping trips and Goods carried home; synthetic shop supply. |
+| [imported.toml](imported.toml) | Shops restock by importing at the cheapest gated edge, and the Money leaves the city. Shops raised by the trade Zone Rule open with no Money, so they need capital before they can import. |
 | [stress-shopping.toml](stress-shopping.toml) | Shopping and work under traffic load across two centres; a profiling fixture, not the first choice for light play. |
 | [profile-services.toml](profile-services.toml) | Combined shopping, wages, traffic, Life Stages, education and care workload. Headless `--profile --profile-services` distributes facilities. |
 

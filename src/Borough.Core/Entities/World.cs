@@ -2166,6 +2166,61 @@ public sealed partial class World
     }
 
     /// <summary>
+    /// What the Outside charges for one unit of <paramref name="resource"/> at the cheapest edge
+    /// that has a gate standing on it.
+    /// </summary>
+    /// <remarks>
+    /// An edge with no gate sells nothing, and a Hinterland that prices the Resource at zero does
+    /// not sell it. Carriage is free, so every gated edge is equally reachable from every District.
+    /// </remarks>
+    public bool TryImportPrice(ResourceId resource, out Money price)
+    {
+        price = default;
+        bool found = false;
+
+        for (int hinterland = 0; hinterland < Rules.Hinterlands.Length; hinterland++)
+        {
+            MapEdge edge = Rules.Hinterlands[hinterland].Edge;
+            Money charged = Rules.ImportPrice(hinterland, resource);
+
+            if (edge == MapEdge.None
+                || charged.Raw <= 0
+                || Hinterlands.GateHead[HinterlandTable.SlotOf(edge)] == 0
+                || (found && charged >= price))
+            {
+                continue;
+            }
+
+            price = charged;
+            found = true;
+        }
+
+        return found;
+    }
+
+    /// <summary>
+    /// Sends Money for an import out of the city, after the buyer's Bin has paid it.
+    /// </summary>
+    /// <remarks>
+    /// The Hinterland holds no balance, so the Money leaves the supply of record here.
+    /// </remarks>
+    internal void PayOutside(Money amount) => MoneySupply.Issued[MoneySupplyTable.Slot] -= amount;
+
+    /// <summary>
+    /// Wakes every buyer blocked on a District market, because a new gate may now supply it.
+    /// </summary>
+    private void WakeMarkets(Ticks tick)
+    {
+        for (int row = 0; row < DistrictPools.Rows.SlotCount; row++)
+        {
+            if (DistrictPools.Rows.IsLive(row) && Bins.Rows.TryResolve(DistrictPools.Bin[row], out int market))
+            {
+                WakeAll(SupplyWaiters, market, tick);
+            }
+        }
+    }
+
+    /// <summary>
     /// What a Household holds.
     /// </summary>
     /// <remarks>
@@ -4919,6 +4974,11 @@ public sealed partial class World
         BuildingsInCells.Add(Buildings, Lots, Buildings.Rows.Resolve(building));
 
         ListGate(Buildings.Rows.Resolve(building));
+
+        if (IsOutsideConnection(kind))
+        {
+            WakeMarkets(now);
+        }
 
         // CONTEXT.md -> Building: "a Building has a footprint (the set of Tiles it covers)" and
         // "interacts with Map Layers through that footprint". Sealing is such a Layer, and this is
