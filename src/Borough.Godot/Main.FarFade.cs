@@ -136,20 +136,22 @@ public partial class Main
         foreach (ShaderMaterial facade in _fadeFacades) FadePart(facade, nearSide: false);
         foreach (InstanceLayer layer in _bodyLayers.Values)
         {
-            if (layer.Multimesh.NearOnly) continue;
-            FarSideResidency(layer);
+            BodyResidency(layer);
             layer.Multimesh.Repartition();
         }
     }
 
     /// <summary>
-    /// What decides whether a far body layer's batch draws. The fade asks each batch; the chunk
-    /// switch hides the far entries of a near chunk, which is what the study option restores.
+    /// What decides whether a body layer's batch draws. Under the fade each side asks its own
+    /// bounds, because the dither discards a whole instance over the far part of that side's range.
+    /// The chunk switch is what the study option restores, and a body with no far form keeps it.
     /// </summary>
-    private void FarSideResidency(InstanceLayer layer)
+    private void BodyResidency(InstanceLayer layer)
     {
-        layer.Multimesh.Near = _farFade ? null : NearChunk;
-        layer.Multimesh.Needed = _farFade ? FarBatchNeeded : null;
+        InstanceBuffer instances = layer.Multimesh;
+        bool fades = _farFade && _fadingBodyLayers.Contains(layer);
+        instances.Near = fades ? null : NearChunk;
+        instances.Needed = !fades ? null : instances.NearOnly ? NearBatchNeeded : FarBatchNeeded;
     }
 
     /// <summary>
@@ -174,6 +176,23 @@ public partial class Main
 
         static float Corner(float eye, float low, float high) =>
             Mathf.Abs(eye - low) >= Mathf.Abs(eye - high) ? low : high;
+    }
+
+    /// <summary>
+    /// The same question on the near side: a batch every Building of which stands beyond the band
+    /// draws nothing, because the near weight is 1 out there and the dither discards all of it.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>This is the half of the near band's cost the chunk switch used to carry.</b> A near
+    /// chunk reaches 1,024 m past its own edge, so the near form of a Building 1,400 m away stayed
+    /// resident and drawn with every fragment of it discarded. The nearest point of the bounds is a
+    /// lower bound on every instance's distance, which is what makes dropping the batch safe.
+    /// </remarks>
+    private bool NearBatchNeeded(Aabb bounds)
+    {
+        Vector3 eye = _camera.GlobalPosition;
+        Vector3 nearest = eye.Clamp(bounds.Position, bounds.End);
+        return eye.DistanceSquaredTo(nearest) <= _bodyNearMetres * _bodyNearMetres;
     }
 
     private void FadePart(Material material, bool nearSide)

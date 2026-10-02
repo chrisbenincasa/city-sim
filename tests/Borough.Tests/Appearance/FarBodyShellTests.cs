@@ -60,14 +60,19 @@ public sealed class FarBodyShellTests
     }
 
     [Fact]
-    public void AFarBatchInsideTheRingStopsDrawing()
+    public void ABatchNoFadingBodyDrawsOutOfStopsDrawing()
     {
+        // Each side asks its own bounds under the fade and the chunk switch takes over without it.
         string fade = Shell("Main.FarFade.cs");
-        Assert.Contains("layer.Multimesh.Needed = _farFade ? FarBatchNeeded : null;", fade);
-        Assert.Contains("layer.Multimesh.Near = _farFade ? null : NearChunk;", fade);
+        Assert.Contains("instances.Near = fades ? null : NearChunk;", fade);
+        Assert.Contains(
+            "instances.Needed = !fades ? null : instances.NearOnly ? NearBatchNeeded : FarBatchNeeded;",
+            fade);
 
-        // The farthest corner of the bounds, so no Building the dither still draws is dropped.
+        // The farthest corner far out and the nearest corner near in, so neither side drops a
+        // batch the dither still draws something of.
         Assert.Contains("return eye.DistanceSquaredTo(farthest) > inner * inner;", fade);
+        Assert.Contains("return eye.DistanceSquaredTo(nearest) <= _bodyNearMetres * _bodyNearMetres;", fade);
 
         string layers = Shell("InstanceLayer.cs");
         Assert.Contains("if (Needed is not null && !Needed(batch.Bounds)) return false;", layers);

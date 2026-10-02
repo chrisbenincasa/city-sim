@@ -201,9 +201,10 @@ That is affordable in the near band around the camera and not city-wide, so the 
   a texture. `ui far-windows grid` selects the debug grid; `shader` is the default.
 - Near and far bodies share a complementary screen-space dither over 450–500 m by default.
   Each instance measures from the main camera, including in shadow passes. A depth-only bias keeps
-  flush surfaces from fighting. Far residency follows each Building's distance rather than a whole
-  Chunk's switch: a far batch stops drawing once every Building in it stands inside the ring's
-  inner edge. `ui far-fade off` restores the chunk switch for study.
+  flush surfaces from fighting. Residency follows each Building's distance rather than a whole
+  Chunk's switch, on both sides. A far batch stops drawing once every Building in it stands inside
+  the ring's inner edge, and a near batch once every Building in it stands beyond the band, where
+  the dither discards the near form whole. `ui far-fade off` restores the chunk switch for study.
 - A Building wash and the abandonment overlay fade on the same side as the body they dress, so one
   Building never draws both of its bodies.
 - A mid-rise or tower body is picked and named on the map by its own layer, by the body's box
