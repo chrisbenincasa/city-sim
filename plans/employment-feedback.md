@@ -99,7 +99,8 @@ so unemployment settles where customers can support the posts.
 3. The jobless signal per District, with a census counter and a test. Done, with the
    `jobless_threshold_days` trigger.
 4. Construction answers the signal by re-opening vacant Units. Done.
-5. Acceptance run. Done as an instrument test; the driven shell run remains.
+5. Acceptance run. Done as an instrument test, and a driven shell run on PR #81 shows the re-let
+   shop fronts and the returning commutes.
 
 ## Open questions
 
@@ -109,7 +110,6 @@ so unemployment settles where customers can support the posts.
 - A Business with no wage bill cannot be in arrears, so a founder-only Business that holds a Unit
   and sells nothing never fails. Leave it until a measurement shows it; the fix would be a clock on
   a premised Business with no staff.
-- Whether `--commute` prints the working-age denominator (#66) here or in its own fix.
 
 ## Acceptance
 
