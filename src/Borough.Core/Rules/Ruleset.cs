@@ -267,6 +267,16 @@ public enum ResourceFamily : byte
     /// mean a Business too full of money to be paid.
     /// </remarks>
     Money = 3,
+
+    /// <summary>
+    /// Worker-time at a Business's premises, deposited by present workers and spent by its Rules.
+    /// </summary>
+    /// <remarks>
+    /// It never moves, is never traded and has no market. Its Bin is unbounded, because a
+    /// Business's posts already cap how many workers deposit, and it must declare a shelf life,
+    /// which is the only thing that bounds it (<c>plans/private-production-and-labour.md</c>).
+    /// </remarks>
+    Labour = 4,
 }
 
 /// <summary>
@@ -3907,10 +3917,25 @@ public readonly record struct JobRuleset(
     int ExperiencePerDay = 0,
     int Tier2Experience = 0,
     int UnschooledExperiencePercent = 0,
-    int ExperiencePremiumPercent = 0)
+    int ExperiencePremiumPercent = 0,
+    long LabourPerDay = 0,
+    int LabourTier2Percent = 0,
+    int LabourTier3Percent = 0,
+    int LabourExperiencePremiumPercent = 0)
 {
     /// <summary>A Ruleset whose city assigns nobody to work.</summary>
     public static JobRuleset None => default;
+
+    public bool GradesLabour => LabourTier2Percent > 0 || LabourTier3Percent > 0;
+
+    public int LabourPercentOf(byte tier) =>
+        !GradesLabour ? 100
+        : tier >= SchoolingRuleset.TopTier ? LabourTier3Percent
+        : tier == 2 ? LabourTier2Percent
+        : 100;
+
+    public long LabourPremiumPercent(long experience) =>
+        Premium(LabourExperiencePremiumPercent, experience);
 
     /// <summary>Whether a Citizen's history changes what they are paid in this city.</summary>
     public bool Grades => WageTier2Percent > 0 || WageTier3Percent > 0;
@@ -3955,16 +3980,18 @@ public readonly record struct JobRuleset(
     /// 10,000 produces the same on Day 100 and Day 5,000. ⚠ <b>Capped at the band ceiling and never
     /// past it</b>, which is what keeps it an intensive margin rather than a second tier ladder.
     /// </remarks>
-    public long PremiumPercent(long experience)
+    public long PremiumPercent(long experience) => Premium(ExperiencePremiumPercent, experience);
+
+    private long Premium(int percent, long experience)
     {
-        if (ExperiencePremiumPercent <= 0 || Tier2Experience <= 0 || experience <= 0)
+        if (percent <= 0 || Tier2Experience <= 0 || experience <= 0)
         {
             return 0;
         }
 
         long capped = experience > Tier2Experience ? Tier2Experience : experience;
 
-        return IntegerMath.FloorDiv((long)ExperiencePremiumPercent * capped, Tier2Experience);
+        return IntegerMath.FloorDiv((long)percent * capped, Tier2Experience);
     }
 
     /// <summary>

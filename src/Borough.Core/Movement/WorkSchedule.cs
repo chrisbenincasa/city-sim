@@ -2,6 +2,7 @@ using Borough.Core.Arithmetic;
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
+using Borough.Core.Tables;
 
 namespace Borough.Core.Movement;
 
@@ -53,6 +54,49 @@ public static class WorkSchedule
         long premium = jobs.PremiumPercent(world.Citizens.Experience[citizen]);
 
         return premium <= 0 ? graded : IntegerMath.FloorDiv(graded * (100 + premium), 100);
+    }
+
+    /// <summary>
+    /// What one Day of this Citizen's continuous work deposits as labour: <c>labour_per_day</c>,
+    /// graded by Skill Tier and experience on percentages of its own.
+    /// </summary>
+    public static long LabourGraded(World world, int citizen)
+    {
+        JobRuleset jobs = world.Rules.Jobs;
+        long graded = IntegerMath.FloorDiv(
+            jobs.LabourPerDay * jobs.LabourPercentOf(world.Citizens.SkillTier[citizen]), 100);
+        long premium = jobs.LabourPremiumPercent(world.Citizens.Experience[citizen]);
+
+        return premium <= 0 ? graded : IntegerMath.FloorDiv(graded * (100 + premium), 100);
+    }
+
+    /// <remarks>
+    /// The wage divides by the Citizen's own shift length, so a Day worked pays the same however long
+    /// it is. Labour divides by the whole Day, so each on-duty Tick deposits the same share and
+    /// longer shifts make more.
+    /// </remarks>
+    private static void DepositLabour(World world, int citizen, int job, Ticks tick)
+    {
+        if (world.Rules.Jobs.LabourPerDay <= 0)
+        {
+            return;
+        }
+
+        Handle<Bin> bin = world.LabourBinOf(job);
+
+        if (bin.IsNone)
+        {
+            return;
+        }
+
+        long scaled = world.Citizens.LabourRemainder[citizen] + LabourGraded(world, citizen);
+        long whole = IntegerMath.FloorDiv(scaled, Ticks.PerDay);
+        world.Citizens.LabourRemainder[citizen] = scaled - whole * Ticks.PerDay;
+
+        if (whole > 0)
+        {
+            world.Deposit(bin, whole, tick);
+        }
     }
 
     public static bool PayrollAttributionEnabled =>
@@ -145,6 +189,7 @@ public static class WorkSchedule
 #if PAYROLL_ATTRIBUTION
             observe?.Invoke(PayrollStage.WageEnd);
 #endif
+            DepositLabour(world, citizen, job, tick);
         }
 #if PAYROLL_ATTRIBUTION
         observe?.Invoke(PayrollStage.End);

@@ -226,6 +226,7 @@ public static class RulesetLoader
         // Satisfaction -- so the thing consumed decides, not the Rule consuming it.
         private readonly List<Need> _resourceNeeds = [];
         private readonly List<ShelfLife> _shelfLives = [];
+        private int _labourLine;
         private readonly Dictionary<string, byte> _kinds = new(StringComparer.Ordinal);
 
         // A SECOND kind namespace, not a widening of the first (adr/0141). The premises and the trade
@@ -399,6 +400,7 @@ public static class RulesetLoader
             LotRuleset lots = ReadLots(roads);
             TripRuleset trips = ReadTrips();
             JobRuleset jobs = ReadJobs(trips);
+            RefuseUndepositedLabour();
             HouseholdRuleset households = ReadHouseholds();
             TreasuryRuleset treasury = ReadTreasury();
             TrafficRuleset traffic = ReadTraffic();
@@ -561,6 +563,7 @@ public static class RulesetLoader
                         _families.Add(ReadFamily(table));
                         _resourceNeeds.Add(ReadNeed(table));
                         _shelfLives.Add(ReadShelfLife(table, _families[^1]));
+                        RefuseLabourThatKeeps(table);
                         RefuseStorage(table);
                         break;
 
@@ -2323,12 +2326,16 @@ public static class RulesetLoader
                 case "money":
                     return ResourceFamily.Money;
 
+                case "labour":
+                    return ResourceFamily.Labour;
+
                 default:
                     Refuse(LineOf(table), family,
                         $"'{family}' is not a Resource family. The families are good (moves as a "
                         + "Shipment, on the Road Graph, in the traffic), utility (flows along the "
-                        + "District adjacency graph) and money (conserved, and does not move at all). "
-                        + "The family decides transport and whether the Bin has a ceiling, so there "
+                        + "District adjacency graph), money (conserved, and does not move at all) and "
+                        + "labour (worker-time a Business's present staff deposit and its Rules "
+                        + "spend). The family decides transport and whether the Bin has a ceiling, so there "
                         + "is no default.");
                     return ResourceFamily.None;
             }
@@ -2338,6 +2345,23 @@ public static class RulesetLoader
         /// A Resource's optional shelf life: stock older than <c>shelf_life_cycles</c> cycles of
         /// <c>shelf_life_cycle_minutes</c> in-world minutes is discarded at a cycle boundary.
         /// </summary>
+        private void RefuseLabourThatKeeps(TableSyntaxBase table)
+        {
+            if (_families[^1] == ResourceFamily.Labour && _labourLine == 0)
+            {
+                _labourLine = LineOf(table);
+            }
+
+            if (_families[^1] == ResourceFamily.Labour && !_shelfLives[^1].Expires)
+            {
+                Refuse(LineOf(table), null,
+                    "a labour Resource declares no shelf life. Its Bin has no ceiling, so expiry is "
+                    + "the only thing that bounds it: labour that keeps lets an idle Business bank "
+                    + "a weekend of standing around and spend it in one firing. State "
+                    + "shelf_life_cycles and shelf_life_cycle_minutes.");
+            }
+        }
+
         private ShelfLife ReadShelfLife(TableSyntaxBase table, ResourceFamily family)
         {
             const int MinutesPerYear = 60 * 24 * 365;
@@ -2636,13 +2660,44 @@ public static class RulesetLoader
                     continue;
                 }
 
-                if (!GlobalNamesAConservedResource(inline, rule, scope, resource))
+                if (!GlobalNamesAConservedResource(inline, rule, scope, resource)
+                    || !LabourIsSpentLocally(inline, rule, key, scope, resource))
                 {
                     continue;
                 }
 
                 into.Add(new Term(new BinRef(scope, resource), (int)amount));
             }
+        }
+
+        /// <summary>
+        /// Refusal — labour is spent where its workers stand, so a term naming it is a local input.
+        /// </summary>
+        private bool LabourIsSpentLocally(
+            InlineTableSyntax inline, string? rule, string key, Scope scope, ResourceId resource)
+        {
+            if (_families[resource.Raw - 1] != ResourceFamily.Labour)
+            {
+                return true;
+            }
+
+            if (key != "inputs")
+            {
+                Refuse(LineOf(inline), rule,
+                    "this Rule names labour as an output. Labour comes only from workers present at "
+                    + "the premises, so a Rule that makes it would staff a Business with nobody.");
+                return false;
+            }
+
+            if (scope != Scope.Local)
+            {
+                Refuse(LineOf(inline), rule,
+                    "this Rule spends labour from outside its own premises. Labour is the time of the "
+                    + "workers standing there and has no market, so its scope is local.");
+                return false;
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -2698,7 +2753,7 @@ public static class RulesetLoader
             Refuse(LineOf(inline), rule,
                 "the global scope names the treasury, and a treasury holds conserved Resources only "
                 + $"-- money and nothing else (adr/0024). '{name}' is declared as a "
-                + $"{(family == ResourceFamily.Utility ? "utility" : "good")}, so no global Bin is "
+                + $"{FamilyName(family)}, so no global Bin is "
                 + "fitted for it at world creation and this term could never resolve. 02 section 4.3 "
                 + "says what the global scope is: the far end of a transfer whose counterparty is "
                 + "not a market.");
@@ -4531,8 +4586,19 @@ public static class RulesetLoader
                 // A Money Bin has no ceiling (CONTEXT -> Resource), so authoring one is refused
                 // rather than ignored: a number the loader silently drops is a number a designer
                 // will tune and then wonder about.
-                bool unbounded = _families[resource.Raw - 1] == ResourceFamily.Money;
+                ResourceFamily family = _families[resource.Raw - 1];
+                bool labour = family == ResourceFamily.Labour;
+                bool unbounded = family == ResourceFamily.Money || labour;
                 BinCapacity declared;
+
+                if (labour && tenancy != BinTenancy.Business)
+                {
+                    Refuse(LineOf(inline), kind,
+                        "a labour Bin is the Business's, so it states owner = \"business\". Labour "
+                        + "is deposited by the trade's present workers and spent by the trade's own "
+                        + "Rules; a Bin held by the premises or a Household would never be filled.");
+                    continue;
+                }
 
                 if (unbounded)
                 {
@@ -4543,10 +4609,13 @@ public static class RulesetLoader
 
                     if (stated is not null)
                     {
-                        Refuse(LineOf(inline), kind,
-                            $"a money Bin declares no {stated}. Money has no physical ceiling, and a "
-                            + "finite one would mean an actor too full of money to be paid -- a sale "
-                            + "failing on space because the seller is rich.");
+                        Refuse(LineOf(inline), kind, labour
+                            ? $"a labour Bin declares no {stated}. A Business's posts already cap "
+                                + "how many workers deposit, and a second ceiling would drop a present "
+                                + "worker's time silently. Its shelf life is what bounds it."
+                            : $"a money Bin declares no {stated}. Money has no physical ceiling, and a "
+                                + "finite one would mean an actor too full of money to be paid -- a sale "
+                                + "failing on space because the seller is rich.");
                         continue;
                     }
 
@@ -4588,6 +4657,15 @@ public static class RulesetLoader
                         "this kind declares two Bins for one Resource. One Bin, one Resource: two "
                         + "would make the local scope draw from whichever the list reached first, "
                         + "which is a balance outcome decided by allocation order.");
+                    continue;
+                }
+
+                if (labour
+                    && into.Skip(first).Any(b => _families[b.Resource.Raw - 1] == ResourceFamily.Labour))
+                {
+                    Refuse(LineOf(inline), kind,
+                        "this kind declares two labour Bins. Each present worker deposits into the "
+                        + "one labour Bin of their Business, so a second would never be filled.");
                     continue;
                 }
 
@@ -6486,6 +6564,14 @@ public static class RulesetLoader
         }
 
         /// <summary>How a Resource is spelled in this file, for a refusal message.</summary>
+        private static string FamilyName(ResourceFamily family) => family switch
+        {
+            ResourceFamily.Utility => "utility",
+            ResourceFamily.Money => "money",
+            ResourceFamily.Labour => "labour",
+            _ => "good",
+        };
+
         private string NameOfResource(ResourceId resource)
         {
             foreach (KeyValuePair<string, ushort> declared in _resources)
@@ -8335,17 +8421,23 @@ public static class RulesetLoader
             int candidates = ReadJobCandidates();
             (int shiftMin, int shiftMax) = ReadShiftHours();
             int early = ReadArriveEarly();
-            (int tier2Wage, int tier3Wage) = ReadWageTierPercent();
+            (int tier2Wage, int tier3Wage) =
+                ReadTierPercent("wage_tier_percent", "the trade's posted rate");
             (int experiencePerDay, int tier2Experience) = ReadExperience();
             int unschooledExperiencePercent = ReadUnschooledExperiencePercent();
-            int experiencePremiumPercent = ReadExperiencePremiumPercent();
+            int experiencePremiumPercent = ReadExperiencePremiumPercent("experience_premium_percent");
+            long labourPerDay = ReadLabourPerDay();
+            (int tier2Labour, int tier3Labour) =
+                ReadTierPercent("labour_tier_percent", "labour_per_day");
+            int labourPremiumPercent = ReadExperiencePremiumPercent("labour_experience_premium_percent");
 
             RefuseShiftShorterThanTheBudget(shiftMin);
 
             return new JobRuleset(
                 interval, revisit, candidates, shiftMin, shiftMax, early,
                 tier2Wage, tier3Wage, experiencePerDay, tier2Experience,
-                unschooledExperiencePercent, experiencePremiumPercent);
+                unschooledExperiencePercent, experiencePremiumPercent,
+                labourPerDay, tier2Labour, tier3Labour, labourPremiumPercent);
         }
 
         // ---- households -------------------------------------------------------------------------
@@ -10758,9 +10850,9 @@ public static class RulesetLoader
         /// with itself about what the posted rate means — three tiers are named because Tier 1's
         /// value is fixed, never because it is free to vary.
         /// </remarks>
-        private (int Tier2Percent, int Tier3Percent) ReadWageTierPercent()
+        private (int Tier2Percent, int Tier3Percent) ReadTierPercent(string key, string rate)
         {
-            KeyValueSyntax? entry = Find(_jobsTable!, "wage_tier_percent", RulesetKeyKind.Numbers);
+            KeyValueSyntax? entry = Find(_jobsTable!, key, RulesetKeyKind.Numbers);
 
             if (entry is null)
             {
@@ -10769,8 +10861,8 @@ public static class RulesetLoader
 
             if (entry.Value is not ArraySyntax array)
             {
-                Refuse(LineOfJob("wage_tier_percent"), null,
-                    "wage_tier_percent must be an array of whole numbers.");
+                Refuse(LineOfJob(key), null,
+                    $"{key} must be an array of whole numbers.");
                 return (0, 0);
             }
 
@@ -10781,8 +10873,7 @@ public static class RulesetLoader
                 if (item.Value is not IntegerValueSyntax integer)
                 {
                     Refuse(LineOf(item), null,
-                        "every entry of wage_tier_percent is a whole percent of the trade's posted "
-                        + "rate.");
+                        $"every entry of {key} is a whole percent of {rate}.");
                     return (0, 0);
                 }
 
@@ -10791,20 +10882,19 @@ public static class RulesetLoader
 
             if (values.Count != 3)
             {
-                Refuse(LineOfJob("wage_tier_percent"), null,
-                    $"wage_tier_percent names {values.Count} entries. It is what each of the three "
-                    + "Skill Tiers is paid, as a percent of the trade's posted rate, so it names "
-                    + "exactly three.");
+                Refuse(LineOfJob(key), null,
+                    $"{key} names {values.Count} entries. It is what each of the three "
+                    + $"Skill Tiers is worth, as a percent of {rate}, so it names exactly three.");
                 return (0, 0);
             }
 
             if (values[0] != 100)
             {
-                Refuse(LineOfJob("wage_tier_percent"), null,
-                    $"wage_tier_percent's first entry is {values[0]}. The posted rate IS the Tier "
-                    + "1 rate (adr/0059), so the first entry only restates that baseline and can "
-                    + "only be 100 -- a file stating anything else disagrees with itself about "
-                    + "what the posted rate means.");
+                Refuse(LineOfJob(key), null,
+                    $"{key}'s first entry is {values[0]}. {rate} IS the Tier 1 rate "
+                    + "(adr/0059), so the first entry only restates that baseline and can only be "
+                    + "100 -- a file stating anything else disagrees with itself about what that "
+                    + "rate means.");
                 return (0, 0);
             }
 
@@ -10812,9 +10902,9 @@ public static class RulesetLoader
             {
                 if (values[i] < 0)
                 {
-                    Refuse(LineOfJob("wage_tier_percent"), null,
-                        $"wage_tier_percent's entry {i + 1} is {values[i]}. Each entry is a "
-                        + "percent of the trade's posted rate, so none of them may be negative.");
+                    Refuse(LineOfJob(key), null,
+                        $"{key}'s entry {i + 1} is {values[i]}. Each entry is a percent of "
+                        + $"{rate}, so none of them may be negative.");
                     return (0, 0);
                 }
             }
@@ -10902,24 +10992,71 @@ public static class RulesetLoader
             return (int)percent;
         }
 
+        private void RefuseUndepositedLabour()
+        {
+            if (_labourLine == 0
+                || (_jobsTable is not null && Find(_jobsTable, "labour_per_day") is not null))
+            {
+                return;
+            }
+
+            Refuse(_labourLine, null,
+                "a labour Resource is declared and [jobs] states no labour_per_day, so no worker "
+                + "ever deposits it and every Rule spending it starves. State labour_per_day.");
+        }
+
         /// <summary>
-        /// The premium a Citizen earns inside their own band, as a percent added to their pay at
-        /// the band ceiling — <c>experience_premium_percent</c>, optional.
+        /// What a full Day of continuous work deposits as labour, before grading —
+        /// <c>labour_per_day</c>, required exactly when a labour Resource is declared.
         /// </summary>
-        private int ReadExperiencePremiumPercent()
+        private long ReadLabourPerDay()
+        {
+            bool stated = TryInteger(_jobsTable!, "labour_per_day", out long perDay, required: false);
+
+            if (!stated)
+            {
+                return 0;
+            }
+
+            if (perDay < 1)
+            {
+                Refuse(LineOfJob("labour_per_day"), null,
+                    $"labour_per_day is {perDay}. It is what a Day of continuous work deposits, so "
+                    + "it is a positive amount; delete it with the labour Resource to leave "
+                    + "production unstaffed.");
+                return 0;
+            }
+
+            if (!_families.Contains(ResourceFamily.Labour))
+            {
+                Refuse(LineOfJob("labour_per_day"), null,
+                    "labour_per_day is stated and no [[resource]] is of the labour family, so "
+                    + "workers would deposit into nothing.");
+                return 0;
+            }
+
+            return perDay;
+        }
+
+        /// <summary>
+        /// The premium a Citizen earns inside their own band at its ceiling, as a percent added to
+        /// pay (<c>experience_premium_percent</c>) or to labour
+        /// (<c>labour_experience_premium_percent</c>). Optional.
+        /// </summary>
+        private int ReadExperiencePremiumPercent(string key)
         {
             if (!TryInteger(
-                    _jobsTable!, "experience_premium_percent", out long percent, required: false))
+                    _jobsTable!, key, out long percent, required: false))
             {
                 return 0;
             }
 
             if (percent < 0)
             {
-                Refuse(LineOfJob("experience_premium_percent"), null,
-                    $"experience_premium_percent is {percent}. It is the premium a Citizen has "
-                    + "earned inside their own band at its ceiling, as a percent added to their "
-                    + "pay, so it cannot be negative.");
+                Refuse(LineOfJob(key), null,
+                    $"{key} is {percent}. It is the premium a Citizen has "
+                    + "earned inside their own band at its ceiling, as a percent added to what "
+                    + "they are worth, so it cannot be negative.");
                 return 0;
             }
 

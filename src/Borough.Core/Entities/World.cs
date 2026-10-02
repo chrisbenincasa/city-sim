@@ -6728,6 +6728,27 @@ public sealed partial class World
         tail[ownerSlot] = bin;
     }
 
+    /// <summary>The Business's labour Bin, or none when its premises' kind declares none.</summary>
+    /// <remarks>The loader admits at most one labour Bin per kind.</remarks>
+    public Handle<Bin> LabourBinOf(int businessSlot)
+    {
+        Handle<Bin> at = Businesses.BinHead[businessSlot];
+
+        while (!at.IsNone)
+        {
+            int slot = Bins.Rows.Resolve(at);
+
+            if (Rules.Family(Bins.Resource[slot]) == ResourceFamily.Labour)
+            {
+                return at;
+            }
+
+            at = Bins.OwnerNext[slot];
+        }
+
+        return default;
+    }
+
     /// <summary>
     /// The Bin an Occupant holds for one Resource, or the unset handle if it holds none.
     /// </summary>
@@ -8149,6 +8170,7 @@ public sealed partial class World
         Citizens.Workplace[slot] = workplace;
         Citizens.EarnedWage[slot] = 0;
         Citizens.WageRemainder[slot] = 0;
+        Citizens.LabourRemainder[slot] = 0;
         Citizens.PlannedCommute[slot] = plannedCommute;
         Citizens.Employment[slot] = (byte)EmploymentState.Employed;
 
@@ -8322,6 +8344,7 @@ public sealed partial class World
         Citizens.Workplace[slot] = default;
         Citizens.EarnedWage[slot] = 0;
         Citizens.WageRemainder[slot] = 0;
+        Citizens.LabourRemainder[slot] = 0;
 
         // Back to concluding nothing rather than to a refusal. A Citizen whose employer was demolished
         // or went bankrupt has not been turned down by anybody, and the next occasion that looks at

@@ -27,7 +27,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-53 sections, 370 keys.
+53 sections, 373 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
@@ -65,7 +65,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[housing_construction]`](#housing_construction) — 12 keys
 - [`[immigration]`](#immigration) — 4 keys
 - [`[income_tax]`](#income_tax) — 4 keys
-- [`[jobs]`](#jobs) — 11 keys
+- [`[jobs]`](#jobs) — 14 keys
 - [`[land_permissions]`](#land_permissions) — 1 key
 - [`[layers]`](#layers) — 20 keys
 - [`[lots]`](#lots) — 14 keys
@@ -737,7 +737,7 @@ What this reserve is called. A Bin's reserve profile names it by this.
 
 **`family`** · *quoted string*
 
-Which of the three kinds of thing this is: a good moves as a Shipment on the Road Graph and shows up in the traffic, a utility flows along the District adjacency graph, and money is conserved and does not move at all. The family decides transport and whether a Bin holding it has a ceiling, so there is no default.
+Which of the four kinds of thing this is: a good moves as a Shipment on the Road Graph and shows up in the traffic, a utility flows along the District adjacency graph, money is conserved and does not move at all, and labour is worker-time a Business's present staff deposit and its own Rules spend as a local input. The family decides transport and whether a Bin holding it has a ceiling, so there is no default. A labour Resource must declare a shelf life, and its Bin is owned by the business and states no capacity.
 
 **`id`** · *quoted string*
 
@@ -1282,6 +1282,18 @@ The premium a Citizen has earned inside their own band at its ceiling, as a perc
 **`interval`** · *whole number*
 
 How many Ticks between passes that assign work to Citizens who have none. Omitting the whole [jobs] table means nobody is ever assigned work. The table is refused without a Commute Budget above it, because the pass has no search radius of its own.
+
+**`labour_experience_premium_percent`** · *whole number*
+
+The premium a Citizen has earned inside their own band at its ceiling, as a percent added to the labour they deposit. Independent of experience_premium_percent. Absent means experience never adds to labour.
+
+**`labour_per_day`** · *whole number*
+
+What a full Day of continuous work deposits into the Business's labour Bin, before grading. It counts elapsed work: each on-duty Tick deposits an equal share, so a longer shift deposits more. wage_per_day counts a Day worked instead and pays the same for any shift length. Required exactly when a labour Resource is declared.
+
+**`labour_tier_percent`** · *array of whole numbers*
+
+What each of the three Skill Tiers deposits, as a percent of labour_per_day — exactly three entries, the first of which can only be 100. Independent of wage_tier_percent, because pay and productivity are separate causes. Absent means every tier deposits the same.
 
 **`revisit_ticks`** · *whole number*
 
