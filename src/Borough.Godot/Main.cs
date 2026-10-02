@@ -925,7 +925,7 @@ public partial class Main : Node3D
     /// <summary>Frames drawn since the shell opened. Read only by the screenshot trigger.</summary>
     private int _frame;
     /// <summary>The Ruleset this run booted from. A resumed city is not loaded from a path.</summary>
-    private string _rulesetPath = "rulesets/neighbourhood.toml";
+    private string _rulesetPath = "rulesets/base/ruleset.toml";
 
     /// <summary>What the readout and a driven run's <c>draw</c> file call the Ruleset in force.</summary>
     /// <remarks>
@@ -1138,7 +1138,7 @@ public partial class Main : Node3D
         _citizens = citizens;
         _seed = 0;
 
-        PrepareCity(loaded.Ruleset, citizens, _seed, startAt ?? (ulong)Ticks.AtClock(8), simulation =>
+        PrepareCity(loaded.Ruleset, citizens, _seed, _empty, startAt ?? (ulong)Ticks.AtClock(8), simulation =>
         {
             InstallCity(simulation);
             FinishReady(govern);
@@ -1619,7 +1619,7 @@ public partial class Main : Node3D
     private static (string Ruleset, int Citizens, ulong? StartAt, bool Govern, bool Empty,
         string? Drive, ulong QuitAt, string? Listen, string? Record, string? Load) Arguments()
     {
-        string ruleset = "rulesets/neighbourhood.toml";
+        string ruleset = "rulesets/base/ruleset.toml";
         int citizens = 1_000;
 
         // 🔴 THE SHELL OPENS AT 08:00 AND THE SIMULATION'S DAY STILL BEGINS AT 05:00, AND KEEPING

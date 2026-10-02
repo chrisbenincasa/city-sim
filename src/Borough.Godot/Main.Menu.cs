@@ -1,9 +1,11 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using Borough.Core;
 using Borough.Core.Entities;
 using Borough.Core.Input;
+using Borough.Core.Quantities;
 using Borough.Formats;
 using Godot;
 
@@ -26,6 +28,8 @@ public partial class Main
     private ulong _savedTick;
     private string? _savePath;
     private bool _resumedFromSave;
+    private bool _newEmpty;
+    private ulong _newSeed;
 
     private bool UnsavedCity => _savedWorld != _world || _savedTick != _world.Tick.Raw || _queued.Count != 0;
 
@@ -109,7 +113,12 @@ public partial class Main
         if (_menuPage == "confirm")
         {
             _menuBody.AddChild(InformationLabel("This city has unsaved progress. Save before "
-                + (_pendingMenuAction == "quit" ? "quitting?" : "loading another city?")));
+                + _pendingMenuAction switch
+                {
+                    "quit" => "quitting?",
+                    "load" => "loading another city?",
+                    _ => "starting a new city?",
+                }));
             Button("Save and exit", "save-continue");
             Button("Exit without saving", "discard");
             Button("Cancel", "cancel");
@@ -126,9 +135,26 @@ public partial class Main
             }
             catch (Exception error) { _menuBody.AddChild(InformationLabel("Credits unavailable: " + error.Message)); }
         }
+        else if (_menuPage == "new")
+        {
+            _menuBody.AddChild(InformationLabel(_newEmpty
+                ? "New empty city. You found it on bare Ground."
+                : "New generated city. It starts already built and populated."));
+            _menuBody.AddChild(InformationLabel("Seed"));
+            var seed = new LineEdit { Text = _newSeed.ToString(CultureInfo.InvariantCulture) };
+            seed.TextChanged += typed =>
+            {
+                if (ulong.TryParse(typed, NumberStyles.None, CultureInfo.InvariantCulture, out ulong parsed)) _newSeed = parsed;
+            };
+            _menuBody.AddChild(seed);
+            Button("Start city", "start");
+            Button("Cancel", "cancel");
+        }
         else
         {
             Button("Resume city", "off");
+            Button("New empty city…", "new-empty");
+            Button("New generated city…", "new-generated");
             Button("Save city…", "save");
             Button("Load city…", "load");
             Button("Settings", "settings");
@@ -155,6 +181,12 @@ public partial class Main
         _menuPage = "main";
         if (action == "quit") Quit();
         else if (action == "load") OpenCityPicker(false);
+        else if (action is "new-empty" or "new-generated")
+        {
+            _newEmpty = action == "new-empty";
+            _newSeed = (ulong)Random.Shared.NextInt64();
+            _menuPage = "new";
+        }
         RenderMenu();
     }
 
@@ -192,26 +224,7 @@ public partial class Main
                 simulation.CheckEndOfRun();
                 city.World.Changes = new WorldChanges();
                 city.World.Changes.Invalidate();
-                CloseInspection();
-                _healthInspection = false;
-                _queued.Clear();
-                InstallSavedCity(simulation, city, city.World.Tick.Raw, path);
-                _verb = Verb.Look;
-                _toolsShown = _governing = _layersShown = _cityShown = _budgetShown = false;
-                _cityRead = false;
-                _cityGroup = -1;
-                _cityCause = null;
-                _cityFrom = 0;
-                Retrouble();
-                _tuner.Visible = false;
-                _aimed = null;
-                _washing = Wash.None;
-                _built = (ulong.MaxValue, Wash.None);
-                _synopsisTick = ulong.MaxValue;
-                _pickTick = ulong.MaxValue;
-                FinishRegenerate();
-                _hud.MoveChild(_menuShade, -1);
-                _hud.MoveChild(_menuPanel, -1);
+                ResetCity(() => InstallSavedCity(simulation, city, city.World.Tick.Raw, path));
                 _menuMessage = "Loaded " + Path.GetFileName(path) + ". Resume when ready.";
             }
             _menuPage = "main";
@@ -229,7 +242,61 @@ public partial class Main
         RenderMenu();
     }
 
-    private void MenuAction(string action)
+    private void ResetCity(Action install)
+    {
+        CloseInspection();
+        _healthInspection = false;
+        _queued.Clear();
+        install();
+        _verb = Verb.Look;
+        _toolsShown = _governing = _layersShown = _cityShown = _budgetShown = false;
+        _cityRead = false;
+        _cityGroup = -1;
+        _cityCause = null;
+        _cityFrom = 0;
+        Retrouble();
+        _tuner.Visible = false;
+        _aimed = null;
+        _washing = Wash.None;
+        _built = (ulong.MaxValue, Wash.None);
+        _synopsisTick = ulong.MaxValue;
+        _pickTick = ulong.MaxValue;
+        FinishRegenerate();
+        _hud.MoveChild(_menuShade, -1);
+        _hud.MoveChild(_menuPanel, -1);
+    }
+
+    private void StartNewCity()
+    {
+        _menuPage = "main";
+        RulesetSourceResult loaded = RulesetSource.Load(Globalize(_rulesetPath));
+        if (loaded.Ruleset is null)
+        {
+            _menuMessage = "Could not start city: " + loaded.Describe();
+            RenderMenu();
+            return;
+        }
+        bool empty = _newEmpty;
+        ulong seed = _newSeed;
+        int citizens = Arguments().Citizens;
+        PrepareCity(loaded.Ruleset, citizens, seed, empty, (ulong)Ticks.AtClock(8), simulation =>
+        {
+            ResetCity(() =>
+            {
+                _capture = loaded.Capture!;
+                _names = loaded.Names;
+                _citizens = citizens;
+                _seed = seed;
+                _empty = empty;
+                InstallCity(simulation);
+            });
+            _menuMessage = "Started a new city with seed " + seed.ToString(CultureInfo.InvariantCulture) + ". Resume when ready.";
+            RenderMenu();
+        });
+        RenderMenu();
+    }
+
+    private void MenuAction(string action, string? value = null)
     {
         if (action == "on") { OpenMenu(); return; }
         if (!_menuOpen) return;
@@ -237,7 +304,11 @@ public partial class Main
         {
             case "off": CloseMenu(); break;
             case "save": _pendingMenuAction = null; OpenCityPicker(true); break;
-            case "load": case "quit": RequestMenuAction(action); break;
+            case "load": case "quit": case "new-empty": case "new-generated": RequestMenuAction(action); break;
+            case "seed" when _menuPage == "new"
+                && ulong.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out ulong seed):
+                _newSeed = seed; RenderMenu(); break;
+            case "start" when _menuPage == "new": StartNewCity(); break;
             case "save-continue": OpenCityPicker(true); break;
             case "discard": ContinueMenuAction(); break;
             case "cancel": _pendingMenuAction = null; _menuPage = "main"; RenderMenu(); break;
@@ -253,7 +324,7 @@ public partial class Main
         _menuShade.Size = size;
         _menuPanel.Visible = _menuOpen && !_settingsPanel.Visible && !_helpPanel.Visible && !_cityPicker.Visible;
         float width = Math.Min(520 * _textPercent / 100f, size.X - 2 * margin);
-        float height = Math.Min((_menuPage == "credits" ? 700 : 510) * _textPercent / 100f, size.Y - 2 * margin);
+        float height = Math.Min((_menuPage == "credits" ? 700 : 640) * _textPercent / 100f, size.Y - 2 * margin);
         var scroll = (ScrollContainer)_menuBody.GetParent();
         FitPanel(_menuPanel, scroll, _menuBody, (size.X - width) / 2, 0, width, 120, height, _menuLayoutDirty);
         _menuPanel.Position = new Vector2((size.X - width) / 2, (size.Y - _menuPanel.Size.Y) / 2);
