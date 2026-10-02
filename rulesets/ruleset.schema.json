@@ -200,8 +200,8 @@
             "description": "The daily closing hour; purchases arriving at or after closing fail.",
             "type": "integer"
           },
-          "goes_bankrupt_after_short_paydays": {
-            "description": "How many paydays running this trade may fail to pay its workers in full before it is wound up: the staff are dismissed and the premises are left standing and empty. A payroll met in full resets the count. Absent means it never goes bankrupt.",
+          "goes_bankrupt_after_days_in_arrears": {
+            "description": "How many Days this trade may stay in arrears before it is wound up: the staff are dismissed and the premises are left standing and empty. A trade falls into arrears on a payday it cannot meet in full and leaves them on a payday it pays wages in full. Required on a trade that pays a wage, and refused on one that does not.",
             "type": "integer"
           },
           "id": {
@@ -1739,11 +1739,11 @@
         "type": "object",
         "properties": {
           "build_threshold_days": {
-            "description": "How much unmet demand, in household-Days, must accumulate in a District before this Rule raises a Building there. It is the entry cost for a trade, and today it is the only brake on birth. Absent keeps the older predicate, which reads no demand at all.",
+            "description": "How much unmet demand, in household-Days, must accumulate in a District before this Rule raises a Building there, or opens its trade in a vacant Unit of a standing Building of its kind. It is the entry cost for a trade, and today it is the only brake on birth. Absent keeps the older predicate, which reads no demand at all.",
             "type": "integer"
           },
           "cooldown_days": {
-            "description": "How many Days a District waits after raising a Building of this kind before it may raise another — what damps the response to the demand signal. Requires build_threshold_days, since a Rule reading no demand has nothing to damp.",
+            "description": "How many Days a District waits after raising a Building of this kind before it may raise another — what damps the response to the demand signal. Opening a vacant Unit neither waits for it nor restarts it. Requires build_threshold_days, since a Rule reading no demand has nothing to damp.",
             "type": "integer"
           },
           "id": {
@@ -1752,6 +1752,10 @@
           },
           "interval": {
             "description": "How many Ticks between sweeps of this Rule over the city. Distinct from a Bin Rule's rate: a Zone Rule sweeps, it is not armed per Lot.",
+            "type": "integer"
+          },
+          "jobless_threshold_days": {
+            "description": "How much waiting, in Citizen-Days, by Citizens who found every post in reach full must accumulate in their home District before this Rule raises a Building there or opens its trade in a vacant Unit. A second trigger beside build_threshold_days, sharing its cooldown. Absent, the Rule does not read joblessness. Requires build_threshold_days.",
             "type": "integer"
           },
           "kind": {

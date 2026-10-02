@@ -8,9 +8,9 @@
 # ---------------------------------------------------------------------------------------------------
 # WHAT IT CHANGES, against `shopping.toml`:
 #
-#   [[business]] grocer  goes_bankrupt_after_short_paydays = 4   -- ADDED. Four paydays running
-#                        without meeting payroll in full and the trade is wound up: the staff are
-#                        dismissed, and the premises are LEFT STANDING and empty for somebody else.
+#   [[business]] grocer  goes_bankrupt_after_days_in_arrears 28 -> 21 -- LOWERED. Four short weekly
+#                        paydays running and the trade is wound up: the staff are dismissed, and
+#                        the premises are LEFT STANDING and empty for somebody else.
 #   [[business]] grocer  wage_per_day 4096 -> 512                -- LOWERED, see BIMODAL below.
 #   [[business]] shop    wage_per_day, pay_period_days           -- REMOVED, see P1 below.
 #
@@ -98,7 +98,7 @@ opens_hour = 7
 closes_hour = 21
 wage_per_day    = 512
 pay_period_days = 7
-goes_bankrupt_after_short_paydays = 4
+goes_bankrupt_after_days_in_arrears = 21
 shift_start_earliest_hour = 6
 shift_start_latest_hour   = 10
 

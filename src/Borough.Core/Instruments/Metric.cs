@@ -164,6 +164,9 @@ public enum ZoneCounter : byte
     /// was reported here as a demolished Building.
     /// </remarks>
     Ended,
+
+    /// <summary>Businesses opened in a vacant Unit of a standing Building on District demand.</summary>
+    Reopened,
 }
 
 /// <summary>
@@ -434,6 +437,9 @@ public enum JobCounter : byte
     /// <c>adr/0095</c> and in <c>rulesets/minimal.toml</c>'s own header.
     /// </remarks>
     Unsavoury,
+
+    /// <summary>Of those seeking, the ones who found every post in reach full.</summary>
+    NoVacancy,
 }
 
 /// <summary>

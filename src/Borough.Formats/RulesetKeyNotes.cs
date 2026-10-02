@@ -296,10 +296,11 @@ public static class RulesetKeyNotes
             "How many Days pass between paydays at this trade. One is daily; zero would be a payday "
             + "that never comes round.",
 
-        ["[[business]] goes_bankrupt_after_short_paydays"] =
-            "How many paydays running this trade may fail to pay its workers in full before it is "
-            + "wound up: the staff are dismissed and the premises are left standing and empty. A "
-            + "payroll met in full resets the count. Absent means it never goes bankrupt.",
+        ["[[business]] goes_bankrupt_after_days_in_arrears"] =
+            "How many Days this trade may stay in arrears before it is wound up: the staff are "
+            + "dismissed and the premises are left standing and empty. A trade falls into arrears "
+            + "on a payday it cannot meet in full and leaves them on a payday it pays wages in full. "
+            + "Required on a trade that pays a wage, and refused on one that does not.",
         ["[[business]] requires_tier"] =
             "The lowest Skill Tier this trade will hire, a minimum rather than a band — a Citizen "
             + "above it may still take the post. Absent means it hires anybody.",
@@ -400,12 +401,19 @@ public static class RulesetKeyNotes
             + "a rate and not coverage.",
         ["[[zone_rule]] build_threshold_days"] =
             "How much unmet demand, in household-Days, must accumulate in a District before this "
-            + "Rule raises a Building there. It is the entry cost for a trade, and today it is the "
-            + "only brake on birth. Absent keeps the older predicate, which reads no demand at all.",
+            + "Rule raises a Building there, or opens its trade in a vacant Unit of a standing "
+            + "Building of its kind. It is the entry cost for a trade, and today it is the only "
+            + "brake on birth. Absent keeps the older predicate, which reads no demand at all.",
         ["[[zone_rule]] cooldown_days"] =
             "How many Days a District waits after raising a Building of this kind before it may "
-            + "raise another — what damps the response to the demand signal. Requires "
+            + "raise another — what damps the response to the demand signal. Opening a vacant "
+            + "Unit neither waits for it nor restarts it. Requires "
             + "build_threshold_days, since a Rule reading no demand has nothing to damp.",
+        ["[[zone_rule]] jobless_threshold_days"] =
+            "How much waiting, in Citizen-Days, by Citizens who found every post in reach full must "
+            + "accumulate in their home District before this Rule raises a Building there or opens "
+            + "its trade in a vacant Unit. A second trigger beside build_threshold_days, sharing its "
+            + "cooldown. Absent, the Rule does not read joblessness. Requires build_threshold_days.",
 
         // ---- [[band]] -------------------------------------------------------------------------
         ["[[band]] name"] =
