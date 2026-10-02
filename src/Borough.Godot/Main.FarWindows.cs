@@ -48,6 +48,7 @@ public partial class Main
         _bodyNeighbours.Clear();
         foreach (InstanceLayer layer in _bodyLayers.Values) layer.QueueFree();
         _bodyLayers.Clear();
+        _fadingBodyLayers.Clear();
         _familyBodyMeshes.Clear();
         _fadeFacades.Clear();
         _world.Changes!.Invalidate();

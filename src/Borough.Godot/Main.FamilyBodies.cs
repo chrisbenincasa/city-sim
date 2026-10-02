@@ -46,6 +46,9 @@ public partial class Main
     private readonly Dictionary<ulong, BodyNeighbours> _bodyNeighbours = [];
     private readonly Dictionary<BodyKey, BodyShape> _familyBodyMeshes = [];
     private readonly Dictionary<(ArrayMesh Mesh, bool Abandoned), InstanceLayer> _bodyLayers = [];
+
+    /// <summary>The body layers that take a side of the cross-fade; see <see cref="BodyLayer"/>.</summary>
+    private readonly HashSet<InstanceLayer> _fadingBodyLayers = [];
     private readonly Dictionary<string, Dictionary<string, Material>> _bodyLibraries = [];
     private readonly Dictionary<string, Material> _libraryMaterials = [];
     private readonly Dictionary<Material, (Material Painted, float Mean)> _paintedMaterials = [];
@@ -280,17 +283,18 @@ public partial class Main
     private void PlaceBody(BodyRequest request)
     {
         Massing one = request.One;
+        bool fades = request.Body.Midrise is not null || request.Body.Tower is not null;
         BodyShape nearShape = BodyMesh(request, FamilyBodyDetail.Near);
-        InstanceLayer nearLayer = BodyLayer(nearShape.Mesh, one.Abandoned, far: false);
+        InstanceLayer nearLayer = BodyLayer(nearShape.Mesh, one.Abandoned, far: false, fades);
         var at = new Transform3D(new Basis(Vector3.Up, request.Turn), request.Origin with { Y = 0f });
         nearLayer.Multimesh.Replace(one.Id, [new InstanceValue(at, Colors.White, Tint(one))]);
 
         BodyShape? farShape = null;
         InstanceLayer? farLayer = null;
-        if (request.Body.Midrise is not null || request.Body.Tower is not null)
+        if (fades)
         {
             farShape = BodyMesh(request, FamilyBodyDetail.Far);
-            farLayer = BodyLayer(farShape.Mesh, one.Abandoned, far: true);
+            farLayer = BodyLayer(farShape.Mesh, one.Abandoned, far: true, fades);
             farLayer.Multimesh.Replace(one.Id, [new InstanceValue(at, Colors.White, Tint(one), Far: true)]);
         }
 
@@ -394,7 +398,11 @@ public partial class Main
         return one with { Cap = Cap.Gable, Roof = new Transform3D(capped, at with { Y = top + (rise * 0.5f) }) };
     }
 
-    private InstanceLayer BodyLayer(ArrayMesh mesh, bool abandoned, bool far)
+    /// <param name="fades">
+    /// Whether the family draws a far body, so this layer takes one side of the cross-fade. A
+    /// low-rise body has no far form and draws across the whole band, well past the ring.
+    /// </param>
+    private InstanceLayer BodyLayer(ArrayMesh mesh, bool abandoned, bool far, bool fades)
     {
         if (_bodyLayers.TryGetValue((mesh, abandoned), out InstanceLayer? found)) return found;
 
@@ -402,6 +410,7 @@ public partial class Main
         layer.Multimesh.Mesh = mesh;
         layer.Multimesh.UseCustomData = true;
         layer.Multimesh.NearOnly = !far;
+        if (fades) _fadingBodyLayers.Add(layer);
         if (far) FarSideResidency(layer); else layer.Multimesh.Near = NearChunk;
         layer.InstanceParameters["body_ink"] = Colors.White;
         layer.MaterialOverride = BodyWash(layer);

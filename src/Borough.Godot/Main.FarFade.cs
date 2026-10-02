@@ -210,6 +210,12 @@ public partial class Main
         }, layer);
 
     /// <summary>The copy of a shared material that fades on the same side as the layer it dresses.</summary>
+    /// <remarks>
+    /// ⚠ <b>A layer with no far form takes the material itself.</b> A low-rise body draws across
+    /// the whole band and a near chunk reaches 1,024 m past its own edge, so a near-side copy would
+    /// discard its wash and its abandonment beyond the ring while the body itself kept drawing.
+    /// </remarks>
     private Material Faded(Material material, InstanceLayer layer) =>
-        layer.Multimesh.NearOnly ? FadingNear(material) : FadeMaterial(material);
+        !_fadingBodyLayers.Contains(layer) ? material
+        : layer.Multimesh.NearOnly ? FadingNear(material) : FadeMaterial(material);
 }
