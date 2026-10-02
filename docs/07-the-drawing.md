@@ -191,10 +191,20 @@ calls. Under a kit it is ~3,600 instances across ~15 meshes — and at ~120,000 
 [`plans/0013`](../plans/0013-tick-budget.md), that is ~1.8M instances and ~144 MB of instance data.
 That is affordable in the near band around the camera and not city-wide, so the kit stays near-band only.
 
-✅ **Which is why the kit is a near LOD and today's shader box is the far one, and the far one is
-already shipped.** The wall shader fades its openings out past 500 m by distance; the kit stops
-before that. ***The kit is an addition at close range rather than a replacement***, so it is
-deferrable, it is incremental, and it cannot break a frame that works today.
+### 3.3 Bodies at distance
+
+- With family bodies enabled, mid-rise and tower families draw simplified meshes from the same
+  Building dimensions, bay counts and storeys as their near bodies. Silhouettes and roofs survive.
+  Low-rise families retain their chunk-switched massing boxes.
+- Far windows use the facade cell table and bay/storey UVs. The shader averages opening and frame
+  coverage over each pixel's footprint, so distant windows converge on their mean color without
+  a texture. `ui far-windows grid` selects the debug grid; `shader` is the default.
+- Near and far bodies share a complementary screen-space dither over 450–500 m by default.
+  Each instance measures from the main camera, including in shadow passes. A depth-only bias keeps
+  flush surfaces from fighting. Far residency follows each Building's distance rather than a whole
+  Chunk's switch. `ui far-fade off` restores the chunk switch for study.
+- Authored kit materials are rebuilt on the shell's shader for the fade. Startup checks warn by
+  material and property when the rebuild cannot carry an authored setting.
 
 ---
 

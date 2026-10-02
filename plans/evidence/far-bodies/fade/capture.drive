@@ -1,0 +1,574 @@
+# B06 capture for the fade arm of the near/far body switch comparison.
+# Run from the repository root with a Release build in Godot's load path:
+#   BOROUGH_RENDER_PROFILE=1 godot --path src/Borough.Godot -- \
+#     --ruleset rulesets/platted.toml --citizens 40000 \
+#     --drive plans/evidence/far-bodies/fade/capture.drive
+#
+# Ticks 600-661 repeat plans/evidence/far-bodies/compare.drive so the four fixed shots and the
+# 3,000-400 m approach line up with B02's grid baseline frame for frame. The camera keeps one tilt,
+# heading and focus throughout.
+#
+# Two slow passes follow, because the chunk and the pixels change hands at different distances.
+#
+# Ticks 664-790, camera 900-600 m and back: the chunk residency switch. The band reaches 500 m from
+# the camera to the nearest point of a 1024 m chunk, so the chunk holding the focus crosses it
+# while the camera is still 700-800 m out. The pull-back repeats the steps to test the hysteresis.
+#
+# Ticks 900-1020, camera 560-380 m: the cross-fade itself. The dither weight is per instance and
+# rises over 450-500 m from the camera to the Building, so this pass walks the ring across the
+# Buildings around the focus. The draws at the end measure inside the ring against outside it.
+
+
+600 ui far-windows grid
+600 ui far-fade on
+600 ui family-bodies on
+600 roads on
+600 tilt 40
+600 turn right
+
+600 focus 556 560 3000
+600 shoot plans/evidence/far-bodies/fade/3000.png
+601 draw plans/evidence/far-bodies/fade/3000.tsv
+
+602 focus 556 560 1000
+602 shoot plans/evidence/far-bodies/fade/1000.png
+603 draw plans/evidence/far-bodies/fade/1000.tsv
+
+604 focus 556 560 500
+604 shoot plans/evidence/far-bodies/fade/500.png
+605 draw plans/evidence/far-bodies/fade/500.tsv
+
+606 focus 556 560 400
+606 shoot plans/evidence/far-bodies/fade/400.png
+607 draw plans/evidence/far-bodies/fade/400.tsv
+
+608 focus 556 560 3000
+608 shoot plans/evidence/far-bodies/fade/approach-00-3000.png
+609 draw plans/evidence/far-bodies/fade/approach-00-3000.tsv
+
+610 focus 556 560 2900
+610 shoot plans/evidence/far-bodies/fade/approach-01-2900.png
+611 draw plans/evidence/far-bodies/fade/approach-01-2900.tsv
+
+612 focus 556 560 2800
+612 shoot plans/evidence/far-bodies/fade/approach-02-2800.png
+613 draw plans/evidence/far-bodies/fade/approach-02-2800.tsv
+
+614 focus 556 560 2700
+614 shoot plans/evidence/far-bodies/fade/approach-03-2700.png
+615 draw plans/evidence/far-bodies/fade/approach-03-2700.tsv
+
+616 focus 556 560 2600
+616 shoot plans/evidence/far-bodies/fade/approach-04-2600.png
+617 draw plans/evidence/far-bodies/fade/approach-04-2600.tsv
+
+618 focus 556 560 2500
+618 shoot plans/evidence/far-bodies/fade/approach-05-2500.png
+619 draw plans/evidence/far-bodies/fade/approach-05-2500.tsv
+
+620 focus 556 560 2400
+620 shoot plans/evidence/far-bodies/fade/approach-06-2400.png
+621 draw plans/evidence/far-bodies/fade/approach-06-2400.tsv
+
+622 focus 556 560 2300
+622 shoot plans/evidence/far-bodies/fade/approach-07-2300.png
+623 draw plans/evidence/far-bodies/fade/approach-07-2300.tsv
+
+624 focus 556 560 2200
+624 shoot plans/evidence/far-bodies/fade/approach-08-2200.png
+625 draw plans/evidence/far-bodies/fade/approach-08-2200.tsv
+
+626 focus 556 560 2100
+626 shoot plans/evidence/far-bodies/fade/approach-09-2100.png
+627 draw plans/evidence/far-bodies/fade/approach-09-2100.tsv
+
+628 focus 556 560 2000
+628 shoot plans/evidence/far-bodies/fade/approach-10-2000.png
+629 draw plans/evidence/far-bodies/fade/approach-10-2000.tsv
+
+630 focus 556 560 1900
+630 shoot plans/evidence/far-bodies/fade/approach-11-1900.png
+631 draw plans/evidence/far-bodies/fade/approach-11-1900.tsv
+
+632 focus 556 560 1800
+632 shoot plans/evidence/far-bodies/fade/approach-12-1800.png
+633 draw plans/evidence/far-bodies/fade/approach-12-1800.tsv
+
+634 focus 556 560 1700
+634 shoot plans/evidence/far-bodies/fade/approach-13-1700.png
+635 draw plans/evidence/far-bodies/fade/approach-13-1700.tsv
+
+636 focus 556 560 1600
+636 shoot plans/evidence/far-bodies/fade/approach-14-1600.png
+637 draw plans/evidence/far-bodies/fade/approach-14-1600.tsv
+
+638 focus 556 560 1500
+638 shoot plans/evidence/far-bodies/fade/approach-15-1500.png
+639 draw plans/evidence/far-bodies/fade/approach-15-1500.tsv
+
+640 focus 556 560 1400
+640 shoot plans/evidence/far-bodies/fade/approach-16-1400.png
+641 draw plans/evidence/far-bodies/fade/approach-16-1400.tsv
+
+642 focus 556 560 1300
+642 shoot plans/evidence/far-bodies/fade/approach-17-1300.png
+643 draw plans/evidence/far-bodies/fade/approach-17-1300.tsv
+
+644 focus 556 560 1200
+644 shoot plans/evidence/far-bodies/fade/approach-18-1200.png
+645 draw plans/evidence/far-bodies/fade/approach-18-1200.tsv
+
+646 focus 556 560 1100
+646 shoot plans/evidence/far-bodies/fade/approach-19-1100.png
+647 draw plans/evidence/far-bodies/fade/approach-19-1100.tsv
+
+648 focus 556 560 1000
+648 shoot plans/evidence/far-bodies/fade/approach-20-1000.png
+649 draw plans/evidence/far-bodies/fade/approach-20-1000.tsv
+
+650 focus 556 560 900
+650 shoot plans/evidence/far-bodies/fade/approach-21-0900.png
+651 draw plans/evidence/far-bodies/fade/approach-21-0900.tsv
+
+652 focus 556 560 800
+652 shoot plans/evidence/far-bodies/fade/approach-22-0800.png
+653 draw plans/evidence/far-bodies/fade/approach-22-0800.tsv
+
+654 focus 556 560 700
+654 shoot plans/evidence/far-bodies/fade/approach-23-0700.png
+655 draw plans/evidence/far-bodies/fade/approach-23-0700.tsv
+
+656 focus 556 560 600
+656 shoot plans/evidence/far-bodies/fade/approach-24-0600.png
+657 draw plans/evidence/far-bodies/fade/approach-24-0600.tsv
+
+658 focus 556 560 500
+658 shoot plans/evidence/far-bodies/fade/approach-25-0500.png
+659 draw plans/evidence/far-bodies/fade/approach-25-0500.tsv
+
+660 focus 556 560 400
+660 shoot plans/evidence/far-bodies/fade/approach-26-0400.png
+661 draw plans/evidence/far-bodies/fade/approach-26-0400.tsv
+
+662 ui far-fade on
+
+664 focus 556 560 900
+664 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-000-0900.png
+665 focus 556 560 895
+665 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-001-0895.png
+666 focus 556 560 890
+666 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-002-0890.png
+667 focus 556 560 885
+667 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-003-0885.png
+668 focus 556 560 880
+668 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-004-0880.png
+669 focus 556 560 875
+669 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-005-0875.png
+670 focus 556 560 870
+670 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-006-0870.png
+671 focus 556 560 865
+671 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-007-0865.png
+672 focus 556 560 860
+672 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-008-0860.png
+673 focus 556 560 855
+673 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-009-0855.png
+674 focus 556 560 850
+674 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-010-0850.png
+675 focus 556 560 845
+675 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-011-0845.png
+676 focus 556 560 840
+676 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-012-0840.png
+677 focus 556 560 835
+677 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-013-0835.png
+678 focus 556 560 830
+678 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-014-0830.png
+679 focus 556 560 825
+679 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-015-0825.png
+680 focus 556 560 820
+680 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-016-0820.png
+681 focus 556 560 815
+681 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-017-0815.png
+682 focus 556 560 810
+682 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-018-0810.png
+683 focus 556 560 805
+683 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-019-0805.png
+684 focus 556 560 800
+684 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-020-0800.png
+685 focus 556 560 795
+685 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-021-0795.png
+686 focus 556 560 790
+686 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-022-0790.png
+687 focus 556 560 785
+687 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-023-0785.png
+688 focus 556 560 780
+688 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-024-0780.png
+689 focus 556 560 775
+689 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-025-0775.png
+690 focus 556 560 770
+690 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-026-0770.png
+691 focus 556 560 765
+691 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-027-0765.png
+692 focus 556 560 760
+692 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-028-0760.png
+693 focus 556 560 755
+693 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-029-0755.png
+694 focus 556 560 750
+694 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-030-0750.png
+695 focus 556 560 745
+695 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-031-0745.png
+696 focus 556 560 740
+696 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-032-0740.png
+697 focus 556 560 735
+697 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-033-0735.png
+698 focus 556 560 730
+698 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-034-0730.png
+699 focus 556 560 725
+699 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-035-0725.png
+700 focus 556 560 720
+700 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-036-0720.png
+701 focus 556 560 715
+701 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-037-0715.png
+702 focus 556 560 710
+702 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-038-0710.png
+703 focus 556 560 705
+703 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-039-0705.png
+704 focus 556 560 700
+704 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-040-0700.png
+705 focus 556 560 695
+705 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-041-0695.png
+706 focus 556 560 690
+706 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-042-0690.png
+707 focus 556 560 685
+707 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-043-0685.png
+708 focus 556 560 680
+708 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-044-0680.png
+709 focus 556 560 675
+709 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-045-0675.png
+710 focus 556 560 670
+710 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-046-0670.png
+711 focus 556 560 665
+711 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-047-0665.png
+712 focus 556 560 660
+712 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-048-0660.png
+713 focus 556 560 655
+713 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-049-0655.png
+714 focus 556 560 650
+714 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-050-0650.png
+715 focus 556 560 645
+715 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-051-0645.png
+716 focus 556 560 640
+716 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-052-0640.png
+717 focus 556 560 635
+717 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-053-0635.png
+718 focus 556 560 630
+718 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-054-0630.png
+719 focus 556 560 625
+719 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-055-0625.png
+720 focus 556 560 620
+720 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-056-0620.png
+721 focus 556 560 615
+721 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-057-0615.png
+722 focus 556 560 610
+722 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-058-0610.png
+723 focus 556 560 605
+723 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-059-0605.png
+724 focus 556 560 600
+724 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/sweep/sweep-060-0600.png
+
+730 focus 556 560 600
+730 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-000-0600.png
+731 focus 556 560 605
+731 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-001-0605.png
+732 focus 556 560 610
+732 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-002-0610.png
+733 focus 556 560 615
+733 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-003-0615.png
+734 focus 556 560 620
+734 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-004-0620.png
+735 focus 556 560 625
+735 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-005-0625.png
+736 focus 556 560 630
+736 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-006-0630.png
+737 focus 556 560 635
+737 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-007-0635.png
+738 focus 556 560 640
+738 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-008-0640.png
+739 focus 556 560 645
+739 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-009-0645.png
+740 focus 556 560 650
+740 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-010-0650.png
+741 focus 556 560 655
+741 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-011-0655.png
+742 focus 556 560 660
+742 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-012-0660.png
+743 focus 556 560 665
+743 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-013-0665.png
+744 focus 556 560 670
+744 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-014-0670.png
+745 focus 556 560 675
+745 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-015-0675.png
+746 focus 556 560 680
+746 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-016-0680.png
+747 focus 556 560 685
+747 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-017-0685.png
+748 focus 556 560 690
+748 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-018-0690.png
+749 focus 556 560 695
+749 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-019-0695.png
+750 focus 556 560 700
+750 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-020-0700.png
+751 focus 556 560 705
+751 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-021-0705.png
+752 focus 556 560 710
+752 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-022-0710.png
+753 focus 556 560 715
+753 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-023-0715.png
+754 focus 556 560 720
+754 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-024-0720.png
+755 focus 556 560 725
+755 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-025-0725.png
+756 focus 556 560 730
+756 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-026-0730.png
+757 focus 556 560 735
+757 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-027-0735.png
+758 focus 556 560 740
+758 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-028-0740.png
+759 focus 556 560 745
+759 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-029-0745.png
+760 focus 556 560 750
+760 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-030-0750.png
+761 focus 556 560 755
+761 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-031-0755.png
+762 focus 556 560 760
+762 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-032-0760.png
+763 focus 556 560 765
+763 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-033-0765.png
+764 focus 556 560 770
+764 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-034-0770.png
+765 focus 556 560 775
+765 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-035-0775.png
+766 focus 556 560 780
+766 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-036-0780.png
+767 focus 556 560 785
+767 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-037-0785.png
+768 focus 556 560 790
+768 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-038-0790.png
+769 focus 556 560 795
+769 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-039-0795.png
+770 focus 556 560 800
+770 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-040-0800.png
+771 focus 556 560 805
+771 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-041-0805.png
+772 focus 556 560 810
+772 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-042-0810.png
+773 focus 556 560 815
+773 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-043-0815.png
+774 focus 556 560 820
+774 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-044-0820.png
+775 focus 556 560 825
+775 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-045-0825.png
+776 focus 556 560 830
+776 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-046-0830.png
+777 focus 556 560 835
+777 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-047-0835.png
+778 focus 556 560 840
+778 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-048-0840.png
+779 focus 556 560 845
+779 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-049-0845.png
+780 focus 556 560 850
+780 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-050-0850.png
+781 focus 556 560 855
+781 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-051-0855.png
+782 focus 556 560 860
+782 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-052-0860.png
+783 focus 556 560 865
+783 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-053-0865.png
+784 focus 556 560 870
+784 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-054-0870.png
+785 focus 556 560 875
+785 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-055-0875.png
+786 focus 556 560 880
+786 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-056-0880.png
+787 focus 556 560 885
+787 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-057-0885.png
+788 focus 556 560 890
+788 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-058-0890.png
+789 focus 556 560 895
+789 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-059-0895.png
+790 focus 556 560 900
+790 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/pullback/back-060-0900.png
+
+800 focus 556 560 900
+801 draw plans/evidence/far-bodies/fade/band-0900.tsv
+
+802 focus 556 560 800
+803 draw plans/evidence/far-bodies/fade/band-0800.tsv
+
+804 focus 556 560 760
+805 draw plans/evidence/far-bodies/fade/band-0760.tsv
+
+806 focus 556 560 740
+807 draw plans/evidence/far-bodies/fade/band-0740.tsv
+
+808 focus 556 560 720
+809 draw plans/evidence/far-bodies/fade/band-0720.tsv
+
+810 focus 556 560 700
+811 draw plans/evidence/far-bodies/fade/band-0700.tsv
+
+812 focus 556 560 600
+813 draw plans/evidence/far-bodies/fade/band-0600.tsv
+
+814 focus 556 560 500
+815 draw plans/evidence/far-bodies/fade/band-0500.tsv
+
+816 focus 556 560 400
+817 draw plans/evidence/far-bodies/fade/band-0400.tsv
+
+900 focus 556 560 560
+900 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-000-0560.png
+901 focus 556 560 557
+901 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-001-0557.png
+902 focus 556 560 554
+902 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-002-0554.png
+903 focus 556 560 551
+903 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-003-0551.png
+904 focus 556 560 548
+904 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-004-0548.png
+905 focus 556 560 545
+905 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-005-0545.png
+906 focus 556 560 542
+906 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-006-0542.png
+907 focus 556 560 539
+907 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-007-0539.png
+908 focus 556 560 536
+908 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-008-0536.png
+909 focus 556 560 533
+909 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-009-0533.png
+910 focus 556 560 530
+910 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-010-0530.png
+911 focus 556 560 527
+911 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-011-0527.png
+912 focus 556 560 524
+912 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-012-0524.png
+913 focus 556 560 521
+913 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-013-0521.png
+914 focus 556 560 518
+914 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-014-0518.png
+915 focus 556 560 515
+915 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-015-0515.png
+916 focus 556 560 512
+916 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-016-0512.png
+917 focus 556 560 509
+917 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-017-0509.png
+918 focus 556 560 506
+918 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-018-0506.png
+919 focus 556 560 503
+919 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-019-0503.png
+920 focus 556 560 500
+920 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-020-0500.png
+921 focus 556 560 497
+921 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-021-0497.png
+922 focus 556 560 494
+922 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-022-0494.png
+923 focus 556 560 491
+923 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-023-0491.png
+924 focus 556 560 488
+924 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-024-0488.png
+925 focus 556 560 485
+925 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-025-0485.png
+926 focus 556 560 482
+926 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-026-0482.png
+927 focus 556 560 479
+927 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-027-0479.png
+928 focus 556 560 476
+928 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-028-0476.png
+929 focus 556 560 473
+929 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-029-0473.png
+930 focus 556 560 470
+930 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-030-0470.png
+931 focus 556 560 467
+931 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-031-0467.png
+932 focus 556 560 464
+932 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-032-0464.png
+933 focus 556 560 461
+933 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-033-0461.png
+934 focus 556 560 458
+934 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-034-0458.png
+935 focus 556 560 455
+935 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-035-0455.png
+936 focus 556 560 452
+936 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-036-0452.png
+937 focus 556 560 449
+937 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-037-0449.png
+938 focus 556 560 446
+938 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-038-0446.png
+939 focus 556 560 443
+939 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-039-0443.png
+940 focus 556 560 440
+940 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-040-0440.png
+941 focus 556 560 437
+941 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-041-0437.png
+942 focus 556 560 434
+942 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-042-0434.png
+943 focus 556 560 431
+943 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-043-0431.png
+944 focus 556 560 428
+944 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-044-0428.png
+945 focus 556 560 425
+945 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-045-0425.png
+946 focus 556 560 422
+946 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-046-0422.png
+947 focus 556 560 419
+947 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-047-0419.png
+948 focus 556 560 416
+948 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-048-0416.png
+949 focus 556 560 413
+949 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-049-0413.png
+950 focus 556 560 410
+950 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-050-0410.png
+951 focus 556 560 407
+951 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-051-0407.png
+952 focus 556 560 404
+952 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-052-0404.png
+953 focus 556 560 401
+953 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-053-0401.png
+954 focus 556 560 398
+954 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-054-0398.png
+955 focus 556 560 395
+955 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-055-0395.png
+956 focus 556 560 392
+956 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-056-0392.png
+957 focus 556 560 389
+957 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-057-0389.png
+958 focus 556 560 386
+958 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-058-0386.png
+959 focus 556 560 383
+959 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-059-0383.png
+960 focus 556 560 380
+960 shoot /tmp/claude-1000/-home-christian-Code-city-sim--claude-worktrees-tall-families/2ab519d1-cad7-4de5-af9f-7260691e6ce6/scratchpad/far-bodies/fade/ring/ring-060-0380.png
+
+1000 focus 556 560 560
+1001 draw plans/evidence/far-bodies/fade/fade-0560.tsv
+
+1002 focus 556 560 520
+1003 draw plans/evidence/far-bodies/fade/fade-0520.tsv
+
+1004 focus 556 560 500
+1005 draw plans/evidence/far-bodies/fade/fade-0500.tsv
+
+1006 focus 556 560 475
+1007 draw plans/evidence/far-bodies/fade/fade-0475.tsv
+
+1008 focus 556 560 450
+1009 draw plans/evidence/far-bodies/fade/fade-0450.tsv
+
+1010 focus 556 560 420
+1011 draw plans/evidence/far-bodies/fade/fade-0420.tsv
+
+1012 focus 556 560 380
+1013 draw plans/evidence/far-bodies/fade/fade-0380.tsv
+
+1014 ui far-fade on
+
+1015 quit
