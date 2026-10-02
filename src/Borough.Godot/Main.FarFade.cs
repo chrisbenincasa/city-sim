@@ -14,6 +14,9 @@ public partial class Main
     private readonly Dictionary<Material, Material> _fadeNearMaterials = [];
     private readonly List<ShaderMaterial> _fadeFacades = [];
     private readonly HashSet<BaseMaterial3D> _checkedBodyKitMaterials = [];
+
+    // Never worn itself. Each side of the fade wears a copy; see DerelictBody.
+    private ShaderMaterial? _derelictBody;
     private bool _farFade = true;
     private bool _bodyKitCheckedAtStartup;
 
@@ -184,6 +187,29 @@ public partial class Main
         shader.SetShaderParameter("fade_depth_metres", _farFade && !nearSide ? FarFadeDepthMetres : 0f);
     }
 
-    // Far instances remain resident inside near chunks so the shared dither can draw both sides.
-    private static bool NoChunkNear(Vector2I key) => false;
+    /// <summary>
+    /// The wash override a body layer wears, on its own side of the fade. Without it one override
+    /// would replace both sides' materials and draw the near and far bodies on top of each other.
+    /// </summary>
+    private Material? BodyWash(InstanceLayer layer)
+    {
+        if (_washing == Wash.None) return null;
+
+        // ArmWash builds both of these before any layer is asked, and sets them from the overlay
+        // style alone, so a copy carries settings that do not change after it is taken.
+        if ((BuildingWash ? _categorical : _muted) is not { } source) return null;
+        return Faded(source, layer);
+    }
+
+    /// <summary>The abandonment overlay a body layer wears, on its own side of the fade.</summary>
+    private Material DerelictBody(InstanceLayer layer) =>
+        Faded(_derelictBody ??= new ShaderMaterial
+        {
+            ResourceName = "derelict-body",
+            Shader = GD.Load<Shader>("res://derelict-body.gdshader"),
+        }, layer);
+
+    /// <summary>The copy of a shared material that fades on the same side as the layer it dresses.</summary>
+    private Material Faded(Material material, InstanceLayer layer) =>
+        layer.Multimesh.NearOnly ? FadingNear(material) : FadeMaterial(material);
 }

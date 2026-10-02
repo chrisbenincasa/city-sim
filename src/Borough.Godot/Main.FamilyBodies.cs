@@ -53,7 +53,7 @@ public partial class Main
     private readonly HashSet<Vector2I> _nearChunks = [];
     private readonly List<ulong> _bodyLayerIds = [];
     private Dictionary<(int East, int North), List<int>>? _footprints;
-    private ShaderMaterial? _derelictBody;
+    private StandardMaterial3D? _missingBodyPart;
     private bool _familyBodies;
     private bool _reportFamilyBodies;
     private float _bodyNearMetres = BodyNearMetres;
@@ -188,7 +188,6 @@ public partial class Main
             ulong id = IdAt(slot);
             changedIds.Add(id);
             placed.Add(slot);
-            RemoveFamilyBody(id);
             PlaceFamilyBody(slot);
         }
 
@@ -199,26 +198,44 @@ public partial class Main
     {
         foreach (((ArrayMesh _, bool abandoned), InstanceLayer layer) in _bodyLayers)
         {
-            if (abandoned) layer.MaterialOverlay = _washing == Wash.None ? DerelictBody() : null;
+            if (abandoned) layer.MaterialOverlay = _washing == Wash.None ? DerelictBody(layer) : null;
         }
     }
 
-    private void RemoveFamilyBody(ulong id)
+    /// <returns><c>true</c> where a body stood and has been taken out.</returns>
+    private bool RemoveFamilyBody(ulong id)
     {
-        if (_placedBodies.Remove(id, out PlacedBody placed))
+        bool stood = _placedBodies.Remove(id, out PlacedBody placed);
+        if (stood)
         {
             placed.NearLayer.Multimesh.Replace(id, []);
             placed.FarLayer?.Multimesh.Replace(id, []);
         }
         _bodyNeighbours.Remove(id);
+        return stood;
     }
 
     /// <returns><c>true</c> where the Building now draws as its family's body.</returns>
-    private bool PlaceFamilyBody(int slot)
+    private bool PlaceFamilyBody(int slot) => PlaceFamilyBody(slot, out _);
+
+    /// <param name="geometry">
+    /// Whether the body appeared, went, moved or changed shape — which is what the foliage
+    /// exclusions and the vacant-Lot drawing key off. 🔴 A MID-RISE OR TOWER WRITES NO MASSING BOX,
+    /// so <see cref="ReplaceBuilding"/> reports nothing about it and this is the only word the
+    /// incremental pass gets that the ground under a Building has changed.
+    /// </param>
+    /// <returns><c>true</c> where the Building now draws as its family's body.</returns>
+    private bool PlaceFamilyBody(int slot, out bool geometry)
     {
-        if (RequestBody(slot) is not { } request) return false;
-        PlaceBody(request);
-        return true;
+        ulong id = IdAt(slot);
+        _placedBodies.TryGetValue(id, out PlacedBody before);
+        RemoveFamilyBody(id);
+        if (RequestBody(slot) is { } request) PlaceBody(request);
+        _placedBodies.TryGetValue(id, out PlacedBody after);
+
+        // One shape per BodyKey, so comparing the shapes compares the Building's size and form.
+        geometry = before.At != after.At || before.NearShape != after.NearShape;
+        return after.NearShape is not null;
     }
 
     private BodyRequest? RequestBody(int slot)
@@ -384,18 +401,15 @@ public partial class Main
         var layer = new InstanceLayer();
         layer.Multimesh.Mesh = mesh;
         layer.Multimesh.UseCustomData = true;
-        layer.Multimesh.Near = far && _farFade ? NoChunkNear : NearChunk;
         layer.Multimesh.NearOnly = !far;
+        if (far) FarSideResidency(layer); else layer.Multimesh.Near = NearChunk;
         layer.InstanceParameters["body_ink"] = Colors.White;
-        layer.MaterialOverride = _washing == Wash.None ? null : BuildingWash ? _categorical : _muted;
-        if (abandoned && _washing == Wash.None) layer.MaterialOverlay = DerelictBody();
+        layer.MaterialOverride = BodyWash(layer);
+        if (abandoned && _washing == Wash.None) layer.MaterialOverlay = DerelictBody(layer);
         AddChild(layer);
         _bodyLayers[(mesh, abandoned)] = layer;
         return layer;
     }
-
-    private ShaderMaterial DerelictBody() =>
-        _derelictBody ??= new ShaderMaterial { Shader = GD.Load<Shader>("res://derelict-body.gdshader") };
 
     /// <summary>Whether a chunk lies within the body band of the camera, with 15% hysteresis.</summary>
     private bool NearChunk(Vector2I key)
@@ -449,6 +463,7 @@ public partial class Main
 
         foreach ((ulong id, int slot) in stale)
         {
+            // By the remembered id as well as by the slot's, so a body outlives neither.
             RemoveFamilyBody(id);
             PlaceFamilyBody(slot);
         }
@@ -644,7 +659,7 @@ public partial class Main
 
             bool dressed = body.Materials.TryGetValue(part, out string? texture);
             Material material = dressed ? LibraryMaterial(texture!)
-                : library.GetValueOrDefault(part) ?? new StandardMaterial3D { AlbedoColor = new Color(0.8f, 0.8f, 0.78f) };
+                : library.GetValueOrDefault(part) ?? MissingBodyPart;
             bool paintable = !dressed || _textureLibrary!.Paintable.Contains(texture!);
             Color? tint = dressed ? new Color(1f, 1f, 1f, 0f) : null;
             reads[part] = MeanColour(material);
@@ -694,7 +709,7 @@ public partial class Main
             bool present = dressed || library.ContainsKey(part) || (scheme?.ContainsKey(part) ?? false);
             if (!present) continue;
             Material material = dressed ? LibraryMaterial(texture!)
-                : library.GetValueOrDefault(part) ?? new StandardMaterial3D { AlbedoColor = new Color(.8f, .8f, .78f) };
+                : library.GetValueOrDefault(part) ?? MissingBodyPart;
             Color color = MeanColour(material).LinearToSrgb();
             bool paintable = !dressed || _textureLibrary!.Paintable.Contains(texture!);
             if (paintable && scheme is not null && scheme.TryGetValue(part, out Paint paint))
@@ -708,6 +723,22 @@ public partial class Main
         colors.TryAdd("wall", new Color(.65f, .65f, .62f));
         return colors;
     }
+
+    /// <summary>
+    /// What a part wears where its library holds no material for it. One material for every such
+    /// part, so the fade's copies, the mean-colour cache and the kit check each hold one entry.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Double-sided, which is <c>body-kit.gdshader</c>'s own culling.</b> A shell-built
+    /// fallback that kept Godot's default would make the fade's rebuild warn about a drift the
+    /// shell itself wrote.
+    /// </remarks>
+    private StandardMaterial3D MissingBodyPart => _missingBodyPart ??= new StandardMaterial3D
+    {
+        ResourceName = "missing-body-part",
+        AlbedoColor = new Color(.8f, .8f, .78f),
+        CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+    };
 
     /// <summary>A material's mean albedo in linear light, its texture sampled on a 32 × 32 grid.</summary>
     private Color MeanColour(Material? material)

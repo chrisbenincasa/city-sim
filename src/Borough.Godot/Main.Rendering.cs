@@ -55,15 +55,17 @@ public partial class Main
                 if (_renderedBuildings.Remove(slot, out var old))
                 {
                     if (old.Drawn) _drawnBuildings--;
-                    if (old.Id != id) geometry |= ReplaceBuilding(old.Id);
-                    RemoveFamilyBody(old.Id);
+
+                    // A bodied Building writes no massing box, so a gone one is news only here.
+                    // A body under the same id is left standing for PlaceFamilyBody to compare with.
+                    if (old.Id != id) geometry |= ReplaceBuilding(old.Id) | RemoveFamilyBody(old.Id);
                     changedIds.Add(old.Id);
                 }
                 if (!live) continue;
                 changedIds.Add(id);
                 placed.Add(slot);
-                RemoveFamilyBody(id);
-                bool bodied = PlaceFamilyBody(slot);
+                bool bodied = PlaceFamilyBody(slot, out bool bodyChanged);
+                geometry |= bodyChanged;
                 PlacedBody bodyPlacement = bodied ? _placedBodies[id] : default;
                 BodyShape? shape = bodied ? bodyPlacement.NearShape : null;
                 bool detailedFar = bodyPlacement.FarShape is not null;
