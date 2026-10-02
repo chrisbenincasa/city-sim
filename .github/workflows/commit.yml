@@ -21,6 +21,29 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          filter: blob:none
+
+      # A push that changes only Markdown runs the Corpus tests, which check links, plan identity,
+      # Markdown style and the generated Ruleset reference. Everything else in the assertion tier
+      # reads no Markdown. Locally the same lane is `scripts/test.sh Borough.Tests.Corpus`.
+      #
+      # A new branch has no usable `before`, so it is compared against its merge base with main.
+      - name: Scope
+        id: scope
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            BEFORE="$(git merge-base origin/main HEAD)"
+          fi
+          if git diff --no-renames --name-only "$BEFORE" HEAD | grep -qv '\.md$'; then
+            echo "filter=tier!=instrument" >> "$GITHUB_OUTPUT"
+          else
+            echo "filter=tier!=instrument&FullyQualifiedName~Borough.Tests.Corpus" >> "$GITHUB_OUTPUT"
+            echo "docs=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -35,7 +58,7 @@ jobs:
       # positive filter selects only the seventeen tests that said what they were and silently
       # drops the sixteen hundred that did not. tests/Borough.Tests/Tier.cs carries the reasoning.
       - name: Assertion tier
-        run: dotnet test -c Release --no-build --filter "tier!=instrument"
+        run: dotnet test -c Release --no-build --filter "${{ steps.scope.outputs.filter }}"
 
       # LAST, deliberately. A formatting complaint must never mask a test failure: GitHub Actions
       # stops at the first failing step, and "the indentation is wrong" arriving instead of "the
@@ -46,4 +69,5 @@ jobs:
       # rule applied to the format gate. In particular the script formats src/Borough.Godot, which
       # Borough.slnx does not list and which an inline `dotnet format` here would silently skip.
       - name: Formatting
+        if: steps.scope.outputs.docs != 'true'
         run: scripts/format.sh --check
