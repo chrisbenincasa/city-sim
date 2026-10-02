@@ -90,6 +90,9 @@ public sealed class InstanceBuffer
         /// <summary>The index into <see cref="InstanceLayer.Details"/> drawn, or -1 for the buffer's mesh.</summary>
         public int Detail { get; internal set; } = -1;
         public Aabb Bounds { get; internal set; }
+
+        /// <summary>The instance origins alone, without the mesh around them.</summary>
+        public Aabb Origins { get; internal set; }
         public IReadOnlyList<Entry> Instances => Entries;
     }
     private readonly InstanceLayer _owner;
@@ -114,8 +117,9 @@ public sealed class InstanceBuffer
     public bool NearOnly { get; set; }
 
     /// <summary>
-    /// Whether a batch is still wanted, asked of its own bounds rather than of its chunk. A layer
-    /// whose instances fade out one at a time uses it to drop a batch none of them is left in.
+    /// Whether a batch is still wanted, asked of <see cref="Batch.Origins"/> rather than of its
+    /// chunk. A layer whose instances fade out one at a time uses it to drop a batch none of them
+    /// is left in, and the fade measures an instance's origin, not the mesh around it.
     /// </summary>
     public Func<Aabb, bool>? Needed { get; set; }
 
@@ -335,8 +339,14 @@ public sealed class InstanceBuffer
             if (batch.BoundsDirty)
             {
                 Aabb changed = batch.Entries[0].Transform * meshBounds;
-                foreach (Entry entry in batch.Entries) changed = changed.Merge(entry.Transform * meshBounds);
+                var origins = new Aabb(batch.Entries[0].Transform.Origin, Vector3.Zero);
+                foreach (Entry entry in batch.Entries)
+                {
+                    changed = changed.Merge(entry.Transform * meshBounds);
+                    origins = origins.Expand(entry.Transform.Origin);
+                }
                 batch.Bounds = changed;
+                batch.Origins = origins;
                 batch.BoundsDirty = false;
             }
             Aabb bounds = batch.Bounds;
@@ -347,6 +357,11 @@ public sealed class InstanceBuffer
                 InstanceCount -= mesh.InstanceCount;
                 mesh.InstanceCount = 0;
                 batch.Buffer = [];
+
+                // An emptied MultiMesh keeps the CustomAabb of its last upload, which the culler
+                // still accepts, so a dropped batch would go on costing a draw call with nothing
+                // in it. A batch that has never been uploaded has no bounds and is already culled.
+                batch.Node.Visible = false;
                 _dirty.Remove(batch);
                 continue;
             }
@@ -384,6 +399,7 @@ public sealed class InstanceBuffer
             mesh.CustomAabb = bounds;
             mesh.Buffer = batch.Buffer;
             mesh.VisibleInstanceCount = count;
+            batch.Node.Visible = true;
             Uploads++;
             UploadedInstances += count;
             UploadedBytes += batch.Buffer.Length * sizeof(float);
@@ -403,7 +419,7 @@ public sealed class InstanceBuffer
     private bool Wants(Batch batch)
     {
         if (NearOnly && Near is not null) return Near(batch.Key);
-        if (Needed is not null && !Needed(batch.Bounds)) return false;
+        if (Needed is not null && !Needed(batch.Origins)) return false;
         if (_eye is not { } eye || _detailDistance <= 0) return true;
         Vector3 nearest = eye.Clamp(batch.Bounds.Position, batch.Bounds.End);
         // Hysteresis prevents reallocating buffers while the camera hovers at a detail boundary.

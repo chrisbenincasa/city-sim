@@ -71,11 +71,16 @@ public sealed class FarBodyShellTests
 
         // The farthest corner far out and the nearest corner near in, so neither side drops a
         // batch the dither still draws something of.
+        Assert.Contains("private bool FarBatchNeeded(Aabb origins)", fade);
         Assert.Contains("return eye.DistanceSquaredTo(farthest) > inner * inner;", fade);
+        Assert.Contains("private bool NearBatchNeeded(Aabb origins)", fade);
         Assert.Contains("return eye.DistanceSquaredTo(nearest) <= _bodyNearMetres * _bodyNearMetres;", fade);
 
+        // Of the origins and not of the meshes around them, which is what the shader measures: a
+        // tower's 60 m of geometry would otherwise keep a batch every Building of which has faded.
         string layers = Shell("InstanceLayer.cs");
-        Assert.Contains("if (Needed is not null && !Needed(batch.Bounds)) return false;", layers);
+        Assert.Contains("if (Needed is not null && !Needed(batch.Origins)) return false;", layers);
+        Assert.Contains("origins = origins.Expand(entry.Transform.Origin);", layers);
         Assert.Contains("|| Near is not null || Needed is not null;", layers);
     }
 

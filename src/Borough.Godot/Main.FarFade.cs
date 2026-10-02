@@ -142,8 +142,9 @@ public partial class Main
     }
 
     /// <summary>
-    /// What decides whether a body layer's batch draws. Under the fade each side asks its own
-    /// bounds, because the dither discards a whole instance over the far part of that side's range.
+    /// What decides whether a body layer's batch draws. Under the fade each side asks the Buildings
+    /// in a batch its own question, because the dither discards a whole instance over the far part
+    /// of that side's range.
     /// The chunk switch is what the study option restores, and a body with no far form keeps it.
     /// </summary>
     private void BodyResidency(InstanceLayer layer)
@@ -159,18 +160,21 @@ public partial class Main
     /// one of them stands nearer than the ring's inner edge and the dither discards it in full.
     /// </summary>
     /// <remarks>
-    /// ⚠ <b>The farthest corner of the bounds, because the shader measures each instance's own
-    /// origin.</b> Distance over a box is greatest at a vertex and every origin lies inside the
-    /// box, so a batch is dropped only once no Building in it carries any weight. One mesh is one
-    /// layer, so a rare body is a batch of one and goes as soon as the camera reaches it.
+    /// ⚠ <b>Both predicates read the box around the instance origins, not the box around the
+    /// meshes.</b> `body_fade_weight` measures the camera to an instance's origin, so a tower's
+    /// 60 m of geometry must not decide its residency -- a batch whose every origin stands inside
+    /// the inner edge would have survived on its footprint alone. Distance over a box is greatest
+    /// at a vertex, so the farthest corner is an upper bound on every origin in the batch and a
+    /// batch is dropped only once no Building in it carries any weight. One mesh is one layer, so
+    /// a rare body is a batch of one and both bounds are exact.
     /// </remarks>
-    private bool FarBatchNeeded(Aabb bounds)
+    private bool FarBatchNeeded(Aabb origins)
     {
         Vector3 eye = _camera.GlobalPosition;
         Vector3 farthest = new(
-            Corner(eye.X, bounds.Position.X, bounds.End.X),
-            Corner(eye.Y, bounds.Position.Y, bounds.End.Y),
-            Corner(eye.Z, bounds.Position.Z, bounds.End.Z));
+            Corner(eye.X, origins.Position.X, origins.End.X),
+            Corner(eye.Y, origins.Position.Y, origins.End.Y),
+            Corner(eye.Z, origins.Position.Z, origins.End.Z));
         float inner = Mathf.Max(0f, _bodyNearMetres - FarFadeRingMetres);
         return eye.DistanceSquaredTo(farthest) > inner * inner;
 
@@ -185,13 +189,13 @@ public partial class Main
     /// <remarks>
     /// 🔴 <b>This is the half of the near band's cost the chunk switch used to carry.</b> A near
     /// chunk reaches 1,024 m past its own edge, so the near form of a Building 1,400 m away stayed
-    /// resident and drawn with every fragment of it discarded. The nearest point of the bounds is a
-    /// lower bound on every instance's distance, which is what makes dropping the batch safe.
+    /// resident and drawn with every fragment of it discarded. The nearest point of the origin box
+    /// is a lower bound on every origin's distance, which is what makes dropping the batch safe.
     /// </remarks>
-    private bool NearBatchNeeded(Aabb bounds)
+    private bool NearBatchNeeded(Aabb origins)
     {
         Vector3 eye = _camera.GlobalPosition;
-        Vector3 nearest = eye.Clamp(bounds.Position, bounds.End);
+        Vector3 nearest = eye.Clamp(origins.Position, origins.End);
         return eye.DistanceSquaredTo(nearest) <= _bodyNearMetres * _bodyNearMetres;
     }
 
