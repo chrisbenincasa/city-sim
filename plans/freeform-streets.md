@@ -63,6 +63,40 @@ a block only because shipped Rulesets set `block_tiles = 32`.
 - New Lot candidates that overlap existing Lots or Buildings are rejected. Conflicts between new
   candidates need a deterministic resolution rule.
 
+### Selected drawing and snapping
+
+The grid survives as a drawing aid, not an engine constraint, following Cities: Skylines II.
+The simulation receives endpoints and shape. The shell's tool chooses them.
+
+| Draw mode | Gesture |
+|---|---|
+| Straight | Start, end |
+| Simple curve | Start, bend point, end |
+| Continuous | Each Street starts tangent to the last |
+| Grid | Two corners, then drag sideways to lay a block of Streets |
+| Parallel | Lays a second Street at a set offset from the first |
+
+| Snap toggle | Snaps to |
+|---|---|
+| Existing Streets | Nodes and points along existing Segments |
+| Length | Multiples of a Ruleset step, so Lots tile evenly along a Street |
+| Angle | 90° to an existing Street, with configurable finer steps |
+| Guidelines | Lines extended from existing Streets |
+| Building sides | Edges of existing Lots and Buildings |
+
+- One master toggle turns all snapping off and takes a key binding.
+- Snapping runs in the shell only. It changes which endpoints a command carries and adds no
+  simulation state.
+- Endpoints are integer Tiles and shapes are Q16.16. Repeated 90° and length snaps land exactly,
+  so a grid cannot drift. Cities: Skylines II grids break from accumulated float error in
+  endpoints.
+- Grid and Parallel modes issue several Streets from one gesture. The command needs a batch form;
+  `adr/0077`'s lattice run is the precedent.
+- Snap defaults, the length step and angle steps go in the Ruleset or shell settings, not
+  constants.
+- Lattice-only Street runs (`ConnectPayload` with a count) may ship first as a play-testing
+  stopgap. They are replaced by this tool.
+
 ### Remaining design decisions
 
 1. **Block geometry and identity.** Recover enclosed ground from the Street graph and choose how
@@ -87,7 +121,9 @@ a block only because shipped Rulesets set `block_tiles = 32`.
 5. **Junction geometry.** Arbitrary angles need junction polygons. Shared with the Arterials and
    Junction construction row.
 6. **Wedge land.** Leave it empty, give it to the adjacent Lot as yard, or allow parks.
-7. **Grid tool.** Keep the lattice as a drawing aid alongside freeform, or drop it.
+7. **Snap and preview details.** The grid is kept as a drawing aid (see above). Choose the length
+   step relative to Lot widths, whether a zone-grid snap aligns new Streets to existing strip
+   Lots, and what the preview shows before commit: snapped geometry, refusals and cost.
 
 ## Found in passing
 
