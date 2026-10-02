@@ -22,6 +22,10 @@ on:
   push:
     branches:
       - main
+    # The commit lane already ran the Corpus tests on a Markdown-only change, and the daily schedule
+    # still covers it.
+    paths-ignore:
+      - '**.md'
   schedule:
     # 06:00 UTC daily, KEPT as the backstop. A repository with no pushes for a day still wants one
     # reading, and a scheduled run is what survives a branch being the only place work is happening.
