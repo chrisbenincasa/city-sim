@@ -728,17 +728,22 @@ public partial class Main
             FoliageFootprint(one.Body, footprints++);
             if (one.Outhoused) FoliageFootprint(one.Yard, footprints++);
             if (_shelled.Contains(one.Id) || _exactBodies.ContainsKey(one.Id) || _moduleDrawnIds.Contains(one.Id)) continue;
-            bool far = _placedBodies.TryGetValue(one.Id, out PlacedBody placed);
-            if (far)
+            bool bodied = _placedBodies.TryGetValue(one.Id, out PlacedBody placed);
+            if (bodied)
             {
-                placed.Layer.Multimesh.Replace(one.Id, [new InstanceValue(placed.At, Colors.White, Tint(one))]);
-                one = FarMassing(one, placed.Shape.Body);
+                placed.NearLayer.Multimesh.Replace(one.Id, [new InstanceValue(placed.At, Colors.White, Tint(one))]);
+                placed.FarLayer?.Multimesh.Replace(one.Id,
+                    [new InstanceValue(placed.At, Colors.White, Tint(one), Far: true)]);
+                if (placed.FarShape is not null) continue;
+                one = FarMassing(one, placed.NearShape.Body);
             }
+
+            bool far = bodied;
 
             _buildings.Multimesh.Identity(bodies, one.Id);
             _buildingIds.Add(one.Id);
             _buildings.Multimesh.SetInstanceTransform(bodies, one.Body);
-            _buildings.Multimesh.SetInstanceColor(bodies, far ? FarPaint(one, placed.Shape.Wall, one.Paint) : one.Paint);
+            _buildings.Multimesh.SetInstanceColor(bodies, far ? FarPaint(one, placed.NearShape.Wall, one.Paint) : one.Paint);
             _buildings.Multimesh.SetInstanceFar(bodies, far);
             _buildings.Multimesh.SetInstanceCustomData(bodies++, one.Reads);
 
@@ -779,7 +784,7 @@ public partial class Main
             // ⚠ THE ROOF OF A SHELL IS THE SHELL'S COLOUR AND NOT THE ROOFING. An abandoned
             // Building that kept a warm red roof would read as the liveliest thing on the street.
             layer.Multimesh.SetInstanceColor(
-                at, far ? FarPaint(one, placed.Shape.Roof, RoofPaint(one)) : RoofPaint(one));
+                at, far ? FarPaint(one, placed.NearShape.Roof, RoofPaint(one)) : RoofPaint(one));
             layer.Multimesh.SetInstanceFar(at, far);
 
             switch (one.Cap)

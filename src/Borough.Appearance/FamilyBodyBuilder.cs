@@ -2,6 +2,12 @@ using System.Numerics;
 
 namespace Borough.Appearance;
 
+public enum FamilyBodyDetail : byte
+{
+    Near,
+    Far,
+}
+
 /// <summary>A generated body: one mesh per material part, in the order parts were first used.</summary>
 public sealed class FamilyBodyMesh
 {
@@ -560,7 +566,42 @@ public static partial class FamilyBodyBuilder
             }
         }
 
+        public void GridPlane(Face face, float u0, float u1, float z0, float z1, float depth,
+            float gridU0, float gridU1, int cell)
+        {
+            ReadOnlySpan<Vector3> points =
+            [
+                face.Point(u0, z0, depth), face.Point(u1, z0, depth),
+                face.Point(u1, z1, depth), face.Point(u0, z1, depth),
+            ];
+            ReadOnlySpan<Vector2> uvs =
+            [
+                new(gridU0, z0 / Storey), new(gridU1, z0 / Storey),
+                new(gridU1, z1 / Storey), new(gridU0, z1 / Storey),
+            ];
+            Polygon("far-facade", points, uvs, cell);
+        }
+
         private void Quad(string part, Vector3 a, Vector3 b, Vector3 c, Vector3 d) => Polygon(part, [a, b, c, d]);
+
+        private void Polygon(string part, ReadOnlySpan<Vector3> points, ReadOnlySpan<Vector2> gridUvs, int cell)
+        {
+            Vector3 cross = Vector3.Cross(points[1] - points[0], points[^1] - points[0]);
+            if (cross.LengthSquared() < 1e-10f) return;
+            Vector3 n = Vector3.Normalize(cross);
+            Span<Vector3> corners = stackalloc Vector3[points.Length];
+            Span<Vector2> uvs = stackalloc Vector2[points.Length];
+            Span<Vector2> uv2s = stackalloc Vector2[points.Length];
+            for (int i = 0; i < points.Length; i++)
+            {
+                int source = points.Length - 1 - i;
+                corners[i] = Godot(points[source]);
+                uvs[i] = gridUvs[source];
+                uv2s[i] = new Vector2(cell, 0f);
+            }
+
+            mesh.Part(part).Polygon(corners, uvs, uv2s, Godot(n));
+        }
 
         /// <summary>A convex polygon in the script's frame, anticlockwise seen from outside.</summary>
         public void Polygon(string part, ReadOnlySpan<Vector3> points)

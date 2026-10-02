@@ -1,0 +1,64 @@
+# The two fixes platted.toml cannot show: the abandonment overlay inside the fade ring, and an
+# automatic construction clearing the vacant-Lot drawing and the foliage under it.
+#
+# WHY A SECOND SCRIPT. One run is one Ruleset. platted.toml is the only shipped file that states
+# `[lots] storeys_per_rung`, so it is the only world with mid-rise and tower bodies -- and it
+# declares no decline clock and builds its whole city at boot, so nothing in it is ever abandoned
+# and nothing is ever raised. tall-declining.toml beside this file is platted.toml plus the clock.
+#
+# Run it from the repository root, against a RELEASE build in the directory Godot loads:
+#
+#   dotnet build src/Borough.Godot -c Release \
+#     -p:OutputPath=$PWD/src/Borough.Godot/.godot/mono/temp/bin/Debug/
+#   BOROUGH_RENDER_PROFILE=1 godot --path src/Borough.Godot -- \
+#     --ruleset plans/evidence/far-bodies/fixes/tall-declining.toml --citizens 40000 \
+#     --drive plans/evidence/far-bodies/fixes/declining.drive \
+#     > plans/evidence/far-bodies/fixes/declining.log 2>&1
+#
+# Tick 5,120 is two and a half Days in: the clock condemns after one, so the shells have been
+# standing for a Day and the sweep is raising replacements. declining.log's family_body lines carry
+# `abandoned`. Every shot is on a Tick that is noon -- 1,024 past a Day boundary of 2,048 -- so the
+# three construction frames are lit the same way and comparing them compares the city.
+
+1 speed 8
+
+5100 ui family-bodies on
+5100 roads on
+5100 tilt 40
+5100 turn right
+5100 hold look
+
+# sol-F2: Building 11, a tower-stepped-point abandoned at tile 528 560, on each side of the fade
+# and in the ring. The overlay has to fade with the body it dresses rather than draw over both.
+5102 focus 528 560 300
+5102 click 528 560
+5103 shoot plans/evidence/far-bodies/fixes/derelict-tower-0300.png
+
+5104 focus 528 560 475
+5104 click 528 560
+5105 shoot plans/evidence/far-bodies/fixes/derelict-tower-0475.png
+5105 ui read plans/evidence/far-bodies/fixes/derelict-tower-0475.json
+
+5106 focus 528 560 1000
+5106 click 528 560
+5107 shoot plans/evidence/far-bodies/fixes/derelict-tower-1000.png
+
+# The same in the ring for a mid-rise: Building 1, a panel-slab at tile 560 515.
+5108 focus 560 515 475
+5108 click 560 515
+5109 shoot plans/evidence/far-bodies/fixes/derelict-midrise-0475.png
+
+# sol-F3: one camera over the middle, a shot a Day. The caption's vacant Lot count moves with the
+# sweep, which it cannot do unless an incremental body change refreshes the spatial passes; the
+# draw lists say which Buildings are new and whether any tree stands inside one.
+5110 focus 556 560 600
+5120 shoot plans/evidence/far-bodies/fixes/build-0-5120.png
+5121 draw plans/evidence/far-bodies/fixes/build-0-5120.tsv
+
+7168 shoot plans/evidence/far-bodies/fixes/build-1-7168.png
+7169 draw plans/evidence/far-bodies/fixes/build-1-7168.tsv
+
+9216 shoot plans/evidence/far-bodies/fixes/build-2-9216.png
+9217 draw plans/evidence/far-bodies/fixes/build-2-9216.tsv
+
+9218 quit

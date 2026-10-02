@@ -1,6 +1,8 @@
 shader_type spatial;
 render_mode unshaded, cull_back;
 
+#include "body-fade.gdshaderinc"
+
 // Review variants: 0 flat reference, 1 fixed face shading, 2 face shading with edges.
 uniform int treatment = 2;
 uniform bool context_only = false;
@@ -22,9 +24,18 @@ void vertex() {
     roof_mask = UV.y < -16.0 ? int(UV.x + 0.5) : -1;
     world_normal = normalize(MODEL_NORMAL_MATRIX * NORMAL);
     instance_ink = INSTANCE_CUSTOM.rgb;
+
+    // A copy of this material per side of the body fade carries the ring; every other user keeps
+    // the zero default, which draws every pixel and moves no depth.
+    fade_in = body_fade_weight(MODEL_MATRIX[3].xyz, MAIN_CAM_INV_VIEW_MATRIX[3].xyz);
+    POSITION = body_fade_position(VERTEX, MODELVIEW_MATRIX, PROJECTION_MATRIX);
 }
 
 void fragment() {
+    if (body_fade_discards(fade_in, FRAGCOORD.xy)) {
+        discard;
+    }
+
     bool body = body_ink.a > 0.0;
     vec3 paint = body ? instance_ink : COLOR.rgb;
     vec3 ink = context_only ? context_colour : paint;

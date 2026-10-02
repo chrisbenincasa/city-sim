@@ -1,0 +1,904 @@
+Godot Engine v4.7.2.stable.mono.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.4.312 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce GTX 1080
+
+far_body_meshes	210	195.1 ms
+family_body	panel-slab	building 1	120x60 m	15 storeys	attached None	paint 1	tile 560 515	ring
+family_body	panel-slab-balconies	building 2	120x56 m	16 storeys	attached None	paint 1	tile 560 530	ring
+family_body	tower-stepped-point	building 3	116x116 m	56 storeys	attached None	paint 1	tile 592 528	podium 5	shaft 56x56 m
+family_body	panel-slab-balconies	building 4	120x36 m	15 storeys	attached None	paint 0	tile 592 550
+family_body	panel-slab-plain	building 5	116x32 m	12 storeys	attached None	paint 1	tile 592 571
+family_body	panel-slab	building 6	44x32 m	14 storeys	attached Right, RightCrosswise	paint 1	tile 581 560
+family_body	panel-slab-balconies	building 7	40x24 m	12 storeys	attached None	paint 3	tile 603 561
+family_body	tower-point	building 8	120x116 m	46 storeys	attached None	paint 0	tile 592 592	podium 8	shaft 60x56 m
+family_body	tower-l	building 9	116x120 m	56 storeys	attached None	paint 2	tile 560 592	podium 4	shaft 56x60 m
+family_body	tower-h	building 10	116x116 m	60 storeys	attached None	paint 1	tile 528 592	podium 3	shaft 56x56 m
+family_body	tower-stepped-point	building 11	120x120 m	47 storeys	attached None	paint 2	tile 528 560	podium 7	shaft 60x60 m
+family_body	mansion-block	building 12	32x52 m	10 storeys	attached None	paint 3	tile 518 488
+family_body	mansion-block	building 13	32x56 m	8 storeys	attached None	paint 4	tile 528 488
+family_body	mansion-block	building 14	32x52 m	10 storeys	attached None	paint 1	tile 538 488
+family_body	mansion-balconies	building 15	56x60 m	11 storeys	attached None	paint 2	tile 520 498	ring
+family_body	mansion-balconies	building 16	56x52 m	11 storeys	attached None	paint 1	tile 536 499	ring
+family_body	mansion-block	building 17	40x24 m	5 storeys	attached None	paint 5	tile 550 484
+family_body	mansion-block	building 18	28x28 m	7 storeys	attached None	paint 5	tile 562 484
+family_body	mansion-block	building 19	28x24 m	6 storeys	attached None	paint 1	tile 570 485
+family_body	mansion-shops	building 20	52x20 m	5 storeys	attached None	paint 2	tile 552 508
+family_body	mansion-shops	building 21	60x24 m	6 storeys	attached None	paint 2	tile 568 508
+family_body	mansion-block	building 22	24x48 m	5 storeys	attached None	paint 1	tile 552 492
+family_body	mansion-block	building 23	20x60 m	5 storeys	attached None	paint 3	tile 552 500
+family_body	mansion-shops	building 24	48x56 m	5 storeys	attached None	paint 3	tile 568 492	ring
+family_body	mansion-balconies	building 25	28x16 m	6 storeys	attached None	paint 1	tile 580 484
+family_body	mansion-balconies	building 26	40x24 m	6 storeys	attached Right, RightCrosswise	paint 2	tile 591 485
+family_body	mansion-balconies	building 27	44x24 m	5 storeys	attached Left, LeftCrosswise	paint 2	tile 602 484
+family_body	mansion-shops	building 28	56x20 m	5 storeys	attached None	paint 2	tile 585 508
+family_body	mansion-shops	building 29	52x28 m	7 storeys	attached None	paint 3	tile 600 508
+family_body	mansion-shops	building 30	28x60 m	6 storeys	attached Left, LeftCrosswise	paint 1	tile 584 492
+family_body	mansion-shops	building 31	32x52 m	5 storeys	attached Right, RightCrosswise	paint 2	tile 584 500
+family_body	mansion-block	building 32	56x52 m	7 storeys	attached None	paint 0	tile 600 491	ring
+family_body	mansion-balconies	building 33	40x60 m	8 storeys	attached None	paint 2	tile 614 488
+family_body	mansion-balconies	building 34	44x52 m	9 storeys	attached None	paint 1	tile 626 488
+family_body	mansion-balconies	building 35	20x60 m	11 storeys	attached None	paint 3	tile 636 488
+family_body	mansion-block	building 36	60x56 m	8 storeys	attached Right, RightCrosswise	paint 1	tile 616 499	ring
+family_body	mansion-block	building 37	60x60 m	11 storeys	attached Left, LeftCrosswise	paint 3	tile 632 498	ring
+family_body	mansion-shops	building 38	40x28 m	6 storeys	attached None	paint 1	tile 614 516
+family_body	mansion-shops	building 39	36x20 m	7 storeys	attached None	paint 0	tile 626 516
+family_body	mansion-shops	building 40	20x28 m	7 storeys	attached None	paint 3	tile 636 516
+family_body	mansion-shops	building 41	60x24 m	8 storeys	attached None	paint 1	tile 616 539
+family_body	mansion-shops	building 42	52x20 m	8 storeys	attached None	paint 1	tile 632 540
+family_body	mansion-balconies	building 43	24x60 m	7 storeys	attached Right, RightCrosswise	paint 0	tile 616 523
+family_body	mansion-balconies	building 44	24x56 m	6 storeys	attached None	paint 1	tile 616 532
+family_body	mansion-shops	building 45	60x52 m	7 storeys	attached None	paint 0	tile 632 524	ring
+family_body	tower-h	building 46	112x120 m	64 storeys	attached None	paint 2	tile 624 560	podium 2	shaft 56x60 m
+family_body	tower-point	building 47	116x112 m	58 storeys	attached None	paint 2	tile 624 592	podium 4	shaft 56x56 m
+family_body	mansion-balconies	building 48	32x52 m	9 storeys	attached Right, RightCrosswise	paint 2	tile 582 616
+family_body	mansion-balconies	building 49	40x56 m	10 storeys	attached Left, LeftCrosswise	paint 1	tile 591 616
+family_body	mansion-balconies	building 50	36x48 m	11 storeys	attached None	paint 0	tile 602 616
+family_body	mansion-balconies	building 51	56x52 m	11 storeys	attached Right, RightCrosswise	paint 0	tile 585 628	ring
+family_body	mansion-balconies	building 52	60x60 m	11 storeys	attached Left, LeftCrosswise	paint 0	tile 600 626	ring
+family_body	mansion-block	building 53	32x28 m	5 storeys	attached None	paint 1	tile 549 612
+family_body	mansion-block	building 54	40x24 m	6 storeys	attached None	paint 1	tile 559 612
+family_body	mansion-block	building 55	32x24 m	6 storeys	attached None	paint 2	tile 571 613
+family_body	mansion-shops	building 56	60x28 m	5 storeys	attached Left, LeftCrosswise	paint 2	tile 552 636
+family_body	mansion-shops	building 57	56x24 m	5 storeys	attached Right, RightCrosswise	paint 3	tile 567 635
+family_body	mansion-shops	building 58	20x56 m	6 storeys	attached None	paint 1	tile 552 620
+family_body	mansion-shops	building 59	24x52 m	7 storeys	attached Left, LeftCrosswise	paint 0	tile 552 629
+family_body	mansion-block	building 60	56x52 m	5 storeys	attached None	paint 4	tile 568 620	ring
+family_body	panel-slab-balconies	building 61	116x28 m	13 storeys	attached None	paint 1	tile 528 612
+family_body	panel-slab-plain	building 62	120x28 m	13 storeys	attached None	paint 2	tile 528 636
+family_body	panel-slab-plain	building 63	36x36 m	13 storeys	attached None	paint 1	tile 518 624
+family_body	panel-slab-plain	building 64	40x36 m	13 storeys	attached None	paint 1	tile 538 625
+family_body	mansion-block	building 65	44x48 m	9 storeys	attached Right	paint 2	tile 486 616
+family_body	mansion-block	building 66	36x48 m	9 storeys	attached Left	paint 0	tile 496 616
+family_body	mansion-block	building 67	24x60 m	8 storeys	attached None	paint 4	tile 507 616
+family_body	mansion-balconies	building 68	52x56 m	9 storeys	attached None	paint 3	tile 488 627	ring
+family_body	mansion-balconies	building 69	56x56 m	11 storeys	attached None	paint 1	tile 504 627	ring
+family_body	detached-corridor	building 70	24x24 m	5 storeys	attached Right, RightCrosswise	paint 1	tile 485 580
+family_body	detached-walkup	building 71	48x20 m	4 storeys	attached Left, LeftCrosswise	paint 0	tile 494 580
+family_body	detached-corridor	building 72	40x24 m	2 storeys	attached None	paint 3	tile 506 580
+family_body	detached-corridor	building 73	60x20 m	3 storeys	attached Left, LeftCrosswise	paint 1	tile 488 604
+family_body	detached-walkup	building 74	56x20 m	3 storeys	attached Right, RightCrosswise	paint 2	tile 503 604
+family_body	detached-corridor	building 75	24x24 m	3 storeys	attached None	paint 0	tile 484 589
+family_body	detached-corridor	building 76	28x24 m	4 storeys	attached None	paint 3	tile 485 596
+family_body	detached-walkup	building 77	64x24 m	5 storeys	attached None	paint 2	tile 508 592
+family_body	panel-slab	building 78	116x56 m	14 storeys	attached None	paint 0	tile 496 548	ring
+family_body	panel-slab	building 79	120x56 m	15 storeys	attached None	paint 3	tile 496 563	ring
+family_body	panel-slab	building 80	116x52 m	14 storeys	attached None	paint 3	tile 496 515	ring
+family_body	panel-slab	building 81	116x52 m	17 storeys	attached None	paint 4	tile 496 531	ring
+family_body	mansion-balconies	building 82	20x52 m	8 storeys	attached None	paint 1	tile 484 456
+family_body	mansion-balconies	building 83	40x56 m	10 storeys	attached None	paint 3	tile 495 457
+family_body	mansion-balconies	building 84	32x56 m	8 storeys	attached None	paint 2	tile 506 456
+family_body	mansion-balconies	building 85	52x56 m	9 storeys	attached None	paint 3	tile 488 467	ring
+family_body	mansion-balconies	building 86	56x60 m	11 storeys	attached None	paint 3	tile 503 466	ring
+family_body	office-warehouse	building 87	36x20 m	2 storeys	attached None	paint 2	tile 518 452
+family_body	detached-corridor	building 88	24x28 m	4 storeys	attached None	paint 2	tile 527 452
+family_body	detached-corridor	building 89	44x16 m	5 storeys	attached None	paint 3	tile 538 452
+family_body	detached-corridor	building 90	52x28 m	4 storeys	attached None	paint 4	tile 520 476
+family_body	detached-walkup	building 91	60x16 m	5 storeys	attached None	paint 4	tile 536 476
+family_body	detached-two-unit	building 92	24x20 m	2 storeys	attached Left, LeftCrosswise	paint 3	tile 516 461
+family_body	detached-corridor	building 93	24x16 m	2 storeys	attached Right, RightCrosswise	paint 0	tile 516 467
+family_body	detached-walkup	building 94	60x28 m	4 storeys	attached None	paint 2	tile 540 464
+family_body	detached-corridor	building 95	36x16 m	4 storeys	attached None	paint 2	tile 550 452
+family_body	detached-corridor	building 96	44x16 m	5 storeys	attached None	paint 3	tile 560 452
+family_body	detached-corridor	building 97	24x20 m	4 storeys	attached None	paint 5	tile 571 452
+family_body	detached-walkup	building 98	56x16 m	3 storeys	attached None	paint 5	tile 552 476
+family_body	detached-corridor	building 99	60x28 m	4 storeys	attached None	paint 4	tile 568 476
+family_body	detached-two-unit	building 100	24x20 m	2 storeys	attached None	paint 0	tile 548 459
+family_body	detached-two-unit	building 101	20x28 m	3 storeys	attached None	paint 3	tile 548 468
+family_body	detached-corridor	building 102	64x20 m	5 storeys	attached Right, RightCrosswise	paint 2	tile 572 464
+family_body	mansion-balconies	building 103	40x24 m	8 storeys	attached None	paint 2	tile 582 452
+family_body	mansion-balconies	building 104	40x28 m	5 storeys	attached Right, RightCrosswise	paint 2	tile 593 452
+family_body	mansion-balconies	building 105	36x20 m	8 storeys	attached Left, LeftCrosswise	paint 1	tile 602 452
+family_body	mansion-balconies	building 106	56x24 m	5 storeys	attached None	paint 3	tile 585 476
+family_body	mansion-balconies	building 107	56x20 m	6 storeys	attached None	paint 2	tile 600 476
+family_body	mansion-balconies	building 108	24x56 m	7 storeys	attached None	paint 3	tile 584 461
+family_body	mansion-balconies	building 109	16x56 m	8 storeys	attached None	paint 2	tile 585 468
+family_body	mansion-shops	building 110	52x52 m	5 storeys	attached None	paint 0	tile 600 459	ring
+family_body	panel-slab-plain	building 111	120x28 m	15 storeys	attached None	paint 0	tile 624 452
+family_body	panel-slab-plain	building 112	116x28 m	14 storeys	attached None	paint 2	tile 624 476
+family_body	panel-slab	building 113	48x28 m	13 storeys	attached None	paint 2	tile 614 464
+family_body	panel-slab-balconies	building 114	40x32 m	12 storeys	attached None	paint 1	tile 635 463
+family_body	panel-slab-balconies	building 115	120x28 m	12 storeys	attached None	paint 3	tile 656 452
+family_body	panel-slab-balconies	building 116	120x36 m	15 storeys	attached None	paint 3	tile 656 474
+family_body	panel-slab-balconies	building 117	32x32 m	12 storeys	attached None	paint 3	tile 646 464
+family_body	panel-slab-plain	building 118	40x32 m	14 storeys	attached Right, RightCrosswise	paint 2	tile 667 465
+family_body	mansion-balconies	building 119	36x52 m	11 storeys	attached None	paint 0	tile 646 488
+family_body	mansion-balconies	building 120	40x52 m	10 storeys	attached None	paint 2	tile 657 488
+family_body	mansion-balconies	building 121	28x60 m	10 storeys	attached None	paint 3	tile 668 488
+family_body	mansion-balconies	building 122	60x48 m	8 storeys	attached None	paint 2	tile 648 500	ring
+family_body	mansion-balconies	building 123	52x48 m	8 storeys	attached None	paint 1	tile 664 500	ring
+family_body	corridor-apartments	building 124	24x20 m	3 storeys	attached None	paint 4	tile 645 548
+family_body	detached-walkup	building 125	32x20 m	4 storeys	attached None	paint 1	tile 654 548
+family_body	detached-corridor	building 126	36x20 m	5 storeys	attached None	paint 0	tile 666 548
+family_body	detached-walkup	building 127	60x28 m	3 storeys	attached None	paint 1	tile 648 572
+family_body	detached-corridor	building 128	56x24 m	3 storeys	attached None	paint 1	tile 664 572
+family_body	detached-corridor	building 129	16x24 m	5 storeys	attached None	paint 5	tile 644 556
+family_body	detached-corridor	building 130	20x20 m	2 storeys	attached None	paint 4	tile 644 564
+family_body	detached-corridor	building 131	56x24 m	2 storeys	attached None	paint 0	tile 668 561
+family_body	detached-corridor	building 132	24x28 m	4 storeys	attached Right, RightCrosswise	paint 4	tile 645 580
+family_body	detached-walkup	building 133	44x24 m	5 storeys	attached Left, LeftCrosswise	paint 1	tile 654 580
+family_body	detached-corridor	building 134	36x28 m	5 storeys	attached None	paint 1	tile 666 580
+family_body	detached-corridor	building 135	52x20 m	4 storeys	attached None	paint 5	tile 648 604
+family_body	detached-corridor	building 136	52x28 m	2 storeys	attached None	paint 2	tile 664 604
+family_body	detached-corridor	building 137	28x20 m	4 storeys	attached None	paint 1	tile 644 588
+family_body	detached-two-unit	building 138	20x28 m	4 storeys	attached None	paint 1	tile 644 596
+family_body	detached-walkup	building 139	60x24 m	5 storeys	attached Right, RightCrosswise	paint 3	tile 667 592
+family_body	panel-slab-plain	building 140	116x28 m	15 storeys	attached None	paint 2	tile 656 614
+family_body	panel-slab-plain	building 141	120x28 m	15 storeys	attached None	paint 1	tile 656 634
+family_body	panel-slab-plain	building 142	44x32 m	14 storeys	attached None	paint 0	tile 645 624
+family_body	panel-slab-balconies	building 143	44x28 m	15 storeys	attached None	paint 1	tile 666 624
+family_body	detached-corridor	building 144	40x24 m	2 storeys	attached None	paint 5	tile 647 645
+family_body	detached-corridor	building 145	36x20 m	4 storeys	attached None	paint 5	tile 658 644
+family_body	detached-corridor	building 146	28x28 m	3 storeys	attached None	paint 5	tile 668 644
+family_body	detached-walkup	building 147	56x28 m	2 storeys	attached None	paint 3	tile 648 668
+family_body	detached-corridor	building 148	60x16 m	4 storeys	attached None	paint 2	tile 664 668
+family_body	detached-walkup	building 149	28x24 m	2 storeys	attached Right, RightCrosswise	paint 4	tile 644 652
+family_body	detached-two-unit	building 150	24x28 m	2 storeys	attached Left, LeftCrosswise	paint 3	tile 644 661
+family_body	detached-corridor	building 151	60x24 m	4 storeys	attached None	paint 4	tile 667 656
+family_body	detached-walkup	building 152	36x24 m	2 storeys	attached None	paint 3	tile 614 645
+family_body	detached-two-unit	building 153	20x20 m	4 storeys	attached None	paint 1	tile 624 644
+family_body	detached-corridor	building 154	36x28 m	3 storeys	attached None	paint 0	tile 634 644
+family_body	detached-corridor	building 155	56x28 m	4 storeys	attached None	paint 0	tile 617 668
+family_body	detached-walkup	building 156	56x28 m	3 storeys	attached None	paint 5	tile 632 668
+family_body	detached-corridor	building 157	16x24 m	3 storeys	attached None	paint 4	tile 612 652
+family_body	detached-walkup	building 158	28x24 m	4 storeys	attached Left, LeftCrosswise	paint 4	tile 613 660
+family_body	detached-corridor	building 159	48x20 m	5 storeys	attached None	paint 4	tile 636 656
+family_body	mansion-shops	building 160	32x20 m	5 storeys	attached None	paint 3	tile 582 644
+family_body	mansion-shops	building 161	28x24 m	5 storeys	attached None	paint 0	tile 592 645
+family_body	mansion-shops	building 162	44x28 m	5 storeys	attached None	paint 2	tile 602 644
+family_body	mansion-balconies	building 163	48x24 m	6 storeys	attached None	paint 1	tile 584 668
+family_body	mansion-balconies	building 164	56x28 m	8 storeys	attached None	paint 1	tile 600 668
+family_body	mansion-block	building 165	16x52 m	6 storeys	attached None	paint 4	tile 584 652
+family_body	mansion-block	building 166	28x56 m	8 storeys	attached None	paint 0	tile 584 660
+family_body	mansion-block	building 167	52x60 m	7 storeys	attached None	paint 0	tile 600 650	ring
+family_body	detached-corridor	building 168	40x16 m	3 storeys	attached None	paint 5	tile 550 644
+family_body	detached-walkup	building 169	40x20 m	3 storeys	attached None	paint 1	tile 563 644
+family_body	detached-two-unit	building 170	16x20 m	2 storeys	attached None	paint 4	tile 572 644
+family_body	detached-corridor	building 171	52x24 m	2 storeys	attached None	paint 0	tile 552 668
+family_body	detached-corridor	building 172	60x24 m	2 storeys	attached None	paint 2	tile 568 668
+family_body	detached-corridor	building 173	24x24 m	2 storeys	attached None	paint 3	tile 548 651
+family_body	detached-corridor	building 174	20x16 m	4 storeys	attached None	paint 4	tile 548 660
+family_body	detached-corridor	building 175	60x24 m	4 storeys	attached None	paint 4	tile 572 656
+family_body	detached-two-unit	building 176	32x20 m	4 storeys	attached None	paint 1	tile 486 644
+family_body	detached-corridor	building 177	48x16 m	4 storeys	attached None	paint 2	tile 498 644
+family_body	detached-corridor	building 178	16x20 m	5 storeys	attached None	paint 2	tile 508 644
+family_body	detached-walkup	building 179	52x16 m	5 storeys	attached None	paint 0	tile 488 668
+family_body	detached-corridor	building 180	56x24 m	2 storeys	attached None	paint 0	tile 504 668
+family_body	detached-two-unit	building 181	20x28 m	4 storeys	attached None	paint 2	tile 484 652
+family_body	detached-corridor	building 182	24x20 m	2 storeys	attached None	paint 4	tile 484 660
+family_body	detached-corridor	building 183	56x24 m	2 storeys	attached None	paint 5	tile 508 657
+family_body	detached-corridor	building 184	36x20 m	4 storeys	attached None	paint 5	tile 454 644
+family_body	detached-corridor	building 185	32x20 m	2 storeys	attached None	paint 0	tile 463 644
+family_body	detached-corridor	building 186	40x24 m	5 storeys	attached None	paint 4	tile 474 644
+family_body	detached-walkup	building 187	60x16 m	3 storeys	attached None	paint 5	tile 456 668
+family_body	detached-walkup	building 188	56x24 m	2 storeys	attached None	paint 4	tile 472 668
+family_body	two-unit-apartments	building 189	28x20 m	3 storeys	attached None	paint 4	tile 452 652
+family_body	detached-corridor	building 190	20x24 m	4 storeys	attached None	paint 1	tile 452 660
+family_body	detached-corridor	building 191	52x28 m	5 storeys	attached None	paint 3	tile 476 656
+family_body	mansion-block	building 192	32x60 m	10 storeys	attached None	paint 1	tile 453 616
+family_body	mansion-block	building 193	28x52 m	10 storeys	attached None	paint 3	tile 464 616
+family_body	mansion-block	building 194	32x56 m	9 storeys	attached None	paint 3	tile 474 616
+family_body	mansion-block	building 195	52x56 m	11 storeys	attached None	paint 4	tile 456 627	ring
+family_body	mansion-block	building 196	52x52 m	9 storeys	attached None	paint 4	tile 472 628	ring
+family_body	mansion-shops	building 197	32x20 m	8 storeys	attached None	paint 1	tile 453 580
+family_body	mansion-shops	building 198	44x20 m	5 storeys	attached None	paint 2	tile 464 580
+family_body	mansion-shops	building 199	28x24 m	6 storeys	attached None	paint 1	tile 474 580
+family_body	mansion-block	building 200	52x16 m	5 storeys	attached None	paint 3	tile 456 604
+family_body	mansion-block	building 201	60x24 m	6 storeys	attached None	paint 0	tile 472 604
+family_body	mansion-balconies	building 202	24x52 m	5 storeys	attached None	paint 2	tile 456 587
+family_body	mansion-balconies	building 203	32x52 m	7 storeys	attached None	paint 0	tile 456 596
+family_body	mansion-block	building 204	52x48 m	6 storeys	attached None	paint 3	tile 472 588	ring
+family_body	panel-slab	building 205	116x28 m	14 storeys	attached None	paint 4	tile 464 550
+family_body	panel-slab-balconies	building 206	120x32 m	14 storeys	attached None	paint 1	tile 464 571
+family_body	panel-slab-plain	building 207	36x32 m	15 storeys	attached None	paint 1	tile 453 560
+family_body	panel-slab-balconies	building 208	40x32 m	12 storeys	attached None	paint 1	tile 474 559
+family_body	detached-corridor	building 209	40x20 m	5 storeys	attached None	paint 2	tile 454 516
+family_body	detached-corridor	building 210	32x20 m	5 storeys	attached None	paint 4	tile 464 516
+family_body	detached-walkup	building 211	32x24 m	2 storeys	attached None	paint 5	tile 474 516
+family_body	detached-corridor	building 212	60x24 m	4 storeys	attached None	paint 5	tile 456 539
+family_body	detached-corridor	building 213	52x24 m	5 storeys	attached None	paint 2	tile 472 540
+family_body	detached-corridor	building 214	28x16 m	2 storeys	attached Left, LeftCrosswise	paint 1	tile 452 524
+family_body	detached-corridor	building 215	24x28 m	3 storeys	attached Right, RightCrosswise	paint 3	tile 452 531
+family_body	detached-walkup	building 216	56x16 m	4 storeys	attached None	paint 3	tile 476 527
+family_body	mansion-balconies	building 217	40x56 m	8 storeys	attached None	paint 3	tile 454 488
+family_body	mansion-balconies	building 218	24x56 m	8 storeys	attached None	paint 3	tile 465 488
+family_body	mansion-balconies	building 219	36x56 m	8 storeys	attached None	paint 3	tile 474 488
+family_body	mansion-balconies	building 220	48x56 m	9 storeys	attached None	paint 3	tile 456 499	ring
+family_body	mansion-balconies	building 221	56x52 m	11 storeys	attached None	paint 1	tile 472 500	ring
+family_body	mansion-balconies	building 222	40x52 m	10 storeys	attached None	paint 2	tile 454 424
+family_body	mansion-balconies	building 223	44x56 m	8 storeys	attached None	paint 1	tile 466 424
+family_body	mansion-balconies	building 224	16x56 m	10 storeys	attached None	paint 3	tile 476 424
+family_body	mansion-balconies	building 225	56x48 m	8 storeys	attached Right, RightCrosswise	paint 3	tile 457 436	ring
+family_body	mansion-balconies	building 226	60x56 m	9 storeys	attached Left, LeftCrosswise	paint 0	tile 472 435	ring
+family_body	panel-slab-balconies	building 227	120x24 m	15 storeys	attached None	paint 3	tile 496 421
+family_body	panel-slab-balconies	building 228	120x32 m	14 storeys	attached None	paint 0	tile 496 443
+family_body	panel-slab-balconies	building 229	32x32 m	14 storeys	attached None	paint 2	tile 485 432
+family_body	panel-slab-plain	building 230	32x28 m	14 storeys	attached None	paint 2	tile 508 432
+family_body	detached-corridor	building 231	40x24 m	3 storeys	attached None	paint 5	tile 518 420
+family_body	detached-corridor	building 232	28x16 m	2 storeys	attached None	paint 4	tile 528 420
+family_body	detached-corridor	building 233	40x16 m	5 storeys	attached None	paint 1	tile 538 420
+family_body	detached-corridor	building 234	56x28 m	5 storeys	attached None	paint 4	tile 521 444
+family_body	detached-corridor	building 235	48x20 m	4 storeys	attached None	paint 0	tile 536 444
+family_body	detached-corridor	building 236	16x28 m	5 storeys	attached None	paint 2	tile 516 428
+family_body	detached-walkup	building 237	28x20 m	2 storeys	attached None	paint 1	tile 516 436
+family_body	detached-corridor	building 238	60x28 m	5 storeys	attached None	paint 1	tile 540 432
+family_body	panel-slab	building 239	116x32 m	14 storeys	attached None	paint 4	tile 560 421
+family_body	panel-slab-plain	building 240	120x36 m	14 storeys	attached None	paint 2	tile 560 442
+family_body	panel-slab-plain	building 241	32x28 m	13 storeys	attached None	paint 0	tile 548 432
+family_body	panel-slab-balconies	building 242	32x28 m	13 storeys	attached None	paint 0	tile 572 432
+family_body	detached-corridor	building 243	32x24 m	5 storeys	attached None	paint 0	tile 581 421
+family_body	detached-corridor	building 244	44x24 m	3 storeys	attached None	paint 5	tile 592 420
+family_body	detached-two-unit	building 245	32x28 m	3 storeys	attached None	paint 1	tile 603 420
+family_body	detached-corridor	building 246	52x24 m	2 storeys	attached None	paint 2	tile 584 444
+family_body	detached-walkup	building 247	56x24 m	3 storeys	attached None	paint 5	tile 600 443
+family_body	detached-corridor	building 248	16x20 m	3 storeys	attached None	paint 2	tile 580 428
+family_body	detached-corridor	building 249	28x28 m	2 storeys	attached None	paint 2	tile 580 436
+family_body	detached-corridor	building 250	56x28 m	5 storeys	attached None	paint 3	tile 604 432
+family_body	detached-corridor	building 251	20x24 m	3 storeys	attached None	paint 3	tile 612 421
+family_body	detached-corridor	building 252	40x20 m	4 storeys	attached None	paint 4	tile 622 420
+family_body	detached-corridor	building 253	44x16 m	5 storeys	attached None	paint 3	tile 634 420
+family_body	detached-walkup	building 254	52x28 m	4 storeys	attached None	paint 0	tile 616 444
+family_body	detached-corridor	building 255	60x20 m	2 storeys	attached None	paint 1	tile 632 444
+family_body	detached-corridor	building 256	28x20 m	5 storeys	attached Right, RightCrosswise	paint 1	tile 612 428
+family_body	detached-corridor	building 257	20x16 m	5 storeys	attached None	paint 4	tile 612 436
+family_body	detached-corridor	building 258	52x28 m	4 storeys	attached None	paint 3	tile 636 432
+family_body	detached-corridor	building 259	36x20 m	2 storeys	attached None	paint 4	tile 646 420
+family_body	detached-walkup	building 260	44x20 m	4 storeys	attached None	paint 2	tile 658 420
+family_body	detached-corridor	building 261	24x24 m	5 storeys	attached None	paint 0	tile 668 420
+family_body	detached-corridor	building 262	52x24 m	3 storeys	attached None	paint 5	tile 648 444
+family_body	detached-corridor	building 263	52x20 m	4 storeys	attached None	paint 1	tile 664 444
+family_body	detached-corridor	building 264	24x24 m	3 storeys	attached None	paint 3	tile 644 429
+family_body	detached-corridor	building 265	16x20 m	5 storeys	attached None	paint 1	tile 644 436
+family_body	detached-corridor	building 266	56x24 m	3 storeys	attached None	paint 2	tile 668 433
+family_body	mansion-block	building 267	24x52 m	9 storeys	attached None	paint 4	tile 677 456
+family_body	mansion-block	building 268	44x56 m	11 storeys	attached None	paint 1	tile 688 456
+family_body	mansion-block	building 269	32x52 m	8 storeys	attached None	paint 0	tile 699 456
+family_body	mansion-balconies	building 270	60x56 m	11 storeys	attached Right	paint 1	tile 680 467	ring
+family_body	mansion-balconies	building 271	60x56 m	10 storeys	attached Left	paint 0	tile 696 467	ring
+family_body	mansion-block	building 272	32x56 m	11 storeys	attached None	paint 2	tile 677 488
+family_body	mansion-block	building 273	48x52 m	9 storeys	attached None	paint 4	tile 688 483	ring
+family_body	mansion-block	building 274	28x56 m	11 storeys	attached None	paint 1	tile 698 488
+family_body	mansion-balconies	building 275	56x56 m	10 storeys	attached None	paint 1	tile 681 498	ring
+family_body	mansion-balconies	building 276	48x52 m	10 storeys	attached None	paint 1	tile 696 500	ring
+family_body	detached-corridor	building 277	28x20 m	2 storeys	attached None	paint 1	tile 676 516
+family_body	detached-corridor	building 278	36x20 m	2 storeys	attached Right	paint 1	tile 688 516
+family_body	detached-corridor	building 279	44x20 m	5 storeys	attached Left	paint 4	tile 698 516
+family_body	detached-corridor	building 280	48x28 m	2 storeys	attached None	paint 3	tile 680 540
+family_body	detached-walkup	building 281	60x20 m	5 storeys	attached None	paint 2	tile 696 540
+family_body	detached-corridor	building 282	20x24 m	2 storeys	attached None	paint 3	tile 677 524
+family_body	detached-corridor	building 283	20x24 m	2 storeys	attached None	paint 0	tile 677 532
+family_body	detached-corridor	building 284	60x20 m	5 storeys	attached None	paint 4	tile 700 528
+family_body	detached-two-unit	building 285	32x28 m	2 storeys	attached None	paint 2	tile 678 548
+family_body	detached-two-unit	building 286	32x20 m	4 storeys	attached None	paint 2	tile 688 548
+family_body	detached-walkup	building 287	32x16 m	3 storeys	attached None	paint 2	tile 699 548
+family_body	detached-walkup	building 288	52x24 m	2 storeys	attached None	paint 2	tile 680 571
+family_body	detached-corridor	building 289	56x28 m	2 storeys	attached None	paint 1	tile 696 572
+family_body	detached-corridor	building 290	28x28 m	4 storeys	attached Right, RightCrosswise	paint 3	tile 676 556
+family_body	detached-corridor	building 291	16x24 m	2 storeys	attached None	paint 0	tile 677 564
+family_body	detached-corridor	building 292	60x24 m	4 storeys	attached None	paint 4	tile 700 560
+family_body	detached-corridor	building 293	40x16 m	5 storeys	attached None	paint 2	tile 678 580
+family_body	detached-corridor	building 294	32x28 m	5 storeys	attached None	paint 5	tile 690 580
+family_body	detached-two-unit	building 295	28x24 m	3 storeys	attached None	paint 1	tile 700 581
+family_body	detached-corridor	building 296	60x20 m	4 storeys	attached None	paint 3	tile 680 604
+family_body	detached-corridor	building 297	56x20 m	4 storeys	attached None	paint 5	tile 696 604
+family_body	detached-corridor	building 298	20x16 m	5 storeys	attached None	paint 2	tile 676 588
+family_body	detached-corridor	building 299	16x28 m	5 storeys	attached None	paint 1	tile 676 596
+family_body	detached-walkup	building 300	52x16 m	5 storeys	attached None	paint 0	tile 700 592
+family_body	detached-walkup	building 301	36x28 m	3 storeys	attached None	paint 1	tile 678 612
+family_body	detached-two-unit	building 302	24x20 m	3 storeys	attached None	paint 4	tile 689 612
+family_body	detached-corridor	building 303	32x16 m	5 storeys	attached None	paint 0	tile 699 612
+family_body	detached-corridor	building 304	52x20 m	2 storeys	attached None	paint 5	tile 680 636
+family_body	detached-corridor	building 305	52x20 m	5 storeys	attached None	paint 1	tile 696 636
+family_body	detached-two-unit	building 306	16x16 m	3 storeys	attached None	paint 3	tile 676 620
+family_body	detached-corridor	building 307	24x24 m	4 storeys	attached None	paint 1	tile 676 628
+family_body	detached-corridor	building 308	60x20 m	2 storeys	attached None	paint 0	tile 700 624
+family_body	detached-walkup	building 309	36x28 m	3 storeys	attached None	paint 1	tile 678 644
+family_body	detached-corridor	building 310	28x24 m	3 storeys	attached None	paint 0	tile 688 645
+family_body	detached-corridor	building 311	36x24 m	5 storeys	attached None	paint 3	tile 698 644
+family_body	detached-walkup	building 312	60x20 m	3 storeys	attached None	paint 3	tile 680 668
+family_body	detached-walkup	building 313	48x20 m	3 storeys	attached None	paint 1	tile 696 668
+family_body	detached-corridor	building 314	16x24 m	2 storeys	attached None	paint 2	tile 676 652
+family_body	detached-corridor	building 315	20x20 m	2 storeys	attached None	paint 3	tile 676 660
+family_body	detached-walkup	building 316	52x20 m	3 storeys	attached None	paint 1	tile 700 656
+family_body	mansion-block	building 317	44x48 m	11 storeys	attached None	paint 3	tile 646 680
+family_body	mansion-block	building 318	24x52 m	10 storeys	attached None	paint 2	tile 657 680
+family_body	mansion-block	building 319	28x56 m	8 storeys	attached None	paint 3	tile 668 680
+family_body	mansion-block	building 320	52x52 m	11 storeys	attached None	paint 3	tile 648 692	ring
+family_body	mansion-block	building 321	60x56 m	11 storeys	attached None	paint 3	tile 664 691	ring
+family_body	mansion-block	building 322	40x52 m	10 storeys	attached None	paint 0	tile 614 680
+family_body	mansion-block	building 323	32x60 m	9 storeys	attached None	paint 0	tile 626 680
+family_body	mansion-block	building 324	20x52 m	10 storeys	attached None	paint 5	tile 636 680
+family_body	mansion-balconies	building 325	60x60 m	10 storeys	attached None	paint 3	tile 616 690	ring
+family_body	mansion-balconies	building 326	52x56 m	10 storeys	attached None	paint 3	tile 632 690	ring
+family_body	mansion-shops	building 327	40x28 m	7 storeys	attached None	paint 2	tile 583 676
+family_body	mansion-shops	building 328	32x24 m	6 storeys	attached None	paint 2	tile 594 677
+family_body	mansion-shops	building 329	16x28 m	8 storeys	attached None	paint 2	tile 604 676
+family_body	mansion-balconies	building 330	56x24 m	5 storeys	attached None	paint 0	tile 585 700
+family_body	mansion-balconies	building 331	52x20 m	6 storeys	attached None	paint 3	tile 600 700
+family_body	mansion-shops	building 332	24x56 m	5 storeys	attached Right, RightCrosswise	paint 1	tile 584 683
+family_body	mansion-shops	building 333	20x52 m	6 storeys	attached None	paint 1	tile 584 692
+family_body	mansion-balconies	building 334	60x56 m	6 storeys	attached None	paint 0	tile 600 682	ring
+family_body	detached-corridor	building 335	44x28 m	3 storeys	attached Right	paint 4	tile 550 676
+family_body	detached-walkup	building 336	40x28 m	2 storeys	attached Left	paint 3	tile 561 676
+family_body	detached-walkup	building 337	28x24 m	5 storeys	attached None	paint 4	tile 570 677
+family_body	detached-walkup	building 338	56x16 m	3 storeys	attached None	paint 0	tile 552 700
+family_body	detached-corridor	building 339	56x20 m	5 storeys	attached None	paint 5	tile 568 700
+family_body	detached-corridor	building 340	24x24 m	4 storeys	attached None	paint 0	tile 548 684
+family_body	detached-corridor	building 341	20x20 m	4 storeys	attached None	paint 1	tile 548 692
+family_body	detached-corridor	building 342	60x28 m	2 storeys	attached Left, LeftCrosswise	paint 5	tile 572 688
+family_body	detached-corridor	building 343	28x28 m	2 storeys	attached None	paint 4	tile 516 676
+family_body	detached-corridor	building 344	40x24 m	4 storeys	attached None	paint 2	tile 527 676
+family_body	detached-walkup	building 345	40x24 m	3 storeys	attached None	paint 4	tile 538 676
+family_body	detached-corridor	building 346	48x20 m	3 storeys	attached None	paint 4	tile 520 700
+family_body	detached-walkup	building 347	52x24 m	4 storeys	attached None	paint 1	tile 536 700
+family_body	detached-corridor	building 348	32x20 m	5 storeys	attached Left, Right, LeftCrosswise, RightCrosswise	paint 2	tile 516 684
+family_body	detached-corridor	building 349	32x20 m	4 storeys	attached Right, RightCrosswise	paint 5	tile 516 692
+family_body	detached-corridor	building 350	60x20 m	2 storeys	attached None	paint 4	tile 540 688
+family_body	mansion-balconies	building 351	32x56 m	8 storeys	attached None	paint 3	tile 486 680
+family_body	mansion-balconies	building 352	32x52 m	11 storeys	attached None	paint 2	tile 497 680
+family_body	mansion-balconies	building 353	28x52 m	9 storeys	attached None	paint 0	tile 508 680
+family_body	mansion-balconies	building 354	52x56 m	11 storeys	attached None	paint 1	tile 488 690	ring
+family_body	mansion-balconies	building 355	52x48 m	9 storeys	attached None	paint 1	tile 504 692	ring
+family_body	detached-walkup	building 356	36x28 m	2 storeys	attached None	paint 2	tile 454 676
+family_body	detached-corridor	building 357	44x28 m	5 storeys	attached None	paint 1	tile 466 676
+family_body	detached-two-unit	building 358	20x24 m	2 storeys	attached None	paint 0	tile 476 677
+family_body	detached-corridor	building 359	52x20 m	3 storeys	attached None	paint 5	tile 456 700
+family_body	detached-corridor	building 360	60x20 m	2 storeys	attached None	paint 2	tile 472 700
+family_body	detached-corridor	building 361	20x28 m	3 storeys	attached None	paint 1	tile 452 684
+family_body	detached-corridor	building 362	20x20 m	3 storeys	attached None	paint 2	tile 452 692
+family_body	detached-corridor	building 363	56x20 m	5 storeys	attached None	paint 4	tile 476 688
+family_body	detached-walkup	building 364	44x28 m	3 storeys	attached None	paint 2	tile 422 644
+family_body	detached-walkup	building 365	28x24 m	5 storeys	attached None	paint 1	tile 434 644
+family_body	detached-corridor	building 366	32x28 m	5 storeys	attached None	paint 3	tile 443 644
+family_body	detached-corridor	building 367	48x24 m	3 storeys	attached None	paint 0	tile 424 667
+family_body	detached-corridor	building 368	60x24 m	5 storeys	attached None	paint 2	tile 440 667
+family_body	detached-corridor	building 369	24x16 m	5 storeys	attached None	paint 3	tile 420 652
+family_body	detached-two-unit	building 370	20x28 m	4 storeys	attached None	paint 2	tile 420 660
+family_body	detached-walkup	building 371	60x16 m	5 storeys	attached Right, RightCrosswise	paint 3	tile 444 656
+family_body	detached-corridor	building 372	40x24 m	5 storeys	attached None	paint 1	tile 423 612
+family_body	detached-corridor	building 373	28x16 m	4 storeys	attached None	paint 1	tile 434 612
+family_body	detached-corridor	building 374	36x20 m	3 storeys	attached None	paint 2	tile 442 612
+family_body	detached-corridor	building 375	60x16 m	5 storeys	attached Left, LeftCrosswise	paint 0	tile 424 636
+family_body	detached-corridor	building 376	60x24 m	3 storeys	attached Right, RightCrosswise	paint 1	tile 440 636
+family_body	detached-corridor	building 377	16x20 m	3 storeys	attached None	paint 3	tile 420 620
+family_body	detached-two-unit	building 378	28x24 m	4 storeys	attached None	paint 0	tile 420 628
+family_body	detached-walkup	building 379	52x24 m	4 storeys	attached None	paint 1	tile 444 624
+family_body	mansion-balconies	building 380	24x28 m	6 storeys	attached None	paint 1	tile 421 580
+family_body	mansion-balconies	building 381	36x20 m	6 storeys	attached None	paint 0	tile 430 580
+family_body	mansion-balconies	building 382	36x24 m	8 storeys	attached None	paint 0	tile 442 580
+family_body	mansion-balconies	building 383	60x20 m	8 storeys	attached None	paint 0	tile 424 604
+family_body	mansion-balconies	building 384	52x24 m	7 storeys	attached None	paint 0	tile 440 604
+family_body	mansion-block	building 385	28x56 m	5 storeys	attached Left	paint 2	tile 424 588
+family_body	mansion-block	building 386	28x56 m	8 storeys	attached Right	paint 1	tile 424 596
+family_body	mansion-shops	building 387	52x56 m	7 storeys	attached None	paint 0	tile 440 587	ring
+family_body	detached-corridor	building 388	44x24 m	5 storeys	attached Right, RightCrosswise	paint 1	tile 422 548
+family_body	detached-two-unit	building 389	28x20 m	2 storeys	attached Left, LeftCrosswise	paint 3	tile 432 548
+family_body	detached-corridor	building 390	44x24 m	2 storeys	attached None	paint 3	tile 442 548
+family_body	detached-corridor	building 391	60x24 m	3 storeys	attached None	paint 0	tile 424 572
+family_body	detached-corridor	building 392	48x20 m	2 storeys	attached None	paint 0	tile 440 572
+family_body	detached-two-unit	building 393	24x16 m	3 storeys	attached None	paint 4	tile 420 557
+family_body	detached-corridor	building 394	20x28 m	5 storeys	attached None	paint 5	tile 420 564
+family_body	detached-corridor	building 395	56x24 m	2 storeys	attached None	paint 1	tile 443 561
+family_body	detached-corridor	building 396	40x28 m	5 storeys	attached None	paint 3	tile 422 516
+family_body	detached-corridor	building 397	36x16 m	5 storeys	attached None	paint 5	tile 434 516
+family_body	detached-corridor	building 398	24x24 m	5 storeys	attached None	paint 3	tile 444 517
+family_body	detached-corridor	building 399	52x16 m	3 storeys	attached None	paint 5	tile 424 540
+family_body	detached-corridor	building 400	56x16 m	2 storeys	attached None	paint 4	tile 440 540
+family_body	detached-corridor	building 401	20x28 m	5 storeys	attached None	paint 2	tile 420 524
+family_body	detached-corridor	building 402	20x28 m	4 storeys	attached None	paint 4	tile 420 532
+family_body	detached-walkup	building 403	56x20 m	2 storeys	attached None	paint 4	tile 444 528
+family_body	mansion-block	building 404	40x20 m	6 storeys	attached None	paint 4	tile 422 484
+family_body	mansion-block	building 405	32x24 m	5 storeys	attached None	paint 0	tile 432 484
+family_body	mansion-block	building 406	32x24 m	6 storeys	attached None	paint 0	tile 443 484
+family_body	mansion-block	building 407	60x16 m	5 storeys	attached Left, LeftCrosswise	paint 5	tile 424 508
+family_body	mansion-block	building 408	56x24 m	6 storeys	attached Right, RightCrosswise	paint 5	tile 439 508
+family_body	mansion-balconies	building 409	16x52 m	7 storeys	attached None	paint 2	tile 424 492
+family_body	mansion-balconies	building 410	24x52 m	5 storeys	attached None	paint 3	tile 424 500
+family_body	mansion-balconies	building 411	56x52 m	5 storeys	attached None	paint 1	tile 440 492	ring
+family_body	mansion-block	building 412	36x24 m	5 storeys	attached None	paint 0	tile 422 452
+family_body	mansion-block	building 413	24x24 m	5 storeys	attached None	paint 4	tile 431 452
+family_body	mansion-block	building 414	40x24 m	5 storeys	attached None	paint 5	tile 442 452
+family_body	mansion-block	building 415	52x28 m	7 storeys	attached None	paint 5	tile 424 476
+family_body	mansion-block	building 416	60x20 m	8 storeys	attached None	paint 2	tile 440 476
+family_body	mansion-shops	building 417	28x60 m	8 storeys	attached Left	paint 1	tile 424 460
+family_body	mansion-shops	building 418	24x60 m	6 storeys	attached Right	paint 1	tile 424 467
+family_body	mansion-shops	building 419	60x64 m	8 storeys	attached Left, LeftCrosswise	paint 2	tile 440 458	ring
+family_body	detached-corridor	building 420	40x24 m	4 storeys	attached None	paint 2	tile 422 388
+family_body	detached-corridor	building 421	40x28 m	2 storeys	attached None	paint 1	tile 433 388
+family_body	detached-corridor	building 422	24x28 m	2 storeys	attached None	paint 0	tile 443 388
+family_body	detached-walkup	building 423	52x24 m	5 storeys	attached None	paint 0	tile 424 412
+family_body	detached-walkup	building 424	56x28 m	3 storeys	attached None	paint 5	tile 439 412
+family_body	detached-corridor	building 425	20x20 m	4 storeys	attached None	paint 3	tile 420 396
+family_body	detached-corridor	building 426	16x24 m	5 storeys	attached None	paint 5	tile 421 404
+family_body	detached-corridor	building 427	60x20 m	4 storeys	attached Left, LeftCrosswise	paint 1	tile 444 400
+family_body	mansion-block	building 428	28x28 m	6 storeys	attached None	paint 1	tile 452 388
+family_body	mansion-block	building 429	44x16 m	5 storeys	attached None	paint 1	tile 462 388
+family_body	mansion-block	building 430	32x24 m	6 storeys	attached None	paint 0	tile 474 389
+family_body	mansion-shops	building 431	56x28 m	5 storeys	attached None	paint 3	tile 456 412
+family_body	mansion-shops	building 432	56x24 m	8 storeys	attached None	paint 3	tile 471 411
+family_body	mansion-shops	building 433	24x56 m	6 storeys	attached None	paint 3	tile 456 396
+family_body	mansion-shops	building 434	24x56 m	5 storeys	attached None	paint 1	tile 456 403
+family_body	mansion-block	building 435	52x52 m	5 storeys	attached None	paint 4	tile 472 395	ring
+family_body	mansion-balconies	building 436	24x52 m	9 storeys	attached None	paint 1	tile 484 392
+family_body	mansion-balconies	building 437	44x56 m	10 storeys	attached None	paint 0	tile 494 392
+family_body	mansion-balconies	building 438	44x56 m	10 storeys	attached None	paint 1	tile 506 393
+family_body	mansion-block	building 439	52x56 m	10 storeys	attached None	paint 2	tile 488 403	ring
+family_body	mansion-block	building 440	52x60 m	11 storeys	attached None	paint 2	tile 504 402	ring
+family_bodies	440	631 meshes	631 layers	4280.4 ms
+wrote plans/evidence/far-bodies/fixes/band-0400.png at Tick 608
+wrote plans/evidence/far-bodies/fixes/band-0400.tsv at Tick 609
+far_fade	off	ring 50 m	band 500 m
+wrote plans/evidence/far-bodies/fixes/band-0400-switch.png at Tick 614
+wrote plans/evidence/far-bodies/fixes/band-0400-switch.tsv at Tick 615
+far_fade	on	ring 50 m	band 500 m
+wrote plans/evidence/far-bodies/fixes/band-0400-fade.png at Tick 640
+wrote plans/evidence/far-bodies/fixes/band-0400-fade.tsv at Tick 641
+wrote plans/evidence/far-bodies/fixes/midrise-0300.png at Tick 643
+wrote plans/evidence/far-bodies/fixes/midrise-0475.png at Tick 645
+wrote plans/evidence/far-bodies/fixes/midrise-1000.png at Tick 647
+wrote plans/evidence/far-bodies/fixes/tower-0300.png at Tick 649
+wrote plans/evidence/far-bodies/fixes/tower-0475.png at Tick 651
+wrote plans/evidence/far-bodies/fixes/tower-1000.png at Tick 653
+wrote plans/evidence/far-bodies/fixes/wash-ring-0475.png at Tick 655
+far_body_meshes	0	0.1 ms
+family_body	panel-slab	building 1	120x60 m	15 storeys	attached None	paint 1	tile 560 515	ring
+family_body	panel-slab-balconies	building 2	120x56 m	16 storeys	attached None	paint 1	tile 560 530	ring
+family_body	tower-stepped-point	building 3	116x116 m	56 storeys	attached None	paint 1	tile 592 528	podium 5	shaft 56x56 m
+family_body	panel-slab-balconies	building 4	120x36 m	15 storeys	attached None	paint 0	tile 592 550
+family_body	panel-slab-plain	building 5	116x32 m	12 storeys	attached None	paint 1	tile 592 571
+family_body	panel-slab	building 6	44x32 m	14 storeys	attached Right, RightCrosswise	paint 1	tile 581 560
+family_body	panel-slab-balconies	building 7	40x24 m	12 storeys	attached None	paint 3	tile 603 561
+family_body	tower-point	building 8	120x116 m	46 storeys	attached None	paint 0	tile 592 592	podium 8	shaft 60x56 m
+family_body	tower-l	building 9	116x120 m	56 storeys	attached None	paint 2	tile 560 592	podium 4	shaft 56x60 m
+family_body	tower-h	building 10	116x116 m	60 storeys	attached None	paint 1	tile 528 592	podium 3	shaft 56x56 m
+family_body	tower-stepped-point	building 11	120x120 m	47 storeys	attached None	paint 2	tile 528 560	podium 7	shaft 60x60 m
+family_body	mansion-block	building 12	32x52 m	10 storeys	attached None	paint 3	tile 518 488
+family_body	mansion-block	building 13	32x56 m	8 storeys	attached None	paint 4	tile 528 488
+family_body	mansion-block	building 14	32x52 m	10 storeys	attached None	paint 1	tile 538 488
+family_body	mansion-balconies	building 15	56x60 m	11 storeys	attached None	paint 2	tile 520 498	ring
+family_body	mansion-balconies	building 16	56x52 m	11 storeys	attached None	paint 1	tile 536 499	ring
+family_body	mansion-block	building 17	40x24 m	5 storeys	attached None	paint 5	tile 550 484
+family_body	mansion-block	building 18	28x28 m	7 storeys	attached None	paint 5	tile 562 484
+family_body	mansion-block	building 19	28x24 m	6 storeys	attached None	paint 1	tile 570 485
+family_body	mansion-shops	building 20	52x20 m	5 storeys	attached None	paint 2	tile 552 508
+family_body	mansion-shops	building 21	60x24 m	6 storeys	attached None	paint 2	tile 568 508
+family_body	mansion-block	building 22	24x48 m	5 storeys	attached None	paint 1	tile 552 492
+family_body	mansion-block	building 23	20x60 m	5 storeys	attached None	paint 3	tile 552 500
+family_body	mansion-shops	building 24	48x56 m	5 storeys	attached None	paint 3	tile 568 492	ring
+family_body	mansion-balconies	building 25	28x16 m	6 storeys	attached None	paint 1	tile 580 484
+family_body	mansion-balconies	building 26	40x24 m	6 storeys	attached Right, RightCrosswise	paint 2	tile 591 485
+family_body	mansion-balconies	building 27	44x24 m	5 storeys	attached Left, LeftCrosswise	paint 2	tile 602 484
+family_body	mansion-shops	building 28	56x20 m	5 storeys	attached None	paint 2	tile 585 508
+family_body	mansion-shops	building 29	52x28 m	7 storeys	attached None	paint 3	tile 600 508
+family_body	mansion-shops	building 30	28x60 m	6 storeys	attached Left, LeftCrosswise	paint 1	tile 584 492
+family_body	mansion-shops	building 31	32x52 m	5 storeys	attached Right, RightCrosswise	paint 2	tile 584 500
+family_body	mansion-block	building 32	56x52 m	7 storeys	attached None	paint 0	tile 600 491	ring
+family_body	mansion-balconies	building 33	40x60 m	8 storeys	attached None	paint 2	tile 614 488
+family_body	mansion-balconies	building 34	44x52 m	9 storeys	attached None	paint 1	tile 626 488
+family_body	mansion-balconies	building 35	20x60 m	11 storeys	attached None	paint 3	tile 636 488
+family_body	mansion-block	building 36	60x56 m	8 storeys	attached Right, RightCrosswise	paint 1	tile 616 499	ring
+family_body	mansion-block	building 37	60x60 m	11 storeys	attached Left, LeftCrosswise	paint 3	tile 632 498	ring
+family_body	mansion-shops	building 38	40x28 m	6 storeys	attached None	paint 1	tile 614 516
+family_body	mansion-shops	building 39	36x20 m	7 storeys	attached None	paint 0	tile 626 516
+family_body	mansion-shops	building 40	20x28 m	7 storeys	attached None	paint 3	tile 636 516
+family_body	mansion-shops	building 41	60x24 m	8 storeys	attached None	paint 1	tile 616 539
+family_body	mansion-shops	building 42	52x20 m	8 storeys	attached None	paint 1	tile 632 540
+family_body	mansion-balconies	building 43	24x60 m	7 storeys	attached Right, RightCrosswise	paint 0	tile 616 523
+family_body	mansion-balconies	building 44	24x56 m	6 storeys	attached None	paint 1	tile 616 532
+family_body	mansion-shops	building 45	60x52 m	7 storeys	attached None	paint 0	tile 632 524	ring
+family_body	tower-h	building 46	112x120 m	64 storeys	attached None	paint 2	tile 624 560	podium 2	shaft 56x60 m
+family_body	tower-point	building 47	116x112 m	58 storeys	attached None	paint 2	tile 624 592	podium 4	shaft 56x56 m
+family_body	mansion-balconies	building 48	32x52 m	9 storeys	attached Right, RightCrosswise	paint 2	tile 582 616
+family_body	mansion-balconies	building 49	40x56 m	10 storeys	attached Left, LeftCrosswise	paint 1	tile 591 616
+family_body	mansion-balconies	building 50	36x48 m	11 storeys	attached None	paint 0	tile 602 616
+family_body	mansion-balconies	building 51	56x52 m	11 storeys	attached Right, RightCrosswise	paint 0	tile 585 628	ring
+family_body	mansion-balconies	building 52	60x60 m	11 storeys	attached Left, LeftCrosswise	paint 0	tile 600 626	ring
+family_body	mansion-block	building 53	32x28 m	5 storeys	attached None	paint 1	tile 549 612
+family_body	mansion-block	building 54	40x24 m	6 storeys	attached None	paint 1	tile 559 612
+family_body	mansion-block	building 55	32x24 m	6 storeys	attached None	paint 2	tile 571 613
+family_body	mansion-shops	building 56	60x28 m	5 storeys	attached Left, LeftCrosswise	paint 2	tile 552 636
+family_body	mansion-shops	building 57	56x24 m	5 storeys	attached Right, RightCrosswise	paint 3	tile 567 635
+family_body	mansion-shops	building 58	20x56 m	6 storeys	attached None	paint 1	tile 552 620
+family_body	mansion-shops	building 59	24x52 m	7 storeys	attached Left, LeftCrosswise	paint 0	tile 552 629
+family_body	mansion-block	building 60	56x52 m	5 storeys	attached None	paint 4	tile 568 620	ring
+family_body	panel-slab-balconies	building 61	116x28 m	13 storeys	attached None	paint 1	tile 528 612
+family_body	panel-slab-plain	building 62	120x28 m	13 storeys	attached None	paint 2	tile 528 636
+family_body	panel-slab-plain	building 63	36x36 m	13 storeys	attached None	paint 1	tile 518 624
+family_body	panel-slab-plain	building 64	40x36 m	13 storeys	attached None	paint 1	tile 538 625
+family_body	mansion-block	building 65	44x48 m	9 storeys	attached Right	paint 2	tile 486 616
+family_body	mansion-block	building 66	36x48 m	9 storeys	attached Left	paint 0	tile 496 616
+family_body	mansion-block	building 67	24x60 m	8 storeys	attached None	paint 4	tile 507 616
+family_body	mansion-balconies	building 68	52x56 m	9 storeys	attached None	paint 3	tile 488 627	ring
+family_body	mansion-balconies	building 69	56x56 m	11 storeys	attached None	paint 1	tile 504 627	ring
+family_body	detached-corridor	building 70	24x24 m	5 storeys	attached Right, RightCrosswise	paint 1	tile 485 580
+family_body	detached-walkup	building 71	48x20 m	4 storeys	attached Left, LeftCrosswise	paint 0	tile 494 580
+family_body	detached-corridor	building 72	40x24 m	2 storeys	attached None	paint 3	tile 506 580
+family_body	detached-corridor	building 73	60x20 m	3 storeys	attached Left, LeftCrosswise	paint 1	tile 488 604
+family_body	detached-walkup	building 74	56x20 m	3 storeys	attached Right, RightCrosswise	paint 2	tile 503 604
+family_body	detached-corridor	building 75	24x24 m	3 storeys	attached None	paint 0	tile 484 589
+family_body	detached-corridor	building 76	28x24 m	4 storeys	attached None	paint 3	tile 485 596
+family_body	detached-walkup	building 77	64x24 m	5 storeys	attached None	paint 2	tile 508 592
+family_body	panel-slab	building 78	116x56 m	14 storeys	attached None	paint 0	tile 496 548	ring
+family_body	panel-slab	building 79	120x56 m	15 storeys	attached None	paint 3	tile 496 563	ring
+family_body	panel-slab	building 80	116x52 m	14 storeys	attached None	paint 3	tile 496 515	ring
+family_body	panel-slab	building 81	116x52 m	17 storeys	attached None	paint 4	tile 496 531	ring
+family_body	mansion-balconies	building 82	20x52 m	8 storeys	attached None	paint 1	tile 484 456
+family_body	mansion-balconies	building 83	40x56 m	10 storeys	attached None	paint 3	tile 495 457
+family_body	mansion-balconies	building 84	32x56 m	8 storeys	attached None	paint 2	tile 506 456
+family_body	mansion-balconies	building 85	52x56 m	9 storeys	attached None	paint 3	tile 488 467	ring
+family_body	mansion-balconies	building 86	56x60 m	11 storeys	attached None	paint 3	tile 503 466	ring
+family_body	office-warehouse	building 87	36x20 m	2 storeys	attached None	paint 2	tile 518 452
+family_body	detached-corridor	building 88	24x28 m	4 storeys	attached None	paint 2	tile 527 452
+family_body	detached-corridor	building 89	44x16 m	5 storeys	attached None	paint 3	tile 538 452
+family_body	detached-corridor	building 90	52x28 m	4 storeys	attached None	paint 4	tile 520 476
+family_body	detached-walkup	building 91	60x16 m	5 storeys	attached None	paint 4	tile 536 476
+family_body	detached-two-unit	building 92	24x20 m	2 storeys	attached Left, LeftCrosswise	paint 3	tile 516 461
+family_body	detached-corridor	building 93	24x16 m	2 storeys	attached Right, RightCrosswise	paint 0	tile 516 467
+family_body	detached-walkup	building 94	60x28 m	4 storeys	attached None	paint 2	tile 540 464
+family_body	detached-corridor	building 95	36x16 m	4 storeys	attached None	paint 2	tile 550 452
+family_body	detached-corridor	building 96	44x16 m	5 storeys	attached None	paint 3	tile 560 452
+family_body	detached-corridor	building 97	24x20 m	4 storeys	attached None	paint 5	tile 571 452
+family_body	detached-walkup	building 98	56x16 m	3 storeys	attached None	paint 5	tile 552 476
+family_body	detached-corridor	building 99	60x28 m	4 storeys	attached None	paint 4	tile 568 476
+family_body	detached-two-unit	building 100	24x20 m	2 storeys	attached None	paint 0	tile 548 459
+family_body	detached-two-unit	building 101	20x28 m	3 storeys	attached None	paint 3	tile 548 468
+family_body	detached-corridor	building 102	64x20 m	5 storeys	attached Right, RightCrosswise	paint 2	tile 572 464
+family_body	mansion-balconies	building 103	40x24 m	8 storeys	attached None	paint 2	tile 582 452
+family_body	mansion-balconies	building 104	40x28 m	5 storeys	attached Right, RightCrosswise	paint 2	tile 593 452
+family_body	mansion-balconies	building 105	36x20 m	8 storeys	attached Left, LeftCrosswise	paint 1	tile 602 452
+family_body	mansion-balconies	building 106	56x24 m	5 storeys	attached None	paint 3	tile 585 476
+family_body	mansion-balconies	building 107	56x20 m	6 storeys	attached None	paint 2	tile 600 476
+family_body	mansion-balconies	building 108	24x56 m	7 storeys	attached None	paint 3	tile 584 461
+family_body	mansion-balconies	building 109	16x56 m	8 storeys	attached None	paint 2	tile 585 468
+family_body	mansion-shops	building 110	52x52 m	5 storeys	attached None	paint 0	tile 600 459	ring
+family_body	panel-slab-plain	building 111	120x28 m	15 storeys	attached None	paint 0	tile 624 452
+family_body	panel-slab-plain	building 112	116x28 m	14 storeys	attached None	paint 2	tile 624 476
+family_body	panel-slab	building 113	48x28 m	13 storeys	attached None	paint 2	tile 614 464
+family_body	panel-slab-balconies	building 114	40x32 m	12 storeys	attached None	paint 1	tile 635 463
+family_body	panel-slab-balconies	building 115	120x28 m	12 storeys	attached None	paint 3	tile 656 452
+family_body	panel-slab-balconies	building 116	120x36 m	15 storeys	attached None	paint 3	tile 656 474
+family_body	panel-slab-balconies	building 117	32x32 m	12 storeys	attached None	paint 3	tile 646 464
+family_body	panel-slab-plain	building 118	40x32 m	14 storeys	attached Right, RightCrosswise	paint 2	tile 667 465
+family_body	mansion-balconies	building 119	36x52 m	11 storeys	attached None	paint 0	tile 646 488
+family_body	mansion-balconies	building 120	40x52 m	10 storeys	attached None	paint 2	tile 657 488
+family_body	mansion-balconies	building 121	28x60 m	10 storeys	attached None	paint 3	tile 668 488
+family_body	mansion-balconies	building 122	60x48 m	8 storeys	attached None	paint 2	tile 648 500	ring
+family_body	mansion-balconies	building 123	52x48 m	8 storeys	attached None	paint 1	tile 664 500	ring
+family_body	corridor-apartments	building 124	24x20 m	3 storeys	attached None	paint 4	tile 645 548
+family_body	detached-walkup	building 125	32x20 m	4 storeys	attached None	paint 1	tile 654 548
+family_body	detached-corridor	building 126	36x20 m	5 storeys	attached None	paint 0	tile 666 548
+family_body	detached-walkup	building 127	60x28 m	3 storeys	attached None	paint 1	tile 648 572
+family_body	detached-corridor	building 128	56x24 m	3 storeys	attached None	paint 1	tile 664 572
+family_body	detached-corridor	building 129	16x24 m	5 storeys	attached None	paint 5	tile 644 556
+family_body	detached-corridor	building 130	20x20 m	2 storeys	attached None	paint 4	tile 644 564
+family_body	detached-corridor	building 131	56x24 m	2 storeys	attached None	paint 0	tile 668 561
+family_body	detached-corridor	building 132	24x28 m	4 storeys	attached Right, RightCrosswise	paint 4	tile 645 580
+family_body	detached-walkup	building 133	44x24 m	5 storeys	attached Left, LeftCrosswise	paint 1	tile 654 580
+family_body	detached-corridor	building 134	36x28 m	5 storeys	attached None	paint 1	tile 666 580
+family_body	detached-corridor	building 135	52x20 m	4 storeys	attached None	paint 5	tile 648 604
+family_body	detached-corridor	building 136	52x28 m	2 storeys	attached None	paint 2	tile 664 604
+family_body	detached-corridor	building 137	28x20 m	4 storeys	attached None	paint 1	tile 644 588
+family_body	detached-two-unit	building 138	20x28 m	4 storeys	attached None	paint 1	tile 644 596
+family_body	detached-walkup	building 139	60x24 m	5 storeys	attached Right, RightCrosswise	paint 3	tile 667 592
+family_body	panel-slab-plain	building 140	116x28 m	15 storeys	attached None	paint 2	tile 656 614
+family_body	panel-slab-plain	building 141	120x28 m	15 storeys	attached None	paint 1	tile 656 634
+family_body	panel-slab-plain	building 142	44x32 m	14 storeys	attached None	paint 0	tile 645 624
+family_body	panel-slab-balconies	building 143	44x28 m	15 storeys	attached None	paint 1	tile 666 624
+family_body	detached-corridor	building 144	40x24 m	2 storeys	attached None	paint 5	tile 647 645
+family_body	detached-corridor	building 145	36x20 m	4 storeys	attached None	paint 5	tile 658 644
+family_body	detached-corridor	building 146	28x28 m	3 storeys	attached None	paint 5	tile 668 644
+family_body	detached-walkup	building 147	56x28 m	2 storeys	attached None	paint 3	tile 648 668
+family_body	detached-corridor	building 148	60x16 m	4 storeys	attached None	paint 2	tile 664 668
+family_body	detached-walkup	building 149	28x24 m	2 storeys	attached Right, RightCrosswise	paint 4	tile 644 652
+family_body	detached-two-unit	building 150	24x28 m	2 storeys	attached Left, LeftCrosswise	paint 3	tile 644 661
+family_body	detached-corridor	building 151	60x24 m	4 storeys	attached None	paint 4	tile 667 656
+family_body	detached-walkup	building 152	36x24 m	2 storeys	attached None	paint 3	tile 614 645
+family_body	detached-two-unit	building 153	20x20 m	4 storeys	attached None	paint 1	tile 624 644
+family_body	detached-corridor	building 154	36x28 m	3 storeys	attached None	paint 0	tile 634 644
+family_body	detached-corridor	building 155	56x28 m	4 storeys	attached None	paint 0	tile 617 668
+family_body	detached-walkup	building 156	56x28 m	3 storeys	attached None	paint 5	tile 632 668
+family_body	detached-corridor	building 157	16x24 m	3 storeys	attached None	paint 4	tile 612 652
+family_body	detached-walkup	building 158	28x24 m	4 storeys	attached Left, LeftCrosswise	paint 4	tile 613 660
+family_body	detached-corridor	building 159	48x20 m	5 storeys	attached None	paint 4	tile 636 656
+family_body	mansion-shops	building 160	32x20 m	5 storeys	attached None	paint 3	tile 582 644
+family_body	mansion-shops	building 161	28x24 m	5 storeys	attached None	paint 0	tile 592 645
+family_body	mansion-shops	building 162	44x28 m	5 storeys	attached None	paint 2	tile 602 644
+family_body	mansion-balconies	building 163	48x24 m	6 storeys	attached None	paint 1	tile 584 668
+family_body	mansion-balconies	building 164	56x28 m	8 storeys	attached None	paint 1	tile 600 668
+family_body	mansion-block	building 165	16x52 m	6 storeys	attached None	paint 4	tile 584 652
+family_body	mansion-block	building 166	28x56 m	8 storeys	attached None	paint 0	tile 584 660
+family_body	mansion-block	building 167	52x60 m	7 storeys	attached None	paint 0	tile 600 650	ring
+family_body	detached-corridor	building 168	40x16 m	3 storeys	attached None	paint 5	tile 550 644
+family_body	detached-walkup	building 169	40x20 m	3 storeys	attached None	paint 1	tile 563 644
+family_body	detached-two-unit	building 170	16x20 m	2 storeys	attached None	paint 4	tile 572 644
+family_body	detached-corridor	building 171	52x24 m	2 storeys	attached None	paint 0	tile 552 668
+family_body	detached-corridor	building 172	60x24 m	2 storeys	attached None	paint 2	tile 568 668
+family_body	detached-corridor	building 173	24x24 m	2 storeys	attached None	paint 3	tile 548 651
+family_body	detached-corridor	building 174	20x16 m	4 storeys	attached None	paint 4	tile 548 660
+family_body	detached-corridor	building 175	60x24 m	4 storeys	attached None	paint 4	tile 572 656
+family_body	detached-two-unit	building 176	32x20 m	4 storeys	attached None	paint 1	tile 486 644
+family_body	detached-corridor	building 177	48x16 m	4 storeys	attached None	paint 2	tile 498 644
+family_body	detached-corridor	building 178	16x20 m	5 storeys	attached None	paint 2	tile 508 644
+family_body	detached-walkup	building 179	52x16 m	5 storeys	attached None	paint 0	tile 488 668
+family_body	detached-corridor	building 180	56x24 m	2 storeys	attached None	paint 0	tile 504 668
+family_body	detached-two-unit	building 181	20x28 m	4 storeys	attached None	paint 2	tile 484 652
+family_body	detached-corridor	building 182	24x20 m	2 storeys	attached None	paint 4	tile 484 660
+family_body	detached-corridor	building 183	56x24 m	2 storeys	attached None	paint 5	tile 508 657
+family_body	detached-corridor	building 184	36x20 m	4 storeys	attached None	paint 5	tile 454 644
+family_body	detached-corridor	building 185	32x20 m	2 storeys	attached None	paint 0	tile 463 644
+family_body	detached-corridor	building 186	40x24 m	5 storeys	attached None	paint 4	tile 474 644
+family_body	detached-walkup	building 187	60x16 m	3 storeys	attached None	paint 5	tile 456 668
+family_body	detached-walkup	building 188	56x24 m	2 storeys	attached None	paint 4	tile 472 668
+family_body	two-unit-apartments	building 189	28x20 m	3 storeys	attached None	paint 4	tile 452 652
+family_body	detached-corridor	building 190	20x24 m	4 storeys	attached None	paint 1	tile 452 660
+family_body	detached-corridor	building 191	52x28 m	5 storeys	attached None	paint 3	tile 476 656
+family_body	mansion-block	building 192	32x60 m	10 storeys	attached None	paint 1	tile 453 616
+family_body	mansion-block	building 193	28x52 m	10 storeys	attached None	paint 3	tile 464 616
+family_body	mansion-block	building 194	32x56 m	9 storeys	attached None	paint 3	tile 474 616
+family_body	mansion-block	building 195	52x56 m	11 storeys	attached None	paint 4	tile 456 627	ring
+family_body	mansion-block	building 196	52x52 m	9 storeys	attached None	paint 4	tile 472 628	ring
+family_body	mansion-shops	building 197	32x20 m	8 storeys	attached None	paint 1	tile 453 580
+family_body	mansion-shops	building 198	44x20 m	5 storeys	attached None	paint 2	tile 464 580
+family_body	mansion-shops	building 199	28x24 m	6 storeys	attached None	paint 1	tile 474 580
+family_body	mansion-block	building 200	52x16 m	5 storeys	attached None	paint 3	tile 456 604
+family_body	mansion-block	building 201	60x24 m	6 storeys	attached None	paint 0	tile 472 604
+family_body	mansion-balconies	building 202	24x52 m	5 storeys	attached None	paint 2	tile 456 587
+family_body	mansion-balconies	building 203	32x52 m	7 storeys	attached None	paint 0	tile 456 596
+family_body	mansion-block	building 204	52x48 m	6 storeys	attached None	paint 3	tile 472 588	ring
+family_body	panel-slab	building 205	116x28 m	14 storeys	attached None	paint 4	tile 464 550
+family_body	panel-slab-balconies	building 206	120x32 m	14 storeys	attached None	paint 1	tile 464 571
+family_body	panel-slab-plain	building 207	36x32 m	15 storeys	attached None	paint 1	tile 453 560
+family_body	panel-slab-balconies	building 208	40x32 m	12 storeys	attached None	paint 1	tile 474 559
+family_body	detached-corridor	building 209	40x20 m	5 storeys	attached None	paint 2	tile 454 516
+family_body	detached-corridor	building 210	32x20 m	5 storeys	attached None	paint 4	tile 464 516
+family_body	detached-walkup	building 211	32x24 m	2 storeys	attached None	paint 5	tile 474 516
+family_body	detached-corridor	building 212	60x24 m	4 storeys	attached None	paint 5	tile 456 539
+family_body	detached-corridor	building 213	52x24 m	5 storeys	attached None	paint 2	tile 472 540
+family_body	detached-corridor	building 214	28x16 m	2 storeys	attached Left, LeftCrosswise	paint 1	tile 452 524
+family_body	detached-corridor	building 215	24x28 m	3 storeys	attached Right, RightCrosswise	paint 3	tile 452 531
+family_body	detached-walkup	building 216	56x16 m	4 storeys	attached None	paint 3	tile 476 527
+family_body	mansion-balconies	building 217	40x56 m	8 storeys	attached None	paint 3	tile 454 488
+family_body	mansion-balconies	building 218	24x56 m	8 storeys	attached None	paint 3	tile 465 488
+family_body	mansion-balconies	building 219	36x56 m	8 storeys	attached None	paint 3	tile 474 488
+family_body	mansion-balconies	building 220	48x56 m	9 storeys	attached None	paint 3	tile 456 499	ring
+family_body	mansion-balconies	building 221	56x52 m	11 storeys	attached None	paint 1	tile 472 500	ring
+family_body	mansion-balconies	building 222	40x52 m	10 storeys	attached None	paint 2	tile 454 424
+family_body	mansion-balconies	building 223	44x56 m	8 storeys	attached None	paint 1	tile 466 424
+family_body	mansion-balconies	building 224	16x56 m	10 storeys	attached None	paint 3	tile 476 424
+family_body	mansion-balconies	building 225	56x48 m	8 storeys	attached Right, RightCrosswise	paint 3	tile 457 436	ring
+family_body	mansion-balconies	building 226	60x56 m	9 storeys	attached Left, LeftCrosswise	paint 0	tile 472 435	ring
+family_body	panel-slab-balconies	building 227	120x24 m	15 storeys	attached None	paint 3	tile 496 421
+family_body	panel-slab-balconies	building 228	120x32 m	14 storeys	attached None	paint 0	tile 496 443
+family_body	panel-slab-balconies	building 229	32x32 m	14 storeys	attached None	paint 2	tile 485 432
+family_body	panel-slab-plain	building 230	32x28 m	14 storeys	attached None	paint 2	tile 508 432
+family_body	detached-corridor	building 231	40x24 m	3 storeys	attached None	paint 5	tile 518 420
+family_body	detached-corridor	building 232	28x16 m	2 storeys	attached None	paint 4	tile 528 420
+family_body	detached-corridor	building 233	40x16 m	5 storeys	attached None	paint 1	tile 538 420
+family_body	detached-corridor	building 234	56x28 m	5 storeys	attached None	paint 4	tile 521 444
+family_body	detached-corridor	building 235	48x20 m	4 storeys	attached None	paint 0	tile 536 444
+family_body	detached-corridor	building 236	16x28 m	5 storeys	attached None	paint 2	tile 516 428
+family_body	detached-walkup	building 237	28x20 m	2 storeys	attached None	paint 1	tile 516 436
+family_body	detached-corridor	building 238	60x28 m	5 storeys	attached None	paint 1	tile 540 432
+family_body	panel-slab	building 239	116x32 m	14 storeys	attached None	paint 4	tile 560 421
+family_body	panel-slab-plain	building 240	120x36 m	14 storeys	attached None	paint 2	tile 560 442
+family_body	panel-slab-plain	building 241	32x28 m	13 storeys	attached None	paint 0	tile 548 432
+family_body	panel-slab-balconies	building 242	32x28 m	13 storeys	attached None	paint 0	tile 572 432
+family_body	detached-corridor	building 243	32x24 m	5 storeys	attached None	paint 0	tile 581 421
+family_body	detached-corridor	building 244	44x24 m	3 storeys	attached None	paint 5	tile 592 420
+family_body	detached-two-unit	building 245	32x28 m	3 storeys	attached None	paint 1	tile 603 420
+family_body	detached-corridor	building 246	52x24 m	2 storeys	attached None	paint 2	tile 584 444
+family_body	detached-walkup	building 247	56x24 m	3 storeys	attached None	paint 5	tile 600 443
+family_body	detached-corridor	building 248	16x20 m	3 storeys	attached None	paint 2	tile 580 428
+family_body	detached-corridor	building 249	28x28 m	2 storeys	attached None	paint 2	tile 580 436
+family_body	detached-corridor	building 250	56x28 m	5 storeys	attached None	paint 3	tile 604 432
+family_body	detached-corridor	building 251	20x24 m	3 storeys	attached None	paint 3	tile 612 421
+family_body	detached-corridor	building 252	40x20 m	4 storeys	attached None	paint 4	tile 622 420
+family_body	detached-corridor	building 253	44x16 m	5 storeys	attached None	paint 3	tile 634 420
+family_body	detached-walkup	building 254	52x28 m	4 storeys	attached None	paint 0	tile 616 444
+family_body	detached-corridor	building 255	60x20 m	2 storeys	attached None	paint 1	tile 632 444
+family_body	detached-corridor	building 256	28x20 m	5 storeys	attached Right, RightCrosswise	paint 1	tile 612 428
+family_body	detached-corridor	building 257	20x16 m	5 storeys	attached None	paint 4	tile 612 436
+family_body	detached-corridor	building 258	52x28 m	4 storeys	attached None	paint 3	tile 636 432
+family_body	detached-corridor	building 259	36x20 m	2 storeys	attached None	paint 4	tile 646 420
+family_body	detached-walkup	building 260	44x20 m	4 storeys	attached None	paint 2	tile 658 420
+family_body	detached-corridor	building 261	24x24 m	5 storeys	attached None	paint 0	tile 668 420
+family_body	detached-corridor	building 262	52x24 m	3 storeys	attached None	paint 5	tile 648 444
+family_body	detached-corridor	building 263	52x20 m	4 storeys	attached None	paint 1	tile 664 444
+family_body	detached-corridor	building 264	24x24 m	3 storeys	attached None	paint 3	tile 644 429
+family_body	detached-corridor	building 265	16x20 m	5 storeys	attached None	paint 1	tile 644 436
+family_body	detached-corridor	building 266	56x24 m	3 storeys	attached None	paint 2	tile 668 433
+family_body	mansion-block	building 267	24x52 m	9 storeys	attached None	paint 4	tile 677 456
+family_body	mansion-block	building 268	44x56 m	11 storeys	attached None	paint 1	tile 688 456
+family_body	mansion-block	building 269	32x52 m	8 storeys	attached None	paint 0	tile 699 456
+family_body	mansion-balconies	building 270	60x56 m	11 storeys	attached Right	paint 1	tile 680 467	ring
+family_body	mansion-balconies	building 271	60x56 m	10 storeys	attached Left	paint 0	tile 696 467	ring
+family_body	mansion-block	building 272	32x56 m	11 storeys	attached None	paint 2	tile 677 488
+family_body	mansion-block	building 273	48x52 m	9 storeys	attached None	paint 4	tile 688 483	ring
+family_body	mansion-block	building 274	28x56 m	11 storeys	attached None	paint 1	tile 698 488
+family_body	mansion-balconies	building 275	56x56 m	10 storeys	attached None	paint 1	tile 681 498	ring
+family_body	mansion-balconies	building 276	48x52 m	10 storeys	attached None	paint 1	tile 696 500	ring
+family_body	detached-corridor	building 277	28x20 m	2 storeys	attached None	paint 1	tile 676 516
+family_body	detached-corridor	building 278	36x20 m	2 storeys	attached Right	paint 1	tile 688 516
+family_body	detached-corridor	building 279	44x20 m	5 storeys	attached Left	paint 4	tile 698 516
+family_body	detached-corridor	building 280	48x28 m	2 storeys	attached None	paint 3	tile 680 540
+family_body	detached-walkup	building 281	60x20 m	5 storeys	attached None	paint 2	tile 696 540
+family_body	detached-corridor	building 282	20x24 m	2 storeys	attached None	paint 3	tile 677 524
+family_body	detached-corridor	building 283	20x24 m	2 storeys	attached None	paint 0	tile 677 532
+family_body	detached-corridor	building 284	60x20 m	5 storeys	attached None	paint 4	tile 700 528
+family_body	detached-two-unit	building 285	32x28 m	2 storeys	attached None	paint 2	tile 678 548
+family_body	detached-two-unit	building 286	32x20 m	4 storeys	attached None	paint 2	tile 688 548
+family_body	detached-walkup	building 287	32x16 m	3 storeys	attached None	paint 2	tile 699 548
+family_body	detached-walkup	building 288	52x24 m	2 storeys	attached None	paint 2	tile 680 571
+family_body	detached-corridor	building 289	56x28 m	2 storeys	attached None	paint 1	tile 696 572
+family_body	detached-corridor	building 290	28x28 m	4 storeys	attached Right, RightCrosswise	paint 3	tile 676 556
+family_body	detached-corridor	building 291	16x24 m	2 storeys	attached None	paint 0	tile 677 564
+family_body	detached-corridor	building 292	60x24 m	4 storeys	attached None	paint 4	tile 700 560
+family_body	detached-corridor	building 293	40x16 m	5 storeys	attached None	paint 2	tile 678 580
+family_body	detached-corridor	building 294	32x28 m	5 storeys	attached None	paint 5	tile 690 580
+family_body	detached-two-unit	building 295	28x24 m	3 storeys	attached None	paint 1	tile 700 581
+family_body	detached-corridor	building 296	60x20 m	4 storeys	attached None	paint 3	tile 680 604
+family_body	detached-corridor	building 297	56x20 m	4 storeys	attached None	paint 5	tile 696 604
+family_body	detached-corridor	building 298	20x16 m	5 storeys	attached None	paint 2	tile 676 588
+family_body	detached-corridor	building 299	16x28 m	5 storeys	attached None	paint 1	tile 676 596
+family_body	detached-walkup	building 300	52x16 m	5 storeys	attached None	paint 0	tile 700 592
+family_body	detached-walkup	building 301	36x28 m	3 storeys	attached None	paint 1	tile 678 612
+family_body	detached-two-unit	building 302	24x20 m	3 storeys	attached None	paint 4	tile 689 612
+family_body	detached-corridor	building 303	32x16 m	5 storeys	attached None	paint 0	tile 699 612
+family_body	detached-corridor	building 304	52x20 m	2 storeys	attached None	paint 5	tile 680 636
+family_body	detached-corridor	building 305	52x20 m	5 storeys	attached None	paint 1	tile 696 636
+family_body	detached-two-unit	building 306	16x16 m	3 storeys	attached None	paint 3	tile 676 620
+family_body	detached-corridor	building 307	24x24 m	4 storeys	attached None	paint 1	tile 676 628
+family_body	detached-corridor	building 308	60x20 m	2 storeys	attached None	paint 0	tile 700 624
+family_body	detached-walkup	building 309	36x28 m	3 storeys	attached None	paint 1	tile 678 644
+family_body	detached-corridor	building 310	28x24 m	3 storeys	attached None	paint 0	tile 688 645
+family_body	detached-corridor	building 311	36x24 m	5 storeys	attached None	paint 3	tile 698 644
+family_body	detached-walkup	building 312	60x20 m	3 storeys	attached None	paint 3	tile 680 668
+family_body	detached-walkup	building 313	48x20 m	3 storeys	attached None	paint 1	tile 696 668
+family_body	detached-corridor	building 314	16x24 m	2 storeys	attached None	paint 2	tile 676 652
+family_body	detached-corridor	building 315	20x20 m	2 storeys	attached None	paint 3	tile 676 660
+family_body	detached-walkup	building 316	52x20 m	3 storeys	attached None	paint 1	tile 700 656
+family_body	mansion-block	building 317	44x48 m	11 storeys	attached None	paint 3	tile 646 680
+family_body	mansion-block	building 318	24x52 m	10 storeys	attached None	paint 2	tile 657 680
+family_body	mansion-block	building 319	28x56 m	8 storeys	attached None	paint 3	tile 668 680
+family_body	mansion-block	building 320	52x52 m	11 storeys	attached None	paint 3	tile 648 692	ring
+family_body	mansion-block	building 321	60x56 m	11 storeys	attached None	paint 3	tile 664 691	ring
+family_body	mansion-block	building 322	40x52 m	10 storeys	attached None	paint 0	tile 614 680
+family_body	mansion-block	building 323	32x60 m	9 storeys	attached None	paint 0	tile 626 680
+family_body	mansion-block	building 324	20x52 m	10 storeys	attached None	paint 5	tile 636 680
+family_body	mansion-balconies	building 325	60x60 m	10 storeys	attached None	paint 3	tile 616 690	ring
+family_body	mansion-balconies	building 326	52x56 m	10 storeys	attached None	paint 3	tile 632 690	ring
+family_body	mansion-shops	building 327	40x28 m	7 storeys	attached None	paint 2	tile 583 676
+family_body	mansion-shops	building 328	32x24 m	6 storeys	attached None	paint 2	tile 594 677
+family_body	mansion-shops	building 329	16x28 m	8 storeys	attached None	paint 2	tile 604 676
+family_body	mansion-balconies	building 330	56x24 m	5 storeys	attached None	paint 0	tile 585 700
+family_body	mansion-balconies	building 331	52x20 m	6 storeys	attached None	paint 3	tile 600 700
+family_body	mansion-shops	building 332	24x56 m	5 storeys	attached Right, RightCrosswise	paint 1	tile 584 683
+family_body	mansion-shops	building 333	20x52 m	6 storeys	attached None	paint 1	tile 584 692
+family_body	mansion-balconies	building 334	60x56 m	6 storeys	attached None	paint 0	tile 600 682	ring
+family_body	detached-corridor	building 335	44x28 m	3 storeys	attached Right	paint 4	tile 550 676
+family_body	detached-walkup	building 336	40x28 m	2 storeys	attached Left	paint 3	tile 561 676
+family_body	detached-walkup	building 337	28x24 m	5 storeys	attached None	paint 4	tile 570 677
+family_body	detached-walkup	building 338	56x16 m	3 storeys	attached None	paint 0	tile 552 700
+family_body	detached-corridor	building 339	56x20 m	5 storeys	attached None	paint 5	tile 568 700
+family_body	detached-corridor	building 340	24x24 m	4 storeys	attached None	paint 0	tile 548 684
+family_body	detached-corridor	building 341	20x20 m	4 storeys	attached None	paint 1	tile 548 692
+family_body	detached-corridor	building 342	60x28 m	2 storeys	attached Left, LeftCrosswise	paint 5	tile 572 688
+family_body	detached-corridor	building 343	28x28 m	2 storeys	attached None	paint 4	tile 516 676
+family_body	detached-corridor	building 344	40x24 m	4 storeys	attached None	paint 2	tile 527 676
+family_body	detached-walkup	building 345	40x24 m	3 storeys	attached None	paint 4	tile 538 676
+family_body	detached-corridor	building 346	48x20 m	3 storeys	attached None	paint 4	tile 520 700
+family_body	detached-walkup	building 347	52x24 m	4 storeys	attached None	paint 1	tile 536 700
+family_body	detached-corridor	building 348	32x20 m	5 storeys	attached Left, Right, LeftCrosswise, RightCrosswise	paint 2	tile 516 684
+family_body	detached-corridor	building 349	32x20 m	4 storeys	attached Right, RightCrosswise	paint 5	tile 516 692
+family_body	detached-corridor	building 350	60x20 m	2 storeys	attached None	paint 4	tile 540 688
+family_body	mansion-balconies	building 351	32x56 m	8 storeys	attached None	paint 3	tile 486 680
+family_body	mansion-balconies	building 352	32x52 m	11 storeys	attached None	paint 2	tile 497 680
+family_body	mansion-balconies	building 353	28x52 m	9 storeys	attached None	paint 0	tile 508 680
+family_body	mansion-balconies	building 354	52x56 m	11 storeys	attached None	paint 1	tile 488 690	ring
+family_body	mansion-balconies	building 355	52x48 m	9 storeys	attached None	paint 1	tile 504 692	ring
+family_body	detached-walkup	building 356	36x28 m	2 storeys	attached None	paint 2	tile 454 676
+family_body	detached-corridor	building 357	44x28 m	5 storeys	attached None	paint 1	tile 466 676
+family_body	detached-two-unit	building 358	20x24 m	2 storeys	attached None	paint 0	tile 476 677
+family_body	detached-corridor	building 359	52x20 m	3 storeys	attached None	paint 5	tile 456 700
+family_body	detached-corridor	building 360	60x20 m	2 storeys	attached None	paint 2	tile 472 700
+family_body	detached-corridor	building 361	20x28 m	3 storeys	attached None	paint 1	tile 452 684
+family_body	detached-corridor	building 362	20x20 m	3 storeys	attached None	paint 2	tile 452 692
+family_body	detached-corridor	building 363	56x20 m	5 storeys	attached None	paint 4	tile 476 688
+family_body	detached-walkup	building 364	44x28 m	3 storeys	attached None	paint 2	tile 422 644
+family_body	detached-walkup	building 365	28x24 m	5 storeys	attached None	paint 1	tile 434 644
+family_body	detached-corridor	building 366	32x28 m	5 storeys	attached None	paint 3	tile 443 644
+family_body	detached-corridor	building 367	48x24 m	3 storeys	attached None	paint 0	tile 424 667
+family_body	detached-corridor	building 368	60x24 m	5 storeys	attached None	paint 2	tile 440 667
+family_body	detached-corridor	building 369	24x16 m	5 storeys	attached None	paint 3	tile 420 652
+family_body	detached-two-unit	building 370	20x28 m	4 storeys	attached None	paint 2	tile 420 660
+family_body	detached-walkup	building 371	60x16 m	5 storeys	attached Right, RightCrosswise	paint 3	tile 444 656
+family_body	detached-corridor	building 372	40x24 m	5 storeys	attached None	paint 1	tile 423 612
+family_body	detached-corridor	building 373	28x16 m	4 storeys	attached None	paint 1	tile 434 612
+family_body	detached-corridor	building 374	36x20 m	3 storeys	attached None	paint 2	tile 442 612
+family_body	detached-corridor	building 375	60x16 m	5 storeys	attached Left, LeftCrosswise	paint 0	tile 424 636
+family_body	detached-corridor	building 376	60x24 m	3 storeys	attached Right, RightCrosswise	paint 1	tile 440 636
+family_body	detached-corridor	building 377	16x20 m	3 storeys	attached None	paint 3	tile 420 620
+family_body	detached-two-unit	building 378	28x24 m	4 storeys	attached None	paint 0	tile 420 628
+family_body	detached-walkup	building 379	52x24 m	4 storeys	attached None	paint 1	tile 444 624
+family_body	mansion-balconies	building 380	24x28 m	6 storeys	attached None	paint 1	tile 421 580
+family_body	mansion-balconies	building 381	36x20 m	6 storeys	attached None	paint 0	tile 430 580
+family_body	mansion-balconies	building 382	36x24 m	8 storeys	attached None	paint 0	tile 442 580
+family_body	mansion-balconies	building 383	60x20 m	8 storeys	attached None	paint 0	tile 424 604
+family_body	mansion-balconies	building 384	52x24 m	7 storeys	attached None	paint 0	tile 440 604
+family_body	mansion-block	building 385	28x56 m	5 storeys	attached Left	paint 2	tile 424 588
+family_body	mansion-block	building 386	28x56 m	8 storeys	attached Right	paint 1	tile 424 596
+family_body	mansion-shops	building 387	52x56 m	7 storeys	attached None	paint 0	tile 440 587	ring
+family_body	detached-corridor	building 388	44x24 m	5 storeys	attached Right, RightCrosswise	paint 1	tile 422 548
+family_body	detached-two-unit	building 389	28x20 m	2 storeys	attached Left, LeftCrosswise	paint 3	tile 432 548
+family_body	detached-corridor	building 390	44x24 m	2 storeys	attached None	paint 3	tile 442 548
+family_body	detached-corridor	building 391	60x24 m	3 storeys	attached None	paint 0	tile 424 572
+family_body	detached-corridor	building 392	48x20 m	2 storeys	attached None	paint 0	tile 440 572
+family_body	detached-two-unit	building 393	24x16 m	3 storeys	attached None	paint 4	tile 420 557
+family_body	detached-corridor	building 394	20x28 m	5 storeys	attached None	paint 5	tile 420 564
+family_body	detached-corridor	building 395	56x24 m	2 storeys	attached None	paint 1	tile 443 561
+family_body	detached-corridor	building 396	40x28 m	5 storeys	attached None	paint 3	tile 422 516
+family_body	detached-corridor	building 397	36x16 m	5 storeys	attached None	paint 5	tile 434 516
+family_body	detached-corridor	building 398	24x24 m	5 storeys	attached None	paint 3	tile 444 517
+family_body	detached-corridor	building 399	52x16 m	3 storeys	attached None	paint 5	tile 424 540
+family_body	detached-corridor	building 400	56x16 m	2 storeys	attached None	paint 4	tile 440 540
+family_body	detached-corridor	building 401	20x28 m	5 storeys	attached None	paint 2	tile 420 524
+family_body	detached-corridor	building 402	20x28 m	4 storeys	attached None	paint 4	tile 420 532
+family_body	detached-walkup	building 403	56x20 m	2 storeys	attached None	paint 4	tile 444 528
+family_body	mansion-block	building 404	40x20 m	6 storeys	attached None	paint 4	tile 422 484
+family_body	mansion-block	building 405	32x24 m	5 storeys	attached None	paint 0	tile 432 484
+family_body	mansion-block	building 406	32x24 m	6 storeys	attached None	paint 0	tile 443 484
+family_body	mansion-block	building 407	60x16 m	5 storeys	attached Left, LeftCrosswise	paint 5	tile 424 508
+family_body	mansion-block	building 408	56x24 m	6 storeys	attached Right, RightCrosswise	paint 5	tile 439 508
+family_body	mansion-balconies	building 409	16x52 m	7 storeys	attached None	paint 2	tile 424 492
+family_body	mansion-balconies	building 410	24x52 m	5 storeys	attached None	paint 3	tile 424 500
+family_body	mansion-balconies	building 411	56x52 m	5 storeys	attached None	paint 1	tile 440 492	ring
+family_body	mansion-block	building 412	36x24 m	5 storeys	attached None	paint 0	tile 422 452
+family_body	mansion-block	building 413	24x24 m	5 storeys	attached None	paint 4	tile 431 452
+family_body	mansion-block	building 414	40x24 m	5 storeys	attached None	paint 5	tile 442 452
+family_body	mansion-block	building 415	52x28 m	7 storeys	attached None	paint 5	tile 424 476
+family_body	mansion-block	building 416	60x20 m	8 storeys	attached None	paint 2	tile 440 476
+family_body	mansion-shops	building 417	28x60 m	8 storeys	attached Left	paint 1	tile 424 460
+family_body	mansion-shops	building 418	24x60 m	6 storeys	attached Right	paint 1	tile 424 467
+family_body	mansion-shops	building 419	60x64 m	8 storeys	attached Left, LeftCrosswise	paint 2	tile 440 458	ring
+family_body	detached-corridor	building 420	40x24 m	4 storeys	attached None	paint 2	tile 422 388
+family_body	detached-corridor	building 421	40x28 m	2 storeys	attached None	paint 1	tile 433 388
+family_body	detached-corridor	building 422	24x28 m	2 storeys	attached None	paint 0	tile 443 388
+family_body	detached-walkup	building 423	52x24 m	5 storeys	attached None	paint 0	tile 424 412
+family_body	detached-walkup	building 424	56x28 m	3 storeys	attached None	paint 5	tile 439 412
+family_body	detached-corridor	building 425	20x20 m	4 storeys	attached None	paint 3	tile 420 396
+family_body	detached-corridor	building 426	16x24 m	5 storeys	attached None	paint 5	tile 421 404
+family_body	detached-corridor	building 427	60x20 m	4 storeys	attached Left, LeftCrosswise	paint 1	tile 444 400
+family_body	mansion-block	building 428	28x28 m	6 storeys	attached None	paint 1	tile 452 388
+family_body	mansion-block	building 429	44x16 m	5 storeys	attached None	paint 1	tile 462 388
+family_body	mansion-block	building 430	32x24 m	6 storeys	attached None	paint 0	tile 474 389
+family_body	mansion-shops	building 431	56x28 m	5 storeys	attached None	paint 3	tile 456 412
+family_body	mansion-shops	building 432	56x24 m	8 storeys	attached None	paint 3	tile 471 411
+family_body	mansion-shops	building 433	24x56 m	6 storeys	attached None	paint 3	tile 456 396
+family_body	mansion-shops	building 434	24x56 m	5 storeys	attached None	paint 1	tile 456 403
+family_body	mansion-block	building 435	52x52 m	5 storeys	attached None	paint 4	tile 472 395	ring
+family_body	mansion-balconies	building 436	24x52 m	9 storeys	attached None	paint 1	tile 484 392
+family_body	mansion-balconies	building 437	44x56 m	10 storeys	attached None	paint 0	tile 494 392
+family_body	mansion-balconies	building 438	44x56 m	10 storeys	attached None	paint 1	tile 506 393
+family_body	mansion-block	building 439	52x56 m	10 storeys	attached None	paint 2	tile 488 403	ring
+family_body	mansion-block	building 440	52x60 m	11 storeys	attached None	paint 2	tile 504 402	ring
+family_bodies	440	631 meshes	631 layers	8.7 ms
+wrote plans/evidence/far-bodies/fixes/wash-ring-placed-0475.png at Tick 666
+wrote plans/evidence/far-bodies/fixes/wash-off-0475.png at Tick 668

@@ -113,6 +113,14 @@ public sealed class InstanceBuffer
     public Func<Vector2I, bool>? Near { get; set; }
     public bool NearOnly { get; set; }
 
+    /// <summary>
+    /// Whether a batch is still wanted, asked of the batch rather than of its chunk. A layer whose
+    /// instances fade out one at a time uses it to drop a batch none of them is left in, and such a
+    /// predicate reads <see cref="Batch.Instances"/> because the fade measures an instance's own
+    /// origin. It runs once per batch per residency pass, so it costs one pass over the layer.
+    /// </summary>
+    public Func<Batch, bool>? Needed { get; set; }
+
     /// <summary>Re-evaluates every chunk's residency at the next flush, as a camera move does.</summary>
     public void Repartition() => _eye = null;
     public IEnumerable<Batch> Batches => _batches.Values;
@@ -295,7 +303,7 @@ public sealed class InstanceBuffer
     {
         if (eye != _eye || detailDistance != _detailDistance)
         {
-            bool partitioned = detailDistance > 0 || _detailDistance > 0 || Near is not null;
+            bool partitioned = detailDistance > 0 || _detailDistance > 0 || Near is not null || Needed is not null;
             _eye = eye;
             _detailDistance = detailDistance;
             if (partitioned)
@@ -341,6 +349,11 @@ public sealed class InstanceBuffer
                 InstanceCount -= mesh.InstanceCount;
                 mesh.InstanceCount = 0;
                 batch.Buffer = [];
+
+                // An emptied MultiMesh keeps the CustomAabb of its last upload, which the culler
+                // still accepts, so a dropped batch would go on costing a draw call with nothing
+                // in it. A batch that has never been uploaded has no bounds and is already culled.
+                batch.Node.Visible = false;
                 _dirty.Remove(batch);
                 continue;
             }
@@ -378,6 +391,7 @@ public sealed class InstanceBuffer
             mesh.CustomAabb = bounds;
             mesh.Buffer = batch.Buffer;
             mesh.VisibleInstanceCount = count;
+            batch.Node.Visible = true;
             Uploads++;
             UploadedInstances += count;
             UploadedBytes += batch.Buffer.Length * sizeof(float);
@@ -397,6 +411,7 @@ public sealed class InstanceBuffer
     private bool Wants(Batch batch)
     {
         if (NearOnly && Near is not null) return Near(batch.Key);
+        if (Needed is not null && !Needed(batch)) return false;
         if (_eye is not { } eye || _detailDistance <= 0) return true;
         Vector3 nearest = eye.Clamp(batch.Bounds.Position, batch.Bounds.End);
         // Hysteresis prevents reallocating buffers while the camera hovers at a detail boundary.

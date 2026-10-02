@@ -1,0 +1,34 @@
+tick 7168
+tall-declining.toml   Tick 7,168   Day 3   Thursday   17:00
+Citizens 40,000   Buildings 495   vacant Lots 6   travelling 0
+speed 4x — a Day in 1m04s, 1,350x real time   mode look   [ ] speed, space pause, w write log, g roads, c cells, tab tune
+click acts   right-drag or two-finger scroll pans   edge of screen pans   pinch or -/= zooms   q/e turns   r/f tilts   l lens   o overlay
+hover —
+dwelling · Abandoned · No supply shortfalls reported
+debug —
+Tile (560, 515)    Cell (17, 16)
+dwelling — ABANDONED, a shell standing on its collapse clock
+Lot 25, future uses 0x0001 across the whole site
+ground: ordinary
+pollution 0    land value 0    sealing 934
+inspector —
+dwelling
+SELECTED BUILDING · 1
+Current condition
+No supply shortfalls reported
+Abandoned
+What needs attention
+No supply shortfalls reported.
+Activities
+No other activities reported.
+Households · 0
+No Households live here.
+Workers · 0
+No workers.
+Stocks
+No stocks reported.
+ui theme=dark debug=False visible=True scroll=0
+inspector (2130, 104), (406, 508) min=(125, 130)
+body (2150, 218), (366, 378) min=(50, 378)
+scroll (2150, 218), (366, 378) min=(50, 0)
+hover (40, 1286), (962, 49) debug (24, 264), (840, 36) console (24, 1210), (994, 137)

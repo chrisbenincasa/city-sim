@@ -582,6 +582,12 @@ public partial class Main
             case "family-bodies":
                 FamilyBodyStudy(words);
                 break;
+            case "far-windows":
+                FarWindowsStudy(words);
+                break;
+            case "far-fade":
+                FarFadeStudy(words);
+                break;
             case "exact-bodies":
                 ExactBodyStudy(words);
                 break;

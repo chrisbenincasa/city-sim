@@ -29,6 +29,14 @@ The variants are saved as .blend references with a lineup for review. The only e
 mansion.glb and slab.glb, which carry each family's untextured part materials, named part first so
 the shell matches them by part; textured parts name their library texture in the Style Preset. Each body's origin is its site centre at ground level, and the street face
 looks down -Y, which Godot receives as +Z.
+
+Far mode uses one `far-facade` part for every wall. Its UVMap counts the near facade's bays in u and
+storeys from ground level in v; uv2.x carries one cell id per face. Roof membranes, paving, plant
+rooms and outline trim keep their near part names. The far cell table is:
+
+  0  mansion-party/slab-party    1  mansion-ground      2  mansion-typical
+  3  mansion-attic               4  mansion-end         5  slab-ground
+  6  slab-typical                7  slab-end
 """
 import bpy
 import importlib.util
@@ -41,6 +49,7 @@ tall = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(tall)
 street = tall.street
 Geometry, Side, touching, subtract = tall.Geometry, tall.Side, tall.touching, tall.subtract
+cell_histogram = tall.cell_histogram
 
 SOURCES = ROOT / 'art/midrise-families'
 EXPORT = ROOT / 'src/Borough.Godot/assets/midrise-families'
@@ -49,6 +58,18 @@ WING = 16.0
 RING_MINIMUM = 48.0
 WALL = .25
 SIDES = ('s', 'e', 'n', 'w')
+
+FAR_CELLS = {
+    'mansion-party': 0,
+    'slab-party': 0,
+    'mansion-ground': 1,
+    'mansion-typical': 2,
+    'mansion-attic': 3,
+    'mansion-end': 4,
+    'slab-ground': 5,
+    'slab-typical': 6,
+    'slab-end': 7,
+}
 
 for texture in ('bricks-088', 'painted-plaster-wall', 'preconcrete-wall-001', 'concrete-wall-004'):
     spec = tall.LIBRARY['textures'][texture]
@@ -123,6 +144,19 @@ def bays(length, bay):
     count = max(1, round(length / bay))
     width = length / count
     return [(i * width, (i + 1) * width) for i in range(count)]
+
+
+def far_wall(g, side, a, b, storey, family, role, look, cell=None):
+    """One plain wall quad with the same bay split as the corresponding near stretch."""
+    count = len(bays(b - a, look['bay']))
+    if role == 'party':
+        cell = FAR_CELLS[f'{family}-party']
+    elif cell is None and role == 'end' and storey != 0:
+        cell = FAR_CELLS[f'{family}-end']
+    elif cell is None:
+        band = 'ground' if storey == 0 else 'typical'
+        cell = FAR_CELLS[f'{family}-{band}']
+    side.grid_plane(g, a, b, storey * STOREY, (storey + 1) * STOREY, 0, 0, count, cell)
 
 
 def centred(a, b, width, z, height):
@@ -212,6 +246,24 @@ def mansion_face(g, side, a, b, storeys, role, look):
         side.slab(g, 'trim', a, b, top + look['parapet'], top + look['parapet'] + .1, -.05, WALL + .05)
 
 
+def mansion_face_far(g, side, a, b, storeys, role, look):
+    """A mansion stretch with openings, projections and string courses removed."""
+    if role == 'party':
+        for storey in range(storeys):
+            far_wall(g, side, a, b, storey, 'mansion', role, look)
+        return
+    full = storeys - 1 if look['attic'] else storeys
+    side.slab(g, 'plinth', a, b, 0, .4, -.05, WALL)
+    for storey in range(full):
+        far_wall(g, side, a, b, storey, 'mansion', role, look)
+    top = full * STOREY
+    ch, cout = look['cornice'] if role == 'street' else (.2, .08)
+    side.slab(g, 'trim', a, b, top - .1, top + ch - .1, -cout, WALL)
+    if not look['attic']:
+        side.slab(g, 'far-facade', a, b, top + ch - .1, top + look['parapet'], 0, WALL)
+        side.slab(g, 'trim', a, b, top + look['parapet'], top + look['parapet'] + .1, -.05, WALL + .05)
+
+
 def mansion_attic(g, side, a, b, z, look):
     """The set-back attic storey: render, a window in every bay, a thin eave."""
     openings = [centred(a + u0, a + u1, look['attic_window'][0], z + look['attic_window'][2], look['attic_window'][1]) for u0, u1 in bays(b - a, look['bay'])]
@@ -293,6 +345,20 @@ def slab_face(g, side, a, b, storeys, role, look):
     side.slab(g, 'trim', a, b, top + look['parapet'], top + look['parapet'] + .1, -.05, WALL + .05)
 
 
+def slab_face_far(g, side, a, b, storeys, role, look):
+    """A panel slab stretch with its openings, joints, pilotis and access decks removed."""
+    if role == 'party':
+        for storey in range(storeys):
+            far_wall(g, side, a, b, storey, 'slab', role, look)
+        return
+    side.slab(g, 'plinth', a, b, 0, .3, -.05, WALL)
+    for storey in range(storeys):
+        far_wall(g, side, a, b, storey, 'slab', role, look)
+    top = storeys * STOREY
+    side.slab(g, 'far-facade', a, b, top, top + look['parapet'], 0, WALL)
+    side.slab(g, 'trim', a, b, top + look['parapet'], top + look['parapet'] + .1, -.05, WALL + .05)
+
+
 def plant_rooms(g, rect, z, look):
     x0, y0, x1, y1 = rect
     w, d, h = look['plant']
@@ -333,7 +399,7 @@ def role_of(side_name, rect, site, ring, attached):
     return {'s': 'street', 'n': 'yard'}.get(side_name, 'end')
 
 
-def site(g, family, frontage, depth, storeys, attached=(), settings=None):
+def site(g, family, frontage, depth, storeys, attached=(), settings=None, far=False):
     chosen = {**SETTINGS[family], **(settings or {})}
     look = {**LOOKS[family], **chosen}
     rects = wings(frontage, depth)
@@ -350,12 +416,12 @@ def site(g, family, frontage, depth, storeys, attached=(), settings=None):
                        for o in rects):
                     continue
                 if family == 'mansion':
-                    mansion_face(g, side, a, b, storeys, role, look)
+                    (mansion_face_far if far else mansion_face)(g, side, a, b, storeys, role, look)
                 else:
-                    slab_face(g, side, a, b, storeys, role, look)
+                    (slab_face_far if far else slab_face)(g, side, a, b, storeys, role, look)
 
     if family == 'mansion' and look['attic']:
-        mansion_roofs(g, rects, bounds, ring, attached, storeys, look)
+        (mansion_roofs_far if far else mansion_roofs)(g, rects, bounds, ring, attached, storeys, look)
     else:
         top = storeys * STOREY
         for rect in rects:
@@ -401,6 +467,36 @@ def mansion_roofs(g, rects, bounds, ring, attached, storeys, look):
         g.box('membrane', (ax0 + .1, ay0 + .1, full_top + STOREY - .2), (ax1 - .1, ay1 - .1, full_top + STOREY + .05))
 
 
+def mansion_roofs_far(g, rects, bounds, ring, attached, storeys, look):
+    """The near attic footprints and roofs with windows and terrace railings removed."""
+    full_top = (storeys - 1) * STOREY
+    s = look['attic_setback']
+    attics = []
+    for rect in rects:
+        x0, y0, x1, y1 = rect
+        street_sides = [name for name in SIDES if role_of(name, rect, bounds, ring, attached) == 'street']
+        attics.append((x0 + (s if 'w' in street_sides else 0), y0 + (s if 's' in street_sides else 0),
+                       x1 - (s if 'e' in street_sides else 0), y1 - (s if 'n' in street_sides else 0)))
+        g.box('paving', (x0 + .1, y0 + .1, full_top - .2), (x1 - .1, y1 - .1, full_top + .05))
+    for attic, rect in zip(attics, rects):
+        for name in SIDES:
+            side = Side(attic, name)
+            cuts = sorted({0.0, side.length} | {edge for other in attics if other is not attic
+                                                 and (touch := touching(side, attic, other)) for edge in touch})
+            role = role_of(name, rect, bounds, ring, attached)
+            for a, b in zip(cuts, cuts[1:]):
+                if any(other is not attic and (touch := touching(side, attic, other))
+                       and touch[0] <= a + 1e-4 and b - 1e-4 <= touch[1] for other in attics):
+                    continue
+                far_wall(g, side, a, b, storeys - 1, 'mansion', role, look,
+                         FAR_CELLS['mansion-attic'])
+                if role != 'party':
+                    side.slab(g, 'trim', a, b, full_top + STOREY, full_top + STOREY + .25, -.5, WALL)
+        ax0, ay0, ax1, ay1 = attic
+        g.box('membrane', (ax0 + .1, ay0 + .1, full_top + STOREY - .2),
+              (ax1 - .1, ay1 - .1, full_top + STOREY + .05))
+
+
 # Sizes and storeys the simulation raises on platted.toml at 40,000 Citizens.
 LINEUP = {
     'mansion': [
@@ -441,6 +537,11 @@ def materials():
             shader.inputs['Metallic'].default_value = .6 if part in ('glass', 'metal') else 0
             material.diffuse_color = rgba
             made[name] = material
+    far = bpy.data.materials.new('far-facade')
+    far.use_nodes = True
+    far.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = (.63, .58, .52, 1)
+    far.node_tree.nodes['Principled BSDF'].inputs['Roughness'].default_value = .8
+    made['far-facade'] = far
     return made
 
 
@@ -453,9 +554,11 @@ def census(g):
 
 
 def family_geometry(family, g):
-    """Renames each part to its family's material."""
+    """Renames each near part to its family's material and keeps the shared far facade part."""
     out = Geometry()
-    out.parts = {f'{part}-{family}': data for part, data in g.parts.items()}
+    names = {part: part if part == 'far-facade' else f'{part}-{family}' for part in g.parts}
+    out.parts = {names[part]: data for part, data in g.parts.items()}
+    out.grid_uvs = {names[part]: data for part, data in g.grid_uvs.items()}
     return out
 
 
@@ -490,9 +593,20 @@ def main():
         made = materials()
         offsets = lineup_offsets()
         for name, frontage, depth, storeys, attached, *settings in sites:
-            g = Geometry()
-            reports.append({'name': name, **site(g, family, frontage, depth, storeys, attached, *settings), **census(g)})
-            tall.build(name, family_geometry(family, g), made, offsets[name])
+            setting = settings[0] if settings else None
+            near = Geometry()
+            report = site(near, family, frontage, depth, storeys, attached, setting)
+            near_census = census(near)
+            far = Geometry()
+            far_report = site(far, family, frontage, depth, storeys, attached, setting, far=True)
+            assert far_report == report, (report, far_report)
+            far_census = census(far)
+            reports.append({'name': name, **report, **near_census,
+                            'far_faces': far_census['faces'], 'far_bounds': far_census['bounds'],
+                            'far_cell_counts': cell_histogram(far)})
+            tall.build(f'{name}-near', family_geometry(family, near), made, offsets[name])
+            tall.build(f'{name}-far', family_geometry(family, far), made,
+                       (offsets[name][0], offsets[name][1] + 260))
         bpy.ops.wm.save_as_mainfile(filepath=str(SOURCES / f'{family}.blend'))
 
     for thing in list(bpy.data.objects):
@@ -505,9 +619,14 @@ def main():
     offsets = lineup_offsets()
     for family, sites in LINEUP.items():
         for name, frontage, depth, storeys, attached, *settings in sites:
-            g = Geometry()
-            site(g, family, frontage, depth, storeys, attached, *settings)
-            tall.build(name, family_geometry(family, g), made, offsets[name])
+            setting = settings[0] if settings else None
+            near = Geometry()
+            far = Geometry()
+            site(near, family, frontage, depth, storeys, attached, setting)
+            site(far, family, frontage, depth, storeys, attached, setting, far=True)
+            tall.build(f'{name}-near', family_geometry(family, near), made, offsets[name])
+            tall.build(f'{name}-far', family_geometry(family, far), made,
+                       (offsets[name][0], offsets[name][1] + 260))
     bpy.ops.wm.save_as_mainfile(filepath=str(SOURCES / 'lineup.blend'))
 
     for family, parts in PARTS.items():
@@ -527,7 +646,7 @@ def main():
 
     (SOURCES / 'bodies.json').write_text(json.dumps({'storey_metres': STOREY, 'wing_metres': WING,
                                                      'ring_minimum_metres': RING_MINIMUM, 'looks': LOOKS,
-                                                     'sites': reports}, indent=2) + '\n')
+                                                     'far_cells': FAR_CELLS, 'sites': reports}, indent=2) + '\n')
     for report in reports:
         print('MIDRISE', report)
 

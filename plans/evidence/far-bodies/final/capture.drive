@@ -1,0 +1,131 @@
+# Release capture of the production defaults. No far-window or fade override is applied.
+
+600 ui family-bodies on
+600 roads on
+600 tilt 40
+600 turn right
+600 focus 556 560 3000
+600 shoot plans/evidence/far-bodies/final/3000.png
+601 draw plans/evidence/far-bodies/final/3000.tsv
+
+602 focus 556 560 1000
+602 shoot plans/evidence/far-bodies/final/1000.png
+603 draw plans/evidence/far-bodies/final/1000.tsv
+
+604 focus 556 560 500
+604 shoot plans/evidence/far-bodies/final/500.png
+605 draw plans/evidence/far-bodies/final/500.tsv
+
+606 focus 556 560 400
+606 shoot plans/evidence/far-bodies/final/400.png
+607 draw plans/evidence/far-bodies/final/400.tsv
+
+608 focus 556 560 3000
+608 shoot plans/evidence/far-bodies/final/approach-00-3000.png
+609 draw plans/evidence/far-bodies/final/approach-00-3000.tsv
+
+610 focus 556 560 2900
+610 shoot plans/evidence/far-bodies/final/approach-01-2900.png
+611 draw plans/evidence/far-bodies/final/approach-01-2900.tsv
+
+612 focus 556 560 2800
+612 shoot plans/evidence/far-bodies/final/approach-02-2800.png
+613 draw plans/evidence/far-bodies/final/approach-02-2800.tsv
+
+614 focus 556 560 2700
+614 shoot plans/evidence/far-bodies/final/approach-03-2700.png
+615 draw plans/evidence/far-bodies/final/approach-03-2700.tsv
+
+616 focus 556 560 2600
+616 shoot plans/evidence/far-bodies/final/approach-04-2600.png
+617 draw plans/evidence/far-bodies/final/approach-04-2600.tsv
+
+618 focus 556 560 2500
+618 shoot plans/evidence/far-bodies/final/approach-05-2500.png
+619 draw plans/evidence/far-bodies/final/approach-05-2500.tsv
+
+620 focus 556 560 2400
+620 shoot plans/evidence/far-bodies/final/approach-06-2400.png
+621 draw plans/evidence/far-bodies/final/approach-06-2400.tsv
+
+622 focus 556 560 2300
+622 shoot plans/evidence/far-bodies/final/approach-07-2300.png
+623 draw plans/evidence/far-bodies/final/approach-07-2300.tsv
+
+624 focus 556 560 2200
+624 shoot plans/evidence/far-bodies/final/approach-08-2200.png
+625 draw plans/evidence/far-bodies/final/approach-08-2200.tsv
+
+626 focus 556 560 2100
+626 shoot plans/evidence/far-bodies/final/approach-09-2100.png
+627 draw plans/evidence/far-bodies/final/approach-09-2100.tsv
+
+628 focus 556 560 2000
+628 shoot plans/evidence/far-bodies/final/approach-10-2000.png
+629 draw plans/evidence/far-bodies/final/approach-10-2000.tsv
+
+630 focus 556 560 1900
+630 shoot plans/evidence/far-bodies/final/approach-11-1900.png
+631 draw plans/evidence/far-bodies/final/approach-11-1900.tsv
+
+632 focus 556 560 1800
+632 shoot plans/evidence/far-bodies/final/approach-12-1800.png
+633 draw plans/evidence/far-bodies/final/approach-12-1800.tsv
+
+634 focus 556 560 1700
+634 shoot plans/evidence/far-bodies/final/approach-13-1700.png
+635 draw plans/evidence/far-bodies/final/approach-13-1700.tsv
+
+636 focus 556 560 1600
+636 shoot plans/evidence/far-bodies/final/approach-14-1600.png
+637 draw plans/evidence/far-bodies/final/approach-14-1600.tsv
+
+638 focus 556 560 1500
+638 shoot plans/evidence/far-bodies/final/approach-15-1500.png
+639 draw plans/evidence/far-bodies/final/approach-15-1500.tsv
+
+640 focus 556 560 1400
+640 shoot plans/evidence/far-bodies/final/approach-16-1400.png
+641 draw plans/evidence/far-bodies/final/approach-16-1400.tsv
+
+642 focus 556 560 1300
+642 shoot plans/evidence/far-bodies/final/approach-17-1300.png
+643 draw plans/evidence/far-bodies/final/approach-17-1300.tsv
+
+644 focus 556 560 1200
+644 shoot plans/evidence/far-bodies/final/approach-18-1200.png
+645 draw plans/evidence/far-bodies/final/approach-18-1200.tsv
+
+646 focus 556 560 1100
+646 shoot plans/evidence/far-bodies/final/approach-19-1100.png
+647 draw plans/evidence/far-bodies/final/approach-19-1100.tsv
+
+648 focus 556 560 1000
+648 shoot plans/evidence/far-bodies/final/approach-20-1000.png
+649 draw plans/evidence/far-bodies/final/approach-20-1000.tsv
+
+650 focus 556 560 900
+650 shoot plans/evidence/far-bodies/final/approach-21-0900.png
+651 draw plans/evidence/far-bodies/final/approach-21-0900.tsv
+
+652 focus 556 560 800
+652 shoot plans/evidence/far-bodies/final/approach-22-0800.png
+653 draw plans/evidence/far-bodies/final/approach-22-0800.tsv
+
+654 focus 556 560 700
+654 shoot plans/evidence/far-bodies/final/approach-23-0700.png
+655 draw plans/evidence/far-bodies/final/approach-23-0700.tsv
+
+656 focus 556 560 600
+656 shoot plans/evidence/far-bodies/final/approach-24-0600.png
+657 draw plans/evidence/far-bodies/final/approach-24-0600.tsv
+
+658 focus 556 560 500
+658 shoot plans/evidence/far-bodies/final/approach-25-0500.png
+659 draw plans/evidence/far-bodies/final/approach-25-0500.tsv
+
+660 focus 556 560 400
+660 shoot plans/evidence/far-bodies/final/approach-26-0400.png
+661 draw plans/evidence/far-bodies/final/approach-26-0400.tsv
+
+662 quit

@@ -191,10 +191,32 @@ calls. Under a kit it is ~3,600 instances across ~15 meshes — and at ~120,000 
 [`plans/0013`](../plans/0013-tick-budget.md), that is ~1.8M instances and ~144 MB of instance data.
 That is affordable in the near band around the camera and not city-wide, so the kit stays near-band only.
 
-✅ **Which is why the kit is a near LOD and today's shader box is the far one, and the far one is
-already shipped.** The wall shader fades its openings out past 500 m by distance; the kit stops
-before that. ***The kit is an addition at close range rather than a replacement***, so it is
-deferrable, it is incremental, and it cannot break a frame that works today.
+### 3.3 Bodies at distance
+
+- With family bodies enabled, mid-rise and tower families draw simplified meshes from the same
+  Building dimensions, bay counts and storeys as their near bodies. Silhouettes and roofs survive.
+  Low-rise families retain their chunk-switched massing boxes.
+- Far windows use the facade cell table and bay/storey UVs. The shader averages opening and frame
+  coverage over each pixel's footprint, so distant windows converge on their mean color without
+  a texture. `ui far-windows grid` selects the debug grid; `shader` is the default.
+- Near and far bodies share a complementary screen-space dither over 450–500 m by default.
+  Each instance measures from the main camera, including in shadow passes. A depth-only bias keeps
+  flush surfaces from fighting. Residency follows each Building's distance rather than a whole
+  Chunk's switch, on both sides. A far batch stops drawing once every Building in it stands inside
+  the ring's inner edge, and a near batch once every Building in it stands beyond the band, where
+  the dither discards the near form whole. `ui far-fade off` restores the chunk switch for study.
+- A Building wash and the abandonment overlay fade on the same side as the body they dress, so one
+  Building never draws both of its bodies.
+- A mid-rise or tower body is picked and named on the map by its own layer, by the body's box
+  rather than its faces. Its massing box is gone, and a near body runs to 60,846 quads.
+- Authored kit materials are rebuilt on the shell's shader for the fade. Startup checks warn by
+  material and property when the rebuild cannot carry an authored setting. The drift guard needs
+  Godot, so it is not in `scripts/test.sh`; run it from the repository root and read its last line:
+
+  ```sh
+  dotnet build src/Borough.Godot
+  godot --headless --path src/Borough.Godot --script ../../tests/Borough.Tests/Appearance/BodyKitGuard.gd
+  ```
 
 ---
 

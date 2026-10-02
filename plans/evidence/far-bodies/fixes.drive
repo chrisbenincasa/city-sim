@@ -1,0 +1,93 @@
+# The shell fixes on gate review 1, watched on the world the rest of this folder uses.
+# Abandonment and construction are not in here because platted.toml declares no decline clock and
+# builds its whole city at boot; fixes/declining.drive covers those two on a world that does both.
+#
+# Run it from the repository root, against a RELEASE build in the directory Godot loads:
+#
+#   dotnet build src/Borough.Godot -c Release \
+#     -p:OutputPath=$PWD/src/Borough.Godot/.godot/mono/temp/bin/Debug/
+#   BOROUGH_RENDER_PROFILE=1 godot --path src/Borough.Godot -- \
+#     --ruleset rulesets/platted.toml --citizens 40000 \
+#     --drive plans/evidence/far-bodies/fixes.drive > plans/evidence/far-bodies/fixes/run.log 2>&1
+#
+# `ui family-bodies on` prints one family_body line per placed body, so run.log says which Family,
+# size and Tile each picked Building id is. The draw lists and the JSON state dumps are read for
+# their numbers and are not kept; the render profile beside each draw list is.
+
+1 speed 8
+
+600 ui family-bodies on
+600 roads on
+600 tilt 40
+600 turn right
+600 hold look
+
+# opus-F2: the same camera path and the same 400 m stop as compare.drive, so the visible draw calls
+# in band-0400.tsv.profile.tsv are comparable with final/400.tsv.profile.tsv's 1,538. The switch
+# shot is the same frame with the fade off, which is the behaviour the band cost was measured on.
+# Each state is given four Ticks to finish its uploads; read `pending` in the profile.
+601 focus 556 560 3000
+602 focus 556 560 1000
+603 focus 556 560 500
+604 focus 556 560 400
+608 shoot plans/evidence/far-bodies/fixes/band-0400.png
+609 draw plans/evidence/far-bodies/fixes/band-0400.tsv
+
+610 ui far-fade off
+614 shoot plans/evidence/far-bodies/fixes/band-0400-switch.png
+615 draw plans/evidence/far-bodies/fixes/band-0400-switch.tsv
+
+616 ui far-fade on
+640 shoot plans/evidence/far-bodies/fixes/band-0400-fade.png
+641 draw plans/evidence/far-bodies/fixes/band-0400-fade.tsv
+
+# sol-F1/opus-F1: a mid-rise and a tower picked at each side of the fade and in the ring. The
+# caption carries the selected Building id; `ui read` carries the whole InformationMapTargets list,
+# which has to name each Building once.
+642 focus 560 515 300
+642 click 560 515
+643 shoot plans/evidence/far-bodies/fixes/midrise-0300.png
+643 ui read plans/evidence/far-bodies/fixes/midrise-0300.json
+
+644 focus 560 515 475
+644 click 560 515
+645 shoot plans/evidence/far-bodies/fixes/midrise-0475.png
+645 ui read plans/evidence/far-bodies/fixes/midrise-0475.json
+
+646 focus 560 515 1000
+646 click 560 515
+647 shoot plans/evidence/far-bodies/fixes/midrise-1000.png
+647 ui read plans/evidence/far-bodies/fixes/midrise-1000.json
+
+648 focus 592 528 300
+648 click 592 528
+649 shoot plans/evidence/far-bodies/fixes/tower-0300.png
+649 ui read plans/evidence/far-bodies/fixes/tower-0300.json
+
+650 focus 592 528 475
+650 click 592 528
+651 shoot plans/evidence/far-bodies/fixes/tower-0475.png
+651 ui read plans/evidence/far-bodies/fixes/tower-0475.json
+
+652 focus 592 528 1000
+652 click 592 528
+653 shoot plans/evidence/far-bodies/fixes/tower-1000.png
+653 ui read plans/evidence/far-bodies/fixes/tower-1000.json
+
+# sol-F2: a Building wash in the ring. One override used to dress both sides of the fade and draw
+# the near and the far body on top of each other; each side wears its own copy now.
+#
+# The first shot is the wash arriving on bodies already standing. The second re-places every body
+# under the armed wash, because `ui family-bodies on` invalidates, so the pair also says whether
+# the two routes to a dressed body agree.
+654 focus 560 515 475
+654 overlay rung
+655 shoot plans/evidence/far-bodies/fixes/wash-ring-0475.png
+
+656 ui family-bodies on
+666 shoot plans/evidence/far-bodies/fixes/wash-ring-placed-0475.png
+
+667 overlay off
+668 shoot plans/evidence/far-bodies/fixes/wash-off-0475.png
+
+669 quit

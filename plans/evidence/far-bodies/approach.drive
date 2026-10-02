@@ -1,0 +1,251 @@
+# Release approach with production defaults, platted.toml and 40,000 Citizens.
+# Capture each camera position once; the dense band pass reveals any whole-chunk switch.
+600 ui family-bodies on
+600 roads on
+600 tilt 40
+600 turn right
+600 focus 556 560 3000
+600 shoot plans/evidence/far-bodies/final/approach/frame-000-3000.png
+601 focus 556 560 2900
+601 shoot plans/evidence/far-bodies/final/approach/frame-001-2900.png
+602 focus 556 560 2800
+602 shoot plans/evidence/far-bodies/final/approach/frame-002-2800.png
+603 focus 556 560 2700
+603 shoot plans/evidence/far-bodies/final/approach/frame-003-2700.png
+604 focus 556 560 2600
+604 shoot plans/evidence/far-bodies/final/approach/frame-004-2600.png
+605 focus 556 560 2500
+605 shoot plans/evidence/far-bodies/final/approach/frame-005-2500.png
+606 focus 556 560 2400
+606 shoot plans/evidence/far-bodies/final/approach/frame-006-2400.png
+607 focus 556 560 2300
+607 shoot plans/evidence/far-bodies/final/approach/frame-007-2300.png
+608 focus 556 560 2200
+608 shoot plans/evidence/far-bodies/final/approach/frame-008-2200.png
+609 focus 556 560 2100
+609 shoot plans/evidence/far-bodies/final/approach/frame-009-2100.png
+610 focus 556 560 2000
+610 shoot plans/evidence/far-bodies/final/approach/frame-010-2000.png
+611 focus 556 560 1900
+611 shoot plans/evidence/far-bodies/final/approach/frame-011-1900.png
+612 focus 556 560 1800
+612 shoot plans/evidence/far-bodies/final/approach/frame-012-1800.png
+613 focus 556 560 1700
+613 shoot plans/evidence/far-bodies/final/approach/frame-013-1700.png
+614 focus 556 560 1600
+614 shoot plans/evidence/far-bodies/final/approach/frame-014-1600.png
+615 focus 556 560 1500
+615 shoot plans/evidence/far-bodies/final/approach/frame-015-1500.png
+616 focus 556 560 1400
+616 shoot plans/evidence/far-bodies/final/approach/frame-016-1400.png
+617 focus 556 560 1300
+617 shoot plans/evidence/far-bodies/final/approach/frame-017-1300.png
+618 focus 556 560 1200
+618 shoot plans/evidence/far-bodies/final/approach/frame-018-1200.png
+619 focus 556 560 1100
+619 shoot plans/evidence/far-bodies/final/approach/frame-019-1100.png
+620 focus 556 560 1000
+620 shoot plans/evidence/far-bodies/final/approach/frame-020-1000.png
+621 focus 556 560 900
+621 shoot plans/evidence/far-bodies/final/approach/frame-021-0900.png
+622 focus 556 560 895
+622 shoot plans/evidence/far-bodies/final/approach/frame-022-0895.png
+623 focus 556 560 890
+623 shoot plans/evidence/far-bodies/final/approach/frame-023-0890.png
+624 focus 556 560 885
+624 shoot plans/evidence/far-bodies/final/approach/frame-024-0885.png
+625 focus 556 560 880
+625 shoot plans/evidence/far-bodies/final/approach/frame-025-0880.png
+626 focus 556 560 875
+626 shoot plans/evidence/far-bodies/final/approach/frame-026-0875.png
+627 focus 556 560 870
+627 shoot plans/evidence/far-bodies/final/approach/frame-027-0870.png
+628 focus 556 560 865
+628 shoot plans/evidence/far-bodies/final/approach/frame-028-0865.png
+629 focus 556 560 860
+629 shoot plans/evidence/far-bodies/final/approach/frame-029-0860.png
+630 focus 556 560 855
+630 shoot plans/evidence/far-bodies/final/approach/frame-030-0855.png
+631 focus 556 560 850
+631 shoot plans/evidence/far-bodies/final/approach/frame-031-0850.png
+632 focus 556 560 845
+632 shoot plans/evidence/far-bodies/final/approach/frame-032-0845.png
+633 focus 556 560 840
+633 shoot plans/evidence/far-bodies/final/approach/frame-033-0840.png
+634 focus 556 560 835
+634 shoot plans/evidence/far-bodies/final/approach/frame-034-0835.png
+635 focus 556 560 830
+635 shoot plans/evidence/far-bodies/final/approach/frame-035-0830.png
+636 focus 556 560 825
+636 shoot plans/evidence/far-bodies/final/approach/frame-036-0825.png
+637 focus 556 560 820
+637 shoot plans/evidence/far-bodies/final/approach/frame-037-0820.png
+638 focus 556 560 815
+638 shoot plans/evidence/far-bodies/final/approach/frame-038-0815.png
+639 focus 556 560 810
+639 shoot plans/evidence/far-bodies/final/approach/frame-039-0810.png
+640 focus 556 560 805
+640 shoot plans/evidence/far-bodies/final/approach/frame-040-0805.png
+641 focus 556 560 800
+641 shoot plans/evidence/far-bodies/final/approach/frame-041-0800.png
+642 focus 556 560 795
+642 shoot plans/evidence/far-bodies/final/approach/frame-042-0795.png
+643 focus 556 560 790
+643 shoot plans/evidence/far-bodies/final/approach/frame-043-0790.png
+644 focus 556 560 785
+644 shoot plans/evidence/far-bodies/final/approach/frame-044-0785.png
+645 focus 556 560 780
+645 shoot plans/evidence/far-bodies/final/approach/frame-045-0780.png
+646 focus 556 560 775
+646 shoot plans/evidence/far-bodies/final/approach/frame-046-0775.png
+647 focus 556 560 770
+647 shoot plans/evidence/far-bodies/final/approach/frame-047-0770.png
+648 focus 556 560 765
+648 shoot plans/evidence/far-bodies/final/approach/frame-048-0765.png
+649 focus 556 560 760
+649 shoot plans/evidence/far-bodies/final/approach/frame-049-0760.png
+650 focus 556 560 755
+650 shoot plans/evidence/far-bodies/final/approach/frame-050-0755.png
+651 focus 556 560 750
+651 shoot plans/evidence/far-bodies/final/approach/frame-051-0750.png
+652 focus 556 560 745
+652 shoot plans/evidence/far-bodies/final/approach/frame-052-0745.png
+653 focus 556 560 740
+653 shoot plans/evidence/far-bodies/final/approach/frame-053-0740.png
+654 focus 556 560 735
+654 shoot plans/evidence/far-bodies/final/approach/frame-054-0735.png
+655 focus 556 560 730
+655 shoot plans/evidence/far-bodies/final/approach/frame-055-0730.png
+656 focus 556 560 725
+656 shoot plans/evidence/far-bodies/final/approach/frame-056-0725.png
+657 focus 556 560 720
+657 shoot plans/evidence/far-bodies/final/approach/frame-057-0720.png
+658 focus 556 560 715
+658 shoot plans/evidence/far-bodies/final/approach/frame-058-0715.png
+659 focus 556 560 710
+659 shoot plans/evidence/far-bodies/final/approach/frame-059-0710.png
+660 focus 556 560 705
+660 shoot plans/evidence/far-bodies/final/approach/frame-060-0705.png
+661 focus 556 560 700
+661 shoot plans/evidence/far-bodies/final/approach/frame-061-0700.png
+662 focus 556 560 695
+662 shoot plans/evidence/far-bodies/final/approach/frame-062-0695.png
+663 focus 556 560 690
+663 shoot plans/evidence/far-bodies/final/approach/frame-063-0690.png
+664 focus 556 560 685
+664 shoot plans/evidence/far-bodies/final/approach/frame-064-0685.png
+665 focus 556 560 680
+665 shoot plans/evidence/far-bodies/final/approach/frame-065-0680.png
+666 focus 556 560 675
+666 shoot plans/evidence/far-bodies/final/approach/frame-066-0675.png
+667 focus 556 560 670
+667 shoot plans/evidence/far-bodies/final/approach/frame-067-0670.png
+668 focus 556 560 665
+668 shoot plans/evidence/far-bodies/final/approach/frame-068-0665.png
+669 focus 556 560 660
+669 shoot plans/evidence/far-bodies/final/approach/frame-069-0660.png
+670 focus 556 560 655
+670 shoot plans/evidence/far-bodies/final/approach/frame-070-0655.png
+671 focus 556 560 650
+671 shoot plans/evidence/far-bodies/final/approach/frame-071-0650.png
+672 focus 556 560 645
+672 shoot plans/evidence/far-bodies/final/approach/frame-072-0645.png
+673 focus 556 560 640
+673 shoot plans/evidence/far-bodies/final/approach/frame-073-0640.png
+674 focus 556 560 635
+674 shoot plans/evidence/far-bodies/final/approach/frame-074-0635.png
+675 focus 556 560 630
+675 shoot plans/evidence/far-bodies/final/approach/frame-075-0630.png
+676 focus 556 560 625
+676 shoot plans/evidence/far-bodies/final/approach/frame-076-0625.png
+677 focus 556 560 620
+677 shoot plans/evidence/far-bodies/final/approach/frame-077-0620.png
+678 focus 556 560 615
+678 shoot plans/evidence/far-bodies/final/approach/frame-078-0615.png
+679 focus 556 560 610
+679 shoot plans/evidence/far-bodies/final/approach/frame-079-0610.png
+680 focus 556 560 605
+680 shoot plans/evidence/far-bodies/final/approach/frame-080-0605.png
+681 focus 556 560 600
+681 shoot plans/evidence/far-bodies/final/approach/frame-081-0600.png
+682 focus 556 560 595
+682 shoot plans/evidence/far-bodies/final/approach/frame-082-0595.png
+683 focus 556 560 590
+683 shoot plans/evidence/far-bodies/final/approach/frame-083-0590.png
+684 focus 556 560 585
+684 shoot plans/evidence/far-bodies/final/approach/frame-084-0585.png
+685 focus 556 560 580
+685 shoot plans/evidence/far-bodies/final/approach/frame-085-0580.png
+686 focus 556 560 575
+686 shoot plans/evidence/far-bodies/final/approach/frame-086-0575.png
+687 focus 556 560 570
+687 shoot plans/evidence/far-bodies/final/approach/frame-087-0570.png
+688 focus 556 560 565
+688 shoot plans/evidence/far-bodies/final/approach/frame-088-0565.png
+689 focus 556 560 560
+689 shoot plans/evidence/far-bodies/final/approach/frame-089-0560.png
+690 focus 556 560 555
+690 shoot plans/evidence/far-bodies/final/approach/frame-090-0555.png
+691 focus 556 560 550
+691 shoot plans/evidence/far-bodies/final/approach/frame-091-0550.png
+692 focus 556 560 545
+692 shoot plans/evidence/far-bodies/final/approach/frame-092-0545.png
+693 focus 556 560 540
+693 shoot plans/evidence/far-bodies/final/approach/frame-093-0540.png
+694 focus 556 560 535
+694 shoot plans/evidence/far-bodies/final/approach/frame-094-0535.png
+695 focus 556 560 530
+695 shoot plans/evidence/far-bodies/final/approach/frame-095-0530.png
+696 focus 556 560 525
+696 shoot plans/evidence/far-bodies/final/approach/frame-096-0525.png
+697 focus 556 560 520
+697 shoot plans/evidence/far-bodies/final/approach/frame-097-0520.png
+698 focus 556 560 515
+698 shoot plans/evidence/far-bodies/final/approach/frame-098-0515.png
+699 focus 556 560 510
+699 shoot plans/evidence/far-bodies/final/approach/frame-099-0510.png
+700 focus 556 560 505
+700 shoot plans/evidence/far-bodies/final/approach/frame-100-0505.png
+701 focus 556 560 500
+701 shoot plans/evidence/far-bodies/final/approach/frame-101-0500.png
+702 focus 556 560 495
+702 shoot plans/evidence/far-bodies/final/approach/frame-102-0495.png
+703 focus 556 560 490
+703 shoot plans/evidence/far-bodies/final/approach/frame-103-0490.png
+704 focus 556 560 485
+704 shoot plans/evidence/far-bodies/final/approach/frame-104-0485.png
+705 focus 556 560 480
+705 shoot plans/evidence/far-bodies/final/approach/frame-105-0480.png
+706 focus 556 560 475
+706 shoot plans/evidence/far-bodies/final/approach/frame-106-0475.png
+707 focus 556 560 470
+707 shoot plans/evidence/far-bodies/final/approach/frame-107-0470.png
+708 focus 556 560 465
+708 shoot plans/evidence/far-bodies/final/approach/frame-108-0465.png
+709 focus 556 560 460
+709 shoot plans/evidence/far-bodies/final/approach/frame-109-0460.png
+710 focus 556 560 455
+710 shoot plans/evidence/far-bodies/final/approach/frame-110-0455.png
+711 focus 556 560 450
+711 shoot plans/evidence/far-bodies/final/approach/frame-111-0450.png
+712 focus 556 560 445
+712 shoot plans/evidence/far-bodies/final/approach/frame-112-0445.png
+713 focus 556 560 440
+713 shoot plans/evidence/far-bodies/final/approach/frame-113-0440.png
+714 focus 556 560 435
+714 shoot plans/evidence/far-bodies/final/approach/frame-114-0435.png
+715 focus 556 560 430
+715 shoot plans/evidence/far-bodies/final/approach/frame-115-0430.png
+716 focus 556 560 425
+716 shoot plans/evidence/far-bodies/final/approach/frame-116-0425.png
+717 focus 556 560 420
+717 shoot plans/evidence/far-bodies/final/approach/frame-117-0420.png
+718 focus 556 560 415
+718 shoot plans/evidence/far-bodies/final/approach/frame-118-0415.png
+719 focus 556 560 410
+719 shoot plans/evidence/far-bodies/final/approach/frame-119-0410.png
+720 focus 556 560 405
+720 shoot plans/evidence/far-bodies/final/approach/frame-120-0405.png
+721 focus 556 560 400
+721 shoot plans/evidence/far-bodies/final/approach/frame-121-0400.png
+723 quit

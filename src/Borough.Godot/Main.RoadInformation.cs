@@ -43,19 +43,20 @@ public partial class Main
         _pickAt = now;
         float distance = float.PositiveInfinity;
         ulong building = 0, road = 0;
-        Hit(_buildings, _buildingIds, false);
-        Hit(_roofs, _roofIds, false);
-        Hit(_hips, _hipIds, false);
-        Hit(_pairedRoofs, _pairedRoofIds, false);
-        Hit(_parapets, _parapetIds, false);
-        Hit(_yards, _yardIds, false);
-        Hit(_roads, _roadIds, true);
-        Hit(_footways, _footwayIds, true);
-        Hit(_kerbs, _kerbIds, true);
+        Hit(_buildings, false);
+        Hit(_roofs, false);
+        Hit(_hips, false);
+        Hit(_pairedRoofs, false);
+        Hit(_parapets, false);
+        Hit(_yards, false);
+        Hit(_roads, true);
+        Hit(_footways, true);
+        Hit(_kerbs, true);
+        foreach (InstanceLayer layer in _bodyLayers.Values) HitBody(layer);
         _picked = (InformationHandle(_world.Buildings.Rows, building), InformationHandle(_world.Roads.Segments.Rows, road));
         return _picked;
 
-        void Hit(InstanceLayer layer, List<ulong> ids, bool isRoad)
+        void Hit(InstanceLayer layer, bool isRoad)
         {
             if (!layer.IsVisibleInTree() || layer.Multimesh.VisibleInstanceCount == 0) return;
             InstanceBuffer instances = layer.Multimesh;
@@ -90,25 +91,66 @@ public partial class Main
                 }
             }
         }
+
+        // A mid-rise or tower body draws in place of its massing box, so its own layer is what the
+        // ray has to meet. ⚠ IT MEETS THE BODY'S BOX AND NOT ITS FACES: a near body runs to 60,846
+        // quads and a far one to 2,042, where every other layer here is a unit box of twelve faces.
+        // The box is the Building's own frontage, depth and height, which is what the massing it
+        // replaced offered the ray. The far layer carries one entry per bodied Building and keeps
+        // it through the fade, so one pass covers every distance.
+        void HitBody(InstanceLayer layer)
+        {
+            InstanceBuffer instances = layer.Multimesh;
+            if (instances.NearOnly || !layer.IsVisibleInTree() || instances.VisibleInstanceCount == 0) return;
+            Aabb bounds = instances.Mesh.GetAabb();
+            Transform3D inverseLayer = layer.GlobalTransform.AffineInverse();
+            foreach (var batch in instances.Batches)
+            {
+                if (!RayBounds(inverseLayer * origin, inverseLayer.Basis * direction, batch.Bounds, distance)) continue;
+                foreach (var entry in batch.Instances)
+                {
+                    Transform3D transform = layer.GlobalTransform * entry.Transform;
+                    if (Math.Abs(transform.Basis.Determinant()) < .000001f) continue;
+                    Transform3D inverse = transform.AffineInverse();
+                    float depth = RayReach(inverse * origin, inverse.Basis * direction, bounds, distance);
+                    if (depth < 0 || depth > distance + .001f) continue;
+                    if (Math.Abs(depth - distance) <= .001f && building != 0) continue;
+                    distance = depth;
+                    building = instances.IdAt(entry.Index);
+                    road = 0;
+                }
+            }
+        }
     }
 
-    private static bool RayBounds(Vector3 origin, Vector3 direction, Aabb bounds, float far)
+    private static bool RayBounds(Vector3 origin, Vector3 direction, Aabb bounds, float far) =>
+        RayReach(origin, direction, bounds, far) >= 0;
+
+    /// <summary>
+    /// How far along the ray the bounds begin, or -1 where the ray misses them or reaches them
+    /// beyond <paramref name="far"/>.
+    /// </summary>
+    /// <remarks>
+    /// An affine change of frame leaves a ray's parameter alone, so a box tested in its own frame
+    /// answers in the units the ray was cast in.
+    /// </remarks>
+    private static float RayReach(Vector3 origin, Vector3 direction, Aabb bounds, float far)
     {
         float near = 0;
         for (int axis = 0; axis < 3; axis++)
         {
             if (Math.Abs(direction[axis]) < .000001f)
             {
-                if (origin[axis] < bounds.Position[axis] || origin[axis] > bounds.End[axis]) return false;
+                if (origin[axis] < bounds.Position[axis] || origin[axis] > bounds.End[axis]) return -1;
                 continue;
             }
             float a = (bounds.Position[axis] - origin[axis]) / direction[axis];
             float b = (bounds.End[axis] - origin[axis]) / direction[axis];
             near = Math.Max(near, Math.Min(a, b));
             far = Math.Min(far, Math.Max(a, b));
-            if (near > far) return false;
+            if (near > far) return -1;
         }
-        return true;
+        return near;
     }
 
     private void SelectInformation(Handle<Building> building, Handle<RoadSegment> road, (Tiles East, Tiles North)? ground = null)
@@ -243,11 +285,22 @@ public partial class Main
         Rows<RoadSegment> roads = _world.Roads.Segments.Rows;
         for (int i = 0; i < roads.SlotCount; i++)
             if (roads.IsLive(i)) roadNames.Add(roads.IdAt(i), RoadName(i));
-        Add(_roads, _roadIds, "road", Vector3.Zero);
-        Add(_buildings, _buildingIds, "building", new Vector3(0, .5f, 0));
+        Add(_roads, "road", Vector3.Zero);
+        Add(_buildings, "building", new Vector3(0, .5f, 0));
+
+        // The far layer of a bodied mid-rise or tower, which writes no massing box above. One entry
+        // per Building and one layer per mesh, so a Building is named once; the marker sits at the
+        // top of the body as the massing box's does at the top of its box.
+        foreach (InstanceLayer layer in _bodyLayers.Values)
+        {
+            if (layer.Multimesh.NearOnly) continue;
+            Aabb body = layer.Multimesh.Mesh.GetAabb();
+            Add(layer, "building", body.GetCenter() with { Y = body.End.Y });
+        }
+
         return targets.ToArray();
 
-        void Add(InstanceLayer layer, List<ulong> ids, string kind, Vector3 local)
+        void Add(InstanceLayer layer, string kind, Vector3 local)
         {
             for (int i = 0; i < layer.Multimesh.VisibleInstanceCount; i++)
             {

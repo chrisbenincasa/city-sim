@@ -17,6 +17,7 @@ public partial class Main
 
     private void UpdateBuildings()
     {
+        CheckBodyKitAtStartup();
         WorldChanges changes = _world.Changes!;
         if (changes.Full || _visualWash != _washing || _washing == Wash.Age
             || _troubleRepaint && _washing == Wash.Trouble)
@@ -55,31 +56,35 @@ public partial class Main
                 if (_renderedBuildings.Remove(slot, out var old))
                 {
                     if (old.Drawn) _drawnBuildings--;
-                    if (old.Id != id) geometry |= ReplaceBuilding(old.Id);
-                    RemoveFamilyBody(old.Id);
+
+                    // A bodied Building writes no massing box, so a gone one is news only here.
+                    // A body under the same id is left standing for PlaceFamilyBody to compare with.
+                    if (old.Id != id) geometry |= ReplaceBuilding(old.Id) | RemoveFamilyBody(old.Id);
                     changedIds.Add(old.Id);
                 }
                 if (!live) continue;
                 changedIds.Add(id);
                 placed.Add(slot);
-                RemoveFamilyBody(id);
-                bool far = PlaceFamilyBody(slot);
-                BodyShape? shape = far ? _placedBodies[id].Shape : null;
+                bool bodied = PlaceFamilyBody(slot, out bool bodyChanged);
+                geometry |= bodyChanged;
+                PlacedBody bodyPlacement = bodied ? _placedBodies[id] : default;
+                BodyShape? shape = bodied ? bodyPlacement.NearShape : null;
+                bool detailedFar = bodyPlacement.FarShape is not null;
                 bool modules = _world.IsSupermarket(slot) || _world.IsDepartmentStore(slot) || _world.IsPadSite(slot)
                     || _world.IsSalesYard(slot) || _world.IsPrecinct(slot) || _world.IsMarketHall(slot);
                 if (modules) _moduleDrawnIds.Add(id); else _moduleDrawnIds.Remove(id);
                 fronts |= modules || _world.IsTradeCentre(slot);
-                foreach (Massing each in modules ? [] : Buildings(slot))
+                foreach (Massing each in modules || detailedFar ? [] : Buildings(slot))
                 {
-                    Massing one = far ? FarMassing(each, shape!.Body) : each;
-                    _bodyEdits.Add(new(one.Body, far ? FarPaint(one, shape!.Wall, one.Paint) : one.Paint, one.Reads, far));
-                    if (one.Outhoused && !far) _yardEdits.Add(new(one.Yard,
+                    Massing one = bodied ? FarMassing(each, shape!.Body) : each;
+                    _bodyEdits.Add(new(one.Body, bodied ? FarPaint(one, shape!.Wall, one.Paint) : one.Paint, one.Reads, bodied));
+                    if (one.Outhoused && !bodied) _yardEdits.Add(new(one.Yard,
                         YardPaint(one)));
                     var roof = one.Cap switch { Cap.Gable => _roofEdits, Cap.Hip => _hipEdits, Cap.PairedGable => _pairedRoofEdits, Cap.Parapet => _parapetEdits, _ => null };
-                    roof?.Add(new(one.Roof, far ? FarPaint(one, shape!.Roof, RoofPaint(one)) : RoofPaint(one), RoofWall(one), far));
+                    roof?.Add(new(one.Roof, bodied ? FarPaint(one, shape!.Roof, RoofPaint(one)) : RoofPaint(one), RoofWall(one), bodied));
                 }
                 geometry |= ReplaceBuilding(id);
-                bool drawn = far || modules || _bodyEdits.Count != 0;
+                bool drawn = bodied || modules || _bodyEdits.Count != 0;
                 _renderedBuildings[slot] = (id, drawn);
                 if (drawn) _drawnBuildings++;
             }
@@ -87,10 +92,11 @@ public partial class Main
             if (geometry)
             {
                 int at = 0;
-                foreach (var batch in _buildings.Multimesh.Batches)
-                    foreach (var entry in batch.Instances) FoliageFootprint(entry.Transform, at++);
-                foreach (var batch in _yards.Multimesh.Batches)
-                    foreach (var entry in batch.Instances) FoliageFootprint(entry.Transform, at++);
+                foreach (Massing one in Buildings())
+                {
+                    FoliageFootprint(one.Body, at++);
+                    if (one.Outhoused) FoliageFootprint(one.Yard, at++);
+                }
                 foreach ((_, var surface) in CarParkSurfaces()) FoliageFootprint(surface, at++);
                 RefreshFoliage(at);
                 _vacantLots = Fill(_plots, Plots(), _plotIds);
@@ -161,6 +167,7 @@ public partial class Main
         text.Append(CultureInfo.InvariantCulture, $"render_work\t{_fullBuildingPasses}\t{_buildingEdits}\t{_movementIndexVisits}\t{_movementQueries}\n");
         text.Append(CultureInfo.InvariantCulture, $"render_frames\t{_frameCount}\t{_frameMilliseconds:F3}\t{_frameMaximum:F3}\n");
         Godot.Rid viewport = GetViewport().GetViewportRid();
+        text.Append(CultureInfo.InvariantCulture, $"render_times\t{Godot.RenderingServer.ViewportGetMeasuredRenderTimeCpu(viewport):F3}\t{Godot.RenderingServer.ViewportGetMeasuredRenderTimeGpu(viewport):F3}\n");
         long Info(Godot.RenderingServer.ViewportRenderInfoType pass, Godot.RenderingServer.ViewportRenderInfo what) =>
             Godot.RenderingServer.ViewportGetRenderInfo(viewport, pass, what);
         text.Append("# render_info\tpass\tobjects\tdraw_calls\tprimitives\n");

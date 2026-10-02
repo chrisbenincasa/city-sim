@@ -33,6 +33,62 @@ public sealed class MidriseBodyTests
     }
 
     [Fact]
+    public void Each_far_reference_site_matches_the_authored_faces_and_bounds()
+    {
+        using JsonDocument document = Bodies();
+        foreach (JsonElement site in document.RootElement.GetProperty("sites").EnumerateArray())
+        {
+            string name = site.GetProperty("name").GetString()!;
+            FamilyBodyMesh mesh = BuildSite(site, FamilyBodyDetail.Far);
+            Dictionary<string, int> expected = site.GetProperty("far_faces").EnumerateObject()
+                .ToDictionary(p => p.Name, p => p.Value.GetInt32());
+            Dictionary<string, int> actual = mesh.Parts.ToDictionary(p => p.Part, p => p.Mesh.Positions.Length / 4);
+            Assert.True(expected.OrderBy(p => p.Key).SequenceEqual(actual.OrderBy(p => p.Key)),
+                $"{name}: authored {Describe(expected)}, built {Describe(actual)}");
+            AssertBounds(name, mesh, site.GetProperty("far_bounds"));
+
+            float[] nearBounds = MeshBounds(BuildSite(site));
+            float[] farBounds = MeshBounds(mesh);
+            foreach (int end in new[] { 2, 5 })
+            {
+                Assert.True(MathF.Abs(nearBounds[end] - farBounds[end]) <= .001f,
+                    $"{name}: near height bound {nearBounds[end]} differs from far {farBounds[end]}");
+            }
+
+            // Locks which cell each grid quad actually picks, not just that the name-to-id tables
+            // agree (gate-1-opus F8): two walls trading cells with the same id set would still fail.
+            ShellMesh facade = mesh.Parts.Single(p => p.Part == "far-facade").Mesh;
+            Dictionary<string, int> expectedCellCounts = site.GetProperty("far_cell_counts").EnumerateObject()
+                .ToDictionary(p => p.Name, p => p.Value.GetInt32());
+            Dictionary<string, int> actualCellCounts = Enumerable.Range(0, facade.VertexCount / 4)
+                .Where(face => IsGridQuad(facade, face * 4))
+                .GroupBy(face => ((int)facade.Uv2s[face * 4].X).ToString())
+                .ToDictionary(g => g.Key, g => g.Count());
+            Assert.True(expectedCellCounts.OrderBy(p => p.Key).SequenceEqual(actualCellCounts.OrderBy(p => p.Key)),
+                $"{name}: authored cell counts {Describe(expectedCellCounts)}, built {Describe(actualCellCounts)}");
+        }
+    }
+
+    [Fact]
+    public void Far_facades_keep_the_near_bay_and_storey_grid()
+    {
+        using JsonDocument document = Bodies();
+        foreach (JsonElement site in document.RootElement.GetProperty("sites").EnumerateArray())
+        {
+            string name = site.GetProperty("name").GetString()!;
+            FamilyBodyMesh near = BuildSite(site);
+            ShellMesh facade = BuildSite(site, FamilyBodyDetail.Far).Parts.Single(p => p.Part == "far-facade").Mesh;
+            AssertStoreyGrid(name, facade);
+            foreach ((Vector3 centre, Vector3 normal) in OpeningCentres(near))
+            {
+                Assert.True(TryFacadeUv(facade, (centre, normal), out Vector2 uv), $"{name}: no far wall contains opening at {centre}");
+                Assert.True(uv.X > MathF.Floor(uv.X) + 1e-3f && uv.X < MathF.Ceiling(uv.X) - 1e-3f,
+                    $"{name}: opening at {centre} lies on far bay line u={uv.X}");
+            }
+        }
+    }
+
+    [Fact]
     public void The_builder_looks_match_the_authored_reference()
     {
         using JsonDocument document = Bodies();
@@ -152,7 +208,7 @@ public sealed class MidriseBodyTests
         Assert.Throws<ArgumentException>(() => FamilyBodyBuilder.Build(Midrise("mansion"), 40f, 16f, 6));
     }
 
-    private static FamilyBodyMesh BuildSite(JsonElement site)
+    private static FamilyBodyMesh BuildSite(JsonElement site, FamilyBodyDetail detail = FamilyBodyDetail.Near)
     {
         AttachedSides attached = AttachedSides.None;
         foreach (JsonElement side in site.GetProperty("attached").EnumerateArray())
@@ -176,7 +232,90 @@ public sealed class MidriseBodyTests
         };
         return FamilyBodyBuilder.BuildMidrise(body, site.GetProperty("frontage").GetSingle(),
             site.GetProperty("depth").GetSingle(), site.GetProperty("storeys").GetInt32(),
-            site.GetProperty("ring").GetBoolean(), attached);
+            site.GetProperty("ring").GetBoolean(), attached, detail);
+    }
+
+    private static void AssertBounds(string name, FamilyBodyMesh mesh, JsonElement bounds)
+    {
+        float[] actual = MeshBounds(mesh);
+        float[] expected = [.. bounds[0].EnumerateArray().Concat(bounds[1].EnumerateArray()).Select(v => v.GetSingle())];
+        for (int i = 0; i < expected.Length; i++)
+        {
+            Assert.True(MathF.Abs(expected[i] - actual[i]) <= .0011f,
+                $"{name}: bound {i} authored {expected[i]}, built {actual[i]}");
+        }
+    }
+
+    private static float[] MeshBounds(FamilyBodyMesh mesh)
+    {
+        Vector3[] all = [.. mesh.Parts.SelectMany(p => p.Mesh.Positions.ToArray())];
+        return [all.Min(p => p.X), -all.Max(p => p.Z), all.Min(p => p.Y),
+            all.Max(p => p.X), -all.Min(p => p.Z), all.Max(p => p.Y)];
+    }
+
+    private static IEnumerable<(Vector3 Centre, Vector3 Normal)> OpeningCentres(FamilyBodyMesh mesh)
+    {
+        foreach ((string part, ShellMesh shell) in mesh.Parts)
+        {
+            if (part is not ("glass" or "door")) continue;
+            for (int at = 0; at < shell.VertexCount; at += 4)
+            {
+                yield return ((shell.Positions[at] + shell.Positions[at + 1]
+                    + shell.Positions[at + 2] + shell.Positions[at + 3]) / 4f, shell.Normals[at]);
+            }
+        }
+    }
+
+    private static void AssertStoreyGrid(string name, ShellMesh facade)
+    {
+        bool found = false;
+        for (int at = 0; at < facade.VertexCount; at += 4)
+        {
+            if (!IsGridQuad(facade, at)) continue;
+            found = true;
+            for (int i = 0; i < 4; i++)
+            {
+                Assert.True(MathF.Abs(facade.Positions[at + i].Y - (facade.Uvs[at + i].Y * ShellBuilder.StoreyMetres)) <= .001f,
+                    $"{name}: v={facade.Uvs[at + i].Y} misses height {facade.Positions[at + i].Y}");
+            }
+        }
+
+        Assert.True(found, $"{name}: no gridded far facade quads");
+    }
+
+    private static bool TryFacadeUv(ShellMesh facade, (Vector3 Centre, Vector3 Normal) opening, out Vector2 uv)
+    {
+        uv = default;
+        float nearest = float.MaxValue;
+        bool found = false;
+        for (int at = 0; at < facade.VertexCount; at += 4)
+        {
+            if (!IsGridQuad(facade, at) || Vector3.Dot(facade.Normals[at], opening.Normal) < .99f) continue;
+            Vector3 p0 = facade.Positions[at], e1 = facade.Positions[at + 1] - p0,
+                e3 = facade.Positions[at + 3] - p0;
+            float distance = Vector3.Dot(opening.Centre - p0, facade.Normals[at]);
+            if (MathF.Abs(distance) > 3f || MathF.Abs(distance) >= nearest) continue;
+            Vector3 projected = opening.Centre - (facade.Normals[at] * distance);
+            float t = Vector3.Dot(projected - p0, e1) / e1.LengthSquared();
+            float s = Vector3.Dot(projected - p0, e3) / e3.LengthSquared();
+            if (t < -1e-3f || t > 1.001f || s < -1e-3f || s > 1.001f) continue;
+            uv = facade.Uvs[at] + ((facade.Uvs[at + 1] - facade.Uvs[at]) * t)
+                + ((facade.Uvs[at + 3] - facade.Uvs[at]) * s);
+            nearest = MathF.Abs(distance);
+            found = true;
+        }
+
+        return found;
+    }
+
+    private static bool IsGridQuad(ShellMesh mesh, int at)
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            if (MathF.Abs(mesh.Positions[at + i].Y - (mesh.Uvs[at + i].Y * ShellBuilder.StoreyMetres)) > .001f) return false;
+        }
+
+        return true;
     }
 
     private static string Describe(Dictionary<string, int> faces) =>
