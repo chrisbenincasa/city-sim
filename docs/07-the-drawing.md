@@ -202,9 +202,20 @@ That is affordable in the near band around the camera and not city-wide, so the 
 - Near and far bodies share a complementary screen-space dither over 450–500 m by default.
   Each instance measures from the main camera, including in shadow passes. A depth-only bias keeps
   flush surfaces from fighting. Far residency follows each Building's distance rather than a whole
-  Chunk's switch. `ui far-fade off` restores the chunk switch for study.
+  Chunk's switch: a far batch stops drawing once every Building in it stands inside the ring's
+  inner edge. `ui far-fade off` restores the chunk switch for study.
+- A Building wash and the abandonment overlay fade on the same side as the body they dress, so one
+  Building never draws both of its bodies.
+- A mid-rise or tower body is picked and named on the map by its own layer, by the body's box
+  rather than its faces. Its massing box is gone, and a near body runs to 60,846 quads.
 - Authored kit materials are rebuilt on the shell's shader for the fade. Startup checks warn by
-  material and property when the rebuild cannot carry an authored setting.
+  material and property when the rebuild cannot carry an authored setting. The drift guard needs
+  Godot, so it is not in `scripts/test.sh`; run it from the repository root and read its last line:
+
+  ```sh
+  dotnet build src/Borough.Godot
+  godot --headless --path src/Borough.Godot --script ../../tests/Borough.Tests/Appearance/BodyKitGuard.gd
+  ```
 
 ---
 

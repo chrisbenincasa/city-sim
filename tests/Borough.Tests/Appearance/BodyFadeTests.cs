@@ -14,6 +14,10 @@ public sealed class BodyFadeTests
     [InlineData("far-grid.gdshader")]
     [InlineData("library-body.gdshader")]
     [InlineData("body-kit.gdshader")]
+
+    // A body layer wears these two over its own materials, so they take the same side of the fade.
+    [InlineData("derelict-body.gdshader")]
+    [InlineData("overlay-buildings.gdshader")]
     public void EveryBodyShaderUsesTheSameInstanceFade(string shader)
     {
         string source = File.ReadAllText(Path.Combine(RepoRoot(), "src", "Borough.Godot", shader));
