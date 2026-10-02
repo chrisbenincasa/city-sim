@@ -635,7 +635,7 @@ internal static class BusinessDump
         for (int kind = 1; kind <= rules.BusinessKindCount; kind++)
         {
             threshold = int.Max(
-                threshold, rules.BusinessKind((byte)kind).GoesBankruptAfterShortPaydays);
+                threshold, rules.BusinessKind((byte)kind).GoesBankruptAfterDaysInArrears);
         }
 
         if (tilless > 0)
@@ -654,11 +654,9 @@ internal static class BusinessDump
         if (threshold == 0)
         {
             output.WriteLine(
-                "  No trade here states `goes_bankrupt_after_short_paydays`, so nothing in this world");
+                "  No trade here pays a wage, so nothing in this world can fall into arrears or be");
             output.WriteLine(
-                "  can be wound up for failing to pay. Absent means never, and it is reached by");
-            output.WriteLine(
-                "  omitting the key rather than by defaulting one. rulesets/insolvent.toml states it.");
+                "  wound up for failing to pay.");
 
             return;
         }

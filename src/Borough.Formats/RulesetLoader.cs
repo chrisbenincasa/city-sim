@@ -1637,59 +1637,50 @@ public static class RulesetLoader
         }
 
         /// <summary>
-        /// Reads <c>goes_bankrupt_after_short_paydays</c>, refused on a trade that pays nobody.
+        /// Reads <c>goes_bankrupt_after_days_in_arrears</c>: required on a trade that pays a wage,
+        /// refused on one that does not.
         /// </summary>
         /// <remarks>
-        /// <para>
-        /// <b>Absent means never, on <c>gives_up_after_days</c>'s idiom</b> — <c>CLAUDE.md</c>'s
-        /// <em>absent means nobody ever gives up</em>, reached by omitting the key rather than by
-        /// defaulting one, so a Ruleset silent on insolvency keeps the behaviour the build had
-        /// before the mechanism existed.
-        /// </para>
-        /// <para>
-        /// ⚠ <b>Refused without a wage, and that is the whole validation.</b> A trade that pays
-        /// nothing cannot fail to pay it, so the key on such a trade is a threshold nothing can
-        /// ever cross — it would load clean and do nothing, which is
-        /// <c>adr/0048</c>'s reason for refusing at the parse site rather than tolerating in the
-        /// core. ⚠ <b>Zero is not the same as absent here and is refused as such</b>: written out,
-        /// it reads as <em>folds immediately</em>, which is not what it does.
-        /// </para>
+        /// Required so that every waged trade can fail; the Ruleset sets only how long it survives.
+        /// Refused without a wage because a trade that pays nothing cannot fall into arrears, so the
+        /// key would load clean and do nothing (<c>adr/0048</c>).
         /// </remarks>
-        private int ReadGoesBankruptAfterShortPaydays(
+        private int ReadGoesBankruptAfterDaysInArrears(
             TableSyntaxBase table, string? name, int wagePerDay, int payPeriodDays)
         {
-            if (!TryInteger(
-                    table, "goes_bankrupt_after_short_paydays", out long paydays, required: false, name))
+            const string key = "goes_bankrupt_after_days_in_arrears";
+            bool waged = wagePerDay > 0 && payPeriodDays > 0;
+
+            if (!waged)
+            {
+                if (Find(table, key, RulesetKeyKind.Whole) is { } stray)
+                {
+                    Refuse(
+                        LineOf((SyntaxNodeBase)stray), name,
+                        $"this trade states `{key}` and pays no wage. A trade with no `wage_per_day` "
+                        + "and `pay_period_days` can never fall into arrears, so the key would load "
+                        + "clean and do nothing. State a wage, or delete this key.");
+                }
+
+                return 0;
+            }
+
+            if (!TryInteger(table, key, out long days, required: true, name))
             {
                 return 0;
             }
 
-            if (wagePerDay <= 0 || payPeriodDays <= 0)
+            if (days <= 0)
             {
                 Refuse(
-                    LineOf((SyntaxNodeBase?)Find(table, "goes_bankrupt_after_short_paydays") ?? table), name,
-                    "this trade states `goes_bankrupt_after_short_paydays` and pays no wage. It counts the "
-                    + "paydays a trade fails to meet IN FULL, and a trade with no `wage_per_day` "
-                    + "and `pay_period_days` has no payday to fail -- so the threshold could never "
-                    + "be reached and the key would load clean and do nothing. State a wage, or "
-                    + "delete this key.");
+                    LineOf((SyntaxNodeBase?)Find(table, key) ?? table), name,
+                    $"{key} is {days}. It is how many Days this trade may stay in arrears before it "
+                    + "goes bankrupt, so it is at least 1.");
 
                 return 0;
             }
 
-            if (paydays <= 0)
-            {
-                Refuse(
-                    LineOf((SyntaxNodeBase?)Find(table, "goes_bankrupt_after_short_paydays") ?? table), name,
-                    $"goes_bankrupt_after_short_paydays is {paydays}. It is how many paydays running this "
-                    + "trade may come up short before it is wound up, so it is at least 1. "
-                    + "Omit the key for a trade that never goes bankrupt -- 0 reads as `goes bankrupt immediately` "
-                    + "and does the opposite.");
-
-                return 0;
-            }
-
-            return (int)(paydays > byte.MaxValue ? byte.MaxValue : paydays);
+            return (int)(days > ushort.MaxValue ? ushort.MaxValue : days);
         }
 
         private uint ReadRate(TableSyntaxBase table, string? rule)
@@ -3483,7 +3474,7 @@ public static class RulesetLoader
                     ShiftStartLatestHour = shiftTo,
                     WagePerDay = wagePerDay,
                     PayPeriodDays = payPeriodDays,
-                    GoesBankruptAfterShortPaydays = ReadGoesBankruptAfterShortPaydays(
+                    GoesBankruptAfterDaysInArrears = ReadGoesBankruptAfterDaysInArrears(
                         table, name, wagePerDay, payPeriodDays),
                     WorkDays = ReadDays(table, "work_days"),
                     ShopHours = ReadShopHours(table),
@@ -4245,10 +4236,34 @@ public static class RulesetLoader
                     }
                 }
 
+                int joblessDays = 0;
+
+                if (TryInteger(table, "jobless_threshold_days", out long jobless, required: false, name))
+                {
+                    if (jobless < 1)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "jobless_threshold_days") ?? table), name,
+                            $"a jobless threshold of {jobless} Citizen-Days is not a threshold. Omit "
+                            + "the key and this Rule does not read joblessness.");
+                    }
+                    else if (thresholdDays == 0)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "jobless_threshold_days") ?? table), name,
+                            "jobless_threshold_days is stated without build_threshold_days. The jobless "
+                            + "signal is read beside market demand and shares its cooldown, so a Rule "
+                            + "with no build threshold reads neither.");
+                    }
+                    else
+                    {
+                        joblessDays = (int)jobless;
+                    }
+                }
+
                 definitions.Add(new ZoneRuleDefinition(kind, zone, interval, revisit)
                 {
                     BuildThresholdDays = thresholdDays,
                     CooldownDays = cooldownDays,
+                    JoblessThresholdDays = joblessDays,
                 });
             }
 

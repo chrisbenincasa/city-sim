@@ -41,6 +41,9 @@ using Borough.Core.Tables;
 /// counters are what makes the split visible at all***, since before this the second outcome did not
 /// exist and a starving tenant was reported as a demolished Building.
 /// </param>
+/// <param name="Reopened">
+/// Businesses opened in a vacant Unit of a standing Building on District demand. No Building is raised.
+/// </param>
 public readonly record struct ZoneActivity(
     RuleFlow Triggers,
     RuleFlow Vacant,
@@ -49,7 +52,8 @@ public readonly record struct ZoneActivity(
     RuleFlow Demolished,
     RuleFlow Ended,
     RuleFlow Shed,
-    RuleFlow Unpremised)
+    RuleFlow Unpremised,
+    RuleFlow Reopened)
 {
     /// <summary>Lots evaluated over the interval, which is what a trigger is charged for.</summary>
     /// <remarks>
@@ -132,6 +136,7 @@ public sealed class ZoneRuleEngine
     private int _tickEnded;
     private int _tickShed;
     private int _tickUnpremised;
+    private int _tickReopened;
 
     private RuleFlow _triggerFlow;
     private RuleFlow _vacantFlow;
@@ -141,12 +146,19 @@ public sealed class ZoneRuleEngine
     private RuleFlow _endedFlow;
     private RuleFlow _shedFlow;
     private RuleFlow _unpremisedFlow;
+    private RuleFlow _reopenedFlow;
 
     /// <summary>Elapsed unserved need per District market row, recomputed each trigger.</summary>
     private long[] _demand = [];
 
     /// <summary>What this sweep has already answered per row, so two Lots cannot answer one hunger.</summary>
     private long[] _claimed = [];
+
+    /// <summary>Elapsed waiting by Citizens at <see cref="EmploymentState.NoVacancy"/>, per District slot.</summary>
+    private long[] _jobless = [];
+
+    /// <summary>What this sweep has already answered per District, for <see cref="_claimed"/>'s reason.</summary>
+    private long[] _joblessClaimed = [];
 
     /// <param name="world">The tables this sweeps, and the Ruleset it sweeps under. Not copied.</param>
     /// <param name="key">The world seed, as the sample's first coordinate.</param>
@@ -175,7 +187,8 @@ public sealed class ZoneRuleEngine
             _demolishedFlow,
             _endedFlow,
             _shedFlow,
-            _unpremisedFlow);
+            _unpremisedFlow,
+            _reopenedFlow);
 
         _triggerFlow = default;
         _vacantFlow = default;
@@ -185,6 +198,7 @@ public sealed class ZoneRuleEngine
         _endedFlow = default;
         _shedFlow = default;
         _unpremisedFlow = default;
+        _reopenedFlow = default;
 
         return activity;
     }
@@ -306,6 +320,11 @@ public sealed class ZoneRuleEngine
                 {
                     _tickOccupied++;
                     Condemn(into[i], tick);
+
+                    if (definition.ReadsDemand)
+                    {
+                        Reopen(definition, into[i], tick);
+                    }
                 }
             }
 
@@ -357,7 +376,7 @@ public sealed class ZoneRuleEngine
     /// them apart exactly.
     /// </para>
     /// </remarks>
-    private bool Demanded(ZoneRuleDefinition definition, int lot, Ticks tick)
+    private bool Demanded(ZoneRuleDefinition definition, int lot, Ticks tick, bool raising = true)
     {
         int row = MarketFor(definition.Kind, lot);
 
@@ -370,7 +389,7 @@ public sealed class ZoneRuleEngine
             return false;
         }
 
-        if (definition.CooldownDays > 0)
+        if (raising && definition.CooldownDays > 0)
         {
             ulong since = tick.Raw - _world.DistrictPools.LastRaised[row].Raw;
 
@@ -383,16 +402,108 @@ public sealed class ZoneRuleEngine
 
         long threshold = (long)definition.BuildThresholdDays * Ticks.PerDay;
 
-        if (_demand[row] - _claimed[row] < threshold)
+        if (_demand[row] - _claimed[row] >= threshold)
+        {
+            _claimed[row] += threshold;
+        }
+        else if (!ClaimJobless(definition, lot))
         {
             return false;
         }
 
-
-        _claimed[row] += threshold;
-        _world.DistrictPools.LastRaised[row] = tick;
+        if (raising)
+        {
+            _world.DistrictPools.LastRaised[row] = tick;
+        }
 
         return true;
+    }
+
+    /// <summary>
+    /// Opens one Business of the Rule's trade in a vacant Unit of a standing Building of the Rule's
+    /// kind, when the District's demand would have justified raising one.
+    /// </summary>
+    /// <remarks>
+    /// The Building already stands, so the Lot's construction permission is not asked. Commercial
+    /// forms are refused construction in play, and re-opening their Units is how their trade returns.
+    /// The cooldown is skipped and not restarted. It gives a new Building time to stock before
+    /// demand is read again, and a re-opened Unit hires on the next job pass.
+    /// A founded Business takes a vacant Unit through placement on every pass, so it usually reaches
+    /// the Unit before demand has accumulated past a threshold.
+    /// </remarks>
+    private void Reopen(ZoneRuleDefinition definition, int lot, Ticks tick)
+    {
+        if (_world.Lots.IsVacant(lot))
+        {
+            return;
+        }
+
+        int building = _world.Lots.BuildingOn(lot);
+
+        if (_world.Buildings.Kind[building] != definition.Kind
+            || _world.Buildings.IsAbandoned(building)
+            || !_world.HasVacantUnit(building)
+            || !Demanded(definition, lot, tick, raising: false))
+        {
+            return;
+        }
+
+        if (_world.OpenInVacantUnit(building))
+        {
+            _tickReopened++;
+        }
+    }
+
+    private bool ClaimJobless(ZoneRuleDefinition definition, int lot)
+    {
+        if (definition.JoblessThresholdDays == 0
+            || !_world.Districts.Rows.TryResolve(DistrictOf(lot), out int district)
+            || district >= _jobless.Length)
+        {
+            return false;
+        }
+
+        long threshold = (long)definition.JoblessThresholdDays * Ticks.PerDay;
+
+        if (_jobless[district] - _joblessClaimed[district] < threshold)
+        {
+            return false;
+        }
+
+        _joblessClaimed[district] += threshold;
+
+        return true;
+    }
+
+    private Handle<District> DistrictOf(int lot) =>
+        _world.DistrictsInCells.Of(
+            _world.DistrictCells,
+            CellGrid.ToCells(_world.Lots.East[lot]),
+            CellGrid.ToCells(_world.Lots.North[lot]));
+
+    /// <summary>
+    /// Adds each <see cref="EmploymentState.NoVacancy"/> Citizen's elapsed wait to their home
+    /// District's slot in <paramref name="into"/>, which must span <c>Districts.Rows.SlotCount</c>.
+    /// </summary>
+    internal static void SumJobless(World world, Ticks tick, Span<long> into)
+    {
+        var citizens = world.Citizens;
+
+        for (int slot = 0; slot < citizens.Rows.SlotCount; slot++)
+        {
+            if (!citizens.Rows.IsLive(slot)
+                || citizens.Employment[slot] != (byte)EmploymentState.NoVacancy
+                || tick.Raw + 1 < citizens.NoVacancySince[slot].Raw
+                || !world.Households.Rows.TryResolve(citizens.HouseholdOf[slot], out int household)
+                || !world.Buildings.Rows.TryResolve(world.Households.Dwelling[household], out int home)
+                || !world.Lots.Rows.TryResolve(world.Buildings.Lot[home], out int lot)) { continue; }
+            var district = world.DistrictsInCells.Of(world.DistrictCells,
+                CellGrid.ToCells(world.Lots.East[lot]), CellGrid.ToCells(world.Lots.North[lot]));
+            if (world.Districts.Rows.TryResolve(district, out int area))
+            {
+                into[area] += (long)(tick.Raw + 1 - citizens.NoVacancySince[slot].Raw);
+            }
+        }
     }
 
     /// <summary>
@@ -511,6 +622,22 @@ public sealed class ZoneRuleEngine
         Array.Clear(_demand, 0, rows);
         Array.Clear(_claimed, 0, rows);
 
+        int districts = _world.Districts.Rows.SlotCount;
+
+        if (_jobless.Length < districts)
+        {
+            _jobless = new long[districts];
+            _joblessClaimed = new long[districts];
+        }
+
+        Array.Clear(_jobless, 0, districts);
+        Array.Clear(_joblessClaimed, 0, districts);
+
+        if (ReadsJobless(_world.Rules.ZoneRules))
+        {
+            SumJobless(_world, tick, _jobless.AsSpan(0, districts));
+        }
+
         for (int shopping = 0; shopping < _world.Shopping.Rows.SlotCount; shopping++)
         {
             var outings = _world.Shopping;
@@ -548,6 +675,19 @@ public sealed class ZoneRuleEngine
         }
     }
 
+    private static bool ReadsJobless(ReadOnlySpan<ZoneRuleDefinition> rules)
+    {
+        foreach (ZoneRuleDefinition rule in rules)
+        {
+            if (rule.JoblessThresholdDays > 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>
     /// The market row a Lot's District would sell <paramref name="kind"/>'s Good in, or
     /// <see cref="DistrictMarkets.NoRow"/>.
@@ -563,10 +703,7 @@ public sealed class ZoneRuleEngine
     /// </remarks>
     private int MarketFor(byte kind, int lot)
     {
-        Handle<District> district = _world.DistrictsInCells.Of(
-            _world.DistrictCells,
-            CellGrid.ToCells(_world.Lots.East[lot]),
-            CellGrid.ToCells(_world.Lots.North[lot]));
+        Handle<District> district = DistrictOf(lot);
 
         if (!_world.Districts.Rows.TryResolve(district, out int districtSlot))
         {
@@ -1242,6 +1379,7 @@ public sealed class ZoneRuleEngine
         _endedFlow = _endedFlow.Fold(_tickEnded);
         _shedFlow = _shedFlow.Fold(_tickShed);
         _unpremisedFlow = _unpremisedFlow.Fold(_tickUnpremised);
+        _reopenedFlow = _reopenedFlow.Fold(_tickReopened);
 
         _tickTriggers = 0;
         _tickVacant = 0;
@@ -1251,5 +1389,6 @@ public sealed class ZoneRuleEngine
         _tickEnded = 0;
         _tickShed = 0;
         _tickUnpremised = 0;
+        _tickReopened = 0;
     }
 }

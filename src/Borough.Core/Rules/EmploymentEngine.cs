@@ -133,6 +133,7 @@ public sealed class EmploymentEngine
     private int _tickSeeking;
     private int _tickEmployed;
     private int _tickBeyond;
+    private int _tickNoVacancy;
 
     /// <summary>
     /// Times the pass walked a search box this Tick: once to size it, then once per candidate drawn.
@@ -156,6 +157,7 @@ public sealed class EmploymentEngine
     private RuleFlow _seekingFlow;
     private RuleFlow _employedFlow;
     private RuleFlow _beyondFlow;
+    private RuleFlow _noVacancyFlow;
     private RuleFlow _fastFlow;
     private RuleFlow _moderateFlow;
     private RuleFlow _unsavouryFlow;
@@ -179,7 +181,7 @@ public sealed class EmploymentEngine
     {
         var activity = new EmploymentActivity(
             _consideredFlow, _seekingFlow, _employedFlow, _beyondFlow,
-            _fastFlow, _moderateFlow, _unsavouryFlow, _boxWalksFlow);
+            _fastFlow, _moderateFlow, _unsavouryFlow, _boxWalksFlow, _noVacancyFlow);
 
         _consideredFlow = default;
         _seekingFlow = default;
@@ -189,6 +191,7 @@ public sealed class EmploymentEngine
         _moderateFlow = default;
         _unsavouryFlow = default;
         _boxWalksFlow = default;
+        _noVacancyFlow = default;
 
         return activity;
     }
@@ -595,11 +598,25 @@ public sealed class EmploymentEngine
             // a full employer names neither and is the city working. An occasion that drew nothing at
             // all concludes NOTHING -- the sample draws with replacement, so a freshly-housed adult
             // is routinely looked at before anybody has looked at an employer for them.
-            _world.Citizens.Employment[slot] = (byte)(
-                refusedForCredential ? EmploymentState.BelowCredential
+            var concluded = refusedForCredential ? EmploymentState.BelowCredential
                 : refusedForReach ? EmploymentState.BeyondReach
                 : sawEmployer ? EmploymentState.NoVacancy
-                : EmploymentState.None);
+                : EmploymentState.None;
+
+            if (concluded == EmploymentState.NoVacancy)
+            {
+                _tickNoVacancy++;
+
+                if (_world.Citizens.Employment[slot] != (byte)EmploymentState.NoVacancy)
+                {
+                    _world.Citizens.NoVacancySince[slot] = tick + new Ticks(1);
+                }
+            }
+
+            if (concluded != EmploymentState.None)
+            {
+                _world.Citizens.Employment[slot] = (byte)concluded;
+            }
 
             return false;
         }
@@ -724,12 +741,14 @@ public sealed class EmploymentEngine
         _moderateFlow = _moderateFlow.Fold(_tickRungs[(int)CommuteRung.Moderate]);
         _unsavouryFlow = _unsavouryFlow.Fold(_tickRungs[(int)CommuteRung.Unsavoury]);
         _boxWalksFlow = _boxWalksFlow.Fold(_tickBoxWalks);
+        _noVacancyFlow = _noVacancyFlow.Fold(_tickNoVacancy);
 
         _tickConsidered = 0;
         _tickSeeking = 0;
         _tickEmployed = 0;
         _tickBeyond = 0;
         _tickBoxWalks = 0;
+        _tickNoVacancy = 0;
         Array.Clear(_tickRungs);
     }
 }
@@ -753,6 +772,7 @@ public sealed class EmploymentEngine
 /// Times the pass walked a search box: once per seeker to size it, then once per candidate drawn.
 /// Multiply by the box's own area for the Cells visited, which is the quantity a cost argument wants.
 /// </param>
+/// <param name="NoVacancy">Of those seeking, the ones who found every post in reach full.</param>
 public readonly record struct EmploymentActivity(
     RuleFlow Considered, RuleFlow Seeking, RuleFlow Employed, RuleFlow Beyond,
-    RuleFlow Fast, RuleFlow Moderate, RuleFlow Unsavoury, RuleFlow BoxWalks);
+    RuleFlow Fast, RuleFlow Moderate, RuleFlow Unsavoury, RuleFlow BoxWalks, RuleFlow NoVacancy);

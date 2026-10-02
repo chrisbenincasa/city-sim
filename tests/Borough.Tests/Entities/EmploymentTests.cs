@@ -460,17 +460,14 @@ public sealed class EmploymentTests
     }
 
     /// <summary>
-    /// <b>Demolishing premises a trade merely TENANTED keeps the job and ends only the journey.</b>
+    /// <b>Demolishing premises a trade merely TENANTED releases its staff to look for work.</b>
     /// </summary>
     /// <remarks>
-    /// <c>World.Unpremise</c> states it in its own words — <i>"the jobs SURVIVE. This is not a
-    /// dismissal — the staff keep their employer and lose only the journey, which is what an employer
-    /// between premises means"</i> (<c>adr/0144</c>). ⚠ <b>The commute DOES come off the roster</b>,
-    /// because both departure buckets are computed from the employer's premises (<c>adr/0101</c>) and
-    /// an unpremised employer has none.
+    /// The Business keeps its money and waits in the pool (<c>adr/0144</c>). Its staff are dismissed,
+    /// so the job pass can place them and an unemployed Citizen is not counted as employed.
     /// </remarks>
     [Fact]
-    public void Demolishing_premises_a_trade_tenanted_keeps_the_job()
+    public void Demolishing_premises_a_trade_tenanted_releases_its_staff()
     {
         World world = City(workers: 3, jobs: 3);
         int employer = TheBusiness(world);
@@ -481,7 +478,16 @@ public sealed class EmploymentTests
             world.Businesses.IsUnpremised(employer),
             "the employer was not pooled, so adr/0144's wait did not start.");
 
-        Assert.Equal(3, Staff(world, employer).Length);
+        Assert.Empty(Staff(world, employer));
+
+        for (int slot = 0; slot < world.Citizens.Rows.SlotCount; slot++)
+        {
+            if (world.Citizens.Rows.IsLive(slot))
+            {
+                Assert.Equal(default, world.Citizens.Workplace[slot]);
+                Assert.Equal((byte)EmploymentState.None, world.Citizens.Employment[slot]);
+            }
+        }
     }
 
     /// <summary>
