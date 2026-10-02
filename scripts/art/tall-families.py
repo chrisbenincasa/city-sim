@@ -38,6 +38,7 @@ import bmesh
 import bpy
 import importlib.util
 import json
+from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -549,6 +550,15 @@ def census(geometry):
                        [round(max(point[i] for point in points), 3) for i in range(3)]]}
 
 
+def cell_histogram(geometry):
+    """Far cell id -> face count, over the far-facade grid quads only (a plain slab, membrane or
+    plinth face carries no grid_uv and is excluded). Locks which cell a wall picks, not just the
+    name-to-id table, so two walls trading cells with the same id set still fails."""
+    counts = Counter(cell for entry in geometry.grid_uvs.get('far-facade', []) if entry is not None
+                      for cell in [entry[1]])
+    return {str(cell): count for cell, count in sorted(counts.items())}
+
+
 def reset():
     for thing in list(bpy.data.objects):
         bpy.data.objects.remove(thing)
@@ -576,7 +586,8 @@ def main():
             far_report = site(far, variant, podium_storeys, far=True)
             assert far_report == report, (report, far_report)
             far_census = census(far)
-            report.update({'far_faces': far_census['faces'], 'far_bounds': far_census['bounds']})
+            report.update({'far_faces': far_census['faces'], 'far_bounds': far_census['bounds'],
+                           'far_cell_counts': cell_histogram(far)})
             reports.append(report)
         made = reset()
         near = Geometry()

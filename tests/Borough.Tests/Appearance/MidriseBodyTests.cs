@@ -54,6 +54,18 @@ public sealed class MidriseBodyTests
                 Assert.True(MathF.Abs(nearBounds[end] - farBounds[end]) <= .001f,
                     $"{name}: near height bound {nearBounds[end]} differs from far {farBounds[end]}");
             }
+
+            // Locks which cell each grid quad actually picks, not just that the name-to-id tables
+            // agree (gate-1-opus F8): two walls trading cells with the same id set would still fail.
+            ShellMesh facade = mesh.Parts.Single(p => p.Part == "far-facade").Mesh;
+            Dictionary<string, int> expectedCellCounts = site.GetProperty("far_cell_counts").EnumerateObject()
+                .ToDictionary(p => p.Name, p => p.Value.GetInt32());
+            Dictionary<string, int> actualCellCounts = Enumerable.Range(0, facade.VertexCount / 4)
+                .Where(face => IsGridQuad(facade, face * 4))
+                .GroupBy(face => ((int)facade.Uv2s[face * 4].X).ToString())
+                .ToDictionary(g => g.Key, g => g.Count());
+            Assert.True(expectedCellCounts.OrderBy(p => p.Key).SequenceEqual(actualCellCounts.OrderBy(p => p.Key)),
+                $"{name}: authored cell counts {Describe(expectedCellCounts)}, built {Describe(actualCellCounts)}");
         }
     }
 

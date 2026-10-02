@@ -58,6 +58,18 @@ public sealed class TowerBodyTests
 
             ShellMesh facade = far.Parts.Single(p => p.Part == "far-facade").Mesh;
             AssertStoreyGrid($"{variantName}/{podium}", facade);
+
+            // Locks which cell each grid quad actually picks, not just that the name-to-id tables
+            // agree (gate-1-opus F8): two walls trading cells with the same id set would still fail.
+            Dictionary<string, int> expectedCellCounts = site.GetProperty("far_cell_counts").EnumerateObject()
+                .ToDictionary(p => p.Name, p => p.Value.GetInt32());
+            Dictionary<string, int> actualCellCounts = Enumerable.Range(0, facade.VertexCount / 4)
+                .Where(face => IsGridQuad(facade, face * 4))
+                .GroupBy(face => ((int)facade.Uv2s[face * 4].X).ToString())
+                .ToDictionary(g => g.Key, g => g.Count());
+            Assert.True(expectedCellCounts.OrderBy(p => p.Key).SequenceEqual(actualCellCounts.OrderBy(p => p.Key)),
+                $"{variantName}/{podium}: authored cell counts {Describe(expectedCellCounts)}, built {Describe(actualCellCounts)}");
+
             if (variant == TowerVariant.SteppedPoint)
             {
                 int blank = Enumerable.Range(0, facade.VertexCount / 4)

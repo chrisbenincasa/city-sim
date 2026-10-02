@@ -49,6 +49,7 @@ tall = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(tall)
 street = tall.street
 Geometry, Side, touching, subtract = tall.Geometry, tall.Side, tall.touching, tall.subtract
+cell_histogram = tall.cell_histogram
 
 SOURCES = ROOT / 'art/midrise-families'
 EXPORT = ROOT / 'src/Borough.Godot/assets/midrise-families'
@@ -601,7 +602,8 @@ def main():
             assert far_report == report, (report, far_report)
             far_census = census(far)
             reports.append({'name': name, **report, **near_census,
-                            'far_faces': far_census['faces'], 'far_bounds': far_census['bounds']})
+                            'far_faces': far_census['faces'], 'far_bounds': far_census['bounds'],
+                            'far_cell_counts': cell_histogram(far)})
             tall.build(f'{name}-near', family_geometry(family, near), made, offsets[name])
             tall.build(f'{name}-far', family_geometry(family, far), made,
                        (offsets[name][0], offsets[name][1] + 260))
