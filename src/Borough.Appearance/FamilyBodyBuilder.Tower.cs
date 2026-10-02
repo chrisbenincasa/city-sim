@@ -7,6 +7,13 @@ public static partial class FamilyBodyBuilder
     private const float TowerReferenceSite = 116f;
     private const float TowerRecess = .3f;
 
+    /// <summary>Far facade cell for a wall with no grid (the stepped-point reveal collar).
+    /// Matches `far_cells['blank']` in tall-families.py.</summary>
+    internal const int BlankFarCell = 0;
+
+    /// <summary>Far facade cell for the plant-screen crown. Matches `far_cells['crown']`.</summary>
+    internal const int CrownFarCell = 13;
+
     internal sealed record TowerFacadeParameters(
         float Spandrel,
         string SpandrelPart,
@@ -240,7 +247,7 @@ public static partial class FamilyBodyBuilder
         }
     }
 
-    private static int TowerCell(TowerVariant variant, int band) => variant switch
+    internal static int TowerCell(TowerVariant variant, int band) => variant switch
     {
         TowerVariant.Point => 1 + band,
         TowerVariant.SteppedPoint => 4 + band,
@@ -260,7 +267,7 @@ public static partial class FamilyBodyBuilder
             foreach (TowerSide sideName in TowerSides)
             {
                 TowerFace side = Side(collar, sideName);
-                writer.GridPlane(side.Face, 0f, side.Length, z0, z1, 0f, 0f, 1f, 0);
+                writer.GridPlane(side.Face, 0f, side.Length, z0, z1, 0f, 0f, 1f, BlankFarCell);
             }
 
             return;
@@ -533,7 +540,7 @@ public static partial class FamilyBodyBuilder
         foreach (TowerSide sideName in TowerSides)
         {
             TowerFace side = Side(screen, sideName);
-            writer.GridPlane(side.Face, 0f, side.Length, z, z + height, 0f, 0f, 1f, 13);
+            writer.GridPlane(side.Face, 0f, side.Length, z, z + height, 0f, 0f, 1f, CrownFarCell);
         }
 
         Box(writer, new Vector3(screen.X0 + .1f, screen.Y0 + .1f, z + height - .1f),

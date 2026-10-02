@@ -123,7 +123,7 @@ public static partial class FamilyBodyBuilder
         return mesh;
     }
 
-    private enum Role : byte
+    internal enum Role : byte
     {
         Street,
         Yard,
@@ -131,18 +131,26 @@ public static partial class FamilyBodyBuilder
         Party,
     }
 
+    /// <summary>The mansion attic's far facade cell, written directly rather than by storey/role
+    /// (the attic is one set-back storey above the rest). Matches `far_cells['mansion-attic']`.</summary>
+    internal const int MansionAtticFarCell = 3;
+
+    /// <summary>The far facade cell for a wall of the given role and storey. Matches the name->id
+    /// table in `midrise-families.py`'s `FAR_CELLS`; a `FarCell*` test locks the two together.</summary>
+    internal static int MidriseFarCell(bool mansion, Role role, int storey, int? cell = null) => role switch
+    {
+        Role.Party => 0,
+        _ when cell is not null => cell.Value,
+        Role.End when storey != 0 => mansion ? 4 : 7,
+        _ when mansion => storey == 0 ? 1 : 2,
+        _ => storey == 0 ? 5 : 6,
+    };
+
     private static void FarWall(Writer writer, TowerFace side, float a, float b, int storey,
         bool mansion, Role role, float bay, int? cell = null)
     {
         int count = MidriseBays(b - a, bay).Count;
-        int chosen = role switch
-        {
-            Role.Party => 0,
-            _ when cell is not null => cell.Value,
-            Role.End => mansion ? 4 : 7,
-            _ when mansion => storey == 0 ? 1 : 2,
-            _ => storey == 0 ? 5 : 6,
-        };
+        int chosen = MidriseFarCell(mansion, role, storey, cell);
         writer.GridPlane(side.Face, a, b, storey * Storey, (storey + 1) * Storey, 0f, 0f, count, chosen);
     }
 
@@ -502,7 +510,7 @@ public static partial class FamilyBodyBuilder
                 Role role = RoleOf(name, rect, bounds, ring, attached);
                 foreach ((float a, float b) in OpenStretches(side, attic, attics))
                 {
-                    FarWall(writer, side, a, b, storeys - 1, true, role, look.Bay, 3);
+                    FarWall(writer, side, a, b, storeys - 1, true, role, look.Bay, MansionAtticFarCell);
                     if (role != Role.Party)
                     {
                         Slab(writer, side, "trim", a, b, fullTop + Storey, fullTop + Storey + .25f, -.5f, MidriseWall);
