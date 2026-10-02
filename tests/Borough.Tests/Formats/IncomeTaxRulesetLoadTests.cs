@@ -282,6 +282,7 @@ public sealed class IncomeTaxRulesetLoadTests
         shift_start_latest_hour   = 10
         wage_per_day = 10
         pay_period_days = {payPeriodDays}
+        goes_bankrupt_after_days_in_arrears = 28
         """;
 
     /// <summary>

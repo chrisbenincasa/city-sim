@@ -1,8 +1,10 @@
 using Borough.Core;
+using Borough.Core.Arithmetic;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
+using Borough.Core.Tables;
 using Borough.Formats;
 using Borough.Tests.Golden;
 using Xunit.Abstractions;
@@ -159,6 +161,77 @@ public sealed class WageTests(ITestOutputHelper output)
         _output.WriteLine($"worst shortfall on any one payday: {worst}; last seen: {lastSeen}.");
 
         Assert.True(worst > 0, "The run must exercise unpaid wages.");
+    }
+
+    /// <summary>
+    /// A trade goes bankrupt the same number of Days after its first short payday whatever its pay
+    /// period.
+    /// </summary>
+    [Theory]
+    [InlineData(1)]
+    [InlineData(7)]
+    public void Bankruptcy_follows_days_in_arrears_and_not_paydays(int period)
+    {
+        const int threshold = 10;
+
+        RulesetLoadResult parsed = RulesetLoader.Parse(
+            Text()
+                .Replace("pay_period_days = 7", $"pay_period_days = {period}", StringComparison.Ordinal)
+                .Replace(
+                    "goes_bankrupt_after_days_in_arrears = 28",
+                    $"goes_bankrupt_after_days_in_arrears = {threshold}",
+                    StringComparison.Ordinal),
+            "waged.toml");
+        Assert.True(parsed.Ok, parsed.Describe());
+
+        (World world, Simulation simulation) = Start(parsed.Ruleset!);
+
+        for (int tick = 0; tick < Ticks.PerDay; tick++)
+        {
+            simulation.Step(default);
+        }
+
+        int slot = Enumerable.Range(0, world.Businesses.Rows.SlotCount).First(b =>
+            world.Businesses.Rows.IsLive(b)
+            && world.Businesses.Kind[b] != 0
+            && world.Rules.BusinessKind(world.Businesses.Kind[b]).WagePerDay > 0
+            && world.Workers.Length(b) > 0
+            && world.Bins.Rows.TryResolve(world.Businesses.Balance[b], out _));
+        Handle<Business> business = world.Businesses.Rows.At(slot);
+        int till = world.Bins.Rows.Resolve(world.Businesses.Balance[slot]);
+        int treasury = world.FindTreasuryBin(world.Bins.Resource[till]);
+        Assert.NotEqual(Rows.NoSlot, treasury);
+
+        long firstShort = -1;
+        long bankrupt = -1;
+
+        for (int tick = 0; tick < 60 * Ticks.PerDay && bankrupt < 0; tick++)
+        {
+            long level = world.Bins.LevelAt(till);
+
+            if (level > 0)
+            {
+                world.Withdraw(world.Bins.Rows.At(till), level, world.Tick);
+                world.Deposit(world.Bins.Rows.At(treasury), level, world.Tick);
+            }
+
+            simulation.Step(default);
+
+            long today = IntegerMath.FloorDiv((long)world.Tick.Raw - 1, Ticks.PerDay);
+
+            if (!world.Businesses.Rows.IsValid(business))
+            {
+                bankrupt = today;
+            }
+            else if (firstShort < 0 && world.Businesses.DaysInArrears[slot] > 0)
+            {
+                firstShort = today;
+            }
+        }
+
+        Assert.True(firstShort >= 0, "the employer never came up short.");
+        Assert.True(bankrupt >= 0, "the employer never went bankrupt.");
+        Assert.Equal(threshold, bankrupt - firstShort);
     }
 
     /// <summary>A trade that states a rate and no period, and one that states neither.</summary>

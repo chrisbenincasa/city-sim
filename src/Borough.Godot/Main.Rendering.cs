@@ -43,6 +43,7 @@ public partial class Main
         else
         {
             bool geometry = false;
+            bool fronts = false;
             var changedIds = new HashSet<ulong>();
             var placed = new List<int>();
             foreach (int slot in changes.Buildings)
@@ -67,6 +68,7 @@ public partial class Main
                 bool modules = _world.IsSupermarket(slot) || _world.IsDepartmentStore(slot) || _world.IsPadSite(slot)
                     || _world.IsSalesYard(slot) || _world.IsPrecinct(slot) || _world.IsMarketHall(slot);
                 if (modules) _moduleDrawnIds.Add(id); else _moduleDrawnIds.Remove(id);
+                fronts |= modules || _world.IsTradeCentre(slot);
                 foreach (Massing each in modules ? [] : Buildings(slot))
                 {
                     Massing one = far ? FarMassing(each, shape!.Body) : each;
@@ -92,6 +94,10 @@ public partial class Main
                 foreach ((_, var surface) in CarParkSurfaces()) FoliageFootprint(surface, at++);
                 RefreshFoliage(at);
                 _vacantLots = Fill(_plots, Plots(), _plotIds);
+                FillCarParks();
+            }
+            else if (fronts)
+            {
                 FillCarParks();
             }
         }

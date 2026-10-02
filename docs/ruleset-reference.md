@@ -27,7 +27,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-53 sections, 368 keys.
+53 sections, 369 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
@@ -54,7 +54,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[[rule]] inputs`](#rule-inputs) — 3 keys
 - [`[[rule]] outputs`](#rule-outputs) — 4 keys
 - [`[[terrain]]`](#terrain) — 5 keys
-- [`[[zone_rule]]`](#zone_rule) — 10 keys
+- [`[[zone_rule]]`](#zone_rule) — 11 keys
 - [`[business_tax]`](#business_tax) — 3 keys
 - [`[capacity]`](#capacity) — 4 keys
 - [`[care]`](#care) — 25 keys
@@ -275,9 +275,9 @@ Which [[reserve]] supplies the Days this Bin holds. Every Bin naming it moves to
 
 The daily closing hour; purchases arriving at or after closing fail.
 
-**`goes_bankrupt_after_short_paydays`** · *whole number*
+**`goes_bankrupt_after_days_in_arrears`** · *whole number*
 
-How many paydays running this trade may fail to pay its workers in full before it is wound up: the staff are dismissed and the premises are left standing and empty. A payroll met in full resets the count. Absent means it never goes bankrupt.
+How many Days this trade may stay in arrears before it is wound up: the staff are dismissed and the premises are left standing and empty. A trade falls into arrears on a payday it cannot meet in full and leaves them on a payday it pays wages in full. Required on a trade that pays a wage, and refused on one that does not.
 
 **`id`** · *quoted string*
 
@@ -921,11 +921,11 @@ How many scheduled updates this ground takes to shed its Sealing once it is no l
 
 **`build_threshold_days`** · *whole number*
 
-How much unmet demand, in household-Days, must accumulate in a District before this Rule raises a Building there. It is the entry cost for a trade, and today it is the only brake on birth. Absent keeps the older predicate, which reads no demand at all.
+How much unmet demand, in household-Days, must accumulate in a District before this Rule raises a Building there, or opens its trade in a vacant Unit of a standing Building of its kind. It is the entry cost for a trade, and today it is the only brake on birth. Absent keeps the older predicate, which reads no demand at all.
 
 **`cooldown_days`** · *whole number*
 
-How many Days a District waits after raising a Building of this kind before it may raise another — what damps the response to the demand signal. Requires build_threshold_days, since a Rule reading no demand has nothing to damp.
+How many Days a District waits after raising a Building of this kind before it may raise another — what damps the response to the demand signal. Opening a vacant Unit neither waits for it nor restarts it. Requires build_threshold_days, since a Rule reading no demand has nothing to damp.
 
 **`id`** · *quoted string*
 
@@ -934,6 +934,10 @@ Identifies the declaration across the package. Other members refer to it by this
 **`interval`** · *whole number*
 
 How many Ticks between sweeps of this Rule over the city. Distinct from a Bin Rule's rate: a Zone Rule sweeps, it is not armed per Lot.
+
+**`jobless_threshold_days`** · *whole number*
+
+How much waiting, in Citizen-Days, by Citizens who found every post in reach full must accumulate in their home District before this Rule raises a Building there or opens its trade in a vacant Unit. A second trigger beside build_threshold_days, sharing its cooldown. Absent, the Rule does not read joblessness. Requires build_threshold_days.
 
 **`kind`** · *quoted string*
 
