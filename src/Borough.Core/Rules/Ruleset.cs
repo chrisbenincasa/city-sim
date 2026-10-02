@@ -1076,47 +1076,31 @@ public readonly record struct BusinessKindDefinition
     public int PayPeriodDays { get; init; }
 
     /// <summary>
-    /// How many consecutive paydays this trade may fail to meet in full before it goes bankrupt.
-    /// <c>0</c> — the default, reached by omitting the key — means it never does.
+    /// How many Days this trade may stay in arrears before it goes bankrupt. Required on a trade
+    /// that pays a wage; <c>0</c> on one that does not.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// 🔴 <b>PROVISIONAL, under <c>plans/0045</c> standing order 4.</b> The amnesty suspends
-    /// <c>adr/0052</c>, so this number is chosen by taste, opens no <c>plans/0002</c> §D row and
-    /// names no ratifier. ***Ratification needs a city that can fail and the city needed this to
-    /// fail at all***, which is the suspension's own argument arriving at its worked example.
+    /// A trade is in arrears from a payday it fails to meet in full until a payday on which it pays
+    /// wages in full. A payday with nobody owed leaves arrears as they were. Unpaid wages are
+    /// written off rather than carried, so arrears is a state and not a debt.
     /// </para>
     /// <para>
-    /// <b>The counterpart to <c>[placement] gives_up_after_days</c>, and deliberately not its
-    /// twin.</b> A Household gives up on a DURATION because waiting is all an unplaced Household
-    /// does; a Business fails on a COUNT OF OCCASIONS because a payday is the only moment its
-    /// solvency is ever tested. ⚠ <b>So this is not a duration in disguise</b> — the same number
-    /// against <see cref="PayPeriodDays"/> of <c>1</c> and of <c>7</c> is a week and seven weeks,
-    /// and that is correct rather than a unit error: what is being counted is chances to pay.
+    /// <b>Days, not paydays.</b> The clock runs on every Day boundary, so the pay period changes how
+    /// often solvency is tested but not how long a trade may stay insolvent.
     /// </para>
     /// <para>
-    /// 🔴 <b>IT WINDS THE TRADE UP, and it is NOT the unpremising a razed shop gets.</b> Losing your
-    /// premises and going bankrupt are two different failures, and <c>plans/0065</c> exists because a
-    /// first draft gave them one verb. A trade between premises is <em>solvent and has nowhere to
-    /// trade from</em>: it waits in the Unpremised Pool under
-    /// <c>[placement] gives_up_after_days</c>. ***A bankrupt one is not looking for a front*** — its
-    /// Rules and Bins went with the premises, so it holds no stock and runs no Rule, and the question
-    /// that separates them is <em>if a shop failed, how can it still do business?</em>
+    /// <b>Required, so failure is always possible.</b> A Ruleset tunes how long a trade survives in
+    /// arrears and cannot switch failure off.
     /// </para>
     /// <para>
-    /// ⚠ <b>The premises are LEFT STANDING and empty</b> (<c>adr/0141</c>, and milestone 25's
-    /// <em>condemnation ends a tenancy and leaves the premises standing</em>). What ends is the
-    /// trade, not the building, and a solvent trade may take the vacancy.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>Consecutive, and a payroll met in full resets it to zero.</b> A count that only ever
-    /// rose would retire every Business in the city eventually, on a long enough run, whatever its
-    /// trade — which is <c>adr/0006</c> read backwards: the collection would not grow, but the
-    /// population would drain with elapsed time. <b>Recovery is the sink</b>, and it is the same
-    /// shape as row 16c's Household, which recovers on supply.
+    /// 🔴 <b>IT WINDS THE TRADE UP, and it is NOT the unpremising a razed shop gets.</b> A trade between
+    /// premises is solvent with nowhere to trade from and waits in the Unpremised Pool under
+    /// <c>[placement] gives_up_after_days</c>. A bankrupt trade is gone: its staff are dismissed and
+    /// its premises are left standing for somebody else.
     /// </para>
     /// </remarks>
-    public int GoesBankruptAfterShortPaydays { get; init; }
+    public int GoesBankruptAfterDaysInArrears { get; init; }
 
     /// <summary>
     /// The lowest Skill Tier this trade will hire — <b>a minimum, never a band</b>. Zero means it
@@ -1526,6 +1510,19 @@ public readonly record struct ZoneRuleDefinition(byte Kind, byte Zone, uint Inte
     /// </para>
     /// </remarks>
     public int CooldownDays { get; init; }
+
+    /// <summary>
+    /// <b>How much waiting by jobless Citizens, in <em>Citizen-Days</em>, raises a Building of this
+    /// kind.</b> Zero means the Rule does not read joblessness.
+    /// </summary>
+    /// <remarks>
+    /// A jobless Citizen here is one who found every post in reach full
+    /// (<see cref="EmploymentState.NoVacancy"/>), counted in their home District. The signal is a
+    /// second trigger beside <see cref="BuildThresholdDays"/>, with its own threshold, because a
+    /// Building answers a fixed number of posts and not a fixed amount of hunger. It shares the
+    /// per-District cooldown.
+    /// </remarks>
+    public int JoblessThresholdDays { get; init; }
 
     /// <summary>Whether this Rule uses <c>adr/0163</c>'s tier-1 demand signal rather than the Pool.</summary>
     public bool ReadsDemand => BuildThresholdDays > 0;

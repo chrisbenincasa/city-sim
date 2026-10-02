@@ -88,22 +88,9 @@ public sealed class BusinessTable
         Origin = _rows.SavedHandle("origin", buildings.Rows, reference: Reference.Severable);
         BinHead = _rows.SavedHandle("bin_head", bins.Rows);
         BinTail = _rows.SavedHandle("bin_tail", bins.Rows);
-        // 🔴 How many CONSECUTIVE paydays this Business has failed to meet in full. Saved and
-        // hashed, because it is the only thing in the build that remembers a trade is in trouble --
-        // WageEngine's `owed` is computed fresh every payday and forgotten, and Underpaying is a
-        // readout counter that survives one Tick. ***A city whose failures are all instantaneous has
-        // no economic middle***, which is CLAUDE.md's standing `balance -> unbalance -> balance`
-        // constraint restated at the Business.
-        //
-        // ⚠ SATURATING, and the byte is the bound rather than an estimate of one. A trade whose
-        // Ruleset states no GoesBankruptAfterShortPaydays never goes bankrupt, so nothing would stop this climbing
-        // for the life of the world -- adr/0006's magnitude trending upward at steady state, in the
-        // column added to give a failure a consequence. It stops at 255 and means `at least 255`.
-        //
-        // ⚠ Saved rather than derived, and the distinction is load-bearing: it cannot be rebuilt.
-        // Nothing else records that last payday was short, so a reload that recomputed this would
-        // hand every insolvent Business a clean slate and reset the city's decline on every load.
-        ShortPaydays = _rows.Saved<byte>("short_paydays");
+        // Saved, because nothing else records that a Business is in arrears. Saturating at the
+        // ushort bound, which a trade only approaches if its threshold does.
+        DaysInArrears = _rows.Saved<ushort>("days_in_arrears");
 
         // 🔴 plans/0072 D23: PROFIT IS ASSESSED PER DAY, so revenue and expense accumulate per Day
         // and are reset at the Day boundary. Three columns rather than two, and the Day is what
@@ -201,22 +188,14 @@ public sealed class BusinessTable
     public Column<byte> Kind { get; }
 
     /// <summary>
-    /// Consecutive paydays this Business has failed to meet in full, saturating at <c>255</c>.
+    /// How many Days this Business has been in arrears, counting the Day of the short payday that
+    /// began them as 1. Zero means it is not in arrears.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// <b>Zero is solvent, and a payroll met in full writes zero.</b> The count is of consecutive
-    /// failures rather than total ones, so recovery is a real state a Business can reach and not
-    /// merely a slower decline — see
-    /// <see cref="Rules.BusinessKindDefinition.GoesBankruptAfterShortPaydays"/>, which carries why.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>It counts OCCASIONS and not Days.</b> One increment is one payday, so what a given
-    /// value means in elapsed time is <see cref="Rules.BusinessKindDefinition.PayPeriodDays"/>
-    /// times it. <b>Reading it as a duration is a unit error the column name is chosen to prevent.</b>
-    /// </para>
+    /// See <see cref="Rules.BusinessKindDefinition.GoesBankruptAfterDaysInArrears"/>. A payday that
+    /// pays wages in full writes zero.
     /// </remarks>
-    public Column<byte> ShortPaydays { get; }
+    public Column<ushort> DaysInArrears { get; }
 
     /// <summary>
     /// The Day <see cref="DayRevenue"/> and <see cref="DayExpense"/> refer to.

@@ -165,6 +165,7 @@ public sealed class BusinessJobsReadoutTests
             name = "teaching"
             wage_per_day = 4096
             pay_period_days = 7
+            goes_bankrupt_after_days_in_arrears = 28
             shift_start_earliest_hour = 6
             shift_start_latest_hour = 10
 

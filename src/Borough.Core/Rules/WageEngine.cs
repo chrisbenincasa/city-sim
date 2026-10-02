@@ -179,68 +179,61 @@ internal sealed class WageEngine(World world, WorldKey key)
             // .Graded prices a Day by WHO worked it.
             BusinessAccounts.Wages(_world, slot, DailyWageBill(slot, trade), tick);
 
-            if (!IsPayday(slot, trade.PayPeriodDays, today))
+            ushort arrears = _world.Businesses.DaysInArrears[slot];
+
+            if (arrears > 0 && arrears < ushort.MaxValue)
             {
-                continue;
+                arrears++;
             }
 
-            employers++;
-
-            // plans/0065 P1: a wage against no till. Counted HERE rather than inside Pay, because
-            // Pay's early return cannot tell `this Business has no money Bin` from `this world names
-            // no money at all` -- and only one of those is a defect.
-            if (!_world.Bins.Rows.TryResolve(_world.Businesses.Balance[slot], out _))
+            if (IsPayday(slot, trade.PayPeriodDays, today))
             {
-                tilless++;
-            }
+                employers++;
 
-            (long moved, int reached, long owed, long taken) = Pay(slot, trade, today, tick);
-
-            paid += moved;
-            workers += reached;
-            shortfall += owed;
-            withheld += taken;
-
-            if (owed > 0)
-            {
-                underpaying++;
-
-                // 🔴 THE CONSEQUENCE, and before this line there was none. A Business could take in
-                // less than it paid out at every payday for the life of the world, and the only
-                // trace was `underpaying` in a readout that survives one Tick. Measured on the build
-                // before it: 7,165 premisings against ZERO give-ups over 131,072 Ticks -- nothing
-                // drained a Business's money, so no shipped world could express decline and recovery
-                // in one run, and every decline number in plans/0002 §D1 was unratifiable for it.
-                //
-                // ⚠ Saturating rather than wrapping. A trade stating no threshold never folds, so
-                // this climbs unbounded without the clamp -- and a byte wrapping to 0 at 256 would
-                // hand an insolvent Business a clean slate on a schedule, which is worse than
-                // unbounded because it is invisible.
-                byte standing = _world.Businesses.ShortPaydays[slot];
-
-                if (standing < byte.MaxValue)
+                // plans/0065 P1: a wage against no till. Counted HERE rather than inside Pay, because
+                // Pay's early return cannot tell `this Business has no money Bin` from `this world
+                // names no money at all` -- and only one of those is a defect.
+                if (!_world.Bins.Rows.TryResolve(_world.Businesses.Balance[slot], out _))
                 {
-                    _world.Businesses.ShortPaydays[slot] = (byte)(standing + 1);
+                    tilless++;
                 }
 
-                if (GoesBankrupt(slot, trade))
+                (long moved, int reached, long owed, long taken) = Pay(slot, trade, today, tick);
+
+                paid += moved;
+                workers += reached;
+                shortfall += owed;
+                withheld += taken;
+
+                if (owed > 0)
                 {
-                    // ⚠ LAST, and nothing may read this slot afterwards. Rows.FreeSlot zeroes every
-                    // column in place and pushes the slot on a free list -- it does NOT swap another
-                    // row down into it -- so the sweep is safe to continue, and `underpaying` above
-                    // was already counted for this payday. The bankruptcy IS this payday's outcome.
-                    Bankrupt(slot);
-                    bankrupted++;
-                    continue;
+                    underpaying++;
+
+                    if (arrears == 0)
+                    {
+                        arrears = 1;
+                    }
+                }
+                else if (moved > 0)
+                {
+                    // Only a payroll actually paid ends arrears. Unpaid staff leave, and a payday
+                    // with nobody owed would otherwise clear the arrears of an employer that has
+                    // no money.
+                    arrears = 0;
                 }
             }
-            else
+
+            _world.Businesses.DaysInArrears[slot] = arrears;
+
+            // Checked on every Day rather than on paydays, so the pay period sets how often
+            // solvency is tested and not how long a trade may stay insolvent.
+            if (arrears > trade.GoesBankruptAfterDaysInArrears)
             {
-                // ⚠ RECOVERY, and it is unconditional rather than guarded on the current value.
-                // A guard would save a write on the common path and cost the branch its meaning:
-                // the column's contract is `consecutive`, and the only way to keep that true is that
-                // every payroll met in full ends a run. Writing zero over zero moves no hash.
-                _world.Businesses.ShortPaydays[slot] = 0;
+                // ⚠ LAST, and nothing may read this slot afterwards. Rows.FreeSlot zeroes every
+                // column in place and pushes the slot on a free list without moving another row
+                // into it, so the sweep is safe to continue.
+                Bankrupt(slot);
+                bankrupted++;
             }
         }
 
@@ -275,9 +268,6 @@ internal sealed class WageEngine(World world, WorldKey key)
     /// so a Ruleset that says nothing about insolvency keeps the behaviour the build had before this
     /// mechanism existed.
     /// </remarks>
-    private bool GoesBankrupt(int slot, in BusinessKindDefinition trade) =>
-        trade.GoesBankruptAfterShortPaydays > 0
-        && _world.Businesses.ShortPaydays[slot] >= trade.GoesBankruptAfterShortPaydays;
 
     /// <summary>
     /// Winds up a Business that cannot pay its staff.

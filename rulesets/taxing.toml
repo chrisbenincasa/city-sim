@@ -480,6 +480,7 @@ closes_hour = 21
 # CHANGE 2 of 10. 4096 -> 2048 -- see THE WAGE, which carries the sweep that chose it.
 wage_per_day    = 2048
 pay_period_days = 7
+goes_bankrupt_after_days_in_arrears = 28
 shift_start_earliest_hour = 6
 shift_start_latest_hour   = 10
 
