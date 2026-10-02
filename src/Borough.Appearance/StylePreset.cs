@@ -217,7 +217,26 @@ public sealed record FamilyBody(
 public sealed record TowerBody(TowerVariant Variant);
 
 /// <summary>A mid-rise body's authored type, built over the whole footprint and as a ring when the Lot is hollow.</summary>
-public sealed record MidriseBody(MidriseVariant Variant);
+/// <param name="ModuleMetres">The window module along a face; <c>null</c> keeps the type's own.</param>
+/// <param name="Street">What the upper storeys of a street face open with.</param>
+/// <param name="Shops">The street face's ground storey is glazed as shopfronts.</param>
+/// <param name="Attic">A mansion's top storey is set back behind a terrace; otherwise a parapet tops it.</param>
+/// <param name="Galleries">A panel slab's yard faces carry access galleries; otherwise they have windows.</param>
+public sealed record MidriseBody(
+    MidriseVariant Variant,
+    float? ModuleMetres = null,
+    StreetOpenings Street = StreetOpenings.Loggias,
+    bool Shops = false,
+    bool Attic = true,
+    bool Galleries = true);
+
+/// <summary>What a mid-rise body's upper street storeys open with.</summary>
+public enum StreetOpenings
+{
+    Loggias,
+    Balconies,
+    Windows,
+}
 
 /// <summary>The two mid-rise types a body can build.</summary>
 public enum MidriseVariant

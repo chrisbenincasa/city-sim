@@ -143,7 +143,9 @@ Mid-rise families follow the same rule. `scripts/art/midrise-families.py` is the
 mansion block and the panel slab, and `FamilyBodyBuilder.BuildMidrise` rebuilds them over a
 Building's whole footprint. A hollow footprint is built as the simulation's ring of four 16 m wings.
 `art/midrise-families/bodies.json` records each reference site's faces per part and bounds, and
-`MidriseBodyTests` holds the builder to them. Each family's swatches export separately, as
+`MidriseBodyTests` holds the builder to them. A family varies its body with `module_metres`,
+`street_openings`, `shops`, `attic` and `galleries`; add a setting to the script's `SETTINGS` and a
+reference site that uses it before the builder follows. Each family's swatches export separately, as
 `assets/midrise-families/mansion.glb` and `slab.glb`, because the shell matches a material to a
 part by its name prefix.
 

@@ -106,6 +106,30 @@ public sealed class MidriseBodyTests
         Assert.Equal(MidriseVariant.PanelSlab, Midrise("panel-slab").Midrise!.Variant);
     }
 
+    [Fact]
+    public void The_reader_takes_a_midrise_bodys_settings()
+    {
+        MidriseBody mansion = Midrise("mansion", "module_metres = 3.9\nstreet_openings = \"balconies\"\nshops = true\nattic = false").Midrise!;
+        MidriseBody slab = Midrise("panel-slab", "street_openings = \"windows\"\ngalleries = false").Midrise!;
+
+        Assert.Equal(new MidriseBody(MidriseVariant.Mansion, 3.9f, StreetOpenings.Balconies, Shops: true, Attic: false), mansion);
+        Assert.Equal(new MidriseBody(MidriseVariant.PanelSlab, null, StreetOpenings.Windows, Galleries: false), slab);
+    }
+
+    [Theory]
+    [InlineData("shape = \"midrise\"\nvariant = \"mansion\"\nstreet_openings = \"bays\"", "'street_openings' must be \"loggias\", \"balconies\" or \"windows\".")]
+    [InlineData("shape = \"midrise\"\nvariant = \"mansion\"\ngalleries = false", "'galleries' is only valid for a panel-slab body.")]
+    [InlineData("shape = \"midrise\"\nvariant = \"panel-slab\"\nattic = false", "'attic' is only valid for a mansion body.")]
+    [InlineData("shape = \"tower\"\nvariant = \"h\"\nshops = true", "'shops' is only valid for a mid-rise body.")]
+    [InlineData("bay_metres = 4\nmodule_metres = 3", "'module_metres' is only valid for a mid-rise body.")]
+    public void The_reader_refuses_a_misplaced_midrise_setting(string body, string message)
+    {
+        StylePresetResult read = ReadBody(body);
+
+        Assert.Null(read.Preset);
+        Assert.Contains(read.Errors, e => e.Message == message);
+    }
+
     [Theory]
     [InlineData("shape = \"midrise\"", "'variant' is required")]
     [InlineData("shape = \"midrise\"\nvariant = \"point\"", "'variant' must be \"mansion\" or \"panel-slab\"")]
@@ -137,7 +161,20 @@ public sealed class MidriseBodyTests
         }
 
         string variant = site.GetProperty("family").GetString() == "mansion" ? "mansion" : "panel-slab";
-        return FamilyBodyBuilder.BuildMidrise(Midrise(variant), site.GetProperty("frontage").GetSingle(),
+        JsonElement settings = site.GetProperty("settings");
+        FamilyBody body = Midrise(variant);
+        body = body with
+        {
+            Midrise = body.Midrise! with
+            {
+                ModuleMetres = settings.GetProperty("bay").GetSingle(),
+                Street = Enum.Parse<StreetOpenings>(settings.GetProperty("street_openings").GetString()!, ignoreCase: true),
+                Shops = settings.GetProperty("shops").GetBoolean(),
+                Attic = !settings.TryGetProperty("attic", out JsonElement attic) || attic.GetBoolean(),
+                Galleries = !settings.TryGetProperty("galleries", out JsonElement galleries) || galleries.GetBoolean(),
+            },
+        };
+        return FamilyBodyBuilder.BuildMidrise(body, site.GetProperty("frontage").GetSingle(),
             site.GetProperty("depth").GetSingle(), site.GetProperty("storeys").GetInt32(),
             site.GetProperty("ring").GetBoolean(), attached);
     }
@@ -145,9 +182,9 @@ public sealed class MidriseBodyTests
     private static string Describe(Dictionary<string, int> faces) =>
         string.Join(", ", faces.OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => $"{p.Key} {p.Value}"));
 
-    private static FamilyBody Midrise(string variant)
+    private static FamilyBody Midrise(string variant, string settings = "")
     {
-        StylePresetResult read = ReadBody($"shape = \"midrise\"\nvariant = \"{variant}\"");
+        StylePresetResult read = ReadBody($"shape = \"midrise\"\nvariant = \"{variant}\"\n{settings}");
         Assert.Empty(read.Errors);
         return read.Preset!.Families[0].Body!;
     }

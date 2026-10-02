@@ -492,9 +492,10 @@ wall = "ad9d8c"
 trim = "f0ebdd"
 
 # ---------------------------------------------------------------------------------------------
-# The two mid-rise families. Each Building is one body over its whole footprint, and a hollow
-# footprint is built as the simulation's ring of four 16 m wings. The shell builds both in code
-# (docs/07-the-drawing.md); each library holds its family's untextured swatches.
+# The mid-rise families. Each Building is one body over its whole footprint, and a hollow footprint
+# is built as the simulation's ring of four 16 m wings. The shell builds them in code
+# (docs/07-the-drawing.md); each library holds its type's untextured swatches. Three families share
+# each pattern band, so a district mixes them.
 
 [[family]]
 id = "mansion-block"
@@ -521,6 +522,90 @@ trim = "f0ebe0"
 wall = "74493b"
 trim = "ddd6c6"
 
+[[family.paint]]
+wall = "a8714f"
+wall-end = "e6dcc4"
+trim = "f2ede0"
+
+[[family.paint]]
+wall = "8d8a80"
+wall-end = "d9d4c8"
+trim = "e8e6df"
+
+[[family.paint]]
+wall = "c4a983"
+wall-end = "d8c8a8"
+trim = "ffffff"
+
+[[family]]
+id = "mansion-balconies"
+kinds = ["dwelling", "shopfront"]
+patterns = ["perimeter", "back-to-back"]
+storeys = [4, 11]
+
+# A plainer interwar block: a tight window module, projecting street balconies, a parapet in
+# place of the attic.
+[family.body]
+library = "midrise-families/mansion"
+shape = "midrise"
+variant = "mansion"
+module_metres = 3.0
+street_openings = "balconies"
+attic = false
+materials = { wall = "bricks-088", wall-end = "painted-plaster-wall", membrane = "bitumen", paving = "concrete-panels" }
+
+[[family.paint]]
+wall = "8c4f3c"
+trim = "e2ddd0"
+
+[[family.paint]]
+wall = "b58e66"
+metal = "1f3a33"
+trim = "ece6d6"
+
+[[family.paint]]
+wall = "6b4436"
+metal = "3b2f2a"
+trim = "d6cfbe"
+
+[[family.paint]]
+wall = "9e8b78"
+wall-end = "cfc3ae"
+trim = "eeeae0"
+
+[[family]]
+id = "mansion-shops"
+kinds = ["dwelling", "shopfront"]
+patterns = ["perimeter"]
+storeys = [4, 8]
+
+# A street block over a row of shopfronts with a fascia, wide plain windows above and the attic.
+[family.body]
+library = "midrise-families/mansion"
+shape = "midrise"
+variant = "mansion"
+module_metres = 3.9
+street_openings = "windows"
+shops = true
+materials = { wall = "bricks-088", wall-end = "painted-plaster-wall", membrane = "bitumen", paving = "concrete-panels" }
+
+[[family.paint]]
+wall = "9a5b45"
+trim = "1f3a33"
+
+[[family.paint]]
+wall = "b89a72"
+trim = "5a1f22"
+
+[[family.paint]]
+wall = "7f5240"
+trim = "e9e4d8"
+
+[[family.paint]]
+wall = "a7a39a"
+wall-end = "e4ddcc"
+trim = "24324a"
+
 [[family]]
 id = "panel-slab"
 kinds = ["dwelling", "shopfront"]
@@ -545,3 +630,71 @@ spandrel = "8a6f5a"
 [[family.paint]]
 wall = "b3b8b6"
 spandrel = "6f8a8f"
+
+[[family.paint]]
+wall = "d6d0c2"
+spandrel = "b5813f"
+
+[[family.paint]]
+wall = "c9c6bd"
+spandrel = "a34a3a"
+
+[[family]]
+id = "panel-slab-plain"
+kinds = ["dwelling", "shopfront"]
+patterns = ["courtyard", "slab"]
+storeys = [12, 24]
+
+# The cheapest series: a dense window grid on every face and no galleries.
+[family.body]
+library = "midrise-families/slab"
+shape = "midrise"
+variant = "panel-slab"
+module_metres = 3.0
+street_openings = "windows"
+galleries = false
+materials = { wall = "preconcrete-wall-001", wall-end = "concrete-wall-004", membrane = "bitumen" }
+
+[[family.paint]]
+wall = "c2c0b8"
+trim = "a8a69e"
+
+[[family.paint]]
+wall = "bfb6a4"
+trim = "9d9483"
+
+[[family.paint]]
+wall = "aab2b4"
+trim = "8e979a"
+
+[[family]]
+id = "panel-slab-balconies"
+kinds = ["dwelling", "shopfront"]
+patterns = ["courtyard", "slab"]
+storeys = [12, 24]
+
+# A later series: a wide module, colored balcony fronts on the street and shops below.
+[family.body]
+library = "midrise-families/slab"
+shape = "midrise"
+variant = "panel-slab"
+module_metres = 4.2
+street_openings = "balconies"
+shops = true
+materials = { wall = "preconcrete-wall-001", wall-end = "concrete-wall-004", membrane = "bitumen" }
+
+[[family.paint]]
+wall = "d8d3c6"
+spandrel = "c27a3a"
+
+[[family.paint]]
+wall = "d2d0c8"
+spandrel = "4f7f8c"
+
+[[family.paint]]
+wall = "cbc4b4"
+spandrel = "7c8f4e"
+
+[[family.paint]]
+wall = "dad6cc"
+spandrel = "b8a23c"

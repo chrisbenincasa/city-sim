@@ -22,7 +22,8 @@ public static partial class FamilyBodyBuilder
         float BalconyDepth,
         float AtticSetback,
         (float H, float Out) Cornice,
-        (float H, float Out) StringCourse);
+        (float H, float Out) StringCourse,
+        float Parapet);
 
     internal sealed record SlabLook(
         float Bay,
@@ -44,7 +45,7 @@ public static partial class FamilyBodyBuilder
 
     internal static MansionLook Mansion { get; } = new(
         3.3f, (1.3f, 1.9f, .9f), (1.7f, 2.1f, .7f), (1.6f, 2.7f, .3f), (2.4f, 2.3f, .5f), 16f, 3, 1.4f, 2, 1.4f,
-        1.8f, (.45f, .35f), (.25f, .12f));
+        1.8f, (.45f, .35f), (.25f, .12f), .9f);
 
     internal static SlabLook PanelSlab { get; } = new(
         3.6f, (2.1f, 1.5f, .9f), (1f, 2.2f, 0f), (1.2f, 1f, 1.2f), 30f, 4, 1.2f, 1.8f, 1.1f, 1.5f, 7.2f, .5f,
@@ -73,7 +74,10 @@ public static partial class FamilyBodyBuilder
         int total = Math.Max(1, storeys);
         Rect bounds = new(-frontage / 2f, -depth / 2f, frontage / 2f, depth / 2f);
         Rect[] rects = MidriseWings(bounds, ring);
-        bool mansion = body.Midrise.Variant == MidriseVariant.Mansion;
+        MidriseBody shape = body.Midrise;
+        bool mansion = shape.Variant == MidriseVariant.Mansion;
+        MansionLook mansionLook = Mansion with { Bay = shape.ModuleMetres ?? Mansion.Bay };
+        SlabLook slabLook = PanelSlab with { Bay = shape.ModuleMetres ?? PanelSlab.Bay };
 
         foreach (Rect rect in rects)
         {
@@ -83,15 +87,15 @@ public static partial class FamilyBodyBuilder
                 Role role = RoleOf(name, rect, bounds, ring, attached);
                 foreach ((float a, float b) in OpenStretches(side, rect, rects))
                 {
-                    if (mansion) MansionFace(writer, side, a, b, total, role, Mansion);
-                    else SlabFace(writer, side, a, b, total, role, PanelSlab);
+                    if (mansion) MansionFace(writer, side, a, b, total, role, mansionLook, shape);
+                    else SlabFace(writer, side, a, b, total, role, slabLook, shape);
                 }
             }
         }
 
-        if (mansion)
+        if (mansion && shape.Attic)
         {
-            MansionRoofs(writer, rects, bounds, ring, attached, total, Mansion);
+            MansionRoofs(writer, rects, bounds, ring, attached, total, mansionLook);
         }
         else
         {
@@ -100,9 +104,9 @@ public static partial class FamilyBodyBuilder
             {
                 Box(writer, new Vector3(rect.X0 + .1f, rect.Y0 + .1f, top - .2f),
                     new Vector3(rect.X1 - .1f, rect.Y1 - .1f, top + .05f), "membrane");
-                if (!ring || rect.Width > rect.Depth)
+                if (!mansion && (!ring || rect.Width > rect.Depth))
                 {
-                    PlantRooms(writer, new Rect(rect.X0 + 4f, rect.Y0 + 4f, rect.X1 - 4f, rect.Y1 - 4f), top, PanelSlab);
+                    PlantRooms(writer, new Rect(rect.X0 + 4f, rect.Y0 + 4f, rect.X1 - 4f, rect.Y1 - 4f), top, slabLook);
                 }
             }
         }
@@ -276,7 +280,8 @@ public static partial class FamilyBodyBuilder
         foreach (float u in posts) Slab(writer, side, "metal", u - .02f, u + .02f, z, z + 1f, depth - .02f, depth + .02f);
     }
 
-    private static void MansionFace(Writer writer, TowerFace side, float a, float b, int storeys, Role role, MansionLook look)
+    private static void MansionFace(Writer writer, TowerFace side, float a, float b, int storeys, Role role, MansionLook look,
+        MidriseBody shape)
     {
         if (role == Role.Party)
         {
@@ -284,11 +289,12 @@ public static partial class FamilyBodyBuilder
             return;
         }
 
-        int full = storeys - 1;
+        int full = shape.Attic ? storeys - 1 : storeys;
         float top = full * Storey;
         string bodyPart = role == Role.Yard ? "wall-end" : "wall";
         List<(float U0, float U1)> stretch = MidriseBays(b - a, look.Bay);
         List<float> doors = role == Role.Street ? [.. Entries(b - a, look.EntryEvery).Select(e => a + e)] : [];
+        bool shops = shape.Shops && role == Role.Street;
 
         Slab(writer, side, "plinth", a, b, 0f, .4f, -.05f, MidriseWall);
         var ground = new List<Hole>();
@@ -300,6 +306,10 @@ public static partial class FamilyBodyBuilder
                 Hole door = Centred(u0, u1, look.Door.W, look.Door.Sill, look.Door.H, "door");
                 ground.Add(door with { Z0 = Math.Max(door.Z0, .4f) });
             }
+            else if (shops)
+            {
+                ground.Add(new Hole(u0 + .3f, u1 - .3f, .4f, 2.9f));
+            }
             else if (role != Role.End || i % 2 == 0)
             {
                 ground.Add(Centred(u0, u1, look.GroundWindow.W, look.GroundWindow.Sill, look.GroundWindow.H));
@@ -308,6 +318,7 @@ public static partial class FamilyBodyBuilder
 
         WallWithHoles(writer, side, "wall-end", a, b, .4f, Storey, ground);
         foreach (float d in doors) Slab(writer, side, "trim", d - 1.3f, d + 1.3f, 3.05f, 3.2f, -.9f, 0f);
+        if (shops) Slab(writer, side, "trim", a, b, 2.9f, 3.25f, -.15f, MidriseWall);
         Slab(writer, side, "trim", a, b, Storey - look.StringCourse.H, Storey, -look.StringCourse.Out, MidriseWall);
 
         for (int storey = 1; storey < full; storey++)
@@ -318,7 +329,8 @@ public static partial class FamilyBodyBuilder
             for (int i = 0; i < stretch.Count; i++)
             {
                 float u0 = a + stretch[i].U0, u1 = a + stretch[i].U1;
-                if (role == Role.Street && i % look.LoggiaEvery == 1 && i > 0 && i < stretch.Count - 1)
+                bool streetLoggias = role == Role.Street && shape.Street == StreetOpenings.Loggias;
+                if (streetLoggias && i % look.LoggiaEvery == 1 && i > 0 && i < stretch.Count - 1)
                 {
                     var loggia = new Hole(u0 + .35f, u1 - .35f, z, z + 2.9f, null);
                     holes.Add(loggia);
@@ -329,7 +341,8 @@ public static partial class FamilyBodyBuilder
                     holes.Add(Centred(u0, u1, look.Window.W, z + look.Window.Sill, look.Window.H));
                 }
 
-                if (role == Role.Yard && i % look.BalconyEvery == 1)
+                bool streetBalconies = role == Role.Street && shape.Street == StreetOpenings.Balconies;
+                if ((role == Role.Yard || streetBalconies) && i % look.BalconyEvery == 1)
                 {
                     float d = look.BalconyDepth;
                     Slab(writer, side, "trim", u0 + .2f, u1 - .2f, z - .15f, z, -d, 0f);
@@ -356,6 +369,11 @@ public static partial class FamilyBodyBuilder
 
         (float ch, float cout) = role == Role.Street ? look.Cornice : (.2f, .08f);
         Slab(writer, side, "trim", a, b, top - .1f, top + ch - .1f, -cout, MidriseWall);
+        if (!shape.Attic)
+        {
+            Slab(writer, side, bodyPart, a, b, top + ch - .1f, top + look.Parapet, 0f, MidriseWall);
+            Slab(writer, side, "trim", a, b, top + look.Parapet, top + look.Parapet + .1f, -.05f, MidriseWall + .05f);
+        }
     }
 
     private static void MansionAttic(Writer writer, TowerFace side, float a, float b, float z, MansionLook look)
@@ -411,7 +429,8 @@ public static partial class FamilyBodyBuilder
         }
     }
 
-    private static void SlabFace(Writer writer, TowerFace side, float a, float b, int storeys, Role role, SlabLook look)
+    private static void SlabFace(Writer writer, TowerFace side, float a, float b, int storeys, Role role, SlabLook look,
+        MidriseBody shape)
     {
         if (role == Role.Party)
         {
@@ -431,6 +450,7 @@ public static partial class FamilyBodyBuilder
         {
             float u0 = a + s0, u1 = a + s1;
             if (doors.Any(d => u0 <= d && d < u1)) ground.Add(Centred(u0, u1, 2.4f, .3f, 2.5f, "door"));
+            else if (shape.Shops && role == Role.Street) ground.Add(new Hole(u0 + .2f, u1 - .2f, .3f, 2.8f));
             else if (role != Role.End) ground.Add(Centred(u0, u1, 2.8f, .6f, 2.2f));
         }
 
@@ -448,6 +468,7 @@ public static partial class FamilyBodyBuilder
             foreach (float d in doors) Slab(writer, side, "trim", d - 2f, d + 2f, 2.9f, 3.05f, -1.2f, recess);
         }
 
+        bool galleries = role == Role.Yard && shape.Galleries;
         for (int storey = 1; storey < storeys; storey++)
         {
             float z = storey * Storey;
@@ -456,12 +477,12 @@ public static partial class FamilyBodyBuilder
             for (int i = 0; i < stretch.Count; i++)
             {
                 float u0 = a + stretch[i].U0, u1 = a + stretch[i].U1;
-                if (role == Role.Street && i % look.LoggiaEvery == 2)
+                if (role == Role.Street && shape.Street == StreetOpenings.Loggias && i % look.LoggiaEvery == 2)
                 {
                     loggias.Add((u0, u1));
                     holes.Add(new Hole(u0, u1, z, z + Storey, null));
                 }
-                else if (role == Role.Yard)
+                else if (galleries)
                 {
                     float third = (u1 - u0) / 3f;
                     holes.Add(Centred(u0, u0 + (third * 1.4f), look.GalleryDoor.W, z, look.GalleryDoor.H, "door"));
@@ -470,6 +491,13 @@ public static partial class FamilyBodyBuilder
                 else if (role != Role.End || i % 4 == 1)
                 {
                     holes.Add(Centred(u0, u1, role != Role.End ? look.Window.W : .9f, z + look.Window.Sill, look.Window.H));
+                }
+
+                if (role == Role.Street && shape.Street == StreetOpenings.Balconies && i % 2 == 1)
+                {
+                    float d = look.LoggiaDepth;
+                    Slab(writer, side, "trim", u0 + .15f, u1 - .15f, z - .2f, z, -d, 0f);
+                    Slab(writer, side, "spandrel", u0 + .15f, u1 - .15f, z, z + look.Balustrade, -d, -d + .12f);
                 }
             }
 
@@ -482,7 +510,7 @@ public static partial class FamilyBodyBuilder
                 Slab(writer, side, "spandrel", u0, u1, z, z + look.Balustrade, 0f, .15f);
             }
 
-            if (role == Role.Yard)
+            if (galleries)
             {
                 float d = look.GalleryDepth;
                 Slab(writer, side, "trim", a, b, z - .2f, z, -d, 0f);
