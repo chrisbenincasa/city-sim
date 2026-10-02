@@ -506,6 +506,7 @@ public sealed partial class World
 
         Units.Let(unit, businessSlot);
         Businesses.Unit[businessSlot] = Units.Rows.At(unit);
+        Changes?.Building(buildingSlot);
     }
 
     private void VacateUnit(int businessSlot)
@@ -513,6 +514,7 @@ public sealed partial class World
         if (Units.Rows.TryResolve(Businesses.Unit[businessSlot], out int unit))
         {
             Units.Vacate(unit);
+            Changes?.Building(Buildings.Rows.Resolve(Units.Building[unit]));
         }
 
         Businesses.Unit[businessSlot] = default;
