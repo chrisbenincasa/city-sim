@@ -1,5 +1,7 @@
 # Far body measurements
 
+Quiet-machine timing is deferred. Every figure below comes from a busy machine or a first frame after a camera jump, so none of them is a performance claim. The pending measurement compares `000db174` with this branch at 3,000, 1,000, 700, 475 and 400 m, using three interleaved runs per arm and `BOROUGH_PERFORMANCE_LOG` one-second buckets.
+
 Measured October 1, 2026 on `zeus`, an Intel Core i5-10400 with 6 cores and 12 logical CPUs, 63 GiB RAM available to Linux, and an NVIDIA GTX 1080 using driver 580.178.04. The CPU governor was `powersave`. Godot 4.7.2 used Vulkan Forward+ at 2560×1371 with VSync and the 60 FPS limit enabled. The interactive desktop was otherwise idle, but the runs were not CPU-pinned.
 
 The shell used its simulation worker and one route worker. Far mesh generation used the default .NET `Parallel.For` scheduler with 12 logical CPUs available. Both arms used `rulesets/platted.toml`, seed 0, 40,000 Citizens, family bodies enabled, focus Tile 556 560, tilt 40°, and the same heading. The comparison started its fixed shots at Tick 600 and then approached from 3,000 m to 400 m in 100 m steps.
