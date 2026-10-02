@@ -410,8 +410,10 @@ For each employer, trace income, jobs, wage, pay period and failure. For a publi
 add treasury income, grant, staffing, places and attendance. List opening capital separately
 from recurring income. A positive treasury or a loaded file does not establish viability.
 
-The current Pool purchase selects a local Business seller. A Hinterland price anchors the
-market; it does not create an import supplier. Empty-input production is an explicit source,
+A Rule's Pool purchase buys from a local Business seller first. When no seller holds a batch,
+it imports at the cheapest Hinterland price on an edge with a gate, and that Money leaves the
+city. A city with no gate on a priced edge imports nothing. Household shopping trips buy only
+from shops. Imports need no Shipment and no road to the gate. Empty-input production is an explicit source,
 not a purchase. Rules can convert Goods and emit pollution, but employing Citizens does not
 by itself make that production depend on their work. These distinctions need mechanisms or
 an explicit founding scenario decision before they become claims in playable content.
