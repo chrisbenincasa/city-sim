@@ -87,16 +87,16 @@ public partial class Main
     /// </summary>
     private readonly record struct BodyKey(
         string Family, int Frontage, int Depth, int Storeys, AttachedSides Attached, int Paint,
-        int PodiumStoreys, int ShaftFrontage, int ShaftDepth);
+        int PodiumStoreys, int ShaftFrontage, int ShaftDepth, bool Ring);
 
     /// <summary>Everything a Building's body is placed from, read from the World.</summary>
     private readonly record struct BodyRequest(
         Massing One, AppearanceFamily Family, FamilyBody Body, float Frontage, float Depth, int Storeys,
-        AttachedSides Attached, int Paint, float Turn, BodyNeighbours Neighbours, TowerSite? Site)
+        AttachedSides Attached, int Paint, float Turn, BodyNeighbours Neighbours, TowerSite? Site, Vector3 Origin, bool Ring)
     {
         public BodyKey Key => new(Family.Id, Mathf.RoundToInt(Frontage * 100f), Mathf.RoundToInt(Depth * 100f), Storeys,
             Attached, Paint, Site?.PodiumStoreys ?? 0, Mathf.RoundToInt((Site?.ShaftFrontage ?? 0f) * 100f),
-            Mathf.RoundToInt((Site?.ShaftDepth ?? 0f) * 100f));
+            Mathf.RoundToInt((Site?.ShaftDepth ?? 0f) * 100f), Ring);
     }
 
     /// <summary><c>ui family-bodies on|off [NEAR]</c>; NEAR is the body band's reach in metres.</summary>
@@ -225,13 +225,22 @@ public partial class Main
         float depth = facesNorthSouth ? size.Z : size.X;
         TowerSite? site = body.Tower is null ? null : TowerSiteOf(slot, facesNorthSouth);
         if (body.Tower is not null && site is null) return null;
-        if (site is null && parts.MoveNext()) return null;
+        Vector3 origin = one.Body.Origin;
+        float turn = Mathf.Atan2(faceEast, faceSouth);
+        bool ring = false;
+        if (site is null && parts.MoveNext())
+        {
+            if (body.Midrise is null || RingOf(slot) is not { } footprint) return null;
+
+            // Every outer face of a ring is a street face, so the ring is built facing south.
+            ring = true;
+            (origin, frontage, depth, turn) = (footprint.Centre, footprint.Wide, footprint.Deep, 0f);
+        }
 
         int storeys = site?.Storeys ?? Mathf.Max(1, Mathf.RoundToInt(size.Y / StoreyMetres));
-        float turn = Mathf.Atan2(faceEast, faceSouth);
-        AttachedSides attached = Attached(slot, one.Body.Origin, turn, frontage, out BodyNeighbours neighbours);
+        AttachedSides attached = Attached(slot, origin, turn, frontage, out BodyNeighbours neighbours);
         int paint = FamilyPicker.Paint(family, _world.Key, one.Id);
-        return new BodyRequest(one, family, body, frontage, depth, storeys, attached, paint, turn, neighbours, site);
+        return new BodyRequest(one, family, body, frontage, depth, storeys, attached, paint, turn, neighbours, site, origin, ring);
     }
 
     private void PlaceBody(BodyRequest request)
@@ -239,7 +248,7 @@ public partial class Main
         Massing one = request.One;
         BodyShape shape = BodyMesh(request);
         InstanceLayer layer = BodyLayer(shape.Mesh, one.Abandoned);
-        var at = new Transform3D(new Basis(Vector3.Up, request.Turn), one.Body.Origin with { Y = 0f });
+        var at = new Transform3D(new Basis(Vector3.Up, request.Turn), request.Origin with { Y = 0f });
         layer.Multimesh.Replace(one.Id, [new InstanceValue(at, Colors.White, Tint(one))]);
         _placedBodies[one.Id] = new PlacedBody(layer, shape, at);
         _bodyNeighbours[one.Id] = request.Neighbours;
@@ -249,6 +258,7 @@ public partial class Main
                 + $"\tattached {request.Attached}\tpaint {request.Paint}"
                 + $"\ttile {Mathf.RoundToInt(one.Body.Origin.X / MetresPerTile)} {Mathf.RoundToInt(-one.Body.Origin.Z / MetresPerTile)}"
                 + (request.Site is { } t ? $"\tpodium {t.PodiumStoreys}\tshaft {t.ShaftFrontage}x{t.ShaftDepth} m" : "")
+                + (request.Ring ? "\tring" : "")
                 + (one.Abandoned ? "\tabandoned" : ""));
         }
     }
@@ -271,6 +281,19 @@ public partial class Main
         return new TowerSite(storeys, form.PodiumStoreys,
             facesNorthSouth ? eastWest : southNorth,
             facesNorthSouth ? southNorth : eastWest);
+    }
+
+    /// <summary>A hollow Lot's whole footprint in metres, read from the same <see cref="BuildingPlan.Hollow"/> call its wings are.</summary>
+    /// <returns><c>null</c> where the Lot is gone or its footprint is solid.</returns>
+    private (Vector3 Centre, float Wide, float Deep)? RingOf(int slot)
+    {
+        LotTable lots = _world.Lots;
+        if (!lots.Rows.TryResolve(_world.Buildings.Lot[slot], out int lot)) return null;
+        int wide = lots.FootprintWide[lot].Raw, deep = lots.FootprintDeep[lot].Raw;
+        if (!BuildingPlan.Hollow(lots.PatternOf(lot), wide, deep, out _, out _)) return null;
+        float east = (lots.FootprintEast[lot].Raw + (wide * 0.5f)) * MetresPerTile;
+        float north = (lots.FootprintNorth[lot].Raw + (deep * 0.5f)) * MetresPerTile;
+        return (new Vector3(east, 0f, -north), wide * MetresPerTile, deep * MetresPerTile);
     }
 
     /// <summary>
@@ -499,10 +522,14 @@ public partial class Main
     private static List<BodySurface> BodySurfaces(BodyRequest request)
     {
         var surfaces = new List<BodySurface>();
-        FamilyBodyMesh built = request.Site is { } tower
-            ? FamilyBodyBuilder.BuildTower(request.Body, request.Frontage, request.Depth, request.Storeys,
-                tower.PodiumStoreys, tower.ShaftFrontage, tower.ShaftDepth)
-            : FamilyBodyBuilder.Build(request.Body, request.Frontage, request.Depth, request.Storeys, request.Attached);
+        FamilyBodyMesh built = request switch
+        {
+            { Site: { } tower } => FamilyBodyBuilder.BuildTower(request.Body, request.Frontage, request.Depth,
+                request.Storeys, tower.PodiumStoreys, tower.ShaftFrontage, tower.ShaftDepth),
+            { Body.Midrise: not null } => FamilyBodyBuilder.BuildMidrise(request.Body, request.Frontage, request.Depth,
+                request.Storeys, request.Ring, request.Attached),
+            _ => FamilyBodyBuilder.Build(request.Body, request.Frontage, request.Depth, request.Storeys, request.Attached),
+        };
         foreach ((string part, ShellMesh source) in built.Parts)
         {
             var positions = new Vector3[source.VertexCount];

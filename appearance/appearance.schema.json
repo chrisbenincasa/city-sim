@@ -167,11 +167,11 @@
               },
               "shape": {
                 "description": "The body's geometry. Defaults to block.",
-                "enum": ["block", "tower"]
+                "enum": ["block", "midrise", "tower"]
               },
               "variant": {
-                "description": "The tower layout. Required for a tower and refused for a block.",
-                "enum": ["point", "stepped-point", "l", "h"]
+                "description": "The tower layout or the mid-rise type. Required for a tower or a mid-rise body and refused for a block.",
+                "enum": ["point", "stepped-point", "l", "h", "mansion", "panel-slab"]
               },
               "tile_metres": {
                 "description": "The size one texture tile covers, by part, as [along, up] in metres. A part named in materials takes its texture's size unless listed here. Other unlisted parts tile per metre.",
@@ -340,7 +340,7 @@
                 "if": {
                   "properties": {
                     "shape": {
-                      "const": "tower"
+                      "enum": ["tower", "midrise"]
                     }
                   },
                   "required": ["shape"]
@@ -379,6 +379,14 @@
                     "required": ["variant"]
                   }
                 }
+              },
+              {
+                "if": { "properties": { "shape": { "const": "tower" } }, "required": ["shape"] },
+                "then": { "properties": { "variant": { "enum": ["point", "stepped-point", "l", "h"] } } }
+              },
+              {
+                "if": { "properties": { "shape": { "const": "midrise" } }, "required": ["shape"] },
+                "then": { "properties": { "variant": { "enum": ["mansion", "panel-slab"] } } }
               }
             ],
             "additionalProperties": false

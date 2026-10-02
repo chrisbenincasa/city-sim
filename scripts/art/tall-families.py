@@ -445,4 +445,5 @@ def main():
         print('TALL', report)
 
 
-main()
+if __name__ == "__main__":
+    main()

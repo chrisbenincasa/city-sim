@@ -1,0 +1,9 @@
+# Mansion blocks south of the Tower cluster, near enough to read loggias, attics and a ring's
+# courtyard. Building 24 is the 5-storey ring at Tile 568 492.
+2 pause
+2 ui family-bodies on 1600
+2 roads on
+2 focus 560 486 160
+2 tilt 30
+2 shoot artifacts/midrise-families/drive/midrise-near.png
+2 quit

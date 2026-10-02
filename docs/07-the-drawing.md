@@ -139,6 +139,14 @@ depth or a fin spacing in the script first, regenerate `bodies.json`, then follo
 `src/Borough.Godot/assets/tall-families/library.glb` carries only the untextured swatches for the
 parts the texture library does not dress.
 
+Mid-rise families follow the same rule. `scripts/art/midrise-families.py` is the reference for the
+mansion block and the panel slab, and `FamilyBodyBuilder.BuildMidrise` rebuilds them over a
+Building's whole footprint. A hollow footprint is built as the simulation's ring of four 16 m wings.
+`art/midrise-families/bodies.json` records each reference site's faces per part and bounds, and
+`MidriseBodyTests` holds the builder to them. Each family's swatches export separately, as
+`assets/midrise-families/mansion.glb` and `slab.glb`, because the shell matches a material to a
+part by its name prefix.
+
 **Surface textures come from the library in `src/Borough.Godot/assets/city/library/`.** It sits
 inside the Godot project so the shell can load it. `textures.toml` lists each CC0 texture with its
 tile size in metres, where that size comes from, whether a family paints it, and how strongly its

@@ -1,0 +1,399 @@
+{
+  "storey_metres": 3.5,
+  "wing_metres": 16.0,
+  "ring_minimum_metres": 48.0,
+  "looks": {
+    "mansion": {
+      "bay": 3.3,
+      "window": [
+        1.3,
+        1.9,
+        0.9
+      ],
+      "ground_window": [
+        1.7,
+        2.1,
+        0.7
+      ],
+      "door": [
+        1.6,
+        2.7,
+        0.3
+      ],
+      "entry_every": 16.0,
+      "loggia_every": 3,
+      "loggia_depth": 1.4,
+      "balcony_every": 2,
+      "balcony_depth": 1.4,
+      "attic_setback": 1.8,
+      "attic_window": [
+        2.4,
+        2.3,
+        0.5
+      ],
+      "cornice": [
+        0.45,
+        0.35
+      ],
+      "string_course": [
+        0.25,
+        0.12
+      ],
+      "parapet": 0.9
+    },
+    "slab": {
+      "bay": 3.6,
+      "window": [
+        2.1,
+        1.5,
+        0.9
+      ],
+      "door": [
+        1.2,
+        2.3,
+        0
+      ],
+      "gallery_door": [
+        1.0,
+        2.2,
+        0
+      ],
+      "gallery_window": [
+        1.2,
+        1.0,
+        1.2
+      ],
+      "entry_every": 30.0,
+      "loggia_every": 4,
+      "loggia_depth": 1.2,
+      "gallery_depth": 1.8,
+      "balustrade": 1.1,
+      "ground_recess": 1.5,
+      "piloti_every": 7.2,
+      "piloti": 0.5,
+      "joint": [
+        0.06,
+        0.02
+      ],
+      "plant_every": 30.0,
+      "plant": [
+        6.0,
+        4.0,
+        3.0
+      ],
+      "parapet": 0.6
+    }
+  },
+  "sites": [
+    {
+      "name": "perimeter-terrace-a",
+      "family": "mansion",
+      "frontage": 40,
+      "depth": 16,
+      "storeys": 6,
+      "ring": false,
+      "attached": [
+        "e"
+      ],
+      "floor_square_metres": 3840,
+      "faces": {
+        "door": 2,
+        "glass": 177,
+        "membrane": 6,
+        "metal": 2460,
+        "paving": 6,
+        "plinth": 18,
+        "reveal": 576,
+        "trim": 306,
+        "wall": 924,
+        "wall-end": 828
+      },
+      "bounds": [
+        [
+          -20.5,
+          -8.9,
+          0
+        ],
+        [
+          20.0,
+          9.4,
+          21.25
+        ]
+      ]
+    },
+    {
+      "name": "perimeter-terrace-b",
+      "family": "mansion",
+      "frontage": 32,
+      "depth": 20,
+      "storeys": 7,
+      "ring": false,
+      "attached": [
+        "w",
+        "e"
+      ],
+      "floor_square_metres": 4480,
+      "faces": {
+        "door": 2,
+        "glass": 153,
+        "membrane": 6,
+        "metal": 2460,
+        "paving": 6,
+        "plinth": 12,
+        "reveal": 540,
+        "trim": 288,
+        "wall": 804,
+        "wall-end": 732
+      },
+      "bounds": [
+        [
+          -16.0,
+          -10.9,
+          0
+        ],
+        [
+          16.0,
+          11.4,
+          24.75
+        ]
+      ]
+    },
+    {
+      "name": "perimeter-terrace-c",
+      "family": "mansion",
+      "frontage": 48,
+      "depth": 16,
+      "storeys": 5,
+      "ring": false,
+      "attached": [
+        "w"
+      ],
+      "floor_square_metres": 3840,
+      "faces": {
+        "door": 3,
+        "glass": 178,
+        "membrane": 6,
+        "metal": 2220,
+        "paving": 6,
+        "plinth": 18,
+        "reveal": 540,
+        "trim": 288,
+        "wall": 822,
+        "wall-end": 876
+      },
+      "bounds": [
+        [
+          -24.0,
+          -8.9,
+          0
+        ],
+        [
+          24.5,
+          9.4,
+          17.75
+        ]
+      ]
+    },
+    {
+      "name": "back-to-back-deep",
+      "family": "mansion",
+      "frontage": 36,
+      "depth": 44,
+      "storeys": 10,
+      "ring": false,
+      "attached": [],
+      "floor_square_metres": 15840,
+      "faces": {
+        "door": 2,
+        "glass": 394,
+        "membrane": 6,
+        "metal": 3900,
+        "paving": 6,
+        "plinth": 24,
+        "reveal": 864,
+        "trim": 468,
+        "wall": 2256,
+        "wall-end": 1350
+      },
+      "bounds": [
+        [
+          -18.5,
+          -22.9,
+          0
+        ],
+        [
+          18.5,
+          23.4,
+          35.25
+        ]
+      ]
+    },
+    {
+      "name": "perimeter-ring",
+      "family": "mansion",
+      "frontage": 56,
+      "depth": 56,
+      "storeys": 7,
+      "ring": true,
+      "attached": [],
+      "floor_square_metres": 17920,
+      "faces": {
+        "door": 16,
+        "glass": 740,
+        "membrane": 24,
+        "metal": 9480,
+        "paving": 24,
+        "plinth": 72,
+        "reveal": 3480,
+        "trim": 1212,
+        "wall": 5160,
+        "wall-end": 2988
+      },
+      "bounds": [
+        [
+          -28.9,
+          -28.9,
+          0
+        ],
+        [
+          28.9,
+          28.9,
+          24.75
+        ]
+      ]
+    },
+    {
+      "name": "back-to-back-ring",
+      "family": "mansion",
+      "frontage": 60,
+      "depth": 52,
+      "storeys": 10,
+      "ring": true,
+      "attached": [],
+      "floor_square_metres": 25600,
+      "faces": {
+        "door": 14,
+        "glass": 1100,
+        "membrane": 24,
+        "metal": 16800,
+        "paving": 24,
+        "plinth": 72,
+        "reveal": 5760,
+        "trim": 1932,
+        "wall": 8640,
+        "wall-end": 3684
+      },
+      "bounds": [
+        [
+          -30.9,
+          -26.9,
+          0
+        ],
+        [
+          30.9,
+          26.9,
+          35.25
+        ]
+      ]
+    },
+    {
+      "name": "courtyard-face",
+      "family": "slab",
+      "frontage": 116,
+      "depth": 30,
+      "storeys": 14,
+      "ring": false,
+      "attached": [],
+      "floor_square_metres": 48720,
+      "faces": {
+        "door": 424,
+        "glass": 940,
+        "membrane": 6,
+        "plinth": 24,
+        "reveal": 1872,
+        "spandrel": 714,
+        "trim": 5946,
+        "wall": 12708,
+        "wall-end": 504
+      },
+      "bounds": [
+        [
+          -58.05,
+          -16.2,
+          0
+        ],
+        [
+          58.05,
+          16.8,
+          52.15
+        ]
+      ]
+    },
+    {
+      "name": "courtyard-flank",
+      "family": "slab",
+      "frontage": 40,
+      "depth": 30,
+      "storeys": 13,
+      "ring": false,
+      "attached": [],
+      "floor_square_metres": 15600,
+      "faces": {
+        "door": 134,
+        "glass": 332,
+        "membrane": 6,
+        "plinth": 24,
+        "reveal": 648,
+        "spandrel": 300,
+        "trim": 2058,
+        "wall": 4644,
+        "wall-end": 198
+      },
+      "bounds": [
+        [
+          -20.05,
+          -16.2,
+          0
+        ],
+        [
+          20.05,
+          16.8,
+          48.65
+        ]
+      ]
+    },
+    {
+      "name": "slab-ring",
+      "family": "slab",
+      "frontage": 116,
+      "depth": 54,
+      "storeys": 16,
+      "ring": true,
+      "attached": [],
+      "floor_square_metres": 70656,
+      "faces": {
+        "door": 892,
+        "glass": 2378,
+        "membrane": 24,
+        "plinth": 72,
+        "reveal": 5940,
+        "spandrel": 2412,
+        "trim": 16092,
+        "wall": 31740,
+        "wall-end": 1296
+      },
+      "bounds": [
+        [
+          -59.2,
+          -28.2,
+          0
+        ],
+        [
+          59.2,
+          28.2,
+          59.15
+        ]
+      ]
+    }
+  ]
+}
