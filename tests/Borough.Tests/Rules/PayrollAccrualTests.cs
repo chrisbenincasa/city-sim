@@ -42,7 +42,9 @@ public sealed class PayrollAccrualTests
             }
             if (t == 3 * Ticks.PerDay)
             {
+                int[] staff = workers.Where(c => world.Citizens.Workplace[c] == employer).ToArray();
                 world.Unpremise(employer, world.Tick);
+                foreach (int c in staff) { world.Employ(world.Citizens.Rows.At(c), employer, Ticks.Zero); }
                 world.RebuildDerived();
                 Assert.Equal(0, world.Citizens.CommuteBucket[workers[^1]]);
             }

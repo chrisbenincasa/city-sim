@@ -82,6 +82,7 @@ public sealed class CitizenTable
         Experience = _rows.Saved<long>("experience");
         SkillTier = _rows.Saved<byte>("skill_tier");
         Employment = _rows.Saved<byte>("employment");
+        NoVacancySince = _rows.Saved<Ticks>("no_vacancy_since");
         ReachFailures = _rows.Saved<ushort>("reach_failures");
         MemberNext = _rows.Derived<int>("member_next");
         WorkerNext = _rows.Derived<int>("worker_next");
@@ -281,6 +282,16 @@ public sealed class CitizenTable
     /// in reach and every one of them wanted a credential this Citizen does not hold.
     /// </remarks>
     public Column<byte> Employment { get; }
+
+    /// <summary>
+    /// The Tick after the one on which this Citizen entered <see cref="Borough.Core.Rules.EmploymentState.NoVacancy"/>,
+    /// so zero means never. Meaningful only while <see cref="Employment"/> is <c>NoVacancy</c>.
+    /// </summary>
+    /// <remarks>
+    /// Written only on entry to <c>NoVacancy</c>, and stale in every other state. Readers check
+    /// <see cref="Employment"/> first, which saves a reset at each of the state's other writers.
+    /// </remarks>
+    public Column<Ticks> NoVacancySince { get; }
 
     /// <summary>
     /// How many job-search occasions have ended with the Road Graph unable to deliver anything

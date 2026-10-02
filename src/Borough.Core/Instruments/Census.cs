@@ -55,7 +55,7 @@ public sealed class Census
     private const int RuleCounters = 3;
 
     /// <summary>The members of <see cref="ZoneCounter"/>.</summary>
-    private const int ZoneCounters = 6;
+    private const int ZoneCounters = 7;
 
     /// <summary>The members of <see cref="Aggregate"/>: a flow is read twice, as a sum and as a peak.</summary>
     private const int AggregatesPerRuleCounter = 2;
@@ -92,7 +92,7 @@ public sealed class Census
     private const int TripMetrics = TripCounters * AggregatesPerRuleCounter;
 
     /// <summary>The members of <see cref="JobCounter"/>.</summary>
-    private const int JobCounters = 7;
+    private const int JobCounters = 8;
 
     /// <summary>The job assignment pass's share, on the same terms.</summary>
     private const int JobMetrics = JobCounters * AggregatesPerRuleCounter;
@@ -362,6 +362,7 @@ public sealed class Census
         Write(_values, at + _zoneBase, (int)ZoneCounter.Created, zoning.Created);
         Write(_values, at + _zoneBase, (int)ZoneCounter.Demolished, zoning.Demolished);
         Write(_values, at + _zoneBase, (int)ZoneCounter.Ended, zoning.Ended);
+        Write(_values, at + _zoneBase, (int)ZoneCounter.Reopened, zoning.Reopened);
 
         Write(_values, at + _placementBase, (int)PlacementCounter.Considered, placement.Considered);
         Write(_values, at + _placementBase, (int)PlacementCounter.Placed, placement.Placed);
@@ -390,6 +391,7 @@ public sealed class Census
         Write(_values, at + _jobBase, (int)JobCounter.Fast, jobs.Fast);
         Write(_values, at + _jobBase, (int)JobCounter.Moderate, jobs.Moderate);
         Write(_values, at + _jobBase, (int)JobCounter.Unsavoury, jobs.Unsavoury);
+        Write(_values, at + _jobBase, (int)JobCounter.NoVacancy, jobs.NoVacancy);
 
         Write(_values, at + _policyBase, (int)PolicyCounter.Triggers, policies.Triggers);
         Write(_values, at + _policyBase, (int)PolicyCounter.Considered, policies.Considered);
@@ -603,7 +605,7 @@ public sealed class Census
         {
             if (metric.JobCounter is not (JobCounter.Considered or JobCounter.Seeking
                 or JobCounter.Employed or JobCounter.Beyond or JobCounter.Fast
-                or JobCounter.Moderate or JobCounter.Unsavoury))
+                or JobCounter.Moderate or JobCounter.Unsavoury or JobCounter.NoVacancy))
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(metric), metric.JobCounter, "not a job counter this census reads.");
@@ -668,7 +670,7 @@ public sealed class Census
         {
             if (metric.ZoneCounter is not (ZoneCounter.Triggers or ZoneCounter.Vacant
                 or ZoneCounter.Occupied or ZoneCounter.Created or ZoneCounter.Demolished
-                or ZoneCounter.Ended))
+                or ZoneCounter.Ended or ZoneCounter.Reopened))
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(metric), metric.ZoneCounter, "not a Zone counter this census reads.");

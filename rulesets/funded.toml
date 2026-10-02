@@ -20,7 +20,7 @@
 # WHAT IT EXISTS TO SHOW: ***A PUBLIC SCHOOL IS A SERVICE KIND WHOSE TRADE HAS A WAGE AND NO
 # TUITION.*** The teachers are employed, they are paid out of the school's till, and NOTHING FILLS
 # THAT TILL EXCEPT THE CITY. Cut the grant and the till runs dry, the paydays go short, and
-# `goes_bankrupt_after_short_paydays` winds the trade up and dismisses its staff.
+# `goes_bankrupt_after_days_in_arrears` winds the trade up and dismisses its staff.
 # ===========================================================================================
 # No new concept was needed to write that sentence. `BusinessKindDefinition.Charges` is
 # `TuitionPerDay > 0`, so PRIVATE is DERIVED from the trade charging a Household and is not a flag --
@@ -137,17 +137,16 @@ family = "money"
 # `wage_per_day` is `schooling.toml`'s grocer rate, unchanged, so the payroll arithmetic in CHANGE 5
 # is readable against a number that already exists elsewhere rather than one invented here.
 #
-# ⚠ `goes_bankrupt_after_short_paydays` MUST EXCEED 1 AND THE REASON IS THE PHASE ORDER. `Simulation`
-# sweeps wages BEFORE it sweeps Policies, in the same Tick, so a till is paid out of before it is
-# topped up and a school can meet a payday short before its first grant ever lands. 3 against the
-# one-Day funding interval below is that relation with a wide margin: a FUNDED school never folds on
-# a schedule, and an unfunded one folds in three paydays. It counts consecutive PAYDAYS and not Days,
-# so at `pay_period_days = 7` it is up to 21 Days of non-payment.
+# ⚠ `goes_bankrupt_after_days_in_arrears` MUST EXCEED 1 AND THE REASON IS THE PHASE ORDER.
+# `Simulation` sweeps wages BEFORE it sweeps Policies, in the same Tick, so a till is paid out of
+# before it is topped up and a school can meet a payday short before its first grant ever lands. 14
+# against the one-Day funding interval below is that relation with a wide margin: a FUNDED school
+# never folds on a schedule, and an unfunded one folds on its third short weekly payday.
 [[business]]
 name = "teaching"
 wage_per_day    = 4096
 pay_period_days = 7
-goes_bankrupt_after_short_paydays = 3
+goes_bankrupt_after_days_in_arrears = 14
 shift_start_earliest_hour = 6
 shift_start_latest_hour   = 10
 

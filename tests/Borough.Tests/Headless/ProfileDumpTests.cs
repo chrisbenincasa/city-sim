@@ -37,6 +37,7 @@ public sealed class ProfileDumpTests
         Assert.Equal(expected, probe.Last);
         Assert.Equal(hash, world.HashState());
         world.Unpremise(employer, world.Tick);
+        foreach (int c in staff) { world.Employ(world.Citizens.Rows.At(c), employer, Ticks.Zero); }
         probe.Read(tick);
         Assert.Equal(expected with { RosteredWorkers = 0 }, probe.Last);
     }

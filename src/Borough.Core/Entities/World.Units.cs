@@ -462,26 +462,36 @@ public sealed partial class World
     /// <returns>How many Businesses were founded.</returns>
     public int FillUnits(int buildingSlot)
     {
-        byte trade = Rules.Kind(Buildings.Kind[buildingSlot]).Business;
-
-        if (trade == 0)
-        {
-            return 0;
-        }
-
-        Handle<Building> building = Buildings.Rows.At(buildingSlot);
         int founded = 0;
 
-        while (VacantUnit(buildingSlot) != Rows.NoSlot)
+        while (OpenInVacantUnit(buildingSlot))
         {
-            Handle<Business> came = CreateBusiness(building, trade);
-
-            Businesses.Origin[Businesses.Rows.Resolve(came)] = building;
-            FitBusiness(came);
             founded++;
         }
 
         return founded;
+    }
+
+    /// <summary>
+    /// Opens one Business of the Building's trade in its first vacant Unit, at zero balance.
+    /// </summary>
+    /// <returns>Whether a Business opened. False when the kind has no trade or no Unit is vacant.</returns>
+    public bool OpenInVacantUnit(int buildingSlot)
+    {
+        byte trade = Rules.Kind(Buildings.Kind[buildingSlot]).Business;
+
+        if (trade == 0 || VacantUnit(buildingSlot) == Rows.NoSlot)
+        {
+            return false;
+        }
+
+        Handle<Building> building = Buildings.Rows.At(buildingSlot);
+        Handle<Business> came = CreateBusiness(building, trade);
+
+        Businesses.Origin[Businesses.Rows.Resolve(came)] = building;
+        FitBusiness(came);
+
+        return true;
     }
 
     private void LetUnit(int buildingSlot, int businessSlot)
@@ -496,6 +506,7 @@ public sealed partial class World
 
         Units.Let(unit, businessSlot);
         Businesses.Unit[businessSlot] = Units.Rows.At(unit);
+        Changes?.Building(buildingSlot);
     }
 
     private void VacateUnit(int businessSlot)
@@ -503,6 +514,7 @@ public sealed partial class World
         if (Units.Rows.TryResolve(Businesses.Unit[businessSlot], out int unit))
         {
             Units.Vacate(unit);
+            Changes?.Building(Buildings.Rows.Resolve(Units.Building[unit]));
         }
 
         Businesses.Unit[businessSlot] = default;

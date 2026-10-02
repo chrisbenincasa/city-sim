@@ -95,19 +95,19 @@ public sealed class InsolvencyTests(ITestOutputHelper output)
                 continue;
             }
 
-            int threshold = world.Rules.BusinessKind(kind).GoesBankruptAfterShortPaydays;
+            int threshold = world.Rules.BusinessKind(kind).GoesBankruptAfterDaysInArrears;
 
             // Nothing live may sit at or above its own threshold: the sweep winds it up on the payday
             // it crosses. A row above it would mean the consequence had been skipped.
             if (threshold > 0)
             {
                 Assert.True(
-                    world.Businesses.ShortPaydays[slot] < threshold,
-                    $"business slot {slot} is live at {world.Businesses.ShortPaydays[slot]} short "
-                    + $"paydays against a threshold of {threshold}.");
+                    world.Businesses.DaysInArrears[slot] <= threshold,
+                    $"business slot {slot} is live at {world.Businesses.DaysInArrears[slot]} Days in "
+                    + $"arrears against a threshold of {threshold}.");
             }
 
-            anySolvent |= world.Businesses.ShortPaydays[slot] == 0;
+            anySolvent |= world.Businesses.DaysInArrears[slot] == 0;
         }
 
         Assert.True(anySolvent, "no live Business had a clean payroll, so recovery is untested.");

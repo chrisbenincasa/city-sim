@@ -29,6 +29,16 @@
 # expect the interaction to be different: none of those headers was written about a world with the
 # other nine turned on.
 #
+# 🔴 THE TRADES PAY A WAGE AND THE SHOPFRONT PAYS NO RATES, WHICH IS WHERE THIS FILE LEAVES
+# `oversupplied.toml`. That file has no wage bill and a `rates` Rule because it demonstrates shops
+# failing. Carried into a city, the pair drained it (#67): Households spent their balance on sundries
+# in Day 1 and earned nothing back, and rates then moved 1.06M a Day from shop tills to a treasury
+# that spends nothing. A shop holding under 8,192 starved on rates, lost its Unit 8 Days later, and
+# kept its staff with no workplace. At 2,000 Citizens, seed 0, 40,960 Ticks, 735 Citizens worked at
+# a premised Business at Day 20 with both keys as lifted, and 1,425 with this wage and no rates.
+# The wage of 256 a Day, paid daily, is provisional. It is small enough that tills cover most
+# paydays and large enough to keep Households housed.
+#
 # 🔴 ⚠ THE LATTICE IS SITED ON THE WATER AND THAT IS NOT DECORATION. `coastal.toml`'s header carries
 # the finding -- the synthetic city is ~1.4 km across on a 65.5 km map, so it CANNOT MEET A COAST BY
 # ACCIDENT, and 0 of 420 Lots were exposed until the origin moved. A city to photograph that is not
@@ -71,11 +81,17 @@ family = "utility"
 
 [[business]]
 name = "shop"
+wage_per_day    = 256
+pay_period_days = 1
+goes_bankrupt_after_days_in_arrears = 8
 shift_start_earliest_hour = 6
 shift_start_latest_hour   = 10
 
 [[business]]
 name = "grocer"
+wage_per_day    = 256
+pay_period_days = 1
+goes_bankrupt_after_days_in_arrears = 8
 shift_start_earliest_hour = 6
 shift_start_latest_hour   = 10
 
@@ -176,14 +192,6 @@ apply   = { min = 1, max = 4 }
 inputs  = []
 outputs = [ { scope = "local", resource = "sundries", amount = 8 } ]
 
-[[rule]]
-name    = "rates"
-kind    = "shopfront"
-rate    = 1024
-apply   = { min = 1, max = 1 }
-inputs  = [ { scope = "local",  resource = "money", amount = 8192 } ]
-outputs = [ { scope = "global", resource = "money", amount = 8192 } ]
-
 # 🔴 THE ONE RULE IN THIS FILE THAT EXISTS FOR THE PICTURE, and it is here because an overlay of
 # nothing is a blank screen. `scope = "map"` is the only write-only scope `02 §4.1` grants, pollution
 # is the only emittable Layer, and THE ONLY THING IN THE BUILD THAT GIVES A CELL A ROW AT ALL IS AN
@@ -233,6 +241,9 @@ interval             = 32
 revisit_ticks        = 2048
 build_threshold_days = 4
 cooldown_days        = 8
+# PROVISIONAL: Citizen-Days of waiting by those who found every post full. Thresholds 2 to 16
+# behaved alike after a mass bankruptcy at 2,000 Citizens (plans/employment-feedback.md).
+jobless_threshold_days = 4
 
 [placement]
 interval      = 32

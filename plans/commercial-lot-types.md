@@ -117,8 +117,8 @@ Types that differ only in looks are Appearance Families of a kept type.
   - That broke the insolvency, business-pool (`levied.toml`) and evidence (`diagnosed.toml`) tests.
 - Retire the key once floor areas are realistic. That is the carve defect in `plans/0053`.
 - The founder is still the first worker (adr/0146).
-- Posts that follow a Business's daily margin belong to the Employment feedback row. When that
-  lands, the ceiling here becomes the most a Unit can hold.
+- Posts that follow a Business's daily margin belong to the Posts that follow margin board row.
+  When that lands, the ceiling here becomes the most a Unit can hold.
 - In `pictured.toml` the rate has nothing to act on until phase 2. Over 20 Days, 1,023 of its
   1,025 Businesses were founded with no premises, each employed only its founder, and the job
   pass assigned nobody.
@@ -424,7 +424,7 @@ market, hotel, and a commercial parking minimum Policy.
 
 | With | Interface |
 |---|---|
-| Employment feedback row | That row owns posts that follow margin, the opening staff, hire and cut thresholds, anchor catchment and re-letting vacant Units. This row supplies the Unit and its ceiling. |
+| Posts that follow margin row | That row owns posts that follow margin, the opening staff, hire and cut thresholds and anchor catchment. Employment feedback re-lets vacant Units (`World.OpenInVacantUnit`). This row supplies the Unit and its ceiling. |
 | Office and agglomeration row | Office types reuse Units, the ceiling and band storeys. Margin staffing needs office income from that row. |
 | Building entrances and usable open ground | Ground uses are the first typed use of leftover lot ground. Doors per Unit are drawn only, so door count stays separate from how many people a Building handles. |
 | Issue #61 | Commercial forms always have more than one Unit, so they avoid the one-tenancy bug. The general fix in `World.CreateBuilding` still lands on its own. |
