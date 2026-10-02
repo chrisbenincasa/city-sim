@@ -5194,8 +5194,11 @@ public sealed partial class World
         // draws: a world with no [capacity] has no ceiling to be over, so nothing here may refuse on
         // one. ***A ceiling that counts both kinds of tenant (adr/0147) has to be consulted by both
         // of the things that take one***, and this site was the half that never asked.
-        bool roomBeside =
-            !TryDeclaredOccupancy(kind, buildingSlot, out int ceiling) || ceiling > 1;
+        //
+        // A kind that houses nobody has no Household to leave room for, so a one-tenancy school or
+        // shopfront still starts its trade.
+        bool roomBeside = !Rules.Kind(kind).Houses
+            || !TryDeclaredOccupancy(kind, buildingSlot, out int ceiling) || ceiling > 1;
 
         // ⚠ `Premises` IS NOT RE-ASKED HERE and does not need to be: RulesetLoader refuses a kind
         // declaring `business` without it, so `trade != 0` already carries the permission
