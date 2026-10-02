@@ -279,7 +279,7 @@ def draw_wing_far(geometry, w, wings, variant):
         rect = (x0 + d, y0 + d, x1 - d, y1 - d)
         for name in SIDES:
             side = Side(rect, name)
-            side.grid_plane(geometry, 0, side.length, z0, z1, 0, 0, 1, cell)
+            side.grid_plane(geometry, 0, side.length, z0, z1, 0, 0, 1, FAR_CELLS['blank'])
         return
     for name in SIDES:
         side = Side(w['rect'], name)
@@ -578,7 +578,6 @@ def main():
             far_census = census(far)
             report.update({'far_faces': far_census['faces'], 'far_bounds': far_census['bounds']})
             reports.append(report)
-            print('TALL BOUNDS', variant, podium_storeys, census(near)['bounds'], far_census['bounds'])
         made = reset()
         near = Geometry()
         far = Geometry()

@@ -150,7 +150,7 @@ def far_wall(g, side, a, b, storey, family, role, look, cell=None):
     count = len(bays(b - a, look['bay']))
     if role == 'party':
         cell = FAR_CELLS[f'{family}-party']
-    elif cell is None and role == 'end':
+    elif cell is None and role == 'end' and storey != 0:
         cell = FAR_CELLS[f'{family}-end']
     elif cell is None:
         band = 'ground' if storey == 0 else 'typical'
@@ -605,7 +605,6 @@ def main():
             tall.build(f'{name}-near', family_geometry(family, near), made, offsets[name])
             tall.build(f'{name}-far', family_geometry(family, far), made,
                        (offsets[name][0], offsets[name][1] + 260))
-            print('MIDRISE BOUNDS', name, near_census['bounds'], far_census['bounds'])
         bpy.ops.wm.save_as_mainfile(filepath=str(SOURCES / f'{family}.blend'))
 
     for thing in list(bpy.data.objects):
