@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Borough.Formats\Borough.Formats.csproj" />
+    <InternalsVisibleTo Include="Borough.Tests" />
   </ItemGroup>
 
 </Project>

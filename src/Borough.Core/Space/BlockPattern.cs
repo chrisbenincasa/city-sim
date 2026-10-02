@@ -820,7 +820,8 @@ public static class BlockPatterns
     /// </para>
     /// </remarks>
     public static int Storeys(
-        BlockPattern pattern, int blockTiles, int lotsPerSegment, int storeysPerRung)
+        BlockPattern pattern, int blockTiles, int lotsPerSegment, int storeysPerRung,
+        int podiumStoreys = BuildingPlan.TowerPodiumStoreys)
     {
         int step = storeysPerRung < 1 ? 1 : storeysPerRung;
         int ratio = (Rung(pattern, blockTiles, lotsPerSegment) * step) + 2;
@@ -837,7 +838,7 @@ public static class BlockPatterns
         // a broad seventeen-storey slab and erase the vertical half of the form. plans/0062.
         if (pattern == BlockPattern.Tower)
         {
-            BuildingPlan.TowerForm form = BuildingPlan.Tower(blockTiles, blockTiles, byte.MaxValue);
+            BuildingPlan.TowerForm form = BuildingPlan.Tower(blockTiles, blockTiles, byte.MaxValue, podiumStoreys);
             long target = (long)ratio * blockTiles * blockTiles;
             long podiumFloor = (long)blockTiles * blockTiles * form.PodiumStoreys;
             long shaftFloor = (long)form.ShaftWide * form.ShaftDeep;

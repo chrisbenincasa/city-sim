@@ -947,4 +947,10 @@ public enum PurposeTag : ulong
     /// Which side of its Lot a sales yard's shed stands on. Drawn on the parcel's corner at Tick zero.
     /// </summary>
     YardSide = 65,
+
+    /// <summary>
+    /// How many storeys a Tower's podium stands, within the Ruleset's <c>[lots]</c> range. Drawn on
+    /// the Lot's parcel corner, so a re-platted block draws the same podium.
+    /// </summary>
+    TowerPodium = 66,
 }

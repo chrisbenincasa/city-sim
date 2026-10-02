@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Borough.Appearance;
 using Borough.Core.Entities;
+using Borough.Core.Space;
 using Godot;
 
 namespace Borough.Shell;
@@ -15,17 +16,31 @@ namespace Borough.Shell;
 /// Bodies sharing a mesh share an <see cref="InstanceLayer"/>, batched by chunk. A chunk within the
 /// near band draws bodies; beyond it, the same Buildings draw as massing boxes in their family's
 /// colours and roof. Body and box layers decide by the same chunk key, so a Building is drawn once.
-/// A Building that draws as several massing wings keeps its massing.
+/// A Tower's podium and shaft are one body over the whole site; any other Building that draws as
+/// several massing wings keeps its massing.
 /// </remarks>
 public partial class Main
 {
+    /// <summary>
+    /// The parts a library's materials are matched to, by name or by name-and-hyphen prefix. A more
+    /// specific name stands before the name it extends, so <c>wall-end</c> never resolves as
+    /// <c>wall</c>.
+    /// </summary>
     private static readonly string[] BodyParts =
     [
         "wall-end", "wall", "trim", "roof-new", "roof", "membrane", "glass", "door", "frame", "metal",
-        "plinth", "storefront", "sign", "awning", "solar",
+        "plinth", "storefront", "sign", "awning", "solar", "spandrel", "reveal", "paving", "planter",
+        "tree",
     ];
 
     private static readonly string[] RoofParts = ["roof-new", "roof", "membrane"];
+
+    /// <summary>
+    /// The parts a far box takes its wall colour from, the most wall-like first. A tower shaft has
+    /// no wall part at all — its facade is spandrels and fins — so a body without one is painted in
+    /// the surface that stands for it rather than in a default grey.
+    /// </summary>
+    private static readonly string[] WallParts = ["wall", "spandrel", "trim", "wall-end"];
 
     private readonly Dictionary<ulong, PlacedBody> _placedBodies = [];
     private readonly Dictionary<ulong, BodyNeighbours> _bodyNeighbours = [];
@@ -52,6 +67,11 @@ public partial class Main
     /// <summary>The side of the square, in Tiles, that <see cref="Footprints"/> files Buildings under.</summary>
     private const int FootprintSquareTiles = 64;
 
+    /// <summary>
+    /// A Tower Lot's own plan, in the frame the body builder takes, so frontage runs along the Street.
+    /// </summary>
+    private readonly record struct TowerSite(int Storeys, int PodiumStoreys, float ShaftFrontage, float ShaftDepth);
+
     /// <summary>Where a body probed for side neighbours, and the Buildings it found there; 0 is none.</summary>
     private readonly record struct BodyNeighbours(int Slot, Vector3 LeftProbe, Vector3 RightProbe, ulong LeftId, ulong RightId);
 
@@ -60,14 +80,23 @@ public partial class Main
 
     private readonly record struct PlacedBody(InstanceLayer Layer, BodyShape Shape, Transform3D At);
 
-    private readonly record struct BodyKey(string Family, int Frontage, int Depth, int Storeys, AttachedSides Attached, int Paint);
+    /// <summary>
+    /// Everything a generated mesh depends on, in centimetres where it is a length. A Tower's podium
+    /// and shaft are in the key, so two towers of the same height with different podiums are two
+    /// meshes.
+    /// </summary>
+    private readonly record struct BodyKey(
+        string Family, int Frontage, int Depth, int Storeys, AttachedSides Attached, int Paint,
+        int PodiumStoreys, int ShaftFrontage, int ShaftDepth);
 
     /// <summary>Everything a Building's body is placed from, read from the World.</summary>
     private readonly record struct BodyRequest(
         Massing One, AppearanceFamily Family, FamilyBody Body, float Frontage, float Depth, int Storeys,
-        AttachedSides Attached, int Paint, float Turn, BodyNeighbours Neighbours)
+        AttachedSides Attached, int Paint, float Turn, BodyNeighbours Neighbours, TowerSite? Site)
     {
-        public BodyKey Key => new(Family.Id, Mathf.RoundToInt(Frontage * 100f), Mathf.RoundToInt(Depth * 100f), Storeys, Attached, Paint);
+        public BodyKey Key => new(Family.Id, Mathf.RoundToInt(Frontage * 100f), Mathf.RoundToInt(Depth * 100f), Storeys,
+            Attached, Paint, Site?.PodiumStoreys ?? 0, Mathf.RoundToInt((Site?.ShaftFrontage ?? 0f) * 100f),
+            Mathf.RoundToInt((Site?.ShaftDepth ?? 0f) * 100f));
     }
 
     /// <summary><c>ui family-bodies on|off [NEAR]</c>; NEAR is the body band's reach in metres.</summary>
@@ -183,19 +212,26 @@ public partial class Main
         using IEnumerator<Massing> parts = Buildings(slot).GetEnumerator();
         if (!parts.MoveNext()) return null;
         Massing one = parts.Current;
-        if (parts.MoveNext() || _exactBodies.ContainsKey(one.Id)) return null;
+        if (_exactBodies.ContainsKey(one.Id)) return null;
 
+        // THE PODIUM IS MASSING 0 AND IT CARRIES THE WHOLE SITE, so a Tower's placement, frontage,
+        // depth and facing come off the same box every other Building's do. Its height does not,
+        // because a Tower's storeys are the Lot's and the podium box holds only the first few.
         Vector3 size = one.Body.Basis.Scale;
         float faceEast = (one.Reads.R * 2f) - 1f;
         float faceSouth = (one.Reads.G * 2f) - 1f;
         bool facesNorthSouth = Mathf.Abs(faceSouth) > 0.5f;
         float frontage = facesNorthSouth ? size.X : size.Z;
         float depth = facesNorthSouth ? size.Z : size.X;
-        int storeys = Mathf.Max(1, Mathf.RoundToInt(size.Y / StoreyMetres));
+        TowerSite? site = body.Tower is null ? null : TowerSiteOf(slot, facesNorthSouth);
+        if (body.Tower is not null && site is null) return null;
+        if (site is null && parts.MoveNext()) return null;
+
+        int storeys = site?.Storeys ?? Mathf.Max(1, Mathf.RoundToInt(size.Y / StoreyMetres));
         float turn = Mathf.Atan2(faceEast, faceSouth);
         AttachedSides attached = Attached(slot, one.Body.Origin, turn, frontage, out BodyNeighbours neighbours);
         int paint = FamilyPicker.Paint(family, _world.Key, one.Id);
-        return new BodyRequest(one, family, body, frontage, depth, storeys, attached, paint, turn, neighbours);
+        return new BodyRequest(one, family, body, frontage, depth, storeys, attached, paint, turn, neighbours, site);
     }
 
     private void PlaceBody(BodyRequest request)
@@ -212,8 +248,29 @@ public partial class Main
             GD.Print($"family_body\t{request.Family.Id}\tbuilding {one.Id}\t{request.Frontage}x{request.Depth} m\t{request.Storeys} storeys"
                 + $"\tattached {request.Attached}\tpaint {request.Paint}"
                 + $"\ttile {Mathf.RoundToInt(one.Body.Origin.X / MetresPerTile)} {Mathf.RoundToInt(-one.Body.Origin.Z / MetresPerTile)}"
+                + (request.Site is { } t ? $"\tpodium {t.PodiumStoreys}\tshaft {t.ShaftFrontage}x{t.ShaftDepth} m" : "")
                 + (one.Abandoned ? "\tabandoned" : ""));
         }
+    }
+
+    /// <summary>
+    /// A Tower Lot's own plan, read from the same <see cref="BuildingPlan.Tower"/> partition the
+    /// Massings and the Lot's floor area come from.
+    /// </summary>
+    /// <returns><c>null</c> where the Lot is gone or its block raises no Tower.</returns>
+    private TowerSite? TowerSiteOf(int slot, bool facesNorthSouth)
+    {
+        LotTable lots = _world.Lots;
+        if (!lots.Rows.TryResolve(_world.Buildings.Lot[slot], out int lot)
+            || lots.PatternOf(lot) != BlockPattern.Tower) return null;
+
+        int storeys = Mathf.Max(1, lots.Storeys[lot]);
+        BuildingPlan.TowerForm form = BuildingPlan.Tower(
+            lots.FootprintWide[lot].Raw, lots.FootprintDeep[lot].Raw, storeys, lots.PodiumStoreys[lot]);
+        float eastWest = form.ShaftWide * MetresPerTile, southNorth = form.ShaftDeep * MetresPerTile;
+        return new TowerSite(storeys, form.PodiumStoreys,
+            facesNorthSouth ? eastWest : southNorth,
+            facesNorthSouth ? southNorth : eastWest);
     }
 
     /// <summary>
@@ -245,15 +302,21 @@ public partial class Main
     /// A bodied Building's far box, roofed as its body is: a pitched family keeps a pitched cap
     /// and a flat family wears its parapet.
     /// </summary>
+    /// <remarks>
+    /// ⚠ The cap sits on THIS box's top and not at its height above the ground. The two agree for
+    /// a box standing on the ground and part company for a Tower's shaft, which starts at its
+    /// podium's top.
+    /// </remarks>
     private static Massing FarMassing(Massing one, FamilyBody body)
     {
         Vector3 plan = one.Body.Basis.Scale;
         Vector3 at = one.Body.Origin;
+        float top = at.Y + (plan.Y * 0.5f);
         if (body.GableDegrees <= 0f)
         {
             if (body.ParapetMetres <= 0f) return one with { Cap = Cap.Flat };
             var tray = Basis.FromScale(new Vector3(plan.X + (CopingMetres * 2f), body.ParapetMetres, plan.Z + (CopingMetres * 2f)));
-            return one with { Cap = Cap.Parapet, Roof = new Transform3D(tray, at with { Y = plan.Y + (body.ParapetMetres * 0.5f) }) };
+            return one with { Cap = Cap.Parapet, Roof = new Transform3D(tray, at with { Y = top + (body.ParapetMetres * 0.5f) }) };
         }
 
         if (one.Cap is Cap.Gable or Cap.Hip or Cap.PairedGable) return one;
@@ -261,7 +324,7 @@ public partial class Main
         float span = Mathf.Min(plan.X, plan.Z), ridge = Mathf.Max(plan.X, plan.Z);
         float rise = RoofHeight(Cap.Gable, Mathf.Tan(Mathf.DegToRad(body.GableDegrees)) * span * 0.5f);
         Basis capped = CapBasis(Cap.Gable, plan.X > plan.Z, span, ridge, rise);
-        return one with { Cap = Cap.Gable, Roof = new Transform3D(capped, at with { Y = plan.Y + (rise * 0.5f) }) };
+        return one with { Cap = Cap.Gable, Roof = new Transform3D(capped, at with { Y = top + (rise * 0.5f) }) };
     }
 
     private InstanceLayer BodyLayer(ArrayMesh mesh, bool abandoned)
@@ -436,7 +499,11 @@ public partial class Main
     private static List<BodySurface> BodySurfaces(BodyRequest request)
     {
         var surfaces = new List<BodySurface>();
-        foreach ((string part, ShellMesh source) in FamilyBodyBuilder.Build(request.Body, request.Frontage, request.Depth, request.Storeys, request.Attached).Parts)
+        FamilyBodyMesh built = request.Site is { } tower
+            ? FamilyBodyBuilder.BuildTower(request.Body, request.Frontage, request.Depth, request.Storeys,
+                tower.PodiumStoreys, tower.ShaftFrontage, tower.ShaftDepth)
+            : FamilyBodyBuilder.Build(request.Body, request.Frontage, request.Depth, request.Storeys, request.Attached);
+        foreach ((string part, ShellMesh source) in built.Parts)
         {
             var positions = new Vector3[source.VertexCount];
             var normals = new Vector3[source.VertexCount];
@@ -501,7 +568,7 @@ public partial class Main
         }
 
         Color fallback = MeanColour(null);
-        Color wall = reads.GetValueOrDefault("wall", fallback);
+        Color wall = WallParts.Where(reads.ContainsKey).Select(part => reads[part]).DefaultIfEmpty(fallback).First();
         Color roof = RoofParts.Where(reads.ContainsKey).Select(part => reads[part]).DefaultIfEmpty(fallback).First();
         var shape = new BodyShape(mesh, wall, roof, body);
         _familyBodyMeshes[request.Key] = shape;

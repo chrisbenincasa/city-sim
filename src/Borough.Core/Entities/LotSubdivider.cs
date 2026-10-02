@@ -140,6 +140,7 @@ public static class LotSubdivider
             world.Lots.FootprintEast[slot] = foot.East; world.Lots.FootprintNorth[slot] = foot.North;
             world.Lots.FootprintWide[slot] = foot.Wide; world.Lots.FootprintDeep[slot] = foot.Deep;
             world.Lots.Storeys[slot] = world.Rules.Lots.Height(world.Key, parcel, form, streets.BlockTiles);
+            world.Lots.PodiumStoreys[slot] = world.Rules.Lots.PodiumOn(world.Key, parcel.East, parcel.North);
             world.Lots.Pattern[slot] = (byte)((byte)form + 1);
             world.Frontage.Claim(segment, parcel.Side);
             created++;

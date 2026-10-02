@@ -281,7 +281,7 @@ public partial class Main
             // LotTable.FloorTiles. plans/0062.
             if (lots.PatternOf(lot) == BlockPattern.Tower)
             {
-                BuildingPlan.TowerForm tower = BuildingPlan.Tower(footWide, footDeep, storeys);
+                BuildingPlan.TowerForm tower = BuildingPlan.Tower(footWide, footDeep, storeys, lots.PodiumStoreys[lot]);
                 float podiumTall = tower.PodiumStoreys * StoreyMetres;
                 float shaftTall = tower.ShaftStoreys * StoreyMetres;
                 Color reads = new(

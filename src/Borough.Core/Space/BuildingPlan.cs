@@ -85,7 +85,7 @@ public static class BuildingPlan
     /// </summary>
     public const int DaylightTiles = 4;
 
-    /// <summary>The street-wall storeys beneath a Tower's smaller shaft.</summary>
+    /// <summary>The street-wall storeys beneath a Tower's smaller shaft, where the Ruleset states no range.</summary>
     /// <remarks>
     /// <b>Two storeys is a type, not a density control:</b> ground and first floor make the base a
     /// Building rather than a roof deck. The block pattern still derives the total storeys from its
@@ -103,12 +103,13 @@ public static class BuildingPlan
         int ShaftDeep);
 
     /// <summary>Build a full-site podium with a centred half-width, half-depth solid shaft.</summary>
-    public static TowerForm Tower(int wide, int deep, int storeys)
+    public static TowerForm Tower(int wide, int deep, int storeys, int podiumStoreys = TowerPodiumStoreys)
     {
         int positiveStoreys = storeys < 0 ? 0 : storeys;
-        int podium = positiveStoreys < TowerPodiumStoreys
+        int positivePodium = podiumStoreys < 0 ? 0 : podiumStoreys;
+        int podium = positiveStoreys < positivePodium
             ? positiveStoreys
-            : TowerPodiumStoreys;
+            : positivePodium;
         int halfWide = IntegerMath.FloorDiv(wide, 2);
         int halfDeep = IntegerMath.FloorDiv(deep, 2);
         int shaftWide = halfWide < 1 ? 1 : halfWide;
@@ -124,12 +125,14 @@ public static class BuildingPlan
     }
 
     /// <summary>The floor carried by all storeys of a block form.</summary>
-    public static int FloorTiles(BlockPattern pattern, int wide, int deep, int storeys) =>
-        TryFloorTiles(pattern, wide, deep, storeys, out int floor)
+    public static int FloorTiles(
+        BlockPattern pattern, int wide, int deep, int storeys, int podiumStoreys = TowerPodiumStoreys) =>
+        TryFloorTiles(pattern, wide, deep, storeys, out int floor, podiumStoreys)
             ? floor : throw new ArgumentOutOfRangeException(nameof(storeys), "Floor area exceeds Int32 storage.");
 
     /// <summary>Calculates the shared plan without overflowing a proposed floor area.</summary>
-    public static bool TryFloorTiles(BlockPattern pattern, int wide, int deep, int storeys, out int floor)
+    public static bool TryFloorTiles(
+        BlockPattern pattern, int wide, int deep, int storeys, out int floor, int podiumStoreys = TowerPodiumStoreys)
     {
         floor = 0;
         if (wide < 1 || deep < 1 || storeys < 1) { return true; }
@@ -137,7 +140,7 @@ public static class BuildingPlan
         long total;
         if (pattern == BlockPattern.Tower)
         {
-            TowerForm form = Tower(wide, deep, storeys);
+            TowerForm form = Tower(wide, deep, storeys, podiumStoreys);
             total = ((long)wide * deep * form.PodiumStoreys)
                 + ((long)form.ShaftWide * form.ShaftDeep * form.ShaftStoreys);
         }

@@ -313,6 +313,11 @@ lots_per_segment = 5
 # by half a metre; at 3 it is a real low-rise/mid-rise split and the core reads flat.
 storeys_per_rung = 3
 
+# The range each Tower's podium is drawn from, per Lot. A Tower's storeys are solved against its
+# podium, so a taller podium stands a shorter shaft over the same floor.
+min_tower_podium_storeys = 2
+max_tower_podium_storeys = 8
+
 # How many rungs either side of its band's own rung a block's pattern may be drawn. THE ONLY SHIPPED
 # FILE THAT STATES IT, for storeys_per_rung's reason: this is the file whose job is to draw the ladder,
 # and a ladder every rung of which is one form everywhere is not a city.

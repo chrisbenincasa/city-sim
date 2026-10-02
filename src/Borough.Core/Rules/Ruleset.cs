@@ -3035,7 +3035,9 @@ public readonly record struct CapacityRuleset(
 public readonly record struct LotRuleset(
     int LotsPerSegment, int SetbackTiles, int StoreysPerRung = 1, int PatternSpread = 0,
     int StreetHalfWidthTiles = 1, Space.ResidentialPlots Plots = default, bool CarParkCentres = false,
-    bool TradeFormsByBand = false, Space.TradeFormWeights TradeFormWeights = default)
+    bool TradeFormsByBand = false, Space.TradeFormWeights TradeFormWeights = default,
+    int MinTowerPodiumStoreys = Space.BuildingPlan.TowerPodiumStoreys,
+    int MaxTowerPodiumStoreys = Space.BuildingPlan.TowerPodiumStoreys)
 {
     /// <summary>Whether trade blocks take trade forms at all.</summary>
     public bool TradeForms => CarParkCentres || TradeFormsByBand;
@@ -3098,8 +3100,34 @@ public readonly record struct LotRuleset(
             int height = Plots.HouseStoreys + added;
             return (byte)(height > 255 ? 255 : height);
         }
+        int podium = PodiumOn(key, parcel.East, parcel.North);
         return StoreysOn(key, parcel.East, parcel.North,
-            Space.BlockPatterns.Storeys(pattern, blockTiles, LotsPerSegment, StoreysPerRung), StoreysPerRung);
+            Space.BlockPatterns.Storeys(pattern, blockTiles, LotsPerSegment, StoreysPerRung, podium), StoreysPerRung);
+    }
+
+    /// <summary>
+    /// The storeys a Tower's podium stands on the parcel whose corner is at
+    /// (<paramref name="east"/>, <paramref name="north"/>).
+    /// </summary>
+    /// <remarks>
+    /// Every Lot draws one, and only a Tower reads it. A fixed range takes no draw, so a Ruleset that
+    /// states none keeps the two-storey podium and its State Hash. The Tower's storeys are solved
+    /// against this podium, so a taller podium buys a shorter shaft at the same plot ratio.
+    /// </remarks>
+    public byte PodiumOn(WorldKey key, Quantities.Tiles east, Quantities.Tiles north)
+    {
+        int low = MinTowerPodiumStoreys;
+        int span = MaxTowerPodiumStoreys - low;
+        if (span <= 0)
+        {
+            return (byte)low;
+        }
+
+        ulong patch = ((ulong)(uint)east.Raw << 32) | (uint)north.Raw;
+        ulong draw = Determinism.Randomness.Draw(
+            key, patch, Quantities.Ticks.Zero, Determinism.PurposeTag.TowerPodium);
+
+        return (byte)(low + (int)((draw >> 32) % (ulong)(span + 1)));
     }
 
     public (Quantities.Tiles East, Quantities.Tiles North, Quantities.Tiles Wide, Quantities.Tiles Deep)

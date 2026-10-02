@@ -537,9 +537,10 @@ def export(name, build):
             'materials': [m.name for m in used], 'geometry_sha256': geometry}
 
 
-SOURCES.mkdir(parents=True, exist_ok=True)
-EXPORT.mkdir(parents=True, exist_ok=True)
-records = [export(name, build) for name, build in BODIES]
-(SOURCES / 'bodies.json').write_text(json.dumps({'storey_metres': STOREY, 'bodies': records}, indent=2) + '\n')
-for record in records:
-    print('TEST_STREET_BODY', record['body'], record['vertices'], record['bounds_min'], record['bounds_max'])
+if __name__ == '__main__':
+    SOURCES.mkdir(parents=True, exist_ok=True)
+    EXPORT.mkdir(parents=True, exist_ok=True)
+    records = [export(name, build) for name, build in BODIES]
+    (SOURCES / 'bodies.json').write_text(json.dumps({'storey_metres': STOREY, 'bodies': records}, indent=2) + '\n')
+    for record in records:
+        print('TEST_STREET_BODY', record['body'], record['vertices'], record['bounds_min'], record['bounds_max'])

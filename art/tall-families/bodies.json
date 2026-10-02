@@ -1,0 +1,440 @@
+{
+  "storey_metres": 3.5,
+  "total_storeys": 62,
+  "facades": {
+    "banded": {
+      "spandrel": 0.9,
+      "spandrel_part": "trim",
+      "out": 0.35,
+      "fin_every": 7.25,
+      "fin": [
+        0.25,
+        -0.35,
+        0.3
+      ],
+      "fin_part": "trim"
+    },
+    "curtain": {
+      "spandrel": 1.2,
+      "spandrel_part": "spandrel",
+      "out": 0.05,
+      "fin_every": 1.5,
+      "fin": [
+        0.08,
+        -0.25,
+        0.3
+      ],
+      "fin_part": "frame"
+    },
+    "ribbon": {
+      "spandrel": 1.4,
+      "spandrel_part": "wall",
+      "out": 0,
+      "fin_every": 1.75,
+      "fin": [
+        0.08,
+        0.19999999999999998,
+        0.3
+      ],
+      "fin_part": "frame"
+    },
+    "spine": {
+      "spandrel": 0.6,
+      "spandrel_part": "wall",
+      "out": 0,
+      "fin_every": 2.9,
+      "fin": [
+        0.5,
+        -0.6,
+        0.3
+      ],
+      "fin_part": "wall"
+    },
+    "podium": {
+      "spandrel": 1.3,
+      "spandrel_part": "wall-end",
+      "out": 0,
+      "fin_every": 6.0,
+      "fin": [
+        0.6,
+        0,
+        0.3
+      ],
+      "fin_part": "wall-end"
+    }
+  },
+  "sites": [
+    {
+      "variant": "point",
+      "podium_storeys": 2,
+      "shaft_floor": 201840,
+      "drawn_floor": 201840,
+      "difference_percent": 0.0,
+      "top_metres": 217.0,
+      "wings": [
+        [
+          "t0",
+          60
+        ],
+        [
+          "t1",
+          60
+        ],
+        [
+          "t2",
+          60
+        ],
+        [
+          "t3",
+          60
+        ]
+      ]
+    },
+    {
+      "variant": "point",
+      "podium_storeys": 5,
+      "shaft_floor": 191748,
+      "drawn_floor": 191748,
+      "difference_percent": 0.0,
+      "top_metres": 217.0,
+      "wings": [
+        [
+          "t0",
+          57
+        ],
+        [
+          "t1",
+          57
+        ],
+        [
+          "t2",
+          57
+        ],
+        [
+          "t3",
+          57
+        ]
+      ]
+    },
+    {
+      "variant": "point",
+      "podium_storeys": 8,
+      "shaft_floor": 181656,
+      "drawn_floor": 181656,
+      "difference_percent": 0.0,
+      "top_metres": 217.0,
+      "wings": [
+        [
+          "t0",
+          54
+        ],
+        [
+          "t1",
+          54
+        ],
+        [
+          "t2",
+          54
+        ],
+        [
+          "t3",
+          54
+        ]
+      ]
+    },
+    {
+      "variant": "stepped-point",
+      "podium_storeys": 2,
+      "shaft_floor": 201840,
+      "drawn_floor": 201840,
+      "difference_percent": 0.0,
+      "top_metres": 297.5,
+      "wings": [
+        [
+          "t0-front",
+          49
+        ],
+        [
+          "t0-spine-low",
+          49
+        ],
+        [
+          "t0-spine-high",
+          33
+        ],
+        [
+          "t1-front",
+          37
+        ],
+        [
+          "t1-spine-low",
+          37
+        ],
+        [
+          "t1-spine-high",
+          23
+        ],
+        [
+          "t2-front",
+          45
+        ],
+        [
+          "t2-spine-low",
+          45
+        ],
+        [
+          "t2-spine-high",
+          30
+        ],
+        [
+          "t3-front",
+          41
+        ],
+        [
+          "t3-spine-low",
+          41
+        ],
+        [
+          "t3-spine-high",
+          26
+        ]
+      ]
+    },
+    {
+      "variant": "stepped-point",
+      "podium_storeys": 5,
+      "shaft_floor": 191748,
+      "drawn_floor": 191806,
+      "difference_percent": 0.03,
+      "top_metres": 294.0,
+      "wings": [
+        [
+          "t0-front",
+          46
+        ],
+        [
+          "t0-spine-low",
+          46
+        ],
+        [
+          "t0-spine-high",
+          32
+        ],
+        [
+          "t1-front",
+          35
+        ],
+        [
+          "t1-spine-low",
+          35
+        ],
+        [
+          "t1-spine-high",
+          22
+        ],
+        [
+          "t2-front",
+          43
+        ],
+        [
+          "t2-spine-low",
+          43
+        ],
+        [
+          "t2-spine-high",
+          28
+        ],
+        [
+          "t3-front",
+          39
+        ],
+        [
+          "t3-spine-low",
+          39
+        ],
+        [
+          "t3-spine-high",
+          25
+        ]
+      ]
+    },
+    {
+      "variant": "stepped-point",
+      "podium_storeys": 8,
+      "shaft_floor": 181656,
+      "drawn_floor": 181772,
+      "difference_percent": 0.06,
+      "top_metres": 290.5,
+      "wings": [
+        [
+          "t0-front",
+          44
+        ],
+        [
+          "t0-spine-low",
+          44
+        ],
+        [
+          "t0-spine-high",
+          30
+        ],
+        [
+          "t1-front",
+          33
+        ],
+        [
+          "t1-spine-low",
+          33
+        ],
+        [
+          "t1-spine-high",
+          21
+        ],
+        [
+          "t2-front",
+          41
+        ],
+        [
+          "t2-spine-low",
+          41
+        ],
+        [
+          "t2-spine-high",
+          26
+        ],
+        [
+          "t3-front",
+          36
+        ],
+        [
+          "t3-spine-low",
+          36
+        ],
+        [
+          "t3-spine-high",
+          25
+        ]
+      ]
+    },
+    {
+      "variant": "l",
+      "podium_storeys": 2,
+      "shaft_floor": 201840,
+      "drawn_floor": 201920,
+      "difference_percent": 0.04,
+      "top_metres": 273.0,
+      "wings": [
+        [
+          "street-arm",
+          45
+        ],
+        [
+          "back-arm",
+          76
+        ]
+      ]
+    },
+    {
+      "variant": "l",
+      "podium_storeys": 5,
+      "shaft_floor": 191748,
+      "drawn_floor": 192000,
+      "difference_percent": 0.13,
+      "top_metres": 269.5,
+      "wings": [
+        [
+          "street-arm",
+          43
+        ],
+        [
+          "back-arm",
+          72
+        ]
+      ]
+    },
+    {
+      "variant": "l",
+      "podium_storeys": 8,
+      "shaft_floor": 181656,
+      "drawn_floor": 181680,
+      "difference_percent": 0.01,
+      "top_metres": 269.5,
+      "wings": [
+        [
+          "street-arm",
+          40
+        ],
+        [
+          "back-arm",
+          69
+        ]
+      ]
+    },
+    {
+      "variant": "h",
+      "podium_storeys": 2,
+      "shaft_floor": 201840,
+      "drawn_floor": 200000,
+      "difference_percent": -0.91,
+      "top_metres": 182.0,
+      "wings": [
+        [
+          "west-bar",
+          50
+        ],
+        [
+          "east-bar",
+          50
+        ],
+        [
+          "link",
+          50
+        ]
+      ]
+    },
+    {
+      "variant": "h",
+      "podium_storeys": 5,
+      "shaft_floor": 191748,
+      "drawn_floor": 192000,
+      "difference_percent": 0.13,
+      "top_metres": 185.5,
+      "wings": [
+        [
+          "west-bar",
+          48
+        ],
+        [
+          "east-bar",
+          48
+        ],
+        [
+          "link",
+          48
+        ]
+      ]
+    },
+    {
+      "variant": "h",
+      "podium_storeys": 8,
+      "shaft_floor": 181656,
+      "drawn_floor": 180000,
+      "difference_percent": -0.91,
+      "top_metres": 185.5,
+      "wings": [
+        [
+          "west-bar",
+          45
+        ],
+        [
+          "east-bar",
+          45
+        ],
+        [
+          "link",
+          45
+        ]
+      ]
+    }
+  ]
+}

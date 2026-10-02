@@ -972,6 +972,15 @@ public static class RulesetKeyNotes
         ["[lots] storeys_per_rung"] =
             "Step between density rungs. Block-based forms use it in their plot-ratio target; explicit Perimeter parcels add it per rung to house_storeys. Detached houses keep house_storeys.",
 
+        ["[lots] min_tower_podium_storeys"] =
+            "Fewest storeys a Tower's podium stands. Each Tower Lot draws its podium from this range on its "
+            + "parcel corner, and its storeys are solved against it, so a taller podium buys a shorter "
+            + "shaft at the same plot ratio. Absent means 2. At most 12.",
+
+        ["[lots] max_tower_podium_storeys"] =
+            "Most storeys a Tower's podium stands. Absent means min_tower_podium_storeys, which takes no "
+            + "draw. At most 12.",
+
         ["[lots] pattern_spread"] =
             "How many rungs either side of its band's own rung a block's pattern may be drawn, so a "
             + "density is a mix of forms rather than one form. The band's rung stays the centre of "
