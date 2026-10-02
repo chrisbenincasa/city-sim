@@ -14,7 +14,7 @@ public sealed class LabourTests
 {
     private const long LabourPerDay = 3000;
 
-    private const string Labour = """
+    internal const string Labour = """
         [[resource]]
         name = "labour"
         family = "labour"
@@ -23,7 +23,7 @@ public sealed class LabourTests
 
         """;
 
-    private const string LabourBin = """
+    internal const string LabourBin = """
             { resource = "labour",   owner = "business" },
         """;
 
@@ -104,6 +104,7 @@ public sealed class LabourTests
     [InlineData("inputs  = []\noutputs = [ { scope = \"local\", resource = \"sundries\", amount = 8 } ]", "inputs  = [ { scope = \"pool\", resource = \"labour\", amount = 1 } ]\noutputs = [ { scope = \"local\", resource = \"sundries\", amount = 8 } ]", "local")]
     [InlineData("inputs  = []\noutputs = [ { scope = \"local\", resource = \"sundries\", amount = 8 } ]", "inputs  = []\noutputs = [ { scope = \"local\", resource = \"labour\", amount = 8 } ]", "output")]
     [InlineData("labour_per_day = 3000\n", "", "labour_per_day")]
+    [InlineData("shelf_life_cycle_minutes = 15", "shelf_life_cycle_minutes = 120", "shift_hours_min")]
     [InlineData("labour_tier_percent = [100, 125, 150]", "labour_tier_percent = [90, 125, 150]", "labour_tier_percent")]
     [InlineData("labour_experience_premium_percent = 10", "labour_experience_premium_percent = -1", "labour_experience_premium_percent")]
     public void A_labour_declaration_that_cannot_work_is_refused(string from, string to, string named)

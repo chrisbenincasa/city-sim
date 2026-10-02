@@ -630,6 +630,7 @@ public sealed class RuleEngine
         }
 
         long applications = ceiling;
+        int shortOfLabour = Rows.NoSlot;
 
         for (int i = 0; i < _touchedCount; i++)
         {
@@ -642,6 +643,18 @@ public sealed class RuleEngine
             if (delta < 0)
             {
                 affordable = IntegerMath.FloorDiv(level, -delta);
+
+                // Labour is reported only when nothing else is short, because a labour stop starts
+                // no pressure clock and would otherwise hide a real shortage behind a closed shift.
+                if (affordable < floor && IsLabour(bin))
+                {
+                    if (shortOfLabour == Rows.NoSlot)
+                    {
+                        shortOfLabour = _touchedBlame[i];
+                    }
+
+                    continue;
+                }
 
                 if (affordable < floor)
                 {
@@ -670,6 +683,11 @@ public sealed class RuleEngine
             }
         }
 
+        if (shortOfLabour != Rows.NoSlot)
+        {
+            return RuleVerdict.Stopped(instance, rule, shortOfLabour, Blocking.Supply);
+        }
+
         for (int i = 0; i < _touchedCount; i++)
         {
             _touchedDelta[i] *= applications;
@@ -677,6 +695,9 @@ public sealed class RuleEngine
 
         return RuleVerdict.Fire(instance, rule, applications);
     }
+
+    private bool IsLabour(int bin) =>
+        _world.Rules.Family(_world.Bins.Resource[bin]) == ResourceFamily.Labour;
 
     /// <summary>
     /// Resolves one <c>pool</c> input into a seller, a payment and three Bin deltas, or names the
@@ -1275,7 +1296,9 @@ public sealed class RuleEngine
     {
         _world.RuleInstances.Reported[verdict.Instance] = verdict.Reported;
 
-        if (verdict.Blocking != Blocking.Supply)
+        // Short of labour is a closed shift rather than a shortage: a five-day trade is unstaffed for
+        // about 62 hours every weekend, longer than any decline threshold.
+        if (verdict.Blocking != Blocking.Supply || IsLabour(verdict.Bin))
         {
             _world.RuleInstances.StarvedSince[verdict.Instance] = default;
         }

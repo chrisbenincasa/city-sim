@@ -401,6 +401,8 @@ public static class RulesetLoader
             TripRuleset trips = ReadTrips();
             JobRuleset jobs = ReadJobs(trips);
             RefuseUndepositedLabour();
+            RefuseBankableLabour(jobs);
+            RefuseLabourSpentTooSlowly(rules, inputs);
             HouseholdRuleset households = ReadHouseholds();
             TreasuryRuleset treasury = ReadTreasury();
             TrafficRuleset traffic = ReadTraffic();
@@ -10990,6 +10992,80 @@ public static class RulesetLoader
             }
 
             return (int)percent;
+        }
+
+        /// <summary>
+        /// Refuses labour whose shelf life outlives the shortest shift the file permits.
+        /// </summary>
+        /// <remarks>
+        /// Labour that survives a shift change can be banked, so a Business closed for a weekend
+        /// would spend the whole of it in one Monday firing. The bound is loose by design: what
+        /// matters is that labour does not cross a shift boundary, not a particular duration.
+        /// </remarks>
+        private void RefuseBankableLabour(JobRuleset jobs)
+        {
+            if (_labourLine == 0 || jobs.ShiftHoursMin <= 0)
+            {
+                return;
+            }
+
+            long shiftTicks = IntegerMath.FloorDiv((long)jobs.ShiftHoursMin * Ticks.PerDay, 24);
+
+            for (int i = 0; i < _families.Count; i++)
+            {
+                ShelfLife life = _shelfLives[i];
+
+                if (_families[i] != ResourceFamily.Labour || !life.Expires
+                    || (long)life.CycleTicks * life.Cycles <= shiftTicks)
+                {
+                    continue;
+                }
+
+                Refuse(_labourLine, NameOfResource(new ResourceId((ushort)(i + 1))),
+                    $"this labour Resource keeps for {(long)life.CycleTicks * life.Cycles} Ticks and "
+                    + $"[jobs] shift_hours_min allows a {jobs.ShiftHoursMin}-hour shift of "
+                    + $"{shiftTicks} Ticks. Labour that outlives a shift can be banked across the "
+                    + "change and spent all at once, so its shelf life must fit inside the shortest "
+                    + "shift.");
+            }
+        }
+
+        /// <summary>
+        /// Refuses a Rule that fires less often than the labour it spends keeps.
+        /// </summary>
+        /// <remarks>
+        /// Each firing sees only the labour deposited within one shelf life, so a slow Rule wastes
+        /// the rest and starves itself. The engine is right and the content is wrong.
+        /// </remarks>
+        private void RefuseLabourSpentTooSlowly(RuleDefinition[] rules, Term[] inputs)
+        {
+            for (int r = 0; r < rules.Length; r++)
+            {
+                RuleDefinition rule = rules[r];
+
+                for (int t = 0; t < rule.InputCount; t++)
+                {
+                    ResourceId resource = inputs[rule.InputFirst + t].Bin.Resource;
+                    ShelfLife life = _shelfLives[resource.Raw - 1];
+
+                    if (_families[resource.Raw - 1] != ResourceFamily.Labour || !life.Expires
+                        || rule.Rate <= (long)life.CycleTicks * life.Cycles)
+                    {
+                        continue;
+                    }
+
+                    string? name = TryString(_ruleTables[r], "name", out string? found, required: false)
+                        ? found
+                        : null;
+
+                    Refuse(LineOf(_ruleTables[r]), name,
+                        $"this Rule fires every {rule.Rate} Ticks and the labour it spends keeps for "
+                        + $"{(long)life.CycleTicks * life.Cycles}. Each firing sees only the last shelf "
+                        + "life's work, so the rest spoils unspent. Fire at least as often as labour "
+                        + "keeps.");
+                    break;
+                }
+            }
         }
 
         private void RefuseUndepositedLabour()
