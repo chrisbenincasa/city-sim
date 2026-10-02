@@ -14,8 +14,8 @@ namespace Borough.Shell;
 /// </summary>
 /// <remarks>
 /// Bodies sharing a mesh share an <see cref="InstanceLayer"/>, batched by chunk. A chunk within the
-/// near band draws bodies; beyond it, the same Buildings draw as massing boxes in their family's
-/// colours and roof. Body and box layers decide by the same chunk key, so a Building is drawn once.
+/// near band draws near bodies. Mid-rise and tower families draw simplified bodies beyond it, with
+/// a per-Building cross-fade at the edge; low-rise families retain their chunk-switched massing boxes.
 /// A Tower's podium and shaft are one body over the whole site; any other Building that draws as
 /// several massing wings keeps its massing.
 /// </remarks>
@@ -130,6 +130,8 @@ public partial class Main
 
         foreach (InstanceLayer layer in _bodyLayers.Values) layer.Multimesh.Repartition();
 
+        // The fade's ring ends at the band's reach, so a new NEAR moves it.
+        ApplyFarFade();
         _world.Changes!.Invalidate();
     }
 
@@ -382,7 +384,7 @@ public partial class Main
         var layer = new InstanceLayer();
         layer.Multimesh.Mesh = mesh;
         layer.Multimesh.UseCustomData = true;
-        layer.Multimesh.Near = NearChunk;
+        layer.Multimesh.Near = far && _farFade ? NoChunkNear : NearChunk;
         layer.Multimesh.NearOnly = !far;
         layer.InstanceParameters["body_ink"] = Colors.White;
         layer.MaterialOverride = _washing == Wash.None ? null : BuildingWash ? _categorical : _muted;
@@ -621,7 +623,7 @@ public partial class Main
         {
             if (part == "far-facade" && farInput is not null)
             {
-                Material farMaterial = FarWindowMaterial(farInput);
+                Material farMaterial = FadingFacade(FarWindowMaterial(farInput));
                 Vector2[] cellIds = arrays[(int)Mesh.ArrayType.TexUV2].AsVector2Array();
                 Dictionary<int, FamilyBodyFarCell> cells = farInput.CellTable.ToDictionary(cell => cell.Id);
                 var colors = new Color[vertexCount];
@@ -661,6 +663,14 @@ public partial class Main
             }
 
             if (tint is { } t) arrays[(int)Mesh.ArrayType.Color] = Enumerable.Repeat(t, vertexCount).ToArray();
+
+            // Each side of the fade takes a copy of its material, because a far-window option and a
+            // low-rise near body, which has no far form to cross-fade with, dress themselves from
+            // the same library.
+            bool bodied = body.Midrise is not null || body.Tower is not null;
+            material = detail == FamilyBodyDetail.Far ? FadeMaterial(material)
+                : bodied ? FadingNear(material)
+                : material;
             mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
             mesh.SurfaceSetMaterial(mesh.GetSurfaceCount() - 1, material);
         }

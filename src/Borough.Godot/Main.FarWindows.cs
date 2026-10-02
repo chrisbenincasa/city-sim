@@ -20,9 +20,10 @@ public partial class Main
     private static readonly (string Name, FarWindowFactory Factory)[] FarWindowRegistry =
     [
         ("grid", FarWindowsGrid),
+        ("shader", FarWindowsShader),
     ];
 
-    private string _farWindowName = "grid";
+    private string _farWindowName = "shader";
 
     private Material FarWindowMaterial(FarWindowFactoryInput input) =>
         FarWindowRegistry.Single(entry => entry.Name == _farWindowName).Factory(input);
@@ -48,6 +49,7 @@ public partial class Main
         foreach (InstanceLayer layer in _bodyLayers.Values) layer.QueueFree();
         _bodyLayers.Clear();
         _familyBodyMeshes.Clear();
+        _fadeFacades.Clear();
         _world.Changes!.Invalidate();
     }
 }

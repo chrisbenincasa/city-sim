@@ -14,6 +14,8 @@ uniform sampler2D roughness_map : hint_default_white, filter_linear_mipmap_aniso
 uniform float mean_luminance = 0.7;
 uniform float macro_strength = 0.25;
 
+#include "body-fade.gdshaderinc"
+
 varying vec3 world;
 varying vec2 offset;
 
@@ -48,9 +50,15 @@ float macro(vec3 p) {
 void vertex() {
 	world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	offset = hash22(floor(MODEL_MATRIX[3].xz * 10.0 + 0.5));
+	fade_in = body_fade_weight(MODEL_MATRIX[3].xyz, MAIN_CAM_INV_VIEW_MATRIX[3].xyz);
+	POSITION = body_fade_position(VERTEX, MODELVIEW_MATRIX, PROJECTION_MATRIX);
 }
 
 void fragment() {
+	if (body_fade_discards(fade_in, FRAGCOORD.xy)) {
+		discard;
+	}
+
 	vec2 uv = UV + offset;
 	vec3 photo = texture(albedo_map, uv).rgb;
 	vec3 srgb = COLOR.rgb;

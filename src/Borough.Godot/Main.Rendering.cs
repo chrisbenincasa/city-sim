@@ -17,6 +17,7 @@ public partial class Main
 
     private void UpdateBuildings()
     {
+        CheckBodyKitAtStartup();
         WorldChanges changes = _world.Changes!;
         if (changes.Full || _visualWash != _washing || _washing == Wash.Age
             || _troubleRepaint && _washing == Wash.Trouble)
