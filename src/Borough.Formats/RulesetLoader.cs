@@ -7598,10 +7598,26 @@ public static class RulesetLoader
                     + "lattice would fold rather than vary. Keep it under half the block.");
             }
 
+            int upkeep = OptionalRoadNumber(
+                "upkeep_per_segment_per_day", minimum: 0, maximum: int.MaxValue,
+                "It is what the treasury pays each Day for every Road Segment, so it is at least 0. "
+                + "Absent or zero means roads cost nothing to keep.");
+
+            if (upkeep > 0 && !_families.Contains(ResourceFamily.Money))
+            {
+                Refuse(LineOfRoad("upkeep_per_segment_per_day"), null,
+                    "upkeep_per_segment_per_day is stated and the file names no money, so the treasury "
+                    + "has no Bin to pay it from. Add a [[resource]] block with family = \"money\", "
+                    + "or drop the key.");
+            }
+
             return new RoadRuleset(
                 block, spread, arterials, junctions, crossings, paths,
                 street, arterial, walk,
-                streetCapacity, arterialCapacity, pathCapacity);
+                streetCapacity, arterialCapacity, pathCapacity)
+            {
+                UpkeepPerSegmentPerDay = new Money(upkeep),
+            };
         }
 
         // ---- lots -----------------------------------------------------------------------------

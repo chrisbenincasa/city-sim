@@ -797,6 +797,13 @@ public enum MoneyFlowCounter : byte
     /// </para>
     /// </remarks>
     Placement,
+
+    /// <summary>
+    /// Money the treasury paid for road Upkeep over the interval — <c>[roads]
+    /// upkeep_per_segment_per_day</c> times the live Road Segments, or what the treasury held if
+    /// less. It leaves the money supply on <see cref="Placement"/>'s terms.
+    /// </summary>
+    Upkeep,
 }
 
 /// <summary>Which family of thing a <see cref="Metric"/> names.</summary>

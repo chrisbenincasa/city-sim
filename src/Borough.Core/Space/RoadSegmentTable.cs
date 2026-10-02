@@ -171,9 +171,8 @@ public sealed class RoadSegmentTable
     /// outlived its premise.
     /// </para>
     /// <para>
-    /// <b><c>adr/0035</c>'s Upkeep pricing is still Phase 3 and still unbuilt</b>, so under
-    /// <c>adr/0070</c> it may not dictate a representation — but it no longer arrives to a free
-    /// choice. It inherits this denominator or it argues for a migration.
+    /// Upkeep charges a flat <c>[roads] upkeep_per_segment_per_day</c> and does not read this yet.
+    /// <c>adr/0035</c>'s wear term will, so it inherits this denominator or argues for a migration.
     /// </para>
     /// <para>
     /// ⚠ <b>What the expired licence nearly bought.</b> <c>adr/0088</c> makes an Outside Connection's

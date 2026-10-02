@@ -847,6 +847,12 @@ public static class RulesetKeyNotes
             "The same for an Arterial.",
         ["[roads] foot_path_capacity_per_hour"] =
             "The same for a foot path.",
+        ["[roads] upkeep_per_segment_per_day"] =
+            "What the treasury pays each Day for every Road Segment, foot paths and Arterials "
+            + "included. Absent or zero means roads cost nothing to keep. A treasury that cannot "
+            + "pay the whole bill pays what it holds, and the rest is not owed later. The money "
+            + "leaves the money supply, because Upkeep buys imported Materials. Refused in a file "
+            + "that names no money.",
 
         // ---- [capacity] -----------------------------------------------------------------------
         ["[housing_construction] preference_persistence_ticks"] =

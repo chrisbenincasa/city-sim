@@ -269,12 +269,25 @@ public sealed class Simulation
     /// <summary>What this Tick's placements have cost so far, before the fold.</summary>
     private long _placementThisTick;
 
+    /// <summary>What road Upkeep has cost the treasury since the last drain.</summary>
+    private MoneyFlow _upkeepFlow;
+
     /// <inheritdoc cref="Subsidies"/>
     internal MoneyFlow DrainPlacementSpend()
     {
         MoneyFlow flow = _placementFlow;
 
         _placementFlow = default;
+
+        return flow;
+    }
+
+    /// <inheritdoc cref="_upkeepFlow"/>
+    internal MoneyFlow DrainUpkeepSpend()
+    {
+        MoneyFlow flow = _upkeepFlow;
+
+        _upkeepFlow = default;
 
         return flow;
     }
@@ -312,7 +325,8 @@ public sealed class Simulation
             policies.FromTreasury.Sum,
             rules.FromTreasury.Sum,
             _subsidies.DrainPaid().Sum,
-            DrainPlacementSpend().Sum);
+            DrainPlacementSpend().Sum,
+            DrainUpkeepSpend().Sum);
     }
 
     /// <summary>What the most recent payday moved, or zeroes on a Tick that was not one.</summary>
@@ -2258,6 +2272,17 @@ public sealed class Simulation
         // than reserved in advance -- and reading it BEFORE the Day's charges arrive would ration
         // against a balance the city no longer has.
         _lastSubsidies = _subsidies.Sweep(tick);
+
+        // Behind the subsidies, so a treasury short of both pays its people before its roads.
+        if (tick.Raw % (ulong)Ticks.PerDay == 0)
+        {
+            long upkeep = _world.SpendOnUpkeep().Raw;
+
+            if (upkeep > 0)
+            {
+                _upkeepFlow = _upkeepFlow.Fold(upkeep);
+            }
+        }
 
         _rules.SweepNeeds(tick);
 
