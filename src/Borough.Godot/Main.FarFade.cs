@@ -134,9 +134,43 @@ public partial class Main
         foreach (InstanceLayer layer in _bodyLayers.Values)
         {
             if (layer.Multimesh.NearOnly) continue;
-            layer.Multimesh.Near = _farFade ? NoChunkNear : NearChunk;
+            FarSideResidency(layer);
             layer.Multimesh.Repartition();
         }
+    }
+
+    /// <summary>
+    /// What decides whether a far body layer's batch draws. The fade asks each batch; the chunk
+    /// switch hides the far entries of a near chunk, which is what the study option restores.
+    /// </summary>
+    private void FarSideResidency(InstanceLayer layer)
+    {
+        layer.Multimesh.Near = _farFade ? null : NearChunk;
+        layer.Multimesh.Needed = _farFade ? FarBatchNeeded : null;
+    }
+
+    /// <summary>
+    /// Whether a far batch still has a Building the fade asks it to draw: <c>false</c> where every
+    /// one of them stands nearer than the ring's inner edge and the dither discards it in full.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>The farthest corner of the bounds, because the shader measures each instance's own
+    /// origin.</b> Distance over a box is greatest at a vertex and every origin lies inside the
+    /// box, so a batch is dropped only once no Building in it carries any weight. One mesh is one
+    /// layer, so a rare body is a batch of one and goes as soon as the camera reaches it.
+    /// </remarks>
+    private bool FarBatchNeeded(Aabb bounds)
+    {
+        Vector3 eye = _camera.GlobalPosition;
+        Vector3 farthest = new(
+            Corner(eye.X, bounds.Position.X, bounds.End.X),
+            Corner(eye.Y, bounds.Position.Y, bounds.End.Y),
+            Corner(eye.Z, bounds.Position.Z, bounds.End.Z));
+        float inner = Mathf.Max(0f, _bodyNearMetres - FarFadeRingMetres);
+        return eye.DistanceSquaredTo(farthest) > inner * inner;
+
+        static float Corner(float eye, float low, float high) =>
+            Mathf.Abs(eye - low) >= Mathf.Abs(eye - high) ? low : high;
     }
 
     private void FadePart(Material material, bool nearSide)
