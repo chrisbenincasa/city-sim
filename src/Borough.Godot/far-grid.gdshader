@@ -3,7 +3,9 @@ render_mode cull_back, depth_draw_opaque;
 
 #include "body-fade.gdshaderinc"
 
-uniform vec4 grid_color : source_color = vec4(0.2, 0.2, 0.2, 1.0);
+// Linear RGB, converted by the factory. Deliberately not `source_color`, which would convert a
+// second time — as far-shader.gdshader's glass and frame colours are.
+uniform vec4 grid_color = vec4(0.2, 0.2, 0.2, 1.0);
 uniform float grid_width = 0.035;
 
 void vertex() {
