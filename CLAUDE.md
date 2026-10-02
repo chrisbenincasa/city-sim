@@ -72,16 +72,22 @@ need a test that demonstrates the violation. `DerivedRebuildAuditTests` checks r
 
 ```sh
 dotnet build
-scripts/test.sh                 # working lane and pre-commit gate
+scripts/test.sh                 # simulation lane and pre-commit gate for non-Markdown changes
+scripts/test.sh Corpus          # Markdown-only documentation gate
 scripts/test.sh Policy          # focused iteration
 scripts/test.sh --filter 'EXPR' # explicit filter
 scripts/test.sh --all           # milestone/full suite, including instruments
 dotnet run --project src/Borough.Headless -- --help
 ```
 
+For Markdown-only documentation changes, run `scripts/test.sh Corpus` and `git diff --check`;
+do not run the simulation test lane. Changes to code, Rulesets, generated schemas, Input Logs or
+golden fixtures still need the relevant checks and `scripts/test.sh` before a commit.
+
 Read the log printed by `scripts/test.sh`; do not repeat a run just to recover its results.
-The default lane is `tier!=instrument`: an unannotated test is an assertion. Instruments opt out
-with `[Trait(Tier.Key, Tier.Instrument)]`. Keep the assertion budget enforced by `TierBudgetTests`.
+The default simulation lane is `tier!=instrument`. An unannotated test is an assertion.
+Instruments opt out with `[Trait(Tier.Key, Tier.Instrument)]`. Keep the assertion budget enforced
+by `TierBudgetTests`.
 `Simulation.VerifyDecideWritesNothing` is opt-in for tests; headless runs default it on.
 
 At a milestone run the full suite, invariants and relevant long-run checks. A visible capability

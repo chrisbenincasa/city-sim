@@ -65,10 +65,12 @@ consider, not a permanent constraint.
 
 ## Finish and validate
 
-Run focused checks while iterating and `scripts/test.sh` before a commit. The full unfiltered suite
+Run focused checks while iterating. Before committing Markdown-only documentation changes, run
+`scripts/test.sh Corpus` and `git diff --check`; do not run the simulation test lane. For changes
+beyond Markdown documentation, run `scripts/test.sh` before a commit. The full unfiltered suite
 and long-run checks remain milestone validation; post-submit CI runs them separately. Preserve
 determinism, save/reload equivalence, bounded state and the simulation/render boundary. Re-record
-golden fixtures when behaviour deliberately changes. A visible capability needs a driven
+golden fixtures when behavior deliberately changes. A visible capability needs a driven
 demonstration and an account of what observation exposed, in its plan or PR.
 
 Finish by updating the affected design if necessary and removing the completed backlog entry,
