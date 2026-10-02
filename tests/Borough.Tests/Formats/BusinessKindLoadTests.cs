@@ -636,4 +636,54 @@ public sealed class BusinessKindLoadTests
         Assert.Throws<ArgumentOutOfRangeException>(() => rules.BusinessKind(0));
         Assert.Throws<ArgumentOutOfRangeException>(() => rules.BusinessKind(2));
     }
+
+    private static string Waged(string extra) => Nothing + "\n" + Employing + $"""
+
+        [[business]]
+        name = "shop"
+        shift_start_earliest_hour = 6
+        shift_start_latest_hour   = 10
+        wage_per_day = 10
+        pay_period_days = 7
+        {extra}
+        """;
+
+    [Fact]
+    public void A_waged_trade_must_state_how_long_it_survives_in_arrears()
+    {
+        RulesetRefusal refusal = Refused(Waged(""));
+
+        Assert.Contains("goes_bankrupt_after_days_in_arrears", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_waged_trade_reads_its_days_in_arrears()
+    {
+        Ruleset rules = Accepted(Waged("goes_bankrupt_after_days_in_arrears = 9"));
+
+        Assert.Equal(9, rules.BusinessKind(1).GoesBankruptAfterDaysInArrears);
+    }
+
+    [Fact]
+    public void Zero_days_in_arrears_is_refused()
+    {
+        RulesetRefusal refusal = Refused(Waged("goes_bankrupt_after_days_in_arrears = 0"));
+
+        Assert.Contains("at least 1", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Days_in_arrears_on_a_trade_with_no_wage_is_refused()
+    {
+        RulesetRefusal refusal = Refused(Nothing + "\n" + Employing + """
+
+            [[business]]
+            name = "shop"
+            shift_start_earliest_hour = 6
+            shift_start_latest_hour   = 10
+            goes_bankrupt_after_days_in_arrears = 9
+            """);
+
+        Assert.Contains("pays no wage", refusal.Reason, StringComparison.Ordinal);
+    }
 }

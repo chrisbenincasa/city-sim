@@ -296,10 +296,11 @@ public static class RulesetKeyNotes
             "How many Days pass between paydays at this trade. One is daily; zero would be a payday "
             + "that never comes round.",
 
-        ["[[business]] goes_bankrupt_after_short_paydays"] =
-            "How many paydays running this trade may fail to pay its workers in full before it is "
-            + "wound up: the staff are dismissed and the premises are left standing and empty. A "
-            + "payroll met in full resets the count. Absent means it never goes bankrupt.",
+        ["[[business]] goes_bankrupt_after_days_in_arrears"] =
+            "How many Days this trade may stay in arrears before it is wound up: the staff are "
+            + "dismissed and the premises are left standing and empty. A trade falls into arrears "
+            + "on a payday it cannot meet in full and leaves them on a payday it pays wages in full. "
+            + "Required on a trade that pays a wage, and refused on one that does not.",
         ["[[business]] requires_tier"] =
             "The lowest Skill Tier this trade will hire, a minimum rather than a band — a Citizen "
             + "above it may still take the post. Absent means it hires anybody.",

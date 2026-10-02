@@ -23,6 +23,7 @@ name = "shop"
 work_days = 31
 wage_per_day = 4096
 pay_period_days = 7
+goes_bankrupt_after_days_in_arrears = 28
 shift_start_earliest_hour = 6
 shift_start_latest_hour   = 10
 
@@ -34,6 +35,7 @@ opens_hour = 7
 closes_hour = 21
 wage_per_day    = 4096
 pay_period_days = 7
+goes_bankrupt_after_days_in_arrears = 28
 shift_start_earliest_hour = 6
 shift_start_latest_hour   = 10
 
