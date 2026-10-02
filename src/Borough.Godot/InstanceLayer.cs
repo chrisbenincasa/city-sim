@@ -90,9 +90,6 @@ public sealed class InstanceBuffer
         /// <summary>The index into <see cref="InstanceLayer.Details"/> drawn, or -1 for the buffer's mesh.</summary>
         public int Detail { get; internal set; } = -1;
         public Aabb Bounds { get; internal set; }
-
-        /// <summary>The instance origins alone, without the mesh around them.</summary>
-        public Aabb Origins { get; internal set; }
         public IReadOnlyList<Entry> Instances => Entries;
     }
     private readonly InstanceLayer _owner;
@@ -117,11 +114,12 @@ public sealed class InstanceBuffer
     public bool NearOnly { get; set; }
 
     /// <summary>
-    /// Whether a batch is still wanted, asked of <see cref="Batch.Origins"/> rather than of its
-    /// chunk. A layer whose instances fade out one at a time uses it to drop a batch none of them
-    /// is left in, and the fade measures an instance's origin, not the mesh around it.
+    /// Whether a batch is still wanted, asked of the batch rather than of its chunk. A layer whose
+    /// instances fade out one at a time uses it to drop a batch none of them is left in, and such a
+    /// predicate reads <see cref="Batch.Instances"/> because the fade measures an instance's own
+    /// origin. It runs once per batch per residency pass, so it costs one pass over the layer.
     /// </summary>
-    public Func<Aabb, bool>? Needed { get; set; }
+    public Func<Batch, bool>? Needed { get; set; }
 
     /// <summary>Re-evaluates every chunk's residency at the next flush, as a camera move does.</summary>
     public void Repartition() => _eye = null;
@@ -339,14 +337,8 @@ public sealed class InstanceBuffer
             if (batch.BoundsDirty)
             {
                 Aabb changed = batch.Entries[0].Transform * meshBounds;
-                var origins = new Aabb(batch.Entries[0].Transform.Origin, Vector3.Zero);
-                foreach (Entry entry in batch.Entries)
-                {
-                    changed = changed.Merge(entry.Transform * meshBounds);
-                    origins = origins.Expand(entry.Transform.Origin);
-                }
+                foreach (Entry entry in batch.Entries) changed = changed.Merge(entry.Transform * meshBounds);
                 batch.Bounds = changed;
-                batch.Origins = origins;
                 batch.BoundsDirty = false;
             }
             Aabb bounds = batch.Bounds;
@@ -419,7 +411,7 @@ public sealed class InstanceBuffer
     private bool Wants(Batch batch)
     {
         if (NearOnly && Near is not null) return Near(batch.Key);
-        if (Needed is not null && !Needed(batch.Origins)) return false;
+        if (Needed is not null && !Needed(batch)) return false;
         if (_eye is not { } eye || _detailDistance <= 0) return true;
         Vector3 nearest = eye.Clamp(batch.Bounds.Position, batch.Bounds.End);
         // Hysteresis prevents reallocating buffers while the camera hovers at a detail boundary.

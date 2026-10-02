@@ -69,18 +69,20 @@ public sealed class FarBodyShellTests
             "instances.Needed = !fades ? null : instances.NearOnly ? NearBatchNeeded : FarBatchNeeded;",
             fade);
 
-        // The farthest corner far out and the nearest corner near in, so neither side drops a
-        // batch the dither still draws something of.
-        Assert.Contains("private bool FarBatchNeeded(Aabb origins)", fade);
-        Assert.Contains("return eye.DistanceSquaredTo(farthest) > inner * inner;", fade);
-        Assert.Contains("private bool NearBatchNeeded(Aabb origins)", fade);
-        Assert.Contains("return eye.DistanceSquaredTo(nearest) <= _bodyNearMetres * _bodyNearMetres;", fade);
+        // Each Building's own origin, which is what the shader measures. No box will do: one
+        // around the meshes carries a tower's height and one around the origins invents corners no
+        // Building stands on, and either keeps a batch every Building of which has faded.
+        Assert.Contains("private bool FarBatchNeeded(InstanceBuffer.Batch batch)", fade);
+        Assert.Contains("if (eye.DistanceSquaredTo(instance.Transform.Origin) > inner * inner) return true;",
+            fade);
+        Assert.Contains("private bool NearBatchNeeded(InstanceBuffer.Batch batch)", fade);
+        Assert.Contains(
+            "if (eye.DistanceSquaredTo(instance.Transform.Origin) <= _bodyNearMetres * _bodyNearMetres) return true;",
+            fade);
 
-        // Of the origins and not of the meshes around them, which is what the shader measures: a
-        // tower's 60 m of geometry would otherwise keep a batch every Building of which has faded.
         string layers = Shell("InstanceLayer.cs");
-        Assert.Contains("if (Needed is not null && !Needed(batch.Origins)) return false;", layers);
-        Assert.Contains("origins = origins.Expand(entry.Transform.Origin);", layers);
+        Assert.Contains("public Func<Batch, bool>? Needed { get; set; }", layers);
+        Assert.Contains("if (Needed is not null && !Needed(batch)) return false;", layers);
         Assert.Contains("|| Near is not null || Needed is not null;", layers);
     }
 
