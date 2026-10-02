@@ -2172,6 +2172,39 @@ public sealed partial class World
     }
 
     /// <summary>
+    /// Charges the treasury one Day of road Upkeep, paying as much of it as the treasury holds.
+    /// </summary>
+    /// <remarks>
+    /// The money leaves the supply on <see cref="SpendOnPlacement"/>'s terms, because Upkeep also buys
+    /// imported Materials (<c>adr/0035</c> §2). What the treasury cannot pay is not owed later: there
+    /// is no debt until the borrowing row designs one.
+    /// </remarks>
+    /// <returns>What was paid.</returns>
+    public Money SpendOnUpkeep()
+    {
+        long owed = (long)Roads.Segments.Rows.LiveCount * Rules.Roads.UpkeepPerSegmentPerDay.Raw;
+        int bin = owed > 0 && TryMoneyResource(out ResourceId money) ? FindTreasuryBin(money) : Rows.NoSlot;
+
+        if (bin == Rows.NoSlot)
+        {
+            return Money.Zero;
+        }
+
+        long held = Bins.LevelAt(bin);
+        long paid = owed < held ? owed : held;
+
+        if (paid <= 0)
+        {
+            return Money.Zero;
+        }
+
+        Withdraw(Bins.Rows.At(bin), paid, Tick);
+        MoneySupply.Issued[MoneySupplyTable.Slot] -= new Money(paid);
+
+        return new Money(paid);
+    }
+
+    /// <summary>
     /// What the Outside charges for one unit of <paramref name="resource"/> at the cheapest edge
     /// that has a gate standing on it.
     /// </summary>

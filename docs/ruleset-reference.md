@@ -27,7 +27,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-53 sections, 369 keys.
+53 sections, 370 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
@@ -74,7 +74,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[needs]`](#needs) — 9 keys
 - [`[parking]`](#parking) — 5 keys
 - [`[placement]`](#placement) — 10 keys
-- [`[roads]`](#roads) — 12 keys
+- [`[roads]`](#roads) — 13 keys
 - [`[school]`](#school) — 7 keys
 - [`[schooling]`](#schooling) — 5 keys
 - [`[shopping]`](#shopping) — 7 keys
@@ -1658,6 +1658,10 @@ How many Vehicles an hour a Street carries before the volume-delay function star
 **`street_speed_kph`** · *whole number*
 
 Free-flow speed on a Street, in km/h, converted exactly at load because the library holds no metres and no seconds.
+
+**`upkeep_per_segment_per_day`** · *whole number*
+
+What the treasury pays each Day for every Road Segment, foot paths and Arterials included. Absent or zero means roads cost nothing to keep. A treasury that cannot pay the whole bill pays what it holds, and the rest is not owed later. The money leaves the money supply, because Upkeep buys imported Materials. Refused in a file that names no money.
 
 **`walk_speed_kph`** · *whole number*
 

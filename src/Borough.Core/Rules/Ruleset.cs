@@ -2271,6 +2271,12 @@ public readonly record struct RoadRuleset(
     /// <summary>A Ruleset whose world has no roads.</summary>
     public static RoadRuleset None => default;
 
+    /// <summary>
+    /// What the treasury pays each Day for every live Road Segment — <c>upkeep_per_segment_per_day</c>.
+    /// Zero means roads cost nothing to keep.
+    /// </summary>
+    public Money UpkeepPerSegmentPerDay { get; init; }
+
     /// <summary>Whether there are roads at all. <see cref="BlockTiles"/> is what a graph cannot lack.</summary>
     public bool Runs => BlockTiles != 0;
 

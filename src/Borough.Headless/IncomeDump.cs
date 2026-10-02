@@ -332,6 +332,8 @@ internal static class IncomeDump
             census.Series(Metric.Of(MoneyFlowCounter.Subsidy, Aggregate.Sum), window);
         Series placed =
             census.Series(Metric.Of(MoneyFlowCounter.Placement, Aggregate.Sum), window);
+        Series kept =
+            census.Series(Metric.Of(MoneyFlowCounter.Upkeep, Aggregate.Sum), window);
 
         ReadOnlySpan<CensusSample> levels = treasury.Samples.Span;
         var columns = new Columns(
@@ -343,14 +345,15 @@ internal static class IncomeDump
             spent.Samples.Span,
             drawn.Samples.Span,
             granted.Samples.Span,
-            placed.Samples.Span);
+            placed.Samples.Span,
+            kept.Samples.Span);
 
         output.WriteLine(F($"Income and expenditure — one row per {cadence:N0} Ticks, which is a Day"));
         output.WriteLine();
 
         string header = Row(
             "tick", "withheld", "profit tax", "policy in", "rule in", "policy out", "rule out",
-            "subsidy out", "placement out", "treasury", "households");
+            "subsidy out", "placement out", "upkeep out", "treasury", "households");
         output.WriteLine(header);
         output.WriteLine(new string('-', header.Length));
 
@@ -387,15 +390,16 @@ internal static class IncomeDump
         long drawnOut = Total(columns.Drawn);
         long grantedOut = Total(columns.Granted);
         long placedOut = Total(columns.Placed);
+        long keptOut = Total(columns.Kept);
 
         output.WriteLine();
         output.WriteLine(F(
             $"  Into the treasury: {income:N0} withheld from wages, {profit:N0} in profit tax, {moved:N0} by a Policy, {paidIn:N0} by a Bin Rule."));
         output.WriteLine(F(
-            $"  Out of it: {out_:N0} by a Policy, {drawnOut:N0} by a Bin Rule, {grantedOut:N0} in subsidy, {placedOut:N0} on placements."));
+            $"  Out of it: {out_:N0} by a Policy, {drawnOut:N0} by a Bin Rule, {grantedOut:N0} in subsidy, {placedOut:N0} on placements, {keptOut:N0} on road Upkeep."));
         Catalogued(output, catalogue);
         output.WriteLine(
-            "  The eight are printed apart and never netted. A net cannot say whether a city taxed");
+            "  The nine are printed apart and never netted. A net cannot say whether a city taxed");
         output.WriteLine(
             "  nothing and paid nothing or taxed heavily and paid it all back; and within the");
         output.WriteLine(
@@ -425,18 +429,18 @@ internal static class IncomeDump
             "  flow here could name.");
         output.WriteLine();
         output.WriteLine(
-            "  ⚠ `placement out` is the one column that pays NOBODY. A service Building placed by");
+            "  ⚠ `placement out` and `upkeep out` pay NOBODY. A service Building placed by hand");
         output.WriteLine(
-            "  hand costs the treasury its kind's placement_cost, and that money buys imported");
+            "  costs its kind's placement_cost, and each Day every Road Segment costs [roads]");
         output.WriteLine(
-            "  Materials -- so it leaves the money supply rather than arriving in another Bin. It is");
+            "  upkeep_per_segment_per_day. Both buy imported Materials, so the money leaves the");
         output.WriteLine(
-            "  expenditure because the balance fell by it, and a column because nothing else would");
+            "  money supply rather than arriving in another Bin. They are expenditure because the");
         output.WriteLine(
-            "  name it.");
+            "  balance fell by them, and columns because nothing else would name them.");
         output.WriteLine();
         output.WriteLine(
-            "  The treasury column is these eight columns' running total, and nothing else reaches");
+            "  The treasury column is these nine columns' running total, and nothing else reaches");
         output.WriteLine(
             "  it: every unit of the balance is explained by the flows printed beside it.");
     }
@@ -458,7 +462,8 @@ internal static class IncomeDump
         ReadOnlySpan<CensusSample> spent,
         ReadOnlySpan<CensusSample> drawn,
         ReadOnlySpan<CensusSample> granted,
-        ReadOnlySpan<CensusSample> placed)
+        ReadOnlySpan<CensusSample> placed,
+        ReadOnlySpan<CensusSample> kept)
     {
         public ReadOnlySpan<CensusSample> Homes { get; } = homes;
 
@@ -498,6 +503,9 @@ internal static class IncomeDump
         /// <c>[[building]]</c> kind's price rather than a <c>[[policy]]</c>'s amount.
         /// </remarks>
         public ReadOnlySpan<CensusSample> Placed { get; } = placed;
+
+        /// <summary>What the city paid to keep its Road Segments. It reaches nobody, like <see cref="Placed"/>.</summary>
+        public ReadOnlySpan<CensusSample> Kept { get; } = kept;
     }
 
     /// <summary>
@@ -540,6 +548,7 @@ internal static class IncomeDump
             Cell(columns.Drawn, i),
             Cell(columns.Granted, i),
             Cell(columns.Placed, i),
+            Cell(columns.Kept, i),
             Count(levels[i].Value),
             Cell(columns.Homes, i)));
     }
@@ -591,8 +600,8 @@ internal static class IncomeDump
 
     private static string Row(
         string label, string a, string b, string c, string d, string e, string f, string g,
-        string h, string i, string j) =>
-        F($"{label,-10}  {a,11}  {b,11}  {c,11}  {d,11}  {e,11}  {f,11}  {g,11}  {h,13}  {i,14}  {j,14}");
+        string h, string i, string j, string k) =>
+        F($"{label,-10}  {a,11}  {b,11}  {c,11}  {d,11}  {e,11}  {f,11}  {g,11}  {h,13}  {i,11}  {j,14}  {k,14}");
 
     private static string Count(long value) => F($"{value:N0}");
 

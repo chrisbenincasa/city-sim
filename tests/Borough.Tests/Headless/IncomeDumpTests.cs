@@ -195,7 +195,7 @@ public sealed class IncomeDumpTests
         Assert.Contains("Revenue forgone is not expenditure.", report, Ordinal);
         Assert.True(gross.Relieved > 0, "nothing was relieved, so the caveat covers nothing.");
 
-        long expenditure = gross.Spent + gross.Drawn + gross.Granted + gross.Placed;
+        long expenditure = gross.Spent + gross.Drawn + gross.Granted + gross.Placed + gross.Kept;
         long income = gross.Withheld + gross.Profit + gross.Policy + gross.Rule;
 
         Assert.Equal(income - expenditure, Rows(report)[^1].Treasury);
@@ -318,9 +318,10 @@ public sealed class IncomeDumpTests
         Assert.Equal(gross.Drawn, Column(report, 6));
         Assert.Equal(gross.Granted, Column(report, 7));
         Assert.Equal(gross.Placed, Column(report, 8));
+        Assert.Equal(gross.Kept, Column(report, 9));
 
         long income = gross.Withheld + gross.Profit + gross.Policy + gross.Rule;
-        long expenditure = gross.Spent + gross.Drawn + gross.Granted + gross.Placed;
+        long expenditure = gross.Spent + gross.Drawn + gross.Granted + gross.Placed + gross.Kept;
 
         Assert.Equal(income - expenditure, Rows(report)[^1].Treasury);
     }
@@ -421,6 +422,7 @@ public sealed class IncomeDumpTests
         long Drawn,
         long Granted,
         long Placed,
+        long Kept,
         long Treasury,
         long Households);
 
@@ -446,7 +448,7 @@ public sealed class IncomeDumpTests
             string[] cells = line.Split(
                 "  ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-            if (cells.Length != 11)
+            if (cells.Length != 12)
             {
                 break;
             }
@@ -454,7 +456,7 @@ public sealed class IncomeDumpTests
             rows.Add(new BudgetRow(
                 Number(cells[0]), Number(cells[1]), Number(cells[2]), Number(cells[3]),
                 Number(cells[4]), Number(cells[5]), Number(cells[6]), Number(cells[7]),
-                Number(cells[8]), Number(cells[9]), Number(cells[10])));
+                Number(cells[8]), Number(cells[9]), Number(cells[10]), Number(cells[11])));
         }
 
         Assert.NotEmpty(rows);
@@ -479,6 +481,7 @@ public sealed class IncomeDumpTests
                 6 => row.Drawn,
                 7 => row.Granted,
                 8 => row.Placed,
+                9 => row.Kept,
                 _ => throw new ArgumentOutOfRangeException(nameof(index), index, "not a flow column."),
             };
         }
@@ -494,7 +497,7 @@ public sealed class IncomeDumpTests
         string[] into = Line(report, "  Into the treasury:")
             .Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
-        // "  Out of it: S by a Policy, D by a Bin Rule, G in subsidy, P on placements."
+        // "  Out of it: S by a Policy, D by a Bin Rule, G in subsidy, P on placements, K on road Upkeep."
         string[] outOf = Line(report, "  Out of it:")
             .Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
@@ -508,7 +511,7 @@ public sealed class IncomeDumpTests
 
         return new Gross(
             Number(into[3]), Number(into[7]), Number(into[11]), Number(into[15]),
-            Number(outOf[3]), Number(outOf[7]), Number(outOf[12]), Number(outOf[15]),
+            Number(outOf[3]), Number(outOf[7]), Number(outOf[12]), Number(outOf[15]), Number(outOf[18]),
             Number(claim[3].TrimEnd(',')), Number(claim[6]), Number(forgone[2]));
     }
 
@@ -530,6 +533,7 @@ public sealed class IncomeDumpTests
         long Drawn,
         long Granted,
         long Placed,
+        long Kept,
         long Claimed,
         long Cut,
         long Relieved);

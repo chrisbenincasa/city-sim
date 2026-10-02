@@ -255,6 +255,35 @@ public sealed class TreasuryFlowsExplainTheBalanceTests
         Assert.Equal(Opening + Sum(Income(census)) - Sum(Expenditure(census)), treasury[^1]);
     }
 
+    /// <summary>
+    /// Road Upkeep leaves the treasury each Day at the authored rate until the treasury runs dry,
+    /// and the identity holds through the Day it can pay only part of the bill.
+    /// </summary>
+    [Fact]
+    public void Road_upkeep_is_charged_daily_until_the_treasury_runs_dry()
+    {
+        Census census = RunKeeping(out long owedPerDay);
+
+        long[] treasury = Read(census, Metric.Of(MoneyCounter.Treasury));
+        long[] upkeep = Read(census, Metric.Of(MoneyFlowCounter.Upkeep, Aggregate.Sum));
+        long[] income = Income(census);
+        long[] expenditure = Expenditure(census);
+
+        Assert.True(owedPerDay > 0 && owedPerDay < Opening, $"a Day's bill of {owedPerDay} must be "
+            + "payable at least once and not forever, or the partial Day is not under test.");
+
+        for (int i = 1; i < treasury.Length; i++)
+        {
+            long held = treasury[i - 1];
+
+            Assert.Equal(held < owedPerDay ? held : owedPerDay, upkeep[i]);
+            Assert.Equal(treasury[i] - treasury[i - 1], income[i] - expenditure[i]);
+        }
+
+        Assert.Equal(0, treasury[^1]);
+        Assert.Equal(Opening, Sum(upkeep));
+    }
+
     // ---- the fixture ---------------------------------------------------------------------------
 
     /// <summary>Income at each reading: the four paths in, summed per reading.</summary>
@@ -293,7 +322,8 @@ public sealed class TreasuryFlowsExplainTheBalanceTests
             Read(census, Metric.Of(MoneyFlowCounter.FromTreasury, Aggregate.Sum)),
             Read(census, Metric.Of(MoneyFlowCounter.RuleFromTreasury, Aggregate.Sum)),
             Read(census, Metric.Of(MoneyFlowCounter.Subsidy, Aggregate.Sum)),
-            Read(census, Metric.Of(MoneyFlowCounter.Placement, Aggregate.Sum)));
+            Read(census, Metric.Of(MoneyFlowCounter.Placement, Aggregate.Sum)),
+            Read(census, Metric.Of(MoneyFlowCounter.Upkeep, Aggregate.Sum)));
 
     private static long[] Add(params long[][] columns)
     {
@@ -439,6 +469,47 @@ public sealed class TreasuryFlowsExplainTheBalanceTests
 
         return census;
     }
+
+    /// <summary>
+    /// <see cref="Priced"/> with road Upkeep at <see cref="UpkeepRate"/>, observed every Day with no
+    /// placements, so Upkeep is the only flow out.
+    /// </summary>
+    private static Census RunKeeping(out long owedPerDay)
+    {
+        string keeping = Priced.Replace(
+            "foot_path_capacity_per_hour = 1000",
+            $"foot_path_capacity_per_hour = 1000\nupkeep_per_segment_per_day = {UpkeepRate}",
+            StringComparison.Ordinal);
+        RulesetLoadResult loaded = RulesetLoader.Parse(keeping, "keeping.toml");
+
+        Assert.True(loaded.Ok, loaded.Describe());
+
+        var key = WorldKey.FromSeed(Seed);
+        var world = new World(200, loaded.Ruleset!, key);
+
+        SyntheticCity.PopulateInto(world, key, Ticks.Zero);
+
+        owedPerDay = (long)world.Roads.Segments.Rows.LiveCount * UpkeepRate;
+
+        var simulation = new Simulation(world, key) { VerifyDecideWritesNothing = false };
+        var census = new Census(world, 16);
+
+        census.Observe(simulation);
+
+        for (int day = 0; day < 8; day++)
+        {
+            for (ulong tick = 0; tick < Cadence; tick++)
+            {
+                simulation.Step(default);
+            }
+
+            census.Observe(simulation);
+        }
+
+        return census;
+    }
+
+    private const int UpkeepRate = 1_024;
 
     /// <summary>A <c>Service</c> command for the first vacant Lot standing.</summary>
     private static Command Buy(World world)

@@ -114,7 +114,7 @@ public sealed class Census
     private const int MoneyCounters = 6;
 
     /// <summary>The members of <see cref="MoneyFlowCounter"/> — one per (mechanism, direction).</summary>
-    private const int MoneyFlowCounters = 8;
+    private const int MoneyFlowCounters = 9;
 
     private const int MoneyFlowMetrics = MoneyFlowCounters * AggregatesPerRuleCounter;
 
@@ -257,7 +257,8 @@ public sealed class Census
             simulation.Wages.DrainWithheld(),
             simulation.ProfitTax.DrainCollected(),
             simulation.Subsidies.DrainPaid(),
-            simulation.DrainPlacementSpend());
+            simulation.DrainPlacementSpend(),
+            simulation.DrainUpkeepSpend());
     }
 
     /// <summary>
@@ -314,6 +315,10 @@ public sealed class Census
     /// path exists (<c>adr/0035</c> §2). It is counted here anyway, because the treasury's balance
     /// fell by it.
     /// </param>
+    /// <param name="upkeepSpend">
+    /// Money the treasury paid for road Upkeep since the previous reading, already drained. It leaves
+    /// the supply on <paramref name="placementSpend"/>'s terms.
+    /// </param>
     public void Observe(
         World world,
         Ticks tick,
@@ -326,7 +331,8 @@ public sealed class Census
         MoneyFlow withheld = default,
         MoneyFlow profitTax = default,
         MoneyFlow subsidy = default,
-        MoneyFlow placementSpend = default)
+        MoneyFlow placementSpend = default,
+        MoneyFlow upkeepSpend = default)
     {
         ArgumentNullException.ThrowIfNull(world);
 
@@ -433,6 +439,7 @@ public sealed class Census
         // treasury and leaves the money supply with it -- see MoneyFlowCounter.Placement. It is
         // counted because the balance fell by it, whoever received it.
         WriteMoney(_values, at + _moneyFlowBase, (int)MoneyFlowCounter.Placement, placementSpend);
+        WriteMoney(_values, at + _moneyFlowBase, (int)MoneyFlowCounter.Upkeep, upkeepSpend);
 
         // The third income path, and the one that reached the treasury in silence until row 33. It
         // rides RuleActivity rather than PolicyActivity because it is the Bin Rule engine that moved
@@ -637,7 +644,7 @@ public sealed class Census
                 or MoneyFlowCounter.FromTreasury or MoneyFlowCounter.Withheld
                 or MoneyFlowCounter.RuleToTreasury or MoneyFlowCounter.RuleFromTreasury
                 or MoneyFlowCounter.ProfitTax or MoneyFlowCounter.Subsidy
-                or MoneyFlowCounter.Placement))
+                or MoneyFlowCounter.Placement or MoneyFlowCounter.Upkeep))
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(metric), metric.MoneyFlowCounter, "not a money movement this census reads.");

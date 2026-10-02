@@ -1413,6 +1413,10 @@
           "description": "Free-flow speed on a Street, in km/h, converted exactly at load because the library holds no metres and no seconds.",
           "type": "integer"
         },
+        "upkeep_per_segment_per_day": {
+          "description": "What the treasury pays each Day for every Road Segment, foot paths and Arterials included. Absent or zero means roads cost nothing to keep. A treasury that cannot pay the whole bill pays what it holds, and the rest is not owed later. The money leaves the money supply, because Upkeep buys imported Materials. Refused in a file that names no money.",
+          "type": "integer"
+        },
         "walk_speed_kph": {
           "description": "Walking speed on foot. It is also what turns the Commute Budget into the box the job search draws candidates from.",
           "type": "integer"
