@@ -800,6 +800,10 @@ Two consequences of the logit form that matter:
 
 **Use `log(1 + x)` for count-like terms** — jobs reachable, shops nearby. Diminishing returns, so the 500th reachable job matters less than the 5th. Without it the city centre wins forever.
 
+**Reachable jobs are the growth driver.** Exports pay firms, firms post jobs, and a dwelling with jobs in reach beats the Hinterland for more prospects, so the city keeps drawing people after its first Unplaced Pool is housed. The Hinterland row carries the same term. Wages join the comparison once posted wages exist ([plan](../plans/export-base.md)).
+
+**The same comparison runs in reverse for a Household with no work.** Once an adult has been jobless for a Ruleset duration, the Household compares its current home, with the jobs it can now reach, against the Hinterland, and Life Stage sets how reluctant it is to go. People arrive and leave for the same reasons, so a city that loses its employers loses population, families last. Departure because a Household can no longer pay its way joins later.
+
 **Hard constraints are filters, soft trade-offs are utility.** "Can I afford this at all" and "is any job reachable" should eliminate candidates *before* scoring, not appear as large negative coefficients. Faster, numerically safer, and far more legible — we can tell the player "37 Households left because no job was reachable," which a probability shift cannot.
 
 > **Alternative worth evaluating: multiplicative utility.** SILO aggregates utility components as a *product* rather than a sum, so that **zero on any single component yields zero total**. That expresses "no amount of cheapness compensates for zero reachable jobs" structurally rather than via a filter or a steep penalty, and makes constraints feel like constraints. Possibly a better fit for our needs model than additive scoring. Open.
@@ -812,9 +816,9 @@ Same machinery, different scoring terms.
 
 **Industrial** opens where inputs are reachable and outputs have a buyer — another Building that consumes them, or an Outside Connection. Industry clusters near freight access and near its own upstream without being told to. Its two families differ in what fixes them: **Extraction** is pinned to the *ground* (Fertility, Woodland), **Processing** to *reachability* of inputs and buyers.
 
-**Office** opens where **labour of the right mix is reachable** — highest tier-3 share of any use, but janitors and administrators too, so it cannot staff itself in a city with no tier-1 or tier-2 employment. See [`adr/0026`](adr/0026-wages-are-posted-locally-and-never-cleared.md).
+**Office** opens where **labour of the right mix is reachable** and **firms short of a Professional Service are within reach** — highest tier-3 share of any use, but janitors and administrators too, so it cannot staff itself in a city with no tier-1 or tier-2 employment. See [`adr/0026`](adr/0026-wages-are-posted-locally-and-never-cleared.md).
 
-Its location behaviour is unlike anything else here, because **it is the only use with no logistics constraint at all.** It ships no Good, so no freight access is required and no Vehicle carries its output; accessibility to workers is its *only* spatial input. Given the bid mechanism below, it therefore outbids every other use for the most accessible land in the city.
+Its location behaviour is unlike anything else here, because **it is the only use with no logistics constraint at all.** It ships no Good, so no freight access is required and no Vehicle carries its output. Its spatial inputs are accessibility to workers and to clients: it sells Professional Services to firms within a travel-time reach and to the Hinterland (`CONTEXT.md` → Professional Service). Given the bid mechanism below, it therefore outbids every other use for the most accessible land in the city.
 
 > **That is a central business district, emerging.** Nothing declares a centre, no rule mentions one, and no Zone is named "downtown."
 
