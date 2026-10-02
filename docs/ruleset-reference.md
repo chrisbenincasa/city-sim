@@ -27,7 +27,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-53 sections, 366 keys.
+53 sections, 367 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
@@ -54,7 +54,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[[rule]] inputs`](#rule-inputs) — 3 keys
 - [`[[rule]] outputs`](#rule-outputs) — 4 keys
 - [`[[terrain]]`](#terrain) — 5 keys
-- [`[[zone_rule]]`](#zone_rule) — 10 keys
+- [`[[zone_rule]]`](#zone_rule) — 11 keys
 - [`[business_tax]`](#business_tax) — 3 keys
 - [`[capacity]`](#capacity) — 4 keys
 - [`[care]`](#care) — 25 keys
@@ -934,6 +934,10 @@ Identifies the declaration across the package. Other members refer to it by this
 **`interval`** · *whole number*
 
 How many Ticks between sweeps of this Rule over the city. Distinct from a Bin Rule's rate: a Zone Rule sweeps, it is not armed per Lot.
+
+**`jobless_threshold_days`** · *whole number*
+
+How much waiting, in Citizen-Days, by Citizens who found every post in reach full must accumulate in their home District before this Rule raises a Building there. A second trigger beside build_threshold_days, sharing its cooldown. Absent, the Rule does not read joblessness. Requires build_threshold_days.
 
 **`kind`** · *quoted string*
 

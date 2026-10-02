@@ -1746,6 +1746,10 @@
             "description": "How many Ticks between sweeps of this Rule over the city. Distinct from a Bin Rule's rate: a Zone Rule sweeps, it is not armed per Lot.",
             "type": "integer"
           },
+          "jobless_threshold_days": {
+            "description": "How much waiting, in Citizen-Days, by Citizens who found every post in reach full must accumulate in their home District before this Rule raises a Building there. A second trigger beside build_threshold_days, sharing its cooldown. Absent, the Rule does not read joblessness. Requires build_threshold_days.",
+            "type": "integer"
+          },
           "kind": {
             "description": "Which [[building]] kind this Rule raises on a Lot it accepts.",
             "type": "string"

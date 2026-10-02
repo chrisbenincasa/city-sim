@@ -124,6 +124,7 @@ internal static class CensusFamilies
         (JobCounter.Moderate, Aggregate.Sum, "moderate"),
         (JobCounter.Unsavoury, Aggregate.Sum, "unsavoury"),
         (JobCounter.Beyond, Aggregate.Sum, "beyond ceiling"),
+        (JobCounter.NoVacancy, Aggregate.Sum, "no vacancy"),
     ];
 
     /// <summary>

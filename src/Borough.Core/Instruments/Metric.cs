@@ -434,6 +434,9 @@ public enum JobCounter : byte
     /// <c>adr/0095</c> and in <c>rulesets/minimal.toml</c>'s own header.
     /// </remarks>
     Unsavoury,
+
+    /// <summary>Of those seeking, the ones who found every post in reach full.</summary>
+    NoVacancy,
 }
 
 /// <summary>

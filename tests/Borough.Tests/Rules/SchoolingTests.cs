@@ -416,7 +416,7 @@ public sealed class SchoolingTests
         arrive_early_max_minutes = 15
         """;
 
-    private static (World World, Simulation Simulation) JobsCity(int requiresTier)
+    internal static (World World, Simulation Simulation) JobsCity(int requiresTier)
     {
         Ruleset rules = Load(JobsCityRuleset(requiresTier));
         var world = new World(JobsCitizens, rules, Key);

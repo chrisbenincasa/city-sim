@@ -60,13 +60,21 @@ so unemployment settles where customers can support the posts.
   schools do.
 - The count is a sum of individual Citizens' states per District, like the Unplaced Pool. It is not
   a city-wide meter.
+- `Citizens.NoVacancySince` records the Tick a Citizen entered `NoVacancy`. The wait is elapsed
+  time from it, like `Shopping.UnservedSince`.
+- A job search that draws no employer concludes nothing and leaves the earlier state in place.
+  Writing `None` over `NoVacancy` restarted the wait at random under sampling.
+- The census prints `no vacancy`, the seekers who found every post in reach full.
 
 ### Construction
 
 - Vacant Units are re-let first. A founded Business waiting for premises takes a new Unit before an
   instantiated trade.
-- A tier-1 trade Zone Rule answers the jobless signal past its `build_threshold_days`, on a vacant
-  Lot zoned for trade.
+- A tier-1 trade Zone Rule answers the jobless signal past its own `jobless_threshold_days`, in
+  Citizen-Days, on a vacant Lot zoned for trade. It is a second trigger beside
+  `build_threshold_days` and shares its per-District cooldown. A separate key because a Building
+  adds a fixed number of posts, not a fixed amount of relief for hunger. Absent means the Rule does
+  not read joblessness, and the key requires `build_threshold_days`.
 - A Building raised this way starts its declared trades at zero balance (`adr/0148`). It needs no
   founder's money and pays wages from sales.
 - With no vacant zoned Lot, the signal goes unanswered. Core reports the unanswered count; the shell
@@ -79,15 +87,16 @@ so unemployment settles where customers can support the posts.
 2. The arrears clock. Replace the key in the loader, `RulesetKeyNotes`, `insolvent.toml` and
    `funded.toml`; add it to every Ruleset whose trades declare a wage, including `pictured.toml`.
    Regenerate the key reference and schema. Re-record goldens.
-3. The jobless signal per District, with a census counter and a test.
-4. Construction answers the signal. Decide which form the trade Zone Rule raises (open question).
+3. The jobless signal per District, with a census counter and a test. Done, with the
+   `jobless_threshold_days` trigger.
+4. Construction answers the signal. Decide which form the trade Zone Rule raises (open question),
+   and set `jobless_threshold_days` in `pictured.toml`.
 5. Acceptance run.
 
 ## Open questions
 
 - Which commercial form a Zone Rule raises. The trade Zone Rule on `pictured.toml` names
   `shopfront`; world creation raises car-park centres and other forms from PR #69.
-- Whether the jobless signal and the market signal share one threshold or each has its own.
 - A Business with no wage bill cannot be in arrears, so a founder-only Business that holds a Unit
   and sells nothing never fails. Leave it until a measurement shows it; the fix would be a clock on
   a premised Business with no staff.
