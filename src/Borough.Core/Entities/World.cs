@@ -3581,8 +3581,8 @@ public sealed partial class World
     /// <remarks>
     /// <para>
     /// <b><see cref="Unplace(Handle{Household})"/>'s opposite number</b>, and deliberately the same
-    /// shape: it severs the premises handle, puts the actor in a pool with a clock on it, and touches
-    /// <b>nothing it owns</b>. ***A pooled tenant keeps what it owns and that needs no code***
+    /// shape: it severs the premises handle, puts the actor in a pool with a clock on it, dismisses its
+    /// staff, and touches <b>nothing it owns</b>. ***A pooled tenant keeps what it owns and that needs no code***
     /// (<c>adr/0142</c>) — the balance handle, the Bin list and the row itself are all untouched here.
     /// </para>
     /// <para>
@@ -3642,18 +3642,15 @@ public sealed partial class World
         VacateUnit(slot);
         Businesses.Building[slot] = default;
 
-        // ⚠ AND OFF THE COMMUTE ROSTER, every worker of this employer. Both departure buckets are
-        // computed from the Workplace's premises (adr/0101), so a Business that loses its premises
-        // strands its staff in buckets nothing will ever empty: CommuteRoster's phase lookup returns
-        // false for an unpremised employer, so a REBUILT world drops them and a maintained one would
-        // not. That is (derived AND rebuilt) broken, and it is the same argument DestroyBuilding
-        // carried when the fact lived on the Building.
-        //
-        // ⚠ The jobs SURVIVE. This is not a dismissal -- the staff keep their employer and lose only
-        // the journey, which is what an employer between premises means.
-        foreach (int worker in Workers.Walk(slot))
+        // The staff are dismissed, founder included, so they return to the job pass. An employer
+        // with no premises has no posts, and staff held by one would count as employed while
+        // working nowhere. Drained from the head because Dismiss rewrites the list a walk would read.
+        int worker = Workers.PopFront(slot);
+
+        while (worker != Rows.NoSlot)
         {
-            Commutes.Remove(Citizens, worker);
+            Dismiss(Citizens.Rows.At(worker));
+            worker = Workers.PopFront(slot);
         }
 
         // No gate: a Business that LOST its premises is inside the city however it got here, and the
