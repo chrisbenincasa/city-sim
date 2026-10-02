@@ -1,14 +1,21 @@
 # Freeform local Streets with road-aligned Lots
 
-State: scoping. Survey of current code done 09/27/2026 against `main` at `919290a5`.
+State: design. Blocks + strips selected; geometry, saved ownership and edit details remain open.
+Survey of current code done 09/27/2026 against `main` at `919290a5`.
 
 ## Outcome
 
-The player lays curved and angled Streets, following Cities: Skylines. Each Segment grows
-rectangular Lots along both sides, aligned to its local direction. Overlapping Lots are removed.
-Wedge land on curves stays unbuilt or becomes yard. Adopting this amends
-[`adr/0014`](../docs/adr/0014-grid-streets-with-freeform-arterials.md), which snaps Streets to the
-Tile grid.
+The player lays curved and angled Streets. Street-enclosed ground gets a coordinated block layout
+with multiple smaller rectangular Lots and individual Buildings. Road sides outside enclosed
+blocks use strips of rectangular Lots aligned to the Street's local direction.
+
+Blocks coordinate Lot layout and the interior; they do not require one long Building per face or
+a courtyard in every block. Existing Lots and Buildings stay fixed when a new Street closes a
+loop. The new block layout uses only the remaining unallocated ground.
+
+Curves can leave wedge land; its use remains a design decision. Freeform local Streets require
+amending [`adr/0014`](../docs/adr/0014-grid-streets-with-freeform-arterials.md), which still snaps
+Streets to the Tile grid.
 
 ## Survey result
 
@@ -42,30 +49,81 @@ a block only because shipped Rulesets set `block_tiles = 32`.
 | Road paving | One straight box per Segment today (`Main.Ground.cs:1161-1290`); curves need chained or swept meshes |
 | Re-measure | Land-value 2×2 sample, District prominence threshold, flood buffer size; each was tuned where Streets run on Cell edges |
 
-### Needs a design decision
+### Selected Lot layout
 
-1. **Lot generation.** `LotSubdivider` carves one lattice block at a time through `BlockPatterns`.
-   The choice is Skylines-style fixed-depth strips per road side, or enclosed faces recovered from
-   the road graph. Strips give up courtyard, perimeter and back-garden forms, which read a block's
-   interior (`Space/BlockPattern.cs:62-136`).
-2. **The saved block.** `BlockTable` saves lattice coordinates and a `Pattern`. `ZoneBlock` and
-   `BandBlock` paint a whole block. Decide what these re-key to (road side, Segment or enclosed
-   face) or whether they go.
+- Streets enclosing ground define a block whose Lots and interior are laid out together. The
+  layout can coordinate courtyards, back gardens and back-to-back Lots without requiring a single
+  Building along each face.
+- Road sides outside enclosed blocks use independent roadside strips, including dead-end Streets
+  and open curves. Both methods generate rectangular Lots and must not claim the same ground.
+- Every Lot still needs frontage on a Street. Block coordination does not replace the Lot's
+  access relationship to its frontage Segment.
+- Closing a loop does not delete, relocate or re-subdivide existing Lots or Buildings. Existing
+  Lots constrain the block layout, which allocates only the remaining ground.
+- New Lot candidates that overlap existing Lots or Buildings are rejected. Conflicts between new
+  candidates need a deterministic resolution rule.
+
+### Selected drawing and snapping
+
+The grid survives as a drawing aid, not an engine constraint, following Cities: Skylines II.
+The simulation receives endpoints and shape. The shell's tool chooses them.
+
+| Draw mode | Gesture |
+|---|---|
+| Straight | Start, end |
+| Simple curve | Start, bend point, end |
+| Continuous | Each Street starts tangent to the last |
+| Grid | Two corners, then drag sideways to lay a block of Streets |
+| Parallel | Lays a second Street at a set offset from the first |
+
+| Snap toggle | Snaps to |
+|---|---|
+| Existing Streets | Nodes and points along existing Segments |
+| Length | Multiples of a Ruleset step, so Lots tile evenly along a Street |
+| Angle | 90° to an existing Street, with configurable finer steps |
+| Guidelines | Lines extended from existing Streets |
+| Building sides | Edges of existing Lots and Buildings |
+
+- One master toggle turns all snapping off and takes a key binding.
+- Snapping runs in the shell only. It changes which endpoints a command carries and adds no
+  simulation state.
+- Endpoints are integer Tiles and shapes are Q16.16. Repeated 90° and length snaps land exactly,
+  so a grid cannot drift. Cities: Skylines II grids break from accumulated float error in
+  endpoints.
+- Grid and Parallel modes issue several Streets from one gesture. The command needs a batch form;
+  `adr/0077`'s lattice run is the precedent.
+- Snap defaults, the length step and angle steps go in the Ruleset or shell settings, not
+  constants.
+- Lattice-only Street runs (`ConnectPayload` with a count) may ship first as a play-testing
+  stopgap. They are replaced by this tool.
+
+### Remaining design decisions
+
+1. **Block geometry and identity.** Recover enclosed ground from the Street graph and choose how
+   a block retains its identity through edits. `BlockTable` currently saves lattice coordinates
+   and a `Pattern`. Decide how `ZoneBlock` and `BandBlock` target freeform blocks and how the
+   equivalent controls apply to roadside strips.
+2. **Subdivision and land claims.** Adapt the current `BlockPatterns` forms to irregular ground
+   and existing Lots. Choose strip depth, corner treatment and deterministic candidate conflict
+   rules. Define how strips and blocks divide ground without overlapping, including when a loop
+   closes around existing strips.
 3. **Frontage.** `Frontage.Locate` derives a Lot's Segment and offset from its position on a lattice
-   line (`Space/Frontage.cs:140-170`). Either store the Segment on the Lot or find it by nearest
-   Segment. Both reopen [`adr/0078`](../docs/adr/0078-frontage-is-derived-on-the-epoch-and-a-lots-width-is-the-segments-own-building-count.md).
+   line (`Space/Frontage.cs:140-170`). Choose saved Segment ownership or derived lookup, including
+   preservation when a Segment splits. This reopens
+   [`adr/0078`](../docs/adr/0078-frontage-is-derived-on-the-epoch-and-a-lots-width-is-the-segments-own-building-count.md).
 4. **Street representation and the edit command.** Pick the curve form for Q16.16 (arcs, polyline
    or control points). The `connect` command packs an axis bit and derives the far endpoint from the
    lattice (`Input/Command.cs:573-599`). A curved Street needs endpoints plus shape, which bumps
    `InputLogCodec.Version` and re-records committed logs. Also decide endpoint snapping, merging and
-   mid-Segment splitting. `TripPayload` addresses destinations in lattice blocks.
+   mid-Segment splitting. `TripPayload` addresses destinations in lattice blocks. A Street drawn
+   through an existing Lot or Building needs an explicit refusal or demolition policy; preservation
+   when a loop closes does not settle that separate edit.
 5. **Junction geometry.** Arbitrary angles need junction polygons. Shared with the Arterials and
    Junction construction row.
 6. **Wedge land.** Leave it empty, give it to the adjacent Lot as yard, or allow parks.
-7. **Grid tool.** Keep the lattice as a drawing aid alongside freeform, or drop it.
-
-Decisions 1 to 3 are one question in practice: whether a Lot belongs to a block or to a Segment.
-The rest follow from it.
+7. **Snap and preview details.** The grid is kept as a drawing aid (see above). Choose the length
+   step relative to Lot widths, whether a zone-grid snap aligns new Streets to existing strip
+   Lots, and what the preview shows before commit: snapped geometry, refusals and cost.
 
 ## Found in passing
 
@@ -73,7 +131,22 @@ The rest follow from it.
   (`Space/TrafficPresence.cs:138-141`), not `BlockLattice.LineAt`. On a varying lattice
   (`block_spread_tiles > 0`) this likely puts nodes in the wrong bucket. Not yet confirmed by a test.
 
+## Acceptance checks
+
+- A loop with a dead-end spur produces a coordinated block interior and roadside Lots outside
+  it. Multiple individual Buildings can face each Street; no face requires a single long Building.
+- An open curve produces roadside Lots without requiring an enclosed block.
+- An angled or triangular block fits rectangular Lots without overlap and accounts for leftover
+  ground explicitly.
+- Closing a loop around existing strip Lots preserves their identities, geometry and Buildings.
+  Only previously unallocated ground receives new Lots.
+- Blocks and strips never claim the same ground. Lot frontage remains valid after supported
+  Street edits.
+- Replay, save/reload and thread-count equivalence hold. A driven demonstration shows these
+  layouts and loop closure before the capability is marked complete.
+
 ## Next step
 
-Decide decision 1. A design session comparing strips with enclosed faces against the current
-`BlockPatterns` forms should settle 1 to 3 together.
+Design block geometry and land claims against the loop with a spur, open curve, triangular block
+and closure around existing strip Lots. Settle saved block identity and frontage preservation with
+those cases before choosing the implementation sequence.

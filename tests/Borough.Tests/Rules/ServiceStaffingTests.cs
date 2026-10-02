@@ -58,11 +58,6 @@ public sealed class ServiceStaffingTests
     /// One tenancy's share of it — <b>half, so the school holds two</b> and the declared trade takes
     /// one with room beside it.
     /// </summary>
-    /// <remarks>
-    /// <c>World.Fit</c> refuses to instantiate a kind's trade where the ground leaves room for one
-    /// tenant only, so a school of one tenancy would be a school with no teachers for the fixture's
-    /// reason rather than for the city's.
-    /// </remarks>
     private const int PerTenancy = Ground / 2;
 
     /// <summary>Four posts on the trade — <c>PerTenancy / JobRate</c>, so halving the staff divides.</summary>
@@ -188,6 +183,41 @@ public sealed class ServiceStaffingTests
         Hire(world, world.Businesses.Rows.Resolve(tenant), Jobs);
 
         Assert.Equal(0, world.DeclaredPlaces(school));
+    }
+
+    // ---- one tenancy ----------------------------------------------------------------------------
+
+    /// <summary>
+    /// <b>A school of one tenancy still gets its teachers</b>, because a kind that houses nobody
+    /// leaves no Household to make room for (issue #61).
+    /// </summary>
+    [Fact]
+    public void A_school_of_one_tenancy_still_gets_its_teachers()
+    {
+        (World world, int school, int trade) = City(OneTenancy(Staffed));
+
+        Assert.Equal(1, world.DeclaredOccupancy(school));
+        Assert.NotEqual(Rows.NoSlot, trade);
+        Assert.True(world.DeclaredJobs(trade) > 0, "the school's trade holds no posts.");
+    }
+
+    /// <summary>
+    /// <b>A dwelling of one tenancy gets no shop</b>, because the shop would take the only tenancy
+    /// and the dwelling would house nobody.
+    /// </summary>
+    [Fact]
+    public void A_dwelling_of_one_tenancy_gets_no_shop()
+    {
+        string toml = OneTenancy(Staffed)
+            .Replace("houses = true", "houses = true\nbusiness = \"sundries\"", StringComparison.Ordinal);
+
+        var world = new World(1_000, Load(toml), Key);
+        Handle<Lot> home = world.Lots.Create(
+            new Tiles(0), new Tiles(0), zone: 1, wide: new Tiles(Ground), deep: new Tiles(1));
+        int dwelling = world.Buildings.Rows.Resolve(world.CreateBuilding(home, Dwelling, Ticks.Zero, Key));
+
+        Assert.Equal(1, world.DeclaredOccupancy(dwelling));
+        Assert.Equal(Rows.NoSlot, OwnTrade(world, dwelling));
     }
 
     // ---- what the scaling does not touch --------------------------------------------------------
@@ -366,6 +396,12 @@ public sealed class ServiceStaffingTests
     /// band in a world that employs nobody is refused at the parse site.
     /// </remarks>
     private static readonly string Unpaid = Fixture("business = \"tuition\"", "", 0);
+
+    /// <summary>The fixture with one tenancy taking the whole <see cref="Ground"/>.</summary>
+    private static string OneTenancy(string toml) => toml.Replace(
+        "floor_tiles_per_occupant = " + PerTenancy.ToString(CultureInfo.InvariantCulture),
+        "floor_tiles_per_occupant = " + Ground.ToString(CultureInfo.InvariantCulture),
+        StringComparison.Ordinal);
 
     /// <summary>
     /// The fixture with its three variables filled — whether the school kind declares a trade,

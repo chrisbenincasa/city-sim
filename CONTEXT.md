@@ -327,7 +327,7 @@ A Building the **Ruleset in force cannot describe** — its kind is not declared
 **Nothing a player does can produce it**, which is the reason the two must not be conflated. The Ruleset changes under a live city only when a designer is balancing (`adr/0015`) or when a save meets a different Ruleset (`05 §7`) — so this is **development-time state**, and it is in this vocabulary because the code and `02 §4.3` both name it, not because a player will ever meet one.
 
 **Outside Connection**
-A special Building at the map edge representing the rest of the world. Absorbs surplus Goods and supplies deficits, at a price. The pressure-release valve that keeps the economy from having to balance perfectly.
+A special Building at the map edge representing the rest of the world. Absorbs surplus Goods and Professional Services and supplies deficits, at a price. The pressure-release valve that keeps the economy from having to balance perfectly.
 
 It is also **the city's gate**. Households arrive and depart through it as ordinary Trips, so immigration is physical, located, and congestion-bearing rather than a number added to a pool.
 
@@ -336,7 +336,7 @@ It is also **the city's gate**. Households arrive and depart through it as ordin
 **Its throughput is two ceilings and the binding one is the diagnosis**: the lower of the kind's declared ceiling and the capacity of the Segment its Access Point sits on. *Your port is at capacity* and *your port is fine and the road to it is not* are different problems with different fixes, and one number would report them identically.
 
 **Hinterland**
-The economy behind one map edge, shared by every Outside Connection on that edge. Not a simulated place — never Ticked, never rendered — but a small configuration described in **the same units a District exposes**: median rent, median wage, **a price per Good**, service levels, a commute figure. It is **the one authored anchor under every price in the design** — Goods, rents and wages all bound to it, so a designer authors four objects and never writes a price anywhere else (`adr/0026`, `adr/0050`). Prospective Households compare it against the city using the identical utility function residents use, so the Outside is an ordinary alternative in the choice model rather than a special case. Authoring it in domain units instead of utility units is the whole point: *"is §620 the right rent out there"* is a question a designer can answer and a player can read off a panel, and `V = 4.7` is not.
+The economy behind one map edge, shared by every Outside Connection on that edge. Not a simulated place — never Ticked, never rendered — but a small configuration described in **the same units a District exposes**: median rent, median wage, **a price per Good and per Professional Service**, service levels, a commute figure. It is **the one authored anchor under every price in the design** — Goods, rents and wages all bound to it, so a designer authors four objects and never writes a price anywhere else (`adr/0026`, `adr/0050`). Prospective Households compare it against the city using the identical utility function residents use, so the Outside is an ordinary alternative in the choice model rather than a special case. Authoring it in domain units instead of utility units is the whole point: *"is §620 the right rent out there"* is a question a designer can answer and a player can read off a panel, and `V = 4.7` is not.
 
 A Hinterland is **a stock the city spends** — the third instance of the pattern, after Land and Woodland. It holds a population with composition, and the city **takes the most willing first**, so drawing it down raises its rate *and* skews its mix toward the stages that weight cheapness hardest. Both effects have the same cause and neither needs a rule. Departures refill the Hinterland they leave for, and it recovers slowly on its own.
 
@@ -451,6 +451,7 @@ Resource is a **mechanism-level** term. The player never sees it; the player see
 |---|---|---|
 | **Good** | a **Shipment** — a Vehicle on the Road Graph, contributing congestion | Produce, Food, Timber, Materials, Consumer Goods, Waste |
 | **Utility** | flow along the District adjacency graph. No Vehicle, no congestion | Power, Water, Sewage |
+| **Professional Service** | none; a buyer reaches a provider within a travel time set per service kind | law, accounting, insurance, advertising (authored per Ruleset) |
 | **Money** | none | — |
 
 Two parameters distinguish every member, and they are **not** the same field:
@@ -473,6 +474,10 @@ A **conserved stock that flows without transport.** Conserved like a Good — it
 **Velocity is emergent, not tuned.** A Household buys what its Needs demand from its Provider List, holds a reserve sized by its Life Stage — a Young Household saving toward forming a family needs a deeper buffer than an Empty Nest — and spends the remainder on Consumer Goods, which is the Satisfaction Need already in the model. Hoarding is bounded because saving has a purpose and therefore a ceiling.
 
 **Poverty is an absorbing state, and it emerges rather than being designed.** A Household at zero money cannot buy Food, cannot afford to move, and cannot reach a job that requires a car it cannot buy. Every exit costs money it does not have. This is not corrected by the simulation and not prevented by it; it is surfaced, and what happens next is a Policy decision the player makes or declines to make.
+
+**Professional Service**
+A Resource made from labour in an office and delivered without a Vehicle: law, accounting, insurance, advertising. Firms buy them as a **required input**, so a firm short of one stalls like any Rule short of an input. A buyer reaches a provider within a **travel time the Ruleset sets per service kind**; a remotely delivered kind may reach any distance. Distance stands in for the meetings that keep a client, which is why offices cluster near each other and near the firms they serve. A Hinterland sells and buys each one at a price, so a city with no offices imports them and a city with many exports them. It is not a **Service** in the public sense, which the player places and the treasury pays for. On-site work such as cleaning or security is not a Professional Service either; it is a job at the client's Building. See [`plans/export-base.md`](plans/export-base.md).
+*Avoid*: Service (the public kind), a sixth Good (services move by no Vehicle), Office output as Money with nothing sold
 
 **Upkeep**
 The standing cost of infrastructure the city has built, drawn per Day. **Not an authored rate.** Every piece of infrastructure has a **design life** — a duration in Days at zero traffic — and its Upkeep is `construction cost ÷ effective life`. Traffic consumes that life faster, so **Upkeep is a base term plus a wear term** and the wear term reads the volume the Segment already tracks.
