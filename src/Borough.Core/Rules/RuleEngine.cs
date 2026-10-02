@@ -692,6 +692,12 @@ public sealed class RuleEngine
     /// is no leg to the treasury and none to nowhere.
     /// </para>
     /// <para>
+    /// <b>When no city seller holds a batch, the Outside sells it</b> at the cheapest gated edge's
+    /// price (<see cref="World.TryImportPrice"/>). The buyer pays and no Bin in the city is paid, so
+    /// <see cref="Fire"/> writes the Money supply down by the payment. The Good arrives from nowhere
+    /// in the city. A city with no gate on a priced edge still fails on the market row.
+    /// </para>
+    /// <para>
     /// <b>The counterparty is one seller, chosen here</b> (<c>adr/0139</c>): the Pool is a market and
     /// not a store, so the stock is in the selling Business's own Bin and a <c>pool</c> term names a
     /// counterparty rather than a container. The candidates are the market row's sellers, which is the
@@ -721,7 +727,8 @@ public sealed class RuleEngine
     /// </para>
     /// </remarks>
     /// <returns>
-    /// <see cref="Rows.NoSlot"/> when a seller was found, or the market row's Bin when none was.
+    /// <see cref="Rows.NoSlot"/> when a city seller or the Outside will sell, or the market row's Bin
+    /// when neither will.
     /// </returns>
     private int Buy(int instance, RuleId rule, in Term term, long floor)
     {
@@ -734,39 +741,18 @@ public sealed class RuleEngine
 
         int row = MarketRow(_world, instance, term.Bin.Resource);
 
-        long batch = floor * term.Amount;
-        int sellers = _world.Markets.SellerCount(_world, row);
+        Space.Offer seller = Seller(instance, row, floor * term.Amount);
+        long price;
 
-        if (sellers == 0)
+        if (seller.Bin != Rows.NoSlot)
         {
-            return market;
+            price = _world.DistrictPools.Price[row].Raw;
         }
-
-        if (_world.Markets.Largest(_world, row) < batch)
+        else if (_world.TryImportPrice(term.Bin.Resource, out Money imported))
         {
-            return market;
+            price = imported.Raw;
         }
-
-        // Keyed on the buying Rule Instance's monotonic id, so it is a lottery number the buyer holds
-        // rather than a rotation the whole District performs in step.
-        ulong draw = Randomness.Draw(
-            _key, _world.RuleInstances.Rows.IdAt(instance), _world.Tick, PurposeTag.SellerChoice);
-
-        int start = (int)(draw % (ulong)sellers);
-        var seller = new Space.Offer(Rows.NoSlot, Rows.NoSlot);
-
-        for (int i = 0; i < sellers; i++)
-        {
-            Space.Offer candidate = _world.Markets.Seller(_world, row, (start + i) % sellers);
-
-            if (_world.Bins.LevelAt(candidate.Bin) >= batch)
-            {
-                seller = candidate;
-                break;
-            }
-        }
-
-        if (seller.Bin == Rows.NoSlot)
+        else
         {
             return market;
         }
@@ -794,12 +780,18 @@ public sealed class RuleEngine
                 + "derive the payer.");
         }
 
-        long payment = term.Amount * _world.DistrictPools.Price[row].Raw;
-        int till = _world.Bins.Rows.Resolve(_world.Businesses.Balance[seller.Business]);
+        long payment = term.Amount * price;
 
-        Touch(seller.Bin, -term.Amount, market);
-        Touch(purse, -payment);
-        Touch(till, payment);
+        if (seller.Bin != Rows.NoSlot)
+        {
+            Touch(seller.Bin, -term.Amount, market);
+            Touch(purse, -payment);
+            Touch(_world.Bins.Rows.Resolve(_world.Businesses.Balance[seller.Business]), payment);
+        }
+        else
+        {
+            Touch(purse, -payment);
+        }
 
         Grow(ref _boughtRow, _boughtCount + 1);
         Grow(ref _boughtAmount, _boughtCount + 1);
@@ -829,6 +821,39 @@ public sealed class RuleEngine
         _tradeCount++;
 
         return Rows.NoSlot;
+    }
+
+    /// <summary>
+    /// The city seller that will fill a batch, or no seller when none holds one.
+    /// </summary>
+    private Space.Offer Seller(int instance, int row, long batch)
+    {
+        var none = new Space.Offer(Rows.NoSlot, Rows.NoSlot);
+        int sellers = _world.Markets.SellerCount(_world, row);
+
+        if (sellers == 0 || _world.Markets.Largest(_world, row) < batch)
+        {
+            return none;
+        }
+
+        // Keyed on the buying Rule Instance's monotonic id, so it is a lottery number the buyer holds
+        // rather than a rotation the whole District performs in step.
+        ulong draw = Randomness.Draw(
+            _key, _world.RuleInstances.Rows.IdAt(instance), _world.Tick, PurposeTag.SellerChoice);
+
+        int start = (int)(draw % (ulong)sellers);
+
+        for (int i = 0; i < sellers; i++)
+        {
+            Space.Offer candidate = _world.Markets.Seller(_world, row, (start + i) % sellers);
+
+            if (_world.Bins.LevelAt(candidate.Bin) >= batch)
+            {
+                return candidate;
+            }
+        }
+
+        return none;
     }
 
     /// <summary>
@@ -928,14 +953,21 @@ public sealed class RuleEngine
             long sold = _tradeAmount[i] * verdict.Applications;
             long paid = _tradePayment[i] * verdict.Applications;
 
-            BusinessAccounts.Deliver(
-                _world,
-                _tradeSeller[i],
-                _tradeStock[i],
-                sold,
-                _world.Bins.LevelAt(_tradeStock[i]),
-                paid,
-                tick);
+            if (_tradeSeller[i] == Rows.NoSlot)
+            {
+                _world.PayOutside(new Money(paid));
+            }
+            else
+            {
+                BusinessAccounts.Deliver(
+                    _world,
+                    _tradeSeller[i],
+                    _tradeStock[i],
+                    sold,
+                    _world.Bins.LevelAt(_tradeStock[i]),
+                    paid,
+                    tick);
+            }
 
             BusinessAccounts.Stock(_world, _tradeLanding[i], paid);
         }
@@ -1412,6 +1444,13 @@ public sealed class RuleEngine
             // Premises in no District yet. Check answers this with a fire at zero applications, so
             // there is nothing waiting here and nothing to price.
             return 0;
+        }
+
+        // A buyer no city seller can fill pays the Outside's price, which is never below the row's.
+        if (world.Markets.Largest(world, row) < term.Amount
+            && world.TryImportPrice(term.Bin.Resource, out Money imported))
+        {
+            return -(term.Amount * imported.Raw);
         }
 
         return -(term.Amount * world.DistrictPools.Price[row].Raw);

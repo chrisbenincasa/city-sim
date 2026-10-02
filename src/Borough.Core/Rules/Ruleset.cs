@@ -4469,16 +4469,13 @@ public sealed class Ruleset
     /// inside the item*** when the item is a struct.
     /// </para>
     /// <para>
-    /// <b>Nothing reads a per-edge price yet and the array still holds them.</b> What the market
-    /// consumes is <see cref="ImportCeiling"/>, the minimum across every declared Hinterland, because
-    /// <c>adr/0135</c> ships <b>no haulage term at 12</b> — with carriage free every gate is
-    /// equidistant and a city buys at the cheapest, so there is nothing to choose between edges. ⚠
-    /// <b>The per-edge figures are authored content and are kept for the milestone that stops
-    /// carriage being free</b>: when <c>adr/0133</c>'s charge ships, the ceiling becomes a
-    /// per-District <c>min(price + haul)</c> and this array is what it is a minimum <em>over</em>.
-    /// ***Collapsing the four to their minimum at load would have thrown away the content that makes
-    /// the Outside legible*** — <c>CONTEXT.md</c> → Hinterland's *four comparable markets are each
-    /// other's referent.*
+    /// <b>Two readers.</b> <see cref="ImportCeiling"/>, the minimum across every declared Hinterland,
+    /// caps District Pool prices. <c>World.TryImportPrice</c> is what a purchase pays the Outside: the
+    /// minimum across the edges that have a gate. Carriage is free, so every gated edge is equally
+    /// near (<c>adr/0135</c>); when <c>adr/0133</c>'s charge ships, both become a per-District
+    /// <c>min(price + haul)</c>. ***Collapsing the four to their minimum at load would have thrown
+    /// away the content that makes the Outside legible*** — <c>CONTEXT.md</c> → Hinterland's *four
+    /// comparable markets are each other's referent.*
     /// </para>
     /// </remarks>
     public Money[] HinterlandPrices { get; init; } = [];
