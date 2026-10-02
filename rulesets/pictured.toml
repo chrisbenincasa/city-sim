@@ -241,6 +241,9 @@ interval             = 32
 revisit_ticks        = 2048
 build_threshold_days = 4
 cooldown_days        = 8
+# PROVISIONAL: Citizen-Days of waiting by those who found every post full. Thresholds 2 to 16
+# behaved alike after a mass bankruptcy at 2,000 Citizens (plans/employment-feedback.md).
+jobless_threshold_days = 4
 
 [placement]
 interval      = 32

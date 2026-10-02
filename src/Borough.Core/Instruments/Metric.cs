@@ -164,6 +164,9 @@ public enum ZoneCounter : byte
     /// was reported here as a demolished Building.
     /// </remarks>
     Ended,
+
+    /// <summary>Businesses opened in a vacant Unit of a standing Building on District demand.</summary>
+    Reopened,
 }
 
 /// <summary>

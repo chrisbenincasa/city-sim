@@ -68,17 +68,26 @@ so unemployment settles where customers can support the posts.
 
 ### Construction
 
-- Vacant Units are re-let first. A founded Business waiting for premises takes a new Unit before an
-  instantiated trade.
-- A tier-1 trade Zone Rule answers the jobless signal past its own `jobless_threshold_days`, in
-  Citizen-Days, on a vacant Lot zoned for trade. It is a second trigger beside
-  `build_threshold_days` and shares its per-District cooldown. A separate key because a Building
-  adds a fixed number of posts, not a fixed amount of relief for hunger. Absent means the Rule does
-  not read joblessness, and the key requires `build_threshold_days`.
-- A Building raised this way starts its declared trades at zero balance (`adr/0148`). It needs no
-  founder's money and pays wages from sales.
-- With no vacant zoned Lot, the signal goes unanswered. Core reports the unanswered count; the shell
-  shows it so the player can zone more trade land. Redeveloping occupied Lots is out of scope.
+- A tier-1 trade Zone Rule reads two triggers per District. Market demand passes
+  `build_threshold_days` in household-Days. The jobless wait passes `jobless_threshold_days` in
+  Citizen-Days. The second key is separate because a Building adds a fixed number of posts, not a
+  fixed amount of relief for hunger. Absent means the Rule does not read joblessness, and the key
+  requires `build_threshold_days`.
+- On a sampled Building of the Rule's kind with a vacant Unit, either trigger opens the kind's trade
+  in that Unit at zero balance (`World.OpenInVacantUnit`, shared with world creation's
+  `FillUnits`). No construction permission is asked, because the Building stands.
+- Re-opening skips the per-District cooldown and does not restart it. The cooldown gives a new
+  Building time to stock before demand is read again, and a re-opened Unit hires on the next job
+  pass. With the 8-Day cooldown applied, the acceptance run re-opened 8 Units in 30 Days and ended
+  at 672 employed.
+- Founded Businesses take vacant Units through placement on every pass, so they usually reach a
+  Unit before demand passes a threshold. Nothing enforces that order.
+- On a vacant Lot either trigger raises a Building as before, under the cooldown.
+- No Zone Rule can raise a commercial form, because `World.ConstructionPermission` admits only the
+  housing patterns. A demolished centre's Lot stays empty. The Trade forms in play board row owns
+  that (PR #78).
+- `pictured.toml` states `jobless_threshold_days = 4`, provisional. Thresholds 2, 4, 8 and 16 gave
+  identical acceptance runs, because the wait after a mass bankruptcy passes all of them at once.
 
 ## Steps
 
@@ -89,14 +98,14 @@ so unemployment settles where customers can support the posts.
    Regenerate the key reference and schema. Re-record goldens.
 3. The jobless signal per District, with a census counter and a test. Done, with the
    `jobless_threshold_days` trigger.
-4. Construction answers the signal. Decide which form the trade Zone Rule raises (open question),
-   and set `jobless_threshold_days` in `pictured.toml`.
-5. Acceptance run.
+4. Construction answers the signal by re-opening vacant Units. Done.
+5. Acceptance run. Done as an instrument test; the driven shell run remains.
 
 ## Open questions
 
-- Which commercial form a Zone Rule raises. The trade Zone Rule on `pictured.toml` names
-  `shopfront`; world creation raises car-park centres and other forms from PR #69.
+- Re-opened Businesses fail often. In the acceptance run 102 re-openings refilled 48 Units over 30
+  Days, and employment settled about 15% below the unshocked control. A guess, unmeasured: a
+  Business opens at zero balance while Household spending is depressed, so it falls into arrears.
 - A Business with no wage bill cannot be in arrears, so a founder-only Business that holds a Unit
   and sells nothing never fails. Leave it until a measurement shows it; the fix would be a clock on
   a premised Business with no staff.
@@ -104,8 +113,14 @@ so unemployment settles where customers can support the posts.
 
 ## Acceptance
 
-- On `pictured.toml` at 2,000 Citizens, a world that loses most of its posts (for example by
-  demolishing trade Buildings mid-run) recovers employment within a stated number of Days, with no
-  Ruleset edit. Name the Ruleset, population, seed and Tick count.
+- `EmploymentRecoveryTests`, instrument tier: `pictured.toml`, 2,000 Citizens, seed 0, 81,920
+  Ticks (40 Days). On Day 10 three in four premised Businesses go bankrupt, through the same steps
+  as `WageEngine`. Employment must reach 75% of its pre-shock level by Day 15 and stay there to
+  Day 40, with no Ruleset edit.
+  - With the jobless signal: 1,138 before the shock, 363 after, 1,205 on Day 15, lowest 1,079
+    after Day 15, 1,079 on Day 40. Passes.
+  - Without it: 894 on Day 15, under the bar from Day 23, 504 on Day 40. Fails, as the second test
+    asserts.
+  - Unshocked control: 1,472 on Day 20, 1,452 on Day 40.
 - Some Citizens stay jobless at steady state, and failing Businesses appear in the run.
 - A driven shell run shows the trigger, the new employer and the returning commutes.

@@ -921,11 +921,11 @@ How many scheduled updates this ground takes to shed its Sealing once it is no l
 
 **`build_threshold_days`** · *whole number*
 
-How much unmet demand, in household-Days, must accumulate in a District before this Rule raises a Building there. It is the entry cost for a trade, and today it is the only brake on birth. Absent keeps the older predicate, which reads no demand at all.
+How much unmet demand, in household-Days, must accumulate in a District before this Rule raises a Building there, or opens its trade in a vacant Unit of a standing Building of its kind. It is the entry cost for a trade, and today it is the only brake on birth. Absent keeps the older predicate, which reads no demand at all.
 
 **`cooldown_days`** · *whole number*
 
-How many Days a District waits after raising a Building of this kind before it may raise another — what damps the response to the demand signal. Requires build_threshold_days, since a Rule reading no demand has nothing to damp.
+How many Days a District waits after raising a Building of this kind before it may raise another — what damps the response to the demand signal. Opening a vacant Unit neither waits for it nor restarts it. Requires build_threshold_days, since a Rule reading no demand has nothing to damp.
 
 **`id`** · *quoted string*
 
@@ -937,7 +937,7 @@ How many Ticks between sweeps of this Rule over the city. Distinct from a Bin Ru
 
 **`jobless_threshold_days`** · *whole number*
 
-How much waiting, in Citizen-Days, by Citizens who found every post in reach full must accumulate in their home District before this Rule raises a Building there. A second trigger beside build_threshold_days, sharing its cooldown. Absent, the Rule does not read joblessness. Requires build_threshold_days.
+How much waiting, in Citizen-Days, by Citizens who found every post in reach full must accumulate in their home District before this Rule raises a Building there or opens its trade in a vacant Unit. A second trigger beside build_threshold_days, sharing its cooldown. Absent, the Rule does not read joblessness. Requires build_threshold_days.
 
 **`kind`** · *quoted string*
 

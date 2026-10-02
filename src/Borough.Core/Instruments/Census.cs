@@ -55,7 +55,7 @@ public sealed class Census
     private const int RuleCounters = 3;
 
     /// <summary>The members of <see cref="ZoneCounter"/>.</summary>
-    private const int ZoneCounters = 6;
+    private const int ZoneCounters = 7;
 
     /// <summary>The members of <see cref="Aggregate"/>: a flow is read twice, as a sum and as a peak.</summary>
     private const int AggregatesPerRuleCounter = 2;
@@ -362,6 +362,7 @@ public sealed class Census
         Write(_values, at + _zoneBase, (int)ZoneCounter.Created, zoning.Created);
         Write(_values, at + _zoneBase, (int)ZoneCounter.Demolished, zoning.Demolished);
         Write(_values, at + _zoneBase, (int)ZoneCounter.Ended, zoning.Ended);
+        Write(_values, at + _zoneBase, (int)ZoneCounter.Reopened, zoning.Reopened);
 
         Write(_values, at + _placementBase, (int)PlacementCounter.Considered, placement.Considered);
         Write(_values, at + _placementBase, (int)PlacementCounter.Placed, placement.Placed);
@@ -669,7 +670,7 @@ public sealed class Census
         {
             if (metric.ZoneCounter is not (ZoneCounter.Triggers or ZoneCounter.Vacant
                 or ZoneCounter.Occupied or ZoneCounter.Created or ZoneCounter.Demolished
-                or ZoneCounter.Ended))
+                or ZoneCounter.Ended or ZoneCounter.Reopened))
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(metric), metric.ZoneCounter, "not a Zone counter this census reads.");
