@@ -24,7 +24,7 @@ Building activity · upkeep
 Waiting for repairs in the Building's stock.
 Blocking stock: 0 / 4 units
 Inspect stocks →
-Current shortfall since Tick 10 · 40 missed firings
+Current shortfall since Tick 10 · 41 missed firings
 Activities
 Household 360 · restock
 Waiting for space for sundries in a Household's stock.
@@ -71,7 +71,9 @@ Inspect stocks →
 Household 367 · consume
 Scheduled.
 Household 368 · restock
-Scheduled.
+Waiting for space for sundries in a Household's stock.
+Blocking stock: 48 / 48 units
+Inspect stocks →
 Household 368 · consume
 Scheduled.
 Household 369 · restock
@@ -115,7 +117,9 @@ Inspect stocks →
 Household 375 · consume
 Scheduled.
 Household 376 · restock
-Scheduled.
+Waiting for space for sundries in a Household's stock.
+Blocking stock: 48 / 48 units
+Inspect stocks →
 Household 376 · consume
 Scheduled.
 Household 377 · restock
@@ -137,7 +141,9 @@ Inspect stocks →
 Household 379 · consume
 Scheduled.
 Household 380 · restock
-Scheduled.
+Waiting for space for sundries in a Household's stock.
+Blocking stock: 48 / 48 units
+Inspect stocks →
 Household 380 · consume
 Scheduled.
 Household 381 · restock
@@ -219,13 +225,13 @@ Inspect stocks →
 Household 396 · consume
 Scheduled.
 Household 397 · restock
-Scheduled.
-Household 397 · consume
-Scheduled.
-Household 398 · restock
 Waiting for space for sundries in a Household's stock.
 Blocking stock: 48 / 48 units
 Inspect stocks →
+Household 397 · consume
+Scheduled.
+Household 398 · restock
+Scheduled.
 Household 398 · consume
 Scheduled.
 Household 399 · restock
@@ -233,11 +239,15 @@ Scheduled.
 Household 399 · consume
 Scheduled.
 Household 400 · restock
-Scheduled.
+Waiting for space for sundries in a Household's stock.
+Blocking stock: 48 / 48 units
+Inspect stocks →
 Household 400 · consume
 Scheduled.
 Household 401 · restock
-Scheduled.
+Waiting for space for sundries in a Household's stock.
+Blocking stock: 48 / 48 units
+Inspect stocks →
 Household 401 · consume
 Scheduled.
 Household 402 · restock
@@ -277,9 +287,7 @@ Inspect stocks →
 Household 408 · consume
 Scheduled.
 Household 409 · restock
-Waiting for space for sundries in a Household's stock.
-Blocking stock: 48 / 48 units
-Inspect stocks →
+Scheduled.
 Household 409 · consume
 Scheduled.
 Household 410 · restock
@@ -395,15 +403,11 @@ Inspect stocks →
 Household 429 · consume
 Scheduled.
 Household 430 · restock
-Waiting for space for sundries in a Household's stock.
-Blocking stock: 48 / 48 units
-Inspect stocks →
+Scheduled.
 Household 430 · consume
 Scheduled.
 Household 431 · restock
-Waiting for space for sundries in a Household's stock.
-Blocking stock: 48 / 48 units
-Inspect stocks →
+Scheduled.
 Household 431 · consume
 Scheduled.
 Household 432 · restock
@@ -609,9 +613,7 @@ Inspect stocks →
 Household 467 · consume
 Scheduled.
 Household 468 · restock
-Waiting for space for sundries in a Household's stock.
-Blocking stock: 48 / 48 units
-Inspect stocks →
+Scheduled.
 Household 468 · consume
 Scheduled.
 Household 469 · restock
@@ -629,9 +631,7 @@ Scheduled.
 Household 471 · consume
 Scheduled.
 Household 472 · restock
-Waiting for space for sundries in a Household's stock.
-Blocking stock: 48 / 48 units
-Inspect stocks →
+Scheduled.
 Household 472 · consume
 Scheduled.
 Household 473 · restock
@@ -647,7 +647,9 @@ Inspect stocks →
 Household 474 · consume
 Scheduled.
 Household 475 · restock
-Scheduled.
+Waiting for space for sundries in a Household's stock.
+Blocking stock: 48 / 48 units
+Inspect stocks →
 Household 475 · consume
 Scheduled.
 Household 476 · restock
@@ -763,9 +765,7 @@ Inspect stocks →
 Household 496 · consume
 Scheduled.
 Household 497 · restock
-Waiting for space for sundries in a Household's stock.
-Blocking stock: 48 / 48 units
-Inspect stocks →
+Scheduled.
 Household 497 · consume
 Scheduled.
 Household 498 · restock
@@ -805,7 +805,9 @@ Inspect stocks →
 Household 503 · consume
 Scheduled.
 Household 504 · restock
-Scheduled.
+Waiting for space for sundries in a Household's stock.
+Blocking stock: 48 / 48 units
+Inspect stocks →
 Household 504 · consume
 Scheduled.
 Household 505 · restock
@@ -875,7 +877,9 @@ Inspect stocks →
 Household 517 · consume
 Scheduled.
 Household 518 · restock
-Scheduled.
+Waiting for space for sundries in a Household's stock.
+Blocking stock: 48 / 48 units
+Inspect stocks →
 Household 518 · consume
 Scheduled.
 Household 519 · restock
@@ -1043,9 +1047,7 @@ Inspect stocks →
 Household 547 · consume
 Scheduled.
 Household 548 · restock
-Waiting for space for sundries in a Household's stock.
-Blocking stock: 48 / 48 units
-Inspect stocks →
+Scheduled.
 Household 548 · consume
 Scheduled.
 Household 549 · restock
@@ -1157,7 +1159,9 @@ Inspect stocks →
 Household 568 · consume
 Scheduled.
 Household 569 · restock
-Scheduled.
+Waiting for space for sundries in a Household's stock.
+Blocking stock: 48 / 48 units
+Inspect stocks →
 Household 569 · consume
 Scheduled.
 Household 570 · restock
@@ -1173,13 +1177,13 @@ Inspect stocks →
 Household 571 · consume
 Scheduled.
 Household 572 · restock
-Scheduled.
-Household 572 · consume
-Scheduled.
-Household 573 · restock
 Waiting for space for sundries in a Household's stock.
 Blocking stock: 48 / 48 units
 Inspect stocks →
+Household 572 · consume
+Scheduled.
+Household 573 · restock
+Scheduled.
 Household 573 · consume
 Scheduled.
 Household 574 · restock
@@ -1189,7 +1193,9 @@ Inspect stocks →
 Household 574 · consume
 Scheduled.
 Household 575 · restock
-Scheduled.
+Waiting for space for sundries in a Household's stock.
+Blocking stock: 48 / 48 units
+Inspect stocks →
 Household 575 · consume
 Scheduled.
 Household 576 · restock
@@ -1275,7 +1281,9 @@ Scheduled.
 Household 590 · consume
 Scheduled.
 Household 591 · restock
-Scheduled.
+Waiting for space for sundries in a Household's stock.
+Blocking stock: 48 / 48 units
+Inspect stocks →
 Household 591 · consume
 Scheduled.
 Household 592 · restock
@@ -1649,9 +1657,7 @@ Scheduled.
 Household 658 · consume
 Scheduled.
 Household 659 · restock
-Waiting for space for sundries in a Household's stock.
-Blocking stock: 48 / 48 units
-Inspect stocks →
+Scheduled.
 Household 659 · consume
 Scheduled.
 Household 660 · restock
@@ -1687,7 +1693,9 @@ Scheduled.
 Household 665 · consume
 Scheduled.
 Household 666 · restock
-Scheduled.
+Waiting for space for sundries in a Household's stock.
+Blocking stock: 48 / 48 units
+Inspect stocks →
 Household 666 · consume
 Scheduled.
 Household 667 · restock
@@ -1781,7 +1789,9 @@ Inspect stocks →
 Household 682 · consume
 Scheduled.
 Household 683 · restock
-Scheduled.
+Waiting for space for sundries in a Household's stock.
+Blocking stock: 48 / 48 units
+Inspect stocks →
 Household 683 · consume
 Scheduled.
 Household 684 · restock
@@ -1929,9 +1939,7 @@ Scheduled.
 Household 710 · consume
 Scheduled.
 Household 711 · restock
-Waiting for space for sundries in a Household's stock.
-Blocking stock: 48 / 48 units
-Inspect stocks →
+Scheduled.
 Household 711 · consume
 Scheduled.
 Household 712 · restock
@@ -1947,9 +1955,7 @@ Inspect stocks →
 Household 713 · consume
 Scheduled.
 Household 714 · restock
-Waiting for space for sundries in a Household's stock.
-Blocking stock: 48 / 48 units
-Inspect stocks →
+Scheduled.
 Household 714 · consume
 Scheduled.
 Household 715 · restock
@@ -2091,7 +2097,9 @@ Inspect stocks →
 Household 741 · consume
 Scheduled.
 Household 742 · restock
-Scheduled.
+Waiting for space for sundries in a Household's stock.
+Blocking stock: 48 / 48 units
+Inspect stocks →
 Household 742 · consume
 Scheduled.
 Household 743 · restock
@@ -2111,9 +2119,7 @@ Inspect stocks →
 Household 745 · consume
 Scheduled.
 Household 746 · restock
-Waiting for space for sundries in a Household's stock.
-Blocking stock: 48 / 48 units
-Inspect stocks →
+Scheduled.
 Household 746 · consume
 Scheduled.
 Household 747 · restock
@@ -2151,15 +2157,11 @@ Scheduled.
 Household 753 · consume
 Scheduled.
 Household 754 · restock
-Waiting for space for sundries in a Household's stock.
-Blocking stock: 48 / 48 units
-Inspect stocks →
+Scheduled.
 Household 754 · consume
 Scheduled.
 Household 755 · restock
-Waiting for space for sundries in a Household's stock.
-Blocking stock: 48 / 48 units
-Inspect stocks →
+Scheduled.
 Household 755 · consume
 Scheduled.
 Household 756 · restock
@@ -2191,7 +2193,9 @@ Scheduled.
 Household 761 · consume
 Scheduled.
 Household 762 · restock
-Scheduled.
+Waiting for space for sundries in a Household's stock.
+Blocking stock: 48 / 48 units
+Inspect stocks →
 Household 762 · consume
 Scheduled.
 Household 763 · restock
@@ -2207,7 +2211,9 @@ Inspect stocks →
 Household 764 · consume
 Scheduled.
 Household 765 · restock
-Scheduled.
+Waiting for space for sundries in a Household's stock.
+Blocking stock: 48 / 48 units
+Inspect stocks →
 Household 765 · consume
 Scheduled.
 Household 766 · restock
@@ -2349,9 +2355,7 @@ Inspect stocks →
 Household 791 · consume
 Scheduled.
 Household 792 · restock
-Waiting for space for sundries in a Household's stock.
-Blocking stock: 48 / 48 units
-Inspect stocks →
+Scheduled.
 Household 792 · consume
 Scheduled.
 Household 793 · restock
@@ -2427,7 +2431,9 @@ Scheduled.
 Household 805 · consume
 Scheduled.
 Household 806 · restock
-Scheduled.
+Waiting for space for sundries in a Household's stock.
+Blocking stock: 48 / 48 units
+Inspect stocks →
 Household 806 · consume
 Scheduled.
 Household 807 · restock
@@ -2855,7 +2861,9 @@ Inspect stocks →
 Household 883 · consume
 Scheduled.
 Household 884 · restock
-Scheduled.
+Waiting for space for sundries in a Household's stock.
+Blocking stock: 48 / 48 units
+Inspect stocks →
 Household 884 · consume
 Scheduled.
 Household 885 · restock
@@ -2893,9 +2901,7 @@ Scheduled.
 Household 890 · consume
 Scheduled.
 Household 891 · restock
-Waiting for space for sundries in a Household's stock.
-Blocking stock: 48 / 48 units
-Inspect stocks →
+Scheduled.
 Household 891 · consume
 Scheduled.
 Household 892 · restock
@@ -2953,9 +2959,7 @@ Scheduled.
 Household 901 · consume
 Scheduled.
 Household 902 · restock
-Waiting for space for sundries in a Household's stock.
-Blocking stock: 48 / 48 units
-Inspect stocks →
+Scheduled.
 Household 902 · consume
 Scheduled.
 Household 903 · restock
@@ -3047,15 +3051,11 @@ Scheduled.
 Household 918 · consume
 Scheduled.
 Household 919 · restock
-Waiting for space for sundries in a Household's stock.
-Blocking stock: 48 / 48 units
-Inspect stocks →
+Scheduled.
 Household 919 · consume
 Scheduled.
 Household 920 · restock
-Waiting for space for sundries in a Household's stock.
-Blocking stock: 48 / 48 units
-Inspect stocks →
+Scheduled.
 Household 920 · consume
 Scheduled.
 Household 921 · restock
@@ -3729,7 +3729,7 @@ Household 387 · sundries
 Household 388 · sundries
 48 / 48 units
 Household 389 · sundries
-44 / 48 units
+48 / 48 units
 Household 390 · sundries
 48 / 48 units
 Household 391 · sundries
@@ -3747,7 +3747,7 @@ Household 396 · sundries
 Household 397 · sundries
 48 / 48 units
 Household 398 · sundries
-48 / 48 units
+44 / 48 units
 Household 399 · sundries
 48 / 48 units
 Household 400 · sundries
@@ -3763,13 +3763,13 @@ Household 404 · sundries
 Household 405 · sundries
 48 / 48 units
 Household 406 · sundries
-44 / 48 units
+48 / 48 units
 Household 407 · sundries
 48 / 48 units
 Household 408 · sundries
 48 / 48 units
 Household 409 · sundries
-48 / 48 units
+44 / 48 units
 Household 410 · sundries
 48 / 48 units
 Household 411 · sundries
@@ -3811,9 +3811,9 @@ Household 428 · sundries
 Household 429 · sundries
 48 / 48 units
 Household 430 · sundries
-48 / 48 units
+44 / 48 units
 Household 431 · sundries
-48 / 48 units
+44 / 48 units
 Household 432 · sundries
 48 / 48 units
 Household 433 · sundries
@@ -3849,7 +3849,7 @@ Household 447 · sundries
 Household 448 · sundries
 48 / 48 units
 Household 449 · sundries
-44 / 48 units
+48 / 48 units
 Household 450 · sundries
 48 / 48 units
 Household 451 · sundries
@@ -3871,7 +3871,7 @@ Household 458 · sundries
 Household 459 · sundries
 48 / 48 units
 Household 460 · sundries
-44 / 48 units
+48 / 48 units
 Household 461 · sundries
 48 / 48 units
 Household 462 · sundries
@@ -3887,7 +3887,7 @@ Household 466 · sundries
 Household 467 · sundries
 48 / 48 units
 Household 468 · sundries
-48 / 48 units
+44 / 48 units
 Household 469 · sundries
 48 / 48 units
 Household 470 · sundries
@@ -3895,7 +3895,7 @@ Household 470 · sundries
 Household 471 · sundries
 48 / 48 units
 Household 472 · sundries
-48 / 48 units
+44 / 48 units
 Household 473 · sundries
 48 / 48 units
 Household 474 · sundries
@@ -3945,7 +3945,7 @@ Household 495 · sundries
 Household 496 · sundries
 48 / 48 units
 Household 497 · sundries
-48 / 48 units
+44 / 48 units
 Household 498 · sundries
 48 / 48 units
 Household 499 · sundries
@@ -4047,7 +4047,7 @@ Household 546 · sundries
 Household 547 · sundries
 48 / 48 units
 Household 548 · sundries
-48 / 48 units
+44 / 48 units
 Household 549 · sundries
 48 / 48 units
 Household 550 · sundries
@@ -4097,7 +4097,7 @@ Household 571 · sundries
 Household 572 · sundries
 48 / 48 units
 Household 573 · sundries
-48 / 48 units
+44 / 48 units
 Household 574 · sundries
 48 / 48 units
 Household 575 · sundries
@@ -4217,7 +4217,7 @@ Household 631 · sundries
 Household 632 · sundries
 48 / 48 units
 Household 633 · sundries
-44 / 48 units
+48 / 48 units
 Household 634 · sundries
 48 / 48 units
 Household 635 · sundries
@@ -4261,7 +4261,7 @@ Household 653 · sundries
 Household 654 · sundries
 48 / 48 units
 Household 655 · sundries
-44 / 48 units
+48 / 48 units
 Household 656 · sundries
 48 / 48 units
 Household 657 · sundries
@@ -4269,7 +4269,7 @@ Household 657 · sundries
 Household 658 · sundries
 48 / 48 units
 Household 659 · sundries
-48 / 48 units
+44 / 48 units
 Household 660 · sundries
 48 / 48 units
 Household 661 · sundries
@@ -4335,7 +4335,7 @@ Household 690 · sundries
 Household 691 · sundries
 48 / 48 units
 Household 692 · sundries
-44 / 48 units
+48 / 48 units
 Household 693 · sundries
 48 / 48 units
 Household 694 · sundries
@@ -4373,19 +4373,19 @@ Household 709 · sundries
 Household 710 · sundries
 48 / 48 units
 Household 711 · sundries
-48 / 48 units
+44 / 48 units
 Household 712 · sundries
 48 / 48 units
 Household 713 · sundries
 48 / 48 units
 Household 714 · sundries
-48 / 48 units
+44 / 48 units
 Household 715 · sundries
 48 / 48 units
 Household 716 · sundries
-44 / 48 units
+48 / 48 units
 Household 717 · sundries
-44 / 48 units
+48 / 48 units
 Household 718 · sundries
 48 / 48 units
 Household 719 · sundries
@@ -4415,7 +4415,7 @@ Household 730 · sundries
 Household 731 · sundries
 48 / 48 units
 Household 732 · sundries
-44 / 48 units
+48 / 48 units
 Household 733 · sundries
 48 / 48 units
 Household 734 · sundries
@@ -4443,11 +4443,11 @@ Household 744 · sundries
 Household 745 · sundries
 48 / 48 units
 Household 746 · sundries
-48 / 48 units
+44 / 48 units
 Household 747 · sundries
 48 / 48 units
 Household 748 · sundries
-44 / 48 units
+48 / 48 units
 Household 749 · sundries
 48 / 48 units
 Household 750 · sundries
@@ -4459,9 +4459,9 @@ Household 752 · sundries
 Household 753 · sundries
 48 / 48 units
 Household 754 · sundries
-48 / 48 units
+44 / 48 units
 Household 755 · sundries
-48 / 48 units
+44 / 48 units
 Household 756 · sundries
 48 / 48 units
 Household 757 · sundries
@@ -4535,7 +4535,7 @@ Household 790 · sundries
 Household 791 · sundries
 48 / 48 units
 Household 792 · sundries
-48 / 48 units
+44 / 48 units
 Household 793 · sundries
 48 / 48 units
 Household 794 · sundries
@@ -4559,7 +4559,7 @@ Household 802 · sundries
 Household 803 · sundries
 48 / 48 units
 Household 804 · sundries
-44 / 48 units
+48 / 48 units
 Household 805 · sundries
 48 / 48 units
 Household 806 · sundries
@@ -4609,7 +4609,7 @@ Household 827 · sundries
 Household 828 · sundries
 48 / 48 units
 Household 829 · sundries
-44 / 48 units
+48 / 48 units
 Household 830 · sundries
 48 / 48 units
 Household 831 · sundries
@@ -4633,7 +4633,7 @@ Household 839 · sundries
 Household 840 · sundries
 48 / 48 units
 Household 841 · sundries
-44 / 48 units
+48 / 48 units
 Household 842 · sundries
 48 / 48 units
 Household 843 · sundries
@@ -4653,7 +4653,7 @@ Household 849 · sundries
 Household 850 · sundries
 48 / 48 units
 Household 851 · sundries
-44 / 48 units
+48 / 48 units
 Household 852 · sundries
 48 / 48 units
 Household 853 · sundries
@@ -4733,7 +4733,7 @@ Household 889 · sundries
 Household 890 · sundries
 48 / 48 units
 Household 891 · sundries
-48 / 48 units
+44 / 48 units
 Household 892 · sundries
 48 / 48 units
 Household 893 · sundries
@@ -4753,9 +4753,9 @@ Household 899 · sundries
 Household 900 · sundries
 48 / 48 units
 Household 901 · sundries
-44 / 48 units
-Household 902 · sundries
 48 / 48 units
+Household 902 · sundries
+44 / 48 units
 Household 903 · sundries
 48 / 48 units
 Household 904 · sundries
@@ -4765,7 +4765,7 @@ Household 905 · sundries
 Household 906 · sundries
 48 / 48 units
 Household 907 · sundries
-44 / 48 units
+48 / 48 units
 Household 908 · sundries
 48 / 48 units
 Household 909 · sundries
@@ -4789,9 +4789,9 @@ Household 917 · sundries
 Household 918 · sundries
 48 / 48 units
 Household 919 · sundries
-48 / 48 units
+44 / 48 units
 Household 920 · sundries
-48 / 48 units
+44 / 48 units
 Household 921 · sundries
 48 / 48 units
 Household 922 · sundries
@@ -4806,6 +4806,6 @@ Household 926 · sundries
 48 / 48 units
 ui theme=dark debug=False visible=True scroll=0
 inspector (2130, 104), (406, 774) min=(125, 130)
-body (2150, 218), (366, 644) min=(50, 644)
-scroll (2150, 218), (366, 644) min=(50, 0)
+body (2150, 218), (358, 4440) min=(50, 644)
+scroll (2150, 218), (366, 952) min=(50, 0)
 hover (40, 1286), (962, 49) debug (24, 264), (840, 36) console (24, 1210), (994, 137)
