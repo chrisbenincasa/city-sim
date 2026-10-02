@@ -1,0 +1,9 @@
+# Detached Lots on the south edge of platted.toml at 40,000 Citizens, near enough to read each
+# reused apartment body at its own size: corridor, walkup and two-unit bodies at 2 to 5 storeys.
+2 pause
+2 ui family-bodies on 1600
+2 roads on
+2 focus 556 660 170
+2 tilt 30
+2 shoot artifacts/midrise-families/drive/detached-near.png
+2 quit

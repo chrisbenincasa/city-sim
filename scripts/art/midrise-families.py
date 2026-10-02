@@ -21,8 +21,8 @@ Every face of a wing takes one role:
   party    a flank against a neighbour, drawn blank
 
 The mansion block is brick over a rendered ground storey, with punched windows, loggias on the
-street, a cornice and a rendered attic set back behind a terrace. Its yard is render with
-projecting balconies. The panel slab is a precast grid on a recessed ground storey with pilotis,
+street, a cornice and a rendered attic set back behind a terrace. Its yard is the same brick
+with projecting balconies. The panel slab is a precast grid on a recessed ground storey with pilotis,
 loggia columns on the street, access galleries on the yard, and plant rooms on the roof.
 
 The variants are saved as .blend references with a lineup for review. The only exports are
@@ -152,8 +152,6 @@ def mansion_face(g, side, a, b, storeys, role, look):
         return
     full = storeys - 1 if look['attic'] else storeys
     top = full * STOREY
-    plaster = role == 'yard'
-    body_part = 'wall-end' if plaster else 'wall'
     stretch = bays(b - a, look['bay'])
     doors = [a + e for e in entries(b - a, look['entry_every'])] if role == 'street' else []
     shops = look['shops'] and role == 'street'
@@ -196,21 +194,21 @@ def mansion_face(g, side, a, b, storeys, role, look):
                 side.slab(g, 'trim', u0 + .2, u1 - .2, z - .15, z, -d, 0)
                 railing(g, side, u0 + .2, u1 - .2, z, -d + .05)
         loggias = [o for o in openings if o[4:] == (None,)]
-        wall_with_openings(g, side, body_part, a, b, z, z + STOREY, openings)
+        wall_with_openings(g, side, 'wall', a, b, z, z + STOREY, openings)
         for u0, u1, za, zb, _ in loggias:
             d = look['loggia_depth']
             wall_with_openings(g, side, 'reveal', u0, u1, za, zb, [
                 centred(u0, u0 + (u1 - u0) * .45, 1.0, za, 2.3) + ('glass',),
                 centred(u0 + (u1 - u0) * .55, u1, 1.2, za + .9, 1.5)], d, d + .1)
-            side.slab(g, body_part, u0 - .1, u0, za, zb, WALL, d)
-            side.slab(g, body_part, u1, u1 + .1, za, zb, WALL, d)
+            side.slab(g, 'wall', u0 - .1, u0, za, zb, WALL, d)
+            side.slab(g, 'wall', u1, u1 + .1, za, zb, WALL, d)
             side.slab(g, 'trim', u0, u1, za, za + .12, -.05, d)
             railing(g, side, u0, u1, za + .12, .05)
 
     ch, cout = look['cornice'] if role == 'street' else (.2, .08)
     side.slab(g, 'trim', a, b, top - .1, top + ch - .1, -cout, WALL)
     if not look['attic']:
-        side.slab(g, body_part, a, b, top + ch - .1, top + look['parapet'], 0, WALL)
+        side.slab(g, 'wall', a, b, top + ch - .1, top + look['parapet'], 0, WALL)
         side.slab(g, 'trim', a, b, top + look['parapet'], top + look['parapet'] + .1, -.05, WALL + .05)
 
 
