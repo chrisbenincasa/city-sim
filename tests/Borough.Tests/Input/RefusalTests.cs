@@ -104,10 +104,17 @@ public sealed class RefusalTests
         Assert.Equal(simulation.Refuses(service), simulation.LastRefused.Refusal);
         Assert.Equal(service.Kind, simulation.LastRefused.Command.Kind);
 
+        InputLog written = new InputLogBuilder(Seed, new WorldConfiguration(Citizens), rulesetHash: 0)
+            .Append(Ticks.Zero, service)
+            .Append(Ticks.Zero, service)
+            .Build();
+        InputLog log = InputLogCodec.FromText(InputLogCodec.ToText(written));
+
         (World replayed, Simulation replay) = City(Schooled);
 
-        replay.Step(input);
+        replay.Step(new TickInput(log.At(Ticks.Zero), log.RulesetHashAt(Ticks.Zero)));
 
+        Assert.Equal(1, replay.CommandsRefused);
         Assert.Equal(world.HashState(), replayed.HashState());
     }
 
