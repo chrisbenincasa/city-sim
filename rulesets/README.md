@@ -37,14 +37,14 @@ For a generated scene, substitute any ordinary single-file Ruleset:
 godot --path src/Borough.Godot -- --ruleset rulesets/platted.toml --citizens 1000
 ```
 
-With no Ruleset or population arguments the shell selects `neighbourhood.toml` and
-1,000 Citizens. Population affects the generated scene's extent and activity; the same
+With no Ruleset or population arguments the shell selects the base package
+(`base/ruleset.toml`) and 1,000 Citizens. The menu's New City entries use the same Ruleset. Population affects the generated scene's extent and activity; the same
 Ruleset at a different population need not show the same outcome.
 
-For manual founding, start empty with the base package:
+For manual founding, start empty, or choose New empty city from the menu:
 
 ```sh
-godot --path src/Borough.Godot -- --ruleset rulesets/base/ruleset.toml --empty
+godot --path src/Borough.Godot -- --empty
 ```
 
 For the small housing playtest, follow the

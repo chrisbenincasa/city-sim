@@ -917,6 +917,7 @@ public partial class Main : Node3D
     /// </para>
     /// </remarks>
     private (Tiles East, Tiles North)? _pressed;
+    private bool _pressedInverted;
     private Label _readout = null!;
     private VisibleAgent[] _agents = new VisibleAgent[8192];
     private double _owed;
@@ -925,7 +926,7 @@ public partial class Main : Node3D
     /// <summary>Frames drawn since the shell opened. Read only by the screenshot trigger.</summary>
     private int _frame;
     /// <summary>The Ruleset this run booted from. A resumed city is not loaded from a path.</summary>
-    private string _rulesetPath = "rulesets/neighbourhood.toml";
+    private string _rulesetPath = "rulesets/base/ruleset.toml";
 
     /// <summary>What the readout and a driven run's <c>draw</c> file call the Ruleset in force.</summary>
     /// <remarks>
@@ -1138,7 +1139,7 @@ public partial class Main : Node3D
         _citizens = citizens;
         _seed = 0;
 
-        PrepareCity(loaded.Ruleset, citizens, _seed, startAt ?? (ulong)Ticks.AtClock(8), simulation =>
+        PrepareCity(loaded.Ruleset, citizens, _seed, _empty, startAt ?? (ulong)Ticks.AtClock(8), simulation =>
         {
             InstallCity(simulation);
             FinishReady(govern);
@@ -1507,11 +1508,9 @@ public partial class Main : Node3D
                 }
             }
 
-            // The other half of a drag, and it is a READER: it says what the gesture asked the
-            // lattice for and never acts. plans/0045 row 23 -- there are no diagonal Streets, and
-            // until this branch existed a drag laid one Segment near where it started and reported
-            // nothing at all. ⚠ Nothing is applied unless Dragging finds something worth a
-            // sentence, so an ordinary click records exactly what it always did.
+            // The other half of a drag. A straight Street drag lays the run; a diagonal one says why
+            // it laid only the pressed edge. ⚠ Nothing is recorded unless Dragging finds a drag that
+            // left its first edge, so an ordinary click records exactly what it always did.
             if (button is { Pressed: false, ButtonIndex: MouseButton.Left })
             {
                 if (_verb == Verb.Zone && _zoneStart is not null)
@@ -1619,7 +1618,7 @@ public partial class Main : Node3D
     private static (string Ruleset, int Citizens, ulong? StartAt, bool Govern, bool Empty,
         string? Drive, ulong QuitAt, string? Listen, string? Record, string? Load) Arguments()
     {
-        string ruleset = "rulesets/neighbourhood.toml";
+        string ruleset = "rulesets/base/ruleset.toml";
         int citizens = 1_000;
 
         // 🔴 THE SHELL OPENS AT 08:00 AND THE SIMULATION'S DAY STILL BEGINS AT 05:00, AND KEEPING

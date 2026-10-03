@@ -94,8 +94,8 @@ The simulation receives endpoints and shape. The shell's tool chooses them.
   `adr/0077`'s lattice run is the precedent.
 - Snap defaults, the length step and angle steps go in the Ruleset or shell settings, not
   constants.
-- Lattice-only Street runs (`ConnectPayload` with a count) may ship first as a play-testing
-  stopgap. They are replaced by this tool.
+- Lattice-only Street runs (`ConnectPayload.Segments`) are the play-testing stopgap. This tool
+  replaces them.
 
 ### Remaining design decisions
 

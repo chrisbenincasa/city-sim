@@ -627,8 +627,8 @@ public sealed class Simulation
                 break;
 
             case CommandKind.Connect:
-                // 01 §2's fifth verb, declared since slice 5 and thrown until now. adr/0077 settles
-                // what it is: one Street Segment on the lattice edge leaving the named intersection.
+                // 01 §2's fifth verb. adr/0077 settles what it is: a run of Street Segments along one
+                // axis, starting on the lattice edge leaving the named intersection.
                 ApplyConnect(command);
                 break;
 
@@ -1494,9 +1494,16 @@ public sealed class Simulation
         int column = _world.Roads.Streets.Lattice.LineAt(command.East.Raw);
         int row = _world.Roads.Streets.Lattice.LineAt(command.North.Raw);
 
-        bool changed = payload.Action == ConnectAction.Lay
-            ? _world.Roads.LayStreet(column, row, payload.Axis)
-            : _world.Roads.BulldozeStreet(column, row, payload.Axis);
+        bool changed = false;
+
+        for (int i = 0; i < payload.Segments; i++)
+        {
+            (int c, int r) = payload.Axis == StreetAxis.East ? (column + i, row) : (column, row + i);
+
+            changed |= payload.Action == ConnectAction.Lay
+                ? _world.Roads.LayStreet(c, r, payload.Axis)
+                : _world.Roads.BulldozeStreet(c, r, payload.Axis);
+        }
 
         if (!changed)
         {

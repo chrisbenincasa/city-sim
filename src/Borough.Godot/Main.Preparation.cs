@@ -21,10 +21,10 @@ public partial class Main
     private string _previousLoadingText = "Preparing city…";
     private bool _sceneReady, _cancellingPreparation, _quitAfterPreparation;
 
-    private void PrepareCity(Ruleset rules, int citizens, ulong seed, ulong until, Action<Simulation> completed)
+    private void PrepareCity(Ruleset rules, int citizens, ulong seed, bool empty, ulong until, Action<Simulation> completed)
     {
         ShowPreparation(until, completed);
-        _preparation = new CityPreparation(citizens, rules, WorldKey.FromSeed(seed), _empty, until, _routeWorkers);
+        _preparation = new CityPreparation(citizens, rules, WorldKey.FromSeed(seed), empty, until, _routeWorkers);
     }
 
     private void PrepareSavedCity(string path, ulong? until, Action<Simulation, CityPreparation> completed)
