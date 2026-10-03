@@ -754,3 +754,11 @@ were regenerated with the commands above. Baseline Ruleset content hashes and th
 unchanged. Behaviour did not move: census readings of twelve shipped Rulesets over 10 Days at 2,000
 Citizens, and of two sessions that reload a Ruleset mid-run, are identical before and after once the
 State Hash lines and the new table's own rows are removed.
+
+### Labour-bound production (2026-10-03)
+
+`business` gains a saved `search_since`, the Tick a Business's search for premises began, so Core
+save format is **14** (it also covers `citizen.labour_remainder`, which the branch added earlier).
+All three artefacts moved on the new column. Both traces and `world-hash.txt` were regenerated
+with the commands above. Baseline Ruleset content hashes and the hash seed are unchanged; no
+baseline Ruleset declares labour.
