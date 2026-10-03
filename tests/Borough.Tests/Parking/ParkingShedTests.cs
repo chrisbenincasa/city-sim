@@ -344,7 +344,7 @@ public sealed class ParkingShedTests
         public Shed(RoadGraph graph)
         {
             _graph = graph;
-            _buildings = new BuildingTable(16, new LotTable(16));
+            _buildings = new BuildingTable(16, new LotTable(16, graph.Segments));
             _carParks = new CarParkTable(16, _buildings, graph.Segments);
         }
 

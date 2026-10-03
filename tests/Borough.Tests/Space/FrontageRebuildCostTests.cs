@@ -113,7 +113,7 @@ public sealed class FrontageRebuildCostTests(ITestOutputHelper output)
 
             // Warmed before either clock, because the first call through a cold method is measuring
             // the JIT and not the pass. Both are warmed, not just the one being read first.
-            world.Frontage.Rebuild(world.Lots, world.Roads.Streets);
+            world.Frontage.Rebuild(world.Lots);
             world.RebuildDerived();
 
             long frontage = long.MaxValue;
@@ -122,7 +122,7 @@ public sealed class FrontageRebuildCostTests(ITestOutputHelper output)
             for (int i = 0; i < Repeats; i++)
             {
                 long before = Stopwatch.GetTimestamp();
-                world.Frontage.Rebuild(world.Lots, world.Roads.Streets);
+                world.Frontage.Rebuild(world.Lots);
                 long took = Stopwatch.GetTimestamp() - before;
 
                 frontage = took < frontage ? took : frontage;

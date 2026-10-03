@@ -1868,11 +1868,11 @@ public partial class Main
 
     /// <summary>Every Lot's Address as a Segment, a side and a distance, sorted for one walk.</summary>
     /// <remarks>
-    /// ⚠ <b><see cref="LotTable.FrontageSlot"/> is the Segment's slot PLUS ONE</b>, so that zero
-    /// reads as <em>no Street</em> — <c>Frontage.Rebuild</c>'s own convention, and a Lot whose Street
-    /// was demolished keeps its Building and loses its Address (<c>adr/0079</c>). ⚠ <b>The offset is
-    /// measured from the lattice edge's LOWER end</b>, which is what <c>Frontage.Locate</c> computes
-    /// and why <see cref="Kerbs"/> orients the run rather than trusting the node order.
+    /// ⚠ <b><see cref="LotTable.FrontageOn"/> resolves the Lot's saved Segment handle</b> and answers
+    /// <c>Rows.NoSlot</c> where there is none, which is a Lot whose Street was demolished: it keeps
+    /// its Building and loses its Address (<c>adr/0079</c>). ⚠ <b>The offset is measured from the
+    /// Segment's A endpoint</b>, which is why <see cref="Kerbs"/> orients the run rather than trusting
+    /// the node order.
     /// </remarks>
     private List<(int Segment, byte Side, float Along)> Addresses()
     {
@@ -1881,13 +1881,20 @@ public partial class Main
 
         for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
         {
-            if (!lots.Rows.IsLive(slot) || lots.FrontageSlot[slot] <= 0)
+            if (!lots.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            int segment = lots.FrontageOn(slot);
+
+            if (segment == Borough.Core.Tables.Rows.NoSlot)
             {
                 continue;
             }
 
             found.Add((
-                lots.FrontageSlot[slot] - 1,
+                segment,
                 lots.Side[slot],
                 lots.FrontageOffset[slot].Raw * MetresPerTile));
         }

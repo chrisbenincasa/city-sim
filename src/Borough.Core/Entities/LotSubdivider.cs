@@ -131,8 +131,7 @@ public static class LotSubdivider
             var address = parcel.Address(ground);
             Handle<Lot> lot = world.Lots.Create(address.East, address.North, permission.CommonUses, parcel.Side);
             int slot = world.Lots.Rows.Resolve(lot);
-            world.Lots.FrontageSlot[slot] = segment + 1;
-            world.Lots.FrontageOffset[slot] = parcel.Offset;
+            world.Lots.Front(slot, world.Roads.Segments.Rows.At(segment), parcel.Offset);
             world.Lots.ParcelEast[slot] = parcel.East; world.Lots.ParcelNorth[slot] = parcel.North;
             world.Lots.ParcelWide[slot] = parcel.Wide; world.Lots.ParcelDeep[slot] = parcel.Deep;
             BlockPattern form = BlockPatterns.FormOf(pattern, parcel.Face);
@@ -202,7 +201,7 @@ public static class LotSubdivider
         for (int lot = 0; lot < world.Lots.Rows.SlotCount; lot++)
             if (OnBlock(world, lot, column, row, out _)) { world.Lots.Rows.Free(world.Lots.Rows.At(lot)); }
         world.PatternBlock(column, row, wanted);
-        world.Frontage.Rebuild(world.Lots, world.Roads.Streets);
+        world.Frontage.Rebuild(world.Lots);
         world.LotsAdmitting.Invalidate();
         return CarveBlock(world, column, row);
     }
@@ -218,7 +217,7 @@ public static class LotSubdivider
         if (freed > 0)
         {
             world.LotsAdmitting.Invalidate();
-            world.Frontage.Rebuild(world.Lots, world.Roads.Streets);
+            world.Frontage.Rebuild(world.Lots);
         }
         // Permission geometry outlives both Lots and Block rows. Visit ground on either side of
         // every live Street; no paint is copied from an old Lot or block summary during restoration.

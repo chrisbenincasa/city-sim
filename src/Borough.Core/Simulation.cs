@@ -1512,7 +1512,14 @@ public sealed class Simulation
 
         // The graph edit has already rebuilt the Street lattice; frontage follows it, and only then
         // can the subdivider tell which Lots have lost their Street and which faces have gained one.
-        _world.Frontage.Rebuild(_world.Lots, _world.Roads.Streets);
+        //
+        // Both directions run whatever the action was, because each is a no-op against the other's
+        // edit: a bulldoze leaves nothing to attach and a lay frees no Segment. A Lot that loses its
+        // Street keeps standing with no Address (adr/0079); a Lot that gets one back is fronted
+        // again, which is what makes re-laying a Street restore the city it had.
+        Space.Frontage.Sever(_world.Lots);
+        Space.Frontage.Attach(_world.Lots, _world.Roads.Streets, _world.Roads.Segments);
+        _world.Frontage.Rebuild(_world.Lots);
 
         // The Parking Shed's supply index is keyed on Segment slots, so a graph edit invalidates it
         // for the same reason it invalidates frontage -- and it must be rebuilt BEFORE the subdivider
