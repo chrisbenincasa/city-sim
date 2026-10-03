@@ -215,6 +215,7 @@ public partial class Main
         // `click` arrives here exactly as a hand's does and the gesture has to be reproducible from
         // a recording -- Dragging is where the tool is asked about.
         _pressed = at;
+        _pressedInverted = inverted;
 
         switch (_verb)
         {
@@ -617,33 +618,17 @@ public partial class Main
             ? to
             : null;
 
-    /// <summary>
-    /// <b>Says what a drag asked the lattice for, and lays nothing.</b> The press already acted.
-    /// </summary>
+    /// <summary>Lays, or with Shift removes, every Street on the straight line a drag covered.</summary>
     /// <remarks>
     /// <para>
-    /// 🔴 <b>THERE ARE NO DIAGONAL STREETS AND THE REFUSAL DID NOT REACH THE PLAYER.</b>
-    /// <c>StreetAxis</c> declares exactly east and north and <c>adr/0077</c> refuses a spline by
-    /// name, so <em>how do I build a diagonal road</em> has the answer <b>you cannot</b> — a
-    /// <b>refusal</b>, and <c>adr/0070</c>'s one classification that counts as evidence. ⚠ <b>It was
-    /// not in <see cref="Sentence"/> and could not be</b>: a diagonal is not expressible as a
-    /// <c>Command</c>, so <see cref="Simulation.Refuses"/> is never asked and there is no
-    /// <c>Refusal</c> to word. ***The tool did not decline; it substituted***, laying one Segment on
-    /// the edge the press was nearest and saying nothing about the rest of the gesture.
-    /// <c>plans/0045</c> row 23.
+    /// The press already acted on its own edge, so the run repeats it harmlessly: laying a laid Street
+    /// changes nothing. A run longer than <see cref="ConnectPayload.MaxSegments"/> goes as several
+    /// commands.
     /// </para>
     /// <para>
-    /// ⚠ <b>The diagonals a player has already seen are FOOT PATHS</b>, laid by
-    /// <c>[roads] foot_paths_per_thousand_blocks</c> corner to corner across a block — which is why
-    /// <c>--morphology</c> reports six occupied compass bins where a pure lattice has four.
-    /// ***A player who has seen a diagonal on screen will reasonably ask for the tool that made
-    /// it***, and the honest answer is that no tool did, so the sentence says so rather than leaving
-    /// them to infer it.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>The run is the other half and it is a different sentence.</b> A drag along one axis is
-    /// buildable and simply is not one edit — <c>adr/0077</c>, <em>a road edit is one Segment</em> —
-    /// so it gets a count and an instruction rather than a no.
+    /// ⚠ <b>There are no diagonal Streets.</b> <c>StreetAxis</c> declares east and north only and
+    /// <c>adr/0077</c> refuses a spline, so a two-axis drag lays only the pressed edge and says so.
+    /// The diagonals a generated city shows are foot paths, which no tool lays.
     /// </para>
     /// </remarks>
     private void Dragged((Tiles East, Tiles North) to)
@@ -657,26 +642,45 @@ public partial class Main
 
         _pressed = null;
 
-        (StreetDrag drag, int streets) =
-            _world.Roads.Streets.Between(from.East, from.North, to.East, to.North);
+        StreetGrid streets = _world.Roads.Streets;
+        StreetDrag drag = streets.Between(from.East, from.North, to.East, to.North).Drag;
 
-        _refused = drag switch
+        if (drag == StreetDrag.TwoAxes)
         {
-            StreetDrag.OneLine =>
-                "a Street is one edge, so the drag laid only the one you pressed on. The run from "
-                + $"end to end is {streets:N0} edges — click each of them.",
-
-            // ⚠ TWO LINES, AND THE BREAK IS NOT A STYLE CHOICE. The readout does not wrap, so the
-            // first draft of this ran the whole width of a 3,024-pixel frame and collided with the
-            // hover panel in the top-right corner -- found by shooting it. ***A refusal a player
-            // cannot read is the defect this row is about, one level up.***
-            StreetDrag.TwoAxes =>
+            // ⚠ Two lines because the readout does not wrap; one line collided with the hover panel.
+            _refused =
                 "Streets run EAST and NORTH, so there is no diagonal to lay: the drag laid only the "
-                + "edge you pressed on.\nStep it — one click east, one north, and again. The "
-                + "diagonals already in this city are FOOT PATHS, and no tool lays one.",
+                + "edge you pressed on.\nDrag one straight run, then the next. The diagonals "
+                + "already in this city are FOOT PATHS, and no tool lays one.";
 
-            _ => string.Empty,
-        };
+            return;
+        }
+
+        if (drag != StreetDrag.OneLine)
+        {
+            return;
+        }
+
+        (int fromColumn, int fromRow, StreetAxis axis) = streets.NearestEdge(from.East, from.North);
+        (int toColumn, int toRow, _) = streets.NearestEdge(to.East, to.North);
+        (int first, int last) = axis == StreetAxis.East
+            ? (Math.Min(fromColumn, toColumn), Math.Max(fromColumn, toColumn))
+            : (Math.Min(fromRow, toRow), Math.Max(fromRow, toRow));
+
+        for (int start = first; start <= last; start += ConnectPayload.MaxSegments)
+        {
+            int count = Math.Min(ConnectPayload.MaxSegments, last - start + 1);
+            (Tiles east, Tiles north) = axis == StreetAxis.East
+                ? streets.IntersectionTile(start, fromRow)
+                : streets.IntersectionTile(fromColumn, start);
+            var payload = new ConnectPayload(
+                axis,
+                _pressedInverted ? ConnectAction.Bulldoze : ConnectAction.Lay,
+                RoadKind.Street,
+                count);
+
+            Send(new Command(CommandKind.Connect, east, north, payload.Encode()));
+        }
     }
 
     /// <summary>Clears the abandoned Building nearest the cursor, at its own Lot's Tile.</summary>

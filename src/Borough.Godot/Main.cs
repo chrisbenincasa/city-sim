@@ -917,6 +917,7 @@ public partial class Main : Node3D
     /// </para>
     /// </remarks>
     private (Tiles East, Tiles North)? _pressed;
+    private bool _pressedInverted;
     private Label _readout = null!;
     private VisibleAgent[] _agents = new VisibleAgent[8192];
     private double _owed;
@@ -1507,11 +1508,9 @@ public partial class Main : Node3D
                 }
             }
 
-            // The other half of a drag, and it is a READER: it says what the gesture asked the
-            // lattice for and never acts. plans/0045 row 23 -- there are no diagonal Streets, and
-            // until this branch existed a drag laid one Segment near where it started and reported
-            // nothing at all. ⚠ Nothing is applied unless Dragging finds something worth a
-            // sentence, so an ordinary click records exactly what it always did.
+            // The other half of a drag. A straight Street drag lays the run; a diagonal one says why
+            // it laid only the pressed edge. ⚠ Nothing is recorded unless Dragging finds a drag that
+            // left its first edge, so an ordinary click records exactly what it always did.
             if (button is { Pressed: false, ButtonIndex: MouseButton.Left })
             {
                 if (_verb == Verb.Zone && _zoneStart is not null)
