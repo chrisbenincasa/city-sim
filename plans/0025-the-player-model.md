@@ -198,7 +198,7 @@ that ADR's consequence list has come up one short.
   The map is open; the `adr/0011` damper argument is **given up rather than answered**, with the two
   causal dampers that replace it named.
 - **[`adr/0077`](../docs/adr/0077-a-road-edit-is-one-segment-and-the-player-lays-streets-only.md) amended.**
-  The edit unit is a **run** of Segments; `ConnectPayload`'s bits 2–7 are free, so **63 Segments — 8.06 km
+  The edit unit is a **run** of Segments; `ConnectPayload`'s bits 2–7 are free, so **64 Segments — 8.19 km
   in one command** — with the Input Log at version 1. `ConnectAction.Bulldoze` leaves for `Demolish`,
   freeing bit 1 and a ceiling of 127 nobody has spent. ***A revisit trigger names one way a decision can
   fall, and a decision usually falls another way***: this ADR predicted a finer `block_tiles` and what
@@ -222,7 +222,7 @@ which question the cap belonged to.
 1. **`adr/0090`** — the generator makes land and the player makes every road; the **open map** recorded as
    a stated refusal of `01 §8 Q3`'s unlock-by-serviceability recommendation.
 2. **`adr/0077` amendment** — the road edit unit becomes one **run** of Segments (click and drag), which
-   fits `ConnectPayload`'s six spare bits up to a 63-Segment run with no Input Log version bump. The
+   fits `ConnectPayload`'s six spare bits up to a 64-Segment run with no Input Log version bump. The
    Streets-only restriction is **discharged** rather than overturned, since `01 §2` already tags it as an
    ⚠ *as built* caveat with its successor written beside the refusal.
 3. **`plans/0002` ledger #2** closes as *refused*, with `01 §8 Q3` amended and its `adr/0011` damper

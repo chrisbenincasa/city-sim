@@ -243,4 +243,51 @@ public sealed class PlayerVerbTests
 
         Assert.NotEqual(eastward.HashState(), northward.HashState());
     }
+
+    // ---- runs -----------------------------------------------------------------------------------
+
+    /// <summary>A run of Segments is the same edit as one command per Segment.</summary>
+    [Theory]
+    [InlineData(StreetAxis.East, ConnectAction.Lay, 4_096, 4_096)]
+    [InlineData(StreetAxis.North, ConnectAction.Lay, 4_096, 4_096)]
+    [InlineData(StreetAxis.East, ConnectAction.Bulldoze, 1_024, 1_024)]
+    public void A_run_is_one_command_per_segment(StreetAxis axis, ConnectAction action, int east, int north)
+    {
+        (World single, Simulation bySegment) = Laid();
+        (World run, Simulation byRun) = Laid();
+        int block = single.Roads.Streets.BlockTiles;
+        int before = single.Roads.Segments.Rows.LiveCount;
+
+        bySegment.Step(new TickInput(
+            [.. Enumerable.Range(0, 3).Select(i => new Command(
+                CommandKind.Connect,
+                new Tiles(axis == StreetAxis.East ? east + (i * block) : east),
+                new Tiles(axis == StreetAxis.North ? north + (i * block) : north),
+                new ConnectPayload(axis, action, RoadKind.Street).Encode()))],
+            0));
+
+        byRun.Step(new TickInput(
+            [new Command(
+                CommandKind.Connect,
+                new Tiles(east),
+                new Tiles(north),
+                new ConnectPayload(axis, action, RoadKind.Street, 3).Encode())],
+            0));
+
+        Assert.NotEqual(before, single.Roads.Segments.Rows.LiveCount);
+        Assert.Equal(single.HashState(), run.HashState());
+    }
+
+    /// <summary>A payload word written before runs existed decodes as one Segment and re-encodes unchanged.</summary>
+    [Fact]
+    public void A_payload_without_a_count_is_one_segment()
+    {
+        var single = new ConnectPayload(StreetAxis.North, ConnectAction.Bulldoze, RoadKind.Street);
+        ushort legacy = (ushort)((int)StreetAxis.North | ((int)ConnectAction.Bulldoze << 1) | ((int)RoadKind.Street << 8));
+
+        Assert.Equal(legacy, single.Encode());
+        Assert.Equal(single, ConnectPayload.Decode(legacy));
+        Assert.Equal(ConnectPayload.MaxSegments, ConnectPayload.Decode(
+            new ConnectPayload(StreetAxis.East, ConnectAction.Lay, RoadKind.Street, ConnectPayload.MaxSegments).Encode()).Segments);
+    }
 }
