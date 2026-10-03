@@ -91,6 +91,7 @@ public sealed class BusinessTable
         // Saved, because nothing else records that a Business is in arrears. Saturating at the
         // ushort bound, which a trade only approaches if its threshold does.
         DaysInArrears = _rows.Saved<ushort>("days_in_arrears");
+        SearchSince = _rows.Saved<int>("search_since", Touch.Cold);
 
         // 🔴 plans/0072 D23: PROFIT IS ASSESSED PER DAY, so revenue and expense accumulate per Day
         // and are reset at the Day boundary. Three columns rather than two, and the Day is what
@@ -196,6 +197,17 @@ public sealed class BusinessTable
     /// pays wages in full writes zero.
     /// </remarks>
     public Column<ushort> DaysInArrears { get; }
+
+    /// <summary>
+    /// The Tick this Business's last search for premises began, plus one. Zero means it was never
+    /// in the Unpremised Pool.
+    /// </summary>
+    /// <remarks>
+    /// Premises where the trade runs no Rule do not end the search. A Business turned out of them
+    /// resumes this wait, so the give-up bound still reaches a trade that only ever finds such
+    /// premises.
+    /// </remarks>
+    public Column<int> SearchSince { get; }
 
     /// <summary>
     /// The Day <see cref="DayRevenue"/> and <see cref="DayExpense"/> refer to.

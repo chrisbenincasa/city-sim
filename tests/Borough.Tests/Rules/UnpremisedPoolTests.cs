@@ -282,4 +282,31 @@ public sealed class UnpremisedPoolTests
 
         world.Invariants.RunEndOfRun(world);
     }
+
+    /// <summary>
+    /// Premises where the trade runs no Rule do not restart its wait, so the bound still retires it.
+    /// </summary>
+    [Fact]
+    public void A_business_turned_out_of_premises_it_never_traded_in_keeps_its_wait()
+    {
+        (World world, Handle<Business> business, Handle<Building> premises) = Shop(days: 1, money: 600);
+        var simulation = new Simulation(world, Key);
+
+        world.DestroyBuilding(premises, Ticks.Zero);
+
+        while (world.Tick.Raw < (ulong)(Ticks.PerDay * 3 / 4)) { simulation.Step(TickInput.Empty); }
+
+        Handle<Lot> lot = world.Lots.Create(new Tiles(3), new Tiles(2), zone: 1);
+        Handle<Building> refuge = world.CreateBuilding(lot, House, world.Tick, Key);
+        world.Premise(business, refuge);
+        simulation.Step(TickInput.Empty);
+        world.DestroyBuilding(refuge, world.Tick);
+
+        Assert.Equal(0, world.UnpremisedPool.Since[world.Businesses.PoolPosition(world.Businesses.Rows.Resolve(business))]);
+
+        while (world.Tick.Raw < (ulong)(Ticks.PerDay + Ticks.PerDay / 4)) { simulation.Step(TickInput.Empty); }
+
+        Assert.False(world.Businesses.Rows.TryResolve(business, out _));
+        world.Invariants.RunEndOfRun(world);
+    }
 }

@@ -3667,8 +3667,15 @@ public sealed partial class World
         // the time control reaches here the row is off the list. IndexList.Remove walks, fails to
         // find it and returns false, which is a no-op -- and the list is at most `occupants` long, so
         // the wasted walk is bounded by a Ruleset constant.
+        Ticks searching = now;
+
         if (Buildings.Rows.TryResolve(Businesses.Building[slot], out int buildingSlot))
         {
+            if (Businesses.SearchSince[slot] > 0 && !RunsARuleIn(buildingSlot, business))
+            {
+                searching = new Ticks((ulong)(Businesses.SearchSince[slot] - 1));
+            }
+
             BuildingBusinesses.Remove(buildingSlot, slot);
         }
 
@@ -3695,7 +3702,20 @@ public sealed partial class World
         // No gate: a Business that LOST its premises is inside the city however it got here, and the
         // gate column records how it ARRIVED rather than where it is. adr/0145 makes the column
         // meaningful for the arrival channel; an orphan is neither channel and reads default.
-        UnpremisedPool.Join(Businesses, business, default, now);
+        UnpremisedPool.Join(Businesses, business, default, searching);
+    }
+
+    private bool RunsARuleIn(int buildingSlot, Handle<Business> business)
+    {
+        foreach (int instance in BuildingRules.Walk(buildingSlot))
+        {
+            if (RuleInstances.Business[instance] == business)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -3733,7 +3753,9 @@ public sealed partial class World
             return;
         }
 
-        UnpremisedPool.Leave(Businesses, Businesses.PoolPosition(slot));
+        int position = Businesses.PoolPosition(slot);
+        Businesses.SearchSince[slot] = UnpremisedPool.Since[position] + 1;
+        UnpremisedPool.Leave(Businesses, position);
 
         Businesses.Building[slot] = premises;
         BuildingBusinesses.InsertOrdered(buildingSlot, slot);
