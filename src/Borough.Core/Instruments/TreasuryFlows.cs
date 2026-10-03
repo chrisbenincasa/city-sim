@@ -52,6 +52,10 @@ using Borough.Core.Rules;
 /// What the city paid to keep its Road Segments — <c>[roads] upkeep_per_segment_per_day</c>. It leaves
 /// the money supply on <paramref name="Placement"/>'s terms.
 /// </param>
+/// <param name="Compensation">
+/// What the city paid the displaced to demolish occupied Buildings (<c>adr/0091</c>). A transfer to
+/// Households and Businesses, so the money supply does not move.
+/// </param>
 public readonly record struct TreasuryFlows(
     long Withheld,
     long ProfitTax,
@@ -61,13 +65,14 @@ public readonly record struct TreasuryFlows(
     long RuleOut,
     long Subsidy,
     long Placement,
-    long Upkeep)
+    long Upkeep,
+    long Compensation)
 {
     /// <summary>Everything that arrived, through all four levers.</summary>
     public long Income => Withheld + ProfitTax + PolicyIn + RuleIn;
 
     /// <summary>Everything that left, through all five paths.</summary>
-    public long Expenditure => PolicyOut + RuleOut + Subsidy + Placement + Upkeep;
+    public long Expenditure => PolicyOut + RuleOut + Subsidy + Placement + Upkeep + Compensation;
 
     /// <summary>Adds another interval's flows to this one, column by column.</summary>
     /// <param name="other">The interval to add.</param>
@@ -81,5 +86,6 @@ public readonly record struct TreasuryFlows(
         RuleOut + other.RuleOut,
         Subsidy + other.Subsidy,
         Placement + other.Placement,
-        Upkeep + other.Upkeep);
+        Upkeep + other.Upkeep,
+        Compensation + other.Compensation);
 }

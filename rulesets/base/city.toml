@@ -16,6 +16,8 @@ foot_path_capacity_per_hour    = 1000
 [lots]
 lots_per_segment = 5
 setback_tiles = 2
+# PROVISIONAL: a 60-Tile house on neutral ground costs about a quarter of the school's placement.
+demolition_price_per_tile = 1024
 
 # 16 rather than attracted.toml's 25. A trade is withheld wherever a parcel divides into one
 # tenancy, and 16 keeps every parcel this subdivider carves above that, so a placed school always
