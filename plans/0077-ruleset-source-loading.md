@@ -218,19 +218,29 @@ Remaining work and dependencies, in addition to the sequence below:
 
 ## The last step needs a person
 
-Everything an agent can finish is finished. What is left is acceptance step 4 and its acceptance
-check — a designer works the walkthrough from a clean checkout, on a machine that runs the headless
-runner and the Godot shell, while someone watches. No agent can stand in for that. The point is to
-find where the guide misleads, and an agent that already knows the answer cannot be misled by it.
+Apart from the remaining work listed above, the plan waits on implementation step 4's last clause
+and its acceptance check. A designer works the walkthrough from a clean checkout. No agent can stand
+in for that. The point is to find where the guide misleads, and an agent that already knows the
+answer cannot be misled by it.
 
-Rules for that session:
+### The designer's task
 
-- The designer drives. Do not complete their edit, do not correct their wording, do not answer a
-  question the guide should have answered. Note the question and let them keep going.
-- Record the friction as it happens: which step they stalled on, what they expected, what the runner
-  said instead, and how long each step took.
-- A refusal they could not act on is a defect in the message, not in the designer.
-- Fix the guide afterwards, not during.
+1. Make a fresh clone on a machine that runs both the headless runner and the Godot shell.
+2. Work [the authoring guide](../docs/ruleset-authoring.md) top to bottom against `rulesets/split/`.
+3. Do only what the guide says. Do not read C# and do not ask for help during the session.
+4. Log each step: how long it took, where you stalled, what you expected, what the runner printed
+   instead, and any refusal you could not act on.
+5. Flag every point where you used knowledge the guide did not give you. A designer who already
+   knows the project must do this, or the log misses gaps that their own knowledge fills.
+
+Notes in any form are fine. The output is that friction log.
+
+### After the session
+
+- An observer does not complete the designer's edit, correct their wording or answer a question
+  the guide should have answered.
+- A refusal the designer could not act on is a defect in the message, not in the designer.
+- Fix the guide from the log afterwards, not during. File defects outside the guide as issues.
 
 Hold the plan open until that session has run. `WalkthroughEditTests` holds the numbers the guide
 quotes, so a stale number fails the suite, but nothing holds the commands or the prose. That is the
