@@ -148,7 +148,13 @@ public sealed partial class World
         Rules = rules;
         Key = key;
 
-        Lots = new LotTable(PerThousand(citizens, 225));
+        // Ahead of the Lots, because a Lot holds a saved handle to the Segment it fronts (adr/0174)
+        // and the rows it addresses have to exist first. RoadGraph depends on the Ruleset and the
+        // world key and on nothing else, so it can be built first. Construction order is not
+        // composition order: _tables below is what the State Hash walks.
+        Roads = new RoadGraph(rules.Roads, key);
+
+        Lots = new LotTable(PerThousand(citizens, 225), Roads.Segments);
 
         // Sized OFF the Lot table rather than off the Citizen count, because a block is a container
         // for Lots and the two quantities cannot drift apart if only one of them is authored.
@@ -173,14 +179,6 @@ public sealed partial class World
 
         Households = new HouseholdTable(PerThousand(citizens, 360), Buildings, Bins);
         Layers = new MapLayers(rules.Layers);
-
-        // Roads and the Car Parks moved ahead of the Citizens on 2026-08-18, milestone 7 task 1, and
-        // the reorder is free: CONSTRUCTION order is not composition order. What the State Hash folds
-        // is the order of `_tables` below, which is unchanged and says so at its own site. A
-        // CitizenTable now takes a CarParkTable because `ParkedIn` is a handle rather than a slot --
-        // Address.cs's rule, one table over: a saved slot index folds the city's whole demolition
-        // history into the hash, so two runs building the same city would disagree.
-        Roads = new RoadGraph(rules.Roads, key);
 
         // One Car Park per Building, so this is the Building ratio and not a fourth guessed one --
         // which 0002 §D1 asks in as many words that nobody add. A kind declaring `parking = 0` still
@@ -4465,8 +4463,6 @@ public sealed partial class World
         Bins.BinNext.Span.Clear();
         RuleInstances.RuleNext.Span.Clear();
         Lots.BuildingSlot.Span.Clear();
-        Lots.FrontageSlot.Span.Clear();
-        Lots.FrontageOffset.Span.Clear();
         Bins.Capacity.Span.Clear();
 
         // Before anything below that reads a Lot's floor.
@@ -4486,11 +4482,11 @@ public sealed partial class World
         // stale head would point into an emptied column.
         CarParksOnSegments.Rebuild(CarParks, Roads.Segments);
 
-        // Frontage before the reverse indices below, because it reads only the Lot's saved position
-        // and the Street lattice — which Roads.RebuildDerived has just rebuilt — and nothing else
-        // here depends on it. A Lot whose Street is gone comes out of this with no Address and keeps
-        // its position, which is adr/0079.
-        Frontage.Rebuild(Lots, Roads.Streets);
+        // The per-Segment claim mask, and that is all this rebuilds: a Lot's frontage is saved
+        // (adr/0174), so what a load restores is the contact itself and what is derived from it is
+        // only which sides of which Segments are taken. After Roads.RebuildDerived, because it
+        // resolves a Segment handle against the rebuilt graph.
+        Frontage.Rebuild(Lots);
 
         // The block index, rebuilt wholesale from the Blocks' own saved lattice positions. After
         // Roads.RebuildDerived because that is where StreetGrid.Span becomes known, and this index is
@@ -4763,8 +4759,20 @@ public sealed partial class World
         // method -- which is a list of columns -- cannot reach them.
         Commutes.Rebuild(Citizens, Buildings, Businesses, Rules, Key);
     }
-    /// <summary>Realised parcels are saved state. Rebuilding only restores their access.</summary>
-    public void RebuildParcels() => Frontage.Rebuild(Lots, Roads.Streets);
+    /// <summary>
+    /// Gives the Lots that have no frontage the lattice Segment under them, and rebuilds the claim
+    /// mask over the result.
+    /// </summary>
+    /// <remarks>
+    /// <b>Realized parcels are saved state and this does not touch them.</b> It restores a Lot's
+    /// <em>access</em> after a Street has been laid back under it, which is why it writes saved state
+    /// and <see cref="RebuildDerived"/> does not call it.
+    /// </remarks>
+    public void RebuildParcels()
+    {
+        Space.Frontage.Attach(Lots, Roads.Streets, Roads.Segments);
+        Frontage.Rebuild(Lots);
+    }
 
     /// <summary>
     /// Rebuilds <see cref="BlockIndex"/> from the Blocks' saved lattice positions.

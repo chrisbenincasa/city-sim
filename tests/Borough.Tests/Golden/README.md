@@ -754,3 +754,20 @@ were regenerated with the commands above. Baseline Ruleset content hashes and th
 unchanged. Behaviour did not move: census readings of twelve shipped Rulesets over 10 Days at 2,000
 Citizens, and of two sessions that reload a Ruleset mid-run, are identical before and after once the
 State Hash lines and the new table's own rows are removed.
+
+### Saved frontage (2026-10-03)
+
+A Lot saves the Segment it fronts and the offset along it, where both were derived on the epoch
+([`adr/0174`](../../../docs/adr/0174-lots-are-cut-along-segments-and-save-their-frontage.md),
+`plans/freeform-streets.md` slice 3). `lot.frontage_segment` is a severable handle and
+`lot.frontage_offset` moves from `Derived` to `Saved`, so Core save format is **14**. All three
+artifacts moved on their hashes alone: `world-hash.txt`'s row counts are unchanged. Both traces and
+`world-hash.txt` were regenerated with the commands above. Baseline Ruleset content hashes and the
+hash seed are unchanged; no shipped Ruleset was edited.
+
+**Behavior did not move.** `--census` over both committed sessions — 8,192 Ticks on
+`declining.toml` reloading into `declining-tuned.toml`, and 4,096 Ticks on `congested.toml` — is
+byte-identical before and after once the State Hash lines are removed. ⚠ **Two saved columns can
+move every hash here and leave every collection, counter and Trip Fate where it was.** The carve
+already wrote the frontage these columns hold, and the rebuild it replaced recomputed the same
+numbers. What changed is which of the two the save carries.

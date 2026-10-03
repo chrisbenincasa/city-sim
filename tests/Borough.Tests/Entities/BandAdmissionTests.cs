@@ -190,7 +190,7 @@ public sealed class BandAdmissionTests
 
         for (int lot = 0; lot < world.Lots.Rows.SlotCount; lot++)
         {
-            if (!world.Lots.Rows.IsLive(lot) || world.Lots.FrontageSlot[lot] == 0)
+            if (!world.Lots.Rows.IsLive(lot) || !world.Lots.HasFrontage(lot))
             {
                 continue;
             }

@@ -384,7 +384,7 @@ public sealed class LocalLayoutTests
             world.Lots.ParcelDeep[row] = world.Lots.FootprintDeep[row] = new Tiles(horizontal ? 16 : 12);
             world.Lots.Storeys[row] = 2;
         }
-        world.Frontage.Rebuild(world.Lots, world.Roads.Streets);
+        world.RebuildParcels();
         world.CreateBuilding(lots[0], 1, Ticks.Zero, Key);
         world.CreateBuilding(lots[4], 1, Ticks.Zero, Key);
         for (int i = 1; i <= 3; i++)

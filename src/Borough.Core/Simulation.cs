@@ -1494,15 +1494,29 @@ public sealed class Simulation
         int column = _world.Roads.Streets.Lattice.LineAt(command.East.Raw);
         int row = _world.Roads.Streets.Lattice.LineAt(command.North.Raw);
 
+        // The Segments this lay created, which is the only ground it may front. A run is at most
+        // ConnectPayload.MaxSegments edges, so the span is small and stays on the stack.
+        Span<int> laid = stackalloc int[payload.Segments];
+        int created = 0;
         bool changed = false;
 
         for (int i = 0; i < payload.Segments; i++)
         {
             (int c, int r) = payload.Axis == StreetAxis.East ? (column + i, row) : (column, row + i);
 
-            changed |= payload.Action == ConnectAction.Lay
-                ? _world.Roads.LayStreet(c, r, payload.Axis)
-                : _world.Roads.BulldozeStreet(c, r, payload.Axis);
+            if (payload.Action != ConnectAction.Lay)
+            {
+                changed |= _world.Roads.BulldozeStreet(c, r, payload.Axis);
+                continue;
+            }
+
+            if (!_world.Roads.LayStreet(c, r, payload.Axis))
+            {
+                continue;
+            }
+
+            laid[created++] = _world.Roads.Streets.SegmentOn(c, r, payload.Axis);
+            changed = true;
         }
 
         if (!changed)
@@ -1512,7 +1526,17 @@ public sealed class Simulation
 
         // The graph edit has already rebuilt the Street lattice; frontage follows it, and only then
         // can the subdivider tell which Lots have lost their Street and which faces have gained one.
-        _world.Frontage.Rebuild(_world.Lots, _world.Roads.Streets);
+        //
+        // ⚠ AN EDIT FRONTS ONLY THE SEGMENTS IT CREATED, so a connect command cannot change a Lot
+        // standing on ground it never named. A removal creates nothing and therefore attaches
+        // nothing. Sever runs either way for the reverse reason -- a lay frees no Segment, so it
+        // finds nothing to clear. A Lot that loses its Street keeps standing with no Address
+        // (adr/0079), and a re-lay on the same edge gives its frontage back.
+        Space.Frontage.Sever(_world.Lots);
+        Space.Frontage.AttachTo(
+            _world.Lots, _world.Roads.Streets, _world.Roads.Segments, laid[..created]);
+
+        _world.Frontage.Rebuild(_world.Lots);
 
         // The Parking Shed's supply index is keyed on Segment slots, so a graph edit invalidates it
         // for the same reason it invalidates frontage -- and it must be rebuilt BEFORE the subdivider

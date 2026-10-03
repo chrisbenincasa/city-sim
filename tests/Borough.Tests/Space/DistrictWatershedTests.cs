@@ -624,6 +624,10 @@ public sealed class DistrictWatershedTests
             world.CreateBuilding(lot, kind: 0, Ticks.Zero, Key);
         }
 
+        // A Lot made by hand is unfronted, and frontage is saved (adr/0174), so the Street under it
+        // has to be attached explicitly. The road component a District reads comes off the frontage.
+        world.RebuildParcels();
+
         world.RebuildDerived();
         world.EvaluateDistricts();
 

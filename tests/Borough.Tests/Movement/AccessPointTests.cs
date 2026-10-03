@@ -141,7 +141,7 @@ public sealed class AccessPointTests
     {
         for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
         {
-            if (world.Lots.Rows.IsLive(slot) && world.Lots.FrontageSlot[slot] == segment + 1)
+            if (world.Lots.Rows.IsLive(slot) && world.Lots.FrontageOn(slot) == segment)
             {
                 return slot;
             }

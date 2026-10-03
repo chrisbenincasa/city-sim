@@ -169,7 +169,7 @@ public sealed class ResidentialScaleTests
         for (int i = 0; i < world.Lots.Rows.SlotCount; i++)
         {
             if (!world.Lots.Rows.IsLive(i)) continue;
-            Assert.Equal(world.Lots.FrontageSlot[i] - 1, Frontage.Locate(world.Roads.Streets,
+            Assert.Equal(world.Lots.FrontageOn(i), Frontage.Locate(world.Roads.Streets,
                 world.Lots.East[i], world.Lots.North[i], out _));
         }
         world.RebuildDerived();
