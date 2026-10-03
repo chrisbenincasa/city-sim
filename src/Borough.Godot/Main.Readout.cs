@@ -250,6 +250,15 @@ public partial class Main
             ? $"{named} — ABANDONED, a shell standing on its collapse clock"
             : $"{named} — {held} of {room} occupied, {Math.Sqrt(best):N0} Tiles off");
 
+        if (_verb == Verb.Demolish)
+        {
+            long price = _world.DemolitionPrice(nearest).Raw;
+
+            said.Add(price > 0
+                ? $"demolishing pays {price:N0} to the displaced"
+                : "demolishing is free here");
+        }
+
         for (int business = _world.BuildingBusinesses.PeekFront(nearest);
              business != Rows.NoSlot && trades > 0;
              business = _world.Businesses.BuildingNext[business] - 1)

@@ -269,6 +269,13 @@ public sealed class Simulation
     /// <summary>What this Tick's placements have cost so far, before the fold.</summary>
     private long _placementThisTick;
 
+    /// <summary>What the treasury has paid the displaced since the last drain.</summary>
+    /// <remarks>Folded once per Tick, on <see cref="_placementFlow"/>'s terms.</remarks>
+    private MoneyFlow _compensationFlow;
+
+    /// <summary>What this Tick's demolitions have paid so far, before the fold.</summary>
+    private long _compensationThisTick;
+
     /// <summary>What road Upkeep has cost the treasury since the last drain.</summary>
     private MoneyFlow _upkeepFlow;
 
@@ -278,6 +285,16 @@ public sealed class Simulation
         MoneyFlow flow = _placementFlow;
 
         _placementFlow = default;
+
+        return flow;
+    }
+
+    /// <inheritdoc cref="_compensationFlow"/>
+    internal MoneyFlow DrainCompensation()
+    {
+        MoneyFlow flow = _compensationFlow;
+
+        _compensationFlow = default;
 
         return flow;
     }
@@ -326,7 +343,8 @@ public sealed class Simulation
             rules.FromTreasury.Sum,
             _subsidies.DrainPaid().Sum,
             DrainPlacementSpend().Sum,
-            DrainUpkeepSpend().Sum);
+            DrainUpkeepSpend().Sum,
+            DrainCompensation().Sum);
     }
 
     /// <summary>What the most recent payday moved, or zeroes on a Tick that was not one.</summary>
@@ -568,6 +586,7 @@ public sealed class Simulation
     {
         _phase = TickPhase.Input;
         _placementThisTick = 0;
+        _compensationThisTick = 0;
 
         foreach (Command command in input.Commands)
         {
@@ -580,6 +599,11 @@ public sealed class Simulation
         if (_placementThisTick > 0)
         {
             _placementFlow = _placementFlow.Fold(_placementThisTick);
+        }
+
+        if (_compensationThisTick > 0)
+        {
+            _compensationFlow = _compensationFlow.Fold(_compensationThisTick);
         }
     }
 
@@ -751,7 +775,7 @@ public sealed class Simulation
         CommandKind.Govern => RefuseGovern(command),
         CommandKind.Fund => RefuseFund(command),
         CommandKind.Tax => RefuseTax(command, _world.Tick, out _, out _),
-        CommandKind.Demolish => RefuseDemolish(command, out _),
+        CommandKind.Demolish => RefuseDemolish(command, out _, out _),
         CommandKind.Service => RefuseService(command, out _, out _),
         CommandKind.Gate => RefuseGate(command, out _, out _, out _),
         CommandKind.People => RefusePeople(),
@@ -1004,12 +1028,14 @@ public sealed class Simulation
             or TaxControl.ProfitUpperRate;
 
     /// <inheritdoc cref="ApplyDemolish"/>
-    private Refusal RefuseDemolish(Command command, out int building)
+    private Refusal RefuseDemolish(Command command, out int building, out Money price)
     {
         building = BuildingOn(command.East, command.North);
+        price = building < 0 ? Money.Zero : _world.DemolitionPrice(building);
 
         return building < 0 ? Refusal.DemolishNoBuildingOnThatTile
-            : !_world.Buildings.IsAbandoned(building) ? Refusal.DemolishBuildingIsOccupied
+            : price.Raw > 0 && (_world.TreasuryBalance()?.Raw ?? 0) < price.Raw
+                ? Refusal.DemolishTreasuryCannotPay
             : Refusal.None;
     }
 
@@ -1287,14 +1313,12 @@ public sealed class Simulation
             + "house -- a mistyped command must not be indistinguishable from the demolition "
             + "somebody meant.",
 
-        Refusal.DemolishBuildingIsOccupied =>
-            $"demolish names Tile ({command.East.Raw}, {command.North.Raw}), where a Building "
-            + "still stands occupied. adr/0091 makes clearing occupied ground a COMPULSORY "
-            + "PURCHASE paid at market value from the land value Map Layer to whoever is "
-            + "displaced, and refuses to compose that price -- so the successor is named and "
-            + "unbuilt rather than missing, and it is blocked on the land value target. "
-            + "Abandoned stock is the half that needs no compensation, because there is nobody "
-            + "left in it to compensate.",
+        Refusal.DemolishTreasuryCannotPay =>
+            $"demolish names Tile ({command.East.Raw}, {command.North.Raw}), where an occupied "
+            + "Building stands, and clearing it costs "
+            + $"{(BuildingOn(command.East, command.North) is int b and >= 0 ? _world.DemolitionPrice(b).Raw : 0)}"
+            + $", which is more than the treasury holds ({_world.TreasuryBalance()?.Raw ?? 0}). "
+            + "adr/0091 pays the displaced in full or demolishes nothing.",
 
         Refusal.ServiceKindNotDeclared =>
             $"service names Building kind {(byte)command.Zone}, which this Ruleset does not declare. "
@@ -1772,30 +1796,15 @@ public sealed class Simulation
     }
 
     /// <summary>
-    /// Clears an abandoned Building off the Lot at exactly the named Tile.
+    /// Clears the Building off the Lot at exactly the named Tile.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>The first player act in this design that removes a Building</b>, and
-    /// <c>adr/0091</c>'s sixth verb arriving over the narrow half of its own scope. The wide half —
-    /// clearing ground somebody still lives on — is a <b>compulsory purchase</b> that pays market
-    /// value read off the land value Map Layer, and that ADR settles the shape while deliberately
-    /// refusing the composition. So it is blocked on the land value target, which is a named hole in
-    /// <c>MapLayers</c>, and not on anything here.
-    /// </para>
-    /// <para>
-    /// <b>A standing Building is refused by name with its successor beside it</b>, which is
-    /// <c>adr/0070</c>'s discipline rather than caution: an absence a later sitting may reason from
-    /// has to read <em>refused-for-now</em> rather than <em>silently missing</em>, and those are
-    /// different premises. ⚠ <b>The alternative — demolishing it for free — is the one thing this
-    /// must not do</b>, because a free bulldozer is a verb no part of the city governs, and
-    /// <c>adr/0091</c>'s whole argument is that the price is what makes clearing a decision.
-    /// </para>
-    /// <para>
-    /// <b>Nothing is paid here and nothing is owed</b>: the Building is empty by construction, so
-    /// there is no Household to compensate and no [`adr/0024`] transfer to conserve. ⚠ <b>That is
-    /// what makes this half shippable and is also its limit</b> — this verb can never be the one a
-    /// player uses on a district they want to redevelop.
+    /// <b><c>adr/0091</c>'s sixth verb, priced as a compulsory purchase.</b> The treasury pays
+    /// <see cref="World.DemolitionPrice"/> to the evicted Households and displaced Businesses in
+    /// equal shares, then the Building goes. The payment is a transfer, so the money supply does not
+    /// move, and the displaced enter the Unplaced Pool with capital to bid elsewhere. A Building
+    /// nobody occupies, abandoned or not yet let, has nobody to pay and demolishes free.
     /// </para>
     /// <para>
     /// <b>It is a shortcut through <c>adr/0172</c>'s clock and not a replacement for it.</b> A shell
@@ -1813,12 +1822,15 @@ public sealed class Simulation
     /// </remarks>
     private void ApplyDemolish(Command command, Ticks tick)
     {
-        Refusal refusal = RefuseDemolish(command, out int building);
+        Refusal refusal = RefuseDemolish(command, out int building, out Money price);
 
         if (refusal != Refusal.None)
         {
             throw new InvalidOperationException(Explain(refusal, command));
         }
+
+        _world.PayDisplaced(building, price, tick);
+        _compensationThisTick += price.Raw;
 
         _world.DestroyBuilding(_world.Buildings.Rows.At(building), tick);
     }

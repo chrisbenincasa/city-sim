@@ -76,6 +76,8 @@ So **abandonment empties a Building and leaves it standing on its Lot**, and cle
 
 **`CONTEXT.md` → Derelict's *"it stands until the player clears it"* acquires the verb it has been asserting**, and → Failure Pressure gains the standing-shell fact and the pointer that keeps the two states apart.
 
+> **AMENDED 2026-10-02 by occupied demolition.** The price is built as `World.DemolitionPrice`: Lot footprint in Tiles × `[lots] demolition_price_per_tile` × (1 + land value at the Lot), floored at zero. **Land value adjusts a base price rather than being the price**, because amenity, the only positive desirability term besides shoreline, is not built yet (`adr/0123`). Desirability is therefore bounded above by zero on inland ground, and most ground sits at or just below it. Replaying `rulesets/base/founding.borough` for 12 Days put all 39 occupied Buildings between −0.09 and 0.00 units, which would have cleared every one of them free. The treasury pays the price to every evicted Household and displaced Business in equal shares, as a transfer, and refuses with `DemolishTreasuryCannotPay` when it cannot pay in full. A standing Building nobody occupies has nobody to pay and demolishes free. The base package's rate of 1,024 is provisional.
+
 **Nothing here observes its own consequence.** No verb reaches the simulation: `Simulation.cs` leaves `Service` and `Govern` unapplied, Arterials are refused, and there is no treasury to pay from. This is a design decision recorded ahead of its milestone, and the slice that builds it is the one that owes the acceptance test.
 
 ## What would trigger revisiting

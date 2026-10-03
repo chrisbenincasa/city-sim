@@ -804,6 +804,12 @@ public enum MoneyFlowCounter : byte
     /// less. It leaves the money supply on <see cref="Placement"/>'s terms.
     /// </summary>
     Upkeep,
+
+    /// <summary>
+    /// Money the treasury paid the displaced to demolish occupied Buildings (<c>adr/0091</c>). A
+    /// transfer to Households and Businesses, so the supply does not move.
+    /// </summary>
+    Compensation,
 }
 
 /// <summary>Which family of thing a <see cref="Metric"/> names.</summary>
