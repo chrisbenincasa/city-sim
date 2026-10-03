@@ -1,5 +1,7 @@
 # Streets snap to the grid and only Arterials are freeform
 
+> **Amended by [`0174`](0174-lots-are-cut-along-segments-and-save-their-frontage.md).** Local Streets may be straight or circular arcs between integer-Tile Nodes. The grid survives as a drawing snap.
+
 **Local Streets snap to the Tile grid. A small, bounded number of Arterials — highways, rail, major boulevards — are freeform splines, and they meet each other and the grid only at authored Junction pieces.** The Road Graph is uniform nodes and edges regardless of which of the two a road is. The simulation never sees a spline.
 
 ## Why
