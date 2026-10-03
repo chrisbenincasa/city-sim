@@ -216,4 +216,4 @@ Slices 1 and 3 can run in parallel.
 
 ## Next step
 
-Start slice 1. Settle decision 4 (block-addressed commands) before slice 5.
+Slices 1 and 3 are built. Start slice 2, then slice 4. Settle decision 4 (block-addressed commands) before slice 5.
