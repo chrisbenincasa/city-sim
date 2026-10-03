@@ -156,17 +156,27 @@ Decided 10/03/2026.
 - The edit is atomic. If the treasury cannot pay the total, the whole Street is refused.
 - The preview shows the Buildings to be cleared and the total price before commit.
 
+### Decided: joining and splitting
+
+Decided 10/03/2026.
+
+- The simulation joins an endpoint to an existing Node only on an exact Tile match. Snapping
+  tolerance lives in the shell, so the Input Log records the snapped result.
+- A new Street that crosses or ends on an existing Segment adds a Node at the nearest Tile and
+  splits every Segment there. Faces need these Nodes.
+- Each half's sagitta is recomputed to pass through the rounded Node. The road moves at most
+  half a Tile. Frontage migrates by the split rule above.
+- Two `[roads]` minimums refuse an edit: Segment length after a split, and crossing angle.
+
 ### Remaining design decisions
 
-1. **Endpoint merging and splitting.** Choose the snap tolerance for joining an existing Node
-   and when a crossing splits an existing Segment.
-2. **Junction geometry.** Arbitrary angles need junction polygons. Shared with the Arterials and
+1. **Junction geometry.** Arbitrary angles need junction polygons. Shared with the Arterials and
    Junction construction row.
-3. **Wedge use.** Leave open, give to the adjacent Lot as yard, or allow parks.
-4. **Snap and preview details.** Choose the length step relative to Lot widths, whether a
+2. **Wedge use.** Leave open, give to the adjacent Lot as yard, or allow parks.
+3. **Snap and preview details.** Choose the length step relative to Lot widths, whether a
    zone-grid snap aligns new Streets to existing strip Lots, and what the preview shows before
    commit: snapped geometry, refusals and cost.
-5. **Block-addressed commands.** `Zone`, `ZoneParcel` and `Trip` address lattice blocks.
+4. **Block-addressed commands.** `Zone`, `ZoneParcel` and `Trip` address lattice blocks.
    Decide their freeform addressing.
 
 ## Acceptance checks
@@ -183,8 +193,24 @@ Decided 10/03/2026.
 - Replay, save/reload and thread-count equivalence hold. A driven demonstration shows these
   layouts and loop closure before the capability is marked complete.
 
+## Implementation slices
+
+Each slice is one PR that leaves the lattice game working. Slices 2–6 move the State Hash and
+re-record goldens by the [procedure](../tests/Borough.Tests/Golden/README.md).
+
+| # | Slice | Contents | Gated by |
+|---|---|---|---|
+| 1 | Arc arithmetic | Q16.16 `Sin`, `Cos`, `Atan2` in turns. A pure arc type: center, radius, point and tangent at offset, distance to a point, offset arc. Tests against reference values | — |
+| 2 | Saved Segment shape | Sagitta column (all zero), derived arc columns, rebuild audit. `VisibleAgents.TryEnds`, `LineSourceQueries.DistanceTiles` and sealing read the arc | 1 |
+| 3 | Saved frontage | Lot saves Segment handle and offset. `Frontage.Locate` runs only at creation. Bulldoze leaves Lots unfronted. Split migration with a unit test | — |
+| 4 | Oriented Lot ground | Parcel and footprint as corner, direction, width, depth. Exact overlap test. One uniform spatial hash replaces `StreetGrid` off-lattice buckets, `TrafficPresence._near` and the `LineSourceQueries` window. Shell massing faces the Segment | 3 |
+| 5 | Segment-side carver | Planar face walk, strip carving per side, pattern depth per face, claim order and shrink-or-drop. Blocks become derived; `BlockTable` lattice columns go. Generation lays lattice Streets and carves with the new carver | 4, decision 4 |
+| 6 | Freeform `Connect` | Endpoints plus sagitta, exact joins, crossing splits, minimum length and angle, demolition at the `Demolish` price. Bumps `InputLogCodec.Version` and re-records logs | 2, 5 |
+| 7 | Shell drawing | Straight, simple-curve and continuous modes. Snapping, preview with refusals and demolition cost, arc paving meshes. Driven demonstration of the acceptance checks | 6, decisions 1 and 3 |
+| 8 | Batch modes | Grid and Parallel modes over a batch `Connect` | 7 |
+
+Slices 1 and 3 can run in parallel.
+
 ## Next step
 
-Settle remaining decision 1 (merging and splitting), then choose the implementation
-sequence. A likely first slice is the arithmetic and the saved sagitta with a straight-only
-command, so the lattice keeps working while the Lot layer moves to saved frontage.
+Start slice 1. Settle decision 4 (block-addressed commands) before slice 5.
