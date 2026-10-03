@@ -270,7 +270,10 @@ public sealed class DerivedRebuildAuditTests
         // curves -- so the Lot holds the contact and every Street edit migrates the Lots it touches.
         // ⚠ What stays derived is the per-Segment claim mask, which lives outside any table and is
         // therefore outside this audit, exactly as CarParkResidency is.
-        Assert.Equal(55, all.Length);
+        //
+        // 55 -> 56: road_segment.centerline, the arc rebuilt from a Segment's Nodes and its saved
+        // sagitta (adr/0174). Every world with a Segment exercises it.
+        Assert.Equal(56, all.Length);
         Assert.Single(ScratchColumns(Stepped(0)));
     }
 

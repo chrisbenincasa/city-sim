@@ -771,3 +771,17 @@ byte-identical before and after once the State Hash lines are removed. ⚠ **Two
 move every hash here and leave every collection, counter and Trip Fate where it was.** The carve
 already wrote the frontage these columns hold, and the rebuild it replaced recomputed the same
 numbers. What changed is which of the two the save carries.
+
+### Saved Segment sagitta (2026-10-03)
+
+Each Segment saves `road_segment.sagitta`, the signed bulge of its arc
+([`adr/0174`](../../../docs/adr/0174-lots-are-cut-along-segments-and-save-their-frontage.md),
+`plans/freeform-streets.md` slice 2). Every Segment writes zero, so every Street stays straight.
+Core save format is **15**. Both traces moved on their hashes alone and were regenerated with the
+commands above. `world-hash.txt` did not move, because `GoldenFixtures.Build()` has no Road Graph.
+Baseline Ruleset content hashes and the hash seed are unchanged; no shipped Ruleset was edited.
+
+**Behaviour did not move.** `--census` over both committed sessions is byte-identical before and
+after once the State Hash samples are removed. The derived `road_segment.centerline` now answers
+`VisibleAgents` positions and `LineSourceQueries` distances, and both agree with the straight-chord
+arithmetic they replace on these sessions.
