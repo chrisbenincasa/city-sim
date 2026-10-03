@@ -164,8 +164,9 @@ Decided 10/03/2026.
   tolerance lives in the shell, so the Input Log records the snapped result.
 - A new Street that crosses or ends on an existing Segment adds a Node at the nearest Tile and
   splits every Segment there. Faces need these Nodes.
-- Each half's sagitta is recomputed to pass through the rounded Node. The road moves at most
-  half a Tile. Frontage migrates by the split rule above.
+- Each half is refitted through its own ends and the original arc's point at its mid-offset. The
+  road moves at most √2/2 Tile + 1/64 Tile. A split whose halves would exceed that bound or the
+  quarter-turn sweep is refused. Frontage migrates by the split rule above.
 - Two `[roads]` minimums refuse an edit: Segment length after a split, and crossing angle.
 
 ### Remaining design decisions
@@ -195,7 +196,9 @@ Decided 10/03/2026.
 
 ## Implementation slices
 
-Each slice is one PR that leaves the lattice game working. Slices 2–6 move the State Hash and
+Each slice is one PR that leaves the lattice game working.
+Slice 6 also replaces the split helper's per-Tile displacement guard (O(length)) with an analytic
+bound, and replaces the lattice-only `Frontage.AttachTo` lookup. Slices 2–6 move the State Hash and
 re-record goldens by the [procedure](../tests/Borough.Tests/Golden/README.md).
 
 | # | Slice | Contents | Gated by |
