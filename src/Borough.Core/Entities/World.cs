@@ -8655,6 +8655,7 @@ public sealed partial class World
         }
 
         long spoiled = 0;
+        ushort today = BusinessAccounts.DayOf(tick);
 
         for (int row = 0; row < Expiries.Rows.SlotCount; row++)
         {
@@ -8671,7 +8672,7 @@ public sealed partial class World
                 continue;
             }
 
-            long discarded = Expiries.Shift(row, shelfLife.Cycles);
+            long discarded = Expiries.Shift(row, shelfLife.Cycles, today);
 
             if (discarded > 0)
             {

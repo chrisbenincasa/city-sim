@@ -1,6 +1,7 @@
 using Borough.Core;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
+using Borough.Core.Evidence;
 using Borough.Core.Persistence;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
@@ -206,6 +207,24 @@ public sealed class LabourProductionTests
         Assert.True(Produced(restored) > before);
         sim.CheckEndOfRun();
         resumed.CheckEndOfRun();
+    }
+
+    [Fact]
+    public void Labour_a_shift_leaves_unspent_is_reported_as_the_business_s_waste()
+    {
+        var (world, sim) = Start(Text(needsFlour: true));
+        for (int t = 0; t < 7 * Ticks.PerDay; t++) { sim.Step(default); }
+
+        int baker = Bakers(world)[0];
+        Handle<Business> business = world.RuleInstances.Business[baker];
+        Handle<Building> premises = world.RuleInstances.Building[baker];
+        ResourceId labour = world.Bins.Resource[world.Bins.Rows.Resolve(LabourOf(world, baker))];
+
+        BuildingEvidence evidence = Core.Evidence.Evidence.OfBuilding(world, premises);
+
+        Assert.Contains(evidence.Waste.ToArray(),
+            w => w.Business == business && w.Resource == labour && w.Today + w.Yesterday > 0);
+        sim.CheckEndOfRun();
     }
 
     private static long Level(World world, Handle<Bin> bin) =>

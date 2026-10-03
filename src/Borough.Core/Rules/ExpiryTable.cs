@@ -36,7 +36,9 @@ public sealed class ExpiryTable
         Rows = new Rows<Expiry>("expiry", 8);
         Bin = Rows.SavedHandle("bin", bins.Rows);
         Buckets = Rows.Saved<AgeBuckets>("buckets", Touch.PerTick);
-        Spoiled = Rows.Saved<long>("spoiled", Touch.Cold);
+        SpoilingDay = Rows.Saved<ushort>("spoiling_day", Touch.Cold);
+        DaySpoiled = Rows.Saved<long>("day_spoiled", Touch.Cold);
+        PriorSpoiled = Rows.Saved<long>("prior_spoiled", Touch.Cold);
         Rows.Seal();
     }
 
@@ -48,8 +50,33 @@ public sealed class ExpiryTable
     /// <summary>The Bin's stock by age, newest first.</summary>
     public Column<AgeBuckets> Buckets { get; }
 
-    /// <summary>What the most recent cycle boundary discarded from this Bin.</summary>
-    public Column<long> Spoiled { get; }
+    /// <summary>The Day <see cref="DaySpoiled"/> is counting for.</summary>
+    public Column<ushort> SpoilingDay { get; }
+
+    /// <summary>What spoiled from this Bin on <see cref="SpoilingDay"/>.</summary>
+    public Column<long> DaySpoiled { get; }
+
+    /// <summary>
+    /// What spoiled over the whole Day before <see cref="SpoilingDay"/>, or zero when nothing
+    /// spoiled that Day.
+    /// </summary>
+    public Column<long> PriorSpoiled { get; }
+
+    /// <summary>What has spoiled from <paramref name="row"/> so far on <paramref name="today"/>.</summary>
+    public long SpoiledOn(int row, ushort today) => SpoilingDay[row] == today ? DaySpoiled[row] : 0;
+
+    /// <summary>What spoiled from <paramref name="row"/> over the whole Day before <paramref name="today"/>.</summary>
+    public long PriorSpoiledOn(int row, ushort today)
+    {
+        int spoiling = SpoilingDay[row];
+
+        if (spoiling == today)
+        {
+            return PriorSpoiled[row];
+        }
+
+        return spoiling == today - 1 ? DaySpoiled[row] : 0;
+    }
 
     /// <summary>The row ageing <paramref name="binSlot"/>, or <see cref="Tables.Rows.NoSlot"/>.</summary>
     public int RowOf(BinTable bins, int binSlot)
@@ -69,7 +96,9 @@ public sealed class ExpiryTable
         Bin[row] = bins.Rows.At(binSlot);
         Buckets[row] = default;
         Buckets[row][0] = bins.LevelAt(binSlot);
-        Spoiled[row] = 0;
+        SpoilingDay[row] = 0;
+        DaySpoiled[row] = 0;
+        PriorSpoiled[row] = 0;
         bins.ExpiryRow[binSlot] = row + 1;
 
         return row;
@@ -120,9 +149,9 @@ public sealed class ExpiryTable
 
     /// <summary>
     /// Ages <paramref name="row"/> by one cycle and returns what spoiled. Stock older than
-    /// <paramref name="cycles"/> cycles is discarded.
+    /// <paramref name="cycles"/> cycles is discarded and counted against <paramref name="today"/>.
     /// </summary>
-    internal long Shift(int row, int cycles)
+    internal long Shift(int row, int cycles, ushort today)
     {
         ref AgeBuckets buckets = ref Buckets[row];
         long spoiled = 0;
@@ -138,7 +167,18 @@ public sealed class ExpiryTable
         }
 
         buckets[0] = 0;
-        Spoiled[row] = spoiled;
+
+        if (spoiled > 0)
+        {
+            if (SpoilingDay[row] != today)
+            {
+                PriorSpoiled[row] = SpoilingDay[row] == today - 1 ? DaySpoiled[row] : 0;
+                DaySpoiled[row] = 0;
+                SpoilingDay[row] = today;
+            }
+
+            DaySpoiled[row] += spoiled;
+        }
 
         return spoiled;
     }

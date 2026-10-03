@@ -1,5 +1,6 @@
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
+using Borough.Core.Evidence;
 using Borough.Core.Persistence;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
@@ -90,8 +91,30 @@ public sealed class ExpiryTests
         Assert.Equal(5, world.SpoilExpired(new Ticks(2 * Cycle)));
 
         Assert.Equal(3, Level(world, bread));
-        Assert.Equal(5, world.Expiries.Spoiled[RowOf(world, bread)]);
+        Assert.Equal(5, world.Expiries.SpoiledOn(RowOf(world, bread), today: 0));
         world.Invariants.RunEndOfRun(world);
+    }
+
+    [Fact]
+    public void Evidence_reports_today_s_waste_and_yesterday_s_after_the_day_turns()
+    {
+        (World world, Handle<Building> building) = Built();
+        Handle<Bin> bread = BreadBin(world, building);
+
+        world.Deposit(bread, 5, new Ticks(1));
+        world.SpoilExpired(new Ticks(Cycle));
+        world.SpoilExpired(new Ticks(2 * Cycle));
+
+        WasteEvidence sameDay = Assert.Single(Core.Evidence.Evidence.OfBuilding(world, building).Waste.ToArray());
+        Assert.Equal(new WasteEvidence(Bread, default, default, Today: 5, Yesterday: 0), sameDay);
+
+        world.Deposit(bread, 2, new Ticks(Ticks.PerDay + 1));
+        world.SpoilExpired(new Ticks(Ticks.PerDay + Cycle));
+        world.SpoilExpired(new Ticks(Ticks.PerDay + 2 * Cycle));
+        world.Clock.Tick[0] = new Ticks(Ticks.PerDay + 2 * Cycle);
+
+        WasteEvidence nextDay = Assert.Single(Core.Evidence.Evidence.OfBuilding(world, building).Waste.ToArray());
+        Assert.Equal(new WasteEvidence(Bread, default, default, Today: 2, Yesterday: 5), nextDay);
     }
 
     [Fact]

@@ -67,8 +67,8 @@ public readonly struct SaveHeader : IEquatable<SaveHeader>
     /// new table exists is short by a table and needs a migration; the hash it was written at was never
     /// wrong.
     /// </remarks>
-    // Version 14 adds a Citizen's labour remainder and a Business's premises-search start. Older
-    // declaration sets are refused before their body is read.
+    // Version 14 adds a Citizen's labour remainder, a Business's premises-search start and each
+    // spoiling Bin's per-Day waste count. Older declaration sets are refused before their body is read.
     public const int Current = 14;
 
     private const ulong ByteOrderSentinel = 0x0102_0304_0506_0708UL;
