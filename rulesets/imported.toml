@@ -18,6 +18,12 @@ family = "good"
 name = "money"
 family = "money"
 
+[[resource]]
+name = "labour"
+family = "labour"
+shelf_life_cycles = 4
+shelf_life_cycle_minutes = 15
+
 [[business]]
 name = "shop"
 work_days = 31
@@ -56,6 +62,7 @@ bins = [
     { resource = "sundries", capacity = 1024, owner = "business" },
     { resource = "repairs",  capacity = 4 },
     { resource = "money",    owner = "business" },
+    { resource = "labour",   owner = "business" },
 ]
 houses   = true
 premises = true
@@ -95,7 +102,7 @@ name    = "import"
 kind    = "shopfront"
 rate    = 8
 apply   = { min = 1, max = 4 }
-inputs  = [ { scope = "pool", resource = "sundries", amount = 8 } ]
+inputs  = [ { scope = "local", resource = "labour", amount = 1 }, { scope = "pool", resource = "sundries", amount = 8 } ]
 outputs = [ { scope = "local", resource = "sundries", amount = 8 } ]
 
 [[rule]]
@@ -174,6 +181,7 @@ commute_moderate_minutes = 40
 commute_budget_minutes = 50
 
 [jobs]
+labour_per_day = 1024
 interval      = 32
 revisit_ticks = 1024
 candidates    = 3

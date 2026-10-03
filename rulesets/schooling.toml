@@ -108,6 +108,12 @@ family = "good"
 name = "money"
 family = "money"
 
+[[resource]]
+name = "labour"
+family = "labour"
+shelf_life_cycles = 4
+shelf_life_cycle_minutes = 15
+
 [[business]]
 name = "grocer"
 wage_per_day    = 4096
@@ -155,6 +161,7 @@ name = "shopfront"
 bins = [
     { resource = "sundries", capacity = 96, owner = "business" },
     { resource = "money",    owner = "business" },
+    { resource = "labour",   owner = "business" },
 ]
 premises = true
 business = "grocer"
@@ -164,6 +171,7 @@ name = "officeblock"
 bins = [
     { resource = "repairs", capacity = 64, owner = "business" },
     { resource = "money",   owner = "business" },
+    { resource = "labour",   owner = "business" },
 ]
 premises = true
 business = "office"
@@ -232,7 +240,7 @@ name    = "stock"
 kind    = "shopfront"
 rate    = 8
 apply   = { min = 1, max = 4 }
-inputs  = []
+inputs  = [ { scope = "local", resource = "labour", amount = 1 } ]
 outputs = [ { scope = "local", resource = "sundries", amount = 8 } ]
 
 [[rule]]
@@ -240,7 +248,7 @@ name    = "advise"
 kind    = "officeblock"
 rate    = 16
 apply   = { min = 1, max = 4 }
-inputs  = []
+inputs  = [ { scope = "local", resource = "labour", amount = 1 } ]
 outputs = [ { scope = "local", resource = "repairs", amount = 4 } ]
 
 [[zone_rule]]
@@ -327,6 +335,7 @@ commute_moderate_minutes = 40
 commute_budget_minutes = 50
 
 [jobs]
+labour_per_day = 1024
 interval      = 32
 revisit_ticks = 1024
 candidates    = 3

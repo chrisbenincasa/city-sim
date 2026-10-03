@@ -12,6 +12,8 @@ namespace Borough.Tests.Rules;
 
 public sealed class LabourProductionTests
 {
+    private static readonly ResourceId Crumbs = new(5);
+
     private const string Goods = """
         [[resource]]
         name = "crumbs"
@@ -69,13 +71,13 @@ public sealed class LabourProductionTests
         for (int i = 1; i <= rules.RuleCount; i++)
         {
             var id = new RuleId((ushort)i);
-            foreach (Term term in rules.Inputs(id))
+            foreach (Term term in rules.Outputs(id))
             {
-                if (rules.Family(term.Bin.Resource) == ResourceFamily.Labour) { return id; }
+                if (term.Bin.Resource == Crumbs) { return id; }
             }
         }
 
-        throw new InvalidOperationException("no Rule spends labour");
+        throw new InvalidOperationException("no Rule makes crumbs");
     }
 
     private static int[] Bakers(World world)
@@ -92,7 +94,7 @@ public sealed class LabourProductionTests
         long total = 0;
         for (int bin = 0; bin < world.Bins.Rows.SlotCount; bin++)
         {
-            if (world.Bins.Rows.IsLive(bin) && world.Bins.Resource[bin].Raw == 5) { total += world.Bins.LevelAt(bin); }
+            if (world.Bins.Rows.IsLive(bin) && world.Bins.Resource[bin] == Crumbs) { total += world.Bins.LevelAt(bin); }
         }
 
         return total;

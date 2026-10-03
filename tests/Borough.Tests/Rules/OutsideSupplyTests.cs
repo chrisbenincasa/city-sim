@@ -96,13 +96,44 @@ public sealed class OutsideSupplyTests
         {
             if (world.Bins.Rows.IsLive(bin)
                 && world.Bins.OwnerKind[bin] == BinOwnerKind.Business
-                && world.Bins.Resource[bin] != money)
+                && world.Bins.Resource[bin] != money
+                && world.Rules.Family(world.Bins.Resource[bin]) != ResourceFamily.Labour)
             {
                 total += world.Bins.LevelAt(bin);
             }
         }
 
         return total;
+    }
+
+    private static bool Staffed(World world)
+    {
+        for (int bin = 0; bin < world.Bins.Rows.SlotCount; bin++)
+        {
+            if (world.Bins.Rows.IsLive(bin)
+                && world.Rules.Family(world.Bins.Resource[bin]) == ResourceFamily.Labour
+                && world.Bins.LevelAt(bin) > 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool WaitsOnMarket(World world)
+    {
+        for (int i = 0; i < world.RuleInstances.Rows.SlotCount; i++)
+        {
+            if (world.RuleInstances.Rows.IsLive(i)
+                && world.Bins.Rows.TryResolve(world.RuleInstances.WaitingOn[i], out int bin)
+                && world.Bins.OwnerKind[bin] == BinOwnerKind.District)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static List<(Handle<Lot> Lot, byte Kind)> RazeGates(World world, params MapEdge[] edges)
@@ -126,7 +157,7 @@ public sealed class OutsideSupplyTests
     /// <summary>
     /// Steps until shop stock first rises, and returns the stock and Money supply moved in that Tick.
     /// </summary>
-    private static (long Stocked, long Issued) FirstImport(World world, Simulation sim, int ticks = 512)
+    private static (long Stocked, long Issued) FirstImport(World world, Simulation sim, int ticks = 4 * Ticks.PerDay)
     {
         for (int t = 0; t < ticks; t++)
         {
@@ -189,15 +220,21 @@ public sealed class OutsideSupplyTests
         var (world, sim) = Start();
         var gates = RazeGates(world, MapEdge.North, MapEdge.East, MapEdge.South, MapEdge.West);
 
-        Assert.Equal(0, FirstImport(world, sim, ticks: 256).Stocked);
+        for (int t = 0; t < 4 * Ticks.PerDay && !Staffed(world); t++) { sim.Step(default); }
+        Assert.True(Staffed(world), "no shopfront ever held labour");
+        Assert.Equal(0, ShopStock(world));
+        Assert.True(WaitsOnMarket(world), "no shop was waiting on its market");
 
         (Handle<Lot> lot, byte kind) = gates.First(g =>
             world.EdgeOf(world.Lots.Rows.Resolve(g.Lot)) == MapEdge.East);
         world.CreateBuilding(lot, kind, world.Tick, WorldKey.FromSeed(0));
 
-        (long stocked, long issued) = FirstImport(world, sim, ticks: 16);
+        for (int t = 0; t < 16; t++) { sim.Step(default); }
+        Assert.False(WaitsOnMarket(world), "the new gate woke no shop");
 
-        Assert.True(stocked > 0, "the new gate woke no shop");
+        (long stocked, long issued) = FirstImport(world, sim, ticks: Ticks.PerDay);
+
+        Assert.True(stocked > 0, "no woken shop imported");
         Assert.Equal(-stocked * 120, issued);
         sim.CheckEndOfRun();
     }

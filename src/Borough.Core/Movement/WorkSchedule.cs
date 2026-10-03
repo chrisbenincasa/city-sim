@@ -142,6 +142,11 @@ public static class WorkSchedule
         return (days & IntegerMath.ShiftLeft(1, WeeklyHours.DayOf(day * Ticks.PerDay + start))) != 0;
     }
 
+    /// <remarks>
+    /// Wages accrue by attendance only where the schedule <see cref="Runs"/>. Labour accrues from
+    /// every present, on-duty worker in any world that declares it, because a trade without a
+    /// declared week still staffs its shift.
+    /// </remarks>
     public static void Accrue(World world, Ticks tick)
 #if PAYROLL_ATTRIBUTION
         => AccrueMeasured(world, tick, null);
@@ -149,7 +154,8 @@ public static class WorkSchedule
     public static void AccrueMeasured(World world, Ticks tick, Action<PayrollStage>? observe)
 #endif
     {
-        if (!Runs(world)) { return; }
+        bool accruesWages = Runs(world);
+        if (!accruesWages && world.Rules.Jobs.LabourPerDay <= 0) { return; }
 #if PAYROLL_ATTRIBUTION
         observe?.Invoke(PayrollStage.Begin);
 #endif
@@ -170,22 +176,7 @@ public static class WorkSchedule
             observe?.Invoke(PayrollStage.WageBegin);
 #endif
             int job = world.Businesses.Rows.Resolve(world.Citizens.Workplace[citizen]);
-            BusinessKindDefinition trade = world.Rules.BusinessKind(world.Businesses.Kind[job]);
-            long length = (long)world.Rules.Jobs.ShiftLengthOf(world.Key, world.Citizens.Rows.IdAt(citizen)).Raw;
-            if (length <= 0)
-            {
-#if PAYROLL_ATTRIBUTION
-                observe?.Invoke(PayrollStage.WageEnd);
-#endif
-                continue;
-            }
-            long rate = Graded(world, citizen, trade.WagePerDay);
-            long scaled = world.Citizens.WageRemainder[citizen] + rate;
-            long whole = IntegerMath.FloorDiv(scaled, length);
-            world.Citizens.WageRemainder[citizen] = scaled % length;
-            long cap = rate * trade.PayPeriodDays;
-            long earned = world.Citizens.EarnedWage[citizen] + whole;
-            world.Citizens.EarnedWage[citizen] = earned > cap ? cap : earned;
+            if (accruesWages) { AccrueWage(world, citizen, job); }
 #if PAYROLL_ATTRIBUTION
             observe?.Invoke(PayrollStage.WageEnd);
 #endif
@@ -194,6 +185,20 @@ public static class WorkSchedule
 #if PAYROLL_ATTRIBUTION
         observe?.Invoke(PayrollStage.End);
 #endif
+    }
+
+    private static void AccrueWage(World world, int citizen, int job)
+    {
+        BusinessKindDefinition trade = world.Rules.BusinessKind(world.Businesses.Kind[job]);
+        long length = (long)world.Rules.Jobs.ShiftLengthOf(world.Key, world.Citizens.Rows.IdAt(citizen)).Raw;
+        if (length <= 0) { return; }
+        long rate = Graded(world, citizen, trade.WagePerDay);
+        long scaled = world.Citizens.WageRemainder[citizen] + rate;
+        long whole = IntegerMath.FloorDiv(scaled, length);
+        world.Citizens.WageRemainder[citizen] = scaled % length;
+        long cap = rate * trade.PayPeriodDays;
+        long earned = world.Citizens.EarnedWage[citizen] + whole;
+        world.Citizens.EarnedWage[citizen] = earned > cap ? cap : earned;
     }
 }
 

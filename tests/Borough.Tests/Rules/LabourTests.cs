@@ -37,11 +37,10 @@ public sealed class LabourTests
     {
         string text = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "shopping.toml"));
 
-        return text
-            .Replace("[[business]]\nname = \"shop\"", Labour + "[[business]]\nname = \"shop\"")
-            .Replace("    { resource = \"money\",    owner = \"business\" },\n",
-                "    { resource = \"money\",    owner = \"business\" },\n" + LabourBin)
-            .Replace("arrive_early_max_minutes = 15\n", "arrive_early_max_minutes = 15\n" + LabourJobs);
+        Assert.Contains(Labour, text);
+        Assert.Contains(LabourBin, text);
+
+        return text.Replace("labour_per_day = 1024\n", LabourJobs + "\n");
     }
 
     private static RulesetLoadResult Parse(string text) => RulesetLoader.Parse(text, "labour.toml");
@@ -101,8 +100,9 @@ public sealed class LabourTests
     [InlineData("shelf_life_cycles = 4\nshelf_life_cycle_minutes = 15\n", "", "shelf life")]
     [InlineData("{ resource = \"labour\",   owner = \"business\" }", "{ resource = \"labour\", capacity = 8, owner = \"business\" }", "capacity")]
     [InlineData("{ resource = \"labour\",   owner = \"business\" }", "{ resource = \"labour\" }", "owner = \"business\"")]
-    [InlineData("inputs  = []\noutputs = [ { scope = \"local\", resource = \"sundries\", amount = 8 } ]", "inputs  = [ { scope = \"pool\", resource = \"labour\", amount = 1 } ]\noutputs = [ { scope = \"local\", resource = \"sundries\", amount = 8 } ]", "local")]
-    [InlineData("inputs  = []\noutputs = [ { scope = \"local\", resource = \"sundries\", amount = 8 } ]", "inputs  = []\noutputs = [ { scope = \"local\", resource = \"labour\", amount = 8 } ]", "output")]
+    [InlineData("inputs  = [ { scope = \"local\", resource = \"labour\", amount = 1 } ]\noutputs = [ { scope = \"local\", resource = \"sundries\", amount = 8 } ]", "inputs  = [ { scope = \"pool\", resource = \"labour\", amount = 1 } ]\noutputs = [ { scope = \"local\", resource = \"sundries\", amount = 8 } ]", "local")]
+    [InlineData("inputs  = [ { scope = \"local\", resource = \"labour\", amount = 1 } ]\noutputs = [ { scope = \"local\", resource = \"sundries\", amount = 8 } ]", "inputs  = [ { scope = \"local\", resource = \"labour\", amount = 1 } ]\noutputs = [ { scope = \"local\", resource = \"labour\", amount = 8 } ]", "output")]
+    [InlineData("inputs  = [ { scope = \"local\", resource = \"labour\", amount = 1 } ]\noutputs = [ { scope = \"local\", resource = \"sundries\", amount = 8 } ]", "inputs  = []\noutputs = [ { scope = \"local\", resource = \"sundries\", amount = 8 } ]", "spends no labour")]
     [InlineData("labour_per_day = 3000\n", "", "labour_per_day")]
     [InlineData("shelf_life_cycle_minutes = 15", "shelf_life_cycle_minutes = 120", "shift_hours_min")]
     [InlineData("labour_tier_percent = [100, 125, 150]", "labour_tier_percent = [90, 125, 150]", "labour_tier_percent")]
@@ -134,8 +134,8 @@ public sealed class LabourTests
     [Fact]
     public void Labour_per_day_without_a_labour_resource_is_refused()
     {
-        string text = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "shopping.toml"))
-            .Replace("arrive_early_max_minutes = 15\n", "arrive_early_max_minutes = 15\n" + LabourJobs);
+        string text = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "congested.toml"))
+            .Replace("[jobs]\n", "[jobs]\n" + LabourJobs + "\n");
 
         RulesetLoadResult loaded = Parse(text);
 

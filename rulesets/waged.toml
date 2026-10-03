@@ -216,6 +216,12 @@ family = "good"
 name = "money"
 family = "money"
 
+[[resource]]
+name = "labour"
+family = "labour"
+shelf_life_cycles = 4
+shelf_life_cycle_minutes = 15
+
 [[business]]
 name = "shop"
 shift_start_earliest_hour = 6
@@ -246,10 +252,12 @@ business = "shop"
 
 [[building]]
 name = "shopfront"
+# The grocer stocks only while staffed, so its shelf carries a shift's output through the closed hours.
 bins = [
-    { resource = "sundries", capacity = 96, owner = "business" },
+    { resource = "sundries", capacity = 1536, owner = "business" },
     { resource = "repairs",  capacity = 4 },
     { resource = "money",    owner = "business" },
+    { resource = "labour",   owner = "business" },
 ]
 tenancy_ends_after_days = 2
 houses   = true
@@ -285,7 +293,7 @@ name    = "stock"
 kind    = "shopfront"
 rate    = 8
 apply   = { min = 1, max = 4 }
-inputs  = []
+inputs  = [ { scope = "local", resource = "labour", amount = 1 } ]
 outputs = [ { scope = "local", resource = "sundries", amount = 8 } ]
 
 [[rule]]
@@ -368,6 +376,7 @@ commute_moderate_minutes = 40
 commute_budget_minutes = 50
 
 [jobs]
+labour_per_day = 1024
 interval      = 32
 revisit_ticks = 1024
 candidates    = 3

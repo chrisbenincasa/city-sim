@@ -2861,6 +2861,7 @@ public static class RulesetLoader
                 // its kind, and the kind names the Bins, so the answer only exists once both have
                 // been read.
                 ApplyTenancies(rules, inputs, outputs, allBins, binFirst, i);
+                RefuseUnstaffedProduction(rules, inputs, outputs, i);
 
                 // The kind's Rules are not declared on the kind: a Rule already names the kind it
                 // runs on, and a second list would be the same fact twice with nothing keeping the
@@ -4449,6 +4450,59 @@ public static class RulesetLoader
             }
 
             return (int)revisit;
+        }
+
+        /// <summary>
+        /// Refuses a Business's Rule that makes a Good without spending labour.
+        /// </summary>
+        /// <remarks>
+        /// Production by a trade is bounded by the workers present, so a Business Rule with a Good
+        /// among its outputs states labour among its inputs. A Household's or the premises' Rules
+        /// are not a trade's, and domestic labour is deferred (<c>docs/deferred.md</c>).
+        /// </remarks>
+        private void RefuseUnstaffedProduction(
+            RuleDefinition[] rules, Term[] inputs, Term[] outputs, int kindIndex)
+        {
+            for (int r = 0; r < rules.Length; r++)
+            {
+                RuleDefinition rule = rules[r];
+
+                if (rule.Kind != kindIndex + 1 || rule.Tenancy != BinTenancy.Business)
+                {
+                    continue;
+                }
+
+                bool makesGood = false;
+
+                for (int t = 0; t < rule.OutputCount; t++)
+                {
+                    makesGood |= _families[outputs[rule.OutputFirst + t].Bin.Resource.Raw - 1]
+                        == ResourceFamily.Good;
+                }
+
+                bool spendsLabour = false;
+
+                for (int t = 0; t < rule.InputCount; t++)
+                {
+                    spendsLabour |= _families[inputs[rule.InputFirst + t].Bin.Resource.Raw - 1]
+                        == ResourceFamily.Labour;
+                }
+
+                if (!makesGood || spendsLabour)
+                {
+                    continue;
+                }
+
+                string? name = TryString(_ruleTables[r], "name", out string? found, required: false)
+                    ? found
+                    : null;
+
+                Refuse(LineOf(_ruleTables[r]), name,
+                    "this Business Rule makes a Good and spends no labour, so the trade produces "
+                    + "with nobody at work. State a labour input: declare a labour Resource, give "
+                    + "the kind a labour Bin with owner = \"business\" and set [jobs] "
+                    + "labour_per_day.");
+            }
         }
 
         /// <summary>

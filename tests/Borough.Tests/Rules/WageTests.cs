@@ -131,31 +131,23 @@ public sealed class WageTests(ITestOutputHelper output)
 
         long worst = 0;
         long lastSeen = 0;
+        long payrollCeiling = PayrollCeiling(world, check: false);
 
         for (int tick = 0; tick < 90 * Ticks.PerDay; tick++)
         {
             simulation.Step(default);
 
-            if (simulation.LastPayroll.Shortfall <= 0)
+            if (simulation.LastPayroll.Shortfall > 0)
             {
-                continue;
+                lastSeen = simulation.LastPayroll.Shortfall;
+                worst = long.Max(worst, lastSeen);
+
+                // A Business bankrupted on this payday has already released its workers, so the
+                // ceiling is the workforce as it stood before the Tick.
+                Assert.InRange(lastSeen, 0, payrollCeiling);
             }
 
-            lastSeen = simulation.LastPayroll.Shortfall;
-            worst = long.Max(worst, lastSeen);
-
-            long payrollCeiling = 0;
-            for (int worker = 0; worker < world.Citizens.Rows.SlotCount; worker++)
-            {
-                if (!world.Citizens.Rows.IsLive(worker)
-                    || !world.Businesses.Rows.TryResolve(world.Citizens.Workplace[worker], out int employer))
-                    continue;
-                var trade = world.Rules.BusinessKind(world.Businesses.Kind[employer]);
-                long cap = (long)trade.WagePerDay * trade.PayPeriodDays;
-                payrollCeiling += cap;
-                Assert.InRange(world.Citizens.EarnedWage[worker], 0, cap);
-            }
-            Assert.InRange(lastSeen, 0, payrollCeiling);
+            payrollCeiling = PayrollCeiling(world, check: simulation.LastPayroll.Shortfall > 0);
         }
 
         _output.WriteLine($"worst shortfall on any one payday: {worst}; last seen: {lastSeen}.");
@@ -275,6 +267,31 @@ public sealed class WageTests(ITestOutputHelper output)
         SyntheticCity.PopulateInto(world, key, new Ticks(0));
 
         return (world, simulation);
+    }
+
+    private static long PayrollCeiling(World world, bool check)
+    {
+        long ceiling = 0;
+
+        for (int worker = 0; worker < world.Citizens.Rows.SlotCount; worker++)
+        {
+            if (!world.Citizens.Rows.IsLive(worker)
+                || !world.Businesses.Rows.TryResolve(world.Citizens.Workplace[worker], out int employer))
+            {
+                continue;
+            }
+
+            BusinessKindDefinition trade = world.Rules.BusinessKind(world.Businesses.Kind[employer]);
+            long cap = (long)trade.WagePerDay * trade.PayPeriodDays;
+            ceiling += cap;
+
+            if (check)
+            {
+                Assert.InRange(world.Citizens.EarnedWage[worker], 0, cap);
+            }
+        }
+
+        return ceiling;
     }
 
     private static string Text() =>
