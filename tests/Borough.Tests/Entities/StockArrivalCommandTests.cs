@@ -145,7 +145,9 @@ public sealed class StockArrivalCommandTests
         // Asking costs the world nothing, which is what lets a shell ask before it sends.
         Assert.Equal(before, world.HashState());
 
-        Assert.Throws<InvalidOperationException>(() => simulation.Step(new TickInput([ask], 0)));
+        simulation.Step(new TickInput([ask], 0));
+
+        Assert.Equal(1, simulation.CommandsRefused);
     }
 
     /// <summary>A declared composition standing at nobody admits nobody, and is refused by nothing.</summary>

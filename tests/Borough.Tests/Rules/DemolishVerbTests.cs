@@ -218,20 +218,17 @@ public sealed class DemolishVerbTests
     /// <remarks>
     /// <b>This is the assertion that keeps the verb from being a free bulldozer</b>, which is the one
     /// thing <c>adr/0091</c> argues at length it must not be: a verb with no cost is not governed by
-    /// anything the city does. The message is asserted, not just the throw — <c>adr/0070</c> only
-    /// counts an absence as evidence when it reads <em>refused</em>, and a bare exception reads as an
-    /// oversight to whoever meets it.
+    /// anything the city does. The refusal is asserted by its code, because <c>adr/0070</c> only
+    /// counts an absence as evidence when it reads <em>refused</em>.
     /// </remarks>
     [Fact]
     public void Demolishing_an_occupied_building_is_refused_by_name()
     {
         (_, Simulation simulation) = Built();
 
-        var refusal = Assert.Throws<InvalidOperationException>(
-            () => Demolish(simulation, east: 1, north: 0));
-
-        Assert.Contains("COMPULSORY PURCHASE", refusal.Message, StringComparison.Ordinal);
-        Assert.Contains("land value", refusal.Message, StringComparison.Ordinal);
+        Assert.Equal(
+            Refusal.DemolishBuildingIsOccupied,
+            simulation.Refuses(new Command(CommandKind.Demolish, new Tiles(1), new Tiles(0))));
     }
 
     /// <summary>An occupied Building refused is an occupied Building still standing.</summary>
@@ -245,8 +242,9 @@ public sealed class DemolishVerbTests
     {
         (World world, Simulation simulation) = Built();
 
-        Assert.Throws<InvalidOperationException>(() => Demolish(simulation, east: 1, north: 0));
+        Demolish(simulation, east: 1, north: 0);
 
+        Assert.Equal(1, simulation.CommandsRefused);
         Assert.Equal(4, Standing(world));
         Assert.False(VacantAt(world, east: 1));
     }
@@ -263,10 +261,9 @@ public sealed class DemolishVerbTests
     {
         (_, Simulation simulation) = Abandoned();
 
-        var refusal = Assert.Throws<InvalidOperationException>(
-            () => Demolish(simulation, east: 40, north: 0));
-
-        Assert.Contains("no Building", refusal.Message, StringComparison.Ordinal);
+        Assert.Equal(
+            Refusal.DemolishNoBuildingOnThatTile,
+            simulation.Refuses(new Command(CommandKind.Demolish, new Tiles(40), new Tiles(0))));
     }
 
     /// <summary>

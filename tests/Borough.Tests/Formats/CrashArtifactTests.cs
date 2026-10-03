@@ -33,10 +33,9 @@ public sealed class CrashArtifactTests
     [Fact]
     public void The_tick_a_panic_leaves_behind_is_the_tick_that_failed()
     {
-        // Connect is encoded by the format and refused by the simulation until slice 7, which makes
-        // it the one verb that panics on demand without breaking anything to arrange it.
+        // A reload to a Ruleset the session was never given panics on demand.
         InputLog log = Builder()
-            .Append(new Ticks(5), new Command(CommandKind.Connect, new Tiles(3), new Tiles(4), 0))
+            .Reload(new Ticks(5), 0xDEAD_BEEF)
             .Build();
 
         Simulation simulation = Replay.Start(log, Core.Rules.Ruleset.Empty);

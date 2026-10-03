@@ -147,10 +147,7 @@ public sealed class GovernTests
             transfer = { from = "local", to = "global", resource = "money", amount = 10 }
             """);
 
-        InvalidOperationException refused =
-            Assert.Throws<InvalidOperationException>(() => Govern(simulation, 0, 25));
-
-        Assert.Contains("states no name", refused.Message, StringComparison.Ordinal);
+        Assert.Equal(Refusal.GovernPolicyHasNoName, simulation.Refuses(Command.Govern(0, 25)));
     }
 
     /// <summary>And so is a Policy this Ruleset does not declare.</summary>
@@ -159,10 +156,7 @@ public sealed class GovernTests
     {
         (World _, Simulation simulation) = City(Levy("levy", 10));
 
-        InvalidOperationException refused =
-            Assert.Throws<InvalidOperationException>(() => Govern(simulation, 7, 25));
-
-        Assert.Contains("declares 1", refused.Message, StringComparison.Ordinal);
+        Assert.Equal(Refusal.GovernNoSuchPolicy, simulation.Refuses(Command.Govern(7, 25)));
     }
 
     private const int Seed = 20_260_830;

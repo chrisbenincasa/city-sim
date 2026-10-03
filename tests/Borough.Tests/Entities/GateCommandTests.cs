@@ -182,10 +182,16 @@ public sealed class GateCommandTests
         foreach (Command command in refused)
         {
             Assert.NotEqual(Refusal.None, simulation.Refuses(command));
-            Assert.Throws<InvalidOperationException>(
-                () => simulation.Step(new TickInput([command], 0)));
-            Assert.Equal(before, world.HashState());
         }
+
+        Assert.Equal(before, world.HashState());
+
+        int doors = Doors(world, HinterlandTable.EdgeAt(0)).Length;
+
+        simulation.Step(new TickInput(refused, 0));
+
+        Assert.Equal(refused.Length, simulation.CommandsRefused);
+        Assert.Equal(doors, Doors(world, HinterlandTable.EdgeAt(0)).Length);
 
         world.Invariants.RunEndOfRun(world);
     }

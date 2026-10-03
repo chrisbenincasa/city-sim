@@ -77,6 +77,7 @@ public sealed class Simulation
     private ulong _inForce;
     private bool _opened;
     private int _reloads;
+    private int _commandsRefused;
     private RulesetDegradation _degradation;
 
     /// <param name="world">The tables this advances. Not copied; the Simulation does not own it.</param>
@@ -482,6 +483,14 @@ public sealed class Simulation
     /// </remarks>
     public int Reloads => _reloads;
 
+    /// <summary>How many queued commands phase 0 refused since this Simulation started.</summary>
+    /// <remarks>
+    /// A front end asks <see cref="Refuses"/> when it queues a command, but an earlier command in the
+    /// same Tick can change the answer. Phase 0 asks again and skips a refused command. The refusal
+    /// depends only on the log and the world, so a replay refuses the same command.
+    /// </remarks>
+    public int CommandsRefused => _commandsRefused;
+
     /// <summary>The content hash of the Ruleset in force, or 0 before the first Tick.</summary>
     public ulong RulesetInForce => _inForce;
 
@@ -571,6 +580,14 @@ public sealed class Simulation
 
         foreach (Command command in input.Commands)
         {
+            Refusal refusal = Refuses(command);
+
+            if (refusal != Refusal.None && refusal != Refusal.VerbNotApplied)
+            {
+                _commandsRefused++;
+                continue;
+            }
+
             Apply(command, tick);
         }
 
@@ -717,7 +734,8 @@ public sealed class Simulation
     /// <para>
     /// 🔴 <b>The applier and this answer are ONE predicate, and that is the whole of the design.</b>
     /// Each verb's checks moved into a <c>Refuse*</c> method that returns a code and hands back what
-    /// it resolved on the way; <see cref="Apply"/> throws on a non-zero code and this returns it. A
+    /// it resolved on the way; phase 0 skips a command this refuses, and the appliers still throw on a
+    /// non-zero code as a guard. A
     /// front end asking <em>would this be refused</em> is therefore asking the code that refuses,
     /// rather than a paraphrase of it that is free to drift — <c>plans/0012</c> <b>Cause 1</b>, which
     /// the shell had already committed three times over.
@@ -1133,10 +1151,10 @@ public sealed class Simulation
     /// <remarks>
     /// ⚠ <b>The two arms are <c>SyntheticCity.PeopleInto</c>'s own two throws, in its order.</b> That
     /// method guards itself and will go on doing so — it is called directly by half the suite — so
-    /// this is a second reader of the same two facts rather than a second rule. ***What it buys is a
-    /// front end that declines the click***: an exception out of phase 0 aborts a Tick half way, and
-    /// on this verb both failures are things a hand at the keyboard reaches in the ordinary course of
-    /// playing — populating twice, or populating before zoning anything.
+    /// this is a second reader of the same two facts rather than a second rule. It lets a front end
+    /// decline the click and lets phase 0 skip the command. On this verb both failures are things a
+    /// hand at the keyboard reaches in the ordinary course of playing — populating twice, or
+    /// populating before zoning anything.
     /// </remarks>
     private Refusal RefusePeople() =>
         _world.Citizens.Rows.LiveCount != 0 ? Refusal.PeopleWorldAlreadyHasAPopulation
@@ -1832,7 +1850,7 @@ public sealed class Simulation
     /// this case and its own remark named it — <em>"a city whose Streets were laid by
     /// <c>CommandKind.Connect</c> wants the people half without the land half and could not ask for
     /// it"</em> — and then nothing outside the test suite could ask, because there was no verb. The
-    /// guard above it is the shell's rather than the city's: the city throws either way.
+    /// guard above it is the shell's rather than the city's: phase 0 refuses either way.
     /// </remarks>
     private void ApplyPeople(Ticks tick)
     {
@@ -1867,9 +1885,9 @@ public sealed class Simulation
     /// two verbs for one decision.
     /// </para>
     /// <para>
-    /// <b>Every refusal is a throw and none is a silent no-op</b>, on <c>ApplyDemolish</c>'s rule: a
-    /// command in an Input Log is a thing somebody did, and a verb that quietly declines leaves a
-    /// replay that diverges from the session with nothing in the artefact to say why.
+    /// <b>Phase 0 refuses a command before it reaches here</b>, and the throw below is a guard. A
+    /// refusal depends only on the log and the world, so a replay refuses the same command and
+    /// <see cref="CommandsRefused"/> counts it.
     /// </para>
     /// </remarks>
     private void ApplyService(Command command, Ticks tick)

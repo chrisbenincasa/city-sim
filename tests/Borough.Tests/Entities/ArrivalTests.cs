@@ -420,17 +420,14 @@ public sealed class ArrivalTests
 
         simulation.Step(new TickInput([new Command(CommandKind.Populate, default, default)], 0));
 
-        Assert.Throws<InvalidOperationException>(
-            () => simulation.Step(
-                new TickInput(
-                    [
-                        new Command(
-                            CommandKind.Arrive,
-                            new Tiles(7_777),
-                            new Tiles(7_777),
-                            new ArrivePayload(1, 0, 1).Encode()),
-                    ],
-                    0)));
+        var arrive = new Command(
+            CommandKind.Arrive, new Tiles(7_777), new Tiles(7_777), new ArrivePayload(1, 0, 1).Encode());
+
+        Assert.Equal(Refusal.ArriveNoGateOnThatTile, simulation.Refuses(arrive));
+
+        simulation.Step(new TickInput([arrive], 0));
+
+        Assert.Equal(1, simulation.CommandsRefused);
     }
 
     /// <summary>

@@ -353,17 +353,13 @@ public partial class Main
     /// </summary>
     /// <remarks>
     /// <para>
-    /// 🔴 <b><c>plans/0045</c> row 15e, and the whole of it is here.</b> Every verb's refusals were
-    /// an <c>InvalidOperationException</c> out of Phase 0 — the right artefact for a log, which must
-    /// stop rather than diverge from the session it describes, and the wrong one for a person. This
-    /// is the one place a <see cref="Command"/> reaches <see cref="_queued"/> from a click, so it is
-    /// the one place that has to ask.
+    /// 🔴 <b><c>plans/0045</c> row 15e, and the whole of it is here.</b> This is the one place a
+    /// <see cref="Command"/> reaches <see cref="_queued"/> from a click, so it is the one place that
+    /// says in words why a click is refused.
     /// </para>
     /// <para>
-    /// ⚠ <b>The answer is good for exactly as long as the world stands still, and it does.</b>
-    /// <see cref="Ordered"/> drains the queue as the argument to <c>Step</c>, so nothing runs between
-    /// the question and the command applying. ***A shell that asked, stepped, and then sent would be
-    /// guarding a city that no longer exists.***
+    /// ⚠ <b>The answer is asked of the world before the queue applies.</b> An earlier command in the
+    /// same queue can change it, so Phase 0 asks again and skips a command it refuses.
     /// </para>
     /// </remarks>
     private bool Send(Command command)

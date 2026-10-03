@@ -16,10 +16,9 @@ namespace Borough.Tests.Input;
 /// <remarks>
 /// <para>
 /// <b>Every case below asserts the same two things about one command</b> — that
-/// <see cref="Simulation.Refuses"/> names the reason, and that <see cref="Simulation.Step"/> throws
-/// on it. ***A front end that asks the first and is told the truth may decline to send***, which is
-/// the whole of what 15e buys: an exception out of Phase 0 aborts a Tick half way and leaves a world
-/// no invariant covers, so a click that would throw must never be queued.
+/// <see cref="Simulation.Refuses"/> names the reason, and that <see cref="Simulation.Step"/> skips
+/// it. A front end that asks the first may decline to send. Phase 0 asks again, because an earlier
+/// command in the same Tick can change the answer, and a refused command changes nothing.
 /// </para>
 /// <para>
 /// 🔴 <b>The theory is driven by <see cref="Refusal"/> itself, so a member with no case here goes
@@ -67,10 +66,46 @@ public sealed class RefusalTests
 
         Assert.Equal(expected, simulation.Refuses(command));
 
-        // The other half, and the half that makes the first one worth anything: a query returning a
-        // reason for a command that would have applied is not a guard, it is a shell refusing clicks
-        // the city would have accepted.
-        Assert.Throws<InvalidOperationException>(() => simulation.Step(new TickInput([command], 0)));
+        if (expected == Refusal.VerbNotApplied)
+        {
+            Assert.Throws<InvalidOperationException>(() => simulation.Step(new TickInput([command], 0)));
+            return;
+        }
+
+        (Simulation control, Command _) = Case(expected);
+
+        simulation.Step(new TickInput([command], 0));
+        control.Step(new TickInput([], 0));
+
+        Assert.Equal(1, simulation.CommandsRefused);
+        Assert.Equal(control.World.HashState(), simulation.World.HashState());
+    }
+
+    /// <summary>
+    /// Two commands queued in one Tick: the first makes the second invalid, and phase 0 refuses it.
+    /// </summary>
+    [Fact]
+    public void A_command_an_earlier_one_invalidates_is_refused_and_replays()
+    {
+        (World world, Simulation simulation) = City(Schooled);
+        int lot = FirstVacantLot(world);
+        Command service = Command.Service(world.Lots.East[lot], world.Lots.North[lot], School);
+        var input = new TickInput([service, service], 0);
+
+        Assert.Equal(Refusal.None, simulation.Refuses(service));
+
+        int before = world.Buildings.Rows.LiveCount;
+
+        simulation.Step(input);
+
+        Assert.Equal(before + 1, world.Buildings.Rows.LiveCount);
+        Assert.Equal(1, simulation.CommandsRefused);
+
+        (World replayed, Simulation replay) = City(Schooled);
+
+        replay.Step(input);
+
+        Assert.Equal(world.HashState(), replayed.HashState());
     }
 
     /// <summary>A command the city accepts is refused by nothing, and applies.</summary>
