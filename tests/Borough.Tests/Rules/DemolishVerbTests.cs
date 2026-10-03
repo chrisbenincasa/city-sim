@@ -1,10 +1,14 @@
 using Borough.Core;
+using Borough.Core.Arithmetic;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Input;
+using Borough.Core.Instruments;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
+using Borough.Core.Space;
 using Borough.Core.Tables;
+using Borough.Formats;
 
 namespace Borough.Tests.Rules;
 
@@ -213,40 +217,175 @@ public sealed class DemolishVerbTests
     }
 
     /// <summary>
-    /// 🔴 <b>An occupied Building is refused, and the refusal names its successor.</b>
+    /// An occupied Building in a world with no demolition price is cleared free, and its Household
+    /// goes to the Unplaced Pool.
     /// </summary>
-    /// <remarks>
-    /// <b>This is the assertion that keeps the verb from being a free bulldozer</b>, which is the one
-    /// thing <c>adr/0091</c> argues at length it must not be: a verb with no cost is not governed by
-    /// anything the city does. The refusal is asserted by its code, because <c>adr/0070</c> only
-    /// counts an absence as evidence when it reads <em>refused</em>.
-    /// </remarks>
     [Fact]
-    public void Demolishing_an_occupied_building_is_refused_by_name()
-    {
-        (_, Simulation simulation) = Built();
-
-        Assert.Equal(
-            Refusal.DemolishBuildingIsOccupied,
-            simulation.Refuses(new Command(CommandKind.Demolish, new Tiles(1), new Tiles(0))));
-    }
-
-    /// <summary>An occupied Building refused is an occupied Building still standing.</summary>
-    /// <remarks>
-    /// <b>Separate from the message test on purpose.</b> A refusal that threw <em>after</em> clearing
-    /// the Lot would pass the assertion above and be the worse defect of the two, because the
-    /// exception would read as though nothing had happened.
-    /// </remarks>
-    [Fact]
-    public void A_refused_demolition_removes_nothing()
+    public void Demolishing_an_occupied_building_without_a_price_evicts_its_household()
     {
         (World world, Simulation simulation) = Built();
 
         Demolish(simulation, east: 1, north: 0);
 
+        Assert.Equal(3, Standing(world));
+        Assert.True(VacantAt(world, east: 1));
+        Assert.Equal(1, world.UnplacedPool.Count);
+    }
+
+    // ---- the price ------------------------------------------------------------------------------
+
+    private const long PricePerTile = 1_000;
+
+    /// <summary>
+    /// <c>minimal.toml</c> with a demolition price, populated, with a treasury of
+    /// <paramref name="treasury"/> and one whole unit of land value under the first Building holding
+    /// Households and no Business. A displaced Business can leave the city on the same
+    /// Tick, so its balance cannot be read back afterward.
+    /// </summary>
+    private static (World World, Simulation Simulation, int Building) Priced(long treasury)
+    {
+        string toml = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "minimal.toml"))
+            .Replace("[lots]\n", $"[lots]\ndemolition_price_per_tile = {PricePerTile}\n", StringComparison.Ordinal);
+        RulesetLoadResult loaded = RulesetLoader.Parse(toml, "minimal.toml");
+
+        Assert.Empty(loaded.Refusals);
+
+        var key = WorldKey.FromSeed(0x0DE_C0DE_D0_11_5AEDUL);
+        var world = new World(1_000, loaded.Ruleset!, key);
+        var simulation = new Simulation(world, key) { VerifyDecideWritesNothing = false };
+
+        SyntheticCity.PopulateInto(world, key, Ticks.Zero);
+        world.EndowTreasury(new Money(treasury));
+
+        for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
+        {
+            if (world.Buildings.Rows.IsLive(slot) && !world.Occupants.IsEmpty(slot) && world.BuildingBusinesses.IsEmpty(slot))
+            {
+                int lot = world.Lots.Rows.Resolve(world.Buildings.Lot[slot]);
+                Cells east = CellGrid.ToCells(world.Lots.East[lot]);
+                Cells north = CellGrid.ToCells(world.Lots.North[lot]);
+
+                world.Layers.SetLandValueTarget(east, north, Fixed.One);
+
+                while (world.Layers.LandValue(east, north) < Fixed.One)
+                {
+                    world.Layers.DriftLandValue();
+                }
+
+                return (world, simulation, slot);
+            }
+        }
+
+        Assert.Fail("minimal.toml populated no Building with Households and no Business.");
+
+        return default;
+    }
+
+    /// <summary>
+    /// The treasury pays the price to the displaced in equal shares, and no money is created or
+    /// destroyed.
+    /// </summary>
+    [Fact]
+    public void Demolishing_an_occupied_building_pays_its_price_to_the_displaced()
+    {
+        (World world, Simulation simulation, int building) = Priced(treasury: 100_000_000);
+
+        int lot = world.Lots.Rows.Resolve(world.Buildings.Lot[building]);
+        long tiles = (long)world.Lots.FootprintWide[lot].Raw * world.Lots.FootprintDeep[lot].Raw;
+        long price = world.DemolitionPrice(building).Raw;
+
+        // One whole unit of land value doubles the base price.
+        Assert.Equal(2 * tiles * PricePerTile, price);
+
+        var households = new List<Handle<Household>>();
+        foreach (int household in world.Occupants.Walk(building))
+        {
+            households.Add(world.Households.Rows.At(household));
+        }
+
+        long[] before = [.. households.Select(h => world.BalanceOf(h).Raw)];
+        long treasury = world.TreasuryBalance()!.Value.Raw;
+        Money issued = world.MoneySupply.Issued[MoneySupplyTable.Slot];
+
+        simulation.DrainTreasuryFlows();
+        Demolish(simulation, world.Lots.East[lot].Raw, world.Lots.North[lot].Raw);
+
+        long[] after = [.. households.Select(h => world.BalanceOf(h).Raw)];
+        long share = price / before.Length;
+        long[] gains = [.. after.Zip(before, (a, b) => a - b)];
+
+        Assert.Equal(price, gains.Sum());
+        Assert.All(gains, gain => Assert.InRange(gain, share, share + 1));
+        TreasuryFlows flows = simulation.DrainTreasuryFlows();
+
+        Assert.Equal(price, flows.Compensation);
+        Assert.Equal(issued, world.MoneySupply.Issued[MoneySupplyTable.Slot]);
+        Assert.All(households, h => Assert.True(world.Households.Rows.TryResolve(h, out _)));
+        Assert.Equal(treasury + flows.Income - flows.Expenditure, world.TreasuryBalance()!.Value.Raw);
+    }
+
+    /// <summary>Businesses are paid an equal share beside Households.</summary>
+    [Fact]
+    public void Businesses_share_the_price_with_households()
+    {
+        (World world, _, _) = Priced(treasury: 1_000_000);
+
+        int building = -1;
+        for (int slot = 0; slot < world.Buildings.Rows.SlotCount && building < 0; slot++)
+        {
+            if (world.Buildings.Rows.IsLive(slot) && !world.Occupants.IsEmpty(slot) && !world.BuildingBusinesses.IsEmpty(slot))
+            {
+                building = slot;
+            }
+        }
+
+        Assert.True(building >= 0, "minimal.toml populated no Building with Households and a Business.");
+
+        var households = new List<Handle<Household>>();
+        foreach (int household in world.Occupants.Walk(building))
+        {
+            households.Add(world.Households.Rows.At(household));
+        }
+
+        var businesses = new List<Handle<Business>>();
+        foreach (int business in world.BuildingBusinesses.Walk(building))
+        {
+            businesses.Add(world.Businesses.Rows.At(business));
+        }
+
+        long[] Balances() =>
+            [.. households.Select(h => world.BalanceOf(h).Raw), .. businesses.Select(b => world.BalanceOf(b).Raw)];
+
+        long[] before = Balances();
+        long price = (before.Length * 100) + 1;
+
+        world.PayDisplaced(building, new Money(price), world.Tick);
+
+        long[] gains = [.. Balances().Zip(before, (a, b) => a - b)];
+
+        Assert.Equal(price, gains.Sum());
+        Assert.Equal(101, gains[0]);
+        Assert.All(gains.Skip(1), gain => Assert.Equal(100, gain));
+    }
+
+    /// <summary>A treasury short of the price demolishes nothing.</summary>
+    [Fact]
+    public void A_treasury_short_of_the_price_is_refused_and_removes_nothing()
+    {
+        (World world, Simulation simulation, int building) = Priced(treasury: 0);
+
+        int lot = world.Lots.Rows.Resolve(world.Buildings.Lot[building]);
+        int held = world.Occupants.Length(building);
+
+        Command demolish = new(CommandKind.Demolish, world.Lots.East[lot], world.Lots.North[lot]);
+
+        Assert.Equal(Refusal.DemolishTreasuryCannotPay, simulation.Refuses(demolish));
+
+        Demolish(simulation, world.Lots.East[lot].Raw, world.Lots.North[lot].Raw);
+
         Assert.Equal(1, simulation.CommandsRefused);
-        Assert.Equal(4, Standing(world));
-        Assert.False(VacantAt(world, east: 1));
+        Assert.True(world.Buildings.Rows.IsLive(building));
+        Assert.Equal(held, world.Occupants.Length(building));
     }
 
     /// <summary>A Tile with nothing on it is refused rather than resolved to a neighbour.</summary>

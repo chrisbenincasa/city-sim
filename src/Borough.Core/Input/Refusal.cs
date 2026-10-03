@@ -93,10 +93,10 @@ public enum Refusal : ushort
     DemolishNoBuildingOnThatTile = 13,
 
     /// <summary>
-    /// <c>Demolish</c> names a Building somebody is still in. Clearing occupied ground is
-    /// <c>adr/0091</c>'s compulsory purchase, whose price that ADR refuses to compose.
+    /// <c>Demolish</c> names an occupied Building whose price the treasury cannot pay in full
+    /// (<c>adr/0091</c>).
     /// </summary>
-    DemolishBuildingIsOccupied = 14,
+    DemolishTreasuryCannotPay = 14,
 
     /// <summary><c>Service</c> names a Building kind this Ruleset does not declare.</summary>
     ServiceKindNotDeclared = 15,

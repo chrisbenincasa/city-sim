@@ -239,6 +239,14 @@ public sealed class RefusalTests
                     return (simulation, Case(refusal, simulation, world));
                 }
 
+            case Refusal.DemolishTreasuryCannotPay:
+                {
+                    // The treasury opens empty, so any positive price refuses.
+                    (World world, Simulation simulation) = City(DemolitionPriced);
+
+                    return (simulation, Case(refusal, simulation, world));
+                }
+
             case Refusal.GovernPolicyHasNoName:
                 {
                     (World world, Simulation simulation) = City(Schooled + Anonymous);
@@ -409,7 +417,7 @@ public sealed class RefusalTests
         Refusal.DemolishNoBuildingOnThatTile => new Command(
             CommandKind.Demolish, new Tiles(9_000), new Tiles(9_000)),
 
-        Refusal.DemolishBuildingIsOccupied => Standing(world),
+        Refusal.DemolishTreasuryCannotPay => Standing(world),
 
         Refusal.ServiceKindNotDeclared => Command.Service(
             world.Lots.East[FirstVacantLot(world)],
@@ -575,7 +583,7 @@ public sealed class RefusalTests
 
             int building = world.Lots.BuildingOn(slot);
 
-            if (building >= 0 && !world.Buildings.IsAbandoned(building))
+            if (building >= 0 && !world.Buildings.IsAbandoned(building) && !world.Occupants.IsEmpty(building))
             {
                 return new Command(
                     CommandKind.Demolish, world.Lots.East[slot], world.Lots.North[slot]);
@@ -874,6 +882,10 @@ public sealed class RefusalTests
 
     /// <summary>Roads, Trips and a service kind — the world most cases are refused in.</summary>
     private const string Schooled = Base + Streets + Travelled;
+
+    /// <summary>The default city, with a price on clearing occupied ground.</summary>
+    private static readonly string DemolitionPriced = Schooled.Replace(
+        "setback_tiles = 2\n", "setback_tiles = 2\ndemolition_price_per_tile = 1000\n", StringComparison.Ordinal);
 
     /// <summary>A city that travels and has no lattice to travel on.</summary>
     private const string Pathless = Base + Travelled;

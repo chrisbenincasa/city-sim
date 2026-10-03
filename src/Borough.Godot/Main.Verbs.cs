@@ -143,7 +143,7 @@ public partial class Main
     {
         Verb.Zone => ZoneName(),
         Verb.Connect => "STREET (shift-click bulldozes)",
-        Verb.Demolish => "DEMOLISH — abandoned only",
+        Verb.Demolish => "DEMOLISH",
         Verb.Service => _serviceKind != 0
             ? $"SERVICE {_names.Kind(_serviceKind) ?? _serviceKind.ToString()} (s cycles)"
             : "SERVICE — no kind declares `serves`",
@@ -431,9 +431,9 @@ public partial class Main
         Refusal.DemolishNoBuildingOnThatTile =>
             "nothing stands on that plot to clear.",
 
-        Refusal.DemolishBuildingIsOccupied =>
-            "somebody still lives there. Clearing occupied ground is a compulsory purchase and its "
-            + "price is not built, so only abandoned buildings can be cleared.",
+        Refusal.DemolishTreasuryCannotPay =>
+            "the treasury cannot pay the people who would be displaced. Clearing occupied ground "
+            + "pays its land value to everyone who lives or trades there.",
 
         Refusal.ServiceKindNotDeclared =>
             "this Ruleset declares no such building.",
@@ -694,7 +694,7 @@ public partial class Main
         }
     }
 
-    /// <summary>Clears the abandoned Building nearest the cursor, at its own Lot's Tile.</summary>
+    /// <summary>Clears the Building nearest the cursor, at its own Lot's Tile.</summary>
     /// <remarks>
     /// 🔴 <b>The command names the LOT's Tile and never the cursor's, and that is not a convenience.</b>
     /// <c>Simulation.BuildingOn</c> matches a Lot's coordinate exactly and
