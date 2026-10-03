@@ -8,6 +8,10 @@ public readonly record struct StreetArc
     // At radii above 2^33 Tiles, every int-length chord bulges less than 1/64 Tile.
     // Flattening there avoids unbounded centers; Q56 rotations retain precision below this bound.
     private const long MaximumRadius = 1L << 49;
+    private const int SplitRoundoff = Fixed.One >> 6;
+
+    // Round sqrt(2)/2 downward so the displacement guard never exceeds the stated bound.
+    private const int SplitDisplacement = 46340 + SplitRoundoff;
     private readonly long _startAngle;
     private readonly long _sweep;
 
@@ -40,13 +44,13 @@ public readonly record struct StreetArc
         arc = default;
         long dx = (long)bEast - aEast;
         long dy = (long)bNorth - aNorth;
-        if (dx < -32767 || dx > 32767 || dy < -32767 || dy > 32767)
+        if (!TileDeltaInRange(dx, dy))
         {
             return false;
         }
 
         long squareTiles = (dx * dx) + (dy * dy);
-        if (squareTiles == 0 || squareTiles > 1073741823)
+        if (squareTiles == 0)
         {
             return false;
         }
@@ -203,7 +207,8 @@ public readonly record struct StreetArc
             Center, radius, _startAngle, _sweep, (int)length);
     }
 
-    /// <summary>Returns the sagitta of the arc through three integer Tile points; collinear points give zero.</summary>
+    /// <summary>Returns the sagitta through three integer Tile points; collinear or out-of-range deltas give zero.</summary>
+    /// <remarks>Every pair must satisfy TryCreate's Q16.16 chord range.</remarks>
     /// <exception cref="OverflowException">The arc's sagitta does not fit Q16.16 in an int.</exception>
     public static int SagittaThrough(int aE, int aN, int mE, int mN, int bE, int bN)
     {
@@ -217,7 +222,7 @@ public readonly record struct StreetArc
         long hE = center.East - (((long)aE + bE) * (Fixed.One >> 1));
         long hN = center.North - (((long)aN + bN) * (Fixed.One >> 1));
         long h = Hypot(hE, hN);
-        long centerSide = Scale(hN, bE - (long)aE, Fixed.One) - Scale(hE, bN - (long)aN, Fixed.One);
+        Int128 centerSide = ((Int128)hN * (bE - (long)aE)) - ((Int128)hE * (bN - (long)aN));
         long sagitta = (centerSide > 0) == (sign > 0)
             ? radius + h
             : IntegerMath.FloorDiv((dx * dx) + (dy * dy), 4 * (radius + h));
@@ -229,9 +234,14 @@ public readonly record struct StreetArc
         return (int)sagitta * sign;
     }
 
-    /// <summary>Rounds a split point to Tiles and fits both halves to the circle through A, node and B.</summary>
+    /// <summary>Rounds a split point to Tiles and fits each half through its original mid-offset point.</summary>
+    /// <remarks>
+    /// Refuses endpoint nodes, halves over a quarter turn, and fits outside sqrt(2)/2 + 1/64 Tile
+    /// of the original. Distance checks cover both directions, including the original cut point.
+    /// </remarks>
     public bool TrySplitAt(int offset, out int nodeEast, out int nodeNorth, out int firstSagitta, out int secondSagitta)
     {
+        offset = ClampOffset(offset);
         var point = PointAt(offset);
         nodeEast = RoundTile(point.East);
         nodeNorth = RoundTile(point.North);
@@ -246,12 +256,23 @@ public readonly record struct StreetArc
             return false;
         }
 
-        if (CircleThrough(aE, aN, nodeEast, nodeNorth, bE, bN, out var center, out long radius, out int sign))
+        var a = ((long)aE * Fixed.One, (long)aN * Fixed.One);
+        var b = ((long)bE * Fixed.One, (long)bN * Fixed.One);
+        var node = ((long)nodeEast * Fixed.One, (long)nodeNorth * Fixed.One);
+        if (!TryHalfSagitta(a, PointAt(offset >> 1), node, out int firstS)
+            || !TryHalfSagitta(node, PointAt(offset + ((Length - offset) >> 1)), b, out int secondS)
+            || !TryCreate(aE, aN, nodeEast, nodeNorth, firstS, out var first)
+            || !TryCreate(nodeEast, nodeNorth, bE, bN, secondS, out var second)
+            || !WithinDisplacement(first, 0, first.Length, this)
+            || !WithinDisplacement(second, 0, second.Length, this)
+            || !WithinDisplacement(this, 0, offset, first)
+            || !WithinDisplacement(this, offset, Length, second))
         {
-            firstSagitta = HalfSagitta(aE, aN, nodeEast, nodeNorth, center, radius) * sign;
-            secondSagitta = HalfSagitta(nodeEast, nodeNorth, bE, bN, center, radius) * sign;
+            return false;
         }
 
+        firstSagitta = firstS;
+        secondSagitta = secondS;
         return true;
     }
 
@@ -294,6 +315,7 @@ public readonly record struct StreetArc
         return IntegerMath.ShiftLeft((long)IntegerMath.SqrtFloor((x * x) + (y * y)), shift);
     }
 
+    /// <summary>Fits an integer-Tile circle; collinear or out-of-range pairwise deltas return false.</summary>
     private static bool CircleThrough(int aE, int aN, int mE, int mN, int bE, int bN,
         out (long East, long North) center, out long radius, out int sign)
     {
@@ -301,9 +323,15 @@ public readonly record struct StreetArc
         long my = (long)mN - aN;
         long bx = (long)bE - aE;
         long by = (long)bN - aN;
-        long cross = (bx * my) - (by * mx);
         center = default;
         radius = 0;
+        sign = 0;
+        if (!TileDeltaInRange(mx, my) || !TileDeltaInRange(bx, by) || !TileDeltaInRange(bx - mx, by - my))
+        {
+            return false;
+        }
+
+        long cross = (bx * my) - (by * mx);
         sign = cross > 0 ? 1 : -1;
         if (cross == 0)
         {
@@ -319,12 +347,92 @@ public readonly record struct StreetArc
         return true;
     }
 
-    private static int HalfSagitta(int aE, int aN, int bE, int bN, (long East, long North) center, long radius)
+    private static bool TileDeltaInRange(long east, long north) =>
+        east >= -32767 && east <= 32767 && north >= -32767 && north <= 32767
+        && ((east * east) + (north * north)) <= 1073741823;
+
+    private static bool FixedDeltaInRange(long east, long north) =>
+        east >= -(32767L << 16) && east <= (32767L << 16)
+        && north >= -(32767L << 16) && north <= (32767L << 16)
+        && ((east * east) + (north * north)) <= (1073741823L << 32);
+
+    private static bool TryHalfSagitta((long East, long North) a, (long East, long North) m,
+        (long East, long North) b, out int sagitta)
     {
-        long dx = ((long)bE - aE) * Fixed.One;
-        long dy = ((long)bN - aN) * Fixed.One;
-        long h = Hypot(center.East - (((long)aE + bE) * (Fixed.One >> 1)),
-            center.North - (((long)aN + bN) * (Fixed.One >> 1)));
-        return (int)IntegerMath.FloorDiv((dx * dx) + (dy * dy), 4 * (radius + h));
+        sagitta = 0;
+        long mx = m.East - a.East;
+        long my = m.North - a.North;
+        long bx = b.East - a.East;
+        long by = b.North - a.North;
+        if (!FixedDeltaInRange(mx, my) || !FixedDeltaInRange(bx, by) || !FixedDeltaInRange(bx - mx, by - my))
+        {
+            return false;
+        }
+
+        long cross = (bx * my) - (by * mx);
+        if (cross == 0)
+        {
+            return true;
+        }
+
+        long numerator = (mx * mx) + (my * my) - ((mx * bx) + (my * by));
+        long area = cross < 0 ? -cross : cross;
+
+        // The circle center is h = numerator * chord / (2 * cross) from the chord midpoint.
+        // A minor arc of at most 90 degrees requires an opposite-side center and |h| >= chord/2.
+        if (numerator >= 0 || -numerator < area)
+        {
+            return false;
+        }
+
+        long square = (bx * bx) + (by * by);
+        long chord = Hypot(bx, by);
+        if ((Int128)(-numerator) * chord > (2 * (Int128)area * MaximumRadius))
+        {
+            return true;
+        }
+
+        long h = IntegerMath.MulDivFloor(-numerator, chord, 2 * area);
+        long radius = Hypot(h, chord >> 1);
+        sagitta = (int)IntegerMath.FloorDiv(square, 4 * (radius + h));
+        sagitta = cross > 0 ? sagitta : -sagitta;
+        return true;
+    }
+
+    private static bool WithinDisplacement(StreetArc source, int start, int end, StreetArc target)
+    {
+        var a = source.PointAt(start);
+        var b = source.PointAt(end);
+        int startDistance = target.DistanceTo(a.East, a.North);
+        int endDistance = target.DistanceTo(b.East, b.North);
+        if (startDistance + SplitRoundoff > SplitDisplacement || endDistance + SplitRoundoff > SplitDisplacement)
+        {
+            return false;
+        }
+
+        return WithinDisplacement(source, start, end, target, startDistance, endDistance);
+    }
+
+    // Distance to a curve is 1-Lipschitz. Reserve 1/64 Tile for geometry rounding between samples.
+    // ponytail: adaptive checks can visit every raw offset; use analytic extrema if edits need throughput.
+    private static bool WithinDisplacement(StreetArc source, int start, int end, StreetArc target,
+        int startDistance, int endDistance)
+    {
+        if ((long)startDistance + endDistance + (end - start) + (2 * SplitRoundoff) <= (2 * SplitDisplacement)
+            || end - start <= 1)
+        {
+            return true;
+        }
+
+        int middle = start + ((end - start) >> 1);
+        var point = source.PointAt(middle);
+        int distance = target.DistanceTo(point.East, point.North);
+        if (distance + SplitRoundoff > SplitDisplacement)
+        {
+            return false;
+        }
+
+        return WithinDisplacement(source, start, middle, target, startDistance, distance)
+            && WithinDisplacement(source, middle, end, target, distance, endDistance);
     }
 }
