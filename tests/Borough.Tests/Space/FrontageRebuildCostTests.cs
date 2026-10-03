@@ -10,7 +10,7 @@ using Xunit.Abstractions;
 namespace Borough.Tests.Space;
 
 /// <summary>
-/// What rebuilding every Lot's frontage costs, and what share of a whole rebuild it is.
+/// What rebuilding the frontage claim mask costs, and what share of a whole rebuild it is.
 /// <b>An instrument.</b>
 /// </summary>
 /// <remarks>
@@ -56,6 +56,12 @@ namespace Borough.Tests.Space;
 /// from the large rows and never from the small ones** — this is <c>plans/0012</c> Cause 5's shape
 /// arriving inside one table: the digits are fine and what they measure changes down the column.
 /// </para>
+/// <para>
+/// ⚠ <b>The pass measured here is narrower than it was</b> (<c>adr/0174</c>). Frontage is saved, so
+/// <c>Frontage.Rebuild</c> resolves each Lot's Segment handle and claims its side; it no longer
+/// locates a Segment from the lattice or writes a column. The <c>fronted</c> column reads the saved
+/// frontage the carve wrote rather than a figure this pass produced.
+/// </para>
 /// </remarks>
 [Trait(Tier.Key, Tier.Instrument)]
 public sealed class FrontageRebuildCostTests(ITestOutputHelper output)
@@ -75,7 +81,7 @@ public sealed class FrontageRebuildCostTests(ITestOutputHelper output)
             ?? throw new InvalidOperationException($"{file} was refused:\n{result.Describe()}");
     }
 
-    /// <summary>How many Lots came out of the pass with an Address.</summary>
+    /// <summary>How many live Lots have an Address, which is the mask's own input.</summary>
     private static int WithFrontage(World world)
     {
         int found = 0;
@@ -150,7 +156,7 @@ public sealed class FrontageRebuildCostTests(ITestOutputHelper output)
             Assert.True(lots > 0, $"{citizens} Citizens carved no Lots, so nothing was timed.");
             Assert.True(
                 fronted > 0,
-                $"{lots} Lots and none has frontage, so Rebuild reached nothing.");
+                $"{lots} Lots and none has frontage, so the mask had nothing to claim.");
         }
 
         output.WriteLine(string.Empty);
