@@ -234,7 +234,7 @@ public static class Transcendental
     }
 
     /// <summary>Sine in Q16.16. Angles are Q16.16 turns, periodic over every int input.</summary>
-    /// <remarks>CORDIC error plus rounding is below one raw unit; quarter turns are exact.</remarks>
+    /// <remarks>CORDIC error plus rounding is at most one raw unit; quarter turns are exact.</remarks>
     public static int Sin(int turns) =>
         (int)((SinCosWide((long)turns << 40).Sin + (1L << 39)) >> 40);
 
@@ -242,7 +242,7 @@ public static class Transcendental
     public static int Cos(int turns) => Sin(unchecked(turns + (Fixed.One >> 2)));
 
     /// <summary>The angle of (x, y) in Q16.16 turns, in (-32768, 32768]. Zero has angle zero.</summary>
-    /// <remarks>Only the ratio matters. Axes and diagonals are exact; error is below one raw unit.</remarks>
+    /// <remarks>Only the ratio matters. Axes and diagonals are exact; error is at most one raw unit.</remarks>
     public static int Atan2(long y, long x)
     {
         int angle = (int)((Atan2Wide(y, x) + (1L << 39)) >> 40);

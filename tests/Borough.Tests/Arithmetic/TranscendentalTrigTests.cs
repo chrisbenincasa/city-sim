@@ -20,8 +20,8 @@ public class TranscendentalTrigTests
             worstCos = Math.Max(worstCos, Math.Abs(cos - (Math.Cos(radians) * Fixed.One)));
         }
 
-        Assert.InRange(worstSin, 0, 4);
-        Assert.InRange(worstCos, 0, 4);
+        Assert.InRange(worstSin, 0, 1);
+        Assert.InRange(worstCos, 0, 1);
     }
 
     [Theory]
@@ -89,7 +89,7 @@ public class TranscendentalTrigTests
             }
         }
 
-        Assert.InRange(worst, 0, 4);
+        Assert.InRange(worst, 0, 1);
     }
 
     [Fact]
@@ -103,7 +103,7 @@ public class TranscendentalTrigTests
                 int angle = Transcendental.Atan2(y, x);
                 Assert.InRange(angle, -32767, 32768);
                 double error = Math.Abs(angle - (Math.Atan2(y, x) * Fixed.One / Math.Tau));
-                Assert.InRange(Math.Min(error, Fixed.One - error), 0, 4);
+                Assert.InRange(Math.Min(error, Fixed.One - error), 0, 1);
             }
         }
     }

@@ -178,6 +178,20 @@ public class StreetArcTests
         Assert.InRange(Math.Abs(sagitta - (expected * Fixed.One)), 0, 8);
     }
 
+    [Theory]
+    [InlineData(25, 19, 24, 20, 26, 20, 1.7071067811865475)]
+    [InlineData(26, 20, 24, 20, 25, 19, -1.7071067811865475)]
+    [InlineData(0, 1, 2, 2, 1, 0, 2.1213203435596424)]
+    [InlineData(0, 0, 0, 1, 1, 0, 1.2071067811865475)]
+    [InlineData(0, 0, 0, -1, 1, 0, -1.2071067811865475)]
+    public void Major_arcs_with_centers_near_the_chord_midpoint_keep_the_correct_sagitta(
+        int aE, int aN, int mE, int mN, int bE, int bN, double expected)
+    {
+        int sagitta = StreetArc.SagittaThrough(aE, aN, mE, mN, bE, bN);
+        Assert.InRange(Math.Abs(sagitta - (expected * Fixed.One)), 0, 4);
+        Assert.False(StreetArc.TryCreate(aE, aN, bE, bN, sagitta, out _));
+    }
+
     [Fact]
     public void Nearly_collinear_world_scale_points_do_not_overflow_the_circle_fit()
     {
@@ -204,10 +218,112 @@ public class StreetArcTests
         Assert.Equal(first.B, second.A);
         // Tile rounding changes the fitted circle, so length tolerance is one Tile.
         Assert.InRange(Math.Abs((long)first.Length + second.Length - arc.Length), 0, Fixed.One);
-        if (s1 != 0 && s2 != 0)
+        var firstMiddle = arc.PointAt(offset / 2);
+        var secondMiddle = arc.PointAt(offset + ((arc.Length - offset) / 2));
+        Assert.InRange(first.DistanceTo(firstMiddle.East, firstMiddle.North), 0, Fixed.One * PointTolerance);
+        Assert.InRange(second.DistanceTo(secondMiddle.East, secondMiddle.North), 0, Fixed.One * PointTolerance);
+    }
+
+    [Theory]
+    [InlineData(0, 0, 50, 1, 32768, 0)]
+    [InlineData(0, 0, 500000, 1, 100, 0)]
+    [InlineData(0, 0, -20000, 0, 20000, 100)]
+    [InlineData(0, 0, 12000, 12001, 24000, 24000)]
+    [InlineData(int.MinValue, int.MinValue, 0, 1, int.MaxValue, int.MaxValue)]
+    public void Sagitta_through_out_of_range_deltas_is_zero(int aE, int aN, int mE, int mN, int bE, int bN) =>
+        Assert.Equal(0, StreetArc.SagittaThrough(aE, aN, mE, mN, bE, bN));
+
+    [Fact]
+    public void Sagitta_range_validation_uses_deltas_not_absolute_coordinates() =>
+        Assert.InRange(Math.Abs(StreetArc.SagittaThrough(int.MaxValue - 100, 0, int.MaxValue - 50, 20, int.MaxValue, 0)
+            - (20 * Fixed.One)), 0, 8);
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Near_endpoint_splits_keep_the_curve_when_the_node_rounds_onto_the_chord(bool nearB)
+    {
+        var arc = Create(0, 0, 100, 0, 10 * Fixed.One);
+        int offset = nearB ? arc.Length - (3 * Fixed.One / 4) : 3 * Fixed.One / 4;
+        Assert.True(arc.TrySplitAt(offset, out int nodeE, out int nodeN, out int firstS, out int secondS));
+        Assert.Equal(nearB ? 99 : 1, nodeE);
+        Assert.Equal(0, nodeN);
+        Assert.True(firstS > 0);
+        Assert.True(secondS > 0);
+        var first = Create(0, 0, nodeE, nodeN, firstS);
+        var second = Create(nodeE, nodeN, 100, 0, secondS);
+        var middle = arc.PointAt(arc.Length / 2);
+        Assert.InRange((nearB ? first : second).DistanceTo(middle.East, middle.North), 0, Fixed.One / 2);
+        CheckSplitBound(arc, offset, first, second);
+    }
+
+    [Fact]
+    public void A_split_that_needs_an_over_quarter_turn_stub_is_refused()
+    {
+        var arc = Create(0, 0, 100, 0, 20 * Fixed.One);
+        Assert.False(arc.TrySplitAt(7 * Fixed.One / 10, out int nodeE, out int nodeN, out int firstS, out int secondS));
+        Assert.Equal((1, 0), (nodeE, nodeN));
+        Assert.Equal(0, firstS);
+        Assert.Equal(0, secondS);
+    }
+
+    [Fact]
+    public void A_diagonal_node_can_move_more_than_half_a_tile_without_exceeding_the_corrected_bound()
+    {
+        var arc = Create(0, 0, 100, 101, 0);
+        int offset = (int)(2.1109 * Fixed.One);
+        Assert.True(arc.TrySplitAt(offset, out int nodeE, out int nodeN, out int firstS, out int secondS));
+        Assert.Equal((1, 2), (nodeE, nodeN));
+        int distance = arc.DistanceTo((long)nodeE * Fixed.One, (long)nodeN * Fixed.One);
+        Assert.True(distance > Fixed.One / 2);
+        Assert.InRange(distance / (double)Fixed.One, 0, Math.Sqrt(2) / 2);
+        CheckSplitBound(arc, offset, Create(0, 0, nodeE, nodeN, firstS), Create(nodeE, nodeN, 100, 101, secondS));
+    }
+
+    [Theory]
+    [InlineData(100, 0, 10)]
+    [InlineData(100, 0, 20)]
+    [InlineData(100, 0, -20)]
+    [InlineData(100, 101, 0)]
+    [InlineData(80, 60, 10)]
+    public void Split_offset_sweeps_preserve_both_halves_within_the_corrected_displacement_bound(int bE, int bN, int sagitta)
+    {
+        var arc = Create(0, 0, bE, bN, sagitta * Fixed.One);
+        int accepted = 0;
+        for (int i = 1; i < 64; i++)
         {
-            Assert.InRange(Math.Abs(first.Center.East - second.Center.East), 0, Fixed.One * PointTolerance);
-            Assert.InRange(Math.Abs(first.Center.North - second.Center.North), 0, Fixed.One * PointTolerance);
+            int offset = (int)((long)arc.Length * i / 64);
+            if (!arc.TrySplitAt(offset, out int nodeE, out int nodeN, out int firstS, out int secondS))
+            {
+                continue;
+            }
+
+            accepted++;
+            var first = Create(0, 0, nodeE, nodeN, firstS);
+            var second = Create(nodeE, nodeN, bE, bN, secondS);
+            CheckSplitBound(arc, offset, first, second);
+            var firstMiddle = arc.PointAt(offset / 2);
+            var secondMiddle = arc.PointAt(offset + ((arc.Length - offset) / 2));
+            Assert.InRange(first.DistanceTo(firstMiddle.East, firstMiddle.North), 0, Fixed.One * PointTolerance);
+            Assert.InRange(second.DistanceTo(secondMiddle.East, secondMiddle.North), 0, Fixed.One * PointTolerance);
+        }
+
+        Assert.True(accepted >= 48);
+    }
+
+    private static void CheckSplitBound(StreetArc original, int offset, StreetArc first, StreetArc second)
+    {
+        double bound = Math.Sqrt(2) / 2 + PointTolerance;
+        for (int i = 0; i <= 64; i++)
+        {
+            var firstPoint = first.PointAt((int)((long)first.Length * i / 64));
+            var secondPoint = second.PointAt((int)((long)second.Length * i / 64));
+            var originalFirst = original.PointAt((int)((long)offset * i / 64));
+            var originalSecond = original.PointAt(offset + (int)((long)(original.Length - offset) * i / 64));
+            Assert.InRange(original.DistanceTo(firstPoint.East, firstPoint.North) / (double)Fixed.One, 0, bound);
+            Assert.InRange(original.DistanceTo(secondPoint.East, secondPoint.North) / (double)Fixed.One, 0, bound);
+            Assert.InRange(first.DistanceTo(originalFirst.East, originalFirst.North) / (double)Fixed.One, 0, bound);
+            Assert.InRange(second.DistanceTo(originalSecond.East, originalSecond.North) / (double)Fixed.One, 0, bound);
         }
     }
 
