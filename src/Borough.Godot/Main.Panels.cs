@@ -920,7 +920,7 @@ public partial class Main
             return;
         }
 
-        PrepareCity(loaded.Ruleset, citizens, seed, 1, simulation =>
+        PrepareCity(loaded.Ruleset, citizens, seed, _empty, 1, simulation =>
         {
             _capture = loaded.Capture!;
             _names = loaded.Names;

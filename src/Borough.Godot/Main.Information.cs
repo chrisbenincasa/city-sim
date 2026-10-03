@@ -521,7 +521,7 @@ public partial class Main
     {
         string[] words = action.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (words.Length == 0) return;
-        if (words[0] == "menu" && words.Length == 2) { MenuAction(words[1]); return; }
+        if (words[0] == "menu" && words.Length is 2 or 3) { MenuAction(words[1], words.Length == 3 ? words[2] : null); return; }
         if (words[0] == "file-path" && words.Length >= 2 && _cityPicker.Visible)
         {
             if (_cityPicker.FileMode == FileDialog.FileModeEnum.OpenFile)
