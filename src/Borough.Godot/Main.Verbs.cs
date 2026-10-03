@@ -360,6 +360,7 @@ public partial class Main
     /// <para>
     /// ⚠ <b>The answer is asked of the world before the queue applies.</b> An earlier command in the
     /// same queue can change it, so Phase 0 asks again and skips a command it refuses.
+    /// <see cref="ReportPhaseZeroRefusal"/> puts that refusal in the same words.
     /// </para>
     /// </remarks>
     private bool Send(Command command)
@@ -379,6 +380,26 @@ public partial class Main
     }
 
     /// <summary>
+    /// Says why a queued click did nothing when Phase 0 refused it after <see cref="Send"/> accepted it.
+    /// </summary>
+    /// <remarks>
+    /// Runs on the main thread after a step, because the step thread may not write shell state. A
+    /// new Simulation restarts its count at zero, so a lower count only resets the baseline.
+    /// </remarks>
+    private void ReportPhaseZeroRefusal()
+    {
+        int refused = _simulation.CommandsRefused;
+
+        if (refused > _refusalsReported)
+        {
+            (Refusal refusal, Command command) = _simulation.LastRefused;
+            _refused = Sentence(refusal, command);
+        }
+
+        _refusalsReported = refused;
+    }
+
+    /// <summary>
     /// A <see cref="Refusal"/> in the player's words — <b>and the shell owns every one of them.</b>
     /// </summary>
     /// <remarks>
@@ -388,12 +409,6 @@ public partial class Main
     /// vector is not <c>using Godot;</c> — it is a method that returns a formatted string because a
     /// panel wanted one."</em> A second front end may word these differently or in another language,
     /// and neither is the city's business.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>They are not the exception messages and must not be.</b>
-    /// <c>Simulation.Explain</c> writes for whoever is holding a crash artefact and names the ADR,
-    /// the successor mechanism and the Ruleset key; these are for somebody who has just clicked and
-    /// wants to know why nothing happened. ***Same rule, two readers, two registers.***
     /// </para>
     /// <para>
     /// ⚠ <b>The unmapped arm names the number rather than saying nothing.</b>

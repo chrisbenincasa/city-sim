@@ -100,6 +100,9 @@ public sealed class RefusalTests
 
         Assert.Equal(before + 1, world.Buildings.Rows.LiveCount);
         Assert.Equal(1, simulation.CommandsRefused);
+        Assert.NotEqual(Refusal.None, simulation.LastRefused.Refusal);
+        Assert.Equal(simulation.Refuses(service), simulation.LastRefused.Refusal);
+        Assert.Equal(service.Kind, simulation.LastRefused.Command.Kind);
 
         (World replayed, Simulation replay) = City(Schooled);
 
