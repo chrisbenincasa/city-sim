@@ -585,18 +585,29 @@ public enum ConnectAction : byte
 /// <em>silently missing</em>. Those are different premises and only one of them is evidence.
 /// </para>
 /// </remarks>
-public readonly record struct ConnectPayload(Space.StreetAxis Axis, ConnectAction Action, Space.RoadKind Kind)
+public readonly record struct ConnectPayload(
+    Space.StreetAxis Axis, ConnectAction Action, Space.RoadKind Kind, int Segments = 1)
 {
+    /// <summary>The longest run one command carries.</summary>
+    /// <remarks>
+    /// Bits 2-7 hold <c>Segments - 1</c>, so every log written before runs existed decodes as one
+    /// Segment and re-encodes to the same word.
+    /// </remarks>
+    public const int MaxSegments = 64;
+
     /// <summary>Reads a payload out of a <see cref="Command.Zone"/> word.</summary>
     public static ConnectPayload Decode(ushort word) =>
         new(
             (Space.StreetAxis)(word & 1),
             (ConnectAction)((word >> 1) & 1),
-            (Space.RoadKind)((word >> 8) & 0xFF));
+            (Space.RoadKind)((word >> 8) & 0xFF),
+            ((word >> 2) & 0x3F) + 1);
 
     /// <summary>Packs this payload into a <see cref="Command.Zone"/> word.</summary>
     public ushort Encode() =>
-        (ushort)((int)Axis | ((int)Action << 1) | ((int)Kind << 8));
+        Segments is < 1 or > MaxSegments
+            ? throw new ArgumentOutOfRangeException(nameof(Segments), Segments, $"a run is 1 to {MaxSegments} Segments.")
+            : (ushort)((int)Axis | ((int)Action << 1) | ((Segments - 1) << 2) | ((int)Kind << 8));
 }
 
 /// <summary>
