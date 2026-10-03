@@ -192,7 +192,7 @@ public sealed class Frontage
     /// </summary>
     /// <remarks>
     /// <b>A severed handle already reads as no frontage</b>, so this is about what the row holds
-    /// rather than about what it answers: a bulldoze is the city changing, and the state it leaves is
+    /// rather than about what it answers. A bulldoze is the city changing, and the state it leaves is
     /// <em>this Lot fronts nothing</em> rather than <em>this Lot fronts a Street that is gone</em>.
     /// </remarks>
     /// <returns>How many Lots lost frontage.</returns>
