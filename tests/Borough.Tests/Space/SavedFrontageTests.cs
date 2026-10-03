@@ -105,6 +105,51 @@ public sealed class SavedFrontageTests
     }
 
     /// <summary>
+    /// A Street edit elsewhere does not front a Lot standing on ground the edit never named.
+    /// </summary>
+    /// <remarks>
+    /// <b>The Lot is made by hand and never fronted</b>, which is the one way to stand unfronted on a
+    /// lattice edge that still has a Street on it — <see cref="LotTable.Create"/> leaves frontage to
+    /// its caller, and no carve skips it. ⚠ <b>The pass this replaced re-derived frontage for every
+    /// Lot on every road edit and every rebuild</b>, so an edit anywhere used to front this Lot.
+    /// Both halves of a connect command are covered: the bulldoze creates nothing to attach, and the
+    /// re-lay creates a Segment on an edge this Lot does not sit on.
+    /// </remarks>
+    [Fact]
+    public void A_street_edit_elsewhere_does_not_front_a_lot_that_was_never_fronted()
+    {
+        Simulation simulation = Zoned();
+        World world = simulation.World;
+        int block = world.Roads.Streets.BlockTiles;
+
+        // On the Segment at lattice (1, 1), off the intersection, so the lattice has a Street here.
+        Handle<Lot> lot = world.Lots.Create(
+            new Tiles(block + 6), new Tiles(block), LotTable.Housing, StreetSide.Left);
+
+        int row = world.Lots.Rows.Resolve(lot);
+        Handle<Building> building = world.Buildings.Create(world.Lots, lot, kind: 1);
+
+        world.Lots.Occupy(row, world.Buildings.Rows.Resolve(building));
+
+        Assert.False(world.Lots.HasFrontage(row), "the fixture fronted the Lot before the edit");
+        Assert.NotEqual(Rows.NoSlot, Frontage.Locate(
+            world.Roads.Streets, world.Lots.East[row], world.Lots.North[row], out _));
+
+        int elsewhere = 2 * block;
+
+        simulation.Step(new TickInput(
+            [Connect(elsewhere, elsewhere, StreetAxis.East, ConnectAction.Bulldoze)], rulesetHash: 0));
+
+        Assert.False(world.Lots.HasFrontage(row), "a bulldoze elsewhere fronted an unfronted Lot");
+
+        simulation.Step(new TickInput(
+            [Connect(elsewhere, elsewhere, StreetAxis.East)], rulesetHash: 0));
+
+        Assert.False(world.Lots.HasFrontage(row), "a lay elsewhere fronted an unfronted Lot");
+        Assert.True(world.Lots.Rows.IsLive(row));
+    }
+
+    /// <summary>
     /// A Segment split moves the Lots past the cut to the new Segment, at their offsets minus the
     /// retained length.
     /// </summary>

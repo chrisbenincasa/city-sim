@@ -17,7 +17,8 @@ namespace Borough.Core.Space;
 /// </para>
 /// <para>
 /// <b>Four operations, and only one of them runs on a load.</b> <see cref="Attach"/> gives a
-/// just-created Lot the Segment under it. <see cref="Sever"/> unfronts the Lots a bulldoze left
+/// just-created Lot the Segment under it, and <see cref="AttachTo"/> does the same for the Segments
+/// one lay created. <see cref="Sever"/> unfronts the Lots a bulldoze left
 /// pointing at nothing. <see cref="Split"/> moves the Lots past a Segment split onto the new
 /// Segment. <see cref="Rebuild"/> is the derived half — the per-Segment claim mask, and nothing else.
 /// </para>
@@ -124,13 +125,35 @@ public sealed class Frontage
     /// Saves the lattice Segment under every Lot that has no frontage.
     /// </summary>
     /// <remarks>
-    /// <b>A creation-time pass, and the one thing that gives frontage back after a re-lay.</b> It
-    /// writes saved state, so nothing on the load path may call it — a Lot's frontage comes out of
-    /// the save already. A Lot that already fronts something is left alone, which is what keeps a
-    /// Lot on the Segment it was carved against.
+    /// <b>A creation-time pass.</b> It writes saved state, so nothing on the load path may call it —
+    /// a Lot's frontage comes out of the save already. A Lot that already fronts something is left
+    /// alone, which is what keeps a Lot on the Segment it was carved against.
     /// </remarks>
     /// <returns>How many Lots gained frontage.</returns>
-    public static int Attach(LotTable lots, StreetGrid streets, RoadSegmentTable segments)
+    public static int Attach(LotTable lots, StreetGrid streets, RoadSegmentTable segments) =>
+        Attach(lots, streets, segments, laid: default, onlyLaid: false);
+
+    /// <summary>
+    /// Saves one of the Segments in <paramref name="laid"/> under every unfronted Lot sitting on it.
+    /// </summary>
+    /// <remarks>
+    /// <b>What gives frontage back after a re-lay</b>, and narrow because a Street edit may only front
+    /// ground it names. ⚠ <b>It matches <see cref="Attach"/> on every state a carve can produce</b> —
+    /// <see cref="Locate"/> maps a Lot to the one lattice edge its own position lies on, so an
+    /// unfronted Lot has no Street on that edge, and the only Segment that can front it is one a lay
+    /// there creates. The filter bites on a Lot left unfronted by hand.
+    /// </remarks>
+    /// <returns>How many Lots gained frontage.</returns>
+    public static int AttachTo(
+        LotTable lots, StreetGrid streets, RoadSegmentTable segments, ReadOnlySpan<int> laid) =>
+        Attach(lots, streets, segments, laid, onlyLaid: true);
+
+    private static int Attach(
+        LotTable lots,
+        StreetGrid streets,
+        RoadSegmentTable segments,
+        ReadOnlySpan<int> laid,
+        bool onlyLaid)
     {
         ArgumentNullException.ThrowIfNull(lots);
         ArgumentNullException.ThrowIfNull(streets);
@@ -148,6 +171,11 @@ public sealed class Frontage
             int segment = Locate(streets, lots.East[slot], lots.North[slot], out Tiles offset);
 
             if (segment == Rows.NoSlot || !segments.Rows.IsLive(segment))
+            {
+                continue;
+            }
+
+            if (onlyLaid && !laid.Contains(segment))
             {
                 continue;
             }

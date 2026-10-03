@@ -4764,7 +4764,7 @@ public sealed partial class World
     /// mask over the result.
     /// </summary>
     /// <remarks>
-    /// <b>Realised parcels are saved state and this does not touch them.</b> It restores a Lot's
+    /// <b>Realized parcels are saved state and this does not touch them.</b> It restores a Lot's
     /// <em>access</em> after a Street has been laid back under it, which is why it writes saved state
     /// and <see cref="RebuildDerived"/> does not call it.
     /// </remarks>
