@@ -3,7 +3,7 @@ using System.Numerics;
 namespace Borough.Core.Arithmetic;
 
 /// <summary>
-/// Tabulated <c>exp</c> and <c>log</c> in Q16.16. adr/0003 bans <c>Math.*</c> from the core and
+/// Integer <c>exp</c>, <c>log</c> and trigonometry in Q16.16. adr/0003 bans <c>Math.*</c> from the core and
 /// 02 section 5.4's choice model is a softmax over <c>exp</c>, so without this the choice model could
 /// not legally be implemented at all.
 /// </summary>
@@ -36,6 +36,25 @@ public static class Transcendental
 {
     /// <summary>Entries per table, excluding the duplicated endpoint. adr/0038.</summary>
     public const int TableEntries = 256;
+
+    // Q56 keeps large-radius Street arcs accurate before narrowing public angles to Q16.16.
+    internal const long WideOne = 1L << 56;
+    private const long CordicGainInverse = 43757185469210200;
+
+    /// <summary>atan(2^-i) in Q56 turns. CORDIC uses 55 rotation steps.</summary>
+    private static readonly long[] CordicAngles =
+    [
+        9007199254740992, 5317260203651848, 2809494260081566, 1426143154396570,
+        715839029270683, 358268477703266, 179177955010598, 89594445026371,
+        44797906047171, 22399038468267, 11199529914810, 5599766292493,
+        2799883313132, 1399941677427, 699970841321, 349985420986,
+        174992710534, 87496355272, 43748177637, 21874088818,
+        10937044409, 5468522205, 2734261102, 1367130551,
+        683565276, 341782638, 170891319, 85445659,
+        42722830, 21361415, 10680707, 5340354, 2670177, 1335088,
+        667544, 333772, 166886, 83443, 41722, 20861, 10430, 5215,
+        2608, 1304, 652, 326, 163, 81, 41, 20, 10, 5, 3, 1, 1,
+    ];
 
     /// <summary>ln 2 in Q16.16.</summary>
     public const int Ln2 = 45426;
@@ -212,6 +231,128 @@ public static class Transcendental
         int fraction = lo + (((Log2Table[index + 1] - lo) * weight) + 128 >> 8);
 
         return checked((exponent << Fixed.FractionalBits) + fraction);
+    }
+
+    /// <summary>Sine in Q16.16. Angles are Q16.16 turns, periodic over every int input.</summary>
+    /// <remarks>CORDIC error plus rounding is below one raw unit; quarter turns are exact.</remarks>
+    public static int Sin(int turns) =>
+        (int)((SinCosWide((long)turns << 40).Sin + (1L << 39)) >> 40);
+
+    /// <summary>Cosine in Q16.16, with the same angle units and error bound as Sin.</summary>
+    public static int Cos(int turns) => Sin(unchecked(turns + (Fixed.One >> 2)));
+
+    /// <summary>The angle of (x, y) in Q16.16 turns, in (-32768, 32768]. Zero has angle zero.</summary>
+    /// <remarks>Only the ratio matters. Axes and diagonals are exact; error is below one raw unit.</remarks>
+    public static int Atan2(long y, long x)
+    {
+        int angle = (int)((Atan2Wide(y, x) + (1L << 39)) >> 40);
+        return angle == -(Fixed.One >> 1) ? Fixed.One >> 1 : angle;
+    }
+
+    /// <summary>Converts Q56 turns to Q56 radians without narrowing the angle.</summary>
+    internal static long RadiansWide(long turns) =>
+        (long)(((Int128)turns * 452751216129820177) >> 56);
+
+    /// <summary>Sine and cosine in Q56, for a Q56 turn angle.</summary>
+    internal static (long Sin, long Cos) SinCosWide(long turns)
+    {
+        long angle = turns & (WideOne - 1);
+        if ((angle & ((WideOne >> 2) - 1)) == 0)
+        {
+            return angle switch
+            {
+                0 => (0, WideOne),
+                WideOne >> 2 => (WideOne, 0),
+                WideOne >> 1 => (0, -WideOne),
+                _ => (-WideOne, 0),
+            };
+        }
+
+        if (angle > (WideOne >> 1))
+        {
+            angle -= WideOne;
+        }
+
+        bool reverseCos = false;
+        if (angle > (WideOne >> 2))
+        {
+            angle = (WideOne >> 1) - angle;
+            reverseCos = true;
+        }
+        else if (angle < -(WideOne >> 2))
+        {
+            angle = -(WideOne >> 1) - angle;
+            reverseCos = true;
+        }
+
+        long x = CordicGainInverse;
+        long y = 0;
+        for (int i = 0; i < CordicAngles.Length; i++)
+        {
+            long oldX = x;
+            if (angle >= 0)
+            {
+                x -= y >> i;
+                y += oldX >> i;
+                angle -= CordicAngles[i];
+            }
+            else
+            {
+                x += y >> i;
+                y -= oldX >> i;
+                angle += CordicAngles[i];
+            }
+        }
+
+        x = x > WideOne ? WideOne : x;
+        y = y > WideOne ? WideOne : y < -WideOne ? -WideOne : y;
+        return (y, reverseCos ? -x : x);
+    }
+
+    /// <summary>The angle of a long vector in Q56 turns, before public Q16.16 rounding.</summary>
+    internal static long Atan2Wide(long y, long x)
+    {
+        if (y == 0)
+        {
+            return x < 0 ? WideOne >> 1 : 0;
+        }
+
+        if (x == 0)
+        {
+            return y < 0 ? -(WideOne >> 2) : WideOne >> 2;
+        }
+
+        // Unsigned magnitudes include long.MinValue. Normalize near bit 59 to preserve ratios
+        // while leaving room for CORDIC's gain, including on long.MaxValue diagonals.
+        ulong ax = x < 0 ? (ulong)(-(x + 1)) + 1 : (ulong)x;
+        ulong ay = y < 0 ? (ulong)(-(y + 1)) + 1 : (ulong)y;
+        int shift = BitOperations.Log2(ax > ay ? ax : ay) - 59;
+        long vx = (long)(shift >= 0 ? ax >> shift : ax << -shift);
+        long vy = (long)(shift >= 0 ? ay >> shift : ay << -shift);
+        long angle = 0;
+        for (int i = 0; i < CordicAngles.Length && vy != 0; i++)
+        {
+            long oldX = vx;
+            if (vy > 0)
+            {
+                vx += vy >> i;
+                vy -= oldX >> i;
+                angle += CordicAngles[i];
+            }
+            else
+            {
+                vx -= vy >> i;
+                vy += oldX >> i;
+                angle -= CordicAngles[i];
+            }
+        }
+
+        if (x < 0)
+        {
+            angle = (WideOne >> 1) - angle;
+        }
+
+        return y < 0 ? -angle : angle;
     }
 
     /// <summary>Natural logarithm of a positive Q16.16 value, in Q16.16.</summary>
