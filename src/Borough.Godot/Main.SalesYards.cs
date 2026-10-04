@@ -107,18 +107,18 @@ public partial class Main
     private void PlaceSalesYard(Yard yard, List<(ulong, Transform3D, Color)>[] placed)
     {
         LotTable lots = _world.Lots;
-        (Parcel parcel, BlockGround ground) = _world.ParcelGround(yard.Lot);
+        (Parcel parcel, BlockGround ground) = TradeGround(yard.Lot);
         int half = _world.Rules.Lots.StreetHalfWidthTiles;
-        int shedEast = lots.FootprintBounds(yard.Lot).X;
-        int shedNorth = lots.FootprintBounds(yard.Lot).Y;
-        int shedWide = lots.FootprintBounds(yard.Lot).Width;
-        int shedDeep = lots.FootprintBounds(yard.Lot).Height;
+        int shedEast = FootprintFrame(yard.Lot, trade: true).X;
+        int shedNorth = FootprintFrame(yard.Lot, trade: true).Y;
+        int shedWide = FootprintFrame(yard.Lot, trade: true).Width;
+        int shedDeep = FootprintFrame(yard.Lot, trade: true).Height;
         bool south = parcel.Face == BlockFace.South;
         Basis facing = south ? FacingSouth : FacingNorth;
         int family = 4 * (int)yard.Family;
 
         void Put(int module, float east, float north) =>
-            placed[module].Add((yard.Id, new Transform3D(facing, At(east, 0f, north)), Colors.White));
+            placed[module].Add((yard.Id, OnTradeLot(yard.Lot, new Transform3D(facing, At(east, 0f, north))), Colors.White));
 
         for (int x = 0; x < shedWide; x++)
         {
@@ -148,6 +148,6 @@ public partial class Main
         }
 
         (int bandEast, int bandNorth, int along, int toward) = SalesYard.CarPark(parcel, ground, half);
-        PlaceStallBand(yard.Id, bandEast, bandNorth, along, toward, placed[YardSurface], placed[YardStall]);
+        PlaceStallBand(yard.Id, yard.Lot, bandEast, bandNorth, along, toward, placed[YardSurface], placed[YardStall]);
     }
 }

@@ -1,3 +1,4 @@
+using Q16 = Borough.Core.Arithmetic.Fixed;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -257,10 +258,11 @@ public partial class Main
         Vector3 size = one.Body.Basis.Scale;
         float faceEast = (one.Reads.R * 2f) - 1f;
         float faceSouth = (one.Reads.G * 2f) - 1f;
-        bool facesNorthSouth = Mathf.Abs(faceSouth) > 0.5f;
-        float frontage = facesNorthSouth ? size.X : size.Z;
-        float depth = facesNorthSouth ? size.Z : size.X;
-        TowerSite? site = body.Tower is null ? null : TowerSiteOf(slot, facesNorthSouth);
+        int lot = _world.Lots.Rows.Resolve(_world.Buildings.Lot[slot]);
+        bool alongA = LotGeometry.Front(_world, lot).Y != 0;
+        float frontage = alongA ? size.X : size.Z;
+        float depth = alongA ? size.Z : size.X;
+        TowerSite? site = body.Tower is null ? null : TowerSiteOf(slot, alongA);
         if (body.Tower is not null && site is null) return null;
         Vector3 origin = one.Body.Origin;
         float turn = Mathf.Atan2(faceEast, faceSouth);
@@ -271,7 +273,8 @@ public partial class Main
 
             // Every outer face of a ring is a street face, so the ring is built facing south.
             ring = true;
-            (origin, frontage, depth, turn) = (footprint.Centre, footprint.Wide, footprint.Deep, 0f);
+            (origin, frontage, depth, turn) = (footprint.Centre, footprint.Wide, footprint.Deep,
+                Mathf.Atan2(_world.Lots.AxisNorthQ16[lot], _world.Lots.AxisEastQ16[lot]));
         }
 
         int storeys = site?.Storeys ?? Mathf.Max(1, Mathf.RoundToInt(size.Y / StoreyMetres));
@@ -316,7 +319,7 @@ public partial class Main
     /// Massings and the Lot's floor area come from.
     /// </summary>
     /// <returns><c>null</c> where the Lot is gone or its block raises no Tower.</returns>
-    private TowerSite? TowerSiteOf(int slot, bool facesNorthSouth)
+    private TowerSite? TowerSiteOf(int slot, bool alongA)
     {
         LotTable lots = _world.Lots;
         if (!lots.Rows.TryResolve(_world.Buildings.Lot[slot], out int lot)
@@ -324,11 +327,11 @@ public partial class Main
 
         int storeys = Mathf.Max(1, lots.Storeys[lot]);
         BuildingPlan.TowerForm form = BuildingPlan.Tower(
-            lots.FootprintBounds(lot).Width, lots.FootprintBounds(lot).Height, storeys, lots.PodiumStoreys[lot]);
+            lots.Footprint(lot).Wide, lots.Footprint(lot).Deep, storeys, lots.PodiumStoreys[lot]);
         float eastWest = form.ShaftWide * MetresPerTile, southNorth = form.ShaftDeep * MetresPerTile;
         return new TowerSite(storeys, form.PodiumStoreys,
-            facesNorthSouth ? eastWest : southNorth,
-            facesNorthSouth ? southNorth : eastWest);
+            alongA ? eastWest : southNorth,
+            alongA ? southNorth : eastWest);
     }
 
     /// <summary>A hollow Lot's whole footprint in metres, read from the same <see cref="BuildingPlan.Hollow"/> call its wings are.</summary>
@@ -337,11 +340,10 @@ public partial class Main
     {
         LotTable lots = _world.Lots;
         if (!lots.Rows.TryResolve(_world.Buildings.Lot[slot], out int lot)) return null;
-        int wide = lots.FootprintBounds(lot).Width, deep = lots.FootprintBounds(lot).Height;
+        int wide = lots.Footprint(lot).Wide, deep = lots.Footprint(lot).Deep;
         if (!BuildingPlan.Hollow(lots.PatternOf(lot), wide, deep, out _, out _)) return null;
-        float east = (lots.FootprintBounds(lot).X + (wide * 0.5f)) * MetresPerTile;
-        float north = (lots.FootprintBounds(lot).Y + (deep * 0.5f)) * MetresPerTile;
-        return (new Vector3(east, 0f, -north), wide * MetresPerTile, deep * MetresPerTile);
+        Vector3 centre = RectanglePoint(lots.Footprint(lot), wide * .5f, 0f, deep * .5f);
+        return (centre, wide * MetresPerTile, deep * MetresPerTile);
     }
 
     /// <summary>
@@ -382,12 +384,13 @@ public partial class Main
     {
         Vector3 plan = one.Body.Basis.Scale;
         Vector3 at = one.Body.Origin;
+        Basis rotation = one.Body.Basis.Orthonormalized();
         float top = at.Y + (plan.Y * 0.5f);
         if (body.GableDegrees <= 0f)
         {
             if (body.ParapetMetres <= 0f) return one with { Cap = Cap.Flat };
             var tray = Basis.FromScale(new Vector3(plan.X + (CopingMetres * 2f), body.ParapetMetres, plan.Z + (CopingMetres * 2f)));
-            return one with { Cap = Cap.Parapet, Roof = new Transform3D(tray, at with { Y = top + (body.ParapetMetres * 0.5f) }) };
+            return one with { Cap = Cap.Parapet, Roof = new Transform3D(rotation * tray, at with { Y = top + (body.ParapetMetres * 0.5f) }) };
         }
 
         if (one.Cap is Cap.Gable or Cap.Hip or Cap.PairedGable) return one;
@@ -395,7 +398,7 @@ public partial class Main
         float span = Mathf.Min(plan.X, plan.Z), ridge = Mathf.Max(plan.X, plan.Z);
         float rise = RoofHeight(Cap.Gable, Mathf.Tan(Mathf.DegToRad(body.GableDegrees)) * span * 0.5f);
         Basis capped = CapBasis(Cap.Gable, plan.X > plan.Z, span, ridge, rise);
-        return one with { Cap = Cap.Gable, Roof = new Transform3D(capped, at with { Y = top + (rise * 0.5f) }) };
+        return one with { Cap = Cap.Gable, Roof = new Transform3D(rotation * capped, at with { Y = top + (rise * 0.5f) }) };
     }
 
     /// <param name="fades">
@@ -442,12 +445,14 @@ public partial class Main
     {
         var right = new Vector3(Mathf.Cos(turn), 0f, -Mathf.Sin(turn));
         float reach = (frontage / 2f) + .5f;
-        bool deepEast = Mathf.Abs(right.Z) > .5f;
+        int lot = _world.Lots.Rows.Resolve(_world.Buildings.Lot[slot]);
+        Vector3 axis = RectangleBasis(_world.Lots.Footprint(lot)).X;
+        bool alongA = Mathf.Abs(right.Dot(axis)) > .5f;
         Vector3 leftProbe = centre - (right * reach), rightProbe = centre + (right * reach);
         int left = Covering(slot, leftProbe), rightSide = Covering(slot, rightProbe);
         AttachedSides attached = AttachedSides.None;
-        if (left >= 0) attached |= AttachedSides.Left | (Crosswise(slot, left, deepEast) ? AttachedSides.LeftCrosswise : 0);
-        if (rightSide >= 0) attached |= AttachedSides.Right | (Crosswise(slot, rightSide, deepEast) ? AttachedSides.RightCrosswise : 0);
+        if (left >= 0) attached |= AttachedSides.Left | (Crosswise(slot, left, alongA) ? AttachedSides.LeftCrosswise : 0);
+        if (rightSide >= 0) attached |= AttachedSides.Right | (Crosswise(slot, rightSide, alongA) ? AttachedSides.RightCrosswise : 0);
         neighbours = new BodyNeighbours(slot, leftProbe, rightProbe, IdAt(left), IdAt(rightSide));
         return attached;
     }
@@ -481,14 +486,12 @@ public partial class Main
     private ulong IdAt(int slot) => slot >= 0 ? _world.Buildings.Rows.IdAt(slot) : 0;
 
     /// <summary>Whether the neighbour's footprint spans a different stretch of this Building's depth.</summary>
-    private bool Crosswise(int slot, int neighbour, bool deepEast)
+    private bool Crosswise(int slot, int neighbour, bool alongA)
     {
         LotTable lots = _world.Lots;
         if (!lots.Rows.TryResolve(_world.Buildings.Lot[slot], out int own)
             || !lots.Rows.TryResolve(_world.Buildings.Lot[neighbour], out int other)) return false;
-        return deepEast
-            ? lots.FootprintBounds(own).X != lots.FootprintBounds(other).X || lots.FootprintBounds(own).Width != lots.FootprintBounds(other).Width
-            : lots.FootprintBounds(own).Y != lots.FootprintBounds(other).Y || lots.FootprintBounds(own).Height != lots.FootprintBounds(other).Height;
+        return !LotGeometry.SameDepth(lots.Footprint(own), lots.Footprint(other), alongA);
     }
 
     /// <returns>The Building slot whose footprint covers the point, or -1.</returns>
@@ -527,12 +530,10 @@ public partial class Main
         for (int slot = 0; slot < table.Rows.SlotCount; slot++)
         {
             if (!table.Rows.IsLive(slot) || !lots.Rows.TryResolve(table.Lot[slot], out int lot)) continue;
-            int x = lots.FootprintBounds(lot).X, y = lots.FootprintBounds(lot).Y;
-            int lastEast = Mathf.FloorToInt((x + lots.FootprintBounds(lot).Width - 1) / (float)FootprintSquareTiles);
-            int lastNorth = Mathf.FloorToInt((y + lots.FootprintBounds(lot).Height - 1) / (float)FootprintSquareTiles);
-            for (int east = Mathf.FloorToInt(x / (float)FootprintSquareTiles); east <= lastEast; east++)
+            var range = LotGeometry.Buckets(lots.Footprint(lot), FootprintSquareTiles);
+            for (int east = range.FirstEast; east <= range.LastEast; east++)
             {
-                for (int north = Mathf.FloorToInt(y / (float)FootprintSquareTiles); north <= lastNorth; north++)
+                for (int north = range.FirstNorth; north <= range.LastNorth; north++)
                 {
                     if (!squares.TryGetValue((east, north), out List<int>? square)) squares[(east, north)] = square = [];
                     square.Add(slot);
@@ -548,8 +549,7 @@ public partial class Main
         LotTable lots = _world.Lots;
         if (!lots.Rows.TryResolve(_world.Buildings.Lot[building], out int lot)) return false;
         float east = point.X / MetresPerTile, north = -point.Z / MetresPerTile;
-        int x = lots.FootprintBounds(lot).X, y = lots.FootprintBounds(lot).Y;
-        return east >= x && east < x + lots.FootprintBounds(lot).Width && north >= y && north < y + lots.FootprintBounds(lot).Height;
+        return lots.Footprint(lot).Contains(Mathf.RoundToInt(east * Q16.One), Mathf.RoundToInt(north * Q16.One));
     }
 
     /// <summary>Generates the surfaces of every body the requests need and no mesh yet holds, across worker threads.</summary>

@@ -124,19 +124,19 @@ public partial class Main
                 continue;
             }
 
-            int wide = lots.FootprintBounds(each.Lot).Width;
+            int wide = FootprintFrame(each.Lot, trade: true).Width;
             int middle = wide / 2;
-            float east = lots.FootprintBounds(each.Lot).X * MetresPerTile;
-            float north = lots.FootprintBounds(each.Lot).Y * MetresPerTile;
-            float deep = lots.FootprintBounds(each.Lot).Height;
+            float east = FootprintFrame(each.Lot, trade: true).X * MetresPerTile;
+            float north = FootprintFrame(each.Lot, trade: true).Y * MetresPerTile;
+            float deep = FootprintFrame(each.Lot, trade: true).Height;
             float centre = north + (deep * MetresPerTile * .5f);
 
             for (int bay = 0; bay < wide; bay++)
             {
                 if ((bay == middle) == entrance)
                 {
-                    yield return (each.Id, new Transform3D(
-                        Basis.Identity, new Vector3(east + ((bay + .5f) * MetresPerTile), 0f, -centre)));
+                    yield return (each.Id, OnTradeLot(each.Lot, new Transform3D(
+                        Basis.Identity, new Vector3(east + ((bay + .5f) * MetresPerTile), 0f, -centre))));
                 }
             }
         }
@@ -147,8 +147,8 @@ public partial class Main
         LotTable lots = _world.Lots;
 
         return TownSupermarket.CarPark(
-            lots.ParcelBounds(lot).Y, lots.ParcelBounds(lot).Height, lots.FootprintBounds(lot).X,
-            lots.FootprintBounds(lot).Y, lots.FootprintBounds(lot).Width, lots.FootprintBounds(lot).Height,
+            ParcelFrame(lot, trade: true).Y, ParcelFrame(lot, trade: true).Height, FootprintFrame(lot, trade: true).X,
+            FootprintFrame(lot, trade: true).Y, FootprintFrame(lot, trade: true).Width, FootprintFrame(lot, trade: true).Height,
             _world.Rules.Lots.StreetHalfWidthTiles);
     }
 
@@ -167,9 +167,9 @@ public partial class Main
                 {
                     for (int y = 0; y < toward; y++)
                     {
-                        yield return (each.Id, new Transform3D(Basis.Identity, new Vector3(
+                        yield return (each.Id, OnTradeLot(each.Lot, new Transform3D(Basis.Identity, new Vector3(
                             (east + x + .5f) * MetresPerTile, level * DeckLevelMetres,
-                            -((north + y + .5f) * MetresPerTile))));
+                            -((north + y + .5f) * MetresPerTile)))));
                     }
                 }
             }
@@ -196,15 +196,15 @@ public partial class Main
 
                 for (int x = 0; x < along; x++)
                 {
-                    yield return (each.Id, new Transform3D(Basis.Identity,
-                        new Vector3((east + x + .5f) * MetresPerTile, height, -rear)));
+                    yield return (each.Id, OnTradeLot(each.Lot, new Transform3D(Basis.Identity,
+                        new Vector3((east + x + .5f) * MetresPerTile, height, -rear))));
                 }
 
                 for (int y = 0; y < toward; y++)
                 {
                     float z = -((north + y + .5f) * MetresPerTile);
-                    yield return (each.Id, new Transform3D(turned, new Vector3(west, height, z)));
-                    yield return (each.Id, new Transform3D(turned, new Vector3(eastEdge, height, z)));
+                    yield return (each.Id, OnTradeLot(each.Lot, new Transform3D(turned, new Vector3(west, height, z))));
+                    yield return (each.Id, OnTradeLot(each.Lot, new Transform3D(turned, new Vector3(eastEdge, height, z))));
                 }
             }
         }
@@ -239,8 +239,8 @@ public partial class Main
                     float x = west + ((stall.EastCentimetres + (stall.WideCentimetres * .5f)) * .01f);
                     float z = south + ((stall.NorthCentimetres + (stall.DeepCentimetres * .5f)) * .01f);
 
-                    yield return (each.Id, new Transform3D(
-                        Basis.Identity, new Vector3(x, level * DeckLevelMetres, -z)));
+                    yield return (each.Id, OnTradeLot(each.Lot, new Transform3D(
+                        Basis.Identity, new Vector3(x, level * DeckLevelMetres, -z))));
                 }
             }
         }

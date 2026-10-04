@@ -113,14 +113,14 @@ public partial class Main
     {
         LotTable lots = _world.Lots;
         UnitTable units = _world.Units;
-        int east = lots.FootprintBounds(hall.Lot).X;
-        int north = lots.FootprintBounds(hall.Lot).Y;
-        int wide = lots.FootprintBounds(hall.Lot).Width;
-        int deep = lots.FootprintBounds(hall.Lot).Height;
+        int east = FootprintFrame(hall.Lot, trade: true).X;
+        int north = FootprintFrame(hall.Lot, trade: true).Y;
+        int wide = FootprintFrame(hall.Lot, trade: true).Width;
+        int deep = FootprintFrame(hall.Lot, trade: true).Height;
         int family = 3 * (int)hall.Family;
 
         void Put(int module, Basis facing, int x, int y) =>
-            placed[module].Add((hall.Id, new Transform3D(facing, At(east + x + .5f, 0f, north + y + .5f)), Colors.White));
+            placed[module].Add((hall.Id, OnTradeLot(hall.Lot, new Transform3D(facing, At(east + x + .5f, 0f, north + y + .5f))), Colors.White));
 
         bool Stall(int x)
         {
@@ -181,16 +181,16 @@ public partial class Main
     private void PlaceSquare(Hall hall, List<(ulong, Transform3D, Color)>[] placed)
     {
         LotTable lots = _world.Lots;
-        int east = lots.FootprintBounds(hall.Lot).X;
-        int wide = lots.FootprintBounds(hall.Lot).Width;
-        int south = lots.FootprintBounds(hall.Lot).Y + lots.FootprintBounds(hall.Lot).Height;
-        (Parcel parcel, BlockGround ground) = _world.ParcelGround(hall.Lot);
+        int east = FootprintFrame(hall.Lot, trade: true).X;
+        int wide = FootprintFrame(hall.Lot, trade: true).Width;
+        int south = FootprintFrame(hall.Lot, trade: true).Y + FootprintFrame(hall.Lot, trade: true).Height;
+        (Parcel parcel, BlockGround ground) = TradeGround(hall.Lot);
         int top = System.Math.Min(
             parcel.North.Raw + parcel.Deep.Raw, ground.North + ground.Deep - _world.Rules.Lots.StreetHalfWidthTiles);
         int margin = (wide % TreeEvery) / 2 + (TreeEvery / 2);
 
         void Put(int module, float x, float y) =>
-            placed[module].Add((hall.Id, new Transform3D(Basis.Identity, At(x, 0f, y)), Colors.White));
+            placed[module].Add((hall.Id, OnTradeLot(hall.Lot, new Transform3D(Basis.Identity, At(x, 0f, y))), Colors.White));
 
         for (int y = south; y < top; y++)
         {

@@ -66,8 +66,8 @@ public partial class Main
         LotTable lots = _world.Lots;
 
         return CarParkCentre.CarPark(
-            lots.ParcelBounds(lot).Y, lots.FootprintBounds(lot).X, lots.FootprintBounds(lot).Y,
-            lots.FootprintBounds(lot).Width, _world.Rules.Lots.StreetHalfWidthTiles);
+            ParcelFrame(lot, trade: true).Y, FootprintFrame(lot, trade: true).X, FootprintFrame(lot, trade: true).Y,
+            FootprintFrame(lot, trade: true).Width, _world.Rules.Lots.StreetHalfWidthTiles);
     }
 
     private IEnumerable<(ulong Id, Transform3D Where)> CarParkSurfaces()
@@ -85,7 +85,7 @@ public partial class Main
             float deep = toward * MetresPerTile;
             Vector3 centre = new((east * MetresPerTile) + (wide * .5f), 0.03f, -((north * MetresPerTile) + (deep * .5f)));
 
-            yield return (id, new Transform3D(Basis.FromScale(new Vector3(wide, 0.01f, deep)), centre));
+            yield return (id, OnTradeLot(lot, new Transform3D(Basis.FromScale(new Vector3(wide, 0.01f, deep)), centre)));
         }
     }
 
@@ -117,8 +117,8 @@ public partial class Main
                 float x = west + ((stall.EastCentimetres * .01f) + (length * .5f));
                 float z = south + ((stall.NorthCentimetres + stall.DeepCentimetres) * .01f);
 
-                yield return (id, new Transform3D(
-                    Basis.FromScale(new Vector3(length, 0.01f, StallLineMetres)), new Vector3(x, 0.045f, -z)));
+                yield return (id, OnTradeLot(lot, new Transform3D(
+                    Basis.FromScale(new Vector3(length, 0.01f, StallLineMetres)), new Vector3(x, 0.045f, -z))));
             }
         }
     }
@@ -141,8 +141,8 @@ public partial class Main
             }
 
             int lot = lots.Rows.Resolve(_world.Buildings.Lot[slot]);
-            int footEast = lots.FootprintBounds(lot).X;
-            int footNorth = lots.FootprintBounds(lot).Y;
+            int footEast = FootprintFrame(lot, trade: true).X;
+            int footNorth = FootprintFrame(lot, trade: true).Y;
             float top = System.Math.Max(1, (int)lots.Storeys[lot]) * StoreyMetres;
 
             _walked.Clear();
@@ -154,7 +154,7 @@ public partial class Main
 
             foreach (int unit in _walked)
             {
-                if (units.Side[unit] != (byte)BlockFace.South)
+                if (units.North[unit].Raw != 0)
                 {
                     continue;
                 }
@@ -169,9 +169,9 @@ public partial class Main
 
                 yield return (
                     units.Rows.IdAt(unit),
-                    new Transform3D(
+                    OnTradeLot(lot, new Transform3D(
                         Basis.FromScale(new Vector3(wide, FasciaMetres, FasciaProudMetres)),
-                        new Vector3(x, top - (FasciaMetres * .5f) - 0.2f, -z)),
+                        new Vector3(x, top - (FasciaMetres * .5f) - 0.2f, -z))),
                     colour.SrgbToLinear());
             }
         }

@@ -1,3 +1,4 @@
+using Q16 = Borough.Core.Arithmetic.Fixed;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -70,22 +71,35 @@ public partial class Main
                 continue;
             }
 
+            OrientedRectangle parcel = lots.Parcel(slot);
+            if (parcel.AxisEastQ16 != Q16.One || parcel.AxisNorthQ16 != 0)
+            {
+                float wide = parcel.Wide * MetresPerTile, deep = parcel.Deep * MetresPerTile;
+                if (Mathf.Min(wide, deep) < MinFrontageMetres) continue;
+                yield return (lots.Rows.IdAt(slot),
+                    new Transform3D(RectangleBasis(parcel) * Basis.FromScale(new Vector3(wide, .01f, deep)),
+                        RectanglePoint(parcel, parcel.Wide * .5f, .02f, parcel.Deep * .5f)),
+                    new Color(.42f, .52f, .30f).SrgbToLinear());
+                continue;
+            }
+
             // ⚠ THE PAD IS THE LOT'S PARCEL, which is what a vacant Lot has always been trying
             // to draw -- the ground the city would build on. Before plans/0052 stage 1 the shell
             // had to invent it, and it invented a DIFFERENT rectangle here than Buildings() did.
-            int wideTiles = lots.ParcelBounds(slot).Width;
-            int deepTiles = lots.ParcelBounds(slot).Height;
+            int wideTiles = ParcelFrame(slot).Width;
+            int deepTiles = ParcelFrame(slot).Height;
 
             if (wideTiles <= 0 || deepTiles <= 0)
             {
                 continue;
             }
 
-            float west = lots.ParcelBounds(slot).X * MetresPerTile;
-            float south = lots.ParcelBounds(slot).Y * MetresPerTile;
+            float west = ParcelFrame(slot).X * MetresPerTile;
+            float south = ParcelFrame(slot).Y * MetresPerTile;
             float eastEdge = west + wideTiles * MetresPerTile;
             float northEdge = south + deepTiles * MetresPerTile;
-            if (Frontage.BlockOf(_world.Roads.Streets, lots.East[slot], lots.North[slot],
+            if (lots.AxisEastQ16[slot] == Q16.One && lots.AxisNorthQ16[slot] == 0
+                && Frontage.BlockOf(_world.Roads.Streets, lots.East[slot], lots.North[slot],
                 (StreetSide)lots.Side[slot], out int column, out int row)
                 && ZoneInterior(column, row) is { } interior)
             {
@@ -104,7 +118,7 @@ public partial class Main
 
             yield return (
                 lots.Rows.IdAt(slot),
-                new Transform3D(Basis.FromScale(plan), new Vector3(east, 0.02f, -north)),
+                OnLot(slot, new Transform3D(Basis.FromScale(plan), new Vector3(east, 0.02f, -north))),
                 new Color(0.42f, 0.52f, 0.30f).SrgbToLinear());
         }
     }
