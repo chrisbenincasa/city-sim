@@ -72,7 +72,6 @@ public partial class Main
         if (saved.AxisEastQ16 == Q16.One && saved.AxisNorthQ16 == 0
             && DrawingRectangle(lot, parcel: true, trade: true) == saved)
             return (parcel, _world.ParcelGround(lot).Ground);
-        int half = _world.Rules.Lots.StreetHalfWidthTiles;
-        return (parcel, new BlockGround(0, 0, bounds.X - half, bounds.Y - half, bounds.Width + 2 * half, bounds.Height + 2 * half));
+        return (parcel, LotGeometry.TradeGround(bounds));
     }
 }

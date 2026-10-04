@@ -111,8 +111,8 @@ public partial class Main
             ulong id = rows.IdAt(slot);
             ulong draw = Randomness.Draw(_world.Key, id, Ticks.Zero, PurposeTag.AppearanceFamily);
 
-            yield return new(id, lot, FootprintFrame(lot, trade: true).X, FootprintFrame(lot, trade: true).Y,
-                FootprintFrame(lot, trade: true).Width, FootprintFrame(lot, trade: true).Height, frontLow, (PadFamily)(int)(draw % 3));
+            LandRectangle foot = FootprintFrame(lot, trade: true);
+            yield return new(id, lot, foot.X, foot.Y, foot.Width, foot.Height, frontLow, (PadFamily)(int)(draw % 3));
         }
     }
 

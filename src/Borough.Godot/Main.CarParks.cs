@@ -63,11 +63,10 @@ public partial class Main
 
     private (int East, int North, int Along, int Toward) CarParkOf(int lot)
     {
-        LotTable lots = _world.Lots;
+        LandRectangle parcel = ParcelFrame(lot, trade: true), foot = FootprintFrame(lot, trade: true);
 
         return CarParkCentre.CarPark(
-            ParcelFrame(lot, trade: true).Y, FootprintFrame(lot, trade: true).X, FootprintFrame(lot, trade: true).Y,
-            FootprintFrame(lot, trade: true).Width, _world.Rules.Lots.StreetHalfWidthTiles);
+            parcel.Y, foot.X, foot.Y, foot.Width, _world.Rules.Lots.StreetHalfWidthTiles);
     }
 
     private IEnumerable<(ulong Id, Transform3D Where)> CarParkSurfaces()
@@ -141,8 +140,9 @@ public partial class Main
             }
 
             int lot = lots.Rows.Resolve(_world.Buildings.Lot[slot]);
-            int footEast = FootprintFrame(lot, trade: true).X;
-            int footNorth = FootprintFrame(lot, trade: true).Y;
+            LandRectangle foot = FootprintFrame(lot, trade: true);
+            int footEast = foot.X;
+            int footNorth = foot.Y;
             float top = System.Math.Max(1, (int)lots.Storeys[lot]) * StoreyMetres;
 
             _walked.Clear();
@@ -154,7 +154,7 @@ public partial class Main
 
             foreach (int unit in _walked)
             {
-                if (units.North[unit].Raw != 0)
+                if (units.Side[unit] != (byte)BlockFace.South)
                 {
                     continue;
                 }

@@ -106,13 +106,13 @@ public partial class Main
 
     private void PlaceSalesYard(Yard yard, List<(ulong, Transform3D, Color)>[] placed)
     {
-        LotTable lots = _world.Lots;
         (Parcel parcel, BlockGround ground) = TradeGround(yard.Lot);
         int half = _world.Rules.Lots.StreetHalfWidthTiles;
-        int shedEast = FootprintFrame(yard.Lot, trade: true).X;
-        int shedNorth = FootprintFrame(yard.Lot, trade: true).Y;
-        int shedWide = FootprintFrame(yard.Lot, trade: true).Width;
-        int shedDeep = FootprintFrame(yard.Lot, trade: true).Height;
+        LandRectangle foot = FootprintFrame(yard.Lot, trade: true);
+        int shedEast = foot.X;
+        int shedNorth = foot.Y;
+        int shedWide = foot.Width;
+        int shedDeep = foot.Height;
         bool south = parcel.Face == BlockFace.South;
         Basis facing = south ? FacingSouth : FacingNorth;
         int family = 4 * (int)yard.Family;

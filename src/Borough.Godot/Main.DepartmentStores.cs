@@ -76,8 +76,8 @@ public partial class Main
             if (_world.IsDepartmentStore(slot))
             {
                 int lot = lots.Rows.Resolve(_world.Buildings.Lot[slot]);
-                yield return new(rows.IdAt(slot), lot, FootprintFrame(lot, trade: true).X, FootprintFrame(lot, trade: true).Y,
-                    FootprintFrame(lot, trade: true).Width, FootprintFrame(lot, trade: true).Height, Math.Max(1, (int)lots.Storeys[lot]));
+                LandRectangle foot = FootprintFrame(lot, trade: true);
+                yield return new(rows.IdAt(slot), lot, foot.X, foot.Y, foot.Width, foot.Height, Math.Max(1, (int)lots.Storeys[lot]));
             }
         }
     }

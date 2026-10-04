@@ -105,10 +105,11 @@ public partial class Main
     private void PlacePrecinct(PrecinctSite site, List<(ulong, Transform3D, Color)>[] placed)
     {
         LotTable lots = _world.Lots;
-        int east = FootprintFrame(site.Lot, trade: true).X;
-        int north = FootprintFrame(site.Lot, trade: true).Y;
-        int wide = FootprintFrame(site.Lot, trade: true).Width;
-        int deep = FootprintFrame(site.Lot, trade: true).Height;
+        LandRectangle foot = FootprintFrame(site.Lot, trade: true);
+        int east = foot.X;
+        int north = foot.Y;
+        int wide = foot.Width;
+        int deep = foot.Height;
         int storeys = lots.Storeys[site.Lot];
         int family = 5 * (int)site.Family;
         Span<Precinct.Row> rows = stackalloc Precinct.Row[Precinct.RowCount(wide)];

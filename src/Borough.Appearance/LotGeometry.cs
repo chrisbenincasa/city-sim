@@ -12,9 +12,34 @@ public static class LotGeometry
     public static Vector2 Front(World world, int lot)
     {
         Address address = world.Lots.AddressOf(lot);
-        if (!address.Exists) return -Vector2.UnitY;
+        if (!address.Exists) return NearestFront(world.Lots.Parcel(lot),
+            Fixed.FromInt(world.Lots.East[lot].Raw), Fixed.FromInt(world.Lots.North[lot].Raw));
         var tangent = world.Roads.Segments.Centerline[address.Segment].TangentAt(Fixed.FromInt(address.Offset.Raw));
         return Front(world.Lots.Parcel(lot), tangent.East, tangent.North, address.Side);
+    }
+
+    /// <summary>The rectangle edge nearest a saved point in Q16.16 Tiles. Exact ties choose -B, +A, +B, then -A.</summary>
+    public static Vector2 NearestFront(OrientedRectangle rectangle, int eastQ16, int northQ16)
+    {
+        long east = (long)eastQ16 - rectangle.EastQ16, north = (long)northQ16 - rectangle.NorthQ16;
+        long a = east * rectangle.AxisEastQ16 + north * rectangle.AxisNorthQ16;
+        long b = -east * rectangle.AxisNorthQ16 + north * rectangle.AxisEastQ16;
+        long norm = (long)rectangle.AxisEastQ16 * rectangle.AxisEastQ16 + (long)rectangle.AxisNorthQ16 * rectangle.AxisNorthQ16;
+        long wide = rectangle.Wide * norm, deep = rectangle.Deep * norm;
+        long outsideA = a - Math.Clamp(a, 0, wide), outsideB = b - Math.Clamp(b, 0, deep);
+
+        // Each local distance has the same denominator; compare squared numerators without rounding.
+        ReadOnlySpan<Int128> distances = [
+            Square(outsideA) + Square(b), Square(a - wide) + Square(outsideB),
+            Square(outsideA) + Square(b - deep), Square(a) + Square(outsideB)];
+        int edge = 0;
+        for (int i = 1; i < distances.Length; i++)
+        {
+            if (distances[i] < distances[edge]) edge = i;
+        }
+        return edge switch { 0 => -Vector2.UnitY, 1 => Vector2.UnitX, 2 => Vector2.UnitY, _ => -Vector2.UnitX };
+
+        static Int128 Square(long value) => (Int128)value * value;
     }
 
     public static Vector2 Front(OrientedRectangle rectangle, int tangentEastQ16, int tangentNorthQ16, StreetSide side)
@@ -35,6 +60,10 @@ public static class LotGeometry
         return (IntegerMath.FloorDiv(bounds.X, squareTiles), IntegerMath.FloorDiv(bounds.Y, squareTiles),
             IntegerMath.FloorDiv(bounds.X + bounds.Width, squareTiles), IntegerMath.FloorDiv(bounds.Y + bounds.Height, squareTiles));
     }
+
+    /// <summary>Uses parcel-frame bounds so trade layouts retain their Street inset.</summary>
+    public static BlockGround TradeGround(LandRectangle bounds) =>
+        new(0, 0, bounds.X, bounds.Y, bounds.Width, bounds.Height);
 
     /// <summary>Re-expresses a trade layout on the same ground, with frontage along its expected local axis.</summary>
     public static OrientedRectangle LayoutFrame(OrientedRectangle rectangle, Vector2 front, bool frontAlongA, bool eitherSide = false)

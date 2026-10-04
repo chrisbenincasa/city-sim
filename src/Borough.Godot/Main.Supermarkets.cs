@@ -115,8 +115,6 @@ public partial class Main
     /// <summary>One bay a Tile along the store's front, with the entrance at the middle bay.</summary>
     private IEnumerable<(ulong Id, Transform3D Where)> StoreBays(bool entrance)
     {
-        LotTable lots = _world.Lots;
-
         foreach (Supermarket each in Supermarkets())
         {
             if (!each.Store)
@@ -124,11 +122,12 @@ public partial class Main
                 continue;
             }
 
-            int wide = FootprintFrame(each.Lot, trade: true).Width;
+            LandRectangle foot = FootprintFrame(each.Lot, trade: true);
+            int wide = foot.Width;
             int middle = wide / 2;
-            float east = FootprintFrame(each.Lot, trade: true).X * MetresPerTile;
-            float north = FootprintFrame(each.Lot, trade: true).Y * MetresPerTile;
-            float deep = FootprintFrame(each.Lot, trade: true).Height;
+            float east = foot.X * MetresPerTile;
+            float north = foot.Y * MetresPerTile;
+            float deep = foot.Height;
             float centre = north + (deep * MetresPerTile * .5f);
 
             for (int bay = 0; bay < wide; bay++)
@@ -144,12 +143,10 @@ public partial class Main
 
     private (int East, int North, int Along, int Toward) SupermarketCarPark(int lot)
     {
-        LotTable lots = _world.Lots;
+        LandRectangle parcel = ParcelFrame(lot, trade: true), foot = FootprintFrame(lot, trade: true);
 
         return TownSupermarket.CarPark(
-            ParcelFrame(lot, trade: true).Y, ParcelFrame(lot, trade: true).Height, FootprintFrame(lot, trade: true).X,
-            FootprintFrame(lot, trade: true).Y, FootprintFrame(lot, trade: true).Width, FootprintFrame(lot, trade: true).Height,
-            _world.Rules.Lots.StreetHalfWidthTiles);
+            parcel.Y, parcel.Height, foot.X, foot.Y, foot.Width, foot.Height, _world.Rules.Lots.StreetHalfWidthTiles);
     }
 
     /// <summary>

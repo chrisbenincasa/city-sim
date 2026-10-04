@@ -111,12 +111,12 @@ public partial class Main
 
     private void PlaceHall(Hall hall, List<(ulong, Transform3D, Color)>[] placed)
     {
-        LotTable lots = _world.Lots;
         UnitTable units = _world.Units;
-        int east = FootprintFrame(hall.Lot, trade: true).X;
-        int north = FootprintFrame(hall.Lot, trade: true).Y;
-        int wide = FootprintFrame(hall.Lot, trade: true).Width;
-        int deep = FootprintFrame(hall.Lot, trade: true).Height;
+        LandRectangle foot = FootprintFrame(hall.Lot, trade: true);
+        int east = foot.X;
+        int north = foot.Y;
+        int wide = foot.Width;
+        int deep = foot.Height;
         int family = 3 * (int)hall.Family;
 
         void Put(int module, Basis facing, int x, int y) =>
@@ -180,10 +180,10 @@ public partial class Main
     /// <summary>Paves the Lot from the hall's north wall to the north street, under a grid of trees.</summary>
     private void PlaceSquare(Hall hall, List<(ulong, Transform3D, Color)>[] placed)
     {
-        LotTable lots = _world.Lots;
-        int east = FootprintFrame(hall.Lot, trade: true).X;
-        int wide = FootprintFrame(hall.Lot, trade: true).Width;
-        int south = FootprintFrame(hall.Lot, trade: true).Y + FootprintFrame(hall.Lot, trade: true).Height;
+        LandRectangle foot = FootprintFrame(hall.Lot, trade: true);
+        int east = foot.X;
+        int wide = foot.Width;
+        int south = foot.Y + foot.Height;
         (Parcel parcel, BlockGround ground) = TradeGround(hall.Lot);
         int top = System.Math.Min(
             parcel.North.Raw + parcel.Deep.Raw, ground.North + ground.Deep - _world.Rules.Lots.StreetHalfWidthTiles);
