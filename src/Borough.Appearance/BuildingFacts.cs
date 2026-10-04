@@ -53,8 +53,8 @@ public readonly record struct BuildingFacts(
             return false;
         }
 
-        int wide = lots.FootprintWide[lot].Raw * Tiles.Metres;
-        int deep = lots.FootprintDeep[lot].Raw * Tiles.Metres;
+        int wide = lots.FootprintBounds(lot).Width * Tiles.Metres;
+        int deep = lots.FootprintBounds(lot).Height * Tiles.Metres;
         if (wide <= 0 || deep <= 0)
         {
             return false;
@@ -107,10 +107,10 @@ public readonly record struct BuildingFacts(
         ArgumentNullException.ThrowIfNull(lattice);
         ArgumentNullException.ThrowIfNull(lots);
 
-        int west = lots.ParcelEast[lot].Raw;
-        int south = lots.ParcelNorth[lot].Raw;
-        int wide = lots.ParcelWide[lot].Raw;
-        int deep = lots.ParcelDeep[lot].Raw;
+        int west = lots.ParcelBounds(lot).X;
+        int south = lots.ParcelBounds(lot).Y;
+        int wide = lots.ParcelBounds(lot).Width;
+        int deep = lots.ParcelBounds(lot).Height;
         if (lattice.Nominal <= 0 || wide <= 0 || deep <= 0)
         {
             return false;

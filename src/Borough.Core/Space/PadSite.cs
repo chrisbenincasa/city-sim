@@ -45,8 +45,7 @@ public static class PadSite
         int centreWide = centre.Wide.Raw - strip;
         into[0] = centre with
         {
-            East = new Tiles(centreEast),
-            Wide = new Tiles(centreWide),
+            Geometry = OrientedRectangle.FromBounds(new(centreEast, centre.North.Raw, centreWide, centre.Deep.Raw)),
             Offset = new Tiles(centreEast - ground.East + IntegerMath.FloorDiv(centreWide, 2)),
         };
 

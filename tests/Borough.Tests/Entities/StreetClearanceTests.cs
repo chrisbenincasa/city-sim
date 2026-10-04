@@ -74,9 +74,9 @@ public sealed class StreetClearanceTests
             Assert.True(Frontage.BlockOf(world.Roads.Streets, lots.East[slot], lots.North[slot],
                 (StreetSide)lots.Side[slot], out int column, out int row, out _));
             var ground = BlockGround.At(world.Roads.Streets.Lattice, column, row);
-            Assert.InRange(lots.FootprintEast[slot].Raw, ground.East + 1,
+            Assert.InRange(lots.FootprintBounds(slot).X, ground.East + 1,
                 ground.East + ground.Wide - 1 - lots.FootprintWide[slot].Raw);
-            Assert.InRange(lots.FootprintNorth[slot].Raw, ground.North + 1,
+            Assert.InRange(lots.FootprintBounds(slot).Y, ground.North + 1,
                 ground.North + ground.Deep - 1 - lots.FootprintDeep[slot].Raw);
             checkedLots++;
         }

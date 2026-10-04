@@ -1,3 +1,4 @@
+using Borough.Core.Arithmetic;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
@@ -31,12 +32,12 @@ internal static class LocalLayoutCommit
         world.Lots.Front(row, fronts, offset);
         LandRectangle site = proposal.Site;
         LandRectangle footprint = proposal.Building.Footprint;
-        world.Lots.ParcelEast[row] = new Tiles(site.X);
-        world.Lots.ParcelNorth[row] = new Tiles(site.Y);
+        world.Lots.ParcelEastQ16[row] = Fixed.FromInt(site.X);
+        world.Lots.ParcelNorthQ16[row] = Fixed.FromInt(site.Y);
         world.Lots.ParcelWide[row] = new Tiles(site.Width);
         world.Lots.ParcelDeep[row] = new Tiles(site.Height);
-        world.Lots.FootprintEast[row] = new Tiles(footprint.X);
-        world.Lots.FootprintNorth[row] = new Tiles(footprint.Y);
+        world.Lots.FootprintEastQ16[row] = Fixed.FromInt(footprint.X);
+        world.Lots.FootprintNorthQ16[row] = Fixed.FromInt(footprint.Y);
         world.Lots.FootprintWide[row] = new Tiles(footprint.Width);
         world.Lots.FootprintDeep[row] = new Tiles(footprint.Height);
         world.Lots.Storeys[row] = proposal.Building.Storeys;

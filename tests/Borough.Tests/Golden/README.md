@@ -804,3 +804,27 @@ final trace and save were written by the same after-change replay.
 
 Baseline Ruleset content, Core save format 15, and the hash seed are unchanged. The Cell traffic
 mask only skips queries proven silent and does not account for the hash movement.
+
+### Saved oriented Lot ground (10/03/2026)
+
+Each Lot saves Q16.16 parcel and footprint corners and a shared unit axis
+([`adr/0174`](../../../docs/adr/0174-lots-are-cut-along-segments-and-save-their-frontage.md),
+`plans/freeform-streets.md` slice 4b). The carve writes the same corners and axis `(One, 0)`.
+Core save format is **16**. Both session traces were regenerated with the commands above;
+`world-hash.txt` was regenerated from the complete `GoldenHashTests` failure payload.
+The Ruleset files, Input Logs, and hash seed did not change.
+
+Behavior did not move. Before and after `--census` runs used these arguments, adding `--out`
+for the after runs to write the traces above.
+
+```sh
+--log tests/Borough.Tests/Golden/session.borough --ruleset rulesets/declining.toml \
+  --ruleset rulesets/declining-tuned.toml --ticks 8192 --hash-every 256 --census
+--log tests/Borough.Tests/Golden/driving-session.borough --ruleset rulesets/congested.toml \
+  --ticks 4096 --hash-every 128 --census
+```
+
+The census output after the trace was byte-identical in both sessions, **20,583 bytes** and
+**20,488 bytes**, respectively. Only State Hash samples moved. Permissions still read parcel
+bounding boxes; sealing still reads footprint bounding boxes. No parcel area was substituted
+for the footprint's sealed area.

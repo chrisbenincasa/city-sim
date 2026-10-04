@@ -103,8 +103,8 @@ public partial class Main
             // epoch from the block's own pattern, and a partition of that block by construction.
             // FIVE separate inventions stood here: a setback, a stretch of kerb, a corner reserve,
             // a depth, and a re-centring onto the stretch. They are one read.
-            int wideTiles = lots.ParcelWide[lot].Raw;
-            int deepTiles = lots.ParcelDeep[lot].Raw;
+            int wideTiles = lots.ParcelBounds(lot).Width;
+            int deepTiles = lots.ParcelBounds(lot).Height;
 
             // ⚠ NO GROUND IS THE GEOMETRY REPORTING RATHER THAN FAILING. A Lot whose Street is gone
             // keeps its Building and loses its Address (adr/0079) and therefore its parcel; and a
@@ -121,16 +121,16 @@ public partial class Main
             // is the part with a wall on it -- the same rectangle World.CreateBuilding seals, so the
             // drawing and the Sealing Layer cannot disagree about the same building. The centre and
             // the plan both fall straight out of it and there is no draw left in this block.
-            int footWide = lots.FootprintWide[lot].Raw;
-            int footDeep = lots.FootprintDeep[lot].Raw;
+            int footWide = lots.FootprintBounds(lot).Width;
+            int footDeep = lots.FootprintBounds(lot).Height;
 
             if (footWide <= 0 || footDeep <= 0)
             {
                 continue;
             }
 
-            float east = (lots.FootprintEast[lot].Raw + (footWide * 0.5f)) * MetresPerTile;
-            float north = (lots.FootprintNorth[lot].Raw + (footDeep * 0.5f)) * MetresPerTile;
+            float east = (lots.FootprintBounds(lot).X + (footWide * 0.5f)) * MetresPerTile;
+            float north = (lots.FootprintBounds(lot).Y + (footDeep * 0.5f)) * MetresPerTile;
             float eastWest = footWide * MetresPerTile;
             float southNorth = footDeep * MetresPerTile;
 
@@ -214,7 +214,7 @@ public partial class Main
             float shedHeight = shed * .8f;
             if (_world.Rules.Lots.Plots.Applies(BlockPatterns.CarveAs(lots.PatternOf(lot))))
             {
-                float plotLow = (horizontal ? lots.ParcelNorth[lot].Raw : lots.ParcelEast[lot].Raw) * MetresPerTile;
+                float plotLow = (horizontal ? lots.ParcelBounds(lot).Y : lots.ParcelBounds(lot).X) * MetresPerTile;
                 float plotHigh = plotLow + (horizontal ? deepTiles : wideTiles) * MetresPerTile;
                 float bodyCentre = horizontal ? north : east;
                 float space = back > 0 ? plotHigh - (bodyCentre + deep * .5f)
@@ -304,9 +304,9 @@ public partial class Main
                 {
                     float shaftWide = tower.ShaftWide * MetresPerTile;
                     float shaftDeep = tower.ShaftDeep * MetresPerTile;
-                    float shaftEast = (lots.FootprintEast[lot].Raw + tower.ShaftEast
+                    float shaftEast = (lots.FootprintBounds(lot).X + tower.ShaftEast
                         + (tower.ShaftWide * 0.5f)) * MetresPerTile;
-                    float shaftNorth = (lots.FootprintNorth[lot].Raw + tower.ShaftNorth
+                    float shaftNorth = (lots.FootprintBounds(lot).Y + tower.ShaftNorth
                         + (tower.ShaftDeep * 0.5f)) * MetresPerTile;
                     float shaftWanted = Math.Min(shaftWide, shaftDeep) * (RoofRiseLow
                         + (((shape >> 40) & 0xFFu) / 255f * (RoofRiseHigh - RoofRiseLow)));
@@ -351,8 +351,8 @@ public partial class Main
             {
                 foreach (Massing wing in Wings(
                     id,
-                    lots.FootprintEast[lot].Raw * MetresPerTile,
-                    lots.FootprintNorth[lot].Raw * MetresPerTile,
+                    lots.FootprintBounds(lot).X * MetresPerTile,
+                    lots.FootprintBounds(lot).Y * MetresPerTile,
                     eastWest,
                     southNorth,
                     holeWide * MetresPerTile,

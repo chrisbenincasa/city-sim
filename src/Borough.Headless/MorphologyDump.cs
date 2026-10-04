@@ -651,8 +651,8 @@ internal static class MorphologyDump
                 continue;
             }
 
-            int column = lattice.LineAt(world.Lots.ParcelEast[slot].Raw);
-            int row = lattice.LineAt(world.Lots.ParcelNorth[slot].Raw);
+            int column = lattice.LineAt(world.Lots.ParcelBounds(slot).X);
+            int row = lattice.LineAt(world.Lots.ParcelBounds(slot).Y);
 
             if (!patternAt.TryGetValue((column, row), out int index))
             {

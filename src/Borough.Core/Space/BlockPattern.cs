@@ -240,40 +240,22 @@ public enum BlockPattern : byte
     MarketHall = 15,
 }
 
-/// <summary>
-/// The ground one Lot holds, and where its Address sits on the Street.
-/// </summary>
-/// <remarks>
-/// <para>
-/// 🔴 <b>A Lot is an Address and owns no ground (<c>adr/0078</c>), and this does not change that.</b>
-/// The parcel is <b>derived</b>, on the epoch, from the block's saved pattern and the lattice — exactly
-/// as frontage is derived from the Lot's saved position. ***No depth is authored anywhere***, which is
-/// the refusal <c>adr/0078</c> made and which stands.
-/// </para>
-/// <para>
-/// <b><see cref="East"/> and <see cref="North"/> are the parcel's south-west corner in absolute
-/// Tiles</b>, and <see cref="Wide"/> and <see cref="Deep"/> are its extent from there — so the parcel
-/// covers <c>[East, East + Wide) × [North, North + Deep)</c>. <b>Both are measured on the map's axes
-/// and neither is relative to the face</b>: a west-face parcel is <em>Wide</em> in the direction it
-/// runs back from its Street, because that direction is east.
-/// </para>
-/// </remarks>
+/// <summary>The ground one Lot holds, and where its Address sits on the Street.</summary>
 /// <param name="Face">Which face of the block this parcel fronts.</param>
 /// <param name="Side">Which side of that face's Segment it stands on.</param>
 /// <param name="Offset">How far along the Segment the Address sits.</param>
-/// <param name="East">The parcel's west edge, in absolute Tiles.</param>
-/// <param name="North">The parcel's south edge, in absolute Tiles.</param>
-/// <param name="Wide">Its extent eastward.</param>
-/// <param name="Deep">Its extent northward.</param>
-public readonly record struct Parcel(
-    BlockFace Face,
-    StreetSide Side,
-    Tiles Offset,
-    Tiles East,
-    Tiles North,
-    Tiles Wide,
-    Tiles Deep)
+/// <param name="Geometry">The exact ground. Integer coordinate readers use its bounding box.</param>
+public readonly record struct Parcel(BlockFace Face, StreetSide Side, Tiles Offset, OrientedRectangle Geometry)
 {
+    /// <summary>Creates a lattice-aligned parcel from whole-Tile bounds.</summary>
+    public Parcel(BlockFace Face, StreetSide Side, Tiles Offset, Tiles East, Tiles North, Tiles Wide, Tiles Deep)
+        : this(Face, Side, Offset, OrientedRectangle.FromBounds(new(East.Raw, North.Raw, Wide.Raw, Deep.Raw))) { }
+
+    public Tiles East => new(Geometry.Bounds.X);
+    public Tiles North => new(Geometry.Bounds.Y);
+    public Tiles Wide => new(Geometry.Bounds.Width);
+    public Tiles Deep => new(Geometry.Bounds.Height);
+
     /// <summary>The ground this parcel holds, in Tiles.</summary>
     public int AreaTiles => Wide.Raw * Deep.Raw;
 

@@ -1,3 +1,4 @@
+using Borough.Core.Arithmetic;
 using Borough.Core.Quantities;
 using Borough.Core.Space;
 using Borough.Core.Tables;
@@ -20,8 +21,7 @@ public static class LotSubdivider
     }
 
     public static bool Contains(Parcel parcel, Tiles east, Tiles north) =>
-        east.Raw >= parcel.East.Raw && east.Raw < parcel.East.Raw + parcel.Wide.Raw
-        && north.Raw >= parcel.North.Raw && north.Raw < parcel.North.Raw + parcel.Deep.Raw;
+        parcel.Geometry.Contains(Fixed.FromInt(east.Raw), Fixed.FromInt(north.Raw));
 
     public static int PreviewCapacity(World world, int column, int row)
     {
@@ -44,7 +44,7 @@ public static class LotSubdivider
             if (!OnBlock(world, slot, column, row, out BlockFace face)) { continue; }
             int offset = face is BlockFace.South or BlockFace.North ? lots.East[slot].Raw - ground.East : lots.North[slot].Raw - ground.North;
             if (count == into.Length) { throw new ArgumentException("Preview buffer is smaller than PreviewCapacity.", nameof(into)); }
-            into[count++] = new(face, (StreetSide)lots.Side[slot], new Tiles(offset), lots.ParcelEast[slot], lots.ParcelNorth[slot], lots.ParcelWide[slot], lots.ParcelDeep[slot]);
+            into[count++] = new(face, (StreetSide)lots.Side[slot], new Tiles(offset), lots.Parcel(slot));
         }
         int ceiling = world.Rules.Lots.ParcelCeiling(ground);
         Span<Parcel> proposed = ceiling <= 128 ? stackalloc Parcel[128] : new Parcel[ceiling];
@@ -132,11 +132,11 @@ public static class LotSubdivider
             Handle<Lot> lot = world.Lots.Create(address.East, address.North, permission.CommonUses, parcel.Side);
             int slot = world.Lots.Rows.Resolve(lot);
             world.Lots.Front(slot, world.Roads.Segments.Rows.At(segment), parcel.Offset);
-            world.Lots.ParcelEast[slot] = parcel.East; world.Lots.ParcelNorth[slot] = parcel.North;
+            world.Lots.ParcelEastQ16[slot] = Fixed.FromInt(parcel.East.Raw); world.Lots.ParcelNorthQ16[slot] = Fixed.FromInt(parcel.North.Raw);
             world.Lots.ParcelWide[slot] = parcel.Wide; world.Lots.ParcelDeep[slot] = parcel.Deep;
             BlockPattern form = BlockPatterns.FormOf(pattern, parcel.Face);
             var foot = world.Rules.Lots.Footprint(world.Key, parcel, ground, form);
-            world.Lots.FootprintEast[slot] = foot.East; world.Lots.FootprintNorth[slot] = foot.North;
+            world.Lots.FootprintEastQ16[slot] = Fixed.FromInt(foot.East.Raw); world.Lots.FootprintNorthQ16[slot] = Fixed.FromInt(foot.North.Raw);
             world.Lots.FootprintWide[slot] = foot.Wide; world.Lots.FootprintDeep[slot] = foot.Deep;
             world.Lots.Storeys[slot] = world.Rules.Lots.Height(world.Key, parcel, form, streets.BlockTiles);
             world.Lots.PodiumStoreys[slot] = world.Rules.Lots.PodiumOn(world.Key, parcel.East, parcel.North);
@@ -162,7 +162,7 @@ public static class LotSubdivider
         for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
         {
             if (!world.Lots.Rows.IsLive(slot)) { continue; }
-            if (World.Overlaps(candidate, world.LotGround(slot))
+            if (World.Overlaps(candidate, world.Lots.Parcel(slot))
                 || (world.Lots.East[slot] == address.East && world.Lots.North[slot] == address.North && world.Lots.Side[slot] == (byte)parcel.Side)) { return false; }
         }
         return true;

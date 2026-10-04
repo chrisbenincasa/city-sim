@@ -124,11 +124,11 @@ public partial class Main
                 continue;
             }
 
-            int wide = lots.FootprintWide[each.Lot].Raw;
+            int wide = lots.FootprintBounds(each.Lot).Width;
             int middle = wide / 2;
-            float east = lots.FootprintEast[each.Lot].Raw * MetresPerTile;
-            float north = lots.FootprintNorth[each.Lot].Raw * MetresPerTile;
-            float deep = lots.FootprintDeep[each.Lot].Raw;
+            float east = lots.FootprintBounds(each.Lot).X * MetresPerTile;
+            float north = lots.FootprintBounds(each.Lot).Y * MetresPerTile;
+            float deep = lots.FootprintBounds(each.Lot).Height;
             float centre = north + (deep * MetresPerTile * .5f);
 
             for (int bay = 0; bay < wide; bay++)
@@ -147,8 +147,8 @@ public partial class Main
         LotTable lots = _world.Lots;
 
         return TownSupermarket.CarPark(
-            lots.ParcelNorth[lot].Raw, lots.ParcelDeep[lot].Raw, lots.FootprintEast[lot].Raw,
-            lots.FootprintNorth[lot].Raw, lots.FootprintWide[lot].Raw, lots.FootprintDeep[lot].Raw,
+            lots.ParcelBounds(lot).Y, lots.ParcelBounds(lot).Height, lots.FootprintBounds(lot).X,
+            lots.FootprintBounds(lot).Y, lots.FootprintBounds(lot).Width, lots.FootprintBounds(lot).Height,
             _world.Rules.Lots.StreetHalfWidthTiles);
     }
 

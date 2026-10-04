@@ -164,6 +164,5 @@ public static class HousingConstruction
         return (aligned ? rules.AlignmentBonus : 0) + (sameForm ? rules.SameFormBonus : 0);
     }
 
-    private static bool Overlaps(LandRectangle a, LandRectangle b) => a.X < b.X + b.Width && b.X < a.X + a.Width
-        && a.Y < b.Y + b.Height && b.Y < a.Y + a.Height;
+    private static bool Overlaps(LandRectangle a, LandRectangle b) => World.Overlaps(a, b);
 }

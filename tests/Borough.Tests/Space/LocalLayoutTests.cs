@@ -1,3 +1,4 @@
+using Borough.Core.Arithmetic;
 using Borough.Core;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
@@ -107,8 +108,8 @@ public sealed class LocalLayoutTests
             case 6:
                 var extra = world.Lots.Create(new Tiles(60), Tiles.Zero, LotTable.Housing);
                 int extraRow = world.Lots.Rows.Resolve(extra);
-                world.Lots.ParcelEast[extraRow] = new Tiles(proposal.Site.X);
-                world.Lots.ParcelNorth[extraRow] = new Tiles(proposal.Site.Y);
+                world.Lots.ParcelEastQ16[extraRow] = Fixed.FromInt(proposal.Site.X);
+                world.Lots.ParcelNorthQ16[extraRow] = Fixed.FromInt(proposal.Site.Y);
                 break;
         }
         RefusesCommit(simulation, proposal, refusal);
@@ -317,8 +318,8 @@ public sealed class LocalLayoutTests
             case 4:
                 var extra = world.Lots.Create(world.Lots.East[world.Lots.Rows.Resolve(lots[1])], Tiles.Zero, LotTable.Housing);
                 int extraRow = world.Lots.Rows.Resolve(extra);
-                world.Lots.ParcelEast[extraRow] = new Tiles(100);
-                world.Lots.ParcelNorth[extraRow] = new Tiles(100);
+                world.Lots.ParcelEastQ16[extraRow] = Fixed.FromInt(100);
+                world.Lots.ParcelNorthQ16[extraRow] = Fixed.FromInt(100);
                 break;
             case 5: plan = plan with { Storeys = 0 }; break;
         }
@@ -378,8 +379,8 @@ public sealed class LocalLayoutTests
             lots[i] = world.Lots.Create(new Tiles(horizontal ? x + 6 : across), new Tiles(horizontal ? across : x + 6), LotTable.Housing, side);
             int row = world.Lots.Rows.Resolve(lots[i]);
             int behind = across == 0 ? gap : across - gap - 16;
-            world.Lots.ParcelEast[row] = world.Lots.FootprintEast[row] = new Tiles(horizontal ? x : behind);
-            world.Lots.ParcelNorth[row] = world.Lots.FootprintNorth[row] = new Tiles(horizontal ? behind : x);
+            world.Lots.ParcelEastQ16[row] = world.Lots.FootprintEastQ16[row] = Fixed.FromInt(horizontal ? x : behind);
+            world.Lots.ParcelNorthQ16[row] = world.Lots.FootprintNorthQ16[row] = Fixed.FromInt(horizontal ? behind : x);
             world.Lots.ParcelWide[row] = world.Lots.FootprintWide[row] = new Tiles(horizontal ? 12 : 16);
             world.Lots.ParcelDeep[row] = world.Lots.FootprintDeep[row] = new Tiles(horizontal ? 16 : 12);
             world.Lots.Storeys[row] = 2;

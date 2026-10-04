@@ -67,9 +67,9 @@ public readonly struct SaveHeader : IEquatable<SaveHeader>
     /// new table exists is short by a table and needs a migration; the hash it was written at was never
     /// wrong.
     /// </remarks>
-    // Version 15 saves each Segment's sagitta (adr/0174). Older declaration sets are refused before
+    // Version 16 saves each Lot's oriented parcel and footprint (adr/0174). Older declaration sets are refused before
     // their body is read.
-    public const int Current = 15;
+    public const int Current = 16;
 
     private const ulong ByteOrderSentinel = 0x0102_0304_0506_0708UL;
 

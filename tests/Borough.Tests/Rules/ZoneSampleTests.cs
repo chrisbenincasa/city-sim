@@ -30,7 +30,7 @@ public sealed class ZoneSampleTests
 
         for (int i = 0; i < count; i++)
         {
-            lots.Create(new Tiles(i), new Tiles(0), zone: 1);
+            lots.Create(new Tiles(i % CellGrid.WorldTiles), new Tiles(i / CellGrid.WorldTiles), zone: 1);
         }
 
         return lots;

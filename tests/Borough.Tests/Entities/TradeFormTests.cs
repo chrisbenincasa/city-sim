@@ -205,12 +205,14 @@ public sealed class TradeFormTests
         Assert.Equal(32 - PadSite.DepthTiles - half, parcels[0].Wide.Raw);
         Assert.Equal(32 * 32, parcels[..count].ToArray().Sum(parcel => parcel.AreaTiles));
         Assert.InRange(parcels[0].Offset.Raw, parcels[0].East.Raw, parcels[0].East.Raw + parcels[0].Wide.Raw - 1);
+        Assert.True(LotSubdivider.Contains(parcels[0], parcels[0].East, parcels[0].North));
 
         for (int pad = 1; pad < count; pad++)
         {
             Parcel each = parcels[pad];
             Assert.Equal(east ? BlockFace.East : BlockFace.West, each.Face);
             Assert.Equal(east ? 32 - each.Wide.Raw : 0, each.East.Raw);
+            Assert.False(LotSubdivider.Contains(parcels[0], each.East, each.North));
             Assert.InRange(each.Offset.Raw, each.North.Raw, each.North.Raw + each.Deep.Raw - 1);
 
             var foot = PadSite.Footprint(each, ground, half);
@@ -571,7 +573,7 @@ public sealed class TradeFormTests
         byte storeys = world.Lots.Storeys[lot];
         Assert.True(wide > 2 * DepartmentStore.CornerTiles, $"store {building} is only {wide} Tiles wide.");
         Assert.Equal(world.Lots.ParcelDeep[lot].Raw, deep);
-        Assert.Equal(world.Lots.ParcelNorth[lot], world.Lots.FootprintNorth[lot]);
+        Assert.Equal(new Tiles(world.Lots.ParcelBounds(lot).Y), new Tiles(world.Lots.FootprintBounds(lot).Y));
 
         var units = new List<int>();
         foreach (int unit in world.BuildingUnits.Walk(building))
@@ -615,7 +617,7 @@ public sealed class TradeFormTests
         Assert.False(world.HasRoomForHousehold(building));
 
         int level = TownSupermarket.Stalls(
-            world.Lots.ParcelNorth[lot].Raw, world.Lots.ParcelDeep[lot].Raw, world.Lots.FootprintNorth[lot].Raw,
+            world.Lots.ParcelBounds(lot).Y, world.Lots.ParcelDeep[lot].Raw, world.Lots.FootprintBounds(lot).Y,
             world.Lots.FootprintWide[lot].Raw, world.Lots.FootprintDeep[lot].Raw,
             world.Rules.Lots.StreetHalfWidthTiles, world.Rules.Parking.Stalls).Stalls;
         Assert.True(level > 0, $"supermarket {building} has no room for a stall.");

@@ -7,7 +7,7 @@ namespace Borough.Core.Entities;
 public sealed partial class World
 {
     public LandRectangle LotGround(int lot) => Lots.Rows.IsLive(lot)
-        ? new(Lots.ParcelEast[lot].Raw, Lots.ParcelNorth[lot].Raw, Lots.ParcelWide[lot].Raw, Lots.ParcelDeep[lot].Raw)
+        ? Lots.ParcelBounds(lot)
         : default;
 
     public LandRectangle BlockGroundRectangle(int column, int row)
@@ -75,5 +75,8 @@ public sealed partial class World
     }
 
     internal static bool Overlaps(LandRectangle a, LandRectangle b) => a.IsValid && b.IsValid
-        && a.X < b.X + b.Width && b.X < a.X + a.Width && a.Y < b.Y + b.Height && b.Y < a.Y + a.Height;
+        && OrientedRectangle.FromBounds(a).Overlaps(OrientedRectangle.FromBounds(b));
+
+    internal static bool Overlaps(LandRectangle a, OrientedRectangle b) => a.IsValid
+        && OrientedRectangle.FromBounds(a).Overlaps(b);
 }

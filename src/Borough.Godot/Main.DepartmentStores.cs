@@ -76,8 +76,8 @@ public partial class Main
             if (_world.IsDepartmentStore(slot))
             {
                 int lot = lots.Rows.Resolve(_world.Buildings.Lot[slot]);
-                yield return new(rows.IdAt(slot), lots.FootprintEast[lot].Raw, lots.FootprintNorth[lot].Raw,
-                    lots.FootprintWide[lot].Raw, lots.FootprintDeep[lot].Raw, Math.Max(1, (int)lots.Storeys[lot]));
+                yield return new(rows.IdAt(slot), lots.FootprintBounds(lot).X, lots.FootprintBounds(lot).Y,
+                    lots.FootprintBounds(lot).Width, lots.FootprintBounds(lot).Height, Math.Max(1, (int)lots.Storeys[lot]));
             }
         }
     }

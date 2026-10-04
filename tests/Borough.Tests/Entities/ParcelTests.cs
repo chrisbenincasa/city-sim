@@ -46,7 +46,7 @@ public sealed class ParcelTests
     }
 
     private static (int East, int North, int Wide, int Deep) ParcelOf(World world, int slot) =>
-        (world.Lots.ParcelEast[slot].Raw, world.Lots.ParcelNorth[slot].Raw,
+        (world.Lots.ParcelBounds(slot).X, world.Lots.ParcelBounds(slot).Y,
          world.Lots.ParcelWide[slot].Raw, world.Lots.ParcelDeep[slot].Raw);
 
     /// <summary>

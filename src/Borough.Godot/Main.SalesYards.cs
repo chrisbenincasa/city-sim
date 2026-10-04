@@ -109,10 +109,10 @@ public partial class Main
         LotTable lots = _world.Lots;
         (Parcel parcel, BlockGround ground) = _world.ParcelGround(yard.Lot);
         int half = _world.Rules.Lots.StreetHalfWidthTiles;
-        int shedEast = lots.FootprintEast[yard.Lot].Raw;
-        int shedNorth = lots.FootprintNorth[yard.Lot].Raw;
-        int shedWide = lots.FootprintWide[yard.Lot].Raw;
-        int shedDeep = lots.FootprintDeep[yard.Lot].Raw;
+        int shedEast = lots.FootprintBounds(yard.Lot).X;
+        int shedNorth = lots.FootprintBounds(yard.Lot).Y;
+        int shedWide = lots.FootprintBounds(yard.Lot).Width;
+        int shedDeep = lots.FootprintBounds(yard.Lot).Height;
         bool south = parcel.Face == BlockFace.South;
         Basis facing = south ? FacingSouth : FacingNorth;
         int family = 4 * (int)yard.Family;

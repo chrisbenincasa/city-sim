@@ -73,16 +73,16 @@ public partial class Main
             // ⚠ THE PAD IS THE LOT'S PARCEL, which is what a vacant Lot has always been trying
             // to draw -- the ground the city would build on. Before plans/0052 stage 1 the shell
             // had to invent it, and it invented a DIFFERENT rectangle here than Buildings() did.
-            int wideTiles = lots.ParcelWide[slot].Raw;
-            int deepTiles = lots.ParcelDeep[slot].Raw;
+            int wideTiles = lots.ParcelBounds(slot).Width;
+            int deepTiles = lots.ParcelBounds(slot).Height;
 
             if (wideTiles <= 0 || deepTiles <= 0)
             {
                 continue;
             }
 
-            float west = lots.ParcelEast[slot].Raw * MetresPerTile;
-            float south = lots.ParcelNorth[slot].Raw * MetresPerTile;
+            float west = lots.ParcelBounds(slot).X * MetresPerTile;
+            float south = lots.ParcelBounds(slot).Y * MetresPerTile;
             float eastEdge = west + wideTiles * MetresPerTile;
             float northEdge = south + deepTiles * MetresPerTile;
             if (Frontage.BlockOf(_world.Roads.Streets, lots.East[slot], lots.North[slot],

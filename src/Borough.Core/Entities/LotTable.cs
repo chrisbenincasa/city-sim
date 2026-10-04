@@ -1,5 +1,6 @@
 namespace Borough.Core.Entities;
 
+using Borough.Core.Arithmetic;
 using Borough.Core.Quantities;
 using Borough.Core.Space;
 using Borough.Core.Tables;
@@ -77,12 +78,14 @@ public sealed class LotTable
         FrontageSegment = _rows.SavedHandle(
             "frontage_segment", segments.Rows, Touch.Wake, Reference.Severable);
         FrontageOffset = _rows.Saved<Tiles>("frontage_offset");
-        ParcelEast = _rows.Saved<Tiles>("parcel_east");
-        ParcelNorth = _rows.Saved<Tiles>("parcel_north");
+        ParcelEastQ16 = _rows.Saved<int>("parcel_east_q16");
+        ParcelNorthQ16 = _rows.Saved<int>("parcel_north_q16");
+        AxisEastQ16 = _rows.Saved<int>("axis_east_q16");
+        AxisNorthQ16 = _rows.Saved<int>("axis_north_q16");
         ParcelWide = _rows.Saved<Tiles>("parcel_wide");
         ParcelDeep = _rows.Saved<Tiles>("parcel_deep");
-        FootprintEast = _rows.Saved<Tiles>("footprint_east");
-        FootprintNorth = _rows.Saved<Tiles>("footprint_north");
+        FootprintEastQ16 = _rows.Saved<int>("footprint_east_q16");
+        FootprintNorthQ16 = _rows.Saved<int>("footprint_north_q16");
         FootprintWide = _rows.Saved<Tiles>("footprint_wide");
         FootprintDeep = _rows.Saved<Tiles>("footprint_deep");
         Storeys = _rows.Saved<byte>("storeys");
@@ -95,73 +98,45 @@ public sealed class LotTable
     /// <summary>The slot allocator, the generation counters and the column list.</summary>
     public Rows<Lot> Rows => _rows;
 
-    /// <summary>
-    /// <b>The ground this Lot holds</b> — its parcel's south-west corner and extent, in Tiles.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// 🔴 <b>A LOT IS AN ADDRESS AND THIS DOES NOT CHANGE THAT.</b> <c>adr/0078</c> refused a
-    /// <em>depth key</em> and there still is not one. The parcel is <b>saved</b>, written by the
-    /// carve that produced it, beside the <see cref="FrontageSegment"/> the same carve found.
-    /// </para>
-    /// <para>
-    /// <b><c>plans/0052</c> stage 1, which is <c>plans/0053</c>'s step 5.</b> Before this the ground
-    /// under a Building was invented independently in six places — five in the shell and one in the
-    /// core — and two of those inventions landed on the same patch, which is <c>plans/0049</c>
-    /// <b>F21</b>. ***A partition of a block cannot overlap; five sizings can.***
-    /// </para>
-    /// <para>
-    /// ⚠ <b>An unfronted Lot has no parcel</b> and reads zero on all four. <c>adr/0079</c> keeps such
-    /// a Lot and its Building standing with no Address, and ground with no Address on it is ground
-    /// this table cannot name — so a zero here means <em>ask the frontage</em> rather than
-    /// <em>a Building covering nothing</em>.
-    /// </para>
-    /// </remarks>
-    public Column<Tiles> ParcelEast { get; }
+    /// <summary>The saved parcel corner in Q16.16 Tiles. It survives loss of frontage.</summary>
+    public Column<int> ParcelEastQ16 { get; }
 
-    /// <inheritdoc cref="ParcelEast"/>
-    public Column<Tiles> ParcelNorth { get; }
+    /// <inheritdoc cref="ParcelEastQ16"/>
+    public Column<int> ParcelNorthQ16 { get; }
 
-    /// <inheritdoc cref="ParcelEast"/>
+    /// <summary>The saved first unit axis in Q16.16, shared by parcel and footprint.</summary>
+    public Column<int> AxisEastQ16 { get; }
+
+    /// <inheritdoc cref="AxisEastQ16"/>
+    public Column<int> AxisNorthQ16 { get; }
+
+    /// <summary>The parcel's extent along its first axis, in Tiles.</summary>
     public Column<Tiles> ParcelWide { get; }
 
-    /// <inheritdoc cref="ParcelEast"/>
+    /// <summary>The parcel's extent along its second axis, in Tiles.</summary>
     public Column<Tiles> ParcelDeep { get; }
 
-    /// <summary>
-    /// <b>The ground the Building on this Lot actually covers</b> — its parcel inset by four
-    /// setbacks.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// 🔴 <b>THIS IS WHAT MEETS THE MAP LAYERS, AND THE PARCEL IS NOT.</b> <c>CONTEXT.md</c> →
-    /// Building: <i>"a Building has a footprint (the set of Tiles it covers)"</i> and <i>"interacts
-    /// with Map Layers through that footprint"</i>. The parcel is the Lot's <em>holding</em>;
-    /// this is the part with a wall on it. ⚠ <b>Sealing was the parcel and was therefore about
-    /// TWICE the built ground</b>, while the shell drew the smaller figure — so the simulation and
-    /// the picture disagreed about the same quantity, and the picture was the one that was right.
-    /// </para>
-    /// <para>
-    /// <b>Derived on the epoch beside <see cref="ParcelEast"/> and by the same call.</b> The
-    /// setbacks come from <c>[lots] setback_tiles</c> and a draw on the <em>parcel's corner</em>, so
-    /// the footprint is a property of the ground rather than of the row — see
-    /// <c>LotRuleset.Footprint</c>.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>Zero on all four where there is no parcel</b>, the same convention
-    /// <see cref="ParcelEast"/> keeps, and it means the same thing: <em>ask the frontage</em>.
-    /// </para>
-    /// </remarks>
-    public Column<Tiles> FootprintEast { get; }
+    /// <summary>The saved footprint corner in Q16.16 Tiles, inset by the carve's setbacks.</summary>
+    public Column<int> FootprintEastQ16 { get; }
 
-    /// <inheritdoc cref="FootprintEast"/>
-    public Column<Tiles> FootprintNorth { get; }
+    /// <inheritdoc cref="FootprintEastQ16"/>
+    public Column<int> FootprintNorthQ16 { get; }
 
-    /// <inheritdoc cref="FootprintEast"/>
+    /// <summary>The footprint's extent along the parcel's first axis, in Tiles.</summary>
     public Column<Tiles> FootprintWide { get; }
 
-    /// <inheritdoc cref="FootprintEast"/>
+    /// <summary>The footprint's extent along the parcel's second axis, in Tiles.</summary>
     public Column<Tiles> FootprintDeep { get; }
+
+    public OrientedRectangle Parcel(int slot) => new(ParcelEastQ16[slot], ParcelNorthQ16[slot],
+        AxisEastQ16[slot], AxisNorthQ16[slot], ParcelWide[slot].Raw, ParcelDeep[slot].Raw);
+
+    public OrientedRectangle Footprint(int slot) => new(FootprintEastQ16[slot], FootprintNorthQ16[slot],
+        AxisEastQ16[slot], AxisNorthQ16[slot], FootprintWide[slot].Raw, FootprintDeep[slot].Raw);
+
+    public LandRectangle ParcelBounds(int slot) => Parcel(slot).Bounds;
+
+    public LandRectangle FootprintBounds(int slot) => Footprint(slot).Bounds;
 
     /// <summary>
     /// <b>How many floors a Building here stands</b>, derived from the block's pattern.
@@ -214,7 +189,7 @@ public sealed class LotTable
     {
         for (int slot = 0; slot < _rows.SlotCount; slot++)
         {
-            PodiumStoreys[slot] = _rows.IsLive(slot) ? rules.PodiumOn(key, ParcelEast[slot], ParcelNorth[slot]) : (byte)0;
+            PodiumStoreys[slot] = _rows.IsLive(slot) ? rules.PodiumOn(key, new Tiles(ParcelBounds(slot).X), new Tiles(ParcelBounds(slot).Y)) : (byte)0;
         }
     }
 
@@ -445,6 +420,7 @@ public sealed class LotTable
     /// takes none — so the honest thing is to seal what was asked for, and a caller wanting a
     /// setback is a caller who should be going through the subdivider.
     /// </para>
+    /// <para>Corner coordinates must fit Q16.16, from -32,768 through 32,767 whole Tiles.</para>
     /// </remarks>
     public Handle<Lot> Create(
         Tiles east,
@@ -466,13 +442,15 @@ public sealed class LotTable
         Tiles across = wide.Raw > 0 ? wide : new Tiles(1);
         Tiles along = deep.Raw > 0 ? deep : new Tiles(1);
 
-        ParcelEast[slot] = east;
-        ParcelNorth[slot] = north;
+        ParcelEastQ16[slot] = Fixed.FromInt(east.Raw);
+        ParcelNorthQ16[slot] = Fixed.FromInt(north.Raw);
+        AxisEastQ16[slot] = Fixed.One;
+        AxisNorthQ16[slot] = 0;
         ParcelWide[slot] = across;
         ParcelDeep[slot] = along;
 
-        FootprintEast[slot] = east;
-        FootprintNorth[slot] = north;
+        FootprintEastQ16[slot] = Fixed.FromInt(east.Raw);
+        FootprintNorthQ16[slot] = Fixed.FromInt(north.Raw);
         FootprintWide[slot] = across;
         FootprintDeep[slot] = along;
 

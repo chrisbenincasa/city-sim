@@ -113,8 +113,8 @@ public partial class Main
             ulong id = rows.IdAt(slot);
             ulong draw = Randomness.Draw(_world.Key, id, Ticks.Zero, PurposeTag.AppearanceFamily);
 
-            yield return new(id, lots.FootprintEast[lot].Raw, lots.FootprintNorth[lot].Raw,
-                lots.FootprintWide[lot].Raw, lots.FootprintDeep[lot].Raw, face, (PadFamily)(int)(draw % 3));
+            yield return new(id, lots.FootprintBounds(lot).X, lots.FootprintBounds(lot).Y,
+                lots.FootprintBounds(lot).Width, lots.FootprintBounds(lot).Height, face, (PadFamily)(int)(draw % 3));
         }
     }
 

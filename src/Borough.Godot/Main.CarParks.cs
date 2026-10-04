@@ -66,8 +66,8 @@ public partial class Main
         LotTable lots = _world.Lots;
 
         return CarParkCentre.CarPark(
-            lots.ParcelNorth[lot].Raw, lots.FootprintEast[lot].Raw, lots.FootprintNorth[lot].Raw,
-            lots.FootprintWide[lot].Raw, _world.Rules.Lots.StreetHalfWidthTiles);
+            lots.ParcelBounds(lot).Y, lots.FootprintBounds(lot).X, lots.FootprintBounds(lot).Y,
+            lots.FootprintBounds(lot).Width, _world.Rules.Lots.StreetHalfWidthTiles);
     }
 
     private IEnumerable<(ulong Id, Transform3D Where)> CarParkSurfaces()
@@ -141,8 +141,8 @@ public partial class Main
             }
 
             int lot = lots.Rows.Resolve(_world.Buildings.Lot[slot]);
-            int footEast = lots.FootprintEast[lot].Raw;
-            int footNorth = lots.FootprintNorth[lot].Raw;
+            int footEast = lots.FootprintBounds(lot).X;
+            int footNorth = lots.FootprintBounds(lot).Y;
             float top = System.Math.Max(1, (int)lots.Storeys[lot]) * StoreyMetres;
 
             _walked.Clear();
