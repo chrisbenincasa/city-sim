@@ -44,6 +44,21 @@ public sealed class LineSourceQueryTests
         Assert.Equal(0, LineSourceQueries.Noise(graph, source, new Tiles(37), new Tiles(8)));
     }
 
+    [Fact]
+    public void Distance_is_measured_to_a_curved_centerline_and_not_its_chord()
+    {
+        RoadGraph graph = RoadFixtures.Chain(nodes: 2);
+        graph.Segments.VolumeForward[0] = 10;
+        var source = new LineSource(new Tiles(5), Fixed.One);
+
+        Assert.Equal(0, LineSourceQueries.Noise(graph, source, new Tiles(16), new Tiles(8)));
+
+        graph.Segments.Sagitta[0] = SubTiles.FromTiles(new Tiles(4));
+        graph.RebuildDerived();
+
+        Assert.True(LineSourceQueries.Noise(graph, source, new Tiles(16), new Tiles(8)) > 0);
+    }
+
     private static readonly LineSource Noise = new(new Tiles(75), Fixed.One);
 
     /// <summary>
