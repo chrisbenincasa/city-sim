@@ -992,6 +992,14 @@ public static class RulesetKeyNotes
         ["[lots] setback_tiles"] =
             "Maximum independent random inset in Tiles for block-based footprints and explicit Perimeter parcels. Explicit Detached houses use centred house dimensions instead. Reserved Street ground is always excluded.",
 
+        ["[lots] demolition_price_per_tile"] =
+            "What the treasury pays to demolish an occupied Building, per Tile of Lot footprint on "
+            + "ground of zero land value. The price is multiplied by one plus the land value at the "
+            + "Lot, so polluted or noisy ground is cheaper to clear and shoreline dearer, and land "
+            + "value of minus one or below clears free. The price is shared equally among the evicted "
+            + "Households and displaced Businesses. A Building nobody occupies demolishes free. "
+            + "Absent or zero means occupied demolition is free. Requires a money Resource.",
+
         ["[lots] storeys_per_rung"] =
             "Step between density rungs. Block-based forms use it in their plot-ratio target; explicit Perimeter parcels add it per rung to house_storeys. Detached houses keep house_storeys.",
 

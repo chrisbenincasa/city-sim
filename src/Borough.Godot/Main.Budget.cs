@@ -326,10 +326,11 @@ public partial class Main
     [
         "withheld · in", "profit tax · in", "policy · in", "rule · in",
         "policy · out", "rule · out", "subsidy · out", "placement · out", "upkeep · out",
+        "compensation · out",
     ];
 
     /// <summary>
-    /// Writes the levels, the nine flows and the sentence that makes the balance checkable.
+    /// Writes the levels, the ten flows and the sentence that makes the balance checkable.
     /// </summary>
     /// <remarks>
     /// 🔴 <b>The residual is the point of the whole panel.</b> <c>plans/0072</c> F11 found 89% of
@@ -362,6 +363,7 @@ public partial class Main
         Line(6, today.Subsidy, day.Subsidy, running.Subsidy);
         Line(7, today.Placement, day.Placement, running.Placement);
         Line(8, today.Upkeep, day.Upkeep, running.Upkeep);
+        Line(9, today.Compensation, day.Compensation, running.Compensation);
 
         long residual = budget.Residual(held);
         long explained = budget.Opening + running.Income - running.Expenditure;

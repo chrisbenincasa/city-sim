@@ -62,7 +62,7 @@ writes.
 
 | Argument | Default | Notes |
 |---|---|---|
-| `--ruleset PATH` | `rulesets/minimal.toml` | Refused rather than defaulted if bad |
+| `--ruleset PATH` | `rulesets/base/ruleset.toml` | Refused rather than defaulted if bad |
 | `--citizens N` | `1000` | ⚠ **`Borough.Headless` defaults to 10,000.** A cross-check against the runner must pass the same figure — a lattice paves what its population needs (**F14**) |
 | `--start-at TICK` | `0` | **Steps every Tick and skips nothing.** Slow and correct: a world jumped to is a different world |
 | `--drive PATH` | — | The script. Does **not** imply an end (**D3**) |

@@ -957,6 +957,10 @@
     "lots": {
       "type": "object",
       "properties": {
+        "demolition_price_per_tile": {
+          "description": "What the treasury pays to demolish an occupied Building, per Tile of Lot footprint on ground of zero land value. The price is multiplied by one plus the land value at the Lot, so polluted or noisy ground is cheaper to clear and shoreline dearer, and land value of minus one or below clears free. The price is shared equally among the evicted Households and displaced Businesses. A Building nobody occupies demolishes free. Absent or zero means occupied demolition is free. Requires a money Resource.",
+          "type": "integer"
+        },
         "house_depth_tiles": {
           "description": "Detached house depth in Tiles, centred inside its parcel. Fixed at world creation.",
           "type": "integer"

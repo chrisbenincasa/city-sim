@@ -3055,6 +3055,12 @@ public readonly record struct LotRuleset(
     int MinTowerPodiumStoreys = Space.BuildingPlan.TowerPodiumStoreys,
     int MaxTowerPodiumStoreys = Space.BuildingPlan.TowerPodiumStoreys)
 {
+    /// <summary>
+    /// What clearing an occupied Building costs per Tile of Lot footprint on ground of zero land
+    /// value — <c>demolition_price_per_tile</c>. Zero means occupied demolition is free.
+    /// </summary>
+    public Money DemolitionPricePerTile { get; init; }
+
     /// <summary>Whether trade blocks take trade forms at all.</summary>
     public bool TradeForms => CarParkCentres || TradeFormsByBand;
 

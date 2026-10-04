@@ -16,10 +16,9 @@ namespace Borough.Tests.Input;
 /// <remarks>
 /// <para>
 /// <b>Every case below asserts the same two things about one command</b> — that
-/// <see cref="Simulation.Refuses"/> names the reason, and that <see cref="Simulation.Step"/> throws
-/// on it. ***A front end that asks the first and is told the truth may decline to send***, which is
-/// the whole of what 15e buys: an exception out of Phase 0 aborts a Tick half way and leaves a world
-/// no invariant covers, so a click that would throw must never be queued.
+/// <see cref="Simulation.Refuses"/> names the reason, and that <see cref="Simulation.Step"/> skips
+/// it. A front end that asks the first may decline to send. Phase 0 asks again, because an earlier
+/// command in the same Tick can change the answer, and a refused command changes nothing.
 /// </para>
 /// <para>
 /// 🔴 <b>The theory is driven by <see cref="Refusal"/> itself, so a member with no case here goes
@@ -67,10 +66,56 @@ public sealed class RefusalTests
 
         Assert.Equal(expected, simulation.Refuses(command));
 
-        // The other half, and the half that makes the first one worth anything: a query returning a
-        // reason for a command that would have applied is not a guard, it is a shell refusing clicks
-        // the city would have accepted.
-        Assert.Throws<InvalidOperationException>(() => simulation.Step(new TickInput([command], 0)));
+        if (expected == Refusal.VerbNotApplied)
+        {
+            Assert.Throws<InvalidOperationException>(() => simulation.Step(new TickInput([command], 0)));
+            return;
+        }
+
+        (Simulation control, Command _) = Case(expected);
+
+        simulation.Step(new TickInput([command], 0));
+        control.Step(new TickInput([], 0));
+
+        Assert.Equal(1, simulation.CommandsRefused);
+        Assert.Equal(control.World.HashState(), simulation.World.HashState());
+    }
+
+    /// <summary>
+    /// Two commands queued in one Tick: the first makes the second invalid, and phase 0 refuses it.
+    /// </summary>
+    [Fact]
+    public void A_command_an_earlier_one_invalidates_is_refused_and_replays()
+    {
+        (World world, Simulation simulation) = City(Schooled);
+        int lot = FirstVacantLot(world);
+        Command service = Command.Service(world.Lots.East[lot], world.Lots.North[lot], School);
+        var input = new TickInput([service, service], 0);
+
+        Assert.Equal(Refusal.None, simulation.Refuses(service));
+
+        int before = world.Buildings.Rows.LiveCount;
+
+        simulation.Step(input);
+
+        Assert.Equal(before + 1, world.Buildings.Rows.LiveCount);
+        Assert.Equal(1, simulation.CommandsRefused);
+        Assert.NotEqual(Refusal.None, simulation.LastRefused.Refusal);
+        Assert.Equal(simulation.Refuses(service), simulation.LastRefused.Refusal);
+        Assert.Equal(service.Kind, simulation.LastRefused.Command.Kind);
+
+        InputLog written = new InputLogBuilder(Seed, new WorldConfiguration(Citizens), rulesetHash: 0)
+            .Append(Ticks.Zero, service)
+            .Append(Ticks.Zero, service)
+            .Build();
+        InputLog log = InputLogCodec.FromText(InputLogCodec.ToText(written));
+
+        (World replayed, Simulation replay) = City(Schooled);
+
+        replay.Step(new TickInput(log.At(Ticks.Zero), log.RulesetHashAt(Ticks.Zero)));
+
+        Assert.Equal(1, replay.CommandsRefused);
+        Assert.Equal(world.HashState(), replayed.HashState());
     }
 
     /// <summary>A command the city accepts is refused by nothing, and applies.</summary>
@@ -190,6 +235,14 @@ public sealed class RefusalTests
                     // price at all is more than the city holds. ⚠ This is the one refusal that
                     // turns on a LEVEL, so the world has to have a number in it rather than a shape.
                     (World world, Simulation simulation) = City(Schooled + Priced);
+
+                    return (simulation, Case(refusal, simulation, world));
+                }
+
+            case Refusal.DemolishTreasuryCannotPay:
+                {
+                    // The treasury opens empty, so any positive price refuses.
+                    (World world, Simulation simulation) = City(DemolitionPriced);
 
                     return (simulation, Case(refusal, simulation, world));
                 }
@@ -364,7 +417,7 @@ public sealed class RefusalTests
         Refusal.DemolishNoBuildingOnThatTile => new Command(
             CommandKind.Demolish, new Tiles(9_000), new Tiles(9_000)),
 
-        Refusal.DemolishBuildingIsOccupied => Standing(world),
+        Refusal.DemolishTreasuryCannotPay => Standing(world),
 
         Refusal.ServiceKindNotDeclared => Command.Service(
             world.Lots.East[FirstVacantLot(world)],
@@ -530,7 +583,7 @@ public sealed class RefusalTests
 
             int building = world.Lots.BuildingOn(slot);
 
-            if (building >= 0 && !world.Buildings.IsAbandoned(building))
+            if (building >= 0 && !world.Buildings.IsAbandoned(building) && !world.Occupants.IsEmpty(building))
             {
                 return new Command(
                     CommandKind.Demolish, world.Lots.East[slot], world.Lots.North[slot]);
@@ -829,6 +882,10 @@ public sealed class RefusalTests
 
     /// <summary>Roads, Trips and a service kind — the world most cases are refused in.</summary>
     private const string Schooled = Base + Streets + Travelled;
+
+    /// <summary>The default city, with a price on clearing occupied ground.</summary>
+    private static readonly string DemolitionPriced = Schooled.Replace(
+        "setback_tiles = 2\n", "setback_tiles = 2\ndemolition_price_per_tile = 1000\n", StringComparison.Ordinal);
 
     /// <summary>A city that travels and has no lattice to travel on.</summary>
     private const string Pathless = Base + Travelled;

@@ -2205,6 +2205,129 @@ public sealed partial class World
     }
 
     /// <summary>
+    /// What demolishing a Building costs the treasury (<c>adr/0091</c>): the Lot's footprint in Tiles,
+    /// times <c>[lots] demolition_price_per_tile</c>, times one plus the land value at the Lot.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Land value adjusts a base price rather than being the price. Amenity, the positive
+    /// desirability term, is not built, so most ground sits at or just below zero. A price read off land
+    /// value alone would clear nearly every Building free. Land value of minus one or below prices at
+    /// zero.
+    /// </para>
+    /// <para>
+    /// Zero when nobody would be displaced, because the price is paid to the displaced and a payment
+    /// to nobody would leave the conserved money supply.
+    /// </para>
+    /// </remarks>
+    public Money DemolitionPrice(int buildingSlot)
+    {
+        long rate = Rules.Lots.DemolitionPricePerTile.Raw;
+
+        if (rate == 0
+            || Displaced(buildingSlot) == 0
+            || !Lots.Rows.TryResolve(Buildings.Lot[buildingSlot], out int lot))
+        {
+            return Money.Zero;
+        }
+
+        long factor = (long)Fixed.One
+            + Layers.LandValue(CellGrid.ToCells(Lots.East[lot]), CellGrid.ToCells(Lots.North[lot]));
+
+        if (factor <= 0)
+        {
+            return Money.Zero;
+        }
+
+        long tiles = (long)Lots.FootprintWide[lot].Raw * Lots.FootprintDeep[lot].Raw;
+
+        return new Money(IntegerMath.MulDivFloor(factor * tiles, rate, Fixed.One));
+    }
+
+    /// <summary>
+    /// Pays a demolition's price from the treasury to the Building's Households and Businesses in
+    /// equal shares, before they are evicted.
+    /// </summary>
+    /// <remarks>
+    /// A transfer, so the money supply does not move. The indivisible remainder goes one unit each
+    /// to the first payees in list order, Households before Businesses.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    /// The price is positive and the treasury cannot pay it in full, or nobody is there to receive it.
+    /// </exception>
+    public void PayDisplaced(int buildingSlot, Money price, Ticks tick)
+    {
+        if (price.Raw == 0)
+        {
+            return;
+        }
+
+        int treasury = TryMoneyResource(out ResourceId money) ? FindTreasuryBin(money) : Rows.NoSlot;
+        int payees = Displaced(buildingSlot);
+
+        if (treasury == Rows.NoSlot || payees == 0 || Bins.LevelAt(treasury) < price.Raw)
+        {
+            throw new InvalidOperationException(
+                $"a demolition priced at {price.Raw} cannot be paid to {payees} displaced occupants "
+                + "from the treasury. Simulation.RefuseDemolish answers this before the command "
+                + "applies, so reaching here is a caller that did not ask.");
+        }
+
+        long share = IntegerMath.FloorDiv(price.Raw, payees);
+        long remainder = price.Raw - (share * payees);
+        Handle<Bin> from = Bins.Rows.At(treasury);
+
+        foreach (int household in Occupants.Walk(buildingSlot))
+        {
+            if (Bins.Rows.TryResolve(Households.Balance[household], out int to))
+            {
+                Transfer(from, Bins.Rows.At(to), share + (remainder-- > 0 ? 1 : 0), tick);
+            }
+        }
+
+        foreach (int business in BuildingBusinesses.Walk(buildingSlot))
+        {
+            if (Bins.Rows.TryResolve(Businesses.Balance[business], out int to))
+            {
+                Transfer(from, Bins.Rows.At(to), share + (remainder-- > 0 ? 1 : 0), tick);
+            }
+        }
+    }
+
+    private void Transfer(Handle<Bin> from, Handle<Bin> to, long amount, Ticks tick)
+    {
+        if (amount > 0)
+        {
+            Withdraw(from, amount, tick);
+            Deposit(to, amount, tick);
+        }
+    }
+
+    /// <summary>The Households and Businesses with a balance that demolishing a Building displaces.</summary>
+    private int Displaced(int buildingSlot)
+    {
+        int count = 0;
+
+        foreach (int household in Occupants.Walk(buildingSlot))
+        {
+            if (Bins.Rows.TryResolve(Households.Balance[household], out _))
+            {
+                count++;
+            }
+        }
+
+        foreach (int business in BuildingBusinesses.Walk(buildingSlot))
+        {
+            if (Bins.Rows.TryResolve(Businesses.Balance[business], out _))
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    /// <summary>
     /// What the Outside charges for one unit of <paramref name="resource"/> at the cheapest edge
     /// that has a gate standing on it.
     /// </summary>

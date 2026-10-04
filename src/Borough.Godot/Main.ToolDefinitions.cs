@@ -26,7 +26,7 @@ public partial class Main
             [new("Erase zoning", 0)], i => Apply(Held("erase", i))),
         new("street", "Street", "Connections", Key.X, "Lay one Street; Shift-click removes it", true, 0,
             [new("Street", 0)], i => Apply(Held("street", i))),
-        new("demolish", "Demolish", "Demolish", Key.B, "Clear an abandoned Building", true, 0,
+        new("demolish", "Demolish", "Demolish", Key.B, "Clear a Building; occupants are paid its land value", true, 0,
             [new("Demolish", 0)], i => Apply(Held("demolish", i))),
         new("service", "Service / next kind", "Municipal", Key.S, "Place a service on a vacant Lot", NextService(0) != 0,
             NextService(_verb == Verb.Service ? _serviceKind : (byte)0),

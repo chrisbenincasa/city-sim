@@ -7,12 +7,9 @@ namespace Borough.Core.Input;
 /// <remarks>
 /// <para>
 /// <b>Every member here is a refusal <see cref="Simulation"/> already made, and none is a new
-/// rule.</b> The rules were reachable in one way only: as the message of an
-/// <c>InvalidOperationException</c> thrown out of Phase 0. That is the right artefact for a log — a
-/// replay that diverges from the session it describes must say so and stop — and it is the wrong one
-/// for a person, because an exception out of <c>Apply</c> aborts <c>Step</c> half way and leaves a
-/// world no invariant covers. ***A crash is not the worst outcome of an unguarded click; a
-/// half-stepped world is.***
+/// rule.</b> A front end asks <see cref="Simulation.Refuses"/> before it queues a command, and
+/// Phase 0 asks again before it applies one. A command refused in Phase 0 is skipped and counted in
+/// <see cref="Simulation.CommandsRefused"/>, so a replay refuses it identically.
 /// </para>
 /// <para>
 /// 🔴 <b>So the shell guarded three of them by restating the rule in its own words</b>, which is
@@ -96,10 +93,10 @@ public enum Refusal : ushort
     DemolishNoBuildingOnThatTile = 13,
 
     /// <summary>
-    /// <c>Demolish</c> names a Building somebody is still in. Clearing occupied ground is
-    /// <c>adr/0091</c>'s compulsory purchase, whose price that ADR refuses to compose.
+    /// <c>Demolish</c> names an occupied Building whose price the treasury cannot pay in full
+    /// (<c>adr/0091</c>).
     /// </summary>
-    DemolishBuildingIsOccupied = 14,
+    DemolishTreasuryCannotPay = 14,
 
     /// <summary><c>Service</c> names a Building kind this Ruleset does not declare.</summary>
     ServiceKindNotDeclared = 15,

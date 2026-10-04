@@ -75,10 +75,11 @@ public sealed class ServiceTests
     {
         (World world, Simulation simulation) = City(Schooled);
 
-        InvalidOperationException refused = Assert.Throws<InvalidOperationException>(
-            () => Place(simulation, world, FirstVacantLot(world), kind: Dwelling));
+        int lot = FirstVacantLot(world);
 
-        Assert.Contains("placement exception", refused.Message, StringComparison.Ordinal);
+        Assert.Equal(
+            Refusal.ServiceKindServesNothing,
+            simulation.Refuses(Command.Service(world.Lots.East[lot], world.Lots.North[lot], Dwelling)));
     }
 
     /// <summary>And a kind this Ruleset never declared.</summary>
@@ -87,10 +88,11 @@ public sealed class ServiceTests
     {
         (World world, Simulation simulation) = City(Schooled);
 
-        InvalidOperationException refused = Assert.Throws<InvalidOperationException>(
-            () => Place(simulation, world, FirstVacantLot(world), kind: 200));
+        int lot = FirstVacantLot(world);
 
-        Assert.Contains("does not declare", refused.Message, StringComparison.Ordinal);
+        Assert.Equal(
+            Refusal.ServiceKindNotDeclared,
+            simulation.Refuses(Command.Service(world.Lots.East[lot], world.Lots.North[lot], 200)));
     }
 
     /// <summary>
@@ -108,10 +110,7 @@ public sealed class ServiceTests
 
         Command command = Command.Service(new Tiles(9_000), new Tiles(9_000), School);
 
-        InvalidOperationException refused = Assert.Throws<InvalidOperationException>(
-            () => simulation.Step(new TickInput([command], 0)));
-
-        Assert.Contains("no vacant Lot", refused.Message, StringComparison.Ordinal);
+        Assert.Equal(Refusal.ServiceNoVacantLotOnThatTile, simulation.Refuses(command));
     }
 
     /// <summary>The payload fits the four fields, which is <c>adr/0118</c>'s own test.</summary>
@@ -208,10 +207,9 @@ public sealed class ServiceTests
 
         int before = world.Buildings.Rows.LiveCount;
 
-        InvalidOperationException refused = Assert.Throws<InvalidOperationException>(
-            () => simulation.Step(new TickInput([command], 0)));
+        simulation.Step(new TickInput([command], 0));
 
-        Assert.Contains("paid in full or not at all", refused.Message, StringComparison.Ordinal);
+        Assert.Equal(1, simulation.CommandsRefused);
         Assert.Equal(before, world.Buildings.Rows.LiveCount);
         Assert.True(world.Lots.IsVacant(lot));
     }

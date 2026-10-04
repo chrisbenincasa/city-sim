@@ -339,8 +339,6 @@ public sealed class SimulationTests
     /// </summary>
     [Theory]
     [InlineData(CommandKind.None)]
-    [InlineData(CommandKind.Service)]
-    [InlineData(CommandKind.Govern)]
     public void An_unapplied_verb_throws_rather_than_being_skipped(CommandKind kind)
     {
         Simulation simulation = Build();

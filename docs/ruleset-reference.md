@@ -27,7 +27,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-53 sections, 373 keys.
+53 sections, 374 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
@@ -68,7 +68,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[jobs]`](#jobs) — 14 keys
 - [`[land_permissions]`](#land_permissions) — 1 key
 - [`[layers]`](#layers) — 20 keys
-- [`[lots]`](#lots) — 14 keys
+- [`[lots]`](#lots) — 15 keys
 - [`[lots] trade_form_weights`](#lots-trade_form_weights) — 7 keys
 - [`[market]`](#market) — 2 keys
 - [`[needs]`](#needs) — 9 keys
@@ -1414,6 +1414,10 @@ How many Ticks between recomputations of the woodland field.
 ---
 
 ## `[lots]`
+
+**`demolition_price_per_tile`** · *whole number*
+
+What the treasury pays to demolish an occupied Building, per Tile of Lot footprint on ground of zero land value. The price is multiplied by one plus the land value at the Lot, so polluted or noisy ground is cheaper to clear and shoreline dearer, and land value of minus one or below clears free. The price is shared equally among the evicted Households and displaced Businesses. A Building nobody occupies demolishes free. Absent or zero means occupied demolition is free. Requires a money Resource.
 
 **`house_depth_tiles`** · *whole number*
 

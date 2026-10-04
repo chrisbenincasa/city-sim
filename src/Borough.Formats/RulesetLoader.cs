@@ -8011,9 +8011,38 @@ public static class RulesetLoader
                 }
             }
 
+            if (!TryInteger(_lotsTable, "demolition_price_per_tile", out long demolition, required: false))
+            {
+                demolition = 0;
+            }
+
+            if (demolition < 0 || demolition > int.MaxValue)
+            {
+                Refuse(LineOfLot("demolition_price_per_tile"), null,
+                    $"demolition_price_per_tile = {demolition} is out of range. It is what "
+                    + "the treasury pays the displaced per Tile of Lot footprint on neutral ground, "
+                    + $"so it is at least 0 and at most {int.MaxValue}. Absent or zero means "
+                    + "clearing an occupied Building costs nothing.");
+
+                return LotRuleset.None;
+            }
+
+            if (demolition > 0 && !_families.Contains(ResourceFamily.Money))
+            {
+                Refuse(LineOfLot("demolition_price_per_tile"), null,
+                    "demolition_price_per_tile is stated and the file names no money, so "
+                    + "the treasury has no Bin to pay the displaced from. Add a [[resource]] block "
+                    + "with family = \"money\", or drop the key.");
+
+                return LotRuleset.None;
+            }
+
             return new LotRuleset(
                 (int)value, (int)setback, (int)step, (int)spread, (int)streetHalfWidth, dimensions, centres, byBand,
-                weights, (int)minPodium, (int)maxPodium);
+                weights, (int)minPodium, (int)maxPodium)
+            {
+                DemolitionPricePerTile = new Money(demolition),
+            };
         }
 
         private int Weight(InlineTableSyntax inline, string form) =>
