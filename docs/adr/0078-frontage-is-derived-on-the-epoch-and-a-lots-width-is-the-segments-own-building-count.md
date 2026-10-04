@@ -1,5 +1,7 @@
 # Frontage is derived on the Epoch and a Lot's width is the Segment's own Building count
 
+> **Frontage half superseded by [`0174`](0174-lots-are-cut-along-segments-and-save-their-frontage.md).** A Lot saves its frontage Segment, offset and side. The `lots_per_segment` sizing below stands.
+
 **A Lot's frontage and its Access Point are `(derived AND rebuilt)` from the Road Graph, rebuilt on the Epoch, and never saved** — a Lot no more stores its frontage than an Arc stores its cost, because both are functions of the Segments. **The subdivider takes exactly one hash-bearing number, `lots_per_segment`, and that number is already in the corpus**: `CONTEXT.md` → Address's *"five Buildings share a Segment at the working figures"*, which the whole ~30,000-Segment argument rests on. **Lot depth does not exist**, because a Lot has no extent in the schema and inventing one to park a number in would be modelling for a consumer that does not exist.
 
 Guiding concepts: `EMERGENCE`, `LEGIBLE CAUSE`, `SOLVE THE ACTUAL PROBLEM`, `FAST ITERATION`.

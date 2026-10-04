@@ -2,6 +2,7 @@ using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
+using Borough.Core.Space;
 using Borough.Core.Tables;
 
 namespace Borough.Tests.Rules;
@@ -19,9 +20,13 @@ public sealed class ZoneSampleTests
 {
     private static readonly WorldKey Key = WorldKey.FromSeed(0xB0A0_1234_5678_9AB0UL);
 
+    /// <summary>A Lot table with nowhere to front. The sample reads neither frontage nor Streets.</summary>
+    private static LotTable Table(int capacity) =>
+        new(capacity, new RoadSegmentTable(1, new RoadNodeTable(1)));
+
     private static LotTable Lots(int count)
     {
-        var lots = new LotTable(count);
+        var lots = Table(count);
 
         for (int i = 0; i < count; i++)
         {
@@ -185,7 +190,7 @@ public sealed class ZoneSampleTests
     [Fact]
     public void An_empty_world_samples_nothing()
     {
-        Assert.Empty(Sample(new LotTable(16), 8, tick: 8));
+        Assert.Empty(Sample(Table(16), 8, tick: 8));
     }
 
     /// <summary>

@@ -114,9 +114,8 @@ public static class LocalLayout
             int row = world.Lots.Rows.Resolve(source.Handle);
             if (!world.Lots.IsVacant(row)) { return new(LocalLayoutRefusal.Occupied); }
             if (!source.Parcel.IsValid || source.Side > (byte)StreetSide.Right) { return new(LocalLayoutRefusal.InvalidGeometry); }
-            int at = Frontage.Locate(world.Roads.Streets, new Tiles(source.East), new Tiles(source.North), out _);
-            if (at == Rows.NoSlot || !world.Roads.Segments.Rows.IsLive(at)
-                || (RoadKind)world.Roads.Segments.Kind[at] != RoadKind.Street)
+            int at = world.Lots.FrontageOn(row);
+            if (at == Rows.NoSlot || (RoadKind)world.Roads.Segments.Kind[at] != RoadKind.Street)
             {
                 return new(LocalLayoutRefusal.NoFrontage);
             }

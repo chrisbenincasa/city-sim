@@ -583,6 +583,9 @@ public sealed class DistrictReevaluationTests
             world.CreateBuilding(lot, kind: 0, Ticks.Zero, Key);
         }
 
+        // Saved frontage: a Lot made by hand fronts nothing until the Street under it is attached.
+        world.RebuildParcels();
+
         if (rebuild)
         {
             world.RebuildDerived();

@@ -40,7 +40,7 @@ public static class UrbanNeighbourhood
             world.Endow(household, new Money(100));
         }
         var gateLot = world.Lots.Create(new Tiles(0), new Tiles(32), 0, StreetSide.Right);
-        world.Frontage.Rebuild(world.Lots, world.Roads.Streets);
+        world.RebuildParcels();
         var gate = world.CreateBuilding(gateLot, 3, world.Tick, key);
         for (int i = 0; i < 2; i++)
             if (!world.TryArrive(gate, 0, 2, world.Tick, out _))

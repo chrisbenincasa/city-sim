@@ -67,9 +67,10 @@ public readonly struct SaveHeader : IEquatable<SaveHeader>
     /// new table exists is short by a table and needs a migration; the hash it was written at was never
     /// wrong.
     /// </remarks>
-    // Version 13 replaces a Business's short-payday count with its Days in arrears. Older
-    // declaration sets are refused before their body is read.
-    public const int Current = 13;
+    // Version 14 saves a Lot's frontage: a severable handle to the Segment it fronts and the offset
+    // along it, where both were derived (adr/0174). Older declaration sets are refused before their
+    // body is read.
+    public const int Current = 14;
 
     private const ulong ByteOrderSentinel = 0x0102_0304_0506_0708UL;
 

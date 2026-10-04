@@ -263,7 +263,14 @@ public sealed class DerivedRebuildAuditTests
         // Units of each Building and the Business holding each, rebuilt from unit.building and
         // business.unit.
         // 56 -> 57: lot.podium_storeys, drawn for every live Lot, so any world with Lots exercises it.
-        Assert.Equal(57, all.Length);
+        //
+        // 57 -> 55: lot.frontage_slot and lot.frontage_offset went to SAVED as a severable Segment
+        // handle and an offset (adr/0174). Freeform Streets have no lattice line to run the old
+        // derivation backwards from, and a nearest-Segment search is ambiguous at corners and on
+        // curves -- so the Lot holds the contact and every Street edit migrates the Lots it touches.
+        // ⚠ What stays derived is the per-Segment claim mask, which lives outside any table and is
+        // therefore outside this audit, exactly as CarParkResidency is.
+        Assert.Equal(55, all.Length);
         Assert.Single(ScratchColumns(Stepped(0)));
     }
 
