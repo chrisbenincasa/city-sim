@@ -38,6 +38,7 @@ public sealed class RoadGraph
     private readonly RoadArcs _arcs = new();
     private readonly RoadConnectivity _connectivity = new();
     private readonly StreetGrid _streets = new();
+    private readonly SegmentResidency _residency = new();
     private readonly RoutingPartition _partition = new(RoutingPartition.DesignEdge);
 
     private RoadRuleset _ruleset;
@@ -130,6 +131,9 @@ public sealed class RoadGraph
     /// one entry point into the graph (<c>adr/0078</c>).
     /// </summary>
     public StreetGrid Streets => _streets;
+
+    /// <summary>Road Segments in each Cell, independent of the block lattice.</summary>
+    public SegmentResidency Residency => _residency;
 
     /// <summary>The <c>[roads]</c> table this graph's derived columns currently reflect.</summary>
     public RoadRuleset Ruleset => _ruleset;
@@ -349,6 +353,7 @@ public sealed class RoadGraph
         RebuildAdjacency();
         _connectivity.Rebuild(_nodes, _segments);
         _streets.Rebuild(_nodes, _segments, _lattice);
+        _residency.Rebuild(_segments);
 
         // Last, and it must run after RebuildAdjacency because it reads the Arcs.
         //

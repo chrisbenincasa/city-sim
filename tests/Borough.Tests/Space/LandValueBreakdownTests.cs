@@ -22,8 +22,9 @@ public sealed class LandValueBreakdownTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [InlineData("bordered.toml", 4_000)]
-    public void Where_the_time_goes(string file, int citizens)
+    [InlineData("bordered.toml", 4_000, 0)]
+    [InlineData("bordered.toml", 4_000, 5)]
+    public void Where_the_time_goes(string file, int citizens, int vehicles)
     {
         WorldKey key = WorldKey.FromSeed(0x5EA1U);
         World world = new(citizens, Load(file), key);
@@ -34,23 +35,37 @@ public sealed class LandValueBreakdownTests(ITestOutputHelper output)
         LayerCellTable cells = layers.Cells;
         DesirabilityWeights weights = world.Rules.Layers.Desirability;
 
+        // This field-only fixture puts Vehicles on evenly spaced Streets without stepping Trips.
+        int remaining = vehicles;
+        int stride = vehicles > 0 ? graph.Segments.Rows.LiveCount / vehicles : 1;
+        for (int slot = 0; slot < graph.Segments.Rows.SlotCount && remaining > 0; slot += stride)
+        {
+            if (graph.Segments.Rows.IsLive(slot)
+                && (RoadKind)graph.Segments.Kind[slot] == RoadKind.Street)
+            {
+                graph.Segments.VolumeForward[slot] = 1;
+                remaining--;
+            }
+        }
+        Assert.Equal(0, remaining);
+
         output.WriteLine($"PROBE {file}: {cells.Rows.LiveCount} Cell rows, "
-            + $"{graph.Segments.Rows.LiveCount} Segments");
+            + $"{graph.Segments.Rows.LiveCount} Segments; fixture Vehicles {vehicles}; field threads 1");
 
         TrafficPresence presence = new();
         var watch = Stopwatch.StartNew();
         presence.Rebuild(graph, weights.NoiseSource.Range);
         watch.Stop();
+        Assert.Equal(vehicles, presence.MovingSegments);
         output.WriteLine($"PROBE TrafficPresence.Rebuild        {watch.ElapsedMilliseconds,7} ms "
-            + $"(moving segments {presence.MovingSegments}, any {presence.AnyTraffic}, "
-            + $"covers {presence.Covers(weights.NoiseSource.Range)})");
+            + $"(moving segments {presence.MovingSegments}, any {presence.AnyTraffic})");
 
         watch = Stopwatch.StartNew();
         layers.SetLandValueTargets(graph);
         watch.Stop();
-        output.WriteLine($"PROBE SetLandValueTargets (WITH map) {watch.ElapsedMilliseconds,7} ms");
+        output.WriteLine($"PROBE SetLandValueTargets (WITH summary) {watch.ElapsedMilliseconds,7} ms");
 
-        // The same walk, but calling the query with no presence map: today's behaviour.
+        // Compare the same field walk without the pass-wide traffic summary.
         watch = Stopwatch.StartNew();
         long sink = 0;
         for (int slot = 0; slot < cells.Rows.SlotCount; slot++)
@@ -59,7 +74,7 @@ public sealed class LandValueBreakdownTests(ITestOutputHelper output)
             sink += layers.CellDesirability(graph, weights, cells.East[slot], cells.North[slot]);
         }
         watch.Stop();
-        output.WriteLine($"PROBE same walk, NO map              {watch.ElapsedMilliseconds,7} ms "
+        output.WriteLine($"PROBE same walk, NO summary              {watch.ElapsedMilliseconds,7} ms "
             + $"(sink {sink})");
 
         // The walk with everything but the query: what the loop and the Cell reads alone cost.

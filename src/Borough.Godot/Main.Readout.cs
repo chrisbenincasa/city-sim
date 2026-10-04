@@ -396,13 +396,7 @@ public partial class Main
     /// while the cursor sat on the very thing the question was about.
     /// </para>
     /// <para>
-    /// ⚠ <b>Through the block's own bucket rather than a walk.</b>
-    /// <see cref="StreetGrid.OffLatticeHead"/> buckets each off-lattice Segment at the block of its
-    /// first endpoint, so this is a short chain and not the <c>O(Lots)</c> scan
-    /// <see cref="Raise"/> is stuck with. ⚠ <b>A Segment can reach out of its bucket</b>
-    /// (<see cref="StreetGrid.OffLatticeReachBlocks"/>), so what this reports is what <em>starts</em>
-    /// here — enough to answer <em>what is that</em>, and not a claim about everything crossing the
-    /// block.
+    /// Cell-indexed candidates are filtered to off-lattice Segments whose midpoint belongs here.
     /// </para>
     /// </remarks>
     private void Crossing(
@@ -415,10 +409,15 @@ public partial class Main
         int paths = 0;
         int others = 0;
 
-        for (int slot = streets.OffLatticeHead(column, row);
-             slot != Rows.NoSlot;
-             slot = streets.OffLatticeNext(slot))
+        foreach (int slot in _world.Roads.Residency.In(
+            streets.Lattice.TileOf(column), streets.Lattice.TileOf(row),
+            new Tiles(streets.Lattice.WidthOf(column)), new Tiles(streets.Lattice.WidthOf(row))))
         {
+            if (!streets.CrossingBlockOf(_world.Roads.Segments, slot, out int ownerColumn, out int ownerRow)
+                || ownerColumn != column || ownerRow != row)
+            {
+                continue;
+            }
             if ((RoadKind)_world.Roads.Segments.Kind[slot] == RoadKind.FootPath)
             {
                 paths++;

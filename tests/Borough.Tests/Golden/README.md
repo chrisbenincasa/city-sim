@@ -785,3 +785,22 @@ Baseline Ruleset content hashes and the hash seed are unchanged; no shipped Rule
 after once the State Hash samples are removed. The derived `road_segment.centerline` now answers
 `VisibleAgents` positions and `LineSourceQueries` distances, and both agree with the straight-chord
 arithmetic they replace on these sessions.
+
+### Cell-indexed line sources (October 3, 2026)
+
+Freeform Streets slice 4a selects the background Street by exact Q16.16 centerline distance,
+then greater contribution at the point, then lowest monotonic Segment id. Whole-Tile contribution
+falloff is unchanged. At an exact tie between unequal sources, the louder background excludes the
+quieter source from the sum. Total intensity drops by that quieter contribution, so the line-source
+field moves down instead of preserving the lattice-order crossover.
+
+Both traces were regenerated with the commands above and `--census`. Twenty-six driving samples
+changed, from Tick 896 through Tick 4,096. The declining trace and `world-hash.txt` are unchanged.
+Both sessions' census sections are byte-identical before and after. Comparing all saved columns
+and allocator scalars in the driving session's Tick 4,096 saves found only `layer_cell.land_value`
+changed, on 37 rows. All 37 values increased, consistent with lower noise. Every other saved column
+and allocator matched. The before-save replay reproduced the committed pre-change trace; the
+final trace and save were written by the same after-change replay.
+
+Baseline Ruleset content, Core save format 15, and the hash seed are unchanged. The Cell traffic
+mask only skips queries proven silent and does not account for the hash movement.

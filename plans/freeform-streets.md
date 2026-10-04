@@ -214,6 +214,10 @@ re-record goldens by the [procedure](../tests/Borough.Tests/Golden/README.md).
 
 Slices 1 and 3 can run in parallel.
 
+Slice 4a selects the background Street by exact centerline distance, then greater contribution
+at the point, then lowest monotonic Segment id. At an exact tie between unequal sources, choosing
+the louder background lowers total intensity by the quieter source's contribution.
+
 ## Next step
 
 Slices 1, 2 and 3 are built. Start slice 4.
