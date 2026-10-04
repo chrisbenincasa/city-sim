@@ -79,6 +79,7 @@ public sealed class RoadSegmentTable
 
         LengthTiles = _rows.Saved<Tiles>("length_tiles");
         Kind = _rows.Saved<byte>("kind");
+        Sagitta = _rows.Saved<SubTiles>("sagitta");
 
         ModesForward = _rows.Saved<byte>("modes_forward");
         ModesBackward = _rows.Saved<byte>("modes_backward");
@@ -92,6 +93,7 @@ public sealed class RoadSegmentTable
         CapacityPerDay = _rows.Derived<int>("capacity_per_day");
         Modes = _rows.Derived<byte>("modes");
         Fidelity = _rows.Derived<byte>("fidelity");
+        Centerline = _rows.Derived<StreetArc>("centerline");
 
         _rows.Seal();
     }
@@ -110,6 +112,12 @@ public sealed class RoadSegmentTable
 
     /// <summary>Which <see cref="RoadKind"/> this is. What free-flow and capacity are derived from.</summary>
     public Column<byte> Kind { get; }
+
+    /// <summary>
+    /// The arc's signed sagitta. Positive bulges left of A→B and zero is straight
+    /// (<c>adr/0174</c>).
+    /// </summary>
+    public Column<SubTiles> Sagitta { get; }
 
     /// <summary>The <see cref="TravelMode"/> mask valid travelling A→B.</summary>
     public Column<byte> ModesForward { get; }
@@ -203,6 +211,18 @@ public sealed class RoadSegmentTable
     /// would be a schema change applied to a table that already has rows.
     /// </remarks>
     public Column<byte> Fidelity { get; }
+
+    /// <summary>
+    /// The Segment's centerline from its Nodes and <see cref="Sagitta"/>. A Segment whose Nodes share
+    /// a Tile holds a zero-length arc at that Tile. Any other sagitta its Nodes cannot carry fails
+    /// the rebuild.
+    /// </summary>
+    /// <remarks>
+    /// Offsets along the arc are its own Q16.16 arc length. An Address offset is measured in
+    /// <see cref="LengthTiles"/>, which a curved Arterial sets longer than its chord, so a reader
+    /// converts through the ratio of the two.
+    /// </remarks>
+    public Column<StreetArc> Centerline { get; }
 
     /// <summary>
     /// Allocates a Segment between two nodes, opening its Epoch at one.

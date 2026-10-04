@@ -99,6 +99,13 @@ public readonly record struct StreetArc
         return true;
     }
 
+    /// <summary>Creates a zero-length arc at one integer Tile.</summary>
+    public static StreetArc At(int east, int north)
+    {
+        var point = ((long)east * Fixed.One, (long)north * Fixed.One);
+        return new(point, point, point, 0, 0, 0, 0);
+    }
+
     /// <summary>Returns the point at a clamped arc-length offset. Both endpoints are exact.</summary>
     public (long East, long North) PointAt(int offset)
     {
@@ -154,6 +161,11 @@ public readonly record struct StreetArc
     /// <summary>Returns the arc-length offset of the closest point, clamped to the endpoints.</summary>
     public int OffsetAlong(long east, long north)
     {
+        if (Length == 0)
+        {
+            return 0;
+        }
+
         if (IsStraight)
         {
             long dx = B.East - A.East;

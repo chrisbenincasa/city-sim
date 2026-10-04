@@ -204,11 +204,11 @@ re-record goldens by the [procedure](../tests/Borough.Tests/Golden/README.md).
 | # | Slice | Contents | Gated by |
 |---|---|---|---|
 | 1 | Arc arithmetic | Q16.16 `Sin`, `Cos`, `Atan2` in turns. A pure arc type: center, radius, point and tangent at offset, distance to a point, offset arc. Tests against reference values | — |
-| 2 | Saved Segment shape | Sagitta column (all zero), derived arc columns, rebuild audit. `VisibleAgents.TryEnds`, `LineSourceQueries.DistanceTiles` and sealing read the arc | 1 |
+| 2 | Saved Segment shape | Sagitta column (all zero), derived centerline column, rebuild audit. `VisibleAgents.TryEnds` and `LineSourceQueries.DistanceTiles` read the centerline | 1 |
 | 3 | Saved frontage | Lot saves Segment handle and offset. `Frontage.Locate` runs only at creation. Bulldoze leaves Lots unfronted. Split migration with a unit test | — |
 | 4 | Oriented Lot ground | Parcel and footprint as corner, direction, width, depth. Exact overlap test. One uniform spatial hash replaces `StreetGrid` off-lattice buckets, `TrafficPresence._near` and the `LineSourceQueries` window. Shell massing faces the Segment | 3 |
 | 5 | Segment-side carver | Planar face walk, strip carving per side, pattern depth per face, claim order and shrink-or-drop. Blocks become derived; `BlockTable` lattice columns go. Generation lays lattice Streets and carves with the new carver | 4, decision 4 |
-| 6 | Freeform `Connect` | Endpoints plus sagitta, exact joins, crossing splits, minimum length and angle, demolition at the `Demolish` price. Bumps `InputLogCodec.Version` and re-records logs | 2, 5 |
+| 6 | Freeform `Connect` | Endpoints plus sagitta, exact joins, crossing splits, minimum length and angle, demolition at the `Demolish` price. Seals the laid Street along its centerline. Bumps `InputLogCodec.Version` and re-records logs | 2, 5 |
 | 7 | Shell drawing | Straight, simple-curve and continuous modes. Snapping, preview with refusals and demolition cost, arc paving meshes. Driven demonstration of the acceptance checks | 6, decisions 1 and 3 |
 | 8 | Batch modes | Grid and Parallel modes over a batch `Connect` | 7 |
 
@@ -216,4 +216,6 @@ Slices 1 and 3 can run in parallel.
 
 ## Next step
 
-Slices 1 and 3 are built. Start slice 2, then slice 4. Settle decision 4 (block-addressed commands) before slice 5.
+Slices 1, 2 and 3 are built. Start slice 4.
+Road sealing runs only in `RoadGenerator`, where every Street is straight, so it moved from slice 2
+to slice 6, which lays the first curved Street. Settle decision 4 (block-addressed commands) before slice 5.

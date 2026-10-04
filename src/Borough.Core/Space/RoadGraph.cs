@@ -385,7 +385,31 @@ public sealed class RoadGraph
             // written by Trips — 5b. Written rather than left alone so that a rebuild is idempotent
             // over a column somebody may later start writing.
             _segments.Fidelity[slot] = 0;
+
+            _segments.Centerline[slot] = CenterlineOf(slot);
         }
+    }
+
+    private StreetArc CenterlineOf(int slot)
+    {
+        int a = _nodes.Rows.Resolve(_segments.NodeA[slot]);
+        int b = _nodes.Rows.Resolve(_segments.NodeB[slot]);
+        int aEast = _nodes.East[a].Raw;
+        int aNorth = _nodes.North[a].Raw;
+        int bEast = _nodes.East[b].Raw;
+        int bNorth = _nodes.North[b].Raw;
+
+        if (aEast == bEast && aNorth == bNorth)
+        {
+            return StreetArc.At(aEast, aNorth);
+        }
+
+        if (!StreetArc.TryCreate(aEast, aNorth, bEast, bNorth, _segments.Sagitta[slot].Raw, out StreetArc arc))
+        {
+            throw new InvalidOperationException($"Segment slot {slot} holds a sagitta its Nodes cannot carry.");
+        }
+
+        return arc;
     }
 
     private void RebuildAdjacency()

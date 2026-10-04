@@ -1,3 +1,4 @@
+using Borough.Core.Arithmetic;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
@@ -20,6 +21,59 @@ namespace Borough.Tests.Space;
 /// </remarks>
 public sealed class RoadGraphTests
 {
+    [Fact]
+    public void A_saved_sagitta_rebuilds_a_centerline_through_its_bulge()
+    {
+        RoadGraph graph = RoadFixtures.Chain(nodes: 2);
+
+        graph.Segments.Sagitta[0] = SubTiles.FromTiles(new Tiles(4));
+        graph.RebuildDerived();
+
+        StreetArc centerline = graph.Segments.Centerline[0];
+        (long east, long north) = centerline.PointAt(IntegerMath.FloorDiv(centerline.Length, 2));
+
+        Assert.InRange(east, (16 * Fixed.One) - 2, (16 * Fixed.One) + 2);
+        Assert.InRange(north, (4 * Fixed.One) - 2, (4 * Fixed.One) + 2);
+    }
+
+    [Fact]
+    public void A_segment_whose_nodes_share_a_tile_rebuilds_a_point_centerline()
+    {
+        RoadGraph graph = new(RoadFixtures.Roads());
+        Handle<RoadNode> a = graph.Nodes.Create(new Tiles(5), new Tiles(7));
+        Handle<RoadNode> b = graph.Nodes.Create(new Tiles(5), new Tiles(7));
+
+        graph.Segments.Create(a, b, new Tiles(1), RoadKind.Street, TravelMode.Any, TravelMode.Any);
+        graph.RebuildDerived();
+
+        StreetArc centerline = graph.Segments.Centerline[0];
+
+        Assert.Equal(0, centerline.Length);
+        Assert.Equal(2 * Fixed.One, centerline.DistanceTo(7L * Fixed.One, 7L * Fixed.One));
+    }
+
+    [Fact]
+    public void A_zero_sagitta_rebuilds_a_straight_centerline_between_its_nodes()
+    {
+        StreetArc centerline = RoadFixtures.Chain(nodes: 2).Segments.Centerline[0];
+
+        Assert.True(centerline.IsStraight);
+        Assert.Equal((0L, 0L), centerline.A);
+        Assert.Equal((32L * Fixed.One, 0L), centerline.B);
+        Assert.Equal(32 * Fixed.One, centerline.Length);
+        Assert.Equal((16L * Fixed.One, 0L), centerline.PointAt(centerline.Length / 2));
+    }
+
+    [Fact]
+    public void A_sagitta_the_nodes_cannot_carry_fails_the_rebuild()
+    {
+        RoadGraph graph = RoadFixtures.Chain(nodes: 2);
+
+        graph.Segments.Sagitta[0] = SubTiles.FromTiles(new Tiles(17));
+
+        Assert.Throws<InvalidOperationException>(graph.RebuildDerived);
+    }
+
     [Fact]
     public void A_segment_produces_exactly_two_arcs()
     {

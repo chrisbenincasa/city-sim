@@ -417,51 +417,10 @@ public static class LineSourceQueries
         return (int)IntegerMath.RoundDiv(scaled, distance < 1 ? 1 : distance);
     }
 
-    /// <summary>
-    /// Tiles from a point to the nearest point of a Segment. <b>Exact at Tile resolution, which is the
-    /// property that made this a query rather than a Layer.</b>
-    /// </summary>
-    /// <remarks>
-    /// Integer throughout and rounded once, at the projection. The closest point of a finite segment is
-    /// the projection clamped to the endpoints, which is why a Tile beyond a Segment's end measures to
-    /// the end and not to the infinite line through it.
-    /// </remarks>
-    private static int DistanceTiles(RoadGraph graph, int slot, Tiles east, Tiles north)
-    {
-        RoadSegmentTable segments = graph.Segments;
-        RoadNodeTable nodes = graph.Nodes;
-
-        if (!nodes.Rows.TryResolve(segments.NodeA[slot], out int a)
-            || !nodes.Rows.TryResolve(segments.NodeB[slot], out int b))
-        {
-            return -1;
-        }
-
-        long ax = nodes.East[a].Raw;
-        long ay = nodes.North[a].Raw;
-        long dx = nodes.East[b].Raw - ax;
-        long dy = nodes.North[b].Raw - ay;
-
-        long px = east.Raw - ax;
-        long py = north.Raw - ay;
-
-        long length = (dx * dx) + (dy * dy);
-        long closestX = ax;
-        long closestY = ay;
-
-        if (length > 0)
-        {
-            long projection = (px * dx) + (py * dy);
-
-            projection = projection < 0 ? 0 : projection > length ? length : projection;
-
-            closestX = ax + IntegerMath.RoundDiv(projection * dx, length);
-            closestY = ay + IntegerMath.RoundDiv(projection * dy, length);
-        }
-
-        long offX = east.Raw - closestX;
-        long offY = north.Raw - closestY;
-
-        return (int)IntegerMath.SqrtFloor((offX * offX) + (offY * offY));
-    }
+    /// <summary>Whole Tiles, floored, from a Tile to the nearest point of a Segment's centerline.</summary>
+    private static int DistanceTiles(RoadGraph graph, int slot, Tiles east, Tiles north) =>
+        IntegerMath.FloorDiv(
+            graph.Segments.Centerline[slot].DistanceTo(
+                (long)east.Raw * Fixed.One, (long)north.Raw * Fixed.One),
+            Fixed.One);
 }
