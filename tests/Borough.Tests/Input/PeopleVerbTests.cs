@@ -105,8 +105,10 @@ public sealed class PeopleVerbTests
         int citizens = world.Citizens.Rows.LiveCount;
 
         Assert.Equal(Refusal.PeopleWorldAlreadyHasAPopulation, simulation.Refuses(People));
-        Assert.Throws<InvalidOperationException>(
-            () => simulation.Step(new TickInput([People], 0)));
+
+        simulation.Step(new TickInput([People], 0));
+
+        Assert.Equal(1, simulation.CommandsRefused);
 
         Assert.Equal(citizens, world.Citizens.Rows.LiveCount);
     }
@@ -127,8 +129,10 @@ public sealed class PeopleVerbTests
 
         Assert.Equal(0, world.Lots.Rows.LiveCount);
         Assert.Equal(Refusal.PeopleWorldHasNoLots, simulation.Refuses(People));
-        Assert.Throws<InvalidOperationException>(
-            () => simulation.Step(new TickInput([People], 0)));
+
+        simulation.Step(new TickInput([People], 0));
+
+        Assert.Equal(1, simulation.CommandsRefused);
 
         Assert.Equal(0, world.Citizens.Rows.LiveCount);
     }

@@ -77,6 +77,9 @@ public sealed class Simulation
     private ulong _inForce;
     private bool _opened;
     private int _reloads;
+    private int _commandsRefused;
+    private Refusal _lastRefusal;
+    private Command _lastRefused;
     private RulesetDegradation _degradation;
 
     /// <param name="world">The tables this advances. Not copied; the Simulation does not own it.</param>
@@ -500,6 +503,17 @@ public sealed class Simulation
     /// </remarks>
     public int Reloads => _reloads;
 
+    /// <summary>How many queued commands phase 0 refused since this Simulation started.</summary>
+    /// <remarks>
+    /// A front end asks <see cref="Refuses"/> when it queues a command, but an earlier command in the
+    /// same Tick can change the answer. Phase 0 asks again and skips a refused command. The refusal
+    /// depends only on the log and the world, so a replay refuses the same command.
+    /// </remarks>
+    public int CommandsRefused => _commandsRefused;
+
+    /// <summary>The last command phase 0 refused and why, or <see cref="Refusal.None"/> before any.</summary>
+    public (Refusal Refusal, Command Command) LastRefused => (_lastRefusal, _lastRefused);
+
     /// <summary>The content hash of the Ruleset in force, or 0 before the first Tick.</summary>
     public ulong RulesetInForce => _inForce;
 
@@ -590,6 +604,16 @@ public sealed class Simulation
 
         foreach (Command command in input.Commands)
         {
+            Refusal refusal = Refuses(command);
+
+            if (refusal != Refusal.None && refusal != Refusal.VerbNotApplied)
+            {
+                _commandsRefused++;
+                _lastRefusal = refusal;
+                _lastRefused = command;
+                continue;
+            }
+
             Apply(command, tick);
         }
 
@@ -618,11 +642,11 @@ public sealed class Simulation
         switch (command.Kind)
         {
             case CommandKind.ZoneParcel:
-                if (RefuseZone(command) is var parcelRefusal && parcelRefusal != Refusal.None) { throw new InvalidOperationException(Explain(parcelRefusal, command)); }
+                if (RefuseZone(command) is var parcelRefusal && parcelRefusal != Refusal.None) { throw Refused(parcelRefusal, command); }
                 LotSubdivider.PaintParcelAt(_world, command.East, command.North, command.Zone);
                 break;
             case CommandKind.Zone:
-                if (RefuseZone(command) is var zoneRefusal && zoneRefusal != Refusal.None) { throw new InvalidOperationException(Explain(zoneRefusal, command)); }
+                if (RefuseZone(command) is var zoneRefusal && zoneRefusal != Refusal.None) { throw Refused(zoneRefusal, command); }
                 LotSubdivider.PaintAt(_world, command.East, command.North, command.Zone);
                 break;
 
@@ -729,7 +753,7 @@ public sealed class Simulation
 
             case CommandKind.None:
             default:
-                throw new InvalidOperationException(Explain(Refusal.VerbNotApplied, command));
+                throw new InvalidOperationException($"command kind {(ushort)command.Kind} is declared but not applied in this slice.");
         }
     }
 
@@ -741,7 +765,8 @@ public sealed class Simulation
     /// <para>
     /// 🔴 <b>The applier and this answer are ONE predicate, and that is the whole of the design.</b>
     /// Each verb's checks moved into a <c>Refuse*</c> method that returns a code and hands back what
-    /// it resolved on the way; <see cref="Apply"/> throws on a non-zero code and this returns it. A
+    /// it resolved on the way; phase 0 skips a command this refuses, and the appliers still throw on a
+    /// non-zero code as a guard. A
     /// front end asking <em>would this be refused</em> is therefore asking the code that refuses,
     /// rather than a paraphrase of it that is free to drift — <c>plans/0012</c> <b>Cause 1</b>, which
     /// the shell had already committed three times over.
@@ -885,19 +910,6 @@ public sealed class Simulation
         _world.Lots.Rows.TryResolve(_world.Buildings.Lot[gate], out int lot)
             ? _world.EdgeOf(lot)
             : MapEdge.None;
-
-    /// <summary>Why a stock-holding edge has nobody of the shape the payload named.</summary>
-    private static string ArriveMismatch(Command command)
-    {
-        ArrivePayload payload = ArrivePayload.Decode(command.Zone);
-
-        return $"arrive asks for {payload.Households} Household(s) of {payload.Citizens} people in "
-            + $"Life Stage {payload.LifeStage}, and no Outside behind that edge holds or ever held a "
-            + "family of that shape. A stock-holding world admits the families standing behind its "
-            + "edges (plans/0073 D8), so a composition nobody declares names people this command "
-            + "would have to invent. An exhausted composition is the other answer and is not this "
-            + "one: it admits nobody today and is refused by nothing.";
-    }
 
     /// <inheritdoc cref="ApplyGovern"/>
     private Refusal RefuseGovern(Command command)
@@ -1159,297 +1171,22 @@ public sealed class Simulation
     /// <remarks>
     /// ⚠ <b>The two arms are <c>SyntheticCity.PeopleInto</c>'s own two throws, in its order.</b> That
     /// method guards itself and will go on doing so — it is called directly by half the suite — so
-    /// this is a second reader of the same two facts rather than a second rule. ***What it buys is a
-    /// front end that declines the click***: an exception out of phase 0 aborts a Tick half way, and
-    /// on this verb both failures are things a hand at the keyboard reaches in the ordinary course of
-    /// playing — populating twice, or populating before zoning anything.
+    /// this is a second reader of the same two facts rather than a second rule. It lets a front end
+    /// decline the click and lets phase 0 skip the command. On this verb both failures are things a
+    /// hand at the keyboard reaches in the ordinary course of playing — populating twice, or
+    /// populating before zoning anything.
     /// </remarks>
     private Refusal RefusePeople() =>
         _world.Citizens.Rows.LiveCount != 0 ? Refusal.PeopleWorldAlreadyHasAPopulation
         : _world.Lots.Rows.LiveCount <= 0 ? Refusal.PeopleWorldHasNoLots
         : Refusal.None;
 
-    /// <summary>The refusal as a sentence for a <b>crash artefact</b>, which is a different reader.</summary>
-    /// <remarks>
-    /// <para>
-    /// ⚠ <b>This is not the leak <c>CLAUDE.md</c> names and the distinction is the whole point.</b>
-    /// That rule is about a method returning <em>a formatted string because a panel wanted one</em>;
-    /// nothing here is returned. These compose the message of an exception that ends the run, whose
-    /// reader is whoever is holding the log — so it names the ADR, the successor mechanism and the
-    /// Ruleset key, none of which belongs on a player's screen. ***A player's sentence is the shell's
-    /// and is built from <see cref="Refusal"/>*** (<see cref="Refuses"/>).
-    /// </para>
-    /// <para>
-    /// ⚠ <b>Every word below was already in this file</b>, moved rather than written. What changed is
-    /// that the message is now selected by the same code the guard reads, so the two cannot describe
-    /// different rules.
-    /// </para>
-    /// </remarks>
-    private string Explain(Refusal refusal, Command command) => refusal switch
-    {
-        Refusal.ZoneNoParcel => "zone-parcel names no saved or proposed frontage parcel.",
-        Refusal.ZoneRecordLimit => "zone would exceed the geographic permission record limit.",
-        Refusal.ZoneInvalidBounds => "zone names ground outside the editable lattice.",
-        Refusal.VerbNotApplied =>
-            $"command kind {(ushort)command.Kind} is declared but not applied in this slice.",
-
-        Refusal.ConnectRoadKindIsNotStreet =>
-            $"connect names road kind {(int)ConnectPayload.Decode(command.Zone).Kind}, and only "
-            + "Street is applied. adr/0077 defers Arterials and Junction pieces by name: an Arterial "
-            + "is a spline with many control points and is not one command, and a Junction piece "
-            + "needs the authored library adr/0014 calls content. Neither is missing by oversight.",
-
-        Refusal.ConnectWorldHasNoLattice =>
-            "connect names a Street lattice this world does not have. The spacing comes from "
-            + "the Ruleset's [roads] block_tiles, and a Ruleset that declares no [roads] is a "
-            + "world with no road network to edit.",
-
-        Refusal.TripRulesetStatesNoTrips =>
-            "trip is commanded against a Ruleset that declares no [trips] table, so what a "
-            + "crossing costs and where the Commute Budget falls are both unauthored. The verb "
-            + "refuses rather than costing the journey at zero, because zero is a legitimate "
-            + "crossing cost -- a city where the shop opposite is the shop next door -- and a "
-            + "placeholder inside the range of legitimate answers cannot announce itself.",
-
-        Refusal.TripWorldHasNoLattice =>
-            "trip names a Street lattice this world does not have. A Building's Access Point is "
-            + "derived through its Lot, a Lot is carved out of a block, and the spacing comes from "
-            + "the Ruleset's [roads] block_tiles -- so a Ruleset declaring no [roads] is a world "
-            + "in which nobody has an address to travel between.",
-
-        Refusal.TripBlockHoldsNobody => TripBlocks(command),
-
-        Refusal.TripEndpointsAreOneBuilding =>
-            "trip names one Building as both endpoints. A Trip to where you already are is not a "
-            + "degenerate Trip, it is a command with a wrong payload -- the block delta is zero, or "
-            + "both blocks resolved to the same Building because only one is occupied.",
-
-        Refusal.TripOriginHoldsNoCitizen =>
-            "trip names an origin Building with no Citizen in it. A Traveller is a cursor over a "
-            + "Citizen's journey (adr/0075) and there is nobody here to be one.",
-
-        Refusal.ArriveNoGateOnThatTile =>
-            $"arrive names Tile ({command.East.Raw}, {command.North.Raw}), where no Outside "
-            + "Connection stands. The verb refuses rather than admitting anybody through the "
-            + "nearest gate, because the edge a Household entered by selects its Hinterland "
-            + "(adr/0088) -- so a substituted gate does not misplace an arrival, it changes "
-            + "which market it came from.",
-
-        Refusal.ArriveNoSuchFamilyOutside => ArriveMismatch(command),
-
-        Refusal.GovernNoSuchPolicy =>
-            $"Govern names Policy {command.Zone} and this Ruleset declares "
-            + $"{_world.Rules.Policies.Length}. A Policy is named by its position in declaration "
-            + "order, and the Ruleset in force at the Tick a command is applied is what that "
-            + "position is resolved against.",
-
-        Refusal.GovernPolicyNotInThisWorld =>
-            $"Govern names Policy {command.Zone} and this world holds "
-            + $"{_world.Policies.Rows.SlotCount} governable row(s). The table is sized at world "
-            + "creation and PolicyTable.Adopt never resizes it, so a Policy that arrived on a "
-            + "reload which grew the set cannot be governed in this world.",
-
-        Refusal.GovernPolicyHasNoName =>
-            $"Govern names Policy {command.Zone} and that [[policy]] table states no name. A governed "
-            + "amount is saved state that has to survive a reload, and a name is the only thing "
-            + "that survives a renumbering — see Ruleset.PolicyKeys. Name the table to govern it.",
-
-        Refusal.TaxControlNotDeclared =>
-            $"tax names control {command.Zone}, and there are four: 0 the allowance, 1 the upper "
-            + "threshold, 2 the middle rate, 3 the upper rate. The control is the verb's whole "
-            + "payload beside the value, so a selector nothing declares is a command with no "
-            + "subject rather than a setting to fall back from.",
-
-        Refusal.TaxRateOutOfRange =>
-            $"tax sets a marginal rate to {command.East.Raw}, and a rate is a percentage: 0 to 100. "
-            + "It refuses rather than clamping, because a clamped rate is a schedule the player did "
-            + "not author reporting that it took the one they did.",
-
-        Refusal.TaxAllowanceIsNegative =>
-            $"tax sets the tax-free allowance to {command.East.Raw}. An allowance is the earnings "
-            + "below which nothing is due, so a negative one is not a heavier tax -- it is a "
-            + "threshold no Day's earnings can be on the wrong side of.",
-
-        Refusal.TaxUpperRateBelowMiddleRate =>
-            $"tax would leave the upper marginal rate below the middle one (plans/0072 D7). Both "
-            + "rates are marginal, so take-home income would step DOWNWARD at the threshold: a "
-            + "Citizen who earned a pound more would keep less. That is the schedule ceasing to be "
-            + "monotone, which IncomeTax.WithholdingOn leans on to keep a withholding non-negative. "
-            + "Move the upper rate first, then the middle one.",
-
-        Refusal.TaxProfitThresholdIsNegative =>
-            $"tax would set the Business profit threshold to {command.East.Raw}. It is where the "
-            + "upper band opens, and opening it below zero leaves the lower rate reading as a "
-            + "setting while applying to no profit that can exist. A Day that made a loss is "
-            + "already untaxed and needs no negative threshold to say so.",
-
-        Refusal.TaxProfitUpperRateBelowLowerRate =>
-            $"tax would leave the upper marginal profit rate at {command.East.Raw}, below the "
-            + "lower one. Both are marginal, so post-tax profit would step DOWNWARD at the "
-            + "threshold and a Business that made one unit more would keep less than one that made "
-            + "one unit less. Raise the upper rate before lowering the lower one.",
-
-        Refusal.FundPolicyPaysNobody =>
-            $"fund names Policy {command.Zone}, which is not a subsidy. A funding ceiling rations "
-            + "what a subsidy pays out; a charge collects what is owed and a relief moves no money "
-            + "at all, so a ceiling on either would be saved, hashed, carried across a reload and "
-            + "read by nothing.",
-
-        Refusal.FundCeilingIsNegative =>
-            $"fund would set Policy {command.Zone}'s daily ceiling to {command.East.Raw}. A "
-            + "ceiling of zero is a subsidy switched off and is how to spell that; below zero it "
-            + "has no reading.",
-
-        Refusal.TaxUpperThresholdBelowAllowance =>
-            $"tax would leave the upper band starting at {command.East.Raw}, at or below the "
-            + "tax-free allowance. A band that opens before taxation does is not a band -- the "
-            + "middle rate would apply to nothing, and the schedule would have two names for one "
-            + "band.",
-
-        Refusal.DemolishNoBuildingOnThatTile =>
-            $"demolish names Tile ({command.East.Raw}, {command.North.Raw}), where no Building "
-            + "stands. The verb refuses rather than clearing the nearest one, because "
-            + "[lots] lots_per_segment is five and a substituted target is somebody else's "
-            + "house -- a mistyped command must not be indistinguishable from the demolition "
-            + "somebody meant.",
-
-        Refusal.DemolishTreasuryCannotPay =>
-            $"demolish names Tile ({command.East.Raw}, {command.North.Raw}), where an occupied "
-            + "Building stands, and clearing it costs "
-            + $"{(BuildingOn(command.East, command.North) is int b and >= 0 ? _world.DemolitionPrice(b).Raw : 0)}"
-            + $", which is more than the treasury holds ({_world.TreasuryBalance()?.Raw ?? 0}). "
-            + "adr/0091 pays the displaced in full or demolishes nothing.",
-
-        Refusal.ServiceKindNotDeclared =>
-            $"service names Building kind {(byte)command.Zone}, which this Ruleset does not declare. "
-            + "The kind is the verb's whole payload beside the Tile, so an id nothing declares is a "
-            + "command with no subject rather than a placement to fall back from.",
-
-        Refusal.ServiceKindServesNothing =>
-            $"service names Building kind {(byte)command.Zone}, which declares no `serves` key and is "
-            + "therefore not a service Building. 01 section 5 makes this verb the design's ONE "
-            + "placement exception -- the player places service Buildings and only those -- so "
-            + "an ordinary kind is refused here rather than placed. Every other kind reaches the "
-            + "ground through a Zone Rule, which is the city filling in a permission set the "
-            + "player painted.",
-
-        Refusal.ServiceTreasuryCannotPay =>
-            $"service names building kind {(byte)command.Zone}, whose placement_cost is "
-            + $"{_world.Rules.Kind((byte)command.Zone).PlacementCost.Raw}, and the treasury holds "
-            + $"{_world.TreasuryBalance()?.Raw ?? 0}. A placement is paid in full or not at all: "
-            + "the money buys imported Materials and leaves the city (adr/0035 section 2), so there "
-            + "is nothing to part-pay with and no creditor to owe. Raise the money first, or drop "
-            + "the key for a kind the city places free.",
-
-        Refusal.ServiceNoVacantLotOnThatTile =>
-            $"service names Tile ({command.East.Raw}, {command.North.Raw}), where there is no "
-            + "vacant Lot. The Tile is matched exactly rather than resolved to the block, on "
-            + "demolish's reasoning: [lots] lots_per_segment is five, so `the Lot in this block` "
-            + "names up to twenty of them, and a school landing on a neighbour's plot because "
-            + "the click resolved to the first is worse than a refusal. A Lot holding a Building "
-            + "-- a standing one or an adr/0091 shell -- is not vacant; demolish first.",
-
-        Refusal.PeopleWorldAlreadyHasAPopulation =>
-            "people is commanded on a world that already holds one, and a synthetic population is "
-            + "not something to add a second of. It is world creation, so it belongs at Tick 0 and "
-            + "once -- a second application builds a city of twice the configured size into tables "
-            + "sized from that configuration, which is a run that answers the sizing question with "
-            + "the wrong number and reports success.",
-
-        Refusal.PeopleWorldHasNoLots =>
-            "people is commanded on a world with no Lots, so there is nowhere to put anybody. A city "
-            + "reached through CommandKind.Ground gets its Streets from Connect and its Lots from "
-            + "Zone, which carves against the Street faces that are standing -- so lay the Streets, "
-            + "zone the blocks, then populate. It refuses rather than making no rows, because a "
-            + "populator that answers the sizing question with an empty world and reports success is "
-            + "the one outcome nothing downstream can tell from a small city.",
-
-        Refusal.GateKindIsWiderThanAKindId =>
-            $"gate names kind {command.Zone}, and a kind id is a byte. The number is refused here "
-            + "rather than narrowed, because narrowing it gives zero and zero is this verb's "
-            + "removal instruction -- so a command asking to place a kind out of range would take "
-            + "away the gate already standing on that Tile.",
-
-        Refusal.GateKindNotDeclared =>
-            $"gate names building kind {(byte)command.Zone}, which this Ruleset does not declare. "
-            + "The kinds are the [[building]] tables in the file the world was loaded from.",
-
-        Refusal.GateKindIsNotAnOutsideConnection =>
-            $"gate names building kind {(byte)command.Zone}, which states no arrivals_per_day and "
-            + "is therefore an ordinary Building rather than a door. adr/0023: arrivals_per_day is "
-            + "the width of a door, and a kind without one has no width because it is not one. "
-            + "This verb places gates; use service for a kind that serves a Need, and let the "
-            + "Zone Rules raise everything else.",
-
-        Refusal.GateNoVacantLotOnThatTile =>
-            $"gate names Tile ({command.East.Raw}, {command.North.Raw}), where there is no vacant "
-            + "Lot. The Tile is matched exactly rather than resolved to the block, on demolish's "
-            + "reasoning: [lots] lots_per_segment is five, so `the Lot in this block` names up to "
-            + "twenty of them. A Lot holding a Building -- standing or an adr/0091 shell -- is not "
-            + "vacant; demolish first.",
-
-        Refusal.GateLotIsNotOnAnEdge =>
-            $"gate names a vacant Lot at ({command.East.Raw}, {command.North.Raw}), which is in the "
-            + "interior of the map. An Outside Connection is where the city meets what is beyond it "
-            + "(adr/0020), so it stands on an edge or it opens onto nothing. Lay Streets out to an "
-            + "edge and zone there first.",
-
-        Refusal.GateLotIsOnTwoEdges =>
-            $"gate names a vacant Lot at ({command.East.Raw}, {command.North.Raw}), which is a "
-            + "corner and touches two edges. A gate is listed against exactly one edge's "
-            + "Hinterland, and which of the two stands behind a corner has no answer -- so picking "
-            + "one silently would file the door's admissions under a market the player did not "
-            + "choose. Move one Lot along either edge.",
-
-        Refusal.GateEdgeHasNoHinterland =>
-            $"gate names a Lot on an edge this Ruleset declares no [[hinterland]] behind. A door "
-            + "onto an unstated Outside has nobody to admit and no rent to be compared against, so "
-            + "it would stand there looking like a mechanism while doing nothing. Declare a "
-            + "[[hinterland]] for that edge, or put the gate on an edge that has one.",
-
-        Refusal.GateLotHasNoFrontage =>
-            $"gate names an edge Lot at ({command.East.Raw}, {command.North.Raw}) with no usable "
-            + "frontage. An admitted Household walks from the gate to wherever it ends up living, "
-            + "and a Lot with no Street face has no Address for that Trip to start from "
-            + "(adr/0079). Lay a Street along it first.",
-
-        Refusal.GateRemoveNoGateOnThatTile =>
-            $"gate asks to remove Tile ({command.East.Raw}, {command.North.Raw}), where no Outside "
-            + "Connection stands. The Tile is matched exactly and the kind is checked, so an "
-            + "ordinary Building at the named Tile is not the thing this verb removes -- demolish "
-            + "is.",
-
-        Refusal.GateRemoveGateIsOccupied =>
-            $"gate asks to remove an Outside Connection that a Household or a Business is still in. "
-            + "Clearing occupied ground pays market value and adr/0091 refuses to compose that "
-            + "price, so it is blocked here exactly as it is on demolish rather than being added "
-            + "quietly to the cheapest click in the shell. An outside QUEUE is not a tenancy: "
-            + "people waiting to come in are cancelled on the engine's next pass and never stand "
-            + "in the way of this.",
-
-        Refusal.GateTreasuryCannotPay =>
-            $"gate names a kind whose placement_cost of "
-            + $"{_world.Rules.Kind((byte)command.Zone).PlacementCost.Raw} is more than the treasury "
-            + $"holds ({_world.TreasuryBalance()?.Raw ?? 0}). A door is built and paid for like any "
-            + "other Building. The plot and the kind are both fine, so this is the one gate refusal "
-            + "that answers differently once the city can afford it.",
-
-        _ => $"command kind {(ushort)command.Kind} was refused with reason {(ushort)refusal}, which "
-            + "this build has no diagnosis for.",
-    };
-
-    /// <summary>The two block coordinates a refused <c>Trip</c> named, spelled out.</summary>
-    private string TripBlocks(Command command)
-    {
-        TripPayload payload = TripPayload.Decode(command.Zone);
-        int column = _world.Roads.Streets.Lattice.LineAt(command.East.Raw);
-        int row = _world.Roads.Streets.Lattice.LineAt(command.North.Raw);
-
-        return $"trip from block ({column}, {row}) to block ({column + payload.BlocksEast}, "
-            + $"{row + payload.BlocksNorth}) names a block with no occupied Building in it. The "
-            + "verb refuses rather than substituting a nearby one, because a substituted endpoint "
-            + "makes a mistyped command indistinguishable from the Trip somebody meant.";
-    }
+    /// <summary>
+    /// The guard an applier throws on a refused command. Phase 0 skips every command
+    /// <see cref="Refuses"/> refuses, so reaching it means the two checks disagree.
+    /// </summary>
+    private static InvalidOperationException Refused(Refusal refusal, Command command) =>
+        new($"{command.Kind} reached its applier although it is refused ({refusal}).");
 
     /// <summary>
     /// Lays or bulldozes one Street, then re-parcels what the edit changed.
@@ -1480,7 +1217,7 @@ public sealed class Simulation
 
         if (refusal != Refusal.None)
         {
-            throw new InvalidOperationException(Explain(refusal, command));
+            throw Refused(refusal, command);
         }
 
         // Snapped down to the lattice, which is what adr/0014's "Streets snap to the grid" means once
@@ -1566,7 +1303,7 @@ public sealed class Simulation
 
         if (refusal != Refusal.None)
         {
-            throw new InvalidOperationException(Explain(refusal, command));
+            throw Refused(refusal, command);
         }
 
         // The Citizen's own mode, not a walk. adr/0080 demotes this command to a test affordance
@@ -1660,7 +1397,7 @@ public sealed class Simulation
 
         if (refusal != Refusal.None)
         {
-            throw new InvalidOperationException(Explain(refusal, command));
+            throw Refused(refusal, command);
         }
 
         // A stock-world command requests existing families through the autonomous comparison and quota path.
@@ -1720,7 +1457,7 @@ public sealed class Simulation
 
         if (refusal != Refusal.None)
         {
-            throw new InvalidOperationException(Explain(refusal, command));
+            throw Refused(refusal, command);
         }
 
         _world.Policies.Govern(command.Zone, command.East.Raw);
@@ -1738,7 +1475,7 @@ public sealed class Simulation
 
         if (refusal != Refusal.None)
         {
-            throw new InvalidOperationException(Explain(refusal, command));
+            throw Refused(refusal, command);
         }
 
         _world.Policies.Fund(command.Zone, command.East.Raw);
@@ -1778,7 +1515,7 @@ public sealed class Simulation
 
         if (refusal != Refusal.None)
         {
-            throw new InvalidOperationException(Explain(refusal, command));
+            throw Refused(refusal, command);
         }
 
         long today = IntegerMath.FloorDiv((long)tick.Raw, Ticks.PerDay);
@@ -1826,7 +1563,7 @@ public sealed class Simulation
 
         if (refusal != Refusal.None)
         {
-            throw new InvalidOperationException(Explain(refusal, command));
+            throw Refused(refusal, command);
         }
 
         _world.PayDisplaced(building, price, tick);
@@ -1844,7 +1581,7 @@ public sealed class Simulation
     /// this case and its own remark named it — <em>"a city whose Streets were laid by
     /// <c>CommandKind.Connect</c> wants the people half without the land half and could not ask for
     /// it"</em> — and then nothing outside the test suite could ask, because there was no verb. The
-    /// guard above it is the shell's rather than the city's: the city throws either way.
+    /// guard above it is the shell's rather than the city's: phase 0 refuses either way.
     /// </remarks>
     private void ApplyPeople(Ticks tick)
     {
@@ -1852,8 +1589,7 @@ public sealed class Simulation
 
         if (refusal != Refusal.None)
         {
-            throw new InvalidOperationException(
-                Explain(refusal, new Command(CommandKind.People, default, default)));
+            throw Refused(refusal, new Command(CommandKind.People, default, default));
         }
 
         SyntheticCity.PeopleInto(_world, _key, tick);
@@ -1879,9 +1615,9 @@ public sealed class Simulation
     /// two verbs for one decision.
     /// </para>
     /// <para>
-    /// <b>Every refusal is a throw and none is a silent no-op</b>, on <c>ApplyDemolish</c>'s rule: a
-    /// command in an Input Log is a thing somebody did, and a verb that quietly declines leaves a
-    /// replay that diverges from the session with nothing in the artefact to say why.
+    /// <b>Phase 0 refuses a command before it reaches here</b>, and the throw below is a guard. A
+    /// refusal depends only on the log and the world, so a replay refuses the same command and
+    /// <see cref="CommandsRefused"/> counts it.
     /// </para>
     /// </remarks>
     private void ApplyService(Command command, Ticks tick)
@@ -1890,7 +1626,7 @@ public sealed class Simulation
 
         if (refusal != Refusal.None)
         {
-            throw new InvalidOperationException(Explain(refusal, command));
+            throw Refused(refusal, command);
         }
 
         // Charged before the Building is raised, so a city that cannot pay has raised nothing --
@@ -1914,7 +1650,7 @@ public sealed class Simulation
 
         if (refusal != Refusal.None)
         {
-            throw new InvalidOperationException(Explain(refusal, command));
+            throw Refused(refusal, command);
         }
 
         if (gate >= 0)
