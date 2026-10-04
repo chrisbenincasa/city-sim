@@ -324,7 +324,7 @@ public partial class Main
 
         int storeys = Mathf.Max(1, lots.Storeys[lot]);
         BuildingPlan.TowerForm form = BuildingPlan.Tower(
-            lots.FootprintWide[lot].Raw, lots.FootprintDeep[lot].Raw, storeys, lots.PodiumStoreys[lot]);
+            lots.FootprintBounds(lot).Width, lots.FootprintBounds(lot).Height, storeys, lots.PodiumStoreys[lot]);
         float eastWest = form.ShaftWide * MetresPerTile, southNorth = form.ShaftDeep * MetresPerTile;
         return new TowerSite(storeys, form.PodiumStoreys,
             facesNorthSouth ? eastWest : southNorth,
@@ -337,10 +337,10 @@ public partial class Main
     {
         LotTable lots = _world.Lots;
         if (!lots.Rows.TryResolve(_world.Buildings.Lot[slot], out int lot)) return null;
-        int wide = lots.FootprintWide[lot].Raw, deep = lots.FootprintDeep[lot].Raw;
+        int wide = lots.FootprintBounds(lot).Width, deep = lots.FootprintBounds(lot).Height;
         if (!BuildingPlan.Hollow(lots.PatternOf(lot), wide, deep, out _, out _)) return null;
-        float east = (lots.FootprintEast[lot].Raw + (wide * 0.5f)) * MetresPerTile;
-        float north = (lots.FootprintNorth[lot].Raw + (deep * 0.5f)) * MetresPerTile;
+        float east = (lots.FootprintBounds(lot).X + (wide * 0.5f)) * MetresPerTile;
+        float north = (lots.FootprintBounds(lot).Y + (deep * 0.5f)) * MetresPerTile;
         return (new Vector3(east, 0f, -north), wide * MetresPerTile, deep * MetresPerTile);
     }
 
@@ -487,8 +487,8 @@ public partial class Main
         if (!lots.Rows.TryResolve(_world.Buildings.Lot[slot], out int own)
             || !lots.Rows.TryResolve(_world.Buildings.Lot[neighbour], out int other)) return false;
         return deepEast
-            ? lots.FootprintEast[own] != lots.FootprintEast[other] || lots.FootprintWide[own] != lots.FootprintWide[other]
-            : lots.FootprintNorth[own] != lots.FootprintNorth[other] || lots.FootprintDeep[own] != lots.FootprintDeep[other];
+            ? lots.FootprintBounds(own).X != lots.FootprintBounds(other).X || lots.FootprintBounds(own).Width != lots.FootprintBounds(other).Width
+            : lots.FootprintBounds(own).Y != lots.FootprintBounds(other).Y || lots.FootprintBounds(own).Height != lots.FootprintBounds(other).Height;
     }
 
     /// <returns>The Building slot whose footprint covers the point, or -1.</returns>
@@ -527,9 +527,9 @@ public partial class Main
         for (int slot = 0; slot < table.Rows.SlotCount; slot++)
         {
             if (!table.Rows.IsLive(slot) || !lots.Rows.TryResolve(table.Lot[slot], out int lot)) continue;
-            int x = lots.FootprintEast[lot].Raw, y = lots.FootprintNorth[lot].Raw;
-            int lastEast = Mathf.FloorToInt((x + lots.FootprintWide[lot].Raw - 1) / (float)FootprintSquareTiles);
-            int lastNorth = Mathf.FloorToInt((y + lots.FootprintDeep[lot].Raw - 1) / (float)FootprintSquareTiles);
+            int x = lots.FootprintBounds(lot).X, y = lots.FootprintBounds(lot).Y;
+            int lastEast = Mathf.FloorToInt((x + lots.FootprintBounds(lot).Width - 1) / (float)FootprintSquareTiles);
+            int lastNorth = Mathf.FloorToInt((y + lots.FootprintBounds(lot).Height - 1) / (float)FootprintSquareTiles);
             for (int east = Mathf.FloorToInt(x / (float)FootprintSquareTiles); east <= lastEast; east++)
             {
                 for (int north = Mathf.FloorToInt(y / (float)FootprintSquareTiles); north <= lastNorth; north++)
@@ -548,8 +548,8 @@ public partial class Main
         LotTable lots = _world.Lots;
         if (!lots.Rows.TryResolve(_world.Buildings.Lot[building], out int lot)) return false;
         float east = point.X / MetresPerTile, north = -point.Z / MetresPerTile;
-        int x = lots.FootprintEast[lot].Raw, y = lots.FootprintNorth[lot].Raw;
-        return east >= x && east < x + lots.FootprintWide[lot].Raw && north >= y && north < y + lots.FootprintDeep[lot].Raw;
+        int x = lots.FootprintBounds(lot).X, y = lots.FootprintBounds(lot).Y;
+        return east >= x && east < x + lots.FootprintBounds(lot).Width && north >= y && north < y + lots.FootprintBounds(lot).Height;
     }
 
     /// <summary>Generates the surfaces of every body the requests need and no mesh yet holds, across worker threads.</summary>

@@ -67,7 +67,7 @@ public sealed class ResidentialScaleTests
         var zones = Enumerable.Range(0, lots.Rows.SlotCount).Select(i => lots.Zone[i]).ToArray();
         var building = lots.BuildingOn(target);
         var commands = new[] { new Command(CommandKind.ZoneParcel,
-            new Tiles(lots.ParcelEast[target].Raw + 1), new Tiles(lots.ParcelNorth[target].Raw + 1), LotTable.Trade) };
+            new Tiles(lots.ParcelBounds(target).X + 1), new Tiles(lots.ParcelBounds(target).Y + 1), LotTable.Trade) };
         var sim = new Simulation(world, key);
         var replay = new Simulation(control, key);
         sim.Step(new TickInput(commands, 0));
@@ -178,7 +178,7 @@ public sealed class ResidentialScaleTests
 
     private static (int, int, int, int, byte)[] Geometry(World world) =>
         Enumerable.Range(0, world.Lots.Rows.SlotCount).Where(i => world.Lots.Rows.IsLive(i))
-            .Select(i => (world.Lots.FootprintEast[i].Raw, world.Lots.FootprintNorth[i].Raw,
+            .Select(i => (world.Lots.FootprintBounds(i).X, world.Lots.FootprintBounds(i).Y,
                 world.Lots.FootprintWide[i].Raw, world.Lots.FootprintDeep[i].Raw, world.Lots.Storeys[i])).ToArray();
 
     private static Ruleset Load() => RulesetLoader.Load(

@@ -571,7 +571,7 @@ public sealed class TradeFormTests
         byte storeys = world.Lots.Storeys[lot];
         Assert.True(wide > 2 * DepartmentStore.CornerTiles, $"store {building} is only {wide} Tiles wide.");
         Assert.Equal(world.Lots.ParcelDeep[lot].Raw, deep);
-        Assert.Equal(world.Lots.ParcelNorth[lot], world.Lots.FootprintNorth[lot]);
+        Assert.Equal(new Tiles(world.Lots.ParcelBounds(lot).Y), new Tiles(world.Lots.FootprintBounds(lot).Y));
 
         var units = new List<int>();
         foreach (int unit in world.BuildingUnits.Walk(building))
@@ -615,7 +615,7 @@ public sealed class TradeFormTests
         Assert.False(world.HasRoomForHousehold(building));
 
         int level = TownSupermarket.Stalls(
-            world.Lots.ParcelNorth[lot].Raw, world.Lots.ParcelDeep[lot].Raw, world.Lots.FootprintNorth[lot].Raw,
+            world.Lots.ParcelBounds(lot).Y, world.Lots.ParcelDeep[lot].Raw, world.Lots.FootprintBounds(lot).Y,
             world.Lots.FootprintWide[lot].Raw, world.Lots.FootprintDeep[lot].Raw,
             world.Rules.Lots.StreetHalfWidthTiles, world.Rules.Parking.Stalls).Stalls;
         Assert.True(level > 0, $"supermarket {building} has no room for a stall.");

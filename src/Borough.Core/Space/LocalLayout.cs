@@ -68,12 +68,13 @@ public sealed class LocalLayoutProposal
 }
 
 internal readonly record struct LocalLot(Handle<Lot> Handle, ulong Id, int East, int North, byte Side,
-    LandRectangle Parcel, LandRectangle Footprint, byte Storeys, byte Pattern)
+    OrientedRectangle ParcelGeometry, OrientedRectangle FootprintGeometry, byte Storeys, byte Pattern)
 {
+    internal LandRectangle Parcel => ParcelGeometry.Bounds;
+    internal LandRectangle Footprint => FootprintGeometry.Bounds;
+
     internal static LocalLot Read(LotTable lots, int row) => new(lots.Rows.At(row), lots.Rows.IdAt(row),
-        lots.East[row].Raw, lots.North[row].Raw, lots.Side[row],
-        new(lots.ParcelEast[row].Raw, lots.ParcelNorth[row].Raw, lots.ParcelWide[row].Raw, lots.ParcelDeep[row].Raw),
-        new(lots.FootprintEast[row].Raw, lots.FootprintNorth[row].Raw, lots.FootprintWide[row].Raw, lots.FootprintDeep[row].Raw),
+        lots.East[row].Raw, lots.North[row].Raw, lots.Side[row], lots.Parcel(row), lots.Footprint(row),
         lots.Storeys[row], lots.Pattern[row]);
 }
 
@@ -113,7 +114,11 @@ public static class LocalLayout
         {
             int row = world.Lots.Rows.Resolve(source.Handle);
             if (!world.Lots.IsVacant(row)) { return new(LocalLayoutRefusal.Occupied); }
-            if (!source.Parcel.IsValid || source.Side > (byte)StreetSide.Right) { return new(LocalLayoutRefusal.InvalidGeometry); }
+            // Assembly still follows lattice faces; rotated or fractional sources cannot be replatted here.
+            if (!source.ParcelGeometry.IsValid || source.Side > (byte)StreetSide.Right
+                || source.ParcelGeometry != OrientedRectangle.FromBounds(source.Parcel)
+                || source.FootprintGeometry != OrientedRectangle.FromBounds(source.Footprint))
+            { return new(LocalLayoutRefusal.InvalidGeometry); }
             int at = world.Lots.FrontageOn(row);
             if (at == Rows.NoSlot || (RoadKind)world.Roads.Segments.Kind[at] != RoadKind.Street)
             {
@@ -160,7 +165,7 @@ public static class LocalLayout
         {
             if (!world.Lots.Rows.IsLive(row) || Includes(sources, world.Lots.Rows.At(row))) { continue; }
             LocalLot other = LocalLot.Read(world.Lots, row);
-            if (Overlaps(site, other.Parcel)) { return new(LocalLayoutRefusal.Overlap); }
+            if (Overlaps(site, other.ParcelGeometry)) { return new(LocalLayoutRefusal.Overlap); }
             if (other.East == door.East && other.North == door.North && other.Side == door.Side)
             {
                 return new(LocalLayoutRefusal.AddressConflict);
@@ -232,9 +237,9 @@ public static class LocalLayout
         return false;
     }
 
-    private static bool Contains(LandRectangle outer, LandRectangle inner) => inner.X >= outer.X && inner.Y >= outer.Y
-        && inner.X + inner.Width <= outer.X + outer.Width && inner.Y + inner.Height <= outer.Y + outer.Height;
+    private static bool Contains(LandRectangle outer, LandRectangle inner) =>
+        OrientedRectangle.FromBounds(outer).Contains(OrientedRectangle.FromBounds(inner));
 
-    private static bool Overlaps(LandRectangle a, LandRectangle b) => b.IsValid && a.X < b.X + b.Width
-        && b.X < a.X + a.Width && a.Y < b.Y + b.Height && b.Y < a.Y + a.Height;
+    private static bool Overlaps(LandRectangle a, OrientedRectangle b) =>
+        OrientedRectangle.FromBounds(a).Overlaps(b);
 }

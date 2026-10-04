@@ -58,7 +58,7 @@ public sealed class ZoneRuleTriggerTests
 
         for (int i = 0; i < lots; i++)
         {
-            world.Lots.Create(new Tiles(i), new Tiles(0), zone: 1);
+            world.Lots.Create(new Tiles(i % CellGrid.WorldTiles), new Tiles(i / CellGrid.WorldTiles), zone: 1);
         }
 
         return (world, simulation);

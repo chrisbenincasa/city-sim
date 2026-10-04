@@ -5200,9 +5200,9 @@ public sealed partial class World
             // saturated 481 Cells. A saturated Cell has Fertility 0 and stops telling two
             // differently-built Cells apart, which is the whole quantity this was supposed to give
             // back.
-            Layers.SealGround(
-                Lots.FootprintEast[lotSlot], Lots.FootprintNorth[lotSlot],
-                Lots.FootprintWide[lotSlot], Lots.FootprintDeep[lotSlot]);
+            LandRectangle footprint = Lots.FootprintBounds(lotSlot);
+            Layers.SealGround(new Tiles(footprint.X), new Tiles(footprint.Y),
+                new Tiles(footprint.Width), new Tiles(footprint.Height));
         }
 
         // adr/0069: construction houses NOBODY, so a Building is empty from the Tick it is raised and

@@ -125,7 +125,7 @@ public sealed partial class World
     {
         int lotSlot = Lots.Rows.Resolve(Buildings.Lot[buildingSlot]);
         int level = Space.TownSupermarket.Stalls(
-            Lots.ParcelNorth[lotSlot].Raw, Lots.ParcelDeep[lotSlot].Raw, Lots.FootprintNorth[lotSlot].Raw,
+            Lots.ParcelBounds(lotSlot).Y, Lots.ParcelDeep[lotSlot].Raw, Lots.FootprintBounds(lotSlot).Y,
             Lots.FootprintWide[lotSlot].Raw, Lots.FootprintDeep[lotSlot].Raw,
             Rules.Lots.StreetHalfWidthTiles, Rules.Parking.Stalls).Stalls;
 
@@ -143,8 +143,10 @@ public sealed partial class World
             Roads.Streets, Lots.East[lotSlot], Lots.North[lotSlot], (Space.StreetSide)Lots.Side[lotSlot],
             out int column, out int row, out Space.BlockFace face);
 
+        Space.LandRectangle bounds = Lots.ParcelBounds(lotSlot);
         Space.Parcel parcel = new(face, (Space.StreetSide)Lots.Side[lotSlot], Quantities.Tiles.Zero,
-            Lots.ParcelEast[lotSlot], Lots.ParcelNorth[lotSlot], Lots.ParcelWide[lotSlot], Lots.ParcelDeep[lotSlot]);
+            new Tiles(bounds.X), new Tiles(bounds.Y), new Tiles(bounds.Width), new Tiles(bounds.Height))
+        { Geometry = Lots.Parcel(lotSlot) };
 
         return (parcel, Space.BlockGround.At(Roads.Streets.Lattice, column, row));
     }
@@ -164,7 +166,7 @@ public sealed partial class World
     {
         int lotSlot = Lots.Rows.Resolve(Buildings.Lot[buildingSlot]);
         int level = Space.TownSupermarket.Stalls(
-            Lots.ParcelNorth[lotSlot].Raw, Lots.ParcelDeep[lotSlot].Raw, Lots.FootprintNorth[lotSlot].Raw,
+            Lots.ParcelBounds(lotSlot).Y, Lots.ParcelDeep[lotSlot].Raw, Lots.FootprintBounds(lotSlot).Y,
             Lots.FootprintWide[lotSlot].Raw, Lots.FootprintDeep[lotSlot].Raw,
             Rules.Lots.StreetHalfWidthTiles, Rules.Parking.Stalls).Stalls;
 
@@ -202,7 +204,7 @@ public sealed partial class World
         int lotSlot = Lots.Rows.Resolve(Buildings.Lot[buildingSlot]);
 
         return Space.CarParkCentre.Stalls(
-            Lots.ParcelNorth[lotSlot].Raw, Lots.FootprintNorth[lotSlot].Raw, Lots.FootprintWide[lotSlot].Raw,
+            Lots.ParcelBounds(lotSlot).Y, Lots.FootprintBounds(lotSlot).Y, Lots.FootprintWide[lotSlot].Raw,
             Rules.Lots.StreetHalfWidthTiles, Rules.Parking.Stalls).Stalls;
     }
 
@@ -255,7 +257,7 @@ public sealed partial class World
         Tiles deep = Lots.FootprintDeep[lotSlot];
         byte storeys = Lots.Storeys[lotSlot];
 
-        ulong patch = ((ulong)(uint)Lots.ParcelEast[lotSlot].Raw << 32) | (uint)Lots.ParcelNorth[lotSlot].Raw;
+        ulong patch = ((ulong)(uint)Lots.ParcelBounds(lotSlot).X << 32) | (uint)Lots.ParcelBounds(lotSlot).Y;
         ulong draw = Determinism.Randomness.Draw(Key, patch, Ticks.Zero, Determinism.PurposeTag.CentreUnits);
 
         int count = Space.CarParkCentre.UnitCount(wide);

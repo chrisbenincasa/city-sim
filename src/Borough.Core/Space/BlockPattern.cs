@@ -274,6 +274,10 @@ public readonly record struct Parcel(
     Tiles Wide,
     Tiles Deep)
 {
+    /// <summary>The exact saved ground for a preview; newly carved parcels use the lattice rectangle.</summary>
+    public OrientedRectangle Geometry { get; init; } = OrientedRectangle.FromBounds(
+        new(East.Raw, North.Raw, Wide.Raw, Deep.Raw));
+
     /// <summary>The ground this parcel holds, in Tiles.</summary>
     public int AreaTiles => Wide.Raw * Deep.Raw;
 

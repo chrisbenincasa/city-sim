@@ -113,10 +113,10 @@ public partial class Main
     {
         LotTable lots = _world.Lots;
         UnitTable units = _world.Units;
-        int east = lots.FootprintEast[hall.Lot].Raw;
-        int north = lots.FootprintNorth[hall.Lot].Raw;
-        int wide = lots.FootprintWide[hall.Lot].Raw;
-        int deep = lots.FootprintDeep[hall.Lot].Raw;
+        int east = lots.FootprintBounds(hall.Lot).X;
+        int north = lots.FootprintBounds(hall.Lot).Y;
+        int wide = lots.FootprintBounds(hall.Lot).Width;
+        int deep = lots.FootprintBounds(hall.Lot).Height;
         int family = 3 * (int)hall.Family;
 
         void Put(int module, Basis facing, int x, int y) =>
@@ -181,9 +181,9 @@ public partial class Main
     private void PlaceSquare(Hall hall, List<(ulong, Transform3D, Color)>[] placed)
     {
         LotTable lots = _world.Lots;
-        int east = lots.FootprintEast[hall.Lot].Raw;
-        int wide = lots.FootprintWide[hall.Lot].Raw;
-        int south = lots.FootprintNorth[hall.Lot].Raw + lots.FootprintDeep[hall.Lot].Raw;
+        int east = lots.FootprintBounds(hall.Lot).X;
+        int wide = lots.FootprintBounds(hall.Lot).Width;
+        int south = lots.FootprintBounds(hall.Lot).Y + lots.FootprintBounds(hall.Lot).Height;
         (Parcel parcel, BlockGround ground) = _world.ParcelGround(hall.Lot);
         int top = System.Math.Min(
             parcel.North.Raw + parcel.Deep.Raw, ground.North + ground.Deep - _world.Rules.Lots.StreetHalfWidthTiles);

@@ -105,10 +105,10 @@ public partial class Main
     private void PlacePrecinct(PrecinctSite site, List<(ulong, Transform3D, Color)>[] placed)
     {
         LotTable lots = _world.Lots;
-        int east = lots.FootprintEast[site.Lot].Raw;
-        int north = lots.FootprintNorth[site.Lot].Raw;
-        int wide = lots.FootprintWide[site.Lot].Raw;
-        int deep = lots.FootprintDeep[site.Lot].Raw;
+        int east = lots.FootprintBounds(site.Lot).X;
+        int north = lots.FootprintBounds(site.Lot).Y;
+        int wide = lots.FootprintBounds(site.Lot).Width;
+        int deep = lots.FootprintBounds(site.Lot).Height;
         int storeys = lots.Storeys[site.Lot];
         int family = 5 * (int)site.Family;
         Span<Precinct.Row> rows = stackalloc Precinct.Row[Precinct.RowCount(wide)];
