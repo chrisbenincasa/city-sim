@@ -21,10 +21,10 @@ public readonly record struct OrientedRectangle(
         {
             Extents(AxisEastQ16, -AxisNorthQ16, out long x0, out long x1);
             Extents(AxisNorthQ16, AxisEastQ16, out long y0, out long y1);
-            int x = (int)IntegerMath.FloorDiv(EastQ16 + x0, Fixed.One);
-            int y = (int)IntegerMath.FloorDiv(NorthQ16 + y0, Fixed.One);
-            return new(x, y, (int)IntegerMath.CeilDiv(EastQ16 + x1, Fixed.One) - x,
-                (int)IntegerMath.CeilDiv(NorthQ16 + y1, Fixed.One) - y);
+            int x = (int)IntegerMath.ShiftRight(EastQ16 + x0, Fixed.FractionalBits);
+            int y = (int)IntegerMath.ShiftRight(NorthQ16 + y0, Fixed.FractionalBits);
+            return new(x, y, (int)-IntegerMath.ShiftRight(-(EastQ16 + x1), Fixed.FractionalBits) - x,
+                (int)-IntegerMath.ShiftRight(-(NorthQ16 + y1), Fixed.FractionalBits) - y);
         }
     }
 

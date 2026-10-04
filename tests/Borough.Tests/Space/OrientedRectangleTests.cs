@@ -81,6 +81,56 @@ public sealed class OrientedRectangleTests
         Assert.True(quarterTurn.Contains(OrientedRectangle.FromBounds(quarterTurn.Bounds)));
     }
 
+    [Theory]
+    [InlineData(int.MinValue)]
+    [InlineData(-1073741824)]
+    [InlineData(-65537)]
+    [InlineData(-65536)]
+    [InlineData(-1)]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(65535)]
+    [InlineData(65536)]
+    [InlineData(1073741824)]
+    [InlineData(int.MaxValue)]
+    public void Shift_bounds_match_division_for_signed_and_fractional_corners(int corner)
+    {
+        (int East, int North)[] axes = [(Fixed.One, 0), (-Fixed.One, 0), (0, -Fixed.One),
+            (46341, 46341), (-46341, 46341)];
+        foreach (var axis in axes)
+        {
+            var rectangle = new OrientedRectangle(corner, corner, axis.East, axis.North,
+                CellGrid.WorldTiles, CellGrid.WorldTiles);
+            long east = (long)rectangle.Wide * axis.East, north = (long)rectangle.Wide * axis.North;
+            long backEast = -(long)rectangle.Deep * axis.North, backNorth = (long)rectangle.Deep * axis.East;
+            long[] xs = [corner, corner + east, corner + backEast, corner + east + backEast];
+            long[] ys = [corner, corner + north, corner + backNorth, corner + north + backNorth];
+            int x = (int)IntegerMath.FloorDiv(xs.Min(), Fixed.One);
+            int y = (int)IntegerMath.FloorDiv(ys.Min(), Fixed.One);
+            var expected = new LandRectangle(x, y, (int)IntegerMath.CeilDiv(xs.Max(), Fixed.One) - x,
+                (int)IntegerMath.CeilDiv(ys.Max(), Fixed.One) - y);
+            Assert.Equal(expected, rectangle.Bounds);
+        }
+    }
+
+    [Fact]
+    public void Parcel_coordinates_follow_its_geometry_after_copying()
+    {
+        var original = new Parcel(BlockFace.South, StreetSide.Left, Tiles.Zero,
+            new Tiles(10), new Tiles(12), new Tiles(3), new Tiles(2));
+        Assert.Equal(OrientedRectangle.FromBounds(new(10, 12, 3, 2)), original.Geometry);
+        var moved = original with
+        {
+            Geometry = new OrientedRectangle(Fixed.FromInt(30) + 1, Fixed.FromInt(40) + 1,
+                0, Fixed.One, 5, 3),
+        };
+        Assert.Equal((27, 40, 4, 6), (moved.East.Raw, moved.North.Raw, moved.Wide.Raw, moved.Deep.Raw));
+        Assert.Equal((10, 12, 3, 2), (original.East.Raw, original.North.Raw, original.Wide.Raw, original.Deep.Raw));
+        Assert.Equal((0, 0, 0, 0), (default(Parcel).East.Raw, default(Parcel).North.Raw,
+            default(Parcel).Wide.Raw, default(Parcel).Deep.Raw));
+        Assert.False(LotSubdivider.Contains(default, Tiles.Zero, Tiles.Zero));
+    }
+
     [Fact]
     public void World_extent_projections_fit_and_invalid_ground_has_no_interior()
     {
@@ -129,9 +179,7 @@ public sealed class OrientedRectangleTests
     public void Subdivider_hit_test_uses_saved_preview_geometry()
     {
         var geometry = new OrientedRectangle(Fixed.FromInt(10), Fixed.FromInt(10), 46341, 46341, 4, 4);
-        var parcel = new Parcel(BlockFace.South, StreetSide.Left, Tiles.Zero,
-            new Tiles(7), new Tiles(10), new Tiles(6), new Tiles(6))
-        { Geometry = geometry };
+        var parcel = new Parcel(BlockFace.South, StreetSide.Left, Tiles.Zero, geometry);
         Assert.True(LotSubdivider.Contains(parcel, new Tiles(10), new Tiles(12)));
         Assert.False(LotSubdivider.Contains(parcel, new Tiles(12), new Tiles(10)));
     }

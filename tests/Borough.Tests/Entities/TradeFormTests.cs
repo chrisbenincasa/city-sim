@@ -205,12 +205,14 @@ public sealed class TradeFormTests
         Assert.Equal(32 - PadSite.DepthTiles - half, parcels[0].Wide.Raw);
         Assert.Equal(32 * 32, parcels[..count].ToArray().Sum(parcel => parcel.AreaTiles));
         Assert.InRange(parcels[0].Offset.Raw, parcels[0].East.Raw, parcels[0].East.Raw + parcels[0].Wide.Raw - 1);
+        Assert.True(LotSubdivider.Contains(parcels[0], parcels[0].East, parcels[0].North));
 
         for (int pad = 1; pad < count; pad++)
         {
             Parcel each = parcels[pad];
             Assert.Equal(east ? BlockFace.East : BlockFace.West, each.Face);
             Assert.Equal(east ? 32 - each.Wide.Raw : 0, each.East.Raw);
+            Assert.False(LotSubdivider.Contains(parcels[0], each.East, each.North));
             Assert.InRange(each.Offset.Raw, each.North.Raw, each.North.Raw + each.Deep.Raw - 1);
 
             var foot = PadSite.Footprint(each, ground, half);

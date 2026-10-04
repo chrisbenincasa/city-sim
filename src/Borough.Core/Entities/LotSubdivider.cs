@@ -44,10 +44,7 @@ public static class LotSubdivider
             if (!OnBlock(world, slot, column, row, out BlockFace face)) { continue; }
             int offset = face is BlockFace.South or BlockFace.North ? lots.East[slot].Raw - ground.East : lots.North[slot].Raw - ground.North;
             if (count == into.Length) { throw new ArgumentException("Preview buffer is smaller than PreviewCapacity.", nameof(into)); }
-            LandRectangle bounds = lots.ParcelBounds(slot);
-            into[count++] = new(face, (StreetSide)lots.Side[slot], new Tiles(offset), new Tiles(bounds.X),
-                new Tiles(bounds.Y), new Tiles(bounds.Width), new Tiles(bounds.Height))
-            { Geometry = lots.Parcel(slot) };
+            into[count++] = new(face, (StreetSide)lots.Side[slot], new Tiles(offset), lots.Parcel(slot));
         }
         int ceiling = world.Rules.Lots.ParcelCeiling(ground);
         Span<Parcel> proposed = ceiling <= 128 ? stackalloc Parcel[128] : new Parcel[ceiling];

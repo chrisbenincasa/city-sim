@@ -420,6 +420,7 @@ public sealed class LotTable
     /// takes none — so the honest thing is to seal what was asked for, and a caller wanting a
     /// setback is a caller who should be going through the subdivider.
     /// </para>
+    /// <para>Corner coordinates must fit Q16.16, from -32,768 through 32,767 whole Tiles.</para>
     /// </remarks>
     public Handle<Lot> Create(
         Tiles east,

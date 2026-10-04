@@ -143,10 +143,7 @@ public sealed partial class World
             Roads.Streets, Lots.East[lotSlot], Lots.North[lotSlot], (Space.StreetSide)Lots.Side[lotSlot],
             out int column, out int row, out Space.BlockFace face);
 
-        Space.LandRectangle bounds = Lots.ParcelBounds(lotSlot);
-        Space.Parcel parcel = new(face, (Space.StreetSide)Lots.Side[lotSlot], Quantities.Tiles.Zero,
-            new Tiles(bounds.X), new Tiles(bounds.Y), new Tiles(bounds.Width), new Tiles(bounds.Height))
-        { Geometry = Lots.Parcel(lotSlot) };
+        Space.Parcel parcel = new(face, (Space.StreetSide)Lots.Side[lotSlot], Quantities.Tiles.Zero, Lots.Parcel(lotSlot));
 
         return (parcel, Space.BlockGround.At(Roads.Streets.Lattice, column, row));
     }
