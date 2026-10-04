@@ -260,11 +260,14 @@ public sealed class StreetDiagonalTests
     {
         RoadGraph graph = Laid();
         StreetGrid streets = graph.Streets;
-        var offLattice = new HashSet<int>();
-
-        for (int index = 0; index < streets.OffLatticeCount; index++)
+        var lattice = new HashSet<int>();
+        for (int column = 0; column < streets.Span; column++)
         {
-            offLattice.Add(streets.OffLatticeAt(index));
+            for (int row = 0; row < streets.Span; row++)
+            {
+                lattice.Add(streets.Horizontal(column, row));
+                lattice.Add(streets.Vertical(column, row));
+            }
         }
 
         for (int slot = 0; slot < graph.Segments.Rows.SlotCount; slot++)
@@ -274,7 +277,7 @@ public sealed class StreetDiagonalTests
                 continue;
             }
 
-            Assert.Contains(slot, offLattice);
+            Assert.DoesNotContain(slot, lattice);
         }
     }
 

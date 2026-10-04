@@ -46,17 +46,7 @@ public sealed class LineSourceQueryTests
 
     private static readonly LineSource Noise = new(new Tiles(75), Fixed.One);
 
-    /// <summary>
-    /// A chain whose Streets sit ON the declared lattice, so <see cref="StreetGrid"/> holds them.
-    /// </summary>
-    /// <remarks>
-    /// ⚠ <b><see cref="RoadFixtures.Chain"/> does not do this, and it reads as though it does.</b> Its
-    /// nodes are 32 Tiles apart and its Ruleset declares <c>block_tiles = 512</c>, so every Segment it
-    /// makes is <em>off</em> the lattice and lands in <see cref="StreetGrid.OffLatticeCount"/>. Every
-    /// other test in this file therefore exercises the linear scan; without this fixture the lattice
-    /// window — the half the query exists to be fast in — would have no coverage at all while the file
-    /// looked thorough. ***A fixture named for a shape is not a fixture of that shape.***
-    /// </remarks>
+    /// <summary>A chain whose Streets sit on the declared lattice.</summary>
     private static RoadGraph OnTheLattice(int nodes)
     {
         RoadGraph graph = new(RoadFixtures.Roads(blockTiles: 32, arterials: 0));
@@ -75,27 +65,23 @@ public sealed class LineSourceQueryTests
         return graph;
     }
 
-    /// <summary>
-    /// <b>The lattice window finds what the linear scan would.</b> The two halves of the source set
-    /// agree, which is the property that makes the split an optimisation rather than a second model.
-    /// </summary>
     [Fact]
-    public void A_street_on_the_lattice_is_found_through_the_window_and_not_the_scan()
+    public void Lattice_and_off_lattice_streets_use_the_same_spatial_query()
     {
         RoadGraph graph = OnTheLattice(4);
 
-        Assert.Equal(0, graph.Streets.OffLatticeCount);
+        Assert.Equal(0, graph.Streets.Horizontal(0, 0));
 
         graph.Segments.VolumeForward[0] = 40;
 
         int through = LineSourceQueries.Noise(graph, Noise, new Tiles(16), new Tiles(6));
 
-        Assert.True(through > 0, "found through the StreetGrid window, with nothing in the scan to find");
+        Assert.True(through > 0);
 
-        // The same geometry off the lattice, reached by the other half of the source set.
+        // The same geometry remains audible without a matching lattice edge.
         RoadGraph scanned = RoadFixtures.Chain(4);
 
-        Assert.True(scanned.Streets.OffLatticeCount > 0);
+        Assert.Equal(Rows.NoSlot, scanned.Streets.Horizontal(0, 0));
 
         scanned.Segments.VolumeForward[0] = 40;
 
@@ -236,7 +222,7 @@ public sealed class LineSourceQueryTests
     /// kind <c>Street</c> — so an Arterial is in no lattice cell and would be invisible to a query that
     /// walked the index alone. ⚠ <b><c>02 §2.4</c> names <em>Arterials within ~300 m</em> as a source</b>,
     /// so that gap would have silenced the loudest roads in the model while every other test still
-    /// passed. It is found through <see cref="StreetGrid.OffLatticeCount"/>, whose whole purpose is this.
+    /// passed. <see cref="SegmentResidency"/> includes it alongside lattice Streets.
     /// </remarks>
     [Fact]
     public void An_arterial_that_is_on_no_lattice_edge_is_still_a_source()
@@ -252,7 +238,7 @@ public sealed class LineSourceQueryTests
         graph.RebuildDerived();
 
         Assert.True(graph.Segments.Rows.TryResolve(arterial, out int slot));
-        Assert.True(graph.Streets.OffLatticeCount > 0, "the Arterial is on no lattice edge");
+        Assert.Equal(Rows.NoSlot, graph.Streets.Horizontal(0, 0));
 
         graph.Segments.VolumeForward[slot] = 60;
 

@@ -1322,9 +1322,8 @@ public sealed class MapLayers
 
         DesirabilityWeights weights = _ruleset.Desirability;
 
-        // ONE LINEAR SCAN OF THE SEGMENT TABLE, against a pass that queries it four times per Cell.
-        // Rebuilt here rather than cached across Ticks: it is scratch, so no load has to rebuild it
-        // and no derived column can go quietly unpopulated. See TrafficPresence.
+        // Recount traffic for this pass; spatial queries use the graph's rebuilt Cell index.
+        graph.Residency.Rebuild(graph.Segments);
         _traffic.Rebuild(graph, weights.NoiseSource.Range);
 
         for (int slot = 0; slot < _cells.Rows.SlotCount; slot++)

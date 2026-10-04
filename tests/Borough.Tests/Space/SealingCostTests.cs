@@ -38,8 +38,6 @@ public sealed class SealingCostTests(ITestOutputHelper output)
 
     private static readonly List<(int Tick, long Ms)> Slow = [];
 
-    private static int OffLattice;
-
     private static int Segments;
 
     private static Ruleset Load(string file)
@@ -63,7 +61,6 @@ public sealed class SealingCostTests(ITestOutputHelper output)
         building.Stop();
         buildMs = building.ElapsedMilliseconds;
         cellRows = world.Layers.Cells.Rows.LiveCount;
-        OffLattice = world.Roads.Streets.OffLatticeCount;
         Segments = world.Roads.Segments.Rows.LiveCount;
 
         var ticking = Stopwatch.StartNew();
@@ -102,10 +99,7 @@ public sealed class SealingCostTests(ITestOutputHelper output)
         output.WriteLine($"# {file} — {Citizens} Citizens, {TimedTicks} Ticks");
         output.WriteLine($"LayerCell rows after build   {rows}");
         output.WriteLine($"Segments                     {Segments}");
-        output.WriteLine($"  of which OFF-LATTICE       {OffLattice} "
-            + "(scanned twice per noise query)");
-        output.WriteLine($"noise queries per pass       {rows * 4} "
-            + $"= {(long)rows * 4 * OffLattice * 2:N0} off-lattice visits");
+        output.WriteLine($"noise queries per pass       {rows * 4}");
         output.WriteLine($"PopulateInto                 {buildMs} ms");
         output.WriteLine($"{TimedTicks} Ticks, guard ON          {guarded} ms "
             + $"({guarded / (double)TimedTicks:F2} ms/Tick)");

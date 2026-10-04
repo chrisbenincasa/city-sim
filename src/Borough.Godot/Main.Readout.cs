@@ -396,13 +396,7 @@ public partial class Main
     /// while the cursor sat on the very thing the question was about.
     /// </para>
     /// <para>
-    /// ⚠ <b>Through the block's own bucket rather than a walk.</b>
-    /// <see cref="StreetGrid.OffLatticeHead"/> buckets each off-lattice Segment at the block of its
-    /// first endpoint, so this is a short chain and not the <c>O(Lots)</c> scan
-    /// <see cref="Raise"/> is stuck with. ⚠ <b>A Segment can reach out of its bucket</b>
-    /// (<see cref="StreetGrid.OffLatticeReachBlocks"/>), so what this reports is what <em>starts</em>
-    /// here — enough to answer <em>what is that</em>, and not a claim about everything crossing the
-    /// block.
+    /// Cell-indexed candidates are filtered to off-lattice Segments whose midpoint belongs here.
     /// </para>
     /// </remarks>
     private void Crossing(
@@ -415,10 +409,19 @@ public partial class Main
         int paths = 0;
         int others = 0;
 
-        for (int slot = streets.OffLatticeHead(column, row);
-             slot != Rows.NoSlot;
-             slot = streets.OffLatticeNext(slot))
+        foreach (int slot in _world.Roads.Residency.In(
+            streets.Lattice.TileOf(column), streets.Lattice.TileOf(row),
+            new Tiles(streets.Lattice.WidthOf(column)), new Tiles(streets.Lattice.WidthOf(row))))
         {
+            StreetArc arc = _world.Roads.Segments.Centerline[slot];
+            int aColumn = streets.Lattice.LineAt((int)IntegerMath.FloorDiv(arc.A.East, Borough.Core.Arithmetic.Fixed.One));
+            int aRow = streets.Lattice.LineAt((int)IntegerMath.FloorDiv(arc.A.North, Borough.Core.Arithmetic.Fixed.One));
+            if (streets.Horizontal(aColumn, aRow) == slot || streets.Vertical(aColumn, aRow) == slot
+                || streets.Lattice.LineAt((int)IntegerMath.FloorDiv(arc.A.East + arc.B.East, 2L * Borough.Core.Arithmetic.Fixed.One)) != column
+                || streets.Lattice.LineAt((int)IntegerMath.FloorDiv(arc.A.North + arc.B.North, 2L * Borough.Core.Arithmetic.Fixed.One)) != row)
+            {
+                continue;
+            }
             if ((RoadKind)_world.Roads.Segments.Kind[slot] == RoadKind.FootPath)
             {
                 paths++;
