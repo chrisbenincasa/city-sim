@@ -24,7 +24,8 @@ jobs:
           config.model: "deepseek/deepseek-flash"
           config.fallback_models: '["deepseek/deepseek-v4-flash"]'
           config.reasoning_effort: "max"
-          config.max_model_tokens: "128000"
+          config.max_model_tokens: "400000"
+          config.max_output_tokens: "196608"
           config.patch_extra_lines_after: "20"
           pr_reviewer.num_max_findings: "10"
           pr_reviewer.require_estimate_effort_to_review: "false"
