@@ -413,12 +413,8 @@ public partial class Main
             streets.Lattice.TileOf(column), streets.Lattice.TileOf(row),
             new Tiles(streets.Lattice.WidthOf(column)), new Tiles(streets.Lattice.WidthOf(row))))
         {
-            StreetArc arc = _world.Roads.Segments.Centerline[slot];
-            int aColumn = streets.Lattice.LineAt((int)IntegerMath.FloorDiv(arc.A.East, Borough.Core.Arithmetic.Fixed.One));
-            int aRow = streets.Lattice.LineAt((int)IntegerMath.FloorDiv(arc.A.North, Borough.Core.Arithmetic.Fixed.One));
-            if (streets.Horizontal(aColumn, aRow) == slot || streets.Vertical(aColumn, aRow) == slot
-                || streets.Lattice.LineAt((int)IntegerMath.FloorDiv(arc.A.East + arc.B.East, 2L * Borough.Core.Arithmetic.Fixed.One)) != column
-                || streets.Lattice.LineAt((int)IntegerMath.FloorDiv(arc.A.North + arc.B.North, 2L * Borough.Core.Arithmetic.Fixed.One)) != row)
+            if (!streets.CrossingBlockOf(_world.Roads.Segments, slot, out int ownerColumn, out int ownerRow)
+                || ownerColumn != column || ownerRow != row)
             {
                 continue;
             }

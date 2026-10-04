@@ -19,18 +19,92 @@ namespace Borough.Tests.Space;
 public sealed class LineSourceQueryTests
 {
     [Fact]
-    public void Equal_floored_distances_keep_the_first_frontage_street()
+    public void Exact_distance_selects_the_background_before_whole_tile_falloff()
     {
         var graph = OnTheLattice(3);
         graph.Segments.VolumeForward[0] = 10;
         graph.Segments.VolumeForward[1] = 20;
         var source = new LineSource(new Tiles(16), Fixed.One);
-        // Both Streets floor to eight Tiles on either side of their shared endpoint.
-        // Choosing the geometrically closer Street would change which flow sets the background.
+        // Both Streets floor to eight Tiles, but their exact distances select different backgrounds.
         int left = LineSourceQueries.Noise(graph, source, new Tiles(30), new Tiles(8));
         int right = LineSourceQueries.Noise(graph, source, new Tiles(34), new Tiles(8));
         Assert.True(left > 0);
-        Assert.Equal(left, right);
+        Assert.True(left > right);
+    }
+
+    [Fact]
+    public void Equal_distance_and_strength_ties_choose_the_oldest_id_after_slot_reuse()
+    {
+        var graph = new RoadGraph(RoadFixtures.Roads(blockTiles: 0, arterials: 0));
+        int disposable = StreetAt(0);
+        int older = StreetAt(64);
+        graph.Segments.Rows.Free(graph.Segments.Rows.At(disposable));
+        int newer = StreetAt(32);
+        graph.RebuildDerived();
+        Assert.True(older > newer);
+        Assert.True(graph.Segments.Rows.IdAt(older) < graph.Segments.Rows.IdAt(newer));
+        var candidates = graph.Residency.Near(new Tiles(96), new Tiles(48), new Tiles(24)).GetEnumerator();
+        Assert.True(candidates.MoveNext());
+        Assert.Equal(newer, candidates.Current);
+
+        graph.Segments.VolumeForward[newer] = 10;
+        graph.Segments.VolumeForward[older] = 10;
+        var source = new LineSource(new Tiles(24), Fixed.One);
+        foreach (int[] order in new[] { new[] { newer, older }, new[] { older, newer } })
+        {
+            int best = Rows.NoSlot, nearest = int.MaxValue;
+            foreach (int slot in order)
+            {
+                LineSourceQueries.Nearer(graph, source, slot, new Tiles(96), new Tiles(48), ref best, ref nearest);
+            }
+            Assert.Equal(older, best);
+        }
+
+        int StreetAt(int north)
+        {
+            Handle<RoadNode> a = graph.Nodes.Create(new Tiles(64), new Tiles(north));
+            Handle<RoadNode> b = graph.Nodes.Create(new Tiles(128), new Tiles(north));
+            return graph.Segments.Rows.Resolve(graph.Segments.Create(
+                a, b, new Tiles(64), RoadKind.Street, TravelMode.Any, TravelMode.Any));
+        }
+    }
+
+    [Fact]
+    public void Background_order_is_distance_then_strength_then_id_at_a_quadrant_sample()
+    {
+        var graph = new RoadGraph(RoadFixtures.Roads(blockTiles: 32, arterials: 0));
+        Handle<RoadNode> origin = graph.Nodes.Create(Tiles.Zero, Tiles.Zero);
+        Handle<RoadNode> east = graph.Nodes.Create(new Tiles(32), Tiles.Zero);
+        Handle<RoadNode> north = graph.Nodes.Create(Tiles.Zero, new Tiles(32));
+        int horizontal = graph.Segments.Rows.Resolve(graph.Segments.Create(origin, east, new Tiles(32),
+            RoadKind.Street, TravelMode.Any, TravelMode.Any));
+        int vertical = graph.Segments.Rows.Resolve(graph.Segments.Create(origin, north, new Tiles(32),
+            RoadKind.Street, TravelMode.Any, TravelMode.Any));
+        graph.RebuildDerived();
+        var source = new LineSource(new Tiles(16), Fixed.One);
+        graph.Segments.VolumeForward[horizontal] = 10;
+        graph.Segments.VolumeForward[vertical] = 20;
+        AssertChoice(8, 7, horizontal);
+        AssertChoice(8, 8, vertical);
+
+        int combined = LineSourceQueries.Noise(graph, source, new Tiles(8), new Tiles(8));
+        graph.Segments.VolumeForward[horizontal] = 0;
+        Assert.Equal(combined, LineSourceQueries.Noise(graph, source, new Tiles(8), new Tiles(8)));
+        graph.Segments.VolumeForward[horizontal] = 20;
+        AssertChoice(8, 8, horizontal);
+
+        void AssertChoice(int e, int n, int expected)
+        {
+            foreach (int[] order in new[] { new[] { horizontal, vertical }, new[] { vertical, horizontal } })
+            {
+                int best = Rows.NoSlot, nearest = int.MaxValue;
+                foreach (int slot in order)
+                {
+                    LineSourceQueries.Nearer(graph, source, slot, new Tiles(e), new Tiles(n), ref best, ref nearest);
+                }
+                Assert.Equal(expected, best);
+            }
+        }
     }
 
     [Fact]
@@ -70,7 +144,10 @@ public sealed class LineSourceQueryTests
     {
         RoadGraph graph = OnTheLattice(4);
 
-        Assert.Equal(0, graph.Streets.Horizontal(0, 0));
+        for (int column = 0; column < 3; column++)
+        {
+            Assert.Equal(column, graph.Streets.Horizontal(column, 0));
+        }
 
         graph.Segments.VolumeForward[0] = 40;
 

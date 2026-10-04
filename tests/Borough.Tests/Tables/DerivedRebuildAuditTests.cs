@@ -306,6 +306,37 @@ public sealed class DerivedRebuildAuditTests
         }
     }
 
+    [Fact]
+    public void Traffic_presence_mask_rebuilds_after_corruption_without_saved_writes()
+    {
+        World world = Stepped(0);
+        RoadGraph graph = world.Roads;
+        int moving = Enumerable.Range(0, graph.Segments.Rows.SlotCount)
+            .First(graph.Segments.Rows.IsLive);
+        graph.Segments.VolumeForward[moving] = 1;
+        var presence = new TrafficPresence();
+        Tiles range = world.Rules.Layers.Desirability.NoiseSource.Range;
+        presence.Rebuild(graph, range);
+        bool[] original = presence.Mask.ToArray();
+        Assert.Contains(true, original);
+        Assert.Contains(false, original);
+        ulong saved = world.HashState();
+
+        // The pass-scoped mask lives outside Rows, so audit both corruption directions explicitly.
+        presence.Mask.Fill(true);
+        presence.Rebuild(graph, range);
+        Assert.Equal(original, presence.Mask.ToArray());
+        presence.Mask.Clear();
+        presence.Rebuild(graph, range);
+        Assert.Equal(original, presence.Mask.ToArray());
+        Assert.Equal(saved, world.HashState());
+
+        graph.Segments.VolumeForward[moving] = 0;
+        presence.Rebuild(graph, range);
+        Assert.False(presence.AnyTraffic);
+        Assert.DoesNotContain(true, presence.Mask.ToArray());
+    }
+
     /// <summary>
     /// The obligation <see cref="Disposition.Scratch"/> carries: nothing reads a scratch column
     /// outside the phase that wrote it, so its content cannot reach the State Hash.

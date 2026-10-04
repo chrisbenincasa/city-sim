@@ -544,6 +544,39 @@ empty is an open question** and is filed at [`0002`](0002-open-questions.md) §B
 `bordered.toml` is a measurement of a city with traffic in it***, and this one least of all: it is the
 row whose cost the traffic decides.
 
+#### Cell-keyed traffic presence (October 3, 2026)
+
+- Freeform Streets slice 4a retains one geometric Segment index and derives a traffic mask over
+  Cells from its bounds. The mask rebuilds at the start of each land-value pass. Silent Cells
+  skip centerline-distance work before the nearest-Street walk.
+- Folding volume detection into that walk alone was rejected. On the five-Vehicle fixture it
+  took 8,707 ms guarded against 8,546 ms unguarded. Skipping only the contribution walk did not
+  preserve the old local early-out.
+- The matched captures used Release on `zeus`, Intel Core i5-10400 at 2.90 GHz, 12 logical CPUs,
+  one field thread, `bordered.toml`, 4,000 Citizens, 262,144 Cell rows, and 531,912 Segments.
+  The same instrument code ran against archived base `03155943` and the Cell-mask implementation.
+- Fixture seed was `0x5EA1`. Five evenly spaced Street Segments each held one Vehicle. Trips were
+  not stepped; both captures asserted five moving Segments and `AnyTraffic = true`.
+- The captures ran sequentially on a busy shared development machine while other builds and
+  simulations ran. These are observations, not quiet-machine timings or a speedup claim.
+
+| Five-Vehicle field pass | Base `03155943` | Cell-mask slice 4a |
+|---|---:|---:|
+| Traffic summary rebuild | 1 ms | 5 ms |
+| `SetLandValueTargets`, guarded | 47 ms | 124 ms |
+| Same Cell walk, unguarded | 17,505 ms | 18,730 ms |
+| Unguarded result sink | −2,643,859 | −2,643,859 |
+
+The guarded pass stays in the base's order of magnitude, with a 2.64× observed cost on this busy
+capture. The final policy selects exact distance, then greater contribution, then lowest Segment
+id; these timings include its contribution comparisons on exact-distance ties. The zero-Vehicle
+guarded cases took 122 ms at base and 36 ms with the Cell mask. The historical 80 ms and 85×
+figures above describe their earlier capture, not the new index.
+A corruption/rebuild audit covers the pass-scoped mask explicitly; a guarded-versus-unguarded
+Cell comparison checks answer parity. `SealingCostTests` reports Segment/Cell membership count
+and maximum Cells per Segment alongside its timing. The `bordered.toml` diagnostic captured
+1,109,778 memberships and a maximum of 156 Cells per Segment; `minimal.toml` captured 552 and 4.
+
 **What this does to the stagger.** It does not answer it; it unblocks the work that was waiting on it.
 The whole-world sweep is still the shape `02 §10` names as wrong, and a Cell still retargets on the
 designer's cadence rather than a profiler's. What has gone is the *urgency* — 80 ms on one Tick in 256

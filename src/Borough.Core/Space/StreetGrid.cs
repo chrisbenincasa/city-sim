@@ -407,6 +407,18 @@ public sealed class StreetGrid
         }
     }
 
+    /// <summary>The midpoint block of a Segment not held as a lattice edge.</summary>
+    public bool CrossingBlockOf(RoadSegmentTable segments, int slot, out int column, out int row)
+    {
+        ArgumentNullException.ThrowIfNull(segments);
+        StreetArc arc = segments.Centerline[slot];
+        int aColumn = Lattice.LineAt((int)IntegerMath.FloorDiv(arc.A.East, Fixed.One));
+        int aRow = Lattice.LineAt((int)IntegerMath.FloorDiv(arc.A.North, Fixed.One));
+        column = Lattice.LineAt((int)IntegerMath.FloorDiv(arc.A.East + arc.B.East, 2L * Fixed.One));
+        row = Lattice.LineAt((int)IntegerMath.FloorDiv(arc.A.North + arc.B.North, 2L * Fixed.One));
+        return Horizontal(aColumn, aRow) != slot && Vertical(aColumn, aRow) != slot;
+    }
+
     /// <summary>
     /// Whether a node sits exactly on a lattice intersection, and where.
     /// </summary>

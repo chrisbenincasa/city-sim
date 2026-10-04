@@ -115,8 +115,7 @@ public static class LineSourceQueries
     /// </para>
     /// </remarks>
     /// <param name="near">
-    /// An optional presence map that lets the query skip a Tile no traffic reaches. <b>Null means do
-    /// the full scan</b>, so nothing that omits it changes its answer.
+    /// An optional Cell-keyed traffic mask rebuilt for this field pass. Null runs the full query.
     /// </param>
     public static int Noise(
         RoadGraph graph, LineSource source, Tiles east, Tiles north, TrafficPresence? near = null) =>
@@ -191,8 +190,14 @@ public static class LineSourceQueries
     /// </summary>
     /// <remarks>
     /// <para>
-    /// SegmentResidency supplies candidates for every road shape. Exact centerline distances select
-    /// the nearest Street and reject sources outside the range.
+    /// SegmentResidency supplies candidates for every road shape. Exact centerline distance selects
+    /// the nearest Street. Ties prefer greater contribution at the point, then the lowest monotonic
+    /// Segment id. Contribution falloff still floors distance to whole Tiles.
+    /// </para>
+    /// <para>
+    /// A louder tied Street sets a higher background and excludes the quieter tied source from the
+    /// sum. Choosing it instead of the quieter background removes the quieter contribution from
+    /// total intensity and lowers the field. This is deliberate field behavior under <c>05 §4</c>.
     /// </para>
     /// <para>
     /// <b>The background is computed first and every other source is measured against it.</b> That is
@@ -215,7 +220,8 @@ public static class LineSourceQueries
         int range = source.Range.Raw;
         if (range <= 0) { return 0; }
 
-        if (near is not null && !near.Near(graph, east, north, source.Range))
+        if (near is not null && near.Covers(source.Range)
+            && (!near.AnyTraffic || !near.Near(east, north)))
         {
             return 0;
         }
@@ -224,13 +230,19 @@ public static class LineSourceQueries
         Tiles reach = new(range < int.MaxValue ? range + 1 : range);
         int local = Rows.NoSlot;
         int nearest = int.MaxValue;
+        bool anyTraffic = false;
         foreach (int slot in graph.Residency.Near(east, north, reach))
         {
+            anyTraffic |= (long)graph.Segments.VolumeForward[slot] + graph.Segments.VolumeBackward[slot] > 0;
             if ((RoadKind)graph.Segments.Kind[slot] == RoadKind.Street)
             {
-                Nearer(graph, slot, east, north, ref local, ref nearest);
+                Nearer(graph, source, slot, east, north, ref local, ref nearest);
             }
         }
+
+        // With no candidate traffic, every contribution and the background are zero.
+        // Sources outside this conservative box are beyond range, so skipping pass two is exact.
+        if (!anyTraffic) { return 0; }
 
         int background = local == Rows.NoSlot ? 0 : Contribution(graph, source, local, east, north);
         long total = background;
@@ -254,51 +266,25 @@ public static class LineSourceQueries
     /// arbitrary Tile a field query asks about. Using it here made the background zero everywhere except
     /// on the carriageway, which disabled the enumerate-by-loudness rule without failing anything.
     /// </remarks>
-    private static void Nearer(
-        RoadGraph graph, int slot, Tiles east, Tiles north, ref int best, ref int nearest)
+    internal static void Nearer(
+        RoadGraph graph, LineSource source, int slot, Tiles east, Tiles north, ref int best, ref int nearest)
     {
-        if (slot == Rows.NoSlot)
+        int distance = graph.Segments.Centerline[slot].DistanceTo(
+            (long)east.Raw * Fixed.One, (long)north.Raw * Fixed.One);
+
+        bool first = best == Rows.NoSlot || distance < nearest;
+        if (!first && distance == nearest)
         {
-            return;
+            int candidate = Contribution(graph, source, slot, east, north);
+            int current = Contribution(graph, source, best, east, north);
+            first = candidate > current || (candidate == current
+                && graph.Segments.Rows.IdAt(slot) < graph.Segments.Rows.IdAt(best));
         }
-
-        int distance = DistanceTiles(graph, slot, east, north);
-
-        if (distance >= 0 && (distance < nearest
-            || (distance == nearest && ComesFirst(graph, slot, best))))
+        if (first)
         {
             nearest = distance;
             best = slot;
         }
-    }
-
-    // Equal whole-Tile distances use lattice column, row, then east before north.
-    // Other Streets follow midpoint block order, then descending slot, preserving the crossover.
-    private static bool ComesFirst(RoadGraph graph, int candidate, int current)
-    {
-        if (current == Rows.NoSlot) { return true; }
-        var left = OrderOf(graph, candidate);
-        var right = OrderOf(graph, current);
-        if (left.Lattice != right.Lattice) { return left.Lattice; }
-        if (left.Column != right.Column) { return left.Column < right.Column; }
-        if (left.Row != right.Row) { return left.Row < right.Row; }
-        return left.Last < right.Last;
-    }
-
-    private static (bool Lattice, int Column, int Row, int Last) OrderOf(RoadGraph graph, int slot)
-    {
-        StreetArc arc = graph.Segments.Centerline[slot];
-        int east = (int)IntegerMath.FloorDiv(arc.A.East, Fixed.One);
-        int north = (int)IntegerMath.FloorDiv(arc.A.North, Fixed.One);
-        StreetGrid streets = graph.Streets;
-        int column = streets.Lattice.LineAt(east);
-        int row = streets.Lattice.LineAt(north);
-        if (streets.Horizontal(column, row) == slot) { return (true, column, row, 0); }
-        if (streets.Vertical(column, row) == slot) { return (true, column, row, 1); }
-        return (false,
-            streets.Lattice.LineAt((int)IntegerMath.FloorDiv(arc.A.East + arc.B.East, 2L * Fixed.One)),
-            streets.Lattice.LineAt((int)IntegerMath.FloorDiv(arc.A.North + arc.B.North, 2L * Fixed.One)),
-            -slot);
     }
 
     /// <summary>Clamps to <see cref="int.MaxValue"/> so a very loud road stays representable.</summary>

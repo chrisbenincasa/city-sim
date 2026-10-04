@@ -17,6 +17,12 @@ public sealed class SegmentResidency
 
     internal readonly record struct Entry(int Segment, int Next);
 
+    /// <summary>Live Segment/Cell memberships in the rebuilt index.</summary>
+    public int EntryCount { get; private set; }
+
+    /// <summary>The largest centerline bounding box, counted in Cells.</summary>
+    public int MaximumCellsPerSegment { get; private set; }
+
     /// <summary>Replaces every Cell list from the live Segment centerlines.</summary>
     public void Rebuild(RoadSegmentTable segments)
     {
@@ -25,6 +31,7 @@ public sealed class SegmentResidency
         int slots = segments.Rows.SlotCount;
         if (_bounds.Length < slots) { _bounds = new CellRect[slots]; }
         int count = 0;
+        MaximumCellsPerSegment = 0;
         for (int slot = 0; slot < slots; slot++)
         {
             CellRect box = CellRect.Empty;
@@ -46,8 +53,12 @@ public sealed class SegmentResidency
             }
             _bounds[slot] = box;
             count = checked(count + box.Count);
+            if (box.Count > MaximumCellsPerSegment) { MaximumCellsPerSegment = box.Count; }
         }
+        EntryCount = count;
         if (_entries.Length < count) { _entries = new Entry[count]; }
+        // ponytail: box coverage can use WorldCellCount entries per Segment. Rasterize centerlines
+        // with query-local stamps if long curved Streets make this cost matter.
         int entry = 0;
         for (int slot = 0; slot < slots; slot++)
         {
@@ -56,13 +67,16 @@ public sealed class SegmentResidency
             {
                 for (int east = box.East.Raw; east < box.EastEnd.Raw; east++)
                 {
-                    int cell = (north * CellGrid.WorldCells) + east;
+                    int cell = CellGrid.Index(new Cells(east), new Cells(north));
                     _entries[entry] = new Entry(slot, _head[cell]);
                     _head[cell] = ++entry;
                 }
             }
         }
     }
+
+    /// <summary>The conservative Cell bounds of a Segment in the rebuilt index.</summary>
+    public CellRect BoxOf(int slot) => _bounds[slot];
 
     /// <summary>Candidates whose Cell sets meet a half-open rectangle of Cells.</summary>
     public Query In(CellRect area) => new(_head, _bounds, _entries, area.Clamp());
@@ -156,7 +170,7 @@ public sealed class SegmentResidency
                     _north++;
                 }
                 if (_north >= _area.NorthEnd.Raw) { return false; }
-                _entry = _head[(_north * CellGrid.WorldCells) + _east];
+                _entry = _head[CellGrid.Index(new Cells(_east), new Cells(_north))];
             }
         }
     }

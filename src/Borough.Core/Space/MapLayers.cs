@@ -1322,8 +1322,7 @@ public sealed class MapLayers
 
         DesirabilityWeights weights = _ruleset.Desirability;
 
-        // Recount traffic for this pass; spatial queries use the graph's rebuilt Cell index.
-        graph.Residency.Rebuild(graph.Segments);
+        // Restamp traffic reach for this pass from the graph's rebuilt Cell index.
         _traffic.Rebuild(graph, weights.NoiseSource.Range);
 
         for (int slot = 0; slot < _cells.Rows.SlotCount; slot++)
