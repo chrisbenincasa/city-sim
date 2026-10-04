@@ -92,7 +92,6 @@ public partial class Main
     {
         BuildingTable table = _world.Buildings;
         LotTable lots = _world.Lots;
-        BlockLattice lattice = _world.Roads.Streets.Lattice;
 
         for (int slot = only < 0 ? 0 : only; slot < (only < 0 ? table.Rows.SlotCount : only + 1); slot++)
         {
@@ -103,15 +102,12 @@ public partial class Main
             // epoch from the block's own pattern, and a partition of that block by construction.
             // FIVE separate inventions stood here: a setback, a stretch of kerb, a corner reserve,
             // a depth, and a re-centring onto the stretch. They are one read.
-            int wideTiles = lots.ParcelBounds(lot).Width;
-            int deepTiles = lots.ParcelBounds(lot).Height;
+            LandRectangle parcel = ParcelFrame(lot);
+            int wideTiles = parcel.Width;
+            int deepTiles = parcel.Height;
 
-            // ⚠ NO GROUND IS THE GEOMETRY REPORTING RATHER THAN FAILING. A Lot whose Street is gone
-            // keeps its Building and loses its Address (adr/0079) and therefore its parcel; and a
-            // pattern that carries no Building on this face leaves its Lots as ADDRESSES WITH
-            // NOWHERE TO STAND, which is the block saying it was subdivided on four faces when it
-            // holds two (plans/0049 F21). Drawing a sliver would be drawing a Building the block
-            // cannot hold.
+            // Some patterns leave live Lots with no buildable ground on this face (plans/0049 F21).
+            // Losing frontage alone leaves the saved parcel intact.
             if (wideTiles <= 0 || deepTiles <= 0)
             {
                 continue;
@@ -121,28 +117,24 @@ public partial class Main
             // is the part with a wall on it -- the same rectangle World.CreateBuilding seals, so the
             // drawing and the Sealing Layer cannot disagree about the same building. The centre and
             // the plan both fall straight out of it and there is no draw left in this block.
-            int footWide = lots.FootprintBounds(lot).Width;
-            int footDeep = lots.FootprintBounds(lot).Height;
+            LandRectangle foot = FootprintFrame(lot);
+            int footWide = foot.Width;
+            int footDeep = foot.Height;
 
             if (footWide <= 0 || footDeep <= 0)
             {
                 continue;
             }
 
-            float east = (lots.FootprintBounds(lot).X + (footWide * 0.5f)) * MetresPerTile;
-            float north = (lots.FootprintBounds(lot).Y + (footDeep * 0.5f)) * MetresPerTile;
+            float east = (foot.X + (footWide * 0.5f)) * MetresPerTile;
+            float north = (foot.Y + (footDeep * 0.5f)) * MetresPerTile;
             float eastWest = footWide * MetresPerTile;
             float southNorth = footDeep * MetresPerTile;
 
-            var side = (StreetSide)lots.Side[lot];
-
-            // Which of the parcel's two axes runs ALONG the Street. Read the way
-            // BlockPatterns.SideOf writes it: on a horizontal Street Left is the north side, on a
-            // vertical one Right is the east side.
-            bool horizontal = BuildingFacts.RunsEastWest(lattice, lots, lot);
-
-            float along = horizontal ? eastWest : southNorth;
-            float deep = horizontal ? southNorth : eastWest;
+            System.Numerics.Vector2 front = LotGeometry.Front(_world, lot);
+            bool alongA = front.Y != 0;
+            float along = alongA ? eastWest : southNorth;
+            float deep = alongA ? southNorth : eastWest;
 
             if (along < MinFrontageMetres)
             {
@@ -182,12 +174,7 @@ public partial class Main
             // FLOOR AREA -- and therefore its occupancy -- is derived from.
             float tall = storeys * StoreyMetres;
 
-            // The long side runs ALONG the Street, which is what makes a row of them read as a
-            // street rather than as a field of blocks -- so the plan is swapped with the axis the
-            // setback above already had to know about.
-            Vector3 plan = horizontal
-                ? new Vector3(along, tall, deep)
-                : new Vector3(deep, tall, along);
+            Vector3 plan = new(eastWest, tall, southNorth);
 
             // Put ridges along the long axis so the roof crosses the shorter span.
             bool crossed = deep > along;
@@ -200,13 +187,7 @@ public partial class Main
             Cap cap = CapFor(tall, along, deep);
             float rise = RoofHeight(cap, wanted);
 
-            // THE OUTBUILDING, standing further from the Street than its Building is. `back` is
-            // which way that is -- the same sign the setback above already chose, kept rather than
-            // re-derived. ⚠ It is a SHED and not an address: nothing in the city knows it is here,
-            // and a Rule can no more reach it than it can reach the roof.
-            float back = horizontal
-                ? (side == StreetSide.Left ? 1f : -1f)
-                : (side == StreetSide.Right ? 1f : -1f);
+            float back = alongA ? -front.Y : -front.X;
             bool outhoused = ((shape >> 48) & 3u) != 0u;
             float shed = 4f + (((shape >> 52) & 0xFu) / 15f * 5f);
             float wide = Mathf.Min(along * 0.45f, 14f);
@@ -214,35 +195,21 @@ public partial class Main
             float shedHeight = shed * .8f;
             if (_world.Rules.Lots.Plots.Applies(BlockPatterns.CarveAs(lots.PatternOf(lot))))
             {
-                float plotLow = (horizontal ? lots.ParcelBounds(lot).Y : lots.ParcelBounds(lot).X) * MetresPerTile;
-                float plotHigh = plotLow + (horizontal ? deepTiles : wideTiles) * MetresPerTile;
-                float bodyCentre = horizontal ? north : east;
-                float space = back > 0 ? plotHigh - (bodyCentre + deep * .5f)
-                    : bodyCentre - deep * .5f - plotLow;
+                float space = LotGeometry.BackSpace(lots.Parcel(lot), lots.Footprint(lot), front) * MetresPerTile;
                 gap = .5f;
                 shed = Math.Max(0, Math.Min(shed, space - gap));
                 outhoused &= shed >= 2f;
                 shedHeight = Math.Min(3f, shed * .8f);
             }
             float off = (deep * 0.5f) + gap + (shed * 0.5f);
-            Vector3 hut = horizontal
+            Vector3 hut = alongA
                 ? new Vector3(wide, shedHeight, shed)
                 : new Vector3(shed, shedHeight, wide);
 
-            // ⚠ THE TURN IS AN EXCLUSIVE OR AND THAT IS NOT A TRICK. A PrismMesh slopes across its
-            // own X and runs its ridge along its own Z, so the quarter turn is owed whenever the
-            // ridge is supposed to run east–west — which is a Building on a horizontal Street with
-            // its ridge along the kerb, OR one on a vertical Street with its gable turned to face
-            // the kerb, and not both at once.
-            Basis capped = CapBasis(cap, horizontal != crossed, slope, ridge, rise);
-
-            // WHICH KERB THE BUILDING FACES, as the outward normal of its own street face, which
-            // is Side read one more time rather than re-derived. `back` is already the direction
-            // AWAY from the Street, so the frontage is its negation. ⚠ It goes into the drawing in
-            // WORLD axes and not the Lot's, because that is the frame the shader meets it in --
-            // and world +Z is SOUTH, since a position is composed with -north.
-            float faceEast = horizontal ? 0f : -back;
-            float faceSouth = horizontal ? back : 0f;
+            Basis capped = CapBasis(cap, alongA != crossed, slope, ridge, rise);
+            System.Numerics.Vector2 normal = LotGeometry.Direction(lots.Parcel(lot), front);
+            float faceEast = normal.X;
+            float faceSouth = -normal.Y;
 
             float taken = FacadeAppearance.Occupancy(_world, slot);
 
@@ -287,7 +254,7 @@ public partial class Main
                 Color reads = new(
                     (faceEast + 1f) * 0.5f, (faceSouth + 1f) * 0.5f, lit, draw);
 
-                yield return new Massing(
+                yield return OrientMassing(lot, new Massing(
                     id,
                     new Transform3D(
                         Basis.FromScale(new Vector3(eastWest, podiumTall, southNorth)),
@@ -298,22 +265,22 @@ public partial class Main
                     slate,
                     reads,
                     Cap.Flat,
-                    false);
+                    false));
 
                 if (tower.ShaftStoreys > 0)
                 {
                     float shaftWide = tower.ShaftWide * MetresPerTile;
                     float shaftDeep = tower.ShaftDeep * MetresPerTile;
-                    float shaftEast = (lots.FootprintBounds(lot).X + tower.ShaftEast
+                    float shaftEast = (foot.X + tower.ShaftEast
                         + (tower.ShaftWide * 0.5f)) * MetresPerTile;
-                    float shaftNorth = (lots.FootprintBounds(lot).Y + tower.ShaftNorth
+                    float shaftNorth = (foot.Y + tower.ShaftNorth
                         + (tower.ShaftDeep * 0.5f)) * MetresPerTile;
                     float shaftWanted = Math.Min(shaftWide, shaftDeep) * (RoofRiseLow
                         + (((shape >> 40) & 0xFFu) / 255f * (RoofRiseHigh - RoofRiseLow)));
                     Cap shaftCap = CapFor(tall, shaftWide, shaftDeep);
                     float shaftRise = RoofHeight(shaftCap, shaftWanted);
 
-                    yield return new Massing(
+                    yield return OrientMassing(lot, new Massing(
                         id,
                         new Transform3D(
                             Basis.FromScale(new Vector3(shaftWide, shaftTall, shaftDeep)),
@@ -334,7 +301,7 @@ public partial class Main
                         slate,
                         new Color(reads.R, reads.G, reads.B, reads.A + FacadeAppearance.UpperPart),
                         shaftCap,
-                        false);
+                        false));
                 }
 
                 continue;
@@ -351,8 +318,8 @@ public partial class Main
             {
                 foreach (Massing wing in Wings(
                     id,
-                    lots.FootprintBounds(lot).X * MetresPerTile,
-                    lots.FootprintBounds(lot).Y * MetresPerTile,
+                    foot.X * MetresPerTile,
+                    foot.Y * MetresPerTile,
                     eastWest,
                     southNorth,
                     holeWide * MetresPerTile,
@@ -364,28 +331,40 @@ public partial class Main
                     lit,
                     draw))
                 {
-                    yield return wing;
+                    yield return OrientMassing(lot, wing, rotateFacing: true);
                 }
 
                 continue;
             }
 
-            yield return new Massing(
+            yield return OrientMassing(lot, new Massing(
                 id,
                 new Transform3D(Basis.FromScale(plan), new Vector3(east, tall * 0.5f, -north)),
                 new Transform3D(capped, new Vector3(east, tall + (rise * 0.5f), -north)),
                 new Transform3D(
                     Basis.FromScale(hut),
                     new Vector3(
-                        east + (horizontal ? 0f : back * off),
+                        east + (alongA ? 0f : back * off),
                         shedHeight * 0.5f,
-                        -(north + (horizontal ? back * off : 0f)))),
+                        -(north + (alongA ? back * off : 0f)))),
                 paint,
                 slate,
                 new Color((faceEast + 1f) * 0.5f, (faceSouth + 1f) * 0.5f, lit, draw),
                 cap,
-                outhoused);
+                outhoused));
         }
+    }
+
+    private Massing OrientMassing(int lot, Massing one, bool rotateFacing = false)
+    {
+        Color reads = one.Reads;
+        if (rotateFacing)
+        {
+            var normal = LotGeometry.Direction(_world.Lots.Footprint(lot),
+                new System.Numerics.Vector2(reads.R * 2f - 1f, -(reads.G * 2f - 1f)));
+            reads = new Color((normal.X + 1f) * .5f, (-normal.Y + 1f) * .5f, reads.B, reads.A);
+        }
+        return one with { Body = OnLot(lot, one.Body), Roof = OnLot(lot, one.Roof), Yard = OnLot(lot, one.Yard), Reads = reads };
     }
 
     /// <summary>
