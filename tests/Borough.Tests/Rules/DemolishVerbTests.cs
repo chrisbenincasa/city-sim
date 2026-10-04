@@ -377,10 +377,13 @@ public sealed class DemolishVerbTests
         int lot = world.Lots.Rows.Resolve(world.Buildings.Lot[building]);
         int held = world.Occupants.Length(building);
 
-        var refusal = Assert.Throws<InvalidOperationException>(
-            () => Demolish(simulation, world.Lots.East[lot].Raw, world.Lots.North[lot].Raw));
+        Command demolish = new(CommandKind.Demolish, world.Lots.East[lot], world.Lots.North[lot]);
 
-        Assert.Contains("more than the treasury holds", refusal.Message, StringComparison.Ordinal);
+        Assert.Equal(Refusal.DemolishTreasuryCannotPay, simulation.Refuses(demolish));
+
+        Demolish(simulation, world.Lots.East[lot].Raw, world.Lots.North[lot].Raw);
+
+        Assert.Equal(1, simulation.CommandsRefused);
         Assert.True(world.Buildings.Rows.IsLive(building));
         Assert.Equal(held, world.Occupants.Length(building));
     }
@@ -397,10 +400,9 @@ public sealed class DemolishVerbTests
     {
         (_, Simulation simulation) = Abandoned();
 
-        var refusal = Assert.Throws<InvalidOperationException>(
-            () => Demolish(simulation, east: 40, north: 0));
-
-        Assert.Contains("no Building", refusal.Message, StringComparison.Ordinal);
+        Assert.Equal(
+            Refusal.DemolishNoBuildingOnThatTile,
+            simulation.Refuses(new Command(CommandKind.Demolish, new Tiles(40), new Tiles(0))));
     }
 
     /// <summary>

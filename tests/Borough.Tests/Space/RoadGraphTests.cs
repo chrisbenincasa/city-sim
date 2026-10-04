@@ -53,6 +53,28 @@ public sealed class RoadGraphTests
     }
 
     [Fact]
+    public void A_zero_sagitta_rebuilds_a_straight_centerline_between_its_nodes()
+    {
+        StreetArc centerline = RoadFixtures.Chain(nodes: 2).Segments.Centerline[0];
+
+        Assert.True(centerline.IsStraight);
+        Assert.Equal((0L, 0L), centerline.A);
+        Assert.Equal((32L * Fixed.One, 0L), centerline.B);
+        Assert.Equal(32 * Fixed.One, centerline.Length);
+        Assert.Equal((16L * Fixed.One, 0L), centerline.PointAt(centerline.Length / 2));
+    }
+
+    [Fact]
+    public void A_sagitta_the_nodes_cannot_carry_fails_the_rebuild()
+    {
+        RoadGraph graph = RoadFixtures.Chain(nodes: 2);
+
+        graph.Segments.Sagitta[0] = SubTiles.FromTiles(new Tiles(17));
+
+        Assert.Throws<InvalidOperationException>(graph.RebuildDerived);
+    }
+
+    [Fact]
     public void A_segment_produces_exactly_two_arcs()
     {
         RoadGraph graph = RoadFixtures.Chain(nodes: 5);

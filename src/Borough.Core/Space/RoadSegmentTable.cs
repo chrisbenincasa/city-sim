@@ -214,7 +214,8 @@ public sealed class RoadSegmentTable
 
     /// <summary>
     /// The Segment's centerline from its Nodes and <see cref="Sagitta"/>. A Segment whose Nodes share
-    /// a Tile holds a zero-length arc at that Tile.
+    /// a Tile holds a zero-length arc at that Tile. Any other sagitta its Nodes cannot carry fails
+    /// the rebuild.
     /// </summary>
     /// <remarks>
     /// Offsets along the arc are its own Q16.16 arc length. An Address offset is measured in

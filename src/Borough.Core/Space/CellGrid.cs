@@ -76,6 +76,12 @@ public static class CellGrid
     /// as complete.
     /// </para>
     /// <para>
+    /// SegmentResidency adds a 1 MiB Cell-head array, 16 bytes per allocated Segment slot for bounds,
+    /// and 8 bytes per Segment/Cell membership. Membership counts depend on centerline bounds;
+    /// EntryCount and MaximumCellsPerSegment report their extent in the instruments.
+    /// The pass-scoped TrafficPresence mask adds 256 KiB, one boolean per Cell.
+    /// </para>
+    /// <para>
     /// <b>⚠ Three fixtures were laying at map extent and had to pin their own, all for one reason.</b>
     /// <c>rulesets/severance.toml</c> stranded <b>0%</b> of pedestrians on the worst of eight seeds
     /// after the flip — its sixteen Arterials spread over sixteen times the ground — so it had stopped

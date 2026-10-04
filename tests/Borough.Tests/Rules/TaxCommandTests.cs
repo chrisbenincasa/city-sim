@@ -228,16 +228,18 @@ public sealed class TaxCommandTests
             Refusal.TaxUpperThresholdBelowAllowance, Refuses(Command.Tax(control, value)));
     }
 
-    /// <summary>The applier throws on what the query refuses, which is the guard being one rule.</summary>
+    /// <summary>Phase 0 skips what the query refuses, which is the guard being one rule.</summary>
     [Fact]
-    public void A_refused_command_throws_out_of_phase_zero()
+    public void A_refused_command_is_skipped_by_phase_zero()
     {
         (World world, Simulation simulation) = City();
+        Command tax = Command.Tax(TaxControl.UpperRate, 5);
 
-        InvalidOperationException refused = Assert.Throws<InvalidOperationException>(
-            () => Issue(simulation, Command.Tax(TaxControl.UpperRate, 5)));
+        Assert.Equal(Refusal.TaxUpperRateBelowMiddleRate, simulation.Refuses(tax));
 
-        Assert.Contains("DOWNWARD", refused.Message, StringComparison.Ordinal);
+        Issue(simulation, tax);
+
+        Assert.Equal(1, simulation.CommandsRefused);
         Assert.Equal(0, Stamped(world));
     }
 

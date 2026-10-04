@@ -888,6 +888,9 @@ public partial class Main : Node3D
     /// <summary>Why the last click did nothing, or empty. <b>Shown, never thrown.</b></summary>
     private string _refused = string.Empty;
 
+    /// <summary>The simulation's <c>CommandsRefused</c> when the shell last reported it.</summary>
+    private int _refusalsReported;
+
     /// <summary>
     /// Where a driven run is pointing, or null when the mouse is. <b>A hand's motion clears it.</b>
     /// </summary>
@@ -1384,6 +1387,7 @@ public partial class Main : Node3D
             if (_stopping || _preparation is not null) return;
         }
         _presentedTick = _world.Tick.Raw;
+        ReportPhaseZeroRefusal();
         _alpha = new Ratio((int)(Math.Min(_owed, 0.999_99) * 65_536));
 
         // After collecting the batch: a frame that steps many Ticks may lay many

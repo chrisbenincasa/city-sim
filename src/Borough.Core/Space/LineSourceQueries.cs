@@ -115,8 +115,7 @@ public static class LineSourceQueries
     /// </para>
     /// </remarks>
     /// <param name="near">
-    /// An optional presence map that lets the query skip a Tile no traffic reaches. <b>Null means do
-    /// the full scan</b>, so nothing that omits it changes its answer.
+    /// An optional Cell-keyed traffic mask rebuilt for this field pass. Null runs the full query.
     /// </param>
     public static int Noise(
         RoadGraph graph, LineSource source, Tiles east, Tiles north, TrafficPresence? near = null) =>
@@ -191,12 +190,14 @@ public static class LineSourceQueries
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>The source set is found two ways because the Road Graph stores it two ways.</b>
-    /// <see cref="StreetGrid"/> holds lattice Streets, so those are reached by arithmetic over a window
-    /// of blocks — no search, and the window is exact rather than generous. Everything else — every
-    /// Arterial, every off-lattice Street — is in <see cref="StreetGrid.OffLatticeCount"/> and is
-    /// scanned linearly. ⚠ <b>A lattice-only query would have been silently quiet</b> around exactly the
-    /// loudest roads, since <c>02 §2.4</c> names <em>Arterials within ~300 m</em> as a source.
+    /// SegmentResidency supplies candidates for every road shape. Exact centerline distance selects
+    /// the nearest Street. Ties prefer greater contribution at the point, then the lowest monotonic
+    /// Segment id. Contribution falloff still floors distance to whole Tiles.
+    /// </para>
+    /// <para>
+    /// A louder tied Street sets a higher background and excludes the quieter tied source from the
+    /// sum. Choosing it instead of the quieter background removes the quieter contribution from
+    /// total intensity and lowers the field. This is deliberate field behavior under <c>05 §4</c>.
     /// </para>
     /// <para>
     /// <b>The background is computed first and every other source is measured against it.</b> That is
@@ -216,107 +217,38 @@ public static class LineSourceQueries
     {
         ArgumentNullException.ThrowIfNull(graph);
 
-        StreetGrid streets = graph.Streets;
-        int block = streets.BlockTiles;
         int range = source.Range.Raw;
+        if (range <= 0) { return 0; }
 
-        if (range <= 0)
+        if (near is not null && near.Covers(source.Range)
+            && (!near.AnyTraffic || !near.Near(east, north)))
         {
             return 0;
         }
 
-        // The window is ceil(range / block) blocks each way: a Segment more than that many block steps
-        // off cannot have a point within range, because a block IS the lattice pitch.
-        //
-        // 🔴 SIZED BY THE NARROWEST BLOCK AND NOT BY THE NOMINAL ONE. The sentence above is a claim
-        // about the pitch, and on a lattice whose lines are not evenly spaced the pitch is a range
-        // rather than a number -- a window sized by the mean covers less ground than it believes and
-        // this query answers quietly wrong. BlockLattice.Narrowest' own remark. plans/0045 row 25.
-        int window = block > 0 ? IntegerMath.CeilDiv(range, streets.Lattice.Narrowest) : 0;
-        int column = block > 0 ? streets.Lattice.LineAt(east.Raw) : 0;
-        int row = block > 0 ? streets.Lattice.LineAt(north.Raw) : 0;
-
-        // PROVABLY ZERO RATHER THAN APPROXIMATELY, and the proof is three lines of this file.
-        // Contribution returns zero for a Segment carrying no Vehicles, so where nothing within range
-        // carries any: `background` is zero, every `Above` compares its own zero against that zero and
-        // adds nothing, and Log1P(0) is zero. The answer cannot depend on WHICH silent Segment was
-        // nearest, so pass one need not run at all.
-        //
-        // It earns a guard because PASS ONE IS VOLUME-INDEPENDENT: it resolves two node handles and
-        // projects a point for every Segment in the window before Contribution ever looks at a volume.
-        // Measured at 7.2 s per land value pass on rulesets/bordered.toml -- flat across all nine
-        // firings of a day, rush hour included -- for a field that was zero at every one of them.
-        if (near is not null && near.Covers(source.Range) && !near.Near(column, row))
-        {
-            return 0;
-        }
-
-        // Pass one: the nearest local Street, which is what sets the ambient background.
+        // Distance is floored to whole Tiles, so a source less than one Tile beyond range still counts.
+        Tiles reach = new(range < int.MaxValue ? range + 1 : range);
         int local = Rows.NoSlot;
         int nearest = int.MaxValue;
-
-        for (int c = column - window; block > 0 && c <= column + window; c++)
+        bool anyTraffic = false;
+        foreach (int slot in graph.Residency.Near(east, north, reach))
         {
-            for (int r = row - window; r <= row + window; r++)
+            anyTraffic |= (long)graph.Segments.VolumeForward[slot] + graph.Segments.VolumeBackward[slot] > 0;
+            if ((RoadKind)graph.Segments.Kind[slot] == RoadKind.Street)
             {
-                Nearer(graph, streets.Horizontal(c, r), east, north, ref local, ref nearest);
-                Nearer(graph, streets.Vertical(c, r), east, north, ref local, ref nearest);
+                Nearer(graph, source, slot, east, north, ref local, ref nearest);
             }
         }
 
-        // An off-lattice STREET is still a local Street and still sets the background; an Arterial is a
-        // thing that stands out FROM the background and must never be it. A world whose Streets do not
-        // align to the declared lattice has no lattice entries at all, and skipping this would give it
-        // no background -- which disables the crossover silently, exactly as Frontage.Locate did.
-        //
-        // WINDOWED RATHER THAN GLOBAL, and it changes no answer. A Segment outside the window is
-        // further than `range`, so Contribution returns zero for it: as the background it gives zero,
-        // and as a pass-two term Above compares zero against a zero background and adds nothing. The
-        // identity of `local` therefore only matters while it is IN range, and in range it is in the
-        // window. See StreetGrid.OffLatticeReachBlocks for why the window is widened.
-        int reach = streets.OffLatticeReachBlocks;
-
-        for (int c = column - window - reach; block > 0 && c <= column + window + reach; c++)
-        {
-            for (int r = row - window - reach; r <= row + window + reach; r++)
-            {
-                for (int slot = streets.OffLatticeHead(c, r);
-                    slot != Rows.NoSlot;
-                    slot = streets.OffLatticeNext(slot))
-                {
-                    if ((RoadKind)graph.Segments.Kind[slot] == RoadKind.Street)
-                    {
-                        Nearer(graph, slot, east, north, ref local, ref nearest);
-                    }
-                }
-            }
-        }
+        // With no candidate traffic, every contribution and the background are zero.
+        // Sources outside this conservative box are beyond range, so skipping pass two is exact.
+        if (!anyTraffic) { return 0; }
 
         int background = local == Rows.NoSlot ? 0 : Contribution(graph, source, local, east, north);
-
-        // Pass two: everything that stands above it. The background is in the sum unconditionally.
         long total = background;
-
-        for (int c = column - window; block > 0 && c <= column + window; c++)
+        foreach (int slot in graph.Residency.Near(east, north, reach))
         {
-            for (int r = row - window; r <= row + window; r++)
-            {
-                total += Above(graph, source, streets.Horizontal(c, r), local, background, east, north);
-                total += Above(graph, source, streets.Vertical(c, r), local, background, east, north);
-            }
-        }
-
-        for (int c = column - window - reach; block > 0 && c <= column + window + reach; c++)
-        {
-            for (int r = row - window - reach; r <= row + window + reach; r++)
-            {
-                for (int slot = streets.OffLatticeHead(c, r);
-                    slot != Rows.NoSlot;
-                    slot = streets.OffLatticeNext(slot))
-                {
-                    total += Above(graph, source, slot, local, background, east, north);
-                }
-            }
+            total += Above(graph, source, slot, local, background, east, north);
         }
 
         // Saturate rather than overflow. A level is a logarithm, so the clamp costs a fraction of a
@@ -334,17 +266,21 @@ public static class LineSourceQueries
     /// arbitrary Tile a field query asks about. Using it here made the background zero everywhere except
     /// on the carriageway, which disabled the enumerate-by-loudness rule without failing anything.
     /// </remarks>
-    private static void Nearer(
-        RoadGraph graph, int slot, Tiles east, Tiles north, ref int best, ref int nearest)
+    internal static void Nearer(
+        RoadGraph graph, LineSource source, int slot, Tiles east, Tiles north, ref int best, ref int nearest)
     {
-        if (slot == Rows.NoSlot)
+        int distance = graph.Segments.Centerline[slot].DistanceTo(
+            (long)east.Raw * Fixed.One, (long)north.Raw * Fixed.One);
+
+        bool first = best == Rows.NoSlot || distance < nearest;
+        if (!first && distance == nearest)
         {
-            return;
+            int candidate = Contribution(graph, source, slot, east, north);
+            int current = Contribution(graph, source, best, east, north);
+            first = candidate > current || (candidate == current
+                && graph.Segments.Rows.IdAt(slot) < graph.Segments.Rows.IdAt(best));
         }
-
-        int distance = DistanceTiles(graph, slot, east, north);
-
-        if (distance >= 0 && distance < nearest)
+        if (first)
         {
             nearest = distance;
             best = slot;

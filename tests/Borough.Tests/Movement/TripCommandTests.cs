@@ -143,10 +143,11 @@ public sealed class TripCommandTests
     {
         (int east, int north) = TwoOccupiedBlocks().Origin;
 
-        InvalidOperationException refusal = Assert.Throws<InvalidOperationException>(
-            () => RunWith(Trip(east, north, new TripPayload(0, 100)), Departure + 1));
+        Command trip = Trip(east, north, new TripPayload(0, 100));
+        Simulation simulation = RunWith(trip, Departure + 1);
 
-        Assert.Contains("no occupied Building", refusal.Message, StringComparison.Ordinal);
+        Assert.Equal(1, simulation.CommandsRefused);
+        Assert.Equal(Refusal.TripBlockHoldsNobody, simulation.Refuses(trip));
     }
 
     /// <summary>
@@ -162,10 +163,11 @@ public sealed class TripCommandTests
     {
         (int east, int north) = TwoOccupiedBlocks().Origin;
 
-        InvalidOperationException refusal = Assert.Throws<InvalidOperationException>(
-            () => RunWith(Trip(east, north, new TripPayload(0, 0)), Departure + 1));
+        Command trip = Trip(east, north, new TripPayload(0, 0));
+        Simulation simulation = RunWith(trip, Departure + 1);
 
-        Assert.Contains("both endpoints", refusal.Message, StringComparison.Ordinal);
+        Assert.Equal(1, simulation.CommandsRefused);
+        Assert.Equal(Refusal.TripEndpointsAreOneBuilding, simulation.Refuses(trip));
     }
 
     /// <summary>
@@ -184,19 +186,17 @@ public sealed class TripCommandTests
     public void A_trip_commanded_against_a_ruleset_with_no_trips_table_is_refused()
     {
         Blocks blocks = TwoOccupiedBlocks();
+        Command trip = Trip(
+            blocks.Origin.East,
+            blocks.Origin.North,
+            new TripPayload(
+                (sbyte)(blocks.Destination.East - blocks.Origin.East),
+                (sbyte)(blocks.Destination.North - blocks.Origin.North)));
 
-        InvalidOperationException refusal = Assert.Throws<InvalidOperationException>(
-            () => RunWith(
-                Trip(
-                    blocks.Origin.East,
-                    blocks.Origin.North,
-                    new TripPayload(
-                        (sbyte)(blocks.Destination.East - blocks.Origin.East),
-                        (sbyte)(blocks.Destination.North - blocks.Origin.North))),
-                Departure + 1,
-                RulesWithTripsTable(null)));
+        Simulation simulation = RunWith(trip, Departure + 1, RulesWithTripsTable(null));
 
-        Assert.Contains("no [trips]", refusal.Message, StringComparison.Ordinal);
+        Assert.Equal(1, simulation.CommandsRefused);
+        Assert.Equal(Refusal.TripRulesetStatesNoTrips, simulation.Refuses(trip));
     }
 
     /// <summary>
