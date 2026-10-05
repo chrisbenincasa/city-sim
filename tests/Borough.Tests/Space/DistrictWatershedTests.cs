@@ -781,9 +781,10 @@ public sealed class DistrictWatershedTests
             // world that both PAYS A WAGE and holds a treasury Bin, which is what withholding needs.
             // traded.toml IS pictured.toml with banded trade forms, so it inherits the table.
             // imported.toml's shops import through a District Pool, and a Pool needs Districts.
+            // milled.toml's grocers buy flour through a District Pool for the same reason.
             bool expected = file is "twinned.toml" or "provisioned.toml" or "oversupplied.toml"
                 or "waged.toml" or "pictured.toml" or "shopping.toml" or "insolvent.toml" or "stress-shopping.toml" or "profile-services.toml"
-                or "schooling.toml" or "taxing.toml" or "traded.toml" or "imported.toml";
+                or "schooling.toml" or "taxing.toml" or "traded.toml" or "imported.toml" or "milled.toml";
 
             Assert.Equal(expected, states);
         }

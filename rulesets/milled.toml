@@ -1,0 +1,286 @@
+# The milled Ruleset demonstrates a labour-bound production chain from founding.
+#
+# Each dwelling hosts a mill. Its staff deposit labour, and `mill` turns labour into flour. Grocers
+# buy flour from the District Pool, `bake` it with their own labour into sundries, and sell those to
+# Households. Every trade pays its staff from its takings. Nothing is endowed by the file or a test.
+#
+# `grind` is how the chain starts. A zone-raised grocer opens with no Money, so it cannot buy its
+# first flour. `grind` lets a staffed grocer make flour slowly from labour alone, and those first
+# sales fund its first purchase. Without `grind` nothing ever trades.
+#
+# The second [[lattice]] and the [districts] table come from shopping.toml. Grocers buy flour
+# through a District Pool, and a Pool needs Districts.
+#
+# `floor_tiles_per_job = 12` keeps mills from hiring most of the city. At 3, the 50 mills employ
+# about 368 of the 400 workers and leave the grocers unstaffed.
+#
+# This is a fixture, not a balanced city. Flour trade is strong for about two weeks and then falls
+# to a trickle. Money collects in mill balances, Households run short, and grocers sit fully stocked.
+# A Ruleset cannot fix this, because Businesses open with no Money and demand is the only brake on
+# new grocers. MilledRulesetTests asserts the first two weeks only.
+
+[[resource]]
+name = "sundries"
+family = "good"
+need = "sustenance"
+
+[[resource]]
+name = "repairs"
+family = "good"
+
+[[resource]]
+name = "flour"
+family = "good"
+
+[[resource]]
+name = "money"
+family = "money"
+
+[[resource]]
+name = "labour"
+family = "labour"
+shelf_life_cycles = 4
+shelf_life_cycle_minutes = 15
+
+[[business]]
+name = "mill"
+work_days = 31
+wage_per_day = 256
+pay_period_days = 7
+goes_bankrupt_after_days_in_arrears = 28
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+[[business]]
+name = "grocer"
+work_days = 124
+open_days = 127
+opens_hour = 7
+closes_hour = 21
+wage_per_day    = 4096
+pay_period_days = 7
+goes_bankrupt_after_days_in_arrears = 28
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+[[building]]
+name = "dwelling"
+bins = [
+    { resource = "sundries", capacity = 128, owner = "occupant" },
+    { resource = "repairs",  capacity = 4 },
+    { resource = "flour",    capacity = 256, owner = "business" },
+    { resource = "money",    owner = "business" },
+    { resource = "labour",   owner = "business" },
+]
+houses   = true
+premises = true
+parked = true
+business = "mill"
+
+[[building]]
+name = "shopfront"
+bins = [
+    { resource = "sundries", capacity = 1024, owner = "business" },
+    { resource = "flour",    capacity = 64, owner = "business" },
+    { resource = "repairs",  capacity = 4 },
+    { resource = "money",    owner = "business" },
+    { resource = "labour",   owner = "business" },
+]
+houses   = true
+premises = true
+business = "grocer"
+
+[[rule]]
+name    = "restock"
+kind    = "dwelling"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = [ { scope = "pool", resource = "sundries", amount = 4 } ]
+outputs = [ { scope = "local", resource = "sundries", amount = 4 } ]
+
+[[rule]]
+name    = "consume"
+kind    = "dwelling"
+rate    = 256
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "sundries", amount = 4 } ]
+outputs = []
+
+[[rule]]
+name    = "upkeep"
+kind    = "dwelling"
+rate    = 16
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "repairs", amount = 4 } ]
+outputs = []
+
+[[rule]]
+name    = "mill"
+kind    = "dwelling"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = [ { scope = "local", resource = "labour", amount = 1 } ]
+outputs = [ { scope = "local", resource = "flour", amount = 4 } ]
+
+[[rule]]
+name    = "bake"
+kind    = "shopfront"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = [
+    { scope = "local", resource = "labour", amount = 1 },
+    { scope = "local", resource = "flour",  amount = 1 },
+]
+outputs = [ { scope = "local", resource = "sundries", amount = 16 } ]
+
+[[rule]]
+name    = "buy_flour"
+kind    = "shopfront"
+rate    = 8
+apply   = { min = 1, max = 1 }
+inputs  = [
+    { scope = "local", resource = "labour", amount = 1 },
+    { scope = "pool",  resource = "flour",  amount = 8 },
+]
+outputs = [ { scope = "local", resource = "flour", amount = 8 } ]
+
+[[rule]]
+name    = "grind"
+kind    = "shopfront"
+rate    = 64
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "labour", amount = 8 } ]
+outputs = [ { scope = "local", resource = "flour", amount = 1 } ]
+
+[[zone_rule]]
+name          = "housing"
+kind          = "dwelling"
+zone          = 0
+interval      = 32
+revisit_ticks = 2048
+
+[[zone_rule]]
+name          = "trade"
+kind          = "shopfront"
+zone          = 1
+interval      = 32
+revisit_ticks = 2048
+build_threshold_days = 3
+cooldown_days        = 7
+
+[placement]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+
+[layers]
+noise_range_metres            = 300
+noise_intensity_percent       = 400
+desirability_pollution_percent = 100
+desirability_noise_percent     = 100
+pollution_period      = 64
+pollution_offset      = 0
+land_value_period     = 256
+land_value_offset     = 16
+kernel_metres         = 1024
+pollution_decay_ticks = 2048
+land_value_tau        = 8
+
+[roads]
+block_tiles                    = 32
+arterial_count                 = 0
+arterial_junction_tiles        = 512
+foot_crossing_every            = 4
+foot_paths_per_thousand_blocks = 40
+street_speed_kph               = 50
+arterial_speed_kph             = 90
+walk_speed_kph                 = 5
+street_capacity_per_hour       = 3600
+arterial_capacity_per_hour     = 12000
+foot_path_capacity_per_hour    = 1000
+
+[lots]
+lots_per_segment = 5
+setback_tiles = 2
+
+[capacity]
+floor_tiles_per_occupant      = 25
+floor_tiles_per_job           = 12
+floor_tiles_per_parking_space = 12
+
+[parking]
+radius_metres = 400
+shed_keeps = 24
+
+[trips]
+crossing_seconds = 30
+commute_fast_minutes = 20
+commute_moderate_minutes = 40
+commute_budget_minutes = 50
+
+[jobs]
+labour_per_day = 1024
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+shift_hours_min = 6
+shift_hours_max = 10
+arrive_early_max_minutes = 15
+
+[households]
+car_ownership_percent = 0
+opening_balance_min = 12800
+opening_balance_max = 25600
+
+[[lattice]]
+origin_east_tiles  = 0
+origin_north_tiles = 0
+
+[[lattice]]
+origin_east_tiles  = 2048
+origin_north_tiles = 0
+
+[districts]
+prominence_percent = 50
+revisit_ticks = 2048
+hysteresis_percent = 50
+migrate_cells = 16
+
+[[hinterland]]
+edge = "north"
+emigrant_balance_min = 0
+emigrant_balance_max = 0
+prices = [
+  { resource = "sundries", price = 100 },
+  { resource = "repairs",  price = 250 },
+  { resource = "flour",    price = 1400 },
+]
+
+[[hinterland]]
+edge = "east"
+emigrant_balance_min = 0
+emigrant_balance_max = 0
+prices = [
+  { resource = "sundries", price = 120 },
+  { resource = "repairs",  price = 200 },
+  { resource = "flour",    price = 1600 },
+]
+
+[market]
+decay_percent = 50
+move_cap_percent = 10
+[needs]
+sustenance_degrade = 4
+sustenance_recover = 4
+satisfaction_degrade = 4
+satisfaction_recover = 4
+floor = -100
+
+[shopping]
+interval = 64
+low_days = 1
+target_days = 3
+severe_need = -16
+known_shops = 3
+search_candidates = 32
+retry_ticks = 128
