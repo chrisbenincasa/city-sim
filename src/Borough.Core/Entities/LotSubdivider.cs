@@ -47,10 +47,10 @@ public static class LotSubdivider
             into[count++] = new(face, (StreetSide)lots.Side[slot], new Tiles(offset), lots.Parcel(slot));
         }
         Span<int> sides = stackalloc int[4];
-        Sides(world, column, row, sides);
+        ground = ground with { Patch = Sides(world, column, row, sides) };
         int ceiling = world.Rules.Lots.ParcelCeiling(ground);
         Span<Parcel> proposed = ceiling <= 128 ? stackalloc Parcel[128] : new Parcel[ceiling];
-        int carved = world.Rules.Lots.Carve(world.Key, Pattern(world, column, row), ground, proposed);
+        int carved = world.Rules.Lots.Carve(world.Key, Pattern(world, column, row, ground.Patch), ground, proposed);
         for (int i = 0; i < carved; i++)
         {
             if (sides[(int)proposed[i].Face] == Rows.NoSlot || !Free(world, proposed[i], ground)) { continue; }
@@ -98,7 +98,7 @@ public static class LotSubdivider
 
     // Only world creation draws a trade form. The Zone Rule engine cannot build on one, so a block
     // zoned for trade in play keeps the housing ladder.
-    private static BlockPattern Pattern(World world, int column, int row, bool tradeForm = false)
+    private static BlockPattern Pattern(World world, int column, int row, ulong patch, bool tradeForm = false)
     {
         int block = world.BlockIndex.Contains(column, row) ? world.BlockIndex.Slot(column, row) : Rows.NoSlot;
         BlockPattern pattern = world.PatternOf(block, out bool chosen);
@@ -107,9 +107,9 @@ public static class LotSubdivider
         byte band = permission.MixedIntensity ? (byte)0 : permission.Band;
         return tradeForm
             ? BlockPatterns.TradeForm(
-                band, world.Rules.Bands.Length, world.Rules.Lots.TradeFormWeights, world.Key, column, row)
+                band, world.Rules.Bands.Length, world.Rules.Lots.TradeFormWeights, world.Key, patch)
             : BlockPatterns.ForBand(band, world.Rules.Bands.Length, world.Roads.Streets.BlockTiles,
-                world.Rules.Lots.LotsPerSegment, world.Key, column, row, world.Rules.Lots.PatternSpread);
+                world.Rules.Lots.LotsPerSegment, world.Key, patch, world.Rules.Lots.PatternSpread);
     }
 
     private static int CarveBlock(World world, int column, int row, bool tradeForm = false)
@@ -117,10 +117,9 @@ public static class LotSubdivider
         LandRectangle area = world.BlockGroundRectangle(column, row);
         if (!area.IsValid || world.LandPermissions.Summary(area).AnyUses == 0) { return 0; }
         Span<int> sides = stackalloc int[4];
-        Sides(world, column, row, sides);
         var streets = world.Roads.Streets;
-        BlockGround ground = BlockGround.At(streets.Lattice, column, row);
-        BlockPattern pattern = Pattern(world, column, row, tradeForm);
+        BlockGround ground = BlockGround.At(streets.Lattice, column, row) with { Patch = Sides(world, column, row, sides) };
+        BlockPattern pattern = Pattern(world, column, row, ground.Patch, tradeForm);
         int ceiling = world.Rules.Lots.ParcelCeiling(ground);
         Span<Parcel> parcels = ceiling <= 128 ? stackalloc Parcel[128] : new Parcel[ceiling];
         int count = world.Rules.Lots.Carve(world.Key, pattern, ground, parcels), created = 0;
@@ -179,21 +178,38 @@ public static class LotSubdivider
             (StreetSide)world.Lots.Side[slot], out int c, out int r, out face) && c == column && r == row;
     }
 
-    // The Street Segment on each side of the block: the closed face that is exactly this lattice
-    // block, else the lattice Segment on each side, which carves open sides as roadside strips.
-    private static void Sides(World world, int column, int row, Span<int> sides)
+    // The Street Segment on each side of the block, and the block's anchor as a draw patch. A block
+    // that is exactly one closed face takes the face's anchor. Any other block takes the lattice
+    // Segment on each side, which carves its open sides as roadside strips, and anchors on the
+    // lowest Segment id among them.
+    private static ulong Sides(World world, int column, int row, Span<int> sides)
     {
-        if (!FaceSides(world, column, row, sides))
+        int face = FaceSides(world, column, row, sides);
+        if (face >= 0)
         {
-            var streets = world.Roads.Streets;
-            sides[(int)BlockFace.South] = streets.Horizontal(column, row);
-            sides[(int)BlockFace.North] = streets.Horizontal(column, row + 1);
-            sides[(int)BlockFace.West] = streets.Vertical(column, row);
-            sides[(int)BlockFace.East] = streets.Vertical(column + 1, row);
+            var (id, side) = world.Roads.Faces.Anchor(face);
+            return Patch(id, side);
         }
+
+        var streets = world.Roads.Streets;
+        sides[(int)BlockFace.South] = streets.Horizontal(column, row);
+        sides[(int)BlockFace.North] = streets.Horizontal(column, row + 1);
+        sides[(int)BlockFace.West] = streets.Vertical(column, row);
+        sides[(int)BlockFace.East] = streets.Vertical(column + 1, row);
+        ulong patch = ulong.MaxValue;
+        for (BlockFace each = BlockFace.South; each <= BlockFace.East; each++)
+        {
+            if (sides[(int)each] == Rows.NoSlot) { continue; }
+            byte side = BlockPatterns.SideOf(each) == StreetSide.Left ? (byte)0 : (byte)1;
+            ulong candidate = Patch(world.Roads.Segments.Rows.IdAt(sides[(int)each]), side);
+            if (candidate < patch) { patch = candidate; }
+        }
+        return patch;
     }
 
-    private static bool FaceSides(World world, int column, int row, Span<int> sides)
+    private static ulong Patch(ulong segmentId, byte side) => (segmentId << 1) | side;
+
+    private static int FaceSides(World world, int column, int row, Span<int> sides)
     {
         RoadGraph roads = world.Roads;
         BlockGround ground = BlockGround.At(roads.Lattice, column, row);
@@ -201,22 +217,22 @@ public static class LotSubdivider
         long east = Fixed.FromInt(ground.East + ground.Wide), north = Fixed.FromInt(ground.North + ground.Deep);
         int face = roads.Faces.Find(Fixed.FromInt(ground.East + IntegerMath.FloorDiv(ground.Wide, 2)),
             Fixed.FromInt(ground.North + IntegerMath.FloorDiv(ground.Deep, 2)));
-        if (face < 0 || roads.Faces.Boundary(face).Length != 4) { return false; }
+        if (face < 0 || roads.Faces.Boundary(face).Length != 4) { return -1; }
         foreach (int arc in roads.Faces.Boundary(face))
         {
             int segment = roads.Arcs.Segment[arc];
             StreetArc line = roads.Segments.Centerline[segment];
             var (from, to) = roads.Faces.SideOf(arc) == 0 ? (line.A, line.B) : (line.B, line.A);
             BlockFace side;
-            if (!line.IsStraight) { return false; }
+            if (!line.IsStraight) { return -1; }
             else if (from.East == west && from.North == south && to.East == east && to.North == south) { side = BlockFace.South; }
             else if (from.East == east && from.North == south && to.East == east && to.North == north) { side = BlockFace.East; }
             else if (from.East == east && from.North == north && to.East == west && to.North == north) { side = BlockFace.North; }
             else if (from.East == west && from.North == north && to.East == west && to.North == south) { side = BlockFace.West; }
-            else { return false; }
+            else { return -1; }
             sides[(int)side] = segment;
         }
-        return true;
+        return face;
     }
 
     /// <summary>Explicit whole-vacant-block replat. Street edits do not invoke this operation.</summary>
@@ -228,8 +244,9 @@ public static class LotSubdivider
         BlockPattern old = world.PatternOf(slot, out bool chosen);
         LandPermissionSummary permission = world.LandPermissions.Summary(world.BlockGroundRectangle(column, row));
         if (!chosen || permission.MixedPermissions || old == BlockPattern.CarParkCentre) { return 0; }
+        Span<int> sides = stackalloc int[4];
         BlockPattern wanted = BlockPatterns.ForBand(permission.Band, world.Rules.Bands.Length, world.Roads.Streets.BlockTiles,
-            world.Rules.Lots.LotsPerSegment, world.Key, column, row, world.Rules.Lots.PatternSpread);
+            world.Rules.Lots.LotsPerSegment, world.Key, Sides(world, column, row, sides), world.Rules.Lots.PatternSpread);
         if (BlockPatterns.Rung(wanted, world.Roads.Streets.BlockTiles, world.Rules.Lots.LotsPerSegment)
             <= BlockPatterns.Rung(old, world.Roads.Streets.BlockTiles, world.Rules.Lots.LotsPerSegment)) { return 0; }
         for (int lot = 0; lot < world.Lots.Rows.SlotCount; lot++)

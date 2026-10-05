@@ -135,7 +135,7 @@ public sealed class MorphologyDumpTests
     public void Urban_fabric_reports_the_three_ground_surfaces_by_pattern()
     {
         string sparse = Dump("minimal.toml", "1000");
-        string varied = Dump("platted.toml", "10000");
+        string varied = Dump("platted.toml", "30000");
 
         Assert.Contains("## Urban fabric", sparse, StringComparison.Ordinal);
         Assert.Contains("Parcel/block", sparse, StringComparison.Ordinal);

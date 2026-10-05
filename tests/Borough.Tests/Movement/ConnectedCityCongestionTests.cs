@@ -64,7 +64,7 @@ public sealed class ConnectedCityCongestionTests(ITestOutputHelper output)
 {
     private readonly ITestOutputHelper _output = output;
 
-    private const ulong Seed = 0xC0FFEE_0000_0001UL;
+    private const ulong Seed = 0xC0FFEE_0000_0003UL;
 
     private static readonly WorldKey Key = WorldKey.FromSeed(Seed);
 

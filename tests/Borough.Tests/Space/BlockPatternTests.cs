@@ -515,7 +515,7 @@ public sealed class BlockPatternTests
         BlockPattern For(byte band, int bandCount) =>
             BlockPatterns.ForBand(
                 band, bandCount, ShippedBlockTiles, ShippedLotsPerSegment,
-                WorldKey.FromSeed(1), 0, 0, spread: 0);
+                WorldKey.FromSeed(1), Patch(0, 0), spread: 0);
 
         // No band at all, however many are declared.
         Assert.Equal(BlockPattern.Detached, For(0, 0));
@@ -570,7 +570,7 @@ public sealed class BlockPatternTests
                     {
                         BlockPattern here = BlockPatterns.ForBand(
                             band, bandCount, ShippedBlockTiles, ShippedLotsPerSegment,
-                            WorldKey.FromSeed(7), block, block * 3, spread);
+                            WorldKey.FromSeed(7), Patch(block, block * 3), spread);
                         int rung = BlockPatterns.Rung(here, ShippedBlockTiles, ShippedLotsPerSegment);
 
                         Assert.True(
@@ -648,4 +648,6 @@ public sealed class BlockPatternTests
 
         Assert.True(swept > 100, $"only {swept} combinations were reachable, so this swept nothing.");
     }
+
+    private static ulong Patch(int column, int row) => ((ulong)(uint)column << 32) | (uint)row;
 }

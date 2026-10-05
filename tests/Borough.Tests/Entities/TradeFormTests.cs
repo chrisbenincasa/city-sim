@@ -13,7 +13,7 @@ public sealed class TradeFormTests
 
     // At 30,000 Citizens the middle tier holds only a few trade blocks a rung, and this seed draws
     // every form there, on both rungs.
-    private static readonly WorldKey EveryForm = WorldKey.FromSeed(0x7EAD_ED00_0000_0009UL);
+    private static readonly WorldKey EveryForm = WorldKey.FromSeed(0x7EAD_ED00_0000_0082UL);
 
     [Theory]
     [InlineData(0, 0, new[] { BlockPattern.CarParkCentre, BlockPattern.SalesYard })]
@@ -30,7 +30,7 @@ public sealed class TradeFormTests
 
         for (int column = 0; column < 64; column++)
         {
-            drawn.Add(BlockPatterns.TradeForm(band, bandCount, Key, column, 0));
+            drawn.Add(BlockPatterns.TradeForm(band, bandCount, Key, Patch(column, 0)));
         }
 
         Assert.Equal(tier.ToHashSet(), drawn);
@@ -45,8 +45,8 @@ public sealed class TradeFormTests
 
         for (int column = 0; column < 256; column++)
         {
-            Assert.Equal(BlockPattern.CarParkCentre, BlockPatterns.TradeForm(1, 3, noYards, Key, column, 0));
-            yards += BlockPatterns.TradeForm(1, 3, mostlyYards, Key, column, 0) == BlockPattern.SalesYard ? 1 : 0;
+            Assert.Equal(BlockPattern.CarParkCentre, BlockPatterns.TradeForm(1, 3, noYards, Key, Patch(column, 0)));
+            yards += BlockPatterns.TradeForm(1, 3, mostlyYards, Key, Patch(column, 0)) == BlockPattern.SalesYard ? 1 : 0;
         }
 
         Assert.InRange(yards, 192, 256);
@@ -638,4 +638,6 @@ public sealed class TradeFormTests
         Assert.Equal(homes, world.Occupants.Length(shopHouse));
         Assert.Equal(1, world.BuildingBusinesses.Length(shopHouse));
     }
+
+    private static ulong Patch(int column, int row) => ((ulong)(uint)column << 32) | (uint)row;
 }
