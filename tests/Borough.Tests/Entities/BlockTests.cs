@@ -334,6 +334,51 @@ public sealed class BlockTests
         Assert.Equal(new LandRectangle(plot.X, plot.Y, plot.Width, Depth), twin.Lots.ParcelBounds(found));
     }
 
+    /// <summary>
+    /// <b>A block with an open side carves roadside strips on the sides that have a Street.</b>
+    /// </summary>
+    /// <remarks>
+    /// A square beyond the generated lattice's top row has a Street on its south side only, so it lies
+    /// in no closed face. The grid's own lookup is the oracle for which side that is.
+    /// </remarks>
+    [Fact]
+    public void An_open_sided_block_carves_only_the_sides_with_a_street()
+    {
+        World world = Populated();
+        StreetGrid streets = world.Roads.Streets;
+        (int column, int row) = (-1, -1);
+
+        for (int r = 0; r < streets.Blocks && column < 0; r++)
+        {
+            for (int c = 0; c < streets.Blocks; c++)
+            {
+                if (streets.Horizontal(c, r) != Rows.NoSlot && streets.Horizontal(c, r + 1) == Rows.NoSlot
+                    && streets.Vertical(c, r) == Rows.NoSlot && streets.Vertical(c + 1, r) == Rows.NoSlot
+                    && !world.Frontage.Claimed(streets.Horizontal(c, r), StreetSide.Left))
+                {
+                    (column, row) = (c, r);
+                    break;
+                }
+            }
+        }
+
+        Assert.True(column >= 0, "no square with a Street on its south side alone.");
+        Assert.True(LotSubdivider.SubdivideBlock(world, column, row, LotTable.Housing) > 0);
+
+        for (int lot = 0; lot < world.Lots.Rows.SlotCount; lot++)
+        {
+            if (world.Lots.Rows.IsLive(lot)
+                && Frontage.BlockOf(streets, world.Lots.East[lot], world.Lots.North[lot],
+                    (StreetSide)world.Lots.Side[lot], out int at, out int on, out BlockFace face)
+                && at == column && on == row)
+            {
+                Assert.Equal(BlockFace.South, face);
+                Assert.Equal(world.Roads.Segments.Rows.IdAt(streets.Horizontal(column, row)),
+                    world.Roads.Segments.Rows.IdAt(world.Lots.FrontageOn(lot)));
+            }
+        }
+    }
+
     /// <summary>The first lattice square with Streets on it that nothing has claimed a face of.</summary>
     private static (int Column, int Row) Uncarved(World world)
     {

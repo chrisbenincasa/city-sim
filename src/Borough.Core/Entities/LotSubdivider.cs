@@ -203,8 +203,8 @@ public static class LotSubdivider
     }
 
     // The Street Segment on each side of the block, and the block's anchor as a draw patch. A block
-    // that is exactly one closed face takes the face's anchor. Any other block takes the lattice
-    // Segment on each side, which carves its open sides as roadside strips, and anchors on the
+    // that is exactly one closed face takes the face's anchor. Any other block takes the Street
+    // lying along each side, which carves its open sides as roadside strips, and anchors on the
     // lowest Segment id among them.
     private static ulong Sides(World world, int column, int row, Span<int> sides)
     {
@@ -215,20 +215,37 @@ public static class LotSubdivider
             return Patch(id, side);
         }
 
-        var streets = world.Roads.Streets;
-        sides[(int)BlockFace.South] = streets.Horizontal(column, row);
-        sides[(int)BlockFace.North] = streets.Horizontal(column, row + 1);
-        sides[(int)BlockFace.West] = streets.Vertical(column, row);
-        sides[(int)BlockFace.East] = streets.Vertical(column + 1, row);
+        RoadGraph roads = world.Roads;
+        BlockGround ground = BlockGround.At(roads.Lattice, column, row);
+        int west = ground.East, south = ground.North, east = ground.East + ground.Wide, north = ground.North + ground.Deep;
+        sides[(int)BlockFace.South] = StreetAlong(roads, west, south, east, south);
+        sides[(int)BlockFace.North] = StreetAlong(roads, west, north, east, north);
+        sides[(int)BlockFace.West] = StreetAlong(roads, west, south, west, north);
+        sides[(int)BlockFace.East] = StreetAlong(roads, east, south, east, north);
         ulong patch = ulong.MaxValue;
         for (BlockFace each = BlockFace.South; each <= BlockFace.East; each++)
         {
             if (sides[(int)each] == Rows.NoSlot) { continue; }
             byte side = BlockPatterns.SideOf(each) == StreetSide.Left ? (byte)0 : (byte)1;
-            ulong candidate = Patch(world.Roads.Segments.Rows.IdAt(sides[(int)each]), side);
+            ulong candidate = Patch(roads.Segments.Rows.IdAt(sides[(int)each]), side);
             if (candidate < patch) { patch = candidate; }
         }
         return patch;
+    }
+
+    // The straight Street whose ends are exactly one edge of a block, in either direction.
+    private static int StreetAlong(RoadGraph roads, int fromEast, int fromNorth, int toEast, int toNorth)
+    {
+        (long East, long North) from = (Fixed.FromInt(fromEast), Fixed.FromInt(fromNorth));
+        (long East, long North) to = (Fixed.FromInt(toEast), Fixed.FromInt(toNorth));
+        var middle = (East: new Tiles(IntegerMath.FloorDiv(fromEast + toEast, 2)), North: new Tiles(IntegerMath.FloorDiv(fromNorth + toNorth, 2)));
+        foreach (int segment in roads.Residency.Near(middle.East, middle.North, Tiles.Zero))
+        {
+            if ((RoadKind)roads.Segments.Kind[segment] != RoadKind.Street) { continue; }
+            StreetArc line = roads.Segments.Centerline[segment];
+            if (line.IsStraight && ((line.A == from && line.B == to) || (line.A == to && line.B == from))) { return segment; }
+        }
+        return Rows.NoSlot;
     }
 
     private static ulong Patch(ulong segmentId, byte side) => (segmentId << 1) | side;
