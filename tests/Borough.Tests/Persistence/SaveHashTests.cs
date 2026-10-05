@@ -169,19 +169,8 @@ public sealed class SaveHashTests(ITestOutputHelper output)
         SaveFile.Write(world, InForce, new WorldSnapshot(), file);
 
         byte[] bytes = file.Bytes;
-        // `lot.zone` rather than `household.bin_head`, as of milestone 26 task 2, and the reason is
-        // a finding rather than a preference: FOLDING A HANDLE COLUMN RESOLVES IT. The State Hash
-        // folds a handle as the target row's monotonic id, so a corrupted handle throws out of the
-        // resolver -- StaleHandleException, or an index error -- BEFORE it can reach the comparison
-        // below, and which of the two you get depends on what the corrupt bytes happen to address.
-        //
-        // ⚠ THE LOAD REFUSES EITHER WAY, so nothing here is a hole in adr/0112. What is fragile is
-        // the TEST: it names the hash refusal specifically, and pointing it at a handle made that
-        // assertion depend on luck. adr/0165's land-use split changed the bin table's contents,
-        // the same flipped byte started addressing a freed slot, and this went red for a reason
-        // that had nothing to do with saving. Routed to plans/0003 rather than worked around.
-        //
-        // Storeys is a saved scalar; changing it reaches the hash comparison without corrupting a handle.
+        // A saved scalar reaches the hash comparison. A corrupt handle can be refused earlier, by
+        // A_corrupt_handle_is_refused_before_the_rebuild, so it would not test this refusal.
         bytes[ByteIn(world, "lot", "storeys", slot: 0)] ^= 0x01;
 
         var corrupt = new MemorySave();
@@ -194,6 +183,62 @@ public sealed class SaveHashTests(ITestOutputHelper output)
 
         Assert.Contains("hashes to", refusal);
         Assert.Contains("05 §4 invariant 6", refusal);
+    }
+
+    /// <summary>
+    /// A corrupt handle is refused by name before the rebuild can resolve it, whatever its bytes
+    /// happen to address.
+    /// </summary>
+    [Theory]
+    [InlineData("bin", "owner", 0, 0x7FFF_FFF0u)]
+    [InlineData("bin", "owner", 4, 0x0000_0002u)]
+    [InlineData("business", "building", 0, 0x7FFF_FFF0u)]
+    public void A_corrupt_handle_is_refused_before_the_rebuild(
+        string table, string column, int byteOffset, uint value)
+    {
+        World world = Stepped(256);
+
+        var file = new MemorySave();
+        SaveFile.Write(world, InForce, new WorldSnapshot(), file);
+
+        byte[] bytes = file.Bytes;
+        int at = ByteIn(world, table, column, FirstHeldHandle(world, bytes, table, column)) + byteOffset;
+        BitConverter.TryWriteBytes(bytes.AsSpan(at, 4), value);
+
+        var corrupt = new MemorySave();
+        corrupt.Write(bytes);
+
+        string refusal = Assert.Throws<InvalidOperationException>(
+            () => SaveFile.Read(corrupt, GoldenFixtures.Rules(), out _)).Message;
+
+        _output.WriteLine(refusal);
+
+        Assert.Contains($"table '{table}'", refusal);
+        Assert.Contains($"'{column}'", refusal);
+    }
+
+    private static int FirstHeldHandle(World world, byte[] bytes, string table, string column)
+    {
+        foreach (Rows rows in world.Tables)
+        {
+            if (rows.Name != table)
+            {
+                continue;
+            }
+
+            for (int slot = 0; slot < rows.SlotCount; slot++)
+            {
+                uint generation = BitConverter.ToUInt32(bytes, ByteIn(world, table, column, slot) + 4);
+
+                if (rows.IsLive(slot) && generation != 0)
+                {
+                    return slot;
+                }
+            }
+        }
+
+        Assert.Fail($"no live row of '{table}' holds a '{column}' handle.");
+        return 0;
     }
 
     /// <summary>

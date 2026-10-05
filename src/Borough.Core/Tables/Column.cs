@@ -179,6 +179,12 @@ public abstract class Column
     /// false and cost a virtual call once per column per walk, which happens once a run.
     /// </remarks>
     internal virtual bool IsDangling(int slot) => false;
+
+    /// <summary>
+    /// Why the handle a save restored at <paramref name="slot"/> cannot be state this build wrote, or
+    /// null when it can.
+    /// </summary>
+    internal virtual string? RestoredHandleDefect(int slot) => null;
 }
 
 /// <summary>
@@ -448,6 +454,30 @@ public sealed class HandleColumn<TTarget> : Column<Handle<TTarget>>
         Handle<TTarget> handle = this[slot];
 
         return !handle.IsNone && !_target.IsValid(handle);
+    }
+
+    /// <remarks>
+    /// A target's slot count never shrinks, so even a stale <see cref="Reference.Severable"/> handle
+    /// addresses a slot below it.
+    /// </remarks>
+    internal override string? RestoredHandleDefect(int slot)
+    {
+        Handle<TTarget> handle = this[slot];
+
+        if (handle.IsNone)
+        {
+            return null;
+        }
+
+        if (handle.Index >= (uint)_target.SlotCount)
+        {
+            return $"addresses slot {handle.Index} of table '{_target.Name}', which has "
+                + $"{_target.SlotCount} slots";
+        }
+
+        return IsDangling(slot)
+            ? $"is a required handle to a row of table '{_target.Name}' that is not live"
+            : null;
     }
 
     /// <inheritdoc/>
