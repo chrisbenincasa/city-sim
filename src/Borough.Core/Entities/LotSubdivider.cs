@@ -46,12 +46,14 @@ public static class LotSubdivider
             if (count == into.Length) { throw new ArgumentException("Preview buffer is smaller than PreviewCapacity.", nameof(into)); }
             into[count++] = new(face, (StreetSide)lots.Side[slot], new Tiles(offset), lots.Parcel(slot));
         }
+        Span<int> sides = stackalloc int[4];
+        Sides(world, column, row, sides);
         int ceiling = world.Rules.Lots.ParcelCeiling(ground);
         Span<Parcel> proposed = ceiling <= 128 ? stackalloc Parcel[128] : new Parcel[ceiling];
         int carved = world.Rules.Lots.Carve(world.Key, Pattern(world, column, row), ground, proposed);
         for (int i = 0; i < carved; i++)
         {
-            if (SegmentOf(streets, proposed[i].Face, column, row) == Rows.NoSlot || !Free(world, proposed[i], ground)) { continue; }
+            if (sides[(int)proposed[i].Face] == Rows.NoSlot || !Free(world, proposed[i], ground)) { continue; }
             if (count == into.Length) { throw new ArgumentException("Preview buffer is smaller than PreviewCapacity.", nameof(into)); }
             into[count++] = proposed[i];
         }
@@ -114,6 +116,8 @@ public static class LotSubdivider
     {
         LandRectangle area = world.BlockGroundRectangle(column, row);
         if (!area.IsValid || world.LandPermissions.Summary(area).AnyUses == 0) { return 0; }
+        Span<int> sides = stackalloc int[4];
+        Sides(world, column, row, sides);
         var streets = world.Roads.Streets;
         BlockGround ground = BlockGround.At(streets.Lattice, column, row);
         BlockPattern pattern = Pattern(world, column, row, tradeForm);
@@ -123,7 +127,7 @@ public static class LotSubdivider
         for (int i = 0; i < count; i++)
         {
             Parcel parcel = parcels[i];
-            int segment = SegmentOf(streets, parcel.Face, column, row);
+            int segment = sides[(int)parcel.Face];
             if (segment == Rows.NoSlot || !Free(world, parcel, ground)) { continue; }
             LandPermissionSummary permission = world.LandPermissions.Summary(Ground(parcel));
             // A parcel can be selected/painted before it is zoned; unzoned free ground stays unplatted.
@@ -175,13 +179,45 @@ public static class LotSubdivider
             (StreetSide)world.Lots.Side[slot], out int c, out int r, out face) && c == column && r == row;
     }
 
-    private static int SegmentOf(StreetGrid streets, BlockFace face, int column, int row) => face switch
+    // The Street Segment on each side of the block: the closed face that is exactly this lattice
+    // block, else the lattice Segment on each side, which carves open sides as roadside strips.
+    private static void Sides(World world, int column, int row, Span<int> sides)
     {
-        BlockFace.South => streets.Horizontal(column, row),
-        BlockFace.North => streets.Horizontal(column, row + 1),
-        BlockFace.West => streets.Vertical(column, row),
-        _ => streets.Vertical(column + 1, row),
-    };
+        if (!FaceSides(world, column, row, sides))
+        {
+            var streets = world.Roads.Streets;
+            sides[(int)BlockFace.South] = streets.Horizontal(column, row);
+            sides[(int)BlockFace.North] = streets.Horizontal(column, row + 1);
+            sides[(int)BlockFace.West] = streets.Vertical(column, row);
+            sides[(int)BlockFace.East] = streets.Vertical(column + 1, row);
+        }
+    }
+
+    private static bool FaceSides(World world, int column, int row, Span<int> sides)
+    {
+        RoadGraph roads = world.Roads;
+        BlockGround ground = BlockGround.At(roads.Lattice, column, row);
+        long west = Fixed.FromInt(ground.East), south = Fixed.FromInt(ground.North);
+        long east = Fixed.FromInt(ground.East + ground.Wide), north = Fixed.FromInt(ground.North + ground.Deep);
+        int face = roads.Faces.Find(Fixed.FromInt(ground.East + IntegerMath.FloorDiv(ground.Wide, 2)),
+            Fixed.FromInt(ground.North + IntegerMath.FloorDiv(ground.Deep, 2)));
+        if (face < 0 || roads.Faces.Boundary(face).Length != 4) { return false; }
+        foreach (int arc in roads.Faces.Boundary(face))
+        {
+            int segment = roads.Arcs.Segment[arc];
+            StreetArc line = roads.Segments.Centerline[segment];
+            var (from, to) = roads.Faces.SideOf(arc) == 0 ? (line.A, line.B) : (line.B, line.A);
+            BlockFace side;
+            if (!line.IsStraight) { return false; }
+            else if (from.East == west && from.North == south && to.East == east && to.North == south) { side = BlockFace.South; }
+            else if (from.East == east && from.North == south && to.East == east && to.North == north) { side = BlockFace.East; }
+            else if (from.East == east && from.North == north && to.East == west && to.North == north) { side = BlockFace.North; }
+            else if (from.East == west && from.North == north && to.East == west && to.North == south) { side = BlockFace.West; }
+            else { return false; }
+            sides[(int)side] = segment;
+        }
+        return true;
+    }
 
     /// <summary>Explicit whole-vacant-block replat. Street edits do not invoke this operation.</summary>
     public static int RecarveBlock(World world, int column, int row)

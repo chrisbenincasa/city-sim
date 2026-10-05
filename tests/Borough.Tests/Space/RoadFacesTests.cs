@@ -79,6 +79,18 @@ public sealed class RoadFacesTests
     }
 
     [Fact]
+    public void A_foot_path_across_a_block_does_not_split_it()
+    {
+        RoadGraph graph = Grid(2, 64);
+        graph.Segments.Create(graph.Nodes.Rows.At(Node(graph, 0, 0)), graph.Nodes.Rows.At(Node(graph, 64, 64)),
+            new Tiles(90), RoadKind.FootPath, TravelMode.Any, TravelMode.Any);
+        graph.RebuildDerived();
+
+        int block = Assert.Single(Closed(graph.Faces));
+        Assert.Equal(4, graph.Faces.Boundary(block).Length);
+    }
+
+    [Fact]
     public void A_curved_street_and_its_chord_enclose_a_lens()
     {
         RoadGraph graph = Fresh();
@@ -153,7 +165,8 @@ public sealed class RoadFacesTests
         int edges = 0;
         for (int segment = 0; segment < graph.Segments.Rows.SlotCount; segment++)
         {
-            if (!graph.Segments.Rows.IsLive(segment) || graph.Segments.Centerline[segment].Length == 0)
+            if (!graph.Segments.Rows.IsLive(segment) || graph.Segments.Centerline[segment].Length == 0
+                || (RoadKind)graph.Segments.Kind[segment] != RoadKind.Street)
             {
                 continue;
             }

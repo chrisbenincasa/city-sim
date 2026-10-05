@@ -13,9 +13,9 @@ namespace Borough.Core.Space;
 /// identity is its <see cref="Anchor"/>.
 /// </para>
 /// <para>
-/// Every road kind bounds a face. A closed face has positive area and is walked counterclockwise.
-/// Each connected component also yields one face of nonpositive area, its outer boundary.
-/// Zero-length Segments border no face.
+/// Only Streets bound faces, because a block is a face of the Street graph. A closed face has
+/// positive area and is walked counterclockwise. Each connected component also yields one face of
+/// nonpositive area, its outer boundary. Other road kinds and zero-length Segments border no face.
 /// </para>
 /// </remarks>
 public sealed class RoadFaces
@@ -45,7 +45,7 @@ public sealed class RoadFaces
     /// <summary>How many faces the graph has, closed and outer.</summary>
     public int Count => _count;
 
-    /// <summary>The face on an Arc's left, or -1 for an Arc of a zero-length Segment.</summary>
+    /// <summary>The face on an Arc's left, or -1 for an Arc that borders no face.</summary>
     public int FaceOf(int arc) => _faceOf[arc];
 
     /// <summary>The Segment side an Arc borders: 0 when it leaves the Segment's <c>NodeA</c>, else 1.</summary>
@@ -189,7 +189,11 @@ public sealed class RoadFaces
         return _nodes!.Rows.Resolve(_segments!.NodeA[segment]) == _source[arc] ? (byte)0 : (byte)1;
     }
 
-    private bool Excluded(int arc) => _segments!.Centerline[ArcSegment(arc)].Length == 0;
+    private bool Excluded(int arc)
+    {
+        int segment = ArcSegment(arc);
+        return (RoadKind)_segments!.Kind[segment] != RoadKind.Street || _segments.Centerline[segment].Length == 0;
+    }
 
     private void Order(int node)
     {
