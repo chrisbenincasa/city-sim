@@ -312,7 +312,7 @@ public readonly record struct StreetArc
     private static long ArcLength(long radius, long sweep) =>
         IntegerMath.MulDivFloor(radius, Transcendental.RadiansWide(sweep < 0 ? -sweep : sweep), Transcendental.WideOne);
 
-    private static long Hypot(long x, long y)
+    internal static long Hypot(long x, long y)
     {
         x = x < 0 ? -x : x;
         y = y < 0 ? -y : y;
