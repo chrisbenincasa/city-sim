@@ -235,7 +235,7 @@ Slices 1 to 5 are built. Lattice squares keep the pattern carver. Every other St
 or off the lattice, is cut by `SegmentSide` into plots turned to the Street. Those plots take the
 pattern of the face they front, or of their own Segment side when the roadside is open. Whole-block
 forms carve as Perimeter strips there, and residential plot sizing applies where it does on the
-lattice. Free sides claim after every lattice block, so the claim order holds within each carve
-rather than across the whole city.
+lattice. A Street edit gathers both kinds of plot and claims them in one pass, by Segment id, then
+side, then offset.
 Road sealing runs only in `RoadGenerator`, where every Street is straight, so it moved from slice 2
 to slice 6, which lays the first curved Street.

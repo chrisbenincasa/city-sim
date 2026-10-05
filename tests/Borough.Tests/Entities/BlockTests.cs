@@ -441,6 +441,56 @@ public sealed class BlockTests
         }
     }
 
+    /// <summary>
+    /// <b>Lattice plots and free-side plots claim ground in one order</b>: Segment id, then side, then
+    /// offset.
+    /// </summary>
+    /// <remarks>
+    /// The curved Street is laid before a lattice Street is re-laid, so a free side sits between two
+    /// lattice sides in Segment id order.
+    /// </remarks>
+    [Fact]
+    public void Lattice_and_free_side_plots_are_created_in_one_claim_order()
+    {
+        World world = Populated();
+        RoadGraph roads = world.Roads;
+        (int column, int row) = Uncarved(world);
+        Assert.True(world.ZoneBlock(column, row, LotTable.Housing));
+        Assert.Equal(PermissionRefusal.None,
+            world.PaintUsePermissions(new LandRectangle(2_960, 2_960, 180, 100), LotTable.Housing));
+        int curve = roads.Segments.Rows.Resolve(roads.Segments.Create(
+            roads.Nodes.Create(new Tiles(3_001), new Tiles(3_003)), roads.Nodes.Create(new Tiles(3_101), new Tiles(3_003)),
+            new Tiles(100), RoadKind.Street, TravelMode.Any, TravelMode.Any));
+        roads.Segments.Sagitta[curve] = SubTiles.FromTiles(new Tiles(12));
+
+        int south = roads.Streets.Horizontal(column, row);
+        Handle<RoadNode> a = roads.Segments.NodeA[south], b = roads.Segments.NodeB[south];
+        Tiles length = roads.Segments.LengthTiles[south];
+        roads.Segments.Rows.Free(roads.Segments.Rows.At(south));
+        roads.Segments.Create(a, b, length, RoadKind.Street, TravelMode.Any, TravelMode.Any);
+        roads.RebuildDerived();
+        world.Frontage.Rebuild(world.Lots);
+        int first = world.Lots.Rows.SlotCount;
+
+        Assert.True(LotSubdivider.Resubdivide(world).Created > 0);
+
+        var order = new List<(ulong Segment, byte Side, int Offset)>();
+        for (int lot = first; lot < world.Lots.Rows.SlotCount; lot++)
+        {
+            if (world.Lots.Rows.IsLive(lot))
+            {
+                order.Add((roads.Segments.Rows.IdAt(world.Lots.FrontageOn(lot)), world.Lots.Side[lot],
+                    world.Lots.FrontageOffset[lot].Raw));
+            }
+        }
+
+        ulong curveId = roads.Segments.Rows.IdAt(curve);
+        Assert.Contains(order, o => o.Segment < curveId);
+        Assert.Contains(order, o => o.Segment == curveId);
+        Assert.Contains(order, o => o.Segment > curveId);
+        Assert.Equal(order.OrderBy(o => o.Segment).ThenBy(o => o.Side).ThenBy(o => o.Offset), order);
+    }
+
     /// <summary>The first lattice square with Streets on it that nothing has claimed a face of.</summary>
     private static (int Column, int Row) Uncarved(World world)
     {
