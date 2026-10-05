@@ -271,10 +271,10 @@ public static class WorldInvariants
                 continue;
             }
 
-            int segment = lots.FrontageSlot[slot] - 1;
+            int segment = lots.FrontageOn(slot);
 
             report.Require(
-                segment >= 0 && world.Roads.Segments.Rows.IsLive(segment),
+                segment != Rows.NoSlot,
                 Invariant.VacantLotHasFrontage,
                 slot,
                 segment);

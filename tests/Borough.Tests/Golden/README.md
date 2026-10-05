@@ -755,10 +755,84 @@ unchanged. Behaviour did not move: census readings of twelve shipped Rulesets ov
 Citizens, and of two sessions that reload a Ruleset mid-run, are identical before and after once the
 State Hash lines and the new table's own rows are removed.
 
+### Saved frontage (2026-10-03)
+
+A Lot saves the Segment it fronts and the offset along it, where both were derived on the epoch
+([`adr/0174`](../../../docs/adr/0174-lots-are-cut-along-segments-and-save-their-frontage.md),
+`plans/freeform-streets.md` slice 3). `lot.frontage_segment` is a severable handle and
+`lot.frontage_offset` moves from `Derived` to `Saved`, so Core save format is **14**. All three
+artifacts moved on their hashes alone: `world-hash.txt`'s row counts are unchanged. Both traces and
+`world-hash.txt` were regenerated with the commands above. Baseline Ruleset content hashes and the
+hash seed are unchanged; no shipped Ruleset was edited.
+
+**Behavior did not move.** `--census` over both committed sessions — 8,192 Ticks on
+`declining.toml` reloading into `declining-tuned.toml`, and 4,096 Ticks on `congested.toml` — is
+byte-identical before and after once the State Hash lines are removed. ⚠ **Two saved columns can
+move every hash here and leave every collection, counter and Trip Fate where it was.** The carve
+already wrote the frontage these columns hold, and the rebuild it replaced recomputed the same
+numbers. What changed is which of the two the save carries.
+
+### Saved Segment sagitta (2026-10-03)
+
+Each Segment saves `road_segment.sagitta`, the signed bulge of its arc
+([`adr/0174`](../../../docs/adr/0174-lots-are-cut-along-segments-and-save-their-frontage.md),
+`plans/freeform-streets.md` slice 2). Every Segment writes zero, so every Street stays straight.
+Core save format is **15**. Both traces moved on their hashes alone and were regenerated with the
+commands above. `world-hash.txt` did not move, because `GoldenFixtures.Build()` has no Road Graph.
+Baseline Ruleset content hashes and the hash seed are unchanged; no shipped Ruleset was edited.
+
+**Behaviour did not move.** `--census` over both committed sessions is byte-identical before and
+after once the State Hash samples are removed. The derived `road_segment.centerline` now answers
+`VisibleAgents` positions and `LineSourceQueries` distances, and both agree with the straight-chord
+arithmetic they replace on these sessions.
+
+### Cell-indexed line sources (October 3, 2026)
+
+Freeform Streets slice 4a selects the background Street by exact Q16.16 centerline distance,
+then greater contribution at the point, then lowest monotonic Segment id. Whole-Tile contribution
+falloff is unchanged. At an exact tie between unequal sources, the louder background excludes the
+quieter source from the sum. Total intensity drops by that quieter contribution, so the line-source
+field moves down instead of preserving the lattice-order crossover.
+
+Both traces were regenerated with the commands above and `--census`. Twenty-six driving samples
+changed, from Tick 896 through Tick 4,096. The declining trace and `world-hash.txt` are unchanged.
+Both sessions' census sections are byte-identical before and after. Comparing all saved columns
+and allocator scalars in the driving session's Tick 4,096 saves found only `layer_cell.land_value`
+changed, on 37 rows. All 37 values increased, consistent with lower noise. Every other saved column
+and allocator matched. The before-save replay reproduced the committed pre-change trace; the
+final trace and save were written by the same after-change replay.
+
+Baseline Ruleset content, Core save format 15, and the hash seed are unchanged. The Cell traffic
+mask only skips queries proven silent and does not account for the hash movement.
+
+### Saved oriented Lot ground (10/03/2026)
+
+Each Lot saves Q16.16 parcel and footprint corners and a shared unit axis
+([`adr/0174`](../../../docs/adr/0174-lots-are-cut-along-segments-and-save-their-frontage.md),
+`plans/freeform-streets.md` slice 4b). The carve writes the same corners and axis `(One, 0)`.
+Core save format is **16**. Both session traces were regenerated with the commands above;
+`world-hash.txt` was regenerated from the complete `GoldenHashTests` failure payload.
+The Ruleset files, Input Logs, and hash seed did not change.
+
+Behavior did not move. Before and after `--census` runs used these arguments, adding `--out`
+for the after runs to write the traces above.
+
+```sh
+--log tests/Borough.Tests/Golden/session.borough --ruleset rulesets/declining.toml \
+  --ruleset rulesets/declining-tuned.toml --ticks 8192 --hash-every 256 --census
+--log tests/Borough.Tests/Golden/driving-session.borough --ruleset rulesets/congested.toml \
+  --ticks 4096 --hash-every 128 --census
+```
+
+The census output after the trace was byte-identical in both sessions, **20,583 bytes** and
+**20,488 bytes**, respectively. Only State Hash samples moved. Permissions still read parcel
+bounding boxes; sealing still reads footprint bounding boxes. No parcel area was substituted
+for the footprint's sealed area.
+
 ### Labour-bound production (2026-10-03)
 
-`business` gains a saved `search_since`, the Tick a Business's search for premises began, so Core
-save format is **14** (it also covers `citizen.labour_remainder`, which the branch added earlier).
-All three artefacts moved on the new column. Both traces and `world-hash.txt` were regenerated
-with the commands above. Baseline Ruleset content hashes and the hash seed are unchanged; no
-baseline Ruleset declares labour.
+`business` gains a saved `search_since`, the Tick a Business's search for premises began. With
+`citizen.labour_remainder` and each spoiling Bin's per-Day waste count, this takes Core save format
+to **17**. All three artefacts moved on the new columns. Both traces and `world-hash.txt` were
+regenerated with the commands above. Baseline Ruleset content hashes and the hash seed are
+unchanged; no baseline Ruleset declares labour.

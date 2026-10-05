@@ -46,8 +46,8 @@ public sealed class StreetOverlapProbe(ITestOutputHelper output)
                 continue;
             }
 
-            int east = world.Lots.FootprintEast[slot].Raw;
-            int north = world.Lots.FootprintNorth[slot].Raw;
+            int east = world.Lots.FootprintBounds(slot).X;
+            int north = world.Lots.FootprintBounds(slot).Y;
             int wide = world.Lots.FootprintWide[slot].Raw;
             int deep = world.Lots.FootprintDeep[slot].Raw;
 

@@ -447,14 +447,14 @@ public static class DistrictWatershed
     /// </remarks>
     private static int ComponentAt(LotTable lots, RoadGraph roads, int lot)
     {
-        int frontage = lots.FrontageSlot[lot];
+        int frontage = lots.FrontageOn(lot);
 
-        if (frontage == 0 || !roads.Segments.Rows.IsLive(frontage - 1))
+        if (frontage == Rows.NoSlot)
         {
             return RoadConnectivity.Unlabelled;
         }
 
-        return roads.Nodes.Rows.TryResolve(roads.Segments.NodeA[frontage - 1], out int node)
+        return roads.Nodes.Rows.TryResolve(roads.Segments.NodeA[frontage], out int node)
             ? roads.Nodes.FootComponent[node]
             : RoadConnectivity.Unlabelled;
     }

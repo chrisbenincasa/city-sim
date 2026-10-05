@@ -6,8 +6,8 @@ using Borough.Core.Tables;
 namespace Borough.Core.Space;
 
 /// <summary>
-/// <b>The contact between a Lot and a Street it can take access from</b> — derived from the Road
-/// Graph, rebuilt on the Epoch, and never saved (<c>adr/0078</c>).
+/// <b>The contact between a Lot and a Street it can take access from.</b> A Lot <em>saves</em> its
+/// frontage — Segment handle, offset and side (<c>adr/0174</c>) — and this class is what writes it.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -16,21 +16,17 @@ namespace Borough.Core.Space;
 /// consults a Ruleset about policy, only about the lattice spacing and how many Lots a Segment holds.
 /// </para>
 /// <para>
-/// <b>The derivation runs backwards from the Lot's saved coordinates, which is what makes it a
-/// derivation rather than a second copy.</b> A Lot laid on a horizontal Street has
-/// <c>north ≡ 0 (mod block_tiles)</c> and <c>east</c> strictly between two intersections; a Lot on a
-/// vertical Street has exactly the reverse. <b>The two sets are disjoint and neither contains an
-/// intersection</b>, so a saved position names at most one lattice edge and the Segment on it is a
-/// lookup. That is the whole reason frontage can be thrown away and recomputed instead of maintained.
+/// <b>Four operations, and only one of them runs on a load.</b> <see cref="Attach"/> gives a
+/// just-created Lot the Segment under it, and <see cref="AttachTo"/> does the same for the Segments
+/// one lay created. <see cref="Sever"/> unfronts the Lots a bulldoze left
+/// pointing at nothing. <see cref="Split"/> moves the Lots past a Segment split onto the new
+/// Segment. <see cref="Rebuild"/> is the derived half — the per-Segment claim mask, and nothing else.
 /// </para>
 /// <para>
-/// <b>The side is saved and the rest is derived, and the split is not arbitrary.</b> A point on a line
-/// is on both sides of it, so the side is the one part of an Address that the coordinates genuinely do
-/// not carry — which is <c>adr/0074</c>'s <i>"one saved bit on that place"</i> reached from the other
-/// direction. It would <em>also</em> be recoverable from the offset, since the subdivider alternates
-/// sides as it walks a Segment — but only under the <c>lots_per_segment</c> in force, and that is
-/// hot-reloadable tuning. Deriving side from spacing would make retuning the spacing silently move
-/// which side of the street every standing Building is on.
+/// ⚠ <b>Frontage has two homes now, the Lot and the Segment</b>, so every Street edit has to migrate
+/// the Lots it touches rather than letting a rebuild find them again. That is the cost
+/// <c>adr/0174</c> accepts: a freeform Street has no lattice line to run the old derivation backwards
+/// from, and a nearest-Segment search is ambiguous at corners and on curves.
 /// </para>
 /// </remarks>
 public sealed class Frontage
@@ -89,25 +85,23 @@ public sealed class Frontage
     }
 
     /// <summary>
-    /// Rebuilds every Lot's frontage from the Street lattice, and the per-Segment claim mask with it.
+    /// Rebuilds the per-Segment claim mask from the Lots' saved frontage.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Wholesale, and called from <c>World.RebuildDerived</c> and after every road edit.</b> A Lot
-    /// whose Street is gone comes out of this with no frontage and keeps its position, which is
-    /// <c>adr/0079</c>: the Building stands, the Address becomes <see cref="Address.None"/>, and
-    /// nothing anywhere holds a handle to a freed Segment.
-    /// </para>
-    /// <para>
-    /// <b>The claim mask is rebuilt here rather than maintained</b>, so that a Lot deleted by
+    /// <b>The claim mask is rebuilt rather than maintained</b>, so that a Lot deleted by
     /// re-subdivision releases its side of a Segment without anything having to remember to say so.
     /// It is derived from the Lots, which are saved, so it survives a reload by being recomputed.
     /// </para>
+    /// <para>
+    /// 🔴 <b>It writes no saved state</b>, which is what lets <c>World.RebuildDerived</c> call it. A
+    /// Lot whose Street is gone contributes nothing here and keeps its position, which is
+    /// <c>adr/0079</c>: the Building stands and the Address becomes <see cref="Address.None"/>.
+    /// </para>
     /// </remarks>
-    public void Rebuild(LotTable lots, StreetGrid streets)
+    public void Rebuild(LotTable lots)
     {
         ArgumentNullException.ThrowIfNull(lots);
-        ArgumentNullException.ThrowIfNull(streets);
 
         Array.Clear(_claimed);
 
@@ -118,11 +112,7 @@ public sealed class Frontage
                 continue;
             }
 
-            int segment = Locate(
-                streets, lots.East[slot], lots.North[slot], out Tiles offset);
-
-            lots.FrontageSlot[slot] = segment + 1;
-            lots.FrontageOffset[slot] = offset;
+            int segment = lots.FrontageOn(slot);
 
             if (segment != Rows.NoSlot)
             {
@@ -132,13 +122,155 @@ public sealed class Frontage
     }
 
     /// <summary>
+    /// Saves the lattice Segment under every Lot that has no frontage.
+    /// </summary>
+    /// <remarks>
+    /// <b>A creation-time pass.</b> It writes saved state, so nothing on the load path may call it —
+    /// a Lot's frontage comes out of the save already. A Lot that already fronts something is left
+    /// alone, which is what keeps a Lot on the Segment it was carved against.
+    /// </remarks>
+    /// <returns>How many Lots gained frontage.</returns>
+    public static int Attach(LotTable lots, StreetGrid streets, RoadSegmentTable segments) =>
+        Attach(lots, streets, segments, laid: default, onlyLaid: false);
+
+    /// <summary>
+    /// Saves one of the Segments in <paramref name="laid"/> under every unfronted Lot sitting on it.
+    /// </summary>
+    /// <remarks>
+    /// <b>What gives frontage back after a re-lay</b>, and narrow because a Street edit may only front
+    /// ground it names. ⚠ <b>It matches <see cref="Attach"/> on every state a carve can produce</b> —
+    /// <see cref="Locate"/> maps a Lot to the one lattice edge its own position lies on, so an
+    /// unfronted Lot has no Street on that edge, and the only Segment that can front it is one a lay
+    /// there creates. The filter bites on a Lot left unfronted by hand.
+    /// </remarks>
+    /// <returns>How many Lots gained frontage.</returns>
+    public static int AttachTo(
+        LotTable lots, StreetGrid streets, RoadSegmentTable segments, ReadOnlySpan<int> laid) =>
+        Attach(lots, streets, segments, laid, onlyLaid: true);
+
+    private static int Attach(
+        LotTable lots,
+        StreetGrid streets,
+        RoadSegmentTable segments,
+        ReadOnlySpan<int> laid,
+        bool onlyLaid)
+    {
+        ArgumentNullException.ThrowIfNull(lots);
+        ArgumentNullException.ThrowIfNull(streets);
+        ArgumentNullException.ThrowIfNull(segments);
+
+        int fronted = 0;
+
+        for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
+        {
+            if (!lots.Rows.IsLive(slot) || lots.HasFrontage(slot))
+            {
+                continue;
+            }
+
+            int segment = Locate(streets, lots.East[slot], lots.North[slot], out Tiles offset);
+
+            if (segment == Rows.NoSlot || !segments.Rows.IsLive(segment))
+            {
+                continue;
+            }
+
+            if (onlyLaid && !laid.Contains(segment))
+            {
+                continue;
+            }
+
+            lots.Front(slot, segments.Rows.At(segment), offset);
+            fronted++;
+        }
+
+        return fronted;
+    }
+
+    /// <summary>
+    /// Unfronts every Lot whose Segment has been freed under it.
+    /// </summary>
+    /// <remarks>
+    /// <b>A severed handle already reads as no frontage</b>, so this is about what the row holds
+    /// rather than about what it answers. A bulldoze is the city changing, and the state it leaves is
+    /// <em>this Lot fronts nothing</em> rather than <em>this Lot fronts a Street that is gone</em>.
+    /// </remarks>
+    /// <returns>How many Lots lost frontage.</returns>
+    public static int Sever(LotTable lots)
+    {
+        ArgumentNullException.ThrowIfNull(lots);
+
+        int severed = 0;
+
+        for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
+        {
+            if (!lots.Rows.IsLive(slot) || lots.FrontageSegment[slot].IsNone || lots.HasFrontage(slot))
+            {
+                continue;
+            }
+
+            lots.Unfront(slot);
+            severed++;
+        }
+
+        return severed;
+    }
+
+    /// <summary>
+    /// Moves the Lots past a Segment split onto the Segment the split created.
+    /// </summary>
+    /// <remarks>
+    /// <b><c>adr/0174</c>'s split rule.</b> The original keeps its id and the A part,
+    /// <paramref name="retainedTiles"/> long; a Lot sitting beyond that fronts
+    /// <paramref name="created"/> at its offset minus that length. The side does not move, because
+    /// both parts run in the original's A→B direction. ⚠ <b>The claim mask does not follow on its
+    /// own</b> — a caller that reads it calls <see cref="Rebuild"/> afterwards.
+    /// </remarks>
+    /// <returns>How many Lots moved.</returns>
+    public static int Split(
+        LotTable lots, RoadSegmentTable segments, int original, int created, Tiles retainedTiles)
+    {
+        ArgumentNullException.ThrowIfNull(lots);
+        ArgumentNullException.ThrowIfNull(segments);
+
+        Handle<RoadSegment> target = segments.Rows.At(created);
+        int moved = 0;
+
+        for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
+        {
+            if (!lots.Rows.IsLive(slot) || lots.FrontageOn(slot) != original)
+            {
+                continue;
+            }
+
+            Tiles offset = lots.FrontageOffset[slot];
+
+            if (offset.Raw <= retainedTiles.Raw)
+            {
+                continue;
+            }
+
+            lots.Front(slot, target, new Tiles(offset.Raw - retainedTiles.Raw));
+            moved++;
+        }
+
+        return moved;
+    }
+
+    /// <summary>
     /// Which Street a position fronts, and how far along it — or <see cref="Rows.NoSlot"/>.
     /// </summary>
     /// <remarks>
+    /// <para>
+    /// <b>A creation-time helper, and the lattice is its whole domain.</b> <see cref="Attach"/> is the
+    /// only caller in the simulation; a Lot's frontage is read off the Lot once it has one.
+    /// </para>
+    /// <para>
     /// <b>A position exactly on an intersection fronts nothing</b>, and that is deliberate rather than
     /// an edge case left to fall out. `CONTEXT.md` → Address is emphatic that an Address is
     /// <i>"never a Node"</i>; a Lot at a corner would have to choose between two Segments, and the
     /// choice would be an arbitrary tie-break that the State Hash would then carry forever.
+    /// </para>
     /// </remarks>
     public static int Locate(StreetGrid streets, Tiles east, Tiles north, out Tiles offset)
     {

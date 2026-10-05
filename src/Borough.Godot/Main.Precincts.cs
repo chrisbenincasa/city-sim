@@ -105,17 +105,18 @@ public partial class Main
     private void PlacePrecinct(PrecinctSite site, List<(ulong, Transform3D, Color)>[] placed)
     {
         LotTable lots = _world.Lots;
-        int east = lots.FootprintEast[site.Lot].Raw;
-        int north = lots.FootprintNorth[site.Lot].Raw;
-        int wide = lots.FootprintWide[site.Lot].Raw;
-        int deep = lots.FootprintDeep[site.Lot].Raw;
+        LandRectangle foot = FootprintFrame(site.Lot, trade: true);
+        int east = foot.X;
+        int north = foot.Y;
+        int wide = foot.Width;
+        int deep = foot.Height;
         int storeys = lots.Storeys[site.Lot];
         int family = 5 * (int)site.Family;
         Span<Precinct.Row> rows = stackalloc Precinct.Row[Precinct.RowCount(wide)];
         int count = Precinct.Rows(wide, rows);
 
         void Put(int module, Basis facing, float x, float up, float y) =>
-            placed[module].Add((site.Id, new Transform3D(facing, At(x, up, y)), Colors.White));
+            placed[module].Add((site.Id, OnTradeLot(site.Lot, new Transform3D(facing, At(x, up, y))), Colors.White));
 
         for (int r = 0; r < count; r++)
         {

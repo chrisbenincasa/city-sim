@@ -201,8 +201,7 @@ public sealed class CarParkTests
 
         world.Roads.RebuildDerived();
 
-        world.Lots.FrontageSlot[lotSlot] = world.Roads.Segments.Rows.Resolve(segment) + 1;
-        world.Lots.FrontageOffset[lotSlot] = new Tiles(16);
+        world.Lots.Front(lotSlot, segment, new Tiles(16));
         world.Lots.Side[lotSlot] = (byte)StreetSide.Right;
 
         return segment;

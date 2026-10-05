@@ -1,3 +1,4 @@
+using Borough.Core.Arithmetic;
 using Borough.Appearance;
 using Borough.Core;
 using Borough.Core.Determinism;
@@ -53,8 +54,8 @@ public sealed class CarParkCentreBuildingTests
             new Tiles(BlockTiles), new Tiles(BlockTiles));
         var foot = CarParkCentre.Footprint(parcel, BlockGround.Square(BlockTiles), 1);
 
-        world.Lots.FootprintEast[slot] = foot.East;
-        world.Lots.FootprintNorth[slot] = foot.North;
+        world.Lots.FootprintEastQ16[slot] = Fixed.FromInt(foot.East.Raw);
+        world.Lots.FootprintNorthQ16[slot] = Fixed.FromInt(foot.North.Raw);
         world.Lots.FootprintWide[slot] = foot.Wide;
         world.Lots.FootprintDeep[slot] = foot.Deep;
         world.Lots.Storeys[slot] = 1;
@@ -254,8 +255,8 @@ public sealed class CarParkCentreBuildingTests
         var world = new World(1_000, Centres());
         int slot = world.Lots.Rows.Resolve(world.Lots.Create(new Tiles(east), new Tiles(north), AnyZone));
 
-        world.Lots.ParcelEast[slot] = new Tiles(east);
-        world.Lots.ParcelNorth[slot] = new Tiles(north);
+        world.Lots.ParcelEastQ16[slot] = Fixed.FromInt(east);
+        world.Lots.ParcelNorthQ16[slot] = Fixed.FromInt(north);
         world.Lots.ParcelWide[slot] = new Tiles(wide);
         world.Lots.ParcelDeep[slot] = new Tiles(deep);
 
@@ -269,7 +270,7 @@ public sealed class CarParkCentreBuildingTests
 
         int lot = world.Lots.Rows.Resolve(world.Buildings.Lot[building]);
         (_, _, int along, int toward) = CarParkCentre.CarPark(
-            world.Lots.ParcelNorth[lot].Raw, world.Lots.FootprintEast[lot].Raw, world.Lots.FootprintNorth[lot].Raw,
+            world.Lots.ParcelBounds(lot).Y, world.Lots.FootprintBounds(lot).X, world.Lots.FootprintBounds(lot).Y,
             world.Lots.FootprintWide[lot].Raw, world.Rules.Lots.StreetHalfWidthTiles);
 
         int placed = StallLayout.Place(along, toward, world.Rules.Parking.Stalls, new Stall[1_000]);

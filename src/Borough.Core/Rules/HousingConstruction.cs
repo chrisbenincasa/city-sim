@@ -19,7 +19,7 @@ public static class HousingConstruction
         { return null; }
         int seekers = world.UnplacedPool.Count < rules.MaxSeekers ? world.UnplacedPool.Count : rules.MaxSeekers;
         LocalLot origin = LocalLot.Read(world.Lots, seedRow);
-        int street = Frontage.Locate(world.Roads.Streets, new Tiles(origin.East), new Tiles(origin.North), out _);
+        int street = world.Lots.FrontageOn(seedRow);
         if (street == Rows.NoSlot) { return null; }
         int nodeA = world.Roads.Nodes.Rows.Resolve(world.Roads.Segments.NodeA[street]);
         int nodeB = world.Roads.Nodes.Rows.Resolve(world.Roads.Segments.NodeB[street]);
@@ -41,8 +41,7 @@ public static class HousingConstruction
                 bool adjacent = horizontal
                     ? lot.Parcel.Y == end.Y && lot.Parcel.Height == end.Height && lot.Parcel.X == end.X + end.Width
                     : lot.Parcel.X == end.X && lot.Parcel.Width == end.Width && lot.Parcel.Y == end.Y + end.Height;
-                if (adjacent && lot.Side == origin.Side
-                    && Frontage.Locate(world.Roads.Streets, new Tiles(lot.East), new Tiles(lot.North), out _) == street)
+                if (adjacent && lot.Side == origin.Side && world.Lots.FrontageOn(row) == street)
                 { next = row; break; }
             }
             if (next == Rows.NoSlot) { break; }
@@ -165,6 +164,5 @@ public static class HousingConstruction
         return (aligned ? rules.AlignmentBonus : 0) + (sameForm ? rules.SameFormBonus : 0);
     }
 
-    private static bool Overlaps(LandRectangle a, LandRectangle b) => a.X < b.X + b.Width && b.X < a.X + a.Width
-        && a.Y < b.Y + b.Height && b.Y < a.Y + a.Height;
+    private static bool Overlaps(LandRectangle a, LandRectangle b) => World.Overlaps(a, b);
 }

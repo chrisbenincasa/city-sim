@@ -266,26 +266,15 @@ public static class VisibleAgents
         return TryEnds(world, address.Segment, along, out east, out north);
     }
 
-    /// <summary>A point a given way along a Segment's own two Nodes.</summary>
+    /// <summary>A point a given way along a Segment's centerline.</summary>
     private static bool TryEnds(
         World world, int segment, Ratio along, out SubTiles east, out SubTiles north)
     {
-        east = default;
-        north = default;
+        StreetArc centerline = world.Roads.Segments.Centerline[segment];
+        (long pointEast, long pointNorth) = centerline.PointAt(Fixed.Mul(along.Raw, centerline.Length));
 
-        RoadSegmentTable segments = world.Roads.Segments;
-        RoadNodeTable nodes = world.Roads.Nodes;
-
-        if (!nodes.Rows.TryResolve(segments.NodeA[segment], out int a)
-            || !nodes.Rows.TryResolve(segments.NodeB[segment], out int b))
-        {
-            return false;
-        }
-
-        east = Lerp(
-            SubTiles.FromTiles(nodes.East[a]), SubTiles.FromTiles(nodes.East[b]), along);
-        north = Lerp(
-            SubTiles.FromTiles(nodes.North[a]), SubTiles.FromTiles(nodes.North[b]), along);
+        east = new SubTiles((int)pointEast);
+        north = new SubTiles((int)pointNorth);
 
         return true;
     }

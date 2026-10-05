@@ -1,27 +1,25 @@
 namespace Borough.Core.Entities;
 
+using Borough.Core.Arithmetic;
 using Borough.Core.Quantities;
 using Borough.Core.Space;
 using Borough.Core.Tables;
 
 /// <summary>
-/// Parcels of land. The first table, and the only one holding no handles.
+/// Parcels of land.
 /// </summary>
 /// <remarks>
-/// <para>
-/// <b>Thin on purpose.</b> Slice 4's job is the table layer, not the schema — enough columns to hash
-/// something and to prove create, free and reuse. A wide table now is a wide table to migrate later,
-/// and the save format that would make a migration necessary arrived in milestone <b>8</b> — this
-/// sentence said <em>milestone 10</em> before the renumber. ⚠ <b>It did not bring the migration cost
-/// this paragraph anticipated</b>: <c>adr/0086</c> settles that a save has <em>no schema of its own
-/// and the field declaration is the format</em>, so a column added here is a column the save learns
-/// rather than one it has to be migrated across.
-/// </para>
 /// <para>
 /// <b>A Lot does not point back at its Building.</b> The handle runs one way, Building to Lot, which
 /// keeps the four tables a strict DAG and lets them be constructed in one order with no wiring pass.
 /// The reverse lookup, when something needs it, is a derived index rebuilt from the forward handle —
 /// the same treatment as the occupant lists.
+/// </para>
+/// <para>
+/// <b>A Lot's frontage is saved</b> (<c>adr/0174</c>) — the Segment it fronts, how far along it sits
+/// and which side of it. <see cref="Space.Frontage"/> writes it at creation and migrates it across
+/// Street edits, and the handle is <see cref="Reference.Severable"/> because a bulldozed Street
+/// leaves the Lot standing with no Address (<c>adr/0079</c>).
 /// </para>
 /// </remarks>
 [Table]
@@ -61,8 +59,11 @@ public sealed class LotTable
     private readonly Rows<Lot> _rows;
 
     /// <param name="capacity">Initial slot count. ~225 Lots per 1,000 Citizens, per S4 task 2.</param>
-    public LotTable(int capacity)
+    /// <param name="segments">The table this one's <see cref="FrontageSegment"/> handles address.</param>
+    public LotTable(int capacity, RoadSegmentTable segments)
     {
+        ArgumentNullException.ThrowIfNull(segments);
+
         _rows = new Rows<Lot>("lot", capacity, Buffering.OneCopy);
 
         East = _rows.Saved<Tiles>("east");
@@ -70,14 +71,21 @@ public sealed class LotTable
         Zone = _rows.Derived<ushort>("zone");
         Side = _rows.Saved<byte>("side");
         BuildingSlot = _rows.Derived<int>("building_slot");
-        FrontageSlot = _rows.Derived<int>("frontage_slot");
-        FrontageOffset = _rows.Derived<Tiles>("frontage_offset");
-        ParcelEast = _rows.Saved<Tiles>("parcel_east");
-        ParcelNorth = _rows.Saved<Tiles>("parcel_north");
+
+        // CarParkTable.WhereSegment's three-column pattern. An Address holds a Segment *slot*, and a
+        // saved slot index folds the city's whole demolition history into the State Hash, so two runs
+        // building the same city would disagree; Address.cs says so at length.
+        FrontageSegment = _rows.SavedHandle(
+            "frontage_segment", segments.Rows, Touch.Wake, Reference.Severable);
+        FrontageOffset = _rows.Saved<Tiles>("frontage_offset");
+        ParcelEastQ16 = _rows.Saved<int>("parcel_east_q16");
+        ParcelNorthQ16 = _rows.Saved<int>("parcel_north_q16");
+        AxisEastQ16 = _rows.Saved<int>("axis_east_q16");
+        AxisNorthQ16 = _rows.Saved<int>("axis_north_q16");
         ParcelWide = _rows.Saved<Tiles>("parcel_wide");
         ParcelDeep = _rows.Saved<Tiles>("parcel_deep");
-        FootprintEast = _rows.Saved<Tiles>("footprint_east");
-        FootprintNorth = _rows.Saved<Tiles>("footprint_north");
+        FootprintEastQ16 = _rows.Saved<int>("footprint_east_q16");
+        FootprintNorthQ16 = _rows.Saved<int>("footprint_north_q16");
         FootprintWide = _rows.Saved<Tiles>("footprint_wide");
         FootprintDeep = _rows.Saved<Tiles>("footprint_deep");
         Storeys = _rows.Saved<byte>("storeys");
@@ -90,74 +98,45 @@ public sealed class LotTable
     /// <summary>The slot allocator, the generation counters and the column list.</summary>
     public Rows<Lot> Rows => _rows;
 
-    /// <summary>
-    /// <b>The ground this Lot holds</b> — its parcel's south-west corner and extent, in Tiles.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// 🔴 <b>A LOT IS AN ADDRESS AND THIS DOES NOT CHANGE THAT.</b> <c>adr/0078</c> refused a
-    /// <em>depth key</em>, and there still is not one: the parcel is <b>derived</b>, on the epoch,
-    /// from the block's saved pattern and the lattice — the same standing as
-    /// <see cref="FrontageSlot"/>, produced by the same carve, and rebuilt from the same saved state.
-    /// </para>
-    /// <para>
-    /// <b><c>plans/0052</c> stage 1, which is <c>plans/0053</c>'s step 5.</b> Before this the ground
-    /// under a Building was invented independently in six places — five in the shell and one in the
-    /// core — and two of those inventions landed on the same patch, which is <c>plans/0049</c>
-    /// <b>F21</b>. ***A partition of a block cannot overlap; five sizings can.***
-    /// </para>
-    /// <para>
-    /// ⚠ <b>An unfronted Lot has no parcel</b> and reads zero on all four. <c>adr/0079</c> keeps such
-    /// a Lot and its Building standing with no Address, and ground with no Address on it is ground
-    /// this table cannot name — so a zero here means <em>ask the frontage</em> rather than
-    /// <em>a Building covering nothing</em>.
-    /// </para>
-    /// </remarks>
-    public Column<Tiles> ParcelEast { get; }
+    /// <summary>The saved parcel corner in Q16.16 Tiles. It survives loss of frontage.</summary>
+    public Column<int> ParcelEastQ16 { get; }
 
-    /// <inheritdoc cref="ParcelEast"/>
-    public Column<Tiles> ParcelNorth { get; }
+    /// <inheritdoc cref="ParcelEastQ16"/>
+    public Column<int> ParcelNorthQ16 { get; }
 
-    /// <inheritdoc cref="ParcelEast"/>
+    /// <summary>The saved first unit axis in Q16.16, shared by parcel and footprint.</summary>
+    public Column<int> AxisEastQ16 { get; }
+
+    /// <inheritdoc cref="AxisEastQ16"/>
+    public Column<int> AxisNorthQ16 { get; }
+
+    /// <summary>The parcel's extent along its first axis, in Tiles.</summary>
     public Column<Tiles> ParcelWide { get; }
 
-    /// <inheritdoc cref="ParcelEast"/>
+    /// <summary>The parcel's extent along its second axis, in Tiles.</summary>
     public Column<Tiles> ParcelDeep { get; }
 
-    /// <summary>
-    /// <b>The ground the Building on this Lot actually covers</b> — its parcel inset by four
-    /// setbacks.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// 🔴 <b>THIS IS WHAT MEETS THE MAP LAYERS, AND THE PARCEL IS NOT.</b> <c>CONTEXT.md</c> →
-    /// Building: <i>"a Building has a footprint (the set of Tiles it covers)"</i> and <i>"interacts
-    /// with Map Layers through that footprint"</i>. The parcel is the Lot's <em>holding</em>;
-    /// this is the part with a wall on it. ⚠ <b>Sealing was the parcel and was therefore about
-    /// TWICE the built ground</b>, while the shell drew the smaller figure — so the simulation and
-    /// the picture disagreed about the same quantity, and the picture was the one that was right.
-    /// </para>
-    /// <para>
-    /// <b>Derived on the epoch beside <see cref="ParcelEast"/> and by the same call.</b> The
-    /// setbacks come from <c>[lots] setback_tiles</c> and a draw on the <em>parcel's corner</em>, so
-    /// the footprint is a property of the ground rather than of the row — see
-    /// <c>LotRuleset.Footprint</c>.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>Zero on all four where there is no parcel</b>, the same convention
-    /// <see cref="ParcelEast"/> keeps, and it means the same thing: <em>ask the frontage</em>.
-    /// </para>
-    /// </remarks>
-    public Column<Tiles> FootprintEast { get; }
+    /// <summary>The saved footprint corner in Q16.16 Tiles, inset by the carve's setbacks.</summary>
+    public Column<int> FootprintEastQ16 { get; }
 
-    /// <inheritdoc cref="FootprintEast"/>
-    public Column<Tiles> FootprintNorth { get; }
+    /// <inheritdoc cref="FootprintEastQ16"/>
+    public Column<int> FootprintNorthQ16 { get; }
 
-    /// <inheritdoc cref="FootprintEast"/>
+    /// <summary>The footprint's extent along the parcel's first axis, in Tiles.</summary>
     public Column<Tiles> FootprintWide { get; }
 
-    /// <inheritdoc cref="FootprintEast"/>
+    /// <summary>The footprint's extent along the parcel's second axis, in Tiles.</summary>
     public Column<Tiles> FootprintDeep { get; }
+
+    public OrientedRectangle Parcel(int slot) => new(ParcelEastQ16[slot], ParcelNorthQ16[slot],
+        AxisEastQ16[slot], AxisNorthQ16[slot], ParcelWide[slot].Raw, ParcelDeep[slot].Raw);
+
+    public OrientedRectangle Footprint(int slot) => new(FootprintEastQ16[slot], FootprintNorthQ16[slot],
+        AxisEastQ16[slot], AxisNorthQ16[slot], FootprintWide[slot].Raw, FootprintDeep[slot].Raw);
+
+    public LandRectangle ParcelBounds(int slot) => Parcel(slot).Bounds;
+
+    public LandRectangle FootprintBounds(int slot) => Footprint(slot).Bounds;
 
     /// <summary>
     /// <b>How many floors a Building here stands</b>, derived from the block's pattern.
@@ -210,7 +189,7 @@ public sealed class LotTable
     {
         for (int slot = 0; slot < _rows.SlotCount; slot++)
         {
-            PodiumStoreys[slot] = _rows.IsLive(slot) ? rules.PodiumOn(key, ParcelEast[slot], ParcelNorth[slot]) : (byte)0;
+            PodiumStoreys[slot] = _rows.IsLive(slot) ? rules.PodiumOn(key, new Tiles(ParcelBounds(slot).X), new Tiles(ParcelBounds(slot).Y)) : (byte)0;
         }
     }
 
@@ -321,10 +300,9 @@ public sealed class LotTable
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Saved, and it is the only part of the Lot's Address that is.</b> The Segment and the offset
-    /// are recoverable from <see cref="East"/> and <see cref="North"/> against the Street lattice, and
-    /// a side is not: a point on a line is on both sides of it. So this is exactly the residue —
-    /// <c>adr/0074</c>'s <i>"one saved bit on that place"</i>, arrived at from the other direction.
+    /// <b>Saved, with the rest of the Lot's Address</b> — <c>adr/0074</c>'s <i>"one saved bit on that
+    /// place"</i>. A point on a line is on both sides of it, so no geometry recovers this one even
+    /// where the Segment and the offset could be found again.
     /// </para>
     /// <para>
     /// <b>Left or right of the Segment's A→B direction</b> (<see cref="Space.StreetSide"/>), which the
@@ -335,33 +313,55 @@ public sealed class LotTable
     public Column<byte> Side { get; }
 
     /// <summary>
-    /// The Segment this Lot fronts, as a slot index <b>plus one</b> — zero meaning no frontage.
+    /// The Segment this Lot fronts. Unset where it has no frontage, and severed where its Street has
+    /// been bulldozed.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// <b><c>Derived</c>, on the Epoch</b> (<c>adr/0078</c>). A Lot no more stores its frontage than
-    /// an Arc stores its cost, because both are functions of the Segments — and the edit that would
-    /// not reach a stored copy is <b>the player bulldozing the Street</b>, which is the one edit this
-    /// slice exists to make possible.
-    /// </para>
-    /// <para>
-    /// <b>Plus one, for <see cref="BuildingSlot"/>'s reason exactly.</b> A freshly allocated or freed
-    /// row is zero-filled, so a <c>-1</c> sentinel would make every unfronted Lot read as fronting
-    /// <em>Segment slot 0</em> — the first Street in the city, silently claimed across the map, with
-    /// every hash moving and every test passing. Read it through <see cref="AddressOf"/> rather than
-    /// directly; the encoding is not meant to travel.
-    /// </para>
+    /// <b>Saved</b> (<c>adr/0174</c>). A freeform Street has no lattice line to run the derivation
+    /// backwards from, and a nearest-Segment search is ambiguous at corners and on curves — so the
+    /// Lot holds the contact and every Street edit migrates the Lots it touches. Read it through
+    /// <see cref="FrontageOn"/> or <see cref="AddressOf"/>, which resolve the handle; write it
+    /// through <see cref="Front"/> and <see cref="Unfront"/>.
     /// </remarks>
-    public Column<int> FrontageSlot { get; }
+    public HandleColumn<RoadSegment> FrontageSegment { get; }
 
-    /// <summary>How far along its Segment this Lot sits, from the A endpoint.</summary>
+    /// <summary>How far along <see cref="FrontageSegment"/> this Lot sits, from its A endpoint.</summary>
     public Column<Tiles> FrontageOffset { get; }
 
     /// <summary>Whether nothing stands here — <c>02 §2.2</c>'s other state.</summary>
     public bool IsVacant(int slot) => BuildingSlot[slot] == 0;
 
+    /// <summary>
+    /// The slot of the Segment this Lot fronts, or <see cref="Rows.NoSlot"/> where it has none.
+    /// </summary>
+    /// <remarks>
+    /// <b>A severed handle reads as no frontage</b>, which is the one place a bulldozed Street becomes
+    /// <c>adr/0079</c>'s named absence rather than a stale reference.
+    /// </remarks>
+    public int FrontageOn(int slot) =>
+        FrontageSegment.Target.TryResolve(FrontageSegment[slot], out int segment) ? segment : Tables.Rows.NoSlot;
+
     /// <summary>Whether this Lot touches a Street it can take access from.</summary>
-    public bool HasFrontage(int slot) => FrontageSlot[slot] != 0;
+    public bool HasFrontage(int slot) => FrontageOn(slot) != Tables.Rows.NoSlot;
+
+    /// <summary>Records which Segment this Lot fronts and where along it.</summary>
+    /// <remarks>
+    /// <b>The side is set at <see cref="Create"/> and is not part of this.</b> A Lot does not change
+    /// which side of a Street it stands on, not even when a split moves it to another Segment, because
+    /// both parts of a split run in the original's A→B direction.
+    /// </remarks>
+    public void Front(int slot, Handle<RoadSegment> segment, Tiles offset)
+    {
+        FrontageSegment[slot] = segment;
+        FrontageOffset[slot] = offset;
+    }
+
+    /// <summary>Records that this Lot fronts nothing. It keeps its ground and its Building.</summary>
+    public void Unfront(int slot)
+    {
+        FrontageSegment[slot] = default;
+        FrontageOffset[slot] = Tiles.Zero;
+    }
 
     /// <summary>
     /// This Lot's Address — <b>and therefore its Building's Access Point</b>, which is what
@@ -373,10 +373,14 @@ public sealed class LotTable
     /// and not a null precisely so that milestone 5b reads it and reports <em>no route found</em>
     /// rather than dereferencing something.
     /// </remarks>
-    public Address AddressOf(int slot) =>
-        FrontageSlot[slot] == 0
+    public Address AddressOf(int slot)
+    {
+        int segment = FrontageOn(slot);
+
+        return segment == Tables.Rows.NoSlot
             ? Address.None
-            : Address.On(FrontageSlot[slot] - 1, FrontageOffset[slot], (StreetSide)Side[slot]);
+            : Address.On(segment, FrontageOffset[slot], (StreetSide)Side[slot]);
+    }
 
     /// <summary>
     /// The slot of the Building on this Lot, or <see cref="Rows.NoSlot"/> when it is vacant.
@@ -397,12 +401,9 @@ public sealed class LotTable
     /// <remarks>
     /// <para>
     /// <b>The subdivider is the intended caller and the tests are the other one</b> (<c>02 §2.2</c>:
-    /// <i>Lots are generated, not painted</i>). It does not set the frontage columns, because it does
-    /// not know the Segment — the subdivider does, and writes them at the same site, exactly as
-    /// <see cref="World.CreateBuilding"/> calls <see cref="Occupy"/> for the reverse index that
-    /// <see cref="World.RebuildDerived"/> also recomputes. <b>Two producers of a derived column is the
-    /// established pattern here rather than a hazard</b>: the write site keeps it cheap, the rebuild
-    /// keeps it recoverable, and a test that the two agree is what stops them drifting.
+    /// <i>Lots are generated, not painted</i>). ⚠ <b>It leaves the Lot unfronted</b>, because it does
+    /// not know the Segment — the caller that does calls <see cref="Front"/> at the same site, and a
+    /// Lot that never gets one stands on ground no Street reaches.
     /// </para>
     /// <para>
     /// 🔴 <b>The ground is a parameter because capacity divides it</b> (<c>plans/0053</c>). Until
@@ -419,6 +420,7 @@ public sealed class LotTable
     /// takes none — so the honest thing is to seal what was asked for, and a caller wanting a
     /// setback is a caller who should be going through the subdivider.
     /// </para>
+    /// <para>Corner coordinates must fit Q16.16, from -32,768 through 32,767 whole Tiles.</para>
     /// </remarks>
     public Handle<Lot> Create(
         Tiles east,
@@ -440,13 +442,15 @@ public sealed class LotTable
         Tiles across = wide.Raw > 0 ? wide : new Tiles(1);
         Tiles along = deep.Raw > 0 ? deep : new Tiles(1);
 
-        ParcelEast[slot] = east;
-        ParcelNorth[slot] = north;
+        ParcelEastQ16[slot] = Fixed.FromInt(east.Raw);
+        ParcelNorthQ16[slot] = Fixed.FromInt(north.Raw);
+        AxisEastQ16[slot] = Fixed.One;
+        AxisNorthQ16[slot] = 0;
         ParcelWide[slot] = across;
         ParcelDeep[slot] = along;
 
-        FootprintEast[slot] = east;
-        FootprintNorth[slot] = north;
+        FootprintEastQ16[slot] = Fixed.FromInt(east.Raw);
+        FootprintNorthQ16[slot] = Fixed.FromInt(north.Raw);
         FootprintWide[slot] = across;
         FootprintDeep[slot] = along;
 

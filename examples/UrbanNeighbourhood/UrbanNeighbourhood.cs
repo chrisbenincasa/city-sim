@@ -1,4 +1,5 @@
 using Borough.Core;
+using Borough.Core.Arithmetic;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
@@ -28,8 +29,8 @@ public static class UrbanNeighbourhood
             int x = gap + 12 * i;
             var lot = world.Lots.Create(new Tiles(x + 6), new Tiles(0), LotTable.Housing, StreetSide.Left);
             int row = world.Lots.Rows.Resolve(lot);
-            world.Lots.ParcelEast[row] = world.Lots.FootprintEast[row] = new Tiles(x);
-            world.Lots.ParcelNorth[row] = world.Lots.FootprintNorth[row] = new Tiles(gap);
+            world.Lots.ParcelEastQ16[row] = world.Lots.FootprintEastQ16[row] = Fixed.FromInt(x);
+            world.Lots.ParcelNorthQ16[row] = world.Lots.FootprintNorthQ16[row] = Fixed.FromInt(gap);
             world.Lots.ParcelWide[row] = world.Lots.FootprintWide[row] = new Tiles(12);
             world.Lots.ParcelDeep[row] = world.Lots.FootprintDeep[row] = new Tiles(16);
             world.Lots.Storeys[row] = 2;
@@ -40,7 +41,7 @@ public static class UrbanNeighbourhood
             world.Endow(household, new Money(100));
         }
         var gateLot = world.Lots.Create(new Tiles(0), new Tiles(32), 0, StreetSide.Right);
-        world.Frontage.Rebuild(world.Lots, world.Roads.Streets);
+        world.RebuildParcels();
         var gate = world.CreateBuilding(gateLot, 3, world.Tick, key);
         for (int i = 0; i < 2; i++)
             if (!world.TryArrive(gate, 0, 2, world.Tick, out _))

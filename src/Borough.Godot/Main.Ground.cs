@@ -1,3 +1,4 @@
+using Q16 = Borough.Core.Arithmetic.Fixed;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -70,22 +71,36 @@ public partial class Main
                 continue;
             }
 
+            OrientedRectangle parcel = lots.Parcel(slot);
+            if (parcel.AxisEastQ16 != Q16.One || parcel.AxisNorthQ16 != 0)
+            {
+                float wide = parcel.Wide * MetresPerTile, deep = parcel.Deep * MetresPerTile;
+                if (Mathf.Min(wide, deep) < MinFrontageMetres) continue;
+                yield return (lots.Rows.IdAt(slot),
+                    new Transform3D(RectangleBasis(parcel) * Basis.FromScale(new Vector3(wide, .01f, deep)),
+                        RectanglePoint(parcel, parcel.Wide * .5f, .02f, parcel.Deep * .5f)),
+                    new Color(.42f, .52f, .30f).SrgbToLinear());
+                continue;
+            }
+
             // ⚠ THE PAD IS THE LOT'S PARCEL, which is what a vacant Lot has always been trying
             // to draw -- the ground the city would build on. Before plans/0052 stage 1 the shell
             // had to invent it, and it invented a DIFFERENT rectangle here than Buildings() did.
-            int wideTiles = lots.ParcelWide[slot].Raw;
-            int deepTiles = lots.ParcelDeep[slot].Raw;
+            LandRectangle frame = ParcelFrame(slot);
+            int wideTiles = frame.Width;
+            int deepTiles = frame.Height;
 
             if (wideTiles <= 0 || deepTiles <= 0)
             {
                 continue;
             }
 
-            float west = lots.ParcelEast[slot].Raw * MetresPerTile;
-            float south = lots.ParcelNorth[slot].Raw * MetresPerTile;
+            float west = frame.X * MetresPerTile;
+            float south = frame.Y * MetresPerTile;
             float eastEdge = west + wideTiles * MetresPerTile;
             float northEdge = south + deepTiles * MetresPerTile;
-            if (Frontage.BlockOf(_world.Roads.Streets, lots.East[slot], lots.North[slot],
+            if (lots.AxisEastQ16[slot] == Q16.One && lots.AxisNorthQ16[slot] == 0
+                && Frontage.BlockOf(_world.Roads.Streets, lots.East[slot], lots.North[slot],
                 (StreetSide)lots.Side[slot], out int column, out int row)
                 && ZoneInterior(column, row) is { } interior)
             {
@@ -104,7 +119,7 @@ public partial class Main
 
             yield return (
                 lots.Rows.IdAt(slot),
-                new Transform3D(Basis.FromScale(plan), new Vector3(east, 0.02f, -north)),
+                OnLot(slot, new Transform3D(Basis.FromScale(plan), new Vector3(east, 0.02f, -north))),
                 new Color(0.42f, 0.52f, 0.30f).SrgbToLinear());
         }
     }
@@ -1868,11 +1883,11 @@ public partial class Main
 
     /// <summary>Every Lot's Address as a Segment, a side and a distance, sorted for one walk.</summary>
     /// <remarks>
-    /// ⚠ <b><see cref="LotTable.FrontageSlot"/> is the Segment's slot PLUS ONE</b>, so that zero
-    /// reads as <em>no Street</em> — <c>Frontage.Rebuild</c>'s own convention, and a Lot whose Street
-    /// was demolished keeps its Building and loses its Address (<c>adr/0079</c>). ⚠ <b>The offset is
-    /// measured from the lattice edge's LOWER end</b>, which is what <c>Frontage.Locate</c> computes
-    /// and why <see cref="Kerbs"/> orients the run rather than trusting the node order.
+    /// ⚠ <b><see cref="LotTable.FrontageOn"/> resolves the Lot's saved Segment handle</b> and answers
+    /// <c>Rows.NoSlot</c> where there is none, which is a Lot whose Street was demolished: it keeps
+    /// its Building and loses its Address (<c>adr/0079</c>). ⚠ <b>The offset is measured from the
+    /// Segment's A endpoint</b>, which is why <see cref="Kerbs"/> orients the run rather than trusting
+    /// the node order.
     /// </remarks>
     private List<(int Segment, byte Side, float Along)> Addresses()
     {
@@ -1881,13 +1896,20 @@ public partial class Main
 
         for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
         {
-            if (!lots.Rows.IsLive(slot) || lots.FrontageSlot[slot] <= 0)
+            if (!lots.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            int segment = lots.FrontageOn(slot);
+
+            if (segment == Borough.Core.Tables.Rows.NoSlot)
             {
                 continue;
             }
 
             found.Add((
-                lots.FrontageSlot[slot] - 1,
+                segment,
                 lots.Side[slot],
                 lots.FrontageOffset[slot].Raw * MetresPerTile));
         }

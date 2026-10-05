@@ -111,16 +111,16 @@ public partial class Main
 
     private void PlaceHall(Hall hall, List<(ulong, Transform3D, Color)>[] placed)
     {
-        LotTable lots = _world.Lots;
         UnitTable units = _world.Units;
-        int east = lots.FootprintEast[hall.Lot].Raw;
-        int north = lots.FootprintNorth[hall.Lot].Raw;
-        int wide = lots.FootprintWide[hall.Lot].Raw;
-        int deep = lots.FootprintDeep[hall.Lot].Raw;
+        LandRectangle foot = FootprintFrame(hall.Lot, trade: true);
+        int east = foot.X;
+        int north = foot.Y;
+        int wide = foot.Width;
+        int deep = foot.Height;
         int family = 3 * (int)hall.Family;
 
         void Put(int module, Basis facing, int x, int y) =>
-            placed[module].Add((hall.Id, new Transform3D(facing, At(east + x + .5f, 0f, north + y + .5f)), Colors.White));
+            placed[module].Add((hall.Id, OnTradeLot(hall.Lot, new Transform3D(facing, At(east + x + .5f, 0f, north + y + .5f))), Colors.White));
 
         bool Stall(int x)
         {
@@ -180,17 +180,17 @@ public partial class Main
     /// <summary>Paves the Lot from the hall's north wall to the north street, under a grid of trees.</summary>
     private void PlaceSquare(Hall hall, List<(ulong, Transform3D, Color)>[] placed)
     {
-        LotTable lots = _world.Lots;
-        int east = lots.FootprintEast[hall.Lot].Raw;
-        int wide = lots.FootprintWide[hall.Lot].Raw;
-        int south = lots.FootprintNorth[hall.Lot].Raw + lots.FootprintDeep[hall.Lot].Raw;
-        (Parcel parcel, BlockGround ground) = _world.ParcelGround(hall.Lot);
+        LandRectangle foot = FootprintFrame(hall.Lot, trade: true);
+        int east = foot.X;
+        int wide = foot.Width;
+        int south = foot.Y + foot.Height;
+        (Parcel parcel, BlockGround ground) = TradeGround(hall.Lot);
         int top = System.Math.Min(
             parcel.North.Raw + parcel.Deep.Raw, ground.North + ground.Deep - _world.Rules.Lots.StreetHalfWidthTiles);
         int margin = (wide % TreeEvery) / 2 + (TreeEvery / 2);
 
         void Put(int module, float x, float y) =>
-            placed[module].Add((hall.Id, new Transform3D(Basis.Identity, At(x, 0f, y)), Colors.White));
+            placed[module].Add((hall.Id, OnTradeLot(hall.Lot, new Transform3D(Basis.Identity, At(x, 0f, y))), Colors.White));
 
         for (int y = south; y < top; y++)
         {

@@ -39,7 +39,7 @@ public partial class Main
     private readonly List<ulong>[] _padIds = new List<ulong>[PadModules.Length + 2];
 
     private readonly record struct Pad(
-        ulong Id, int East, int North, int Wide, int Deep, BlockFace Face, PadFamily Family);
+        ulong Id, int Lot, int East, int North, int Wide, int Deep, bool FrontLow, PadFamily Family);
 
     private void CreatePadSiteLayers()
     {
@@ -103,31 +103,29 @@ public partial class Main
             }
 
             int lot = lots.Rows.Resolve(_world.Buildings.Lot[slot]);
-            BlockFace face = BlockFace.East;
-
-            foreach (int unit in _world.BuildingUnits.Walk(slot))
-            {
-                face = (BlockFace)_world.Units.Side[unit];
-            }
+            var frame = DrawingRectangle(lot, parcel: false, trade: true);
+            var front = Borough.Appearance.LotGeometry.Direction(lots.Parcel(lot), Borough.Appearance.LotGeometry.Front(_world, lot));
+            bool frontLow = System.Numerics.Vector2.Dot(front,
+                Borough.Appearance.LotGeometry.Direction(frame, System.Numerics.Vector2.UnitX)) < 0;
 
             ulong id = rows.IdAt(slot);
             ulong draw = Randomness.Draw(_world.Key, id, Ticks.Zero, PurposeTag.AppearanceFamily);
 
-            yield return new(id, lots.FootprintEast[lot].Raw, lots.FootprintNorth[lot].Raw,
-                lots.FootprintWide[lot].Raw, lots.FootprintDeep[lot].Raw, face, (PadFamily)(int)(draw % 3));
+            LandRectangle foot = FootprintFrame(lot, trade: true);
+            yield return new(id, lot, foot.X, foot.Y, foot.Width, foot.Height, frontLow, (PadFamily)(int)(draw % 3));
         }
     }
 
     private void PlacePad(Pad pad, List<(ulong, Transform3D, Color)>[] placed)
     {
-        Basis facing = pad.Face == BlockFace.West ? FacingWest : FacingEast;
+        Basis facing = pad.FrontLow ? FacingWest : FacingEast;
         int family = 4 * (int)pad.Family;
         int door = pad.Deep / 2;
 
         void Put(int module, float east, float north) =>
-            placed[module].Add((pad.Id, new Transform3D(facing, At(east, 0f, north)), Colors.White));
+            placed[module].Add((pad.Id, OnTradeLot(pad.Lot, new Transform3D(facing, At(east, 0f, north))), Colors.White));
 
-        float Across(float fromFront) => pad.Face == BlockFace.West
+        float Across(float fromFront) => pad.FrontLow
             ? pad.East - fromFront
             : pad.East + pad.Wide + fromFront;
 
@@ -162,18 +160,18 @@ public partial class Main
             Put(family + PadFeature, Across(1.1f), pad.North + door + .5f);
         }
 
-        (int bandEast, int bandNorth, int along, int toward) = PadSite.CarPark(pad.East, pad.North, pad.Wide, pad.Face);
-        PlaceStallBand(pad.Id, bandEast, bandNorth, along, toward, placed[PadSurface], placed[PadStall]);
+        (int bandEast, int bandNorth, int along, int toward) = PadSite.CarPark(pad.East, pad.North, pad.Wide, pad.FrontLow ? BlockFace.West : BlockFace.East);
+        PlaceStallBand(pad.Id, pad.Lot, bandEast, bandNorth, along, toward, placed[PadSurface], placed[PadStall]);
     }
 
-    private void PlaceStallBand(ulong id, int east, int north, int along, int toward,
+    private void PlaceStallBand(ulong id, int lot, int east, int north, int along, int toward,
         List<(ulong, Transform3D, Color)> surfaces, List<(ulong, Transform3D, Color)> stalls)
     {
         for (int x = 0; x < along; x++)
         {
             for (int y = 0; y < toward; y++)
             {
-                surfaces.Add((id, new Transform3D(Basis.Identity, At(east + x + .5f, 0f, north + y + .5f)), Colors.White));
+                surfaces.Add((id, OnTradeLot(lot, new Transform3D(Basis.Identity, At(east + x + .5f, 0f, north + y + .5f))), Colors.White));
             }
         }
 
@@ -195,7 +193,7 @@ public partial class Main
             float x = west + ((stall.EastCentimetres + (stall.WideCentimetres * .5f)) * .01f);
             float z = south + ((stall.NorthCentimetres + (stall.DeepCentimetres * .5f)) * .01f);
 
-            stalls.Add((id, new Transform3D(Basis.Identity, new Vector3(x, 0f, -z)), Colors.White));
+            stalls.Add((id, OnTradeLot(lot, new Transform3D(Basis.Identity, new Vector3(x, 0f, -z))), Colors.White));
         }
     }
 }

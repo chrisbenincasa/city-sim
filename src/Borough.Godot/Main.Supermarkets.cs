@@ -115,8 +115,6 @@ public partial class Main
     /// <summary>One bay a Tile along the store's front, with the entrance at the middle bay.</summary>
     private IEnumerable<(ulong Id, Transform3D Where)> StoreBays(bool entrance)
     {
-        LotTable lots = _world.Lots;
-
         foreach (Supermarket each in Supermarkets())
         {
             if (!each.Store)
@@ -124,19 +122,20 @@ public partial class Main
                 continue;
             }
 
-            int wide = lots.FootprintWide[each.Lot].Raw;
+            LandRectangle foot = FootprintFrame(each.Lot, trade: true);
+            int wide = foot.Width;
             int middle = wide / 2;
-            float east = lots.FootprintEast[each.Lot].Raw * MetresPerTile;
-            float north = lots.FootprintNorth[each.Lot].Raw * MetresPerTile;
-            float deep = lots.FootprintDeep[each.Lot].Raw;
+            float east = foot.X * MetresPerTile;
+            float north = foot.Y * MetresPerTile;
+            float deep = foot.Height;
             float centre = north + (deep * MetresPerTile * .5f);
 
             for (int bay = 0; bay < wide; bay++)
             {
                 if ((bay == middle) == entrance)
                 {
-                    yield return (each.Id, new Transform3D(
-                        Basis.Identity, new Vector3(east + ((bay + .5f) * MetresPerTile), 0f, -centre)));
+                    yield return (each.Id, OnTradeLot(each.Lot, new Transform3D(
+                        Basis.Identity, new Vector3(east + ((bay + .5f) * MetresPerTile), 0f, -centre))));
                 }
             }
         }
@@ -144,12 +143,10 @@ public partial class Main
 
     private (int East, int North, int Along, int Toward) SupermarketCarPark(int lot)
     {
-        LotTable lots = _world.Lots;
+        LandRectangle parcel = ParcelFrame(lot, trade: true), foot = FootprintFrame(lot, trade: true);
 
         return TownSupermarket.CarPark(
-            lots.ParcelNorth[lot].Raw, lots.ParcelDeep[lot].Raw, lots.FootprintEast[lot].Raw,
-            lots.FootprintNorth[lot].Raw, lots.FootprintWide[lot].Raw, lots.FootprintDeep[lot].Raw,
-            _world.Rules.Lots.StreetHalfWidthTiles);
+            parcel.Y, parcel.Height, foot.X, foot.Y, foot.Width, foot.Height, _world.Rules.Lots.StreetHalfWidthTiles);
     }
 
     /// <summary>
@@ -167,9 +164,9 @@ public partial class Main
                 {
                     for (int y = 0; y < toward; y++)
                     {
-                        yield return (each.Id, new Transform3D(Basis.Identity, new Vector3(
+                        yield return (each.Id, OnTradeLot(each.Lot, new Transform3D(Basis.Identity, new Vector3(
                             (east + x + .5f) * MetresPerTile, level * DeckLevelMetres,
-                            -((north + y + .5f) * MetresPerTile))));
+                            -((north + y + .5f) * MetresPerTile)))));
                     }
                 }
             }
@@ -196,15 +193,15 @@ public partial class Main
 
                 for (int x = 0; x < along; x++)
                 {
-                    yield return (each.Id, new Transform3D(Basis.Identity,
-                        new Vector3((east + x + .5f) * MetresPerTile, height, -rear)));
+                    yield return (each.Id, OnTradeLot(each.Lot, new Transform3D(Basis.Identity,
+                        new Vector3((east + x + .5f) * MetresPerTile, height, -rear))));
                 }
 
                 for (int y = 0; y < toward; y++)
                 {
                     float z = -((north + y + .5f) * MetresPerTile);
-                    yield return (each.Id, new Transform3D(turned, new Vector3(west, height, z)));
-                    yield return (each.Id, new Transform3D(turned, new Vector3(eastEdge, height, z)));
+                    yield return (each.Id, OnTradeLot(each.Lot, new Transform3D(turned, new Vector3(west, height, z))));
+                    yield return (each.Id, OnTradeLot(each.Lot, new Transform3D(turned, new Vector3(eastEdge, height, z))));
                 }
             }
         }
@@ -239,8 +236,8 @@ public partial class Main
                     float x = west + ((stall.EastCentimetres + (stall.WideCentimetres * .5f)) * .01f);
                     float z = south + ((stall.NorthCentimetres + (stall.DeepCentimetres * .5f)) * .01f);
 
-                    yield return (each.Id, new Transform3D(
-                        Basis.Identity, new Vector3(x, level * DeckLevelMetres, -z)));
+                    yield return (each.Id, OnTradeLot(each.Lot, new Transform3D(
+                        Basis.Identity, new Vector3(x, level * DeckLevelMetres, -z))));
                 }
             }
         }

@@ -53,14 +53,14 @@ public readonly record struct BuildingFacts(
             return false;
         }
 
-        int wide = lots.FootprintWide[lot].Raw * Tiles.Metres;
-        int deep = lots.FootprintDeep[lot].Raw * Tiles.Metres;
+        int wide = lots.Footprint(lot).Wide * Tiles.Metres;
+        int deep = lots.Footprint(lot).Deep * Tiles.Metres;
         if (wide <= 0 || deep <= 0)
         {
             return false;
         }
 
-        bool eastWest = RunsEastWest(world.Roads.Streets.Lattice, lots, lot);
+        bool alongA = LotGeometry.Front(world, lot).Y != 0;
         Address address = lots.AddressOf(lot);
         byte kind = buildings.Kind[slot];
         BlockPattern pattern = lots.PatternOf(lot);
@@ -76,8 +76,8 @@ public readonly record struct BuildingFacts(
         facts = new BuildingFacts(
             buildings.Rows.IdAt(slot),
             names.Kind(kind) ?? $"#{kind}",
-            eastWest ? wide : deep,
-            eastWest ? deep : wide,
+            alongA ? wide : deep,
+            alongA ? deep : wide,
             Math.Max(1, (int)lots.Storeys[lot]),
             pattern,
             lots.Zone[lot],
@@ -107,10 +107,10 @@ public readonly record struct BuildingFacts(
         ArgumentNullException.ThrowIfNull(lattice);
         ArgumentNullException.ThrowIfNull(lots);
 
-        int west = lots.ParcelEast[lot].Raw;
-        int south = lots.ParcelNorth[lot].Raw;
-        int wide = lots.ParcelWide[lot].Raw;
-        int deep = lots.ParcelDeep[lot].Raw;
+        int west = lots.ParcelBounds(lot).X;
+        int south = lots.ParcelBounds(lot).Y;
+        int wide = lots.ParcelBounds(lot).Width;
+        int deep = lots.ParcelBounds(lot).Height;
         if (lattice.Nominal <= 0 || wide <= 0 || deep <= 0)
         {
             return false;
@@ -120,14 +120,6 @@ public readonly record struct BuildingFacts(
         bool eastOrWest = west == block.East || west + wide == block.East + block.Wide;
         bool northOrSouth = south == block.North || south + deep == block.North + block.Deep;
         return eastOrWest && northOrSouth;
-    }
-
-    /// <summary>Whether the Lot's Street runs east–west, read off the lattice line the Lot sits on.</summary>
-    public static bool RunsEastWest(BlockLattice lattice, LotTable lots, int lot)
-    {
-        ArgumentNullException.ThrowIfNull(lattice);
-        ArgumentNullException.ThrowIfNull(lots);
-        return lattice.Nominal > 0 && lattice.EdgeOf(lattice.LineAt(lots.North[lot].Raw)) == lots.North[lot].Raw;
     }
 }
 

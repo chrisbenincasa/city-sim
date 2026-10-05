@@ -263,7 +263,17 @@ public sealed class DerivedRebuildAuditTests
         // Units of each Building and the Business holding each, rebuilt from unit.building and
         // business.unit.
         // 56 -> 57: lot.podium_storeys, drawn for every live Lot, so any world with Lots exercises it.
-        Assert.Equal(57, all.Length);
+        //
+        // 57 -> 55: lot.frontage_slot and lot.frontage_offset went to SAVED as a severable Segment
+        // handle and an offset (adr/0174). Freeform Streets have no lattice line to run the old
+        // derivation backwards from, and a nearest-Segment search is ambiguous at corners and on
+        // curves -- so the Lot holds the contact and every Street edit migrates the Lots it touches.
+        // ⚠ What stays derived is the per-Segment claim mask, which lives outside any table and is
+        // therefore outside this audit, exactly as CarParkResidency is.
+        //
+        // 55 -> 56: road_segment.centerline, the arc rebuilt from a Segment's Nodes and its saved
+        // sagitta (adr/0174). Every world with a Segment exercises it.
+        Assert.Equal(56, all.Length);
         Assert.Single(ScratchColumns(Stepped(0)));
     }
 
@@ -294,6 +304,37 @@ public sealed class DerivedRebuildAuditTests
         {
             Assert.Equal(0, fidelity);
         }
+    }
+
+    [Fact]
+    public void Traffic_presence_mask_rebuilds_after_corruption_without_saved_writes()
+    {
+        World world = Stepped(0);
+        RoadGraph graph = world.Roads;
+        int moving = Enumerable.Range(0, graph.Segments.Rows.SlotCount)
+            .First(graph.Segments.Rows.IsLive);
+        graph.Segments.VolumeForward[moving] = 1;
+        var presence = new TrafficPresence();
+        Tiles range = world.Rules.Layers.Desirability.NoiseSource.Range;
+        presence.Rebuild(graph, range);
+        bool[] original = presence.Mask.ToArray();
+        Assert.Contains(true, original);
+        Assert.Contains(false, original);
+        ulong saved = world.HashState();
+
+        // The pass-scoped mask lives outside Rows, so audit both corruption directions explicitly.
+        presence.Mask.Fill(true);
+        presence.Rebuild(graph, range);
+        Assert.Equal(original, presence.Mask.ToArray());
+        presence.Mask.Clear();
+        presence.Rebuild(graph, range);
+        Assert.Equal(original, presence.Mask.ToArray());
+        Assert.Equal(saved, world.HashState());
+
+        graph.Segments.VolumeForward[moving] = 0;
+        presence.Rebuild(graph, range);
+        Assert.False(presence.AnyTraffic);
+        Assert.DoesNotContain(true, presence.Mask.ToArray());
     }
 
     /// <summary>

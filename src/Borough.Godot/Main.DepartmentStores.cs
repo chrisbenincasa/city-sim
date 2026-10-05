@@ -33,7 +33,7 @@ public partial class Main
 
     private enum Facade { Window, Anchor, Entrance, Corner }
 
-    private readonly record struct Store(ulong Id, int East, int North, int Wide, int Deep, int Storeys);
+    private readonly record struct Store(ulong Id, int Lot, int East, int North, int Wide, int Deep, int Storeys);
 
     private static readonly Basis FacingSouth = Basis.Identity;
     private static readonly Basis FacingNorth = new(Vector3.Up, Mathf.Pi);
@@ -76,8 +76,8 @@ public partial class Main
             if (_world.IsDepartmentStore(slot))
             {
                 int lot = lots.Rows.Resolve(_world.Buildings.Lot[slot]);
-                yield return new(rows.IdAt(slot), lots.FootprintEast[lot].Raw, lots.FootprintNorth[lot].Raw,
-                    lots.FootprintWide[lot].Raw, lots.FootprintDeep[lot].Raw, Math.Max(1, (int)lots.Storeys[lot]));
+                LandRectangle foot = FootprintFrame(lot, trade: true);
+                yield return new(rows.IdAt(slot), lot, foot.X, foot.Y, foot.Width, foot.Height, Math.Max(1, (int)lots.Storeys[lot]));
             }
         }
     }
@@ -96,8 +96,8 @@ public partial class Main
                 {
                     for (int y = 0; y < each.Deep; y++)
                     {
-                        yield return (each.Id, new Transform3D(Basis.Identity,
-                            At(each.East + x + .5f, storey * StoreyMetres, each.North + y + .5f)));
+                        yield return (each.Id, OnTradeLot(each.Lot, new Transform3D(Basis.Identity,
+                            At(each.East + x + .5f, storey * StoreyMetres, each.North + y + .5f))));
                     }
                 }
             }
@@ -113,15 +113,15 @@ public partial class Main
             for (int x = 0; x < each.Wide; x++)
             {
                 float east = each.East + x + .5f;
-                yield return (each.Id, new Transform3D(FacingSouth, At(east, top, each.North)));
-                yield return (each.Id, new Transform3D(FacingNorth, At(east, top, each.North + each.Deep)));
+                yield return (each.Id, OnTradeLot(each.Lot, new Transform3D(FacingSouth, At(east, top, each.North))));
+                yield return (each.Id, OnTradeLot(each.Lot, new Transform3D(FacingNorth, At(east, top, each.North + each.Deep))));
             }
 
             for (int y = 0; y < each.Deep; y++)
             {
                 float north = each.North + y + .5f;
-                yield return (each.Id, new Transform3D(FacingWest, At(each.East, top, north)));
-                yield return (each.Id, new Transform3D(FacingEast, At(each.East + each.Wide, top, north)));
+                yield return (each.Id, OnTradeLot(each.Lot, new Transform3D(FacingWest, At(each.East, top, north))));
+                yield return (each.Id, OnTradeLot(each.Lot, new Transform3D(FacingEast, At(each.East + each.Wide, top, north))));
             }
         }
     }
@@ -157,7 +157,7 @@ public partial class Main
 
                         if (facade == wanted)
                         {
-                            places.Add((each.Id, new Transform3D(FacingSouth, At(each.East + x + .5f, up, each.North))));
+                            places.Add((each.Id, OnTradeLot(each.Lot, new Transform3D(FacingSouth, At(each.East + x + .5f, up, each.North)))));
                         }
                     }
                 }
@@ -172,8 +172,8 @@ public partial class Main
                 for (int y = 0; y < each.Deep; y++)
                 {
                     float north = each.North + y + .5f;
-                    places.Add((each.Id, new Transform3D(FacingWest, At(each.East, up, north))));
-                    places.Add((each.Id, new Transform3D(FacingEast, At(each.East + each.Wide, up, north))));
+                    places.Add((each.Id, OnTradeLot(each.Lot, new Transform3D(FacingWest, At(each.East, up, north)))));
+                    places.Add((each.Id, OnTradeLot(each.Lot, new Transform3D(FacingEast, At(each.East + each.Wide, up, north)))));
                 }
             }
         }
@@ -195,8 +195,8 @@ public partial class Main
             }
 
             float top = (each.Storeys * StoreyMetres) + roofMetres;
-            yield return (each.Id, new Transform3D(Basis.Identity, At(each.East + half, top, each.North + half)));
-            yield return (each.Id, new Transform3D(Basis.Identity, At(each.East + each.Wide - half, top, each.North + half)));
+            yield return (each.Id, OnTradeLot(each.Lot, new Transform3D(Basis.Identity, At(each.East + half, top, each.North + half))));
+            yield return (each.Id, OnTradeLot(each.Lot, new Transform3D(Basis.Identity, At(each.East + each.Wide - half, top, each.North + half))));
         }
     }
 }

@@ -1,6 +1,7 @@
 # Freeform local Streets with road-aligned Lots
 
-State: design. Blocks + strips selected; geometry, saved ownership and edit details remain open.
+State: design. Land model, saved frontage and arc Streets decided 10/03/2026; junctions, wedge use
+and snap details remain open.
 Survey of current code done 09/27/2026 against `main` at `919290a5`.
 
 ## Outcome
@@ -97,39 +98,98 @@ The simulation receives endpoints and shape. The shell's tool chooses them.
 - Lattice-only Street runs (`ConnectPayload.Segments`) are the play-testing stopgap. This tool
   replaces them.
 
+### Decided land model
+
+Decided 10/03/2026. Recorded in
+[`adr/0174`](../docs/adr/0174-lots-are-cut-along-segments-and-save-their-frontage.md).
+
+| Decision | Choice |
+|---|---|
+| Carving | Every Lot is cut as a plot along one side of one Segment. No separate block carve exists |
+| Block | A closed face of the Street graph. It sets each side's plot depth from its pattern and owns the leftover interior |
+| Spur in a loop | The face walk passes both sides of the spur, so its plots join the block layout |
+| Whole-block forms | Car-park center and other trade forms are one plot whose depth is the full block |
+| Claim order | Existing Lots first. Then new plots by Segment id, side, offset |
+| Conflict | An overlapping plot shrinks in depth to `[lots]` minimum depth, else it is dropped |
+| Leftover ground | Wedges and interiors stay open ground. Yards and parks are a later decision |
+| Lot geometry | Saved corner, facing direction (Q16.16), width and depth. The footprint uses the same form |
+| Overlap test | Exact oriented-rectangle test in integers, through a uniform spatial hash |
+| Block identity | Not saved. Recomputed from the graph after each edit |
+| Block pattern | Function of band, world seed and the face's anchor (lowest Segment id on its boundary, side) |
+| Existing Lots | Keep their saved form. A pattern change affects only unclaimed ground |
+| Frontage | Saved: Segment handle (monotonic id), offset, side |
+| Segment split | The original id keeps the A part. Lots past the split move to the new Segment, offset minus the A part's length |
+| Bulldoze | Lots keep standing without frontage (`adr/0079`) |
+
+`BlockTable`'s lattice columns and `Frontage.Locate`'s lattice lookup go away. `Lot.East`/`North`
+stop encoding frontage.
+
+### Decided Street shape: circular arcs
+
+Decided 10/03/2026. Arcs over Béziers because Parallel mode and curved plot strips need offset
+curves, and an offset arc is an arc.
+
+| Item | Choice |
+|---|---|
+| Saved shape | One signed column on `RoadSegmentTable`: the sagitta, Q16.16 Tiles. Positive bulges left of A→B. Zero is straight |
+| Endpoints | Integer-Tile Nodes, as today |
+| Sweep limit | At most 90° per Segment. Longer bends chain Segments at Nodes |
+| Minimum radius | Ruleset value in `[roads]` |
+| Length | `LengthTiles` holds the arc length, computed at lay time |
+| Derived geometry | Center, radius, start angle and sweep, rebuilt from the saved row |
+| Angles | Q16.16 fractions of a turn |
+| Arithmetic | Add integer Q16.16 `Sin`, `Cos` and `Atan2` to `Arithmetic.Transcendental` |
+| Point and tangent at offset | From the derived center and angle. Serves frontage, plots, `VisibleAgents.TryEnds`, `LineSourceQueries.DistanceTiles` and sealing |
+| Plots on a curve | Front edge is the chord between the plot's two offsets. Convex side fans out and leaves wedges; concave side converges and the conflict rule applies |
+| Gestures | Shell only. Simple curve is the arc through start, bend point and end. Continuous is the arc tangent to the previous Segment through the new end |
+| Parallel mode | Concentric arc. Endpoints round to Tiles, so the copy is concentric to within a Tile |
+| Command | `Connect` carries both endpoint Tiles and the sagitta. Bumps `InputLogCodec.Version` |
+| Drawing | The shell tessellates arcs from the same parameters |
+
+### Decided: Streets demolish what they cross
+
+Decided 10/03/2026.
+
+- A Street drawn through Lots or Buildings clears every Lot its corridor touches.
+- Each occupied Building costs `World.DemolitionPrice`, paid to the same payees as `Demolish`.
+  Vacant Lots and unoccupied Buildings clear free, as they do under `Demolish`.
+- The edit is atomic. If the treasury cannot pay the total, the whole Street is refused.
+- The preview shows the Buildings to be cleared and the total price before commit.
+
+### Decided: joining and splitting
+
+Decided 10/03/2026.
+
+- The simulation joins an endpoint to an existing Node only on an exact Tile match. Snapping
+  tolerance lives in the shell, so the Input Log records the snapped result.
+- A new Street that crosses or ends on an existing Segment adds a Node at the nearest Tile and
+  splits every Segment there. Faces need these Nodes.
+- Each half is refitted through its own ends and the original arc's point at its mid-offset. The
+  road moves at most √2/2 Tile + 1/64 Tile. A split whose halves would exceed that bound or the
+  quarter-turn sweep is refused. Frontage migrates by the split rule above.
+- Two `[roads]` minimums refuse an edit: Segment length after a split, and crossing angle.
+
+### Decided: block-addressed commands
+
+Decided 10/04/2026. Commands keep their Tile and payload fields, so the Input Log format does not
+change for this decision.
+
+| Command | Freeform addressing |
+|---|---|
+| `Zone` | Paints the closed face that holds the Tile. A Tile outside every closed face paints the nearest Segment side within one plot depth; with no side in reach, it is refused |
+| `ZoneParcel` | Unchanged. Paints the parcel that contains the Tile, by exact oriented containment |
+| `Trip` | Kept. The origin is the occupied Building nearest the Tile. The payload offset counts steps of `BlockTiles` Tiles, and the destination is the occupied Building nearest that point |
+
+Painting a face covers its interior, which stays open ground under the land model.
+
 ### Remaining design decisions
 
-1. **Block geometry and identity.** Recover enclosed ground from the Street graph and choose how
-   a block retains its identity through edits. `BlockTable` currently saves lattice coordinates
-   and a `Pattern`. Decide how `ZoneBlock` and `BandBlock` target freeform blocks and how the
-   equivalent controls apply to roadside strips.
-2. **Subdivision and land claims.** Adapt the current `BlockPatterns` forms to irregular ground
-   and existing Lots. Choose strip depth, corner treatment and deterministic candidate conflict
-   rules. Define how strips and blocks divide ground without overlapping, including when a loop
-   closes around existing strips.
-3. **Frontage.** `Frontage.Locate` derives a Lot's Segment and offset from its position on a lattice
-   line (`Space/Frontage.cs:140-170`). Choose saved Segment ownership or derived lookup, including
-   preservation when a Segment splits. This reopens
-   [`adr/0078`](../docs/adr/0078-frontage-is-derived-on-the-epoch-and-a-lots-width-is-the-segments-own-building-count.md).
-4. **Street representation and the edit command.** Pick the curve form for Q16.16 (arcs, polyline
-   or control points). The `connect` command packs an axis bit and derives the far endpoint from the
-   lattice (`Input/Command.cs:573-599`). A curved Street needs endpoints plus shape, which bumps
-   `InputLogCodec.Version` and re-records committed logs. Also decide endpoint snapping, merging and
-   mid-Segment splitting. `TripPayload` addresses destinations in lattice blocks. A Street drawn
-   through an existing Lot or Building needs an explicit refusal or demolition policy; preservation
-   when a loop closes does not settle that separate edit.
-5. **Junction geometry.** Arbitrary angles need junction polygons. Shared with the Arterials and
+1. **Junction geometry.** Arbitrary angles need junction polygons. Shared with the Arterials and
    Junction construction row.
-6. **Wedge land.** Leave it empty, give it to the adjacent Lot as yard, or allow parks.
-7. **Snap and preview details.** The grid is kept as a drawing aid (see above). Choose the length
-   step relative to Lot widths, whether a zone-grid snap aligns new Streets to existing strip
-   Lots, and what the preview shows before commit: snapped geometry, refusals and cost.
-
-## Found in passing
-
-- `TrafficPresence` buckets nodes with `FloorDiv(node.East, block_tiles)`
-  (`Space/TrafficPresence.cs:138-141`), not `BlockLattice.LineAt`. On a varying lattice
-  (`block_spread_tiles > 0`) this likely puts nodes in the wrong bucket. Not yet confirmed by a test.
+2. **Wedge use.** Leave open, give to the adjacent Lot as yard, or allow parks.
+3. **Snap and preview details.** Choose the length step relative to Lot widths, whether a
+   zone-grid snap aligns new Streets to existing strip Lots, and what the preview shows before
+   commit: snapped geometry, refusals and cost.
 
 ## Acceptance checks
 
@@ -145,8 +205,32 @@ The simulation receives endpoints and shape. The shell's tool chooses them.
 - Replay, save/reload and thread-count equivalence hold. A driven demonstration shows these
   layouts and loop closure before the capability is marked complete.
 
+## Implementation slices
+
+Each slice is one PR that leaves the lattice game working.
+Slice 6 also replaces the split helper's per-Tile displacement guard (O(length)) with an analytic
+bound, and replaces the lattice-only `Frontage.AttachTo` lookup. Slices 2–6 move the State Hash and
+re-record goldens by the [procedure](../tests/Borough.Tests/Golden/README.md).
+
+| # | Slice | Contents | Gated by |
+|---|---|---|---|
+| 1 | Arc arithmetic | Q16.16 `Sin`, `Cos`, `Atan2` in turns. A pure arc type: center, radius, point and tangent at offset, distance to a point, offset arc. Tests against reference values | — |
+| 2 | Saved Segment shape | Sagitta column (all zero), derived centerline column, rebuild audit. `VisibleAgents.TryEnds` and `LineSourceQueries.DistanceTiles` read the centerline | 1 |
+| 3 | Saved frontage | Lot saves Segment handle and offset. `Frontage.Locate` runs only at creation. Bulldoze leaves Lots unfronted. Split migration with a unit test | — |
+| 4 | Oriented Lot ground | Parcel and footprint as corner, direction, width, depth. Exact overlap test. One uniform spatial hash replaces `StreetGrid` off-lattice buckets, `TrafficPresence._near` and the `LineSourceQueries` window. Shell massing faces the Segment | 3 |
+| 5 | Segment-side carver | Planar face walk, strip carving per side, pattern depth per face, claim order and shrink-or-drop. Blocks become derived; `BlockTable` lattice columns go. Generation lays lattice Streets and carves with the new carver | 4 |
+| 6 | Freeform `Connect` | Endpoints plus sagitta, exact joins, crossing splits, minimum length and angle, demolition at the `Demolish` price. Seals the laid Street along its centerline. Bumps `InputLogCodec.Version` and re-records logs | 2, 5 |
+| 7 | Shell drawing | Straight, simple-curve and continuous modes. Snapping, preview with refusals and demolition cost, arc paving meshes. Driven demonstration of the acceptance checks | 6, decisions 1 and 3 |
+| 8 | Batch modes | Grid and Parallel modes over a batch `Connect` | 7 |
+
+Slices 1 and 3 can run in parallel.
+
+Slice 4a selects the background Street by exact centerline distance, then greater contribution
+at the point, then lowest monotonic Segment id. At an exact tie between unequal sources, choosing
+the louder background lowers total intensity by the quieter source's contribution.
+
 ## Next step
 
-Design block geometry and land claims against the loop with a spur, open curve, triangular block
-and closure around existing strip Lots. Settle saved block identity and frontage preservation with
-those cases before choosing the implementation sequence.
+Slices 1 to 4 are built. Start slice 5.
+Road sealing runs only in `RoadGenerator`, where every Street is straight, so it moved from slice 2
+to slice 6, which lays the first curved Street.

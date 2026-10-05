@@ -101,9 +101,6 @@ public sealed class StreetGrid
     private int[] _horizontal = [];
     private int[] _vertical = [];
     private int[] _nodes = [];
-    private int[] _offLattice = [];
-    private int[] _offLatticeHead = [];
-    private int[] _offLatticeNext = [];
 
     /// <summary>Intersections along one edge of the map. Zero where the world has no roads.</summary>
     public int Span { get; private set; }
@@ -126,74 +123,6 @@ public sealed class StreetGrid
 
     /// <summary>Blocks along one edge of the map — one fewer than the intersections.</summary>
     public int Blocks => Span > 0 ? Span - 1 : 0;
-
-    /// <summary>
-    /// Live Segments this index does <b>not</b> hold. <b>The complement, and it is recorded rather
-    /// than derivable.</b>
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// A Segment earns a lattice place by geometry, so everything else — every
-    /// <see cref="RoadKind.Arterial"/>, every Street whose endpoints miss the lattice, every Street on
-    /// the lattice but not one step long — falls out of <see cref="Rebuild"/> through a
-    /// <c>continue</c> and was, until this list existed, <b>invisible to any caller that asked the
-    /// index what roads are near a Tile</b>.
-    /// </para>
-    /// <para>
-    /// <b>It exists for <see cref="LineSourceQueries"/>, and the alternative was a silent gap.</b>
-    /// <c>02 §2.4</c> names noise's sources as <em>frontage Street volume + Arterials within ~300 m</em>,
-    /// so a lattice-only query omits the loudest ones and returns a quiet answer with nothing to say it
-    /// is incomplete.
-    /// </para>
-    /// <para>
-    /// 🔴 ⚠ <b>This list is the MEMBERSHIP and no longer the traversal order. Walk it through
-    /// <see cref="OffLatticeHead"/>, never end to end.</b> It used to say the linear scan was on
-    /// purpose, resting that on <c>adr/0014</c>'s grid-plus-sparse-Arterials layout making the set
-    /// small — <em>using the model's own premise as the implementation strategy</em>. ⚠ <b>The premise
-    /// was true of Arterials and a foot path falsified it silently</b>: a foot path is off-lattice too,
-    /// and <c>[roads] foot_paths_per_thousand_blocks</c> is a rate <em>per block</em>, so the set grew
-    /// with the map rather than staying sparse. On <c>rulesets/bordered.toml</c> it is <b>12,581</b>
-    /// Segments of which about <b>10,500</b> are foot paths, and one whole-map land value pass walked
-    /// it 2 million times — <b>26.4 billion visits, 88 seconds</b>
-    /// (<c>plans/0013</c>, and <c>tests/.../SealingCostTests</c> is the instrument).
-    /// ***A premise cited as an implementation strategy has to be re-checked whenever anything joins
-    /// the set it describes***, and nothing re-checked it.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>Rebuilt only by <see cref="Rebuild"/></b>, in the pass that fills the lattice, so it cannot
-    /// disagree with the lattice about which Segments are on it. A second pass could.
-    /// </para>
-    /// </remarks>
-    public int OffLatticeCount { get; private set; }
-
-    /// <summary>The slot of the <paramref name="index"/>th Segment this index does not hold.</summary>
-    public int OffLatticeAt(int index) =>
-        index < 0 || index >= OffLatticeCount ? Rows.NoSlot : _offLattice[index];
-
-    /// <summary>
-    /// The furthest, in blocks, any off-lattice Segment reaches from the block its first endpoint
-    /// stands in. <b>The amount a spatial query must widen its window by.</b>
-    /// </summary>
-    /// <remarks>
-    /// <b>Each off-lattice Segment sits in exactly one bucket — the block of its first endpoint — so
-    /// a walker visits it exactly once and pass two cannot double-count it.</b> The price of that is
-    /// this: a Segment can reach out of its bucket, so a query widens its window by the worst case
-    /// rather than filtering per Segment. An Arterial between Junction pieces is what sets it.
-    /// </remarks>
-    public int OffLatticeReachBlocks { get; private set; }
-
-    /// <summary>
-    /// The first off-lattice Segment bucketed at block <c>(column, row)</c>, or
-    /// <see cref="Rows.NoSlot"/>.
-    /// </summary>
-    public int OffLatticeHead(int column, int row) =>
-        column < 0 || row < 0 || column >= Span || row >= Span
-            ? Rows.NoSlot
-            : _offLatticeHead[(row * Span) + column];
-
-    /// <summary>The next off-lattice Segment in the same bucket, or <see cref="Rows.NoSlot"/>.</summary>
-    public int OffLatticeNext(int slot) =>
-        slot < 0 || slot >= _offLatticeNext.Length ? Rows.NoSlot : _offLatticeNext[slot];
 
     /// <summary>
     /// The Segment running east from intersection <c>(column, row)</c>, or
@@ -433,23 +362,6 @@ public sealed class StreetGrid
             _nodes = new int[intersections];
         }
 
-        if (_offLattice.Length < segments.Rows.SlotCount)
-        {
-            _offLattice = new int[segments.Rows.SlotCount];
-            _offLatticeNext = new int[segments.Rows.SlotCount];
-        }
-
-        if (_offLatticeHead.Length < intersections)
-        {
-            _offLatticeHead = new int[intersections];
-        }
-
-        OffLatticeCount = 0;
-        OffLatticeReachBlocks = 0;
-
-        Array.Fill(_offLatticeHead, Rows.NoSlot, 0, intersections);
-        Array.Fill(_offLatticeNext, Rows.NoSlot, 0, segments.Rows.SlotCount);
-
         // NoSlot rather than zero, because zero is a real Segment slot. The same plus-one reasoning
         // Address and LotTable.BuildingSlot give, spelled the other way round: here the array is
         // cleared explicitly, so the sentinel is free to be -1.
@@ -467,17 +379,13 @@ public sealed class StreetGrid
             }
         }
 
-        // Every live Segment is placed on the lattice or recorded as off it, in ONE pass. The
-        // complement is what LineSourceQueries walks, and computing it here rather than in a second
-        // pass is what stops the two disagreeing about which Segments are on the lattice.
+        // Only adjacent, forward lattice Streets name block faces.
         for (int slot = 0; slot < segments.Rows.SlotCount; slot++)
         {
             if (!segments.Rows.IsLive(slot))
             {
                 continue;
             }
-
-            bool placed = false;
 
             if (Span > 0
                 && (RoadKind)segments.Kind[slot] == RoadKind.Street
@@ -489,82 +397,26 @@ public sealed class StreetGrid
                 if (rowA == rowB && columnB == columnA + 1)
                 {
                     _horizontal[(rowA * Blocks) + columnA] = slot;
-                    placed = true;
                 }
                 else if (columnA == columnB && rowB == rowA + 1)
                 {
                     _vertical[(columnA * Blocks) + rowA] = slot;
-                    placed = true;
                 }
             }
 
-            if (!placed)
-            {
-                _offLattice[OffLatticeCount++] = slot;
-
-                Bucket(nodes, segments, slot, lattice);
-            }
         }
     }
 
-    /// <summary>
-    /// Files one off-lattice Segment under the block its first endpoint stands in, and widens
-    /// <see cref="OffLatticeReachBlocks"/> to cover how far it runs from there.
-    /// </summary>
-    /// <remarks>
-    /// <b>This is what stopped the noise query being a scan of every off-lattice Segment in the
-    /// world.</b> <see cref="OffLatticeCount"/>'s remark calls the scan deliberate and rests it on
-    /// <c>adr/0014</c>'s <em>grid plus sparse Arterials</em> — which held while the off-lattice set
-    /// WAS the Arterials. ⚠ <b>A foot path is off-lattice too, and
-    /// <c>[roads] foot_paths_per_thousand_blocks</c> is a rate per block</b>, so the set grew with
-    /// the map: on <c>rulesets/bordered.toml</c> it is 12,581 Segments of which about 10,500 are foot
-    /// paths, and one whole-map land value pass walked it 2 million times.
-    /// </remarks>
-    private void Bucket(RoadNodeTable nodes, RoadSegmentTable segments, int slot, BlockLattice lattice)
+    /// <summary>The midpoint block of a Segment not held as a lattice edge.</summary>
+    public bool CrossingBlockOf(RoadSegmentTable segments, int slot, out int column, out int row)
     {
-        if (lattice.Nominal <= 0
-            || Span <= 0
-            || !nodes.Rows.TryResolve(segments.NodeA[slot], out int a)
-            || !nodes.Rows.TryResolve(segments.NodeB[slot], out int b))
-        {
-            return;
-        }
-
-        int columnA = lattice.LineAt(nodes.East[a].Raw);
-        int rowA = lattice.LineAt(nodes.North[a].Raw);
-        int columnB = lattice.LineAt(nodes.East[b].Raw);
-        int rowB = lattice.LineAt(nodes.North[b].Raw);
-
-        int spanEast = IntegerMath.Abs(columnB - columnA);
-        int spanNorth = IntegerMath.Abs(rowB - rowA);
-
-        // THE MIDPOINT AND NOT AN ENDPOINT, which halves the reach and therefore quarters the block
-        // window every query walks. A Segment filed under one end reaches its whole length away; filed
-        // under the middle it reaches half, and the window is squared, so this is worth about 3x on a
-        // world with Arterials. It is why `reach` is a CEILING of the half-span: an odd span must round
-        // up or the far end falls outside the window it is looked for in.
-        // ⚠ The midpoint's TILE first and then its block, which is one step where it used to be a
-        // divide by twice the block: FloorDiv(a + b, 2B) is only FloorDiv((a + b) / 2, B) because
-        // the spacing is one number, and that is exactly the assumption row 25 is removing.
-        int column = lattice.LineAt(IntegerMath.FloorDiv(nodes.East[a].Raw + nodes.East[b].Raw, 2));
-        int row = lattice.LineAt(IntegerMath.FloorDiv(nodes.North[a].Raw + nodes.North[b].Raw, 2));
-
-        int reach = IntegerMath.CeilDiv(spanEast > spanNorth ? spanEast : spanNorth, 2) + 1;
-
-        if (reach > OffLatticeReachBlocks)
-        {
-            OffLatticeReachBlocks = reach;
-        }
-
-        if (column < 0 || row < 0 || column >= Span || row >= Span)
-        {
-            return;
-        }
-
-        int bucket = (row * Span) + column;
-
-        _offLatticeNext[slot] = _offLatticeHead[bucket];
-        _offLatticeHead[bucket] = slot;
+        ArgumentNullException.ThrowIfNull(segments);
+        StreetArc arc = segments.Centerline[slot];
+        int aColumn = Lattice.LineAt((int)IntegerMath.FloorDiv(arc.A.East, Fixed.One));
+        int aRow = Lattice.LineAt((int)IntegerMath.FloorDiv(arc.A.North, Fixed.One));
+        column = Lattice.LineAt((int)IntegerMath.FloorDiv(arc.A.East + arc.B.East, 2L * Fixed.One));
+        row = Lattice.LineAt((int)IntegerMath.FloorDiv(arc.A.North + arc.B.North, 2L * Fixed.One));
+        return Horizontal(aColumn, aRow) != slot && Vertical(aColumn, aRow) != slot;
     }
 
     /// <summary>

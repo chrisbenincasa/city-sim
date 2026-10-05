@@ -1,3 +1,4 @@
+using Borough.Core.Arithmetic;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
@@ -18,25 +19,31 @@ internal static class LocalLayoutCommit
         if (!Prepare(world, proposal)) { return new(LocalLayoutRefusal.Storage); }
 
         LocalLot door = proposal.Sources[0];
+        // The merged Lot keeps the door's Address, so read its saved frontage before the sources go.
+        // Every source fronts the same Segment -- LocalLayout refuses IncompatibleFrontage otherwise.
+        int doorRow = world.Lots.Rows.Resolve(door.Handle);
+        Handle<RoadSegment> fronts = world.Lots.FrontageSegment[doorRow];
+        Tiles offset = world.Lots.FrontageOffset[doorRow];
         foreach (LocalLot source in proposal.Sources) { world.Lots.Rows.Free(source.Handle); }
         // Zone is a transitional discovery summary. Geographic permissions remain unchanged.
         Handle<Lot> lot = world.Lots.Create(new Tiles(door.East), new Tiles(door.North), LotTable.Housing,
             (StreetSide)door.Side);
         int row = world.Lots.Rows.Resolve(lot);
+        world.Lots.Front(row, fronts, offset);
         LandRectangle site = proposal.Site;
         LandRectangle footprint = proposal.Building.Footprint;
-        world.Lots.ParcelEast[row] = new Tiles(site.X);
-        world.Lots.ParcelNorth[row] = new Tiles(site.Y);
+        world.Lots.ParcelEastQ16[row] = Fixed.FromInt(site.X);
+        world.Lots.ParcelNorthQ16[row] = Fixed.FromInt(site.Y);
         world.Lots.ParcelWide[row] = new Tiles(site.Width);
         world.Lots.ParcelDeep[row] = new Tiles(site.Height);
-        world.Lots.FootprintEast[row] = new Tiles(footprint.X);
-        world.Lots.FootprintNorth[row] = new Tiles(footprint.Y);
+        world.Lots.FootprintEastQ16[row] = Fixed.FromInt(footprint.X);
+        world.Lots.FootprintNorthQ16[row] = Fixed.FromInt(footprint.Y);
         world.Lots.FootprintWide[row] = new Tiles(footprint.Width);
         world.Lots.FootprintDeep[row] = new Tiles(footprint.Height);
         world.Lots.Storeys[row] = proposal.Building.Storeys;
         world.Lots.PodiumStoreys[row] = world.Rules.Lots.PodiumOn(world.Key, new Tiles(site.X), new Tiles(site.Y));
         world.Lots.Pattern[row] = (byte)((int)proposal.Building.Form + 1);
-        world.Frontage.Rebuild(world.Lots, world.Roads.Streets);
+        world.Frontage.Rebuild(world.Lots);
         world.RefreshPermissionSummaries(site);
         building = world.CreateBuilding(lot, proposal.Building.Kind, world.Tick, key);
         return default;
