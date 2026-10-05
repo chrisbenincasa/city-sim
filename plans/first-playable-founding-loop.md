@@ -66,16 +66,20 @@ D1 to D3 fix the Money circuit that slices 2–4 build. D4 fixes the shortage th
 
 ## Slices
 
-Ordered by dependency. Each slice is one PR.
+Each slice is one PR. [Execution](#execution) gives the order and which slices run in parallel.
 
 1. **Base in the verification lanes.** Add `rulesets/base/` to the all-Ruleset sweeps. Replay
    `founding.borough` twice and compare State Hashes. Save at Day 6, reload and continue to
    Day 12, and match the uninterrupted run. Needs nothing else.
 2. **Production chain in base (D1).** After #105 merges. Replace free `restock` with the labour chain.
    Mills and shops post wages. Households buy sundries with Money. Price the fallback import at the gate edge.
-3. **Opening capital (D2) and surplus return (D3).** Implement the opening grant. Add `[business_tax]`,
-   `[income_tax]` and road upkeep (D5) to base. Run 120 Days headless. Record the treasury, the sum
-   of Business tills and the Household balances by Day.
+3a. **Opening grant (D2).** Add a Ruleset key for the grant a zone-raised Business receives from the
+   treasury, with its loader entry, schema, key notes and refusal when the treasury is short. The
+   transfer belongs in `World.CreateBusiness`. Absent by default, so existing Rulesets and goldens
+   keep their hashes. Prove it on a fixture Ruleset, not base.
+3b. **City income in base (D3, D5).** Turn on 3a's grant and add `[business_tax]`, `[income_tax]` and
+   road upkeep to base. Run 120 Days headless. Record the treasury, the sum of Business tills and the
+   Household balances by Day.
 4. **Continued operation.** Tune provisional numbers until the 120-Day run meets the operation
    checks below. Record the run's command, seed and measurements in this plan.
 5. **Shortage and recovery (D4).** A headless test pairs an intervention run with a control.
@@ -85,6 +89,42 @@ Ordered by dependency. Each slice is one PR.
    shortage, the player's action and the recovery. Record what observation exposed. Run this after
    freeform slice 5 lands, or plan to re-record. Freeform replaces the Street command and the Lot layer
    that `founding.borough` and the drive script use.
+
+## Execution
+
+```text
+(1 ∥ 3a) → #105 merges → 2 → 3b → 4 → 5 → 6
+                                          ↑ freeform slice 5
+```
+
+| Slice | Size | Waits on | Lane | Risk |
+|---|---|---|---|---|
+| 1 | Small | — | Parallel now | May expose base defects nobody has seen |
+| 3a | Medium | — | Parallel now | Golden hashes must not move. If they do, the default is wrong |
+| 2 | Medium | #105 | Serial chain | Base needs a work zone so Zone Rules raise mills |
+| 3b | Small | 2, 3a | Serial chain | — |
+| 4 | Large | 3b | Serial chain, fan-out for tuning | Business tax may not bound tills. That would need a new mechanism |
+| 5 | Medium | 4 | Serial chain | Unchecked whether a bankrupt school's teaching Business reopens after funding returns |
+| 6 | Small–medium | 5, freeform slice 5 | Serial chain | Freeform re-records the log and the drive script |
+
+Rules for parallel sessions:
+
+- **Claim before starting.** Name the slice and its worktree in the board row's owner column, and
+  check `git worktree list` for a tree already holding it.
+- **One worktree per slice.** Branch from `main`, and name the branch `founding-<slice>`, e.g. `founding-3a`.
+- **Only 1 and 3a run concurrently.** Slice 1 touches tests only. Slice 3a touches the Ruleset reader,
+  schema, key notes and `World`, plus a fixture. Neither edits `rulesets/base/`.
+- **The chain from 2 onward is serial.** Every one of those slices edits `rulesets/base/` and
+  re-records `founding.borough`, whose header carries the package hash. Concurrent edits there conflict.
+
+How to run each slice:
+
+| Slice | Approach |
+|---|---|
+| 1, 2, 3b, 5, 6 | One session works it directly, in its own worktree |
+| 3a | One implementer agent in an isolated worktree, or a separate session. `/orchestrate` adds an independent reviewer |
+| 4 | One session owns the slice. Optionally fan out 4–6 agents, each running the 120-Day headless run with a different set of provisional numbers and reporting the Money curves |
+| Before 5 | A read-only agent can settle the school-reopening risk early, while 2–4 are in progress |
 
 ## Acceptance
 
