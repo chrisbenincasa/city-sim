@@ -379,6 +379,30 @@ public sealed class BlockTests
         }
     }
 
+    /// <summary><b>New plots claim ground by Segment id, then side, then offset.</b></summary>
+    [Fact]
+    public void A_carve_creates_its_lots_in_claim_order()
+    {
+        World world = Populated();
+        (int column, int row) = Uncarved(world);
+        int first = world.Lots.Rows.SlotCount;
+
+        Assert.True(LotSubdivider.SubdivideBlock(world, column, row, LotTable.Housing) > 1);
+
+        var order = new List<(ulong Segment, byte Side, int Offset)>();
+        for (int lot = first; lot < world.Lots.Rows.SlotCount; lot++)
+        {
+            if (world.Lots.Rows.IsLive(lot))
+            {
+                order.Add((world.Roads.Segments.Rows.IdAt(world.Lots.FrontageOn(lot)), world.Lots.Side[lot],
+                    world.Lots.FrontageOffset[lot].Raw));
+            }
+        }
+
+        Assert.True(order.Select(o => o.Segment).Distinct().Count() > 1, "the carve fronted one Segment only.");
+        Assert.Equal(order.OrderBy(o => o.Segment).ThenBy(o => o.Side).ThenBy(o => o.Offset), order);
+    }
+
     /// <summary>The first lattice square with Streets on it that nothing has claimed a face of.</summary>
     private static (int Column, int Row) Uncarved(World world)
     {

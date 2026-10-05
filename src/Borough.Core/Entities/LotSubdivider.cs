@@ -52,6 +52,7 @@ public static class LotSubdivider
         Span<Parcel> proposed = ceiling <= 128 ? stackalloc Parcel[128] : new Parcel[ceiling];
         BlockPattern pattern = Pattern(world, column, row, ground.Patch);
         int carved = world.Rules.Lots.Carve(world.Key, pattern, ground, proposed);
+        ClaimOrder(world, sides, proposed[..carved]);
         for (int i = 0; i < carved; i++)
         {
             Parcel parcel = proposed[i];
@@ -123,6 +124,7 @@ public static class LotSubdivider
         int ceiling = world.Rules.Lots.ParcelCeiling(ground);
         Span<Parcel> parcels = ceiling <= 128 ? stackalloc Parcel[128] : new Parcel[ceiling];
         int count = world.Rules.Lots.Carve(world.Key, pattern, ground, parcels), created = 0;
+        ClaimOrder(world, sides, parcels[..count]);
         for (int i = 0; i < count; i++)
         {
             Parcel parcel = parcels[i];
@@ -152,6 +154,29 @@ public static class LotSubdivider
     }
 
     private static LandRectangle Ground(Parcel p) => new(p.East.Raw, p.North.Raw, p.Wide.Raw, p.Deep.Raw);
+
+    // New plots claim ground by Segment id, then side, then offset along the Segment.
+    private static void ClaimOrder(World world, ReadOnlySpan<int> sides, Span<Parcel> parcels)
+    {
+        for (int i = 1; i < parcels.Length; i++)
+        {
+            for (int j = i; j > 0 && Before(world, sides, parcels[j], parcels[j - 1]); j--)
+            {
+                (parcels[j], parcels[j - 1]) = (parcels[j - 1], parcels[j]);
+            }
+        }
+    }
+
+    private static bool Before(World world, ReadOnlySpan<int> sides, Parcel left, Parcel right)
+    {
+        ulong a = SegmentId(world, sides[(int)left.Face]), b = SegmentId(world, sides[(int)right.Face]);
+        if (a != b) { return a < b; }
+        if (left.Side != right.Side) { return left.Side < right.Side; }
+        return left.Offset.Raw < right.Offset.Raw;
+    }
+
+    private static ulong SegmentId(World world, int segment) =>
+        segment == Rows.NoSlot ? ulong.MaxValue : world.Roads.Segments.Rows.IdAt(segment);
 
     // A plot overlapping a standing Lot loses depth from its back edge, one Tile at a time, down to
     // [lots] min_plot_depth_tiles; if it is still not free, it is dropped. Trade forms never shrink,
