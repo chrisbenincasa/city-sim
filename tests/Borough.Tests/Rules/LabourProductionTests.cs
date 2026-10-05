@@ -2,9 +2,11 @@ using Borough.Core;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Evidence;
+using Borough.Core.Input;
 using Borough.Core.Persistence;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
+using Borough.Core.Space;
 using Borough.Core.Tables;
 using Borough.Formats;
 using Borough.Tests.Persistence;
@@ -225,6 +227,106 @@ public sealed class LabourProductionTests
         Assert.Contains(evidence.Waste.ToArray(),
             w => w.Business == business && w.Resource == labour && w.Today + w.Yesterday > 0);
         sim.CheckEndOfRun();
+    }
+
+    [Fact]
+    public void Staff_whose_commute_fails_deposit_nothing_and_their_premises_makes_nothing_that_day()
+    {
+        string text = Text();
+        var (baseline, baselineSim) = Start(text);
+        int day = 0;
+        int business = Rows.NoSlot;
+
+        for (int t = 0; t < Ticks.PerDay; t++) { baselineSim.Step(default); }
+
+        for (int d = 1; d <= 7 && business == Rows.NoSlot; d++)
+        {
+            long[] before = CrumbsByBusiness(baseline);
+            for (int t = 0; t < Ticks.PerDay; t++) { baselineSim.Step(default); }
+            long[] after = CrumbsByBusiness(baseline);
+
+            business = FirstThatGrew(before, after);
+            day = d;
+        }
+
+        Assert.NotEqual(Rows.NoSlot, business);
+
+        var (world, sim) = Start(text);
+        for (int t = 0; t < day * Ticks.PerDay; t++) { sim.Step(default); }
+
+        Handle<Business> handle = world.Businesses.Rows.At(business);
+        int[] staff = Enumerable.Range(0, world.Citizens.Rows.SlotCount)
+            .Where(c => world.Citizens.Rows.IsLive(c) && world.Citizens.Workplace[c] == handle)
+            .ToArray();
+        Assert.NotEmpty(staff);
+        int premises = world.Buildings.Rows.Resolve(world.Businesses.Building[business]);
+        long othersBefore = Produced(world) - CrumbsByBusiness(world)[business];
+        sim.Step(new TickInput([Bulldoze(world, world.PedestrianAccessPoint(premises).Segment)], rulesetHash: 0));
+        Assert.False(world.PedestrianAccessPoint(premises).Exists);
+
+        int labour = world.Bins.Rows.Resolve(world.LabourBinOf(business));
+        long crumbs = CrumbsByBusiness(world)[business];
+
+        for (int t = 1; t < Ticks.PerDay; t++)
+        {
+            long level = world.Bins.LevelAt(labour);
+            sim.Step(default);
+            Assert.True(world.Bins.LevelAt(labour) <= level, "labour arrived from staff who never reached work");
+            foreach (int c in staff) { Assert.NotEqual(CitizenActivity.AtWork, (CitizenActivity)world.Citizens.Activity[c]); }
+        }
+
+        Assert.Equal(crumbs, CrumbsByBusiness(world)[business]);
+        Assert.True(Produced(world) - CrumbsByBusiness(world)[business] > othersBefore, "no other baker produced that day");
+        sim.CheckEndOfRun();
+    }
+
+    private static long[] CrumbsByBusiness(World world)
+    {
+        var crumbs = new long[world.Businesses.Rows.SlotCount];
+        for (int b = 0; b < crumbs.Length; b++)
+        {
+            if (!world.Businesses.Rows.IsLive(b)) { continue; }
+
+            for (Handle<Bin> at = world.Businesses.BinHead[b]; !at.IsNone;)
+            {
+                int slot = world.Bins.Rows.Resolve(at);
+                if (world.Bins.Resource[slot] == Crumbs) { crumbs[b] += world.Bins.LevelAt(slot); }
+                at = world.Bins.OwnerNext[slot];
+            }
+        }
+
+        return crumbs;
+    }
+
+    private static Command Bulldoze(World world, int segment)
+    {
+        StreetGrid streets = world.Roads.Streets;
+        for (int column = 0; column < streets.Span; column++)
+        {
+            for (int row = 0; row < streets.Span; row++)
+            {
+                StreetAxis? axis = streets.Horizontal(column, row) == segment ? StreetAxis.East
+                    : streets.Vertical(column, row) == segment ? StreetAxis.North
+                    : null;
+                if (axis is null) { continue; }
+
+                (Tiles east, Tiles north) = streets.IntersectionTile(column, row);
+                return new Command(CommandKind.Connect, east, north,
+                    new ConnectPayload(axis.Value, ConnectAction.Bulldoze, RoadKind.Street).Encode());
+            }
+        }
+
+        throw new InvalidOperationException($"segment {segment} is not on the Street lattice");
+    }
+
+    private static int FirstThatGrew(long[] before, long[] after)
+    {
+        for (int b = 0; b < before.Length; b++)
+        {
+            if (after[b] > before[b]) { return b; }
+        }
+
+        return Rows.NoSlot;
     }
 
     private static long Level(World world, Handle<Bin> bin) =>
