@@ -27,7 +27,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-53 sections, 371 keys.
+53 sections, 372 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
@@ -68,7 +68,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[jobs]`](#jobs) — 11 keys
 - [`[land_permissions]`](#land_permissions) — 1 key
 - [`[layers]`](#layers) — 20 keys
-- [`[lots]`](#lots) — 15 keys
+- [`[lots]`](#lots) — 16 keys
 - [`[lots] trade_form_weights`](#lots-trade_form_weights) — 7 keys
 - [`[market]`](#market) — 2 keys
 - [`[needs]`](#needs) — 9 keys
@@ -1426,6 +1426,10 @@ Number of Addresses per Street Segment used by block-based subdivision and form 
 **`max_tower_podium_storeys`** · *whole number*
 
 Most storeys a Tower's podium stands. Absent means min_tower_podium_storeys, which takes no draw. At most 12.
+
+**`min_plot_depth_tiles`** · *whole number*
+
+The shallowest a new plot may become when it overlaps ground another Lot already holds. The plot keeps its frontage and loses depth from the back until it fits. If it still overlaps at this depth, it is dropped. Omitted or 0 means an overlapping plot is dropped. Otherwise it is more than twice setback_tiles and at most half the block. It affects only Lots carved after it changes.
 
 **`min_tower_podium_storeys`** · *whole number*
 

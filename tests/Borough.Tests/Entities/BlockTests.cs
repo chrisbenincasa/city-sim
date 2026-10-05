@@ -268,6 +268,72 @@ public sealed class BlockTests
         }
     }
 
+    /// <summary>
+    /// 🔴 <b>A plot overlapping a standing Lot loses depth from its back edge, or is dropped.</b>
+    /// </summary>
+    /// <remarks>
+    /// A probe world carves the block with nothing in the way to find one south-face plot. Its twin
+    /// gets a standing Lot over that plot's back, from the minimum depth onward, and then carves.
+    /// </remarks>
+    [Theory]
+    [InlineData(5)]
+    [InlineData(0)]
+    public void A_plot_overlapping_a_standing_lot_shrinks_to_the_minimum_depth_or_is_dropped(int minimum)
+    {
+        const int Depth = 5;
+        string text = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "minimal.toml"));
+        string stated = minimum == 0 ? text
+            : text.Replace("[lots]\n", $"[lots]\nmin_plot_depth_tiles = {minimum}\n", StringComparison.Ordinal);
+        Ruleset rules = RulesetLoader.Parse(stated, "min-depth.toml").Ruleset!;
+
+        World probe = new(1_000, rules);
+        SyntheticCity.PopulateInto(probe, Key, Ticks.Zero);
+        (int column, int row) = Uncarved(probe);
+        LotSubdivider.SubdivideBlock(probe, column, row, LotTable.Housing);
+
+        int target = -1;
+        for (int lot = 0; lot < probe.Lots.Rows.SlotCount; lot++)
+        {
+            if (probe.Lots.Rows.IsLive(lot)
+                && Frontage.BlockOf(probe.Roads.Streets, probe.Lots.East[lot], probe.Lots.North[lot],
+                    (StreetSide)probe.Lots.Side[lot], out int at, out int on, out BlockFace face)
+                && at == column && on == row && face == BlockFace.South
+                && probe.Lots.ParcelBounds(lot).Height > Depth)
+            {
+                target = lot;
+                break;
+            }
+        }
+
+        Assert.True(target >= 0, "the probe carved no south-face plot deeper than the minimum.");
+        LandRectangle plot = probe.Lots.ParcelBounds(target);
+
+        World twin = new(1_000, rules);
+        SyntheticCity.PopulateInto(twin, Key, Ticks.Zero);
+        twin.Lots.Create(new Tiles(plot.X), new Tiles(plot.Y + Depth), LotTable.Housing, StreetSide.Left,
+            new Tiles(plot.Width), new Tiles(plot.Height - Depth));
+        LotSubdivider.SubdivideBlock(twin, column, row, LotTable.Housing);
+
+        int found = -1;
+        for (int lot = 0; lot < twin.Lots.Rows.SlotCount; lot++)
+        {
+            if (twin.Lots.Rows.IsLive(lot) && twin.Lots.East[lot] == probe.Lots.East[target]
+                && twin.Lots.North[lot] == probe.Lots.North[target] && twin.Lots.Side[lot] == probe.Lots.Side[target])
+            {
+                found = lot;
+            }
+        }
+
+        if (minimum == 0)
+        {
+            Assert.Equal(-1, found);
+            return;
+        }
+
+        Assert.True(found >= 0, "the overlapping plot was dropped rather than shrunk.");
+        Assert.Equal(new LandRectangle(plot.X, plot.Y, plot.Width, Depth), twin.Lots.ParcelBounds(found));
+    }
+
     /// <summary>The first lattice square with Streets on it that nothing has claimed a face of.</summary>
     private static (int Column, int Row) Uncarved(World world)
     {

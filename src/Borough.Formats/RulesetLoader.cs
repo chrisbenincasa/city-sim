@@ -7895,11 +7895,28 @@ public static class RulesetLoader
                 return LotRuleset.None;
             }
 
+            if (!TryInteger(_lotsTable, "min_plot_depth_tiles", out long minPlotDepth, required: false))
+            {
+                minPlotDepth = 0;
+            }
+
+            if (minPlotDepth != 0 && (minPlotDepth <= 2 * setback || minPlotDepth > widest))
+            {
+                Refuse(LineOfLot("min_plot_depth_tiles"), null,
+                    $"min_plot_depth_tiles = {minPlotDepth} is out of range. It is the shallowest a new "
+                    + "plot may shrink to when it overlaps claimed ground. 0 drops the plot instead. "
+                    + $"Otherwise it is more than two setbacks ({2 * setback}), so a footprint fits, "
+                    + $"and at most half the block ({widest}).");
+
+                return LotRuleset.None;
+            }
+
             return new LotRuleset(
                 (int)value, (int)setback, (int)step, (int)spread, (int)streetHalfWidth, dimensions, centres, byBand,
                 weights, (int)minPodium, (int)maxPodium)
             {
                 DemolitionPricePerTile = new Money(demolition),
+                MinPlotDepthTiles = (int)minPlotDepth,
             };
         }
 

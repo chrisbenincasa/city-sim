@@ -50,12 +50,14 @@ public static class LotSubdivider
         ground = ground with { Patch = Sides(world, column, row, sides) };
         int ceiling = world.Rules.Lots.ParcelCeiling(ground);
         Span<Parcel> proposed = ceiling <= 128 ? stackalloc Parcel[128] : new Parcel[ceiling];
-        int carved = world.Rules.Lots.Carve(world.Key, Pattern(world, column, row, ground.Patch), ground, proposed);
+        BlockPattern pattern = Pattern(world, column, row, ground.Patch);
+        int carved = world.Rules.Lots.Carve(world.Key, pattern, ground, proposed);
         for (int i = 0; i < carved; i++)
         {
-            if (sides[(int)proposed[i].Face] == Rows.NoSlot || !Free(world, proposed[i], ground)) { continue; }
+            Parcel parcel = proposed[i];
+            if (sides[(int)parcel.Face] == Rows.NoSlot || !Claim(world, ground, BlockPatterns.FormOf(pattern, parcel.Face), ref parcel)) { continue; }
             if (count == into.Length) { throw new ArgumentException("Preview buffer is smaller than PreviewCapacity.", nameof(into)); }
-            into[count++] = proposed[i];
+            into[count++] = parcel;
         }
         return count;
     }
@@ -125,7 +127,8 @@ public static class LotSubdivider
         {
             Parcel parcel = parcels[i];
             int segment = sides[(int)parcel.Face];
-            if (segment == Rows.NoSlot || !Free(world, parcel, ground)) { continue; }
+            BlockPattern lotForm = BlockPatterns.FormOf(pattern, parcel.Face);
+            if (segment == Rows.NoSlot || !Claim(world, ground, lotForm, ref parcel)) { continue; }
             LandPermissionSummary permission = world.LandPermissions.Summary(Ground(parcel));
             // A parcel can be selected/painted before it is zoned; unzoned free ground stays unplatted.
             if (permission.AnyUses == 0) { continue; }
@@ -135,7 +138,6 @@ public static class LotSubdivider
             world.Lots.Front(slot, world.Roads.Segments.Rows.At(segment), parcel.Offset);
             world.Lots.ParcelEastQ16[slot] = Fixed.FromInt(parcel.East.Raw); world.Lots.ParcelNorthQ16[slot] = Fixed.FromInt(parcel.North.Raw);
             world.Lots.ParcelWide[slot] = parcel.Wide; world.Lots.ParcelDeep[slot] = parcel.Deep;
-            BlockPattern lotForm = BlockPatterns.FormOf(pattern, parcel.Face);
             var foot = world.Rules.Lots.Footprint(world.Key, parcel, ground, lotForm);
             world.Lots.FootprintEastQ16[slot] = Fixed.FromInt(foot.East.Raw); world.Lots.FootprintNorthQ16[slot] = Fixed.FromInt(foot.North.Raw);
             world.Lots.FootprintWide[slot] = foot.Wide; world.Lots.FootprintDeep[slot] = foot.Deep;
@@ -150,6 +152,35 @@ public static class LotSubdivider
     }
 
     private static LandRectangle Ground(Parcel p) => new(p.East.Raw, p.North.Raw, p.Wide.Raw, p.Deep.Raw);
+
+    // A plot overlapping a standing Lot loses depth from its back edge, one Tile at a time, down to
+    // [lots] min_plot_depth_tiles; if it is still not free, it is dropped. Trade forms never shrink,
+    // because their footprints are laid out on the whole block rather than on the parcel.
+    private static bool Claim(World world, BlockGround ground, BlockPattern form, ref Parcel parcel)
+    {
+        if (Free(world, parcel, ground)) { return true; }
+        int minimum = world.Rules.Lots.MinPlotDepthTiles;
+        if (minimum == 0 || (int)form >= BlockPatterns.Count) { return false; }
+        bool horizontal = parcel.Face is BlockFace.South or BlockFace.North;
+        int depth = horizontal ? parcel.Deep.Raw : parcel.Wide.Raw;
+
+        // ponytail: one overlap scan per Tile of depth. Compute the cut from the blocking Lots if
+        // carving shows up in a profile.
+        for (int shallower = depth - 1; shallower >= minimum; shallower--)
+        {
+            Parcel candidate = Shallower(parcel, shallower);
+            if (Free(world, candidate, ground)) { parcel = candidate; return true; }
+        }
+        return false;
+    }
+
+    private static Parcel Shallower(Parcel p, int depth) => p.Face switch
+    {
+        BlockFace.South => new(p.Face, p.Side, p.Offset, p.East, p.North, p.Wide, new Tiles(depth)),
+        BlockFace.North => new(p.Face, p.Side, p.Offset, p.East, new Tiles(p.North.Raw + p.Deep.Raw - depth), p.Wide, new Tiles(depth)),
+        BlockFace.West => new(p.Face, p.Side, p.Offset, p.East, p.North, new Tiles(depth), p.Deep),
+        _ => new(p.Face, p.Side, p.Offset, new Tiles(p.East.Raw + p.Wide.Raw - depth), p.North, new Tiles(depth), p.Deep),
+    };
 
     private static bool Free(World world, Parcel parcel, BlockGround ground)
     {
