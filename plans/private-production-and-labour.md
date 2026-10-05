@@ -111,8 +111,11 @@ are re-recorded under the procedure in `tests/Borough.Tests/Golden/README.md`.
   belongs in the `[[recipe]]`'s labour amount rather than in a second base rate. `labour_per_day`'s
   note in `RulesetKeyNotes` states that it counts elapsed work while `wage_per_day` counts a day
   worked, because the shared suffix otherwise invites the wrong reading.
-- A demonstration Ruleset with a real production chain. `stocked.toml` demonstrates recipe syntax
-  with deliberately trivial recipes; `provisioned.toml` has the chain but no labour.
+- A demonstration Ruleset with a real production chain. `milled.toml` is that file: mills turn
+  labour into flour, and grocers bake it into sundries for Households, from founding and with no
+  endowment. Its flour trade fades after about two weeks, because Businesses open with no Money
+  and money collects in mill balances. `stocked.toml` demonstrates recipe syntax with trivial
+  recipes; `provisioned.toml` has a chain but no labour.
 
 ## Boundaries
 
@@ -139,7 +142,8 @@ Out of scope, each for a stated reason:
 Behaviour, in one Core world:
 
 1. Zero workers present produces zero, and the Rule fails on **Supply** against its labour Bin with a
-   wait list and an `on_fail` chain — not a silent success at zero applications.
+   wait list — not a silent success at zero applications. No `on_fail` link can rescue it, because
+   the loader refuses labour as a Rule output.
 2. Half staffing halves output.
 3. Output accrues across the working day rather than in one firing.
 4. A worker whose commute fails deposits nothing, and that premises' production falls the same day.
