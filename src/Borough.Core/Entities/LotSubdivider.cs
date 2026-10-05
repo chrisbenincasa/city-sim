@@ -369,6 +369,7 @@ public static class LotSubdivider
             created += roads.Nodes.North[a] == roads.Nodes.North[b]
                 ? RelotBlock(world, column, row - 1, visited) : RelotBlock(world, column - 1, row, visited);
         }
+        created += CarveFreeSides(world);
         return (created, freed);
     }
     private static int RelotBlock(World world, int column, int row, Span<byte> visited)
@@ -379,5 +380,151 @@ public static class LotSubdivider
         if (visited[at] != 0) { return 0; }
         visited[at] = 1;
         return CarveBlock(world, column, row);
+    }
+
+    // A Street the lattice carver owns is straight and is a block edge of the lattice.
+    private static bool LatticeOwned(World world, int segment)
+    {
+        RoadGraph roads = world.Roads;
+        if (!roads.Segments.Centerline[segment].IsStraight
+            || !roads.Nodes.Rows.TryResolve(roads.Segments.NodeA[segment], out int a)) { return false; }
+        int column = roads.Lattice.LineAt(roads.Nodes.East[a].Raw), row = roads.Lattice.LineAt(roads.Nodes.North[a].Raw);
+        return roads.Streets.Horizontal(column, row) == segment || roads.Streets.Vertical(column, row) == segment;
+    }
+
+    // ponytail: free sides claim after every lattice block, so a lattice plot beats a free side with a
+    // lower Segment id. Merge both carvers into one ordered pass if that order must hold globally.
+    private static int CarveFreeSides(World world)
+    {
+        RoadGraph roads = world.Roads;
+        int arcs = roads.Arcs.Count, count = 0, created = 0;
+        var keys = new ulong[arcs];
+        var picked = new int[arcs];
+        for (int arc = 0; arc < arcs; arc++)
+        {
+            int segment = roads.Arcs.Segment[arc];
+            if (roads.Faces.FaceOf(arc) < 0 || (RoadKind)roads.Segments.Kind[segment] != RoadKind.Street
+                || LatticeOwned(world, segment)) { continue; }
+            keys[count] = Patch(roads.Segments.Rows.IdAt(segment), roads.Faces.SideOf(arc));
+            picked[count++] = arc;
+        }
+        Array.Sort(keys, picked, 0, count);
+        for (int i = 0; i < count; i++)
+        {
+            if (i == 0 || keys[i] != keys[i - 1]) { created += CarveSide(world, picked[i]); }
+        }
+        if (created > 0) { world.LotsAdmitting.Invalidate(); }
+        return created;
+    }
+
+    // A side facing a closed face draws its pattern on that face's anchor. An open roadside draws on
+    // its own Segment side. Whole-block forms need a lattice square, so here they carve as Perimeter.
+    private static int CarveSide(World world, int arc)
+    {
+        RoadGraph roads = world.Roads;
+        var rules = world.Rules.Lots;
+        int blockTiles = roads.Streets.BlockTiles;
+        if (!rules.Runs || blockTiles <= 0) { return 0; }
+
+        int segment = roads.Arcs.Segment[arc], face = roads.Faces.FaceOf(arc);
+        byte sideBit = roads.Faces.SideOf(arc);
+        StreetSide side = sideBit == 0 ? StreetSide.Left : StreetSide.Right;
+        StreetArc line = roads.Segments.Centerline[segment];
+        int width = IntegerMath.FloorDiv(2 * blockTiles, rules.LotsPerSegment);
+        int capacity = SegmentSide.Count(line, width);
+        if (capacity == 0) { return 0; }
+
+        Span<SidePlot> plots = capacity <= 64 ? stackalloc SidePlot[64] : new SidePlot[capacity];
+        int cut = SegmentSide.Cut(line, side, width, BlockPatterns.StripTiles(blockTiles, rules.LotsPerSegment),
+            rules.StreetHalfWidthTiles, plots);
+        LandPermissionSummary permission = world.LandPermissions.Summary(Around(plots[..cut]));
+        if (permission.AnyUses == 0) { return 0; }
+
+        ulong patch;
+        if (roads.Faces.IsClosed(face))
+        {
+            var (id, anchorSide) = roads.Faces.Anchor(face);
+            patch = Patch(id, anchorSide);
+        }
+        else
+        {
+            patch = Patch(roads.Segments.Rows.IdAt(segment), sideBit);
+        }
+        BlockPattern form = BlockPatterns.ForBand(permission.MixedIntensity ? (byte)0 : permission.Band,
+            world.Rules.Bands.Length, blockTiles, rules.LotsPerSegment, world.Key, patch, rules.PatternSpread);
+        if (form is not (BlockPattern.Detached or BlockPattern.BackToBack or BlockPattern.Perimeter)) { form = BlockPattern.Perimeter; }
+        bool housing = rules.Plots.Applies(form);
+        if (housing) { width = rules.Plots.FrontageTiles; }
+        int depth = housing ? rules.Plots.DepthTiles
+            : BlockPatterns.DepthTiles(form, BlockFace.South, blockTiles, rules.LotsPerSegment);
+        if (SegmentSide.Count(line, width) > plots.Length) { plots = new SidePlot[SegmentSide.Count(line, width)]; }
+        cut = SegmentSide.Cut(line, side, width, depth, rules.StreetHalfWidthTiles, plots);
+
+        int created = 0;
+        for (int i = 0; i < cut; i++)
+        {
+            var front = line.PointAt(plots[i].Offset.Raw * Fixed.One);
+            var address = (East: new Tiles((int)IntegerMath.ShiftRight(front.East, Fixed.FractionalBits)),
+                North: new Tiles((int)IntegerMath.ShiftRight(front.North, Fixed.FractionalBits)));
+            OrientedRectangle ground = plots[i].Geometry;
+            if (!ClaimRotated(world, address.East, address.North, side, ref ground)) { continue; }
+            LandPermissionSummary here = world.LandPermissions.Summary(ground.Bounds);
+            if (here.AnyUses == 0) { continue; }
+
+            int slot = world.Lots.Rows.Resolve(world.Lots.Create(address.East, address.North, here.CommonUses, side));
+            world.Lots.Front(slot, roads.Segments.Rows.At(segment), plots[i].Offset);
+            world.Lots.ParcelEastQ16[slot] = ground.EastQ16; world.Lots.ParcelNorthQ16[slot] = ground.NorthQ16;
+            world.Lots.AxisEastQ16[slot] = ground.AxisEastQ16; world.Lots.AxisNorthQ16[slot] = ground.AxisNorthQ16;
+            world.Lots.ParcelWide[slot] = new Tiles(ground.Wide); world.Lots.ParcelDeep[slot] = new Tiles(ground.Deep);
+            OrientedRectangle foot = rules.Footprint(world.Key, ground);
+            world.Lots.FootprintEastQ16[slot] = foot.EastQ16; world.Lots.FootprintNorthQ16[slot] = foot.NorthQ16;
+            world.Lots.FootprintWide[slot] = new Tiles(foot.Wide); world.Lots.FootprintDeep[slot] = new Tiles(foot.Deep);
+            var parcel = new Parcel(BlockFace.South, side, plots[i].Offset, ground);
+            world.Lots.Storeys[slot] = rules.Height(world.Key, parcel, form, blockTiles);
+            world.Lots.PodiumStoreys[slot] = rules.PodiumOn(world.Key, parcel.East, parcel.North);
+            world.Lots.Pattern[slot] = (byte)((byte)form + 1);
+            world.Frontage.Claim(segment, side);
+            created++;
+        }
+        return created;
+    }
+
+    private static bool ClaimRotated(World world, Tiles east, Tiles north, StreetSide side, ref OrientedRectangle ground)
+    {
+        int minimum = world.Rules.Lots.MinPlotDepthTiles;
+        for (int depth = ground.Deep; depth == ground.Deep || depth >= minimum && minimum > 0; depth--)
+        {
+            OrientedRectangle candidate = ground with { Deep = depth };
+            if (FreeRotated(world, east, north, side, candidate)) { ground = candidate; return true; }
+            if (minimum == 0) { return false; }
+        }
+        return false;
+    }
+
+    private static bool FreeRotated(World world, Tiles east, Tiles north, StreetSide side, OrientedRectangle ground)
+    {
+        for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
+        {
+            if (!world.Lots.Rows.IsLive(slot)) { continue; }
+            if (ground.Overlaps(world.Lots.Parcel(slot))
+                || (world.Lots.East[slot] == east && world.Lots.North[slot] == north && world.Lots.Side[slot] == (byte)side)) { return false; }
+        }
+        return true;
+    }
+
+    private static LandRectangle Around(ReadOnlySpan<SidePlot> plots)
+    {
+        LandRectangle around = default;
+        foreach (SidePlot plot in plots)
+        {
+            LandRectangle b = plot.Geometry.Bounds;
+            if (!b.IsValid) { continue; }
+            if (!around.IsValid) { around = b; continue; }
+            int west = b.X < around.X ? b.X : around.X, south = b.Y < around.Y ? b.Y : around.Y;
+            int east = b.X + b.Width > around.X + around.Width ? b.X + b.Width : around.X + around.Width;
+            int north = b.Y + b.Height > around.Y + around.Height ? b.Y + b.Height : around.Y + around.Height;
+            around = new LandRectangle(west, south, east - west, north - south);
+        }
+        return around;
     }
 }

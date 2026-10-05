@@ -3191,6 +3191,32 @@ public readonly record struct LotRuleset(
         return Clipped(footprint.East.Raw, footprint.North.Raw, footprint.Wide.Raw, footprint.Deep.Raw, ground);
     }
 
+    /// <summary>A Building's footprint on a rotated plot, drawn in the plot's own frame.</summary>
+    /// <remarks>
+    /// The setback draw is keyed on the plot's corner Tile, as it is for a lattice parcel. On an
+    /// east-facing plot the result equals the lattice footprint.
+    /// </remarks>
+    public Space.OrientedRectangle Footprint(WorldKey key, Space.OrientedRectangle parcel)
+    {
+        int east = (int)Arithmetic.IntegerMath.ShiftRight(parcel.EastQ16, Arithmetic.Fixed.FractionalBits);
+        int north = (int)Arithmetic.IntegerMath.ShiftRight(parcel.NorthQ16, Arithmetic.Fixed.FractionalBits);
+        var drawn = Footprint(key, new Quantities.Tiles(east), new Quantities.Tiles(north),
+            new Quantities.Tiles(parcel.Wide), new Quantities.Tiles(parcel.Deep));
+        if (drawn.Wide.Raw <= 0 || drawn.Deep.Raw <= 0)
+        {
+            return default;
+        }
+
+        long along = drawn.East.Raw - east, back = drawn.North.Raw - north;
+        return parcel with
+        {
+            EastQ16 = (int)(parcel.EastQ16 + (along * parcel.AxisEastQ16) - (back * parcel.AxisNorthQ16)),
+            NorthQ16 = (int)(parcel.NorthQ16 + (along * parcel.AxisNorthQ16) + (back * parcel.AxisEastQ16)),
+            Wide = drawn.Wide.Raw,
+            Deep = drawn.Deep.Raw,
+        };
+    }
+
     /// <summary>A rectangle clipped to the block's street edges.</summary>
     private (Quantities.Tiles East, Quantities.Tiles North, Quantities.Tiles Wide, Quantities.Tiles Deep)
         Clipped(int east, int north, int wide, int deep, Space.BlockGround ground)
