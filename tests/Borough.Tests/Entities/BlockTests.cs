@@ -9,21 +9,9 @@ using Borough.Formats;
 namespace Borough.Tests.Entities;
 
 /// <summary>
-/// A block is a row, and it remembers what it was zoned for after its Lots are gone.
+/// A block is derived from the Streets around it. Its zoning lives in the permission paint and its
+/// pattern in its Lots' saved forms.
 /// </summary>
-/// <remarks>
-/// <para>
-/// <b><c>plans/0053</c> step 1.</b> Before this table a block was a <c>(column, row)</c> index into
-/// <see cref="StreetGrid"/> with no state, so a per-block decision had nowhere to live — which is why
-/// five different subdivision patterns proposed in one sitting each turned into a world constant.
-/// </para>
-/// <para>
-/// <b>The discharge these tests are written against is named in <c>LotSubdivider.Relot</c>'s own
-/// remarks</b>: <em>"a block that was zoned and then lost every Lot has forgotten it was zoned, and a
-/// Street run back through it yields nothing until the player zones again. That is a real limitation
-/// and it is named here rather than hidden."</em>
-/// </para>
-/// </remarks>
 public sealed class BlockTests
 {
     private static readonly WorldKey Key = WorldKey.FromSeed(1);
@@ -47,50 +35,35 @@ public sealed class BlockTests
         return world;
     }
 
-    /// <summary>Every live Block's lattice position, for comparing an index against its rows.</summary>
-    private static List<(int Column, int Row, ushort Zone)> Live(World world)
+    /// <summary>Every lattice square that has Lots on it, with the pattern they were carved by.</summary>
+    private static List<(int Column, int Row, BlockPattern Pattern)> Carved(World world)
     {
-        var found = new List<(int, int, ushort)>();
+        var found = new List<(int, int, BlockPattern)>();
+        int squares = world.Roads.Streets.Blocks;
 
-        for (int slot = 0; slot < world.Blocks.Rows.SlotCount; slot++)
+        for (int row = 0; row < squares; row++)
         {
-            if (world.Blocks.Rows.IsLive(slot))
+            for (int column = 0; column < squares; column++)
             {
-                found.Add((
-                    world.Blocks.LatticeColumn[slot],
-                    world.Blocks.LatticeRow[slot],
-                    world.Blocks.Zone[slot]));
+                if (LotSubdivider.PatternOn(world, column, row, out BlockPattern pattern))
+                {
+                    found.Add((column, row, pattern));
+                }
             }
         }
 
         return found;
     }
 
-    /// <summary><b>A generated city carves Blocks</b>, which is the fixture the rest of this rests on.</summary>
-    [Fact]
-    public void A_generated_city_records_the_blocks_it_carved()
-    {
-        World world = Populated();
-
-        Assert.NotEmpty(Live(world));
-
-        // The index and the rows are two spellings of one fact, so they agree or one of them is a lie.
-        Assert.Equal(world.Blocks.Rows.LiveCount, world.BlockIndex.Count);
-
-        foreach ((int column, int row, _) in Live(world))
-        {
-            Assert.NotEqual(BlockResidency.NotResident, world.BlockIndex.Slot(column, row));
-        }
-    }
+    private static LandPermissionSummary Paint(World world, int column, int row) =>
+        world.LandPermissions.Summary(world.BlockGroundRectangle(column, row));
 
     /// <summary>
-    /// 🔴 <b>Zoning land with no Street on any face records the block anyway.</b>
+    /// 🔴 <b>Zoning land with no Street on any face keeps the zoning anyway.</b>
     /// </summary>
     /// <remarks>
-    /// <b>This is the whole discharge.</b> <c>02 §2.2</c>'s third rule stands untouched — the land
-    /// yields <em>no Lots at all</em> — but the intent now survives it, so a Street laid later finds
-    /// land that knows what it was painted for. Before this, the command was forgotten the instant it
-    /// returned zero.
+    /// <c>02 §2.2</c>'s third rule stands. The land yields no Lots, but the paint survives, so a Street
+    /// laid later finds land that knows what it was painted for.
     /// </remarks>
     [Fact]
     public void Zoning_land_the_network_cannot_reach_still_records_the_block()
@@ -104,16 +77,13 @@ public sealed class BlockTests
         int column = blocks - 2;
         int row = blocks - 2;
 
-        Assert.Equal(BlockResidency.NotResident, world.BlockIndex.Slot(column, row));
+        Assert.Equal(0, Paint(world, column, row).AnyUses);
 
         int carved = LotSubdivider.SubdivideBlock(world, column, row, LotTable.Housing);
 
         Assert.Equal(0, carved);
 
-        int slot = world.BlockIndex.Slot(column, row);
-
-        Assert.NotEqual(BlockResidency.NotResident, slot);
-        Assert.Equal(LotTable.Housing, world.Blocks.Zone[slot]);
+        Assert.Equal(LotTable.Housing, Paint(world, column, row).AnyUses);
     }
 
     /// <summary><b>Re-zoning overwrites rather than accumulating</b>, because a Zone is the whole payload.</summary>
@@ -124,35 +94,27 @@ public sealed class BlockTests
 
         int blocks = world.Roads.Streets.Blocks;
 
-        int first = world.ZoneBlock(blocks - 3, blocks - 3, LotTable.Housing);
-        Assert.Equal(LotTable.Housing, world.Blocks.Zone[first]);
+        Assert.True(world.ZoneBlock(blocks - 3, blocks - 3, LotTable.Housing));
+        Assert.Equal(LotTable.Housing, Paint(world, blocks - 3, blocks - 3).AnyUses);
 
-        int second = world.ZoneBlock(blocks - 3, blocks - 3, LotTable.Trade);
-
-        // The SAME row, re-pointed. A second row for one lattice square is what BlockResidency.Occupy
-        // refuses outright, and this is the path that would otherwise have produced one.
-        Assert.Equal(first, second);
-        Assert.Equal(LotTable.Trade, world.Blocks.Zone[second]);
-        Assert.Equal(1, CountAt(world, blocks - 3, blocks - 3));
+        Assert.True(world.ZoneBlock(blocks - 3, blocks - 3, LotTable.Trade));
+        Assert.Equal(LotTable.Trade, Paint(world, blocks - 3, blocks - 3).AnyUses);
     }
 
-    private static int CountAt(World world, int column, int row) =>
-        Live(world).Count(block => block.Column == column && block.Row == row);
-
     /// <summary>
-    /// <b>A block off the lattice gets no row and no throw</b>, which is the residency's boundary rule.
+    /// <b>A block off the lattice paints nothing and does not throw.</b>
     /// </summary>
     [Fact]
     public void Zoning_off_the_lattice_records_nothing()
     {
         World world = Populated();
 
-        int before = world.Blocks.Rows.LiveCount;
+        int before = world.PermissionRectangles.Rows.LiveCount;
 
-        Assert.Equal(Rows.NoSlot, world.ZoneBlock(-1, 0, LotTable.Housing));
-        Assert.Equal(Rows.NoSlot, world.ZoneBlock(0, int.MaxValue, LotTable.Housing));
+        Assert.False(world.ZoneBlock(-1, 0, LotTable.Housing));
+        Assert.False(world.ZoneBlock(0, int.MaxValue, LotTable.Housing));
 
-        Assert.Equal(before, world.Blocks.Rows.LiveCount);
+        Assert.Equal(before, world.PermissionRectangles.Rows.LiveCount);
     }
 
     /// <summary><b>A world whose Ruleset declares no band carries band 0 everywhere.</b></summary>
@@ -167,12 +129,9 @@ public sealed class BlockTests
 
         Assert.False(world.Rules.HasBands);
 
-        for (int slot = 0; slot < world.Blocks.Rows.SlotCount; slot++)
+        foreach ((int column, int row, _) in Carved(world))
         {
-            if (world.Blocks.Rows.IsLive(slot))
-            {
-                Assert.Equal(0, world.Blocks.Band[slot]);
-            }
+            Assert.Equal(0, Paint(world, column, row).Band);
         }
     }
 
@@ -199,19 +158,15 @@ public sealed class BlockTests
 
         Assert.True(world.Rules.HasBands);
 
-        // Every live block, by band. The generator raster-scans and stops once it has land enough,
+        // Every carved block, by band. The generator raster-scans and stops once it has land enough,
         // so the window it painted is not the whole lattice -- which is why nothing below reads a
         // lattice coordinate directly.
         var byBand = new Dictionary<byte, List<(int Column, int Row)>>();
 
-        for (int slot = 0; slot < world.Blocks.Rows.SlotCount; slot++)
+        foreach ((int column, int row, _) in Carved(world))
         {
-            if (!world.Blocks.Rows.IsLive(slot))
-            {
-                continue;
-            }
-
-            byte band = world.Blocks.Band[slot];
+            LandPermissionSummary paint = Paint(world, column, row);
+            byte band = paint.MixedIntensity ? (byte)0 : paint.Band;
 
             if (!byBand.TryGetValue(band, out List<(int Column, int Row)>? found))
             {
@@ -219,7 +174,7 @@ public sealed class BlockTests
                 byBand[band] = found;
             }
 
-            found.Add((world.Blocks.LatticeColumn[slot], world.Blocks.LatticeRow[slot]));
+            found.Add((column, row));
         }
 
         // Every declared band appears. A layout that collapsed to one band would still have carved
@@ -284,10 +239,8 @@ public sealed class BlockTests
         (int column, int row) = Uncarved(detached);
 
         // Back-to-back turns its gable ends to the cross streets, so it carries no Address on them.
-        Assert.NotEqual(Rows.NoSlot, terrace.PatternBlock(column, row, BlockPattern.BackToBack));
-
         int carvedDetached = LotSubdivider.SubdivideBlock(detached, column, row, LotTable.Housing);
-        int carvedTerrace = LotSubdivider.SubdivideBlock(terrace, column, row, LotTable.Housing);
+        int carvedTerrace = LotSubdivider.SubdivideBlock(terrace, column, row, LotTable.Housing, BlockPattern.BackToBack);
 
         Assert.True(carvedDetached > 0, "the detached block carved nothing, so this compares nothing.");
         Assert.True(
@@ -345,74 +298,14 @@ public sealed class BlockTests
     /// <b>A block in a bandless world is carved Detached</b>, which is the shape the subdivider had
     /// before patterns existed.
     /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <b>Selection happens at the first carve</b> (<c>plans/0053</c> step 4), and with no
-    /// <c>[[band]]</c> declared it selects <see cref="BlockPattern.Detached"/> on every block — so a
-    /// world that declares no band carves exactly what it carved before patterns existed, Lot for Lot
-    /// and in the same order.
-    /// </para>
-    /// <para>
-    /// 🔴 <b>Every carved block reads as CHOSEN, and that is the distinction the column is one-based
-    /// for.</b> Zero means <em>nobody has decided</em> rather than <em>Detached</em>. Without it,
-    /// upzoning a built block would silently re-plat it, because a block that had been carved and one
-    /// that had not would hold the same byte.
-    /// </para>
-    /// </remarks>
     [Fact]
     public void A_bandless_worlds_blocks_are_carved_detached()
     {
         World world = Populated();
 
-        int live = 0;
+        List<(int Column, int Row, BlockPattern Pattern)> carved = Carved(world);
 
-        for (int slot = 0; slot < world.Blocks.Rows.SlotCount; slot++)
-        {
-            if (!world.Blocks.Rows.IsLive(slot))
-            {
-                continue;
-            }
-
-            Assert.Equal(BlockPattern.Detached, world.PatternOf(slot, out bool chosen));
-            Assert.True(chosen, "a carved block reads as unchosen, so a re-plat could not tell them apart.");
-
-            live++;
-        }
-
-        Assert.NotEqual(0, live);
-    }
-
-    /// <summary>
-    /// 🔴 <b><c>RebuildDerived</c> reproduces the index exactly</b>, which is what makes it derived.
-    /// </summary>
-    /// <remarks>
-    /// <b>The one test that would catch the index going stale on a load.</b> It is not
-    /// <c>DerivedRebuildAuditTests</c>' business — that audits declared <em>columns</em>, and this is an
-    /// array beside the table, exactly like the frontage claim mask. ⚠ <b>And it is the test that would
-    /// fail if the residency were sized from a constant</b> rather than from
-    /// <see cref="StreetGrid.Span"/>, because a lattice at a non-shipped <c>block_tiles</c> would index
-    /// into the wrong length.
-    /// </remarks>
-    [Fact]
-    public void The_block_index_is_reproduced_by_a_rebuild()
-    {
-        World world = Populated();
-
-        List<(int, int, ushort)> before = Live(world);
-        int count = world.BlockIndex.Count;
-
-        world.RebuildDerived();
-
-        Assert.Equal(count, world.BlockIndex.Count);
-        Assert.Equal(before, Live(world));
-
-        foreach ((int column, int row, _) in before)
-        {
-            int slot = world.BlockIndex.Slot(column, row);
-
-            Assert.NotEqual(BlockResidency.NotResident, slot);
-            Assert.Equal(column, world.Blocks.LatticeColumn[slot]);
-            Assert.Equal(row, world.Blocks.LatticeRow[slot]);
-        }
+        Assert.NotEmpty(carved);
+        Assert.All(carved, block => Assert.Equal(BlockPattern.Detached, block.Pattern));
     }
 }

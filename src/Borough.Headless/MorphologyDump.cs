@@ -606,8 +606,8 @@ internal static class MorphologyDump
     /// a courtyard parcels ground that its Building does not cover; and a vacant Lot has a potential
     /// footprint with no Building on it. Collapsing them into one percentage is how a city with a
     /// great deal of floor area came to be described as dense while its centres remained visibly
-    /// empty. The rows are grouped by the saved carving pattern, not by the band currently over the
-    /// block, because the former is the historical fact the geometry was made from.
+    /// empty. The rows are grouped by the pattern the block's Lots were carved with, read from their
+    /// saved forms, because that is what made the geometry.
     /// </remarks>
     private static void Fabric(World world, TextWriter output)
     {
@@ -621,27 +621,23 @@ internal static class MorphologyDump
         var patternAt = new Dictionary<(int Column, int Row), int>();
         BlockLattice lattice = world.Roads.Streets.Lattice;
 
-        for (int slot = 0; slot < world.Blocks.Rows.SlotCount; slot++)
+        int squares = world.Roads.Streets.Blocks;
+
+        for (int row = 0; row < squares; row++)
         {
-            if (!world.Blocks.Rows.IsLive(slot))
+            for (int column = 0; column < squares; column++)
             {
-                continue;
+                if (!LotSubdivider.PatternOn(world, column, row, out BlockPattern pattern))
+                {
+                    continue;
+                }
+
+                int index = (int)pattern;
+
+                blocks[index]++;
+                ground[index] += (long)lattice.WidthOf(column) * lattice.WidthOf(row);
+                patternAt[(column, row)] = index;
             }
-
-            BlockPattern pattern = world.PatternOf(slot, out bool chosen);
-
-            if (!chosen)
-            {
-                continue;
-            }
-
-            int index = (int)pattern;
-            int column = world.Blocks.LatticeColumn[slot];
-            int row = world.Blocks.LatticeRow[slot];
-
-            blocks[index]++;
-            ground[index] += (long)lattice.WidthOf(column) * lattice.WidthOf(row);
-            patternAt[(column, row)] = index;
         }
 
         for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)

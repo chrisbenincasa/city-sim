@@ -48,14 +48,6 @@ public sealed partial class World
         return refusal;
     }
 
-    internal void RefreshBlockPermissions(int slot)
-    {
-        if (slot == Rows.NoSlot) { return; }
-        LandPermissionSummary summary = LandPermissions.Summary(BlockGroundRectangle(Blocks.LatticeColumn[slot], Blocks.LatticeRow[slot]));
-        Blocks.Zone[slot] = summary.AnyUses;
-        Blocks.Band[slot] = summary.MixedIntensity ? (byte)0 : summary.Band;
-    }
-
     internal void RefreshPermissionSummaries(LandRectangle changed = default)
     {
         for (int row = 0; row < Lots.Rows.SlotCount; row++)
@@ -64,12 +56,6 @@ public sealed partial class World
             LandRectangle ground = LotGround(row);
             if (changed.IsValid && !Overlaps(changed, ground)) { continue; }
             Lots.Zone[row] = LandPermissions.Summary(ground).CommonUses;
-        }
-        for (int row = 0; row < Blocks.Rows.SlotCount; row++)
-        {
-            if (!Blocks.Rows.IsLive(row)) { continue; }
-            if (changed.IsValid && !Overlaps(changed, BlockGroundRectangle(Blocks.LatticeColumn[row], Blocks.LatticeRow[row]))) { continue; }
-            RefreshBlockPermissions(row);
         }
         LotsAdmitting.Invalidate();
     }

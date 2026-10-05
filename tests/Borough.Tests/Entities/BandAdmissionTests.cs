@@ -52,15 +52,14 @@ public sealed class BandAdmissionTests
     {
         if (!Frontage.BlockOf(
                 world.Roads.Streets, world.Lots.East[lot], world.Lots.North[lot],
-                (StreetSide)world.Lots.Side[lot], out int column, out int row)
-            || !world.BlockIndex.Contains(column, row))
+                (StreetSide)world.Lots.Side[lot], out int column, out int row))
         {
             return 0;
         }
 
-        int slot = world.BlockIndex.Slot(column, row);
+        LandPermissionSummary paint = world.LandPermissions.Summary(world.BlockGroundRectangle(column, row));
 
-        return slot == BlockResidency.NotResident ? (byte)0 : world.Blocks.Band[slot];
+        return paint.MixedIntensity ? (byte)0 : paint.Band;
     }
 
     /// <summary>
@@ -202,10 +201,8 @@ public sealed class BandAdmissionTests
                 $"Lot {lot} fronts a Segment and belongs to no block.");
 
             Assert.True(
-                world.BlockIndex.Contains(column, row),
+                world.BlockGroundRectangle(column, row).IsValid,
                 $"Lot {lot} resolves to ({column}, {row}), which is off the lattice.");
-
-            Assert.NotEqual(BlockResidency.NotResident, world.BlockIndex.Slot(column, row));
 
             resolved++;
         }
