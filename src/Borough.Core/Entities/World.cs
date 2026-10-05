@@ -8767,59 +8767,87 @@ public sealed partial class World
     }
 
     /// <summary>
-    /// Discards the stock that has outlived its Resource's shelf life, at each of that Resource's
-    /// cycle boundaries, and returns how much went.
+    /// Discards the stock that has outlived its Resource's shelf life from each row whose cycle
+    /// boundary falls on <paramref name="tick"/>, and returns how much went.
     /// </summary>
+    /// <remarks>
+    /// A row's boundary is offset within its cycle by its block of slots (<see cref="ShelfLife.Phase"/>),
+    /// so each Tick visits the blocks due on it and a city's spoilage spreads across the cycle.
+    /// </remarks>
     internal long SpoilExpired(Ticks tick)
     {
-        if (!AnyShelfLifeBoundary(tick))
-        {
-            return 0;
-        }
-
         long spoiled = 0;
         ushort today = BusinessAccounts.DayOf(tick);
+        ShelfLife[] shelfLives = Rules.ResourceShelfLives;
 
-        for (int row = 0; row < Expiries.Rows.SlotCount; row++)
+        for (int i = 0; i < shelfLives.Length; i++)
         {
-            if (!Expiries.Rows.IsLive(row))
+            if (shelfLives[i].Expires && !SharesEarlierCycle(shelfLives, i))
             {
-                continue;
-            }
-
-            int bin = Bins.Rows.Resolve(Expiries.Bin[row]);
-            ShelfLife shelfLife = Rules.ShelfLifeOf(Bins.Resource[bin]);
-
-            if (!shelfLife.IsBoundary(tick))
-            {
-                continue;
-            }
-
-            long discarded = Expiries.Shift(row, shelfLife.Cycles, today);
-
-            if (discarded > 0)
-            {
-                Bins.Move(bin, -discarded);
-                Markets.Moved(this, bin, Bins.LevelAt(bin) + discarded, Bins.LevelAt(bin));
-                Drain(bin, Blocking.Space, tick);
-                spoiled += discarded;
+                spoiled += SpoilStride(tick, shelfLives[i].CycleTicks, today);
             }
         }
 
         return spoiled;
     }
 
-    private bool AnyShelfLifeBoundary(Ticks tick)
+    private static bool SharesEarlierCycle(ShelfLife[] shelfLives, int index)
     {
-        foreach (ShelfLife shelfLife in Rules.ResourceShelfLives)
+        for (int i = 0; i < index; i++)
         {
-            if (shelfLife.IsBoundary(tick))
+            if (shelfLives[i].Expires && shelfLives[i].CycleTicks == shelfLives[index].CycleTicks)
             {
                 return true;
             }
         }
 
         return false;
+    }
+
+    private long SpoilStride(Ticks tick, ulong cycleTicks, ushort today)
+    {
+        long spoiled = 0;
+        ulong slots = (ulong)Expiries.Rows.SlotCount;
+        ulong blockStride = cycleTicks * ShelfLife.StaggerRows;
+
+        for (ulong start = tick.Raw % cycleTicks * ShelfLife.StaggerRows; start < slots; start += blockStride)
+        {
+            ulong end = start + ShelfLife.StaggerRows < slots ? start + ShelfLife.StaggerRows : slots;
+
+            for (int row = (int)start; row < (int)end; row++)
+            {
+                spoiled += SpoilRow(tick, row, today);
+            }
+        }
+
+        return spoiled;
+    }
+
+    private long SpoilRow(Ticks tick, int row, ushort today)
+    {
+        if (!Expiries.Rows.IsLive(row))
+        {
+            return 0;
+        }
+
+        int bin = Bins.Rows.Resolve(Expiries.Bin[row]);
+        ShelfLife shelfLife = Rules.ShelfLifeOf(Bins.Resource[bin]);
+
+        if (!shelfLife.IsBoundary(tick, row))
+        {
+            return 0;
+        }
+
+        long discarded = Expiries.Shift(row, shelfLife.Cycles, today);
+
+        if (discarded > 0)
+        {
+            Bins.Move(bin, -discarded);
+            Markets.Moved(this, bin, Bins.LevelAt(bin) + discarded, Bins.LevelAt(bin));
+            Drain(bin, Blocking.Space, tick);
+        }
+
+        return discarded;
     }
 
     private void CloseUnexpiringAges()

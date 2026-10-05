@@ -280,24 +280,35 @@ public enum ResourceFamily : byte
 }
 
 /// <summary>
-/// How long a Resource keeps before it spoils: <see cref="Cycles"/> global cycles of
+/// How long a Resource keeps before it spoils: <see cref="Cycles"/> cycles of
 /// <see cref="CycleTicks"/> each.
 /// </summary>
 /// <remarks>
 /// A unit deposited during a cycle spoils at the boundary <see cref="Cycles"/> boundaries later, so it
 /// lives between <c>Cycles − 1</c> and <c>Cycles</c> whole cycles. The error is one cycle, a constant
 /// fraction of the shelf life. <c>default</c> means the Resource keeps for ever.
+/// <para>
+/// Each block of <see cref="StaggerRows"/> adjacent expiry rows is offset one Tick from the block before
+/// it, so a city's rows age on different Ticks and no single Tick carries the whole sweep. Blocks keep
+/// each Tick's walk sequential in memory. Slots are saved state, so the offset survives a reload.
+/// </para>
 /// </remarks>
 public readonly record struct ShelfLife(ulong CycleTicks, int Cycles)
 {
     /// <summary>The most cycles a Resource may declare. Every expiring Bin stores this many buckets.</summary>
     public const int MaxCycles = 4;
 
+    /// <summary>How many adjacent expiry rows share one boundary Tick.</summary>
+    public const int StaggerRows = 64;
+
     /// <summary>Whether the Resource spoils at all.</summary>
     public bool Expires => Cycles > 0;
 
-    /// <summary>Whether <paramref name="tick"/> is one of this Resource's cycle boundaries.</summary>
-    public bool IsBoundary(Ticks tick) => Expires && tick.Raw % CycleTicks == 0;
+    /// <summary>Whether <paramref name="tick"/> is a cycle boundary for the expiry row in <paramref name="row"/>.</summary>
+    public bool IsBoundary(Ticks tick, int row) => Expires && tick.Raw % CycleTicks == Phase(row);
+
+    /// <summary>The Tick within each cycle on which the expiry row in <paramref name="row"/> ages.</summary>
+    public ulong Phase(int row) => (ulong)IntegerMath.FloorDiv(row, StaggerRows) % CycleTicks;
 }
 
 /// <summary>

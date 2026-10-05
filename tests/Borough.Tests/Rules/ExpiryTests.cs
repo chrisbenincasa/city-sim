@@ -145,6 +145,42 @@ public sealed class ExpiryTests
     }
 
     [Fact]
+    public void Rows_in_different_blocks_spoil_on_different_ticks()
+    {
+        (World world, Handle<Building> first) = Built();
+        var bins = new Handle<Bin>[ShelfLife.StaggerRows + 1];
+
+        bins[0] = BreadBin(world, first);
+
+        for (int i = 1; i < bins.Length; i++)
+        {
+            Handle<Lot> lot = world.Lots.Create(new Tiles(1 + 2 * i), new Tiles(2), zone: 1);
+            bins[i] = BreadBin(world, world.Buildings.Create(world.Lots, lot, Kind));
+        }
+
+        foreach (Handle<Bin> bin in bins)
+        {
+            world.Deposit(bin, 5, new Ticks(2));
+        }
+
+        Handle<Bin> early = bins[ShelfLife.StaggerRows - 1];
+        Handle<Bin> late = bins[ShelfLife.StaggerRows];
+        Assert.Equal(ShelfLife.StaggerRows - 1, RowOf(world, early));
+        Assert.Equal(ShelfLife.StaggerRows, RowOf(world, late));
+
+        for (ulong tick = 3; tick < 2 * Cycle; tick++)
+        {
+            Assert.Equal(0, world.SpoilExpired(new Ticks(tick)));
+        }
+
+        Assert.Equal(5 * ShelfLife.StaggerRows, world.SpoilExpired(new Ticks(2 * Cycle)));
+        Assert.Equal((0, 5), (Level(world, early), Level(world, late)));
+
+        Assert.Equal(5, world.SpoilExpired(new Ticks(2 * Cycle + 1)));
+        Assert.Equal(0, Level(world, late));
+    }
+
+    [Fact]
     public void A_bin_nobody_writes_to_still_spoils_on_schedule()
     {
         (World world, Handle<Building> building) = Built();

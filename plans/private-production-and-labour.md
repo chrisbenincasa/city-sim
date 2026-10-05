@@ -25,7 +25,7 @@ the founding loop and for the full Goods tree.
 | Shelf life is a property of a Resource, not a special case for labour | Labour's shelf life is an hour or two and fish is days. One mechanism is cheaper than two, and labour is its shortest-lived case |
 | Age buckets are a fixed small count in the row; the Resource declares the cycle | `shelf life = cycle × buckets` expresses any duration at constant storage. Precision error is a constant fraction of shelf life, so an hour matters on bread and a month does not on flour |
 | Buckets shift in a Phase 3 sweep of the expiry table at each cycle boundary | The expiry table holds one row per expiring Bin, so the sweep visits only Bins that can spoil. The stored level stays true, so the roughly 60 existing `LevelAt`/`SpaceAt` readers need no Tick-aware read and Phase 2 recomputes nothing. Spoilage moves the level through the ordinary write, so a producer asleep on a full perishable Bin wakes. Shifting lazily on write was the earlier choice; it left every reader seeing spoiled stock and nothing to wake that producer (decided 2026-09-22) |
-| Labour's shelf life is an hour or two, far shorter than a shift | A Resource's cycle is global but shift start is drawn per-Business, so a daily labour cycle would evaporate half a night shift's labour at midnight. Making expiry much finer than a shift dissolves the mismatch with no per-owner offset. It is also what happens — a worker present at 9am supplies an hour of work at 9am, and an idle hour cannot be banked for the evening |
+| Labour's shelf life is an hour or two, far shorter than a shift | A Resource's cycle boundaries ignore shifts, and shift start is drawn per-Business, so a daily labour cycle would evaporate half a night shift's labour at midnight. Making expiry much finer than a shift dissolves the mismatch with no per-owner offset. It is also what happens — a worker present at 9am supplies an hour of work at 9am, and an idle hour cannot be banked for the evening |
 | A Rule whose `rate` exceeds its labour input's shelf life is refused at load | Short-lived labour makes a slow Rule starve itself: a bakery firing daily would see only the last hour's work and waste the rest. The engine is right and the content is wrong, so the loader says so with a file and a line |
 | The labour Bin is uncapped, like a money Bin | There is no physical container — the unused worker-time at a premises is just who is standing there and for how long. The cap that matters already exists upstream, because `floor_tiles_per_job` derives posts from floor area and a Business cannot employ more workers than its posts allow. Capping the Bin applies the same limit twice, and the second application is the one that fails silently. Shelf life is what keeps the quantity bounded |
 | Labour's tier and experience grading declares its own percentages rather than reusing the wage's | Pay and productivity are separate causes that coincide today only because the flat `wage_per_day` is a productivity proxy. A designer should be able to say a tier-2 worker is paid 40% more and produces 25% more, which is the ordinary relationship between the two. Two Ruleset keys cost less than a coupling nobody could later explain |
@@ -74,16 +74,23 @@ rises again when the next one starts, none of which needs a rate to express.
 
 **3. Age buckets in an expiry table.** A separate table beside `BinTable`, with one row per
 expiring Bin: a saved handle to the Bin and a fixed inline array of N counters. A derived
-Bin-to-row index finds the row from the Bin. The cycle is global, so each boundary follows from the
-Tick and no per-row clock is stored.
+Bin-to-row index finds the row from the Bin. A row's boundaries fall where
+`tick % CycleTicks == (slot / 64) % CycleTicks`, so each boundary follows from the Tick and the
+row's block of 64 slots, and no per-row clock is stored. Slots are saved state, so a reload keeps
+every row's offset.
 
-At each cycle boundary a Phase 3 sweep walks the expiry table. For each row it discards the oldest
+Each Tick a Phase 3 sweep visits the stride of rows whose boundary it is. For each row it discards the oldest
 bucket, moves the Bin's level down by that amount through the ordinary write, and opens an empty
 newest bucket. A deposit adds to the newest bucket. A withdrawal draws the oldest buckets first.
 The stored level therefore always equals the sum of the buckets, and every reader stays correct.
 
-⚠ **The sweep lands on one Tick per cycle.** Its cost is unmeasured. Measure it at city scale
-before this slice merges. If the spike matters, stagger Bins across the cycle.
+**The sweep is staggered across the cycle.** With every row on one boundary Tick, a million-Citizen
+world with a labour Bin on each of its ~85,000 Businesses spent a median 3.7 ms on that Tick
+(2.3–3.5 ms at night, 6.2–8.0 ms in working hours), against a 15.6 ms whole-Tick target. Offsetting
+blocks of rows spreads the same work across the cycle's 21 Ticks. Blocks rather than single slots
+keep each Tick's walk sequential: offsetting single slots cut the spike but cost about four times
+the total work, because every visited row missed the cache. The measurement and its conditions
+are under *Measurement results* below.
 
 **4. A waste count.** What the shift discards, per Business, reported as Evidence.
 
@@ -183,6 +190,27 @@ acceptance world. The existing wage-only pass
 already exceeds the 15.6 ms whole-Tick target in the constructed million-Citizen controls; these component savings
 cannot settle the complete city's Tick budget. Both measurement steps are complete; the prototypes
 do not complete the gameplay acceptance checks above.
+
+### Expiry sweep at city scale (2026-10-04)
+
+Integrated Core, `--profile --profile-work`, Release, one thread pinned to logical CPU 4, one route
+worker, seed 0, 1,000,000 Citizens, 2,048 warmup and 2,048 measured Ticks, Intel i5-10400. The
+machine was not reserved; load averaged 1.3–7 across the three runs. The world is
+`rulesets/stress-shopping.toml` with a labour Bin added to `dwelling`, so each of the ~85,000
+Businesses has an expiry row. The shipped file gives labour only to shopfronts, of which almost
+none stand, so it exercises the sweep over a few dozen rows. Labour's cycle is 21 Ticks.
+
+| Growth phase per Tick | Every row on one boundary | Staggered by slot | Staggered by 64-slot block |
+|---|---|---|---|
+| Median | 0.003 ms; 3.7 ms on boundary Ticks | 0.73 ms | 0.37 ms |
+| 95th percentile | 5.9 ms | 1.9 ms | 0.71 ms |
+| Work per 21-Tick cycle | ~4.9 ms | ~16 ms | ~8.7 ms |
+
+Before staggering, boundary Ticks cost 2.3–3.5 ms at night and 6.2–8.0 ms in working hours, when
+discards also move levels and wake waiters. Block staggering is the shipped choice. It costs about
+1.8 times the unstaggered total but removes the 3.7 ms spike. Growth maxima of 100–500 ms appear in
+all three runs and come from other Growth work, not the sweep. The whole Tick's median is 830–990 ms
+in this world, so none of these figures settles the 15.6 ms target.
 
 ## Corpus defects found while scoping
 
