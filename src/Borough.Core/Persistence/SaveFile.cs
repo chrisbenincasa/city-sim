@@ -222,6 +222,11 @@ public static class SaveFile
                 source);
         }
 
+        foreach (Rows table in world.Tables)
+        {
+            table.VerifyRestoredHandles();
+        }
+
         world.RebuildDerived();
 
         ulong reloaded = world.HashState();
