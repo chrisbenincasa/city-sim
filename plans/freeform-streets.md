@@ -256,5 +256,14 @@ stops refining at 1/256 Tile and refuses there. The `street` Input Log verb appl
 by name for each lay refusal and for a treasury that cannot pay. It clears every Lot under the paved
 width first and pays the displaced at the `Demolish` price. A route over a split Segment gains a hop
 for the created half, in its direction of travel. A Vehicle already on that hop keeps the arrival
-time it was priced at for the whole Segment. Slice 7 moves the shell from lattice `connect` to
-`street`.
+time it was priced at for the whole Segment.
+Slice 7a is built. The Street tool lays straight freeform Streets through `street`: two clicks or a
+drag. Shift-click still bulldozes a lattice Street through `connect`, because no freeform bulldoze
+exists; the tool no longer lays lattice runs. Ends snap to Nodes, then to points along Segments,
+within 4 Tiles. A Segment point closer to an end than `min_segment_length_tiles` snaps to that
+end's Node. N switches all snapping. `Simulation.PreviewStreet` gives the preview its refusal,
+price and Buildings from `RefuseStreet`'s own code. Curved Segments pave, footway and kerb as
+chords of at most 1/64 turn, and strip mitres read the Segment tangent at the Node.
+Slice 7b is next: simple-curve and continuous modes, length and angle snaps, and the
+acceptance-check demonstration. The 4-Tile snap reach is a shell constant until 7b settles where
+snap defaults live.

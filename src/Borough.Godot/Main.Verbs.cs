@@ -55,7 +55,7 @@ public partial class Main
         // the top of the next Tick, so the Segment does not exist until Step returns.
         foreach (Command command in raised)
         {
-            if (command.Kind == CommandKind.Connect)
+            if (command.Kind is CommandKind.Connect or CommandKind.Street)
             {
                 _repave = true;
             }
@@ -142,7 +142,7 @@ public partial class Main
     private string Holding() => _verb switch
     {
         Verb.Zone => ZoneName(),
-        Verb.Connect => "STREET (shift-click bulldozes)",
+        Verb.Connect => _streetStart is null ? "STREET (click the start; shift-click bulldozes)" : "STREET (click the end)",
         Verb.Demolish => "DEMOLISH",
         Verb.Service => _serviceKind != 0
             ? $"SERVICE {_names.Kind(_serviceKind) ?? _serviceKind.ToString()} (s cycles)"
@@ -231,8 +231,12 @@ public partial class Main
                 _refused = "this Ruleset declares no [[zone_rule]], so there is no permission to paint.";
                 break;
 
+            case Verb.Connect when inverted:
+                Bulldoze(at);
+                break;
+
             case Verb.Connect:
-                Lay(at, inverted);
+                StreetPoint(at);
                 break;
 
             case Verb.Demolish:
@@ -271,6 +275,7 @@ public partial class Main
         _zoneStart = null;
         _zoneFeedback = string.Empty;
         _zoneErase = tool == "erase";
+        _streetStart = null;
 
         switch (tool)
         {
@@ -573,7 +578,7 @@ public partial class Main
         _ => $"refused for reason {(ushort)refusal}, which this shell has no sentence for.",
     };
 
-    /// <summary>One Street on the lattice edge <b>nearest</b> the cursor.</summary>
+    /// <summary>Removes the Street on the lattice edge <b>nearest</b> the cursor.</summary>
     /// <remarks>
     /// <para>
     /// 🔴 <b>THIS SENT THE CURSOR'S OWN TILE AND SPLIT THE BLOCK ON A DIAGONAL, AND THE PLAYER
@@ -594,7 +599,7 @@ public partial class Main
     /// <see cref="Act"/> already states.
     /// </para>
     /// </remarks>
-    private void Lay((Tiles East, Tiles North) at, bool bulldoze)
+    private void Bulldoze((Tiles East, Tiles North) at)
     {
         // ⚠ A world with no lattice has block 0 and NearestEdge answers NoSlot for it. The CORE
         // refuses that world by name (Refusal.ConnectWorldHasNoLattice) and Send is what reports it
@@ -613,7 +618,7 @@ public partial class Main
 
         var payload = new ConnectPayload(
             axis,
-            bulldoze ? ConnectAction.Bulldoze : ConnectAction.Lay,
+            ConnectAction.Bulldoze,
             RoadKind.Street);
 
         Send(new Command(CommandKind.Connect, east, north, payload.Encode()));
@@ -629,15 +634,16 @@ public partial class Main
     /// only where a person would have seen a sentence.***
     /// </remarks>
     private (Tiles East, Tiles North)? Dragging((Tiles East, Tiles North)? at) =>
-        _verb == Verb.Connect
-            && _pressed is { } from
-            && at is { } to
-            && _world.Roads.Streets.Between(from.East, from.North, to.East, to.North).Drag
-                is not (StreetDrag.OneEdge or StreetDrag.NoLattice)
-            ? to
-            : null;
+        _verb != Verb.Connect || _pressed is not { } from || at is not { } to ? null
+        : _pressedInverted
+            ? _world.Roads.Streets.Between(from.East, from.North, to.East, to.North).Drag
+                is not (StreetDrag.OneEdge or StreetDrag.NoLattice) ? to : null
+        : _streetStart is { } start && Snap(to) is var end && (end.East, end.North) != start ? to : null;
 
-    /// <summary>Lays, or with Shift removes, every Street on the straight line a drag covered.</summary>
+    /// <summary>
+    /// Lays the freeform Street a drag covered, or with Shift removes every lattice Street on the
+    /// straight line it covered.
+    /// </summary>
     /// <remarks>
     /// <para>
     /// The press already acted on its own edge, so the run repeats it harmlessly: laying a laid Street
@@ -661,6 +667,13 @@ public partial class Main
 
         _pressed = null;
 
+        if (!_pressedInverted)
+        {
+            StreetPoint(to);
+
+            return;
+        }
+
         StreetGrid streets = _world.Roads.Streets;
         StreetDrag drag = streets.Between(from.East, from.North, to.East, to.North).Drag;
 
@@ -668,9 +681,8 @@ public partial class Main
         {
             // ⚠ Two lines because the readout does not wrap; one line collided with the hover panel.
             _refused =
-                "Streets run EAST and NORTH, so there is no diagonal to lay: the drag laid only the "
-                + "edge you pressed on.\nDrag one straight run, then the next. The diagonals "
-                + "already in this city are FOOT PATHS, and no tool lays one.";
+                "grid Streets run EAST and NORTH, so the drag removed only the edge you pressed on."
+                + "\nDrag one straight run, then the next.";
 
             return;
         }
@@ -694,7 +706,7 @@ public partial class Main
                 : streets.IntersectionTile(fromColumn, start);
             var payload = new ConnectPayload(
                 axis,
-                _pressedInverted ? ConnectAction.Bulldoze : ConnectAction.Lay,
+                ConnectAction.Bulldoze,
                 RoadKind.Street,
                 count);
 
