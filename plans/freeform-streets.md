@@ -231,6 +231,10 @@ the louder background lowers total intensity by the quieter source's contributio
 
 ## Next step
 
-Slices 1 to 4 are built. Start slice 5.
+Slices 1 to 4 are built. Slice 5 is built for lattice Streets: the face walk, derived blocks with
+`BlockTable` gone, the face anchor, `[lots] min_plot_depth_tiles` with shrink-or-drop, and the claim
+order. The carver still walks lattice squares, and it finds a side's Street only when that Street
+is straight and spans the square's edge exactly. A face that is not a lattice square carves no Lots.
+Before slice 6 lays a non-lattice Street, the carver has to cut plots along any Segment side.
 Road sealing runs only in `RoadGenerator`, where every Street is straight, so it moved from slice 2
 to slice 6, which lays the first curved Street.

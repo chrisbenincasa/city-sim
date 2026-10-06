@@ -156,14 +156,6 @@ public sealed partial class World
 
         Lots = new LotTable(PerThousand(citizens, 225), Roads.Segments);
 
-        // Sized OFF the Lot table rather than off the Citizen count, because a block is a container
-        // for Lots and the two quantities cannot drift apart if only one of them is authored.
-        // LotSubdivider yields 8 Lots to a block at the shipped block_tiles and lots_per_segment, so
-        // 32 is four times the headroom -- and a pattern that carves fewer Lots to a block (plans/0053
-        // back-to-back yields 5) needs MORE blocks for one city, which is the direction this errs in.
-        // ⚠ It is a capacity and not a bound on the world: the lattice has Span^2 squares and this
-        // table holds only the ones somebody has zoned.
-        Blocks = new BlockTable(PerThousand(citizens, 32));
         PermissionRectangles = new Space.LandPermissionTable();
         LandPermissions = new Space.LandPermissions(PermissionRectangles);
 
@@ -485,13 +477,7 @@ public sealed partial class World
             // hashed exactly as a governed Policy amount is.
             IncomeTaxRates.Rows,
 
-            // And the Blocks, plans/0053 step 1. Appended on the same grounds. A block is the unit
-            // the `zone` verb acts on and it was the only such unit with no row -- so a block that
-            // lost every Lot forgot it had ever been zoned, which is the limitation LotSubdivider.Relot
-            // names in its own remarks. Saved rather than derived for one column's sake: `pattern` is a
-            // historical fact about conditions that are gone and cannot be recomputed from a world
-            // that has moved on.
-            Blocks.Rows, Shopping.Rows, KnownShops.Rows, Civic.Rows, FamilyCare.Rows, KnownClinics.Rows, CareHistory.Rows, CareDays.Rows,
+            Shopping.Rows, KnownShops.Rows, Civic.Rows, FamilyCare.Rows, KnownClinics.Rows, CareHistory.Rows, CareDays.Rows,
 
             // Save Outside stock and its population account alongside the city tables.
             Hinterlands.Rows, HinterlandPopulation.Rows, HinterlandQueue.Rows,
@@ -842,22 +828,6 @@ public sealed partial class World
 
     /// <summary>Parcels of land.</summary>
     public LotTable Lots { get; }
-
-    /// <summary>The lattice squares the player has zoned — their Zone, band and carving pattern.</summary>
-    public BlockTable Blocks { get; }
-
-    /// <summary>
-    /// Which slot of <see cref="Blocks"/> holds a given lattice square — <b>derived, rebuilt on the
-    /// Epoch, and outside the State Hash</b>.
-    /// </summary>
-    /// <remarks>
-    /// <b>Not a registered table, for <see cref="Frontage"/>'s reason.</b> It is a function from a
-    /// lattice position to a slot and owns one array, none of which is saved — so a table of its own
-    /// would fold four allocator scalars and make the hash depend on how many times the index had been
-    /// rebuilt. ⚠ <b>It is sized by <c>[roads] block_tiles</c> rather than by a design constant</b>,
-    /// which makes it the only residency in the project that cannot allocate in a field initialiser.
-    /// </remarks>
-    public Space.BlockResidency BlockIndex { get; } = new();
 
     /// <summary>Structures.</summary>
     public BuildingTable Buildings { get; }
@@ -4488,17 +4458,8 @@ public sealed partial class World
         // resolves a Segment handle against the rebuilt graph.
         Frontage.Rebuild(Lots);
 
-        // The block index, rebuilt wholesale from the Blocks' own saved lattice positions. After
-        // Roads.RebuildDerived because that is where StreetGrid.Span becomes known, and this index is
-        // the one in the project whose LENGTH is a function of [roads] block_tiles rather than of a
-        // design constant -- so it cannot be sized before the road graph has been read.
-        //
-        // Resize clears, so this loop is not an addition to a stale array: it is the whole content.
-        RebuildBlockIndex();
-
-        // plans/0052 stage 1. After the block index, because it looks a Lot's block up in it; after
-        // Frontage.Rebuild, because a Lot with no Address has no parcel and this reads that decision
-        // rather than making it again.
+        // plans/0052 stage 1. After Frontage.Rebuild, because a Lot with no Address has no parcel
+        // and this reads that decision rather than making it again.
         // 🔴 RebuildParcels IS NOT CALLED HERE ANY MORE, and the columns it writes are SAVED
         // (plans/0053). A parcel is the partition the player's block produced, not a partition the
         // lattice would produce now -- which is adr/0079's shape one table over: a Lot standing on
@@ -4774,114 +4735,20 @@ public sealed partial class World
         Frontage.Rebuild(Lots);
     }
 
-    /// <summary>
-    /// Rebuilds <see cref="BlockIndex"/> from the Blocks' saved lattice positions.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <b>Sized from <c>StreetGrid.Span</c> on every call, because the lattice's extent is not a
-    /// constant.</b> Every other residency in the project indexes <c>CellGrid</c> and allocates once in
-    /// a field initialiser; this one cannot, and <see cref="Space.BlockResidency"/> carries what that
-    /// costs at each block size.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>A Block whose lattice square is off the current lattice keeps its row and gets no index
-    /// entry</b>, which is <c>adr/0079</c>'s shape one table over: the row is state the player made and
-    /// the index is a convenience over it, so a lattice that no longer contains it makes it
-    /// unreachable rather than making it a defect. It cannot happen while <c>block_tiles</c> is
-    /// world-creation, and it is written this way so that it stays merely unreachable if that changes.
-    /// </para>
-    /// </remarks>
-    private void RebuildBlockIndex()
-    {
-        BlockIndex.Resize(Roads.Streets.Span);
-
-        for (int slot = 0; slot < Blocks.Rows.SlotCount; slot++)
-        {
-            if (!Blocks.Rows.IsLive(slot))
-            {
-                continue;
-            }
-
-            int column = Blocks.LatticeColumn[slot];
-            int row = Blocks.LatticeRow[slot];
-
-            if (BlockIndex.Contains(column, row))
-            {
-                BlockIndex.Occupy(column, row, slot);
-            }
-        }
-    }
-
     /// <summary>Paints geographic uses across the block, preserving intensity and form restrictions.</summary>
-    public int ZoneBlock(int column, int row, ushort zone)
+    /// <returns>Whether the square is on the lattice and the paint was accepted.</returns>
+    public bool ZoneBlock(int column, int row, ushort zone)
     {
         LandRectangle area = BlockGroundRectangle(column, row);
-        if (!area.IsValid || PaintUsePermissions(area, zone) != PermissionRefusal.None) { return Rows.NoSlot; }
-        int slot = EnsureBlock(column, row);
-        RefreshBlockPermissions(slot);
-        return slot;
+        return area.IsValid && PaintUsePermissions(area, zone) == PermissionRefusal.None;
     }
 
     /// <summary>Paints geographic intensity across the block, preserving uses and form restrictions.</summary>
-    public int BandBlock(int column, int row, byte band)
+    /// <returns>Whether the square is on the lattice and the paint was accepted.</returns>
+    public bool BandBlock(int column, int row, byte band)
     {
         LandRectangle area = BlockGroundRectangle(column, row);
-        if (!area.IsValid || PaintBandPermissions(area, band) != PermissionRefusal.None) { return Rows.NoSlot; }
-        int slot = EnsureBlock(column, row);
-        RefreshBlockPermissions(slot);
-        return slot;
-    }
-
-    /// <summary>
-    /// Records that a lattice square is subdivided by <paramref name="pattern"/>, creating its row if
-    /// it has none.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// 🔴 <b>THE PATTERN IS SAVED AND NOT DERIVED, AND THAT IS THE SUBTLE PART OF
-    /// <c>plans/0053</c>.</b> ***It is a historical fact about conditions that are gone.*** A block
-    /// was carved back-to-back when land value here was high; it is not high now; <b>the pattern
-    /// cannot be recomputed</b>, and a load that tried would produce a different city from the one
-    /// that was saved. The parcels behind it <em>are</em> derived — a pure function of this byte and
-    /// the lattice — which is the split that makes the ground cost nothing to store.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>Re-carving is a separate act and is not this.</b> Writing a pattern here changes what the
-    /// <em>next</em> carve of this block yields; it moves no Lot that already stands. <c>02 §2.2</c>
-    /// preserves occupied land, so a block re-patterned under standing Buildings keeps them and the
-    /// new shape arrives as the old one empties.
-    /// </para>
-    /// </remarks>
-    /// <returns>The Block's slot, or <see cref="Rows.NoSlot"/> if the square is off the lattice.</returns>
-    public int PatternBlock(int column, int row, Space.BlockPattern pattern)
-    {
-        int slot = EnsureBlock(column, row);
-
-        if (slot != Rows.NoSlot)
-        {
-            Blocks.Pattern[slot] = (byte)((byte)pattern + 1);
-        }
-
-        return slot;
-    }
-
-    /// <summary>
-    /// Which pattern a block was carved with, and whether it has been carved at all.
-    /// </summary>
-    /// <remarks>
-    /// <b>The column is one-based, so <c>0</c> is <em>not yet carved</em> rather than
-    /// <see cref="Space.BlockPattern.Detached"/>.</b> A caller that only wants the shape can ignore
-    /// <paramref name="chosen"/>; <c>LotSubdivider</c> cannot, because selecting at the first carve
-    /// and keeping the choice afterwards is what makes the pattern a historical fact.
-    /// </remarks>
-    public Space.BlockPattern PatternOf(int blockSlot, out bool chosen)
-    {
-        byte stored = blockSlot == Rows.NoSlot ? (byte)0 : Blocks.Pattern[blockSlot];
-
-        chosen = stored != 0;
-
-        return chosen ? (Space.BlockPattern)(stored - 1) : Space.BlockPattern.Detached;
+        return area.IsValid && PaintBandPermissions(area, band) == PermissionRefusal.None;
     }
 
     /// <summary>Returns admission for a uniform geographic intensity band, or zero for mixed bands.</summary>
@@ -4889,45 +4756,6 @@ public sealed partial class World
     {
         LandPermissionSummary summary = LandPermissions.Summary(LotGround(lot));
         return summary.MixedIntensity ? (ushort)0 : Rules.Band(summary.Band).Admits;
-    }
-
-    /// <summary>The Block's slot at a lattice square, allocating a row if there is none.</summary>
-    /// <remarks>
-    /// <b>Shared by <see cref="ZoneBlock"/> and <see cref="BandBlock"/>, which are two player acts on
-    /// one square</b> — so a block zoned and then banded has one row and not two, which is what
-    /// <see cref="Space.BlockResidency.Occupy"/> refuses outright rather than allowing silently.
-    /// </remarks>
-    internal int EnsureBlock(int column, int row)
-    {
-        // The lattice's extent is not known until there are roads, and it becomes known DURING
-        // generation -- RoadGenerator.LayInto and then LotSubdivider, with no RebuildDerived between
-        // them. So the index re-derives itself the moment the lattice it indexes changes shape,
-        // which is a thing derived state is allowed to do and saved state is not.
-        if (BlockIndex.Span != Roads.Streets.Span)
-        {
-            RebuildBlockIndex();
-        }
-
-        if (!BlockIndex.Contains(column, row))
-        {
-            return Rows.NoSlot;
-        }
-
-        int slot = BlockIndex.Slot(column, row);
-
-        if (slot != Space.BlockResidency.NotResident)
-        {
-            return slot;
-        }
-
-        slot = Blocks.Rows.Resolve(Blocks.Rows.Allocate());
-
-        Blocks.LatticeColumn[slot] = column;
-        Blocks.LatticeRow[slot] = row;
-
-        BlockIndex.Occupy(column, row, slot);
-
-        return slot;
     }
 
 

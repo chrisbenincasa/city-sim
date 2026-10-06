@@ -966,6 +966,10 @@
           "description": "Most storeys a Tower's podium stands. Absent means min_tower_podium_storeys, which takes no draw. At most 12.",
           "type": "integer"
         },
+        "min_plot_depth_tiles": {
+          "description": "The shallowest a new plot may become when it overlaps ground another Lot already holds. The plot keeps its frontage and loses depth from the back until it fits. If it still overlaps at this depth, it is dropped. Omitted or 0 means an overlapping plot is dropped. Otherwise it is more than twice setback_tiles and at most half the block. It affects only Lots carved after it changes.",
+          "type": "integer"
+        },
         "min_tower_podium_storeys": {
           "description": "Fewest storeys a Tower's podium stands. Each Tower Lot draws its podium from this range on its parcel corner, and its storeys are solved against it, so a taller podium buys a shorter shaft at the same plot ratio. Absent means 2. At most 12.",
           "type": "integer"

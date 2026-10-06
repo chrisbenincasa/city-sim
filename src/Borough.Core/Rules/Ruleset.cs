@@ -3051,6 +3051,12 @@ public readonly record struct LotRuleset(
     /// </summary>
     public Money DemolitionPricePerTile { get; init; }
 
+    /// <summary>
+    /// The shallowest a new plot may shrink to when it overlaps claimed ground, in Tiles —
+    /// <c>min_plot_depth_tiles</c>. Zero means an overlapping plot is dropped.
+    /// </summary>
+    public int MinPlotDepthTiles { get; init; }
+
     /// <summary>Whether trade blocks take trade forms at all.</summary>
     public bool TradeForms => CarParkCentres || TradeFormsByBand;
 
@@ -3084,8 +3090,7 @@ public readonly record struct LotRuleset(
             return count;
         }
 
-        ulong patch = ((ulong)(uint)ground.Column << 32) | (uint)ground.Row;
-        ulong draw = Determinism.Randomness.Draw(key, patch, Quantities.Ticks.Zero, Determinism.PurposeTag.PadSide);
+        ulong draw = Determinism.Randomness.Draw(key, ground.Patch, Quantities.Ticks.Zero, Determinism.PurposeTag.PadSide);
 
         return Space.PadSite.Split(into[0], ground, StreetHalfWidthTiles, (draw & 1) != 0, into);
     }

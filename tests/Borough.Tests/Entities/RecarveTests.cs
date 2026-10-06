@@ -119,7 +119,7 @@ public sealed class RecarveTests
     }
 
     private static BlockPattern PatternOn(World world, int column, int row) =>
-        world.PatternOf(world.BlockIndex.Slot(column, row), out _);
+        LotSubdivider.PatternOn(world, column, row, out BlockPattern pattern) ? pattern : BlockPattern.Detached;
 
     /// <summary>
     /// 🔴 <b>An upzoned block that is entirely vacant re-plats.</b>
@@ -307,24 +307,18 @@ public sealed class RecarveTests
     /// <summary>
     /// <b>A bandless world never re-plats anything</b>, which is why step 4 changed no behaviour.
     /// </summary>
-    /// <remarks>
-    /// ⚠ <b>Step 4 DID move the State Hash, and not through this.</b> The move is the <c>pattern</c>
-    /// column's one-based encoding — every carved block went from <c>0</c> to <c>1</c> — and the carve
-    /// itself is unchanged, which <c>GoldenSessionCoverageTests</c>' exact Lot counts hold.
-    /// </remarks>
     [Fact]
     public void A_bandless_world_re_plats_nothing()
     {
         World world = Populated("minimal.toml", 1_000);
 
-        for (int slot = 0; slot < world.Blocks.Rows.SlotCount; slot++)
+        int squares = world.Roads.Streets.Blocks;
+
+        for (int row = 0; row < squares; row++)
         {
-            if (world.Blocks.Rows.IsLive(slot))
+            for (int column = 0; column < squares; column++)
             {
-                Assert.Equal(
-                    0,
-                    LotSubdivider.RecarveBlock(
-                        world, world.Blocks.LatticeColumn[slot], world.Blocks.LatticeRow[slot]));
+                Assert.Equal(0, LotSubdivider.RecarveBlock(world, column, row));
             }
         }
     }

@@ -38,6 +38,9 @@ namespace Borough.Core.Space;
 public readonly record struct BlockGround(
     int Column, int Row, int East, int North, int Wide, int Deep)
 {
+    /// <summary>The identity the carve's random draws key on: the block's anchor Segment id, shifted left one, plus its side.</summary>
+    public ulong Patch { get; init; }
+
     /// <summary>The block at <c>(column, row)</c> on a lattice.</summary>
     public static BlockGround At(BlockLattice lattice, int column, int row)
     {

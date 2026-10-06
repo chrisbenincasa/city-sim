@@ -134,6 +134,8 @@ public sealed class WageTests(ITestOutputHelper output)
 
         for (int tick = 0; tick < 90 * Ticks.PerDay; tick++)
         {
+            // Measured before the step: unpaid workers can quit later in the same Tick.
+            long payrollCeiling = PayrollCeiling(world);
             simulation.Step(default);
 
             if (simulation.LastPayroll.Shortfall <= 0)
@@ -143,24 +145,31 @@ public sealed class WageTests(ITestOutputHelper output)
 
             lastSeen = simulation.LastPayroll.Shortfall;
             worst = long.Max(worst, lastSeen);
-
-            long payrollCeiling = 0;
-            for (int worker = 0; worker < world.Citizens.Rows.SlotCount; worker++)
-            {
-                if (!world.Citizens.Rows.IsLive(worker)
-                    || !world.Businesses.Rows.TryResolve(world.Citizens.Workplace[worker], out int employer))
-                    continue;
-                var trade = world.Rules.BusinessKind(world.Businesses.Kind[employer]);
-                long cap = (long)trade.WagePerDay * trade.PayPeriodDays;
-                payrollCeiling += cap;
-                Assert.InRange(world.Citizens.EarnedWage[worker], 0, cap);
-            }
             Assert.InRange(lastSeen, 0, payrollCeiling);
+            PayrollCeiling(world);
         }
 
         _output.WriteLine($"worst shortfall on any one payday: {worst}; last seen: {lastSeen}.");
 
         Assert.True(worst > 0, "The run must exercise unpaid wages.");
+    }
+
+    // The most every current worker can be owed on a payday, checking each worker's earned wage against it.
+    private static long PayrollCeiling(World world)
+    {
+        long ceiling = 0;
+        for (int worker = 0; worker < world.Citizens.Rows.SlotCount; worker++)
+        {
+            if (!world.Citizens.Rows.IsLive(worker)
+                || !world.Businesses.Rows.TryResolve(world.Citizens.Workplace[worker], out int employer))
+                continue;
+            var trade = world.Rules.BusinessKind(world.Businesses.Kind[employer]);
+            long cap = (long)trade.WagePerDay * trade.PayPeriodDays;
+            ceiling += cap;
+            Assert.InRange(world.Citizens.EarnedWage[worker], 0, cap);
+        }
+
+        return ceiling;
     }
 
     /// <summary>

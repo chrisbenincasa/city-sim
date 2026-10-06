@@ -97,15 +97,11 @@ public sealed class LocalLayoutReaderTests
     }
 
     [Fact]
-    public void Refused_block_paint_allocates_no_block_and_changes_no_saved_state()
+    public void Refused_block_paint_changes_no_saved_state()
     {
         var (world, _) = LocalLayoutTests.Fixture();
-        int blocks = world.Blocks.Rows.SlotCount;
-        int capacity = world.Blocks.Rows.Capacity;
         ulong before = world.HashState();
-        Assert.Equal(Rows.NoSlot, world.ZoneBlock(-1, 0, LotTable.Housing));
-        Assert.Equal(blocks, world.Blocks.Rows.SlotCount);
-        Assert.Equal(capacity, world.Blocks.Rows.Capacity);
+        Assert.False(world.ZoneBlock(-1, 0, LotTable.Housing));
         Assert.Equal(before, world.HashState());
     }
 

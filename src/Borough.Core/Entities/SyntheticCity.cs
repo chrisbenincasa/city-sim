@@ -1181,12 +1181,8 @@ public static class SyntheticCity
                     // Counting a commercial block toward a housing target would silently shrink
                     // every generated city by the trade's share -- a population change wearing a
                     // zoning change's clothes.
-                    if (world.Rules.Lots.CarParkCentres)
-                    {
-                        world.PatternBlock(column, row, BlockPattern.CarParkCentre);
-                    }
-
-                    LotSubdivider.SubdivideBlock(world, column, row, Trade);
+                    LotSubdivider.SubdivideBlock(world, column, row, Trade,
+                        world.Rules.Lots.CarParkCentres ? BlockPattern.CarParkCentre : null);
                     continue;
                 }
 

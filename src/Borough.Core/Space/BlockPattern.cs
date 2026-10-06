@@ -585,8 +585,7 @@ public static class BlockPatterns
         int blockTiles,
         int lotsPerSegment,
         Determinism.WorldKey key,
-        int column,
-        int row,
+        ulong patch,
         int spread)
     {
         if (band == 0 || bandCount <= 0)
@@ -601,7 +600,7 @@ public static class BlockPatterns
             ? Count - 1
             : IntegerMath.FloorDiv((band - 1) * (Count - 1), bandCount - 1);
 
-        rung += Scatter(key, column, row, spread);
+        rung += Scatter(key, patch, spread);
 
         Span<BlockPattern> ladder = stackalloc BlockPattern[Count];
 
@@ -646,17 +645,16 @@ public static class BlockPatterns
     /// <c>[lots] storeys_per_rung</c> established (<c>plans/0056</c>).
     /// </para>
     /// </remarks>
-    private static int Scatter(Determinism.WorldKey key, int column, int row, int spread)
+    private static int Scatter(Determinism.WorldKey key, ulong patch, int spread)
     {
         if (spread <= 0)
         {
             return 0;
         }
 
-        // The ground's own coordinates as the entity id, which is PurposeTag.BlockPattern's whole
-        // remark: a block cleared and zoned again is re-carved the same way, and a recycled row
-        // cannot re-plat land nobody touched.
-        ulong patch = ((ulong)(uint)column << 32) | (uint)row;
+        // The block's anchor as the entity id, which is PurposeTag.BlockPattern's whole remark: a
+        // block cleared and zoned again is re-carved the same way, and a recycled row cannot re-plat
+        // land nobody touched.
         ulong draw = Determinism.Randomness.Draw(
             key, patch, Quantities.Ticks.Zero, Determinism.PurposeTag.BlockPattern);
 
@@ -950,11 +948,11 @@ public static class BlockPatterns
     /// and High a shop-house parade or a high-street block. On rung 3 a supermarket parks on a deck
     /// and a precinct rises to 2 storeys.
     /// </remarks>
-    public static BlockPattern TradeForm(byte band, int bandCount, Determinism.WorldKey key, int column, int row) =>
-        TradeForm(band, bandCount, TradeFormWeights.Even, key, column, row);
+    public static BlockPattern TradeForm(byte band, int bandCount, Determinism.WorldKey key, ulong patch) =>
+        TradeForm(band, bandCount, TradeFormWeights.Even, key, patch);
 
     public static BlockPattern TradeForm(
-        byte band, int bandCount, TradeFormWeights weights, Determinism.WorldKey key, int column, int row)
+        byte band, int bandCount, TradeFormWeights weights, Determinism.WorldKey key, ulong patch)
     {
         int rung = band == 0 || bandCount <= 0 ? 0
             : bandCount <= 1 ? Count - 1
@@ -967,7 +965,6 @@ public static class BlockPatterns
             _ => HighTradeForms,
         };
 
-        ulong patch = ((ulong)(uint)column << 32) | (uint)row;
         ulong draw = Determinism.Randomness.Draw(key, patch, Quantities.Ticks.Zero, Determinism.PurposeTag.TradeForm);
         int total = 0;
 
@@ -1088,7 +1085,7 @@ public static class BlockPatterns
         // Tait's structure is regular within a block and varying between them, so a module per face
         // would be the wrong half of the survey; the narrower side is what keeps the short face able
         // to divide by it at all.
-        int unit = UnitTiles(key, ground.Column, ground.Row, ground.Least);
+        int unit = UnitTiles(key, ground.Patch, ground.Least);
 
         for (BlockFace face = BlockFace.South; face <= BlockFace.East; face++)
         {
@@ -1137,7 +1134,7 @@ public static class BlockPatterns
             // rather than into equal shares of lots_per_segment -- so a face shows two widths and
             // the module varies from block to block. Computed once per face because a parcel's left
             // edge is the sum of the ones before it.
-            Widths(key, ground.Column, ground.Row, face, unit, reach, groups, widths);
+            Widths(key, ground.Patch, face, unit, reach, groups, widths);
 
             for (int index = 0; index < lotsPerSegment; index++)
             {
@@ -1225,16 +1222,15 @@ public static class BlockPatterns
     /// tiling, because <see cref="Widths"/> gives the last parcel the remainder.
     /// </para>
     /// </remarks>
-    public static int UnitTiles(Determinism.WorldKey key, int column, int row, int blockTiles)
+    public static int UnitTiles(Determinism.WorldKey key, ulong patch, int blockTiles)
     {
         if (blockTiles <= 0)
         {
             return 0;
         }
 
-        // The ground's own coordinates as the entity id -- PurposeTag.PlotUnit's whole remark, and
+        // The block's anchor as the entity id -- PurposeTag.PlotUnit's whole remark, and
         // BlockPattern's one level up: a block cleared and zoned again is re-platted the same way.
-        ulong patch = ((ulong)(uint)column << 32) | (uint)row;
         ulong draw = Determinism.Randomness.Draw(
             key, patch, Quantities.Ticks.Zero, Determinism.PurposeTag.PlotUnit);
 
@@ -1278,13 +1274,12 @@ public static class BlockPatterns
     /// <param name="groups">How many parcels divide it.</param>
     /// <param name="into">Filled with <paramref name="groups"/> widths, summing to <paramref name="reach"/>.</param>
     public static void Widths(
-        Determinism.WorldKey key, int column, int row, BlockFace face,
+        Determinism.WorldKey key, ulong patch, BlockFace face,
         int unit, int reach, int groups, Span<int> into)
     {
         // The face in the id, not only the block: PurposeTag.PlotWidths' own remark. Four faces
         // keyed alike would take their spare modules at one position and a block would read as four
         // copies of one terrace.
-        ulong patch = ((ulong)(uint)column << 32) | (uint)row;
         ulong draw = Determinism.Randomness.Draw(
             key, patch ^ ((ulong)face << 60), Quantities.Ticks.Zero,
             Determinism.PurposeTag.PlotWidths);
