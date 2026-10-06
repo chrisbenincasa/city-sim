@@ -670,6 +670,29 @@ public abstract class Rows
         }
     }
 
+    /// <summary>
+    /// Refuses a live row whose saved handle cannot be one this build wrote.
+    /// </summary>
+    /// <remarks>
+    /// It runs after every table is restored, because a handle's target may be restored after the
+    /// table holding it, and before <c>World.RebuildDerived</c>, which resolves handles and would
+    /// otherwise throw an error that depends on what the corrupt bytes address.
+    /// </remarks>
+    internal void VerifyRestoredHandles()
+    {
+        foreach (Column column in _savedColumns)
+        {
+            for (int slot = 0; slot < _slotCount; slot++)
+            {
+                if (IsLive(slot) && column.RestoredHandleDefect(slot) is { } defect)
+                {
+                    throw new InvalidOperationException(
+                        $"table '{Name}': live slot {slot}'s saved '{column.Name}' {defect}.");
+                }
+            }
+        }
+    }
+
     /// <summary>Required high-water slots after allocations and known retirements, without mutation.</summary>
     internal bool AllocationSlots(int additional, int retiring, out int slots)
     {

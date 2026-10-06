@@ -26,7 +26,7 @@ Replay and save/reload hold throughout. Completion does not require every planne
 | City Money | Opening treasury 4,194,304. School `placement_cost` 262,144. `school_funding` grant per job. Demolition paid to the displaced | Income. `ruleset.toml` says "the city has no income". `[income_tax]` and `[business_tax]` exist only in `taxed.toml`/`taxing.toml`. Road upkeep code exists (`SpendOnUpkeep`) but no shipped Ruleset sets it |
 | Shortage | `StarvedSince` clock, `SupplyEvidence`, the inspector's "Waiting for X" line, the city evidence panel and the trouble layer | Staffing, school places and jobs have counters but no elapsed episode. No notification surface |
 | Recovery | Zone, Street, Service, Gate, Govern, Fund, Tax and Demolish all reach the shell. `scripts/ui/check-diagnosis.py` shows a player-led recovery on a `taxed.toml` fixture | No shortage-then-recovery run on base |
-| Verification | One 12-Day replay of `founding.borough` | Save/reload and double-replay on base. All-Ruleset sweeps enumerate only top-level `*.toml`, so they skip `base/`. No run longer than 12 Days |
+| Verification | `BaseFoundingPackageTests` replays `founding.borough` twice to Day 12 and matches daily State Hashes. A Day 6 save reloads and matches the uninterrupted run to Day 12. `TreasuryFromAFileTests` sweeps base with the top-level files | No run longer than 12 Days |
 
 PR #105 ships `milled.toml`. In it, mills turn labour into flour, and grocers bake flour into sundries
 for Households. Its trade fades after about two weeks. Businesses open with no Money, and Money then
@@ -68,7 +68,7 @@ D1 to D3 fix the Money circuit that slices 2–4 build. D4 fixes the shortage th
 
 Each slice is one PR. [Execution](#execution) gives the order and which slices run in parallel.
 
-1. **Base in the verification lanes.** Add `rulesets/base/` to the all-Ruleset sweeps. Replay
+1. **Base in the verification lanes.** Built. Add `rulesets/base/` to the all-Ruleset sweeps. Replay
    `founding.borough` twice and compare State Hashes. Save at Day 6, reload and continue to
    Day 12, and match the uninterrupted run. Needs nothing else.
 2. **Production chain in base (D1).** After #105 merges. Replace free `restock` with the labour chain.
