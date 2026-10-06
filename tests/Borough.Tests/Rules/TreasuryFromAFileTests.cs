@@ -71,6 +71,8 @@ public sealed class TreasuryFromAFileTests
                 files.Add(System.IO.Path.GetFileName(path));
             }
 
+            files.Add(BasePackage);
+
             Assert.NotEmpty(files);
 
             return files;
@@ -115,26 +117,24 @@ public sealed class TreasuryFromAFileTests
     }
 
     /// <summary>
-    /// Exactly one shipped Ruleset founds its treasury with money, and every other opens empty.
+    /// Only the funded world and the base package found their treasury with money, and every other
+    /// Ruleset opens empty.
     /// </summary>
     /// <remarks>
     /// <b>The survey, asserted rather than remembered.</b> <c>adr/0116</c> chose an empty opening
     /// treasury so <c>02 §4.2</c>'s exhaustion branch is reachable on the first sweep, and a defaulted
     /// balance would delete that reachability from every file at once. <c>funded.toml</c> overrides it
-    /// because a player with no money has no fiscal decision to make, and it is the only file that
-    /// should — so this fails when a second one acquires the key, which is the moment to ask whether
-    /// the default still holds.
+    /// because a player with no money has no fiscal decision to make. The base package overrides it
+    /// because a founded city pays for its school from the opening balance. This fails when another
+    /// Ruleset acquires the key, which is the moment to ask whether the default still holds.
     /// </remarks>
     [Fact]
-    public void Only_the_funded_world_opens_with_money()
+    public void Only_the_funded_world_and_the_base_package_open_with_money()
     {
         var founded = new List<string>();
 
-        foreach (string path in Directory
-            .EnumerateFiles(System.IO.Path.Combine(AppContext.BaseDirectory, "Rulesets"), "*.toml")
-            .OrderBy(path => path, StringComparer.Ordinal))
+        foreach (string file in Shipped)
         {
-            string file = System.IO.Path.GetFileName(path);
             (Ruleset rules, _) = Load(file);
 
             if (rules.Treasury.OpeningBalance.Raw != 0)
@@ -143,7 +143,7 @@ public sealed class TreasuryFromAFileTests
             }
         }
 
-        Assert.Equal(["funded.toml"], founded);
+        Assert.Equal(["funded.toml", BasePackage], founded);
     }
 
     /// <summary>
@@ -335,15 +335,17 @@ public sealed class TreasuryFromAFileTests
     /// <summary>A shipped Ruleset, loaded from beside the test assembly as the runner loads it.</summary>
     private static (Ruleset Rules, RulesetNames Names) Load(string file)
     {
-        RulesetLoadResult result = RulesetLoader.Load(Path(file));
+        RulesetSourceResult result = RulesetSource.Load(Path(file));
 
         Assert.True(
             result.Ok,
             $"rulesets/{file} was refused:\n  "
-            + result.Describe());
+            + result.ToLoadResult().Describe());
 
         return (result.Ruleset!, result.Names);
     }
+
+    private const string BasePackage = "base/ruleset.toml";
 
     private static string Path(string file) =>
         System.IO.Path.Combine(AppContext.BaseDirectory, "Rulesets", file);

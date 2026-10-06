@@ -23,6 +23,7 @@ public sealed class BaseFoundingPackageTests
     private const int Citizens = 2_000;
     private const int Blocks = 4;
     private const int Days = 12;
+    private const int SaveDay = 6;
 
     [Fact]
     public void The_committed_founding_log_is_the_one_the_package_produces()
@@ -61,6 +62,59 @@ public sealed class BaseFoundingPackageTests
             "the treasury paid for the school and nothing after, so no grant reached it.");
 
         world.Invariants.RunEndOfRun(world);
+    }
+
+    [Fact]
+    public void Replaying_the_founding_log_twice_yields_the_same_city()
+    {
+        (Ruleset rules, _) = Package();
+        InputLog log = InputLogCodec.FromText(Committed());
+
+        Assert.Equal(DailyHashes(rules, log), DailyHashes(rules, log));
+    }
+
+    [Fact]
+    public void A_founded_city_saved_mid_run_continues_as_the_uninterrupted_one()
+    {
+        RulesetCapture capture = RulesetCapture.Read(PackagePath()).Capture!;
+        Ruleset rules = RulesetSource.Resolve(capture).Ruleset!;
+        InputLog log = InputLogCodec.FromText(Committed());
+        List<ulong> uninterrupted = DailyHashes(rules, log);
+
+        Simulation first = Replay.Start(log, rules);
+        List<ulong> resumed = [];
+        Replay.Trace(first, log, new Ticks((ulong)SaveDay * Ticks.PerDay), hashEvery: Ticks.PerDay, resumed);
+
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".borough-city");
+
+        try
+        {
+            CitySave.Write(path, first.World, capture, Seed);
+            SavedCity loaded = CitySave.Read(path);
+            var second = new Simulation(loaded.World, loaded.Header.Key);
+
+            Assert.Equal(first.World.HashState(), second.World.HashState());
+
+            Replay.Trace(
+                second, log, new Ticks((ulong)(Days - SaveDay) * Ticks.PerDay), hashEvery: Ticks.PerDay, resumed);
+
+            Assert.Equal(uninterrupted, resumed);
+            second.World.Invariants.RunEndOfRun(second.World);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    private static List<ulong> DailyHashes(Ruleset rules, InputLog log)
+    {
+        Simulation simulation = Replay.Start(log, rules);
+        List<ulong> hashes = [];
+
+        Replay.Trace(simulation, log, new Ticks((ulong)Days * Ticks.PerDay), hashEvery: Ticks.PerDay, hashes);
+
+        return hashes;
     }
 
     /// <summary>
@@ -233,8 +287,7 @@ public sealed class BaseFoundingPackageTests
 
     private static (Ruleset Rules, ulong Hash) Package()
     {
-        RulesetSourceResult result = RulesetSource.Load(
-            Path.Combine(AppContext.BaseDirectory, "Rulesets", "base", "ruleset.toml"));
+        RulesetSourceResult result = RulesetSource.Load(PackagePath());
 
         Assert.True(
             result.Ok,
@@ -242,6 +295,9 @@ public sealed class BaseFoundingPackageTests
 
         return (result.Ruleset!, result.Capture!.ContentHash);
     }
+
+    private static string PackagePath() =>
+        Path.Combine(AppContext.BaseDirectory, "Rulesets", "base", "ruleset.toml");
 
     private static string Committed() =>
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "base", "founding.borough"));
