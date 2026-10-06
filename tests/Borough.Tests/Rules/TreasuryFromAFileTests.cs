@@ -115,18 +115,19 @@ public sealed class TreasuryFromAFileTests
     }
 
     /// <summary>
-    /// Exactly one shipped Ruleset founds its treasury with money, and every other opens empty.
+    /// Exactly two shipped Rulesets found their treasury with money, and every other opens empty.
     /// </summary>
     /// <remarks>
     /// <b>The survey, asserted rather than remembered.</b> <c>adr/0116</c> chose an empty opening
     /// treasury so <c>02 §4.2</c>'s exhaustion branch is reachable on the first sweep, and a defaulted
     /// balance would delete that reachability from every file at once. <c>funded.toml</c> overrides it
-    /// because a player with no money has no fiscal decision to make, and it is the only file that
-    /// should — so this fails when a second one acquires the key, which is the moment to ask whether
-    /// the default still holds.
+    /// because a player with no money has no fiscal decision to make. <c>granted.toml</c> overrides it
+    /// because an opening grant is paid out of the treasury and an empty one refuses every grant.
+    /// This fails when a third file acquires the key, which is the moment to ask whether the default
+    /// still holds.
     /// </remarks>
     [Fact]
-    public void Only_the_funded_world_opens_with_money()
+    public void Only_the_funded_and_granted_worlds_open_with_money()
     {
         var founded = new List<string>();
 
@@ -143,7 +144,7 @@ public sealed class TreasuryFromAFileTests
             }
         }
 
-        Assert.Equal(["funded.toml"], founded);
+        Assert.Equal(["funded.toml", "granted.toml"], founded);
     }
 
     /// <summary>

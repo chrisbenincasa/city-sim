@@ -1882,18 +1882,14 @@ public sealed partial class World
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>It opens with a zero balance and there is no door that funds one</b> (<c>adr/0113</c>).
-    /// Milestone 10 needs exactly one property of a Business — somewhere for conserved money to sit
-    /// that is not a Building — and the counterparty that would pay it is milestone <b>13</b>'s price
-    /// surface. <see cref="Endow"/> is deliberately not widened to reach here: money entering the
-    /// world is a founding act about Households, and a Business funded from nowhere is the failure
-    /// <see cref="Invariant.MoneyIsConserved"/> exists to report.
+    /// It opens with a zero balance unless <paramref name="granted"/> is set. Money never enters the
+    /// world here: a granted Business is paid out of the treasury, and a founded one is capitalized
+    /// by <see cref="Found"/> after this returns.
     /// </para>
     /// <para>
-    /// ⚠ <b>Nothing in the simulation calls this.</b> A Business is placed by no pass, because what
-    /// would place one is commercial and industrial placement, which is milestone <b>13</b>. The door
-    /// exists so the table is reachable and its balance is testable, which is <c>adr/0070</c>'s
-    /// <em>unbuilt</em> rather than an omission.
+    /// ⚠ <b>A granted Business the treasury cannot pay for in full is not created</b>, and the
+    /// default handle comes back. Only a Zone Rule asks for the grant, so no command is refused and
+    /// no <c>Refusal</c> is reported. The callers leave the premises standing without the trade.
     /// </para>
     /// </remarks>
     /// <param name="premises">The Building it occupies.</param>
@@ -1910,8 +1906,25 @@ public sealed partial class World
     /// consequence, making it required is a change with a reason behind it.***
     /// </para>
     /// </param>
-    public Handle<Business> CreateBusiness(Handle<Building> premises, byte kind = 0)
+    /// <param name="granted">
+    /// Whether the treasury pays the trade's <c>[[business]] opening_grant</c> into the new balance.
+    /// </param>
+    /// <returns>The Business, or the default handle when the treasury cannot pay the grant.</returns>
+    public Handle<Business> CreateBusiness(Handle<Building> premises, byte kind = 0, bool granted = false)
     {
+        Money grant = granted && kind != 0 ? Rules.BusinessKind(kind).OpeningGrant : Money.Zero;
+        int treasury = Rows.NoSlot;
+
+        if (grant.Raw > 0)
+        {
+            treasury = TryMoneyResource(out ResourceId currency) ? FindTreasuryBin(currency) : Rows.NoSlot;
+
+            if (treasury == Rows.NoSlot || Bins.LevelAt(treasury) < grant.Raw)
+            {
+                return default;
+            }
+        }
+
         // A DEFAULT handle is accepted and means unpremised, which milestone 27 task 8 made
         // reachable (adr/0145): a founded Business is created with no premises and looks for them
         // from the pool. It is not a new state -- BusinessTable.Building is Reference.Severable and
@@ -1932,6 +1945,13 @@ public sealed partial class World
 
             AppendOwnerBin(Businesses.BinHead, Businesses.BinTail, slot, balance);
             Businesses.Balance[slot] = balance;
+
+            // Out before in, as Found orders its transfer.
+            if (grant.Raw > 0)
+            {
+                Withdraw(Bins.Rows.At(treasury), grant.Raw, Tick);
+                Deposit(balance, grant.Raw, Tick);
+            }
         }
 
         // Only when there are premises to list it against. An unpremised Business is in the pool's
@@ -4951,7 +4971,12 @@ public sealed partial class World
     /// one piece of code.
     /// </para>
     /// </remarks>
-    public Handle<Building> CreateBuilding(Handle<Lot> lot, byte kind, Ticks now, WorldKey key)
+    /// <param name="zoned">
+    /// Whether a Zone Rule raised it. The trade its kind comes with then opens with the trade's
+    /// <c>opening_grant</c> from the treasury, or does not open.
+    /// </param>
+    public Handle<Building> CreateBuilding(
+        Handle<Lot> lot, byte kind, Ticks now, WorldKey key, bool zoned = false)
     {
         int lotSlot = Lots.Rows.Resolve(lot);
 
@@ -5046,7 +5071,7 @@ public sealed partial class World
         Buildings.MarkRaised(Buildings.Rows.Resolve(building), now);
 
         RaiseUnits(Buildings.Rows.Resolve(building));
-        Fit(building, kind, now, key);
+        Fit(building, kind, now, key, zoned);
         Changes?.Building(Buildings.Rows.Resolve(building));
 
         return building;
@@ -5086,8 +5111,9 @@ public sealed partial class World
     /// one Tick out, but the ordering costs nothing and the alternative relies on that staying true.
     /// </para>
     /// </remarks>
+    /// <param name="zoned">Whether a Zone Rule raised it, as <see cref="CreateBuilding"/> takes it.</param>
     /// <returns>How many Rule Instances were armed.</returns>
-    private int Fit(Handle<Building> building, byte kind, Ticks now, WorldKey key)
+    private int Fit(Handle<Building> building, byte kind, Ticks now, WorldKey key, bool zoned = false)
     {
         if (!Rules.Declares(kind))
         {
@@ -5169,15 +5195,20 @@ public sealed partial class World
             // caller that has premises to claim. A founded Business is created unpremised and a
             // fixture's is created with no origin at all, and both of those are ordinary Businesses
             // that no demolition may raze.
-            Handle<Business> came = CreateBusiness(building, trade);
+            Handle<Business> came = CreateBusiness(building, trade, zoned);
 
-            Businesses.Origin[Businesses.Rows.Resolve(came)] = building;
+            // The default handle is a treasury that could not pay the grant. The Building stands
+            // without its trade, as it does where there is no room beside the dwelling.
+            if (!came.IsNone)
+            {
+                Businesses.Origin[Businesses.Rows.Resolve(came)] = building;
 
-            // And it takes up its tenancy in the same breath, because it was created already
-            // premised (adr/0166). Every OTHER Business reaches FitBusiness through Premise; this
-            // one never goes through that door, so a shop instantiated with its Building would
-            // otherwise stand there holding nothing and running nothing.
-            armed += FitBusiness(came);
+                // And it takes up its tenancy in the same breath, because it was created already
+                // premised (adr/0166). Every OTHER Business reaches FitBusiness through Premise; this
+                // one never goes through that door, so a shop instantiated with its Building would
+                // otherwise stand there holding nothing and running nothing.
+                armed += FitBusiness(came);
+            }
         }
 
         foreach (RuleId rule in Rules.RulesOf(kind))
@@ -5214,7 +5245,7 @@ public sealed partial class World
     /// handle that stops meaning anything the moment the Business leaves is the opposite of a flag.
     /// </para>
     /// </remarks>
-    private bool HoldsOwnTrade(int buildingSlot) => OwnTrade(buildingSlot) != Rows.NoSlot;
+    internal bool HoldsOwnTrade(int buildingSlot) => OwnTrade(buildingSlot) != Rows.NoSlot;
 
     /// <summary>
     /// The Business this Building instantiated itself, or <see cref="Rows.NoSlot"/> where it holds

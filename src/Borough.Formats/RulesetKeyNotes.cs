@@ -309,6 +309,12 @@ public static class RulesetKeyNotes
             + "route to a degree, rationed by what a Household can pay rather than by places. "
             + "Refused unless the file declares a [[building]] serving education at level 3. "
             + "Absent means the trade is not a private university.",
+        ["[[business]] opening_grant"] =
+            "What the treasury pays into the balance of a Business of this trade that a Zone Rule "
+            + "opens. The Money moves from the treasury, so none is created. A Zone Rule opens no "
+            + "Business the treasury cannot pay in full, and its Building stands without the trade. "
+            + "A Household that founds a Business capitalizes it from [founding] instead, and no "
+            + "grant is paid. Absent pays nothing.",
 
         // ---- [[rule]] -------------------------------------------------------------------------
         ["[[rule]] name"] =

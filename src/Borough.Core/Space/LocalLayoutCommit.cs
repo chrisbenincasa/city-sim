@@ -10,8 +10,9 @@ namespace Borough.Core.Space;
 /// <summary>The simulation's one-Building transition; all ordinary refusals precede retirement.</summary>
 internal static class LocalLayoutCommit
 {
+    /// <param name="zoned">Whether a Zone Rule raises it, as <c>World.CreateBuilding</c> takes it.</param>
     internal static LocalLayoutCheck Apply(World world, LocalLayoutProposal proposal, WorldKey key,
-        out Handle<Building> building)
+        out Handle<Building> building, bool zoned = false)
     {
         building = default;
         LocalLayoutCheck check = LocalLayout.Revalidate(world, proposal);
@@ -45,7 +46,7 @@ internal static class LocalLayoutCommit
         world.Lots.Pattern[row] = (byte)((int)proposal.Building.Form + 1);
         world.Frontage.Rebuild(world.Lots);
         world.RefreshPermissionSummaries(site);
-        building = world.CreateBuilding(lot, proposal.Building.Kind, world.Tick, key);
+        building = world.CreateBuilding(lot, proposal.Building.Kind, world.Tick, key, zoned);
         return default;
     }
 

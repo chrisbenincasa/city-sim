@@ -228,6 +228,8 @@ internal static class CensusFamilies
         (MoneyFlowCounter.Upkeep, Aggregate.Peak, "upkeep peak"),
         (MoneyFlowCounter.Compensation, Aggregate.Sum, "compensation"),
         (MoneyFlowCounter.Compensation, Aggregate.Peak, "compensation peak"),
+        (MoneyFlowCounter.Grant, Aggregate.Sum, "opening grant"),
+        (MoneyFlowCounter.Grant, Aggregate.Peak, "opening grant peak"),
     ];
 
     /// <summary>

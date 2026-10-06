@@ -472,10 +472,18 @@ public sealed partial class World
     }
 
     /// <summary>
-    /// Opens one Business of the Building's trade in its first vacant Unit, at zero balance.
+    /// Opens one Business of the Building's trade in its first vacant Unit.
     /// </summary>
-    /// <returns>Whether a Business opened. False when the kind has no trade or no Unit is vacant.</returns>
-    public bool OpenInVacantUnit(int buildingSlot)
+    /// <param name="buildingSlot">The Building's slot.</param>
+    /// <param name="granted">
+    /// Whether the treasury pays the trade's <c>opening_grant</c>, as <see cref="CreateBusiness"/>
+    /// takes it. Otherwise the Business opens at zero balance.
+    /// </param>
+    /// <returns>
+    /// Whether a Business opened. False when the kind has no trade, no Unit is vacant or the treasury
+    /// cannot pay the grant.
+    /// </returns>
+    public bool OpenInVacantUnit(int buildingSlot, bool granted = false)
     {
         byte trade = Rules.Kind(Buildings.Kind[buildingSlot]).Business;
 
@@ -485,7 +493,12 @@ public sealed partial class World
         }
 
         Handle<Building> building = Buildings.Rows.At(buildingSlot);
-        Handle<Business> came = CreateBusiness(building, trade);
+        Handle<Business> came = CreateBusiness(building, trade, granted);
+
+        if (came.IsNone)
+        {
+            return false;
+        }
 
         Businesses.Origin[Businesses.Rows.Resolve(came)] = building;
         FitBusiness(came);

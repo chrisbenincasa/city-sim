@@ -1137,6 +1137,16 @@ public readonly record struct BusinessKindDefinition
 
     /// <summary>Whether this trade charges for a degree.</summary>
     public bool Charges => TuitionPerDay > 0;
+
+    /// <summary>
+    /// What the treasury pays into the balance of a Business of this trade that a Zone Rule opens.
+    /// Zero pays nothing.
+    /// </summary>
+    /// <remarks>
+    /// A transfer, so the money supply does not move. A Zone Rule opens no Business the treasury
+    /// cannot pay for in full. A founded Business is capitalized by its founder and receives none.
+    /// </remarks>
+    public Money OpeningGrant { get; init; }
 }
 
 

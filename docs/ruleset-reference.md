@@ -27,14 +27,14 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-53 sections, 372 keys.
+53 sections, 373 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
 - [`[[building]]`](#building) — 22 keys
 - [`[[building]] bins`](#building-bins) — 4 keys
 - [`[[building]] bins reserve`](#building-bins-reserve) — 3 keys
-- [`[[business]]`](#business) — 14 keys
+- [`[[business]]`](#business) — 15 keys
 - [`[[hinterland.population]]`](#hinterlandpopulation) — 5 keys
 - [`[[hinterland]]`](#hinterland) — 8 keys
 - [`[[hinterland]] prices`](#hinterland-prices) — 2 keys
@@ -294,6 +294,10 @@ What this trade is called. [[building]] business names it.
 **`open_days`** · *whole number*
 
 Shop operating days as a Monday-first weekly bit mask, independent of staffing.
+
+**`opening_grant`** · *whole number*
+
+What the treasury pays into the balance of a Business of this trade that a Zone Rule opens. The Money moves from the treasury, so none is created. A Zone Rule opens no Business the treasury cannot pay in full, and its Building stands without the trade. A Household that founds a Business capitalizes it from [founding] instead, and no grant is paid. Absent pays nothing.
 
 **`opens_hour`** · *whole number*
 
