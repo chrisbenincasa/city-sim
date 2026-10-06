@@ -143,7 +143,7 @@ curves, and an offset arc is an arc.
 | Plots on a curve | Front edge is the chord between the plot's two offsets. Convex side fans out and leaves wedges; concave side converges and the conflict rule applies |
 | Gestures | Shell only. Simple curve is the arc through start, bend point and end. Continuous is the arc tangent to the previous Segment through the new end |
 | Parallel mode | Concentric arc. Endpoints round to Tiles, so the copy is concentric to within a Tile |
-| Command | `Connect` carries both endpoint Tiles and the sagitta. Bumps `InputLogCodec.Version` |
+| Command | A new `Street` verb carries both endpoint Tiles and the sagitta. `Connect` keeps lattice lays and bulldozes, so no log line changes meaning and the format stays at version 1 |
 | Drawing | The shell tessellates arcs from the same parameters |
 
 ### Decided: Streets demolish what they cross
@@ -219,9 +219,9 @@ re-record goldens by the [procedure](../tests/Borough.Tests/Golden/README.md).
 | 3 | Saved frontage | Lot saves Segment handle and offset. `Frontage.Locate` runs only at creation. Bulldoze leaves Lots unfronted. Split migration with a unit test | — |
 | 4 | Oriented Lot ground | Parcel and footprint as corner, direction, width, depth. Exact overlap test. One uniform spatial hash replaces `StreetGrid` off-lattice buckets, `TrafficPresence._near` and the `LineSourceQueries` window. Shell massing faces the Segment | 3 |
 | 5 | Segment-side carver | Planar face walk, strip carving per side, pattern depth per face, claim order and shrink-or-drop. Blocks become derived; `BlockTable` lattice columns go. Generation lays lattice Streets and carves with the new carver | 4 |
-| 6 | Freeform `Connect` | Endpoints plus sagitta, exact joins, crossing splits, minimum length and angle, demolition at the `Demolish` price. Seals the laid Street along its centerline. Bumps `InputLogCodec.Version` and re-records logs | 2, 5 |
+| 6 | Freeform `Street` verb | Endpoints plus sagitta, exact joins, crossing splits, minimum length and angle, demolition at the `Demolish` price. Seals the laid Street along its centerline | 2, 5 |
 | 7 | Shell drawing | Straight, simple-curve and continuous modes. Snapping, preview with refusals and demolition cost, arc paving meshes. Driven demonstration of the acceptance checks | 6, decisions 1 and 3 |
-| 8 | Batch modes | Grid and Parallel modes over a batch `Connect` | 7 |
+| 8 | Batch modes | Grid and Parallel modes over a batch `Street` | 7 |
 
 Slices 1 and 3 can run in parallel.
 
@@ -237,10 +237,12 @@ pattern of the face they front, or of their own Segment side when the roadside i
 forms carve as Perimeter strips there, and residential plot sizing applies where it does on the
 lattice. A Street edit gathers both kinds of plot and claims them in one pass, by Segment id, then
 side, then offset.
-Slice 6 is split in two. 6a is built: `World.LayStreet` lays a Street between any two Tiles with a
-sagitta, joins Nodes exactly, splits the Segments it crosses or ends on, enforces the three `[roads]`
-minimums, seals its ground, and moves Lot, Car Park, Trip and Leg Addresses past each split. The
-split guard stops refining at 1/256 Tile and refuses there. 6b remains: the `connect` Input Log
-line carries both endpoints and the sagitta, the version goes to 2, logs are converted, and the
-command adds refusals, cost and corridor demolition. 6b must also decide what happens to a Vehicle
-in transit past a split, because route hops name the original Segment.
+Slice 6 is built. `World.LayStreet` lays a Street between any two Tiles with a sagitta, joins
+Nodes exactly, splits the Segments it crosses or ends on, enforces the three `[roads]` minimums,
+seals its ground, and moves Lot, Car Park, Trip and Leg Addresses past each split. The split guard
+stops refining at 1/256 Tile and refuses there. The `street` Input Log verb applies it. It refuses
+by name for each lay refusal and for a treasury that cannot pay. It clears every Lot under the paved
+width first and pays the displaced at the `Demolish` price. A route over a split Segment gains a hop
+for the created half, in its direction of travel. A Vehicle already on that hop keeps the arrival
+time it was priced at for the whole Segment. Slice 7 moves the shell from lattice `connect` to
+`street`.

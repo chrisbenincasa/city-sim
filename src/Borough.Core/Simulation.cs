@@ -656,6 +656,10 @@ public sealed class Simulation
                 ApplyConnect(command);
                 break;
 
+            case CommandKind.Street:
+                ApplyStreet(command, tick);
+                break;
+
             case CommandKind.Populate:
                 // Spike S0's verb, and one of the two here that are an instrument rather than a
                 // player's. It is applied like any other because that is the point of it: a
@@ -795,6 +799,7 @@ public sealed class Simulation
         CommandKind.Zone or CommandKind.ZoneParcel => RefuseZone(command),
         CommandKind.Populate => Refusal.None,
         CommandKind.Connect => RefuseConnect(command, out _),
+        CommandKind.Street => RefuseStreet(command, out _),
         CommandKind.Trip => RefuseTrip(command, out _, out _, out _),
         CommandKind.Arrive => RefuseArrive(command, out _),
         CommandKind.Govern => RefuseGovern(command),
@@ -1038,6 +1043,75 @@ public sealed class Simulation
     private static bool TouchesProfit(TaxControl control) =>
         control is TaxControl.ProfitThreshold or TaxControl.ProfitLowerRate
             or TaxControl.ProfitUpperRate;
+
+    /// <inheritdoc cref="ApplyStreet"/>
+    private Refusal RefuseStreet(Command command, out List<int> cleared)
+    {
+        cleared = [];
+        StreetLayRefusal lay = _world.Roads.RefuseStreet(
+            command.East.Raw, command.North.Raw, command.EndEast.Raw, command.EndNorth.Raw, command.Sagitta.Raw);
+        if (lay != StreetLayRefusal.None)
+        {
+            return lay switch
+            {
+                StreetLayRefusal.OffMap => Refusal.StreetOffMap,
+                StreetLayRefusal.NotAnArc => Refusal.StreetNotAnArc,
+                StreetLayRefusal.TooTight => Refusal.StreetTooTight,
+                StreetLayRefusal.TooShort => Refusal.StreetTooShort,
+                StreetLayRefusal.TooShallow => Refusal.StreetTooShallow,
+                _ => Refusal.StreetMovesRoad,
+            };
+        }
+
+        StreetArc.TryCreate(command.East.Raw, command.North.Raw, command.EndEast.Raw, command.EndNorth.Raw,
+            command.Sagitta.Raw, out StreetArc line);
+        cleared = _world.LotsUnder(line);
+
+        long price = 0;
+        foreach (int lot in cleared)
+        {
+            int building = _world.Lots.BuildingOn(lot);
+            if (building >= 0) { price += _world.DemolitionPrice(building).Raw; }
+        }
+
+        return price > 0 && (_world.TreasuryBalance()?.Raw ?? 0) < price ? Refusal.StreetTreasuryCannotPay : Refusal.None;
+    }
+
+    /// <summary>
+    /// Lays a freeform Street and clears every Lot its paved width crosses.
+    /// </summary>
+    /// <remarks>
+    /// Each occupied Building in the way is a <see cref="ApplyDemolish"/> at its price, paid to the
+    /// same people. Vacant Lots and empty Buildings clear free. The whole edit is refused when the
+    /// treasury cannot pay the total, so a refused Street clears nothing. Clearing runs before the
+    /// lay, so the re-lotting that follows it can use the cleared ground.
+    /// </remarks>
+    private void ApplyStreet(Command command, Ticks tick)
+    {
+        Refusal refusal = RefuseStreet(command, out List<int> cleared);
+
+        if (refusal != Refusal.None)
+        {
+            throw Refused(refusal, command);
+        }
+
+        foreach (int lot in cleared)
+        {
+            int building = _world.Lots.BuildingOn(lot);
+            if (building >= 0)
+            {
+                Money price = _world.DemolitionPrice(building);
+                _world.PayDisplaced(building, price, tick);
+                _compensationThisTick += price.Raw;
+                _world.DestroyBuilding(_world.Buildings.Rows.At(building), tick);
+            }
+
+            if (_world.Lots.Rows.IsLive(lot)) { _world.Lots.Rows.Free(_world.Lots.Rows.At(lot)); }
+        }
+
+        _world.LotsAdmitting.Invalidate();
+        _world.LayStreet(command.East.Raw, command.North.Raw, command.EndEast.Raw, command.EndNorth.Raw, command.Sagitta.Raw);
+    }
 
     /// <inheritdoc cref="ApplyDemolish"/>
     private Refusal RefuseDemolish(Command command, out int building, out Money price)

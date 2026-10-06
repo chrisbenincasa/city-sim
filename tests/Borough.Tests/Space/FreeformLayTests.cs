@@ -154,6 +154,47 @@ public sealed class FreeformLayTests
             Live(loaded.Roads).Select(s => loaded.Roads.Segments.Centerline[s]));
     }
 
+    [Fact]
+    public void A_route_over_a_split_street_crosses_both_halves_in_its_direction_of_travel()
+    {
+        World world = Fresh();
+        Assert.Equal(StreetLayRefusal.None, world.LayStreet(1_000, 1_000, 1_100, 1_000, 0));
+        int street = Assert.Single(Live(world.Roads));
+        Assert.Equal(StreetLayRefusal.None, world.LayStreet(1_000, 1_100, 1_100, 1_100, 0));
+        int beyond = Live(world.Roads).Single(s => s != street);
+        int east = Route(world, (street, true), (beyond, true));
+        int west = Route(world, (street, false));
+
+        Assert.Equal(StreetLayRefusal.None, world.LayStreet(1_050, 950, 1_050, 1_050, 0));
+
+        int created = Live(world.Roads).Single(s => s != street && s != beyond
+            && End(world.Roads, world.Roads.Segments.NodeB[s]) == (1_100, 1_000));
+        Assert.Equal([(street, true), (created, true), (beyond, true)], Hops(world, east));
+        Assert.Equal([(created, false), (street, false)], Hops(world, west));
+    }
+
+    private static int Route(World world, params (int Segment, bool Forward)[] hops)
+    {
+        int leg = world.Legs.Rows.Resolve(world.Legs.Create(world.Roads.Segments, TravelMode.Car, Address.None, Address.None, TravelTime.Zero));
+        foreach ((int segment, bool forward) in hops)
+        {
+            world.Legs.AppendHop(world.RouteHops, leg, world.RouteHops.Rows.Resolve(world.RouteHops.Create(world.Roads.Segments, segment, forward)));
+        }
+
+        return leg;
+    }
+
+    private static List<(int Segment, bool Forward)> Hops(World world, int leg)
+    {
+        var hops = new List<(int, bool)>();
+        foreach (int hop in world.Legs.Route(world.RouteHops).Walk(leg))
+        {
+            hops.Add((world.Roads.Segments.Rows.Resolve(world.RouteHops.Segment[hop]), world.RouteHops.Forward[hop] != 0));
+        }
+
+        return hops;
+    }
+
     [Theory]
     [InlineData(1_000, 1_000, 1_000, 1_000, 0, StreetLayRefusal.NotAnArc)]
     [InlineData(-5, 1_000, 1_000, 1_000, 0, StreetLayRefusal.OffMap)]

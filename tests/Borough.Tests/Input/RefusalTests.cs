@@ -1,4 +1,5 @@
 using Borough.Core;
+using Borough.Core.Arithmetic;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Input;
@@ -239,6 +240,19 @@ public sealed class RefusalTests
                     return (simulation, Case(refusal, simulation, world));
                 }
 
+            case Refusal.StreetTooShort:
+            case Refusal.StreetTooShallow:
+            case Refusal.StreetMovesRoad:
+                {
+                    // Off the generated city: one straight Street and one curve to meet.
+                    (World world, Simulation simulation) = City(Schooled);
+                    world.LayStreet(9_000, 9_000, 9_100, 9_000, 0);
+                    world.LayStreet(9_000, 9_500, 9_100, 9_500, 10 * Fixed.One);
+
+                    return (simulation, Case(refusal, simulation, world));
+                }
+
+            case Refusal.StreetTreasuryCannotPay:
             case Refusal.DemolishTreasuryCannotPay:
                 {
                     // The treasury opens empty, so any positive price refuses.
@@ -364,6 +378,10 @@ public sealed class RefusalTests
         }
     }
 
+    private static Command Street(int aEast, int aNorth, int bEast, int bNorth, int sagittaTiles = 0) =>
+        Command.Street(new Tiles(aEast), new Tiles(aNorth), new Tiles(bEast), new Tiles(bNorth),
+            new SubTiles(sagittaTiles * Fixed.One));
+
     /// <summary>The command itself, once the world it is refused in stands.</summary>
     private static Command Case(Refusal refusal, Simulation simulation, World world) => refusal switch
     {
@@ -418,6 +436,20 @@ public sealed class RefusalTests
             CommandKind.Demolish, new Tiles(9_000), new Tiles(9_000)),
 
         Refusal.DemolishTreasuryCannotPay => Standing(world),
+
+        Refusal.StreetOffMap => Street(-5, 1_000, 1_000, 1_000),
+        Refusal.StreetNotAnArc => Street(9_000, 9_000, 9_000, 9_000),
+        Refusal.StreetTooTight => Street(9_000, 9_100, 9_020, 9_100, sagittaTiles: 4),
+
+        // Splits the straight Street five Tiles from its end.
+        Refusal.StreetTooShort => Street(9_005, 8_950, 9_005, 9_050),
+
+        Refusal.StreetTooShallow => Street(9_000, 8_990, 9_100, 9_008),
+
+        // Passes beside the curve's end Node, so the split there cannot keep the curve in place.
+        Refusal.StreetMovesRoad => Street(9_003, 9_400, 9_000, 9_600),
+
+        Refusal.StreetTreasuryCannotPay => StreetVerbTests.Through(world).Street,
 
         Refusal.ServiceKindNotDeclared => Command.Service(
             world.Lots.East[FirstVacantLot(world)],
