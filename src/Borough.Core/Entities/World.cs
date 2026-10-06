@@ -8824,14 +8824,14 @@ public sealed partial class World
 
             for (int row = (int)start; row < (int)end; row++)
             {
-                spoiled += SpoilRow(tick, row, today);
+                spoiled += SpoilRow(tick, cycleTicks, row, today);
             }
         }
 
         return spoiled;
     }
 
-    private long SpoilRow(Ticks tick, int row, ushort today)
+    private long SpoilRow(Ticks tick, ulong cycleTicks, int row, ushort today)
     {
         if (!Expiries.Rows.IsLive(row))
         {
@@ -8841,7 +8841,7 @@ public sealed partial class World
         int bin = Bins.Rows.Resolve(Expiries.Bin[row]);
         ShelfLife shelfLife = Rules.ShelfLifeOf(Bins.Resource[bin]);
 
-        if (!shelfLife.IsBoundary(tick, row))
+        if (shelfLife.CycleTicks != cycleTicks || !shelfLife.IsBoundary(tick, row))
         {
             return 0;
         }

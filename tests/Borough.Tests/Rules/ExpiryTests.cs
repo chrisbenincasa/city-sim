@@ -20,7 +20,7 @@ public sealed class ExpiryTests
     private const byte Kind = 1;
     private const ulong Cycle = 16;
 
-    private static Ruleset Declaring(bool breadSpoils = true)
+    private static Ruleset Declaring(bool breadSpoils = true, ShelfLife flour = default)
     {
         RuleDefinition[] rules =
         [
@@ -41,7 +41,7 @@ public sealed class ExpiryTests
             kindRules: [new RuleId(1), FillingTen],
             zoneRules: [])
         {
-            ResourceShelfLives = breadSpoils ? [default, new ShelfLife(Cycle, 2)] : [],
+            ResourceShelfLives = breadSpoils ? [flour, new ShelfLife(Cycle, 2)] : [],
         };
     }
 
@@ -178,6 +178,21 @@ public sealed class ExpiryTests
 
         Assert.Equal(5, world.SpoilExpired(new Ticks(2 * Cycle + 1)));
         Assert.Equal(0, Level(world, late));
+    }
+
+    [Fact]
+    public void A_shorter_cycle_on_another_resource_does_not_age_a_row_twice()
+    {
+        (World world, Handle<Building> building) = Built(Declaring(flour: new ShelfLife(Cycle / 2, 2)));
+        Handle<Bin> bread = BreadBin(world, building);
+
+        world.Deposit(bread, 5, new Ticks(1));
+
+        for (ulong tick = 2; tick <= 2 * Cycle; tick++)
+        {
+            world.SpoilExpired(new Ticks(tick));
+            Assert.Equal(tick < 2 * Cycle ? 5 : 0, Level(world, bread));
+        }
     }
 
     [Fact]
