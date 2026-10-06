@@ -137,16 +137,54 @@ public sealed class Frontage
     /// Saves one of the Segments in <paramref name="laid"/> under every unfronted Lot sitting on it.
     /// </summary>
     /// <remarks>
-    /// <b>What gives frontage back after a re-lay</b>, and narrow because a Street edit may only front
-    /// ground it names. ⚠ <b>It matches <see cref="Attach"/> on every state a carve can produce</b> —
-    /// <see cref="Locate"/> maps a Lot to the one lattice edge its own position lies on, so an
-    /// unfronted Lot has no Street on that edge, and the only Segment that can front it is one a lay
-    /// there creates. The filter bites on a Lot left unfronted by hand.
+    /// <b>What gives frontage back after a lay</b>, and narrow because a Street edit may only front
+    /// ground it names. A Lot fronts the nearest laid Segment within 1.5 Tiles of its address,
+    /// strictly between the Segment's ends, with its ground on the Lot's saved side. Ties go to the
+    /// lower Segment id.
     /// </remarks>
     /// <returns>How many Lots gained frontage.</returns>
-    public static int AttachTo(
-        LotTable lots, StreetGrid streets, RoadSegmentTable segments, ReadOnlySpan<int> laid) =>
-        Attach(lots, streets, segments, laid, onlyLaid: true);
+    public static int AttachTo(LotTable lots, RoadGraph roads, ReadOnlySpan<int> laid)
+    {
+        ArgumentNullException.ThrowIfNull(lots);
+        ArgumentNullException.ThrowIfNull(roads);
+
+        int fronted = 0;
+        for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
+        {
+            if (!lots.Rows.IsLive(slot) || lots.HasFrontage(slot)) { continue; }
+
+            long east = (long)lots.East[slot].Raw * Fixed.One, north = (long)lots.North[slot].Raw * Fixed.One;
+            int best = Rows.NoSlot, bestDistance = int.MaxValue, bestOffset = 0;
+            foreach (int segment in roads.Residency.Near(lots.East[slot], lots.North[slot], new Tiles(2)))
+            {
+                if (!laid.Contains(segment)) { continue; }
+                StreetArc line = roads.Segments.Centerline[segment];
+                int distance = line.DistanceTo(east, north);
+                int along = line.OffsetAlong(east, north);
+                if (distance > Fixed.One + (Fixed.One >> 1) || along <= 0 || along >= line.Length
+                    || OnSide(line, along, lots.Parcel(slot).Center) != (StreetSide)lots.Side[slot]) { continue; }
+                if (distance < bestDistance || (distance == bestDistance
+                    && roads.Segments.Rows.IdAt(segment) < roads.Segments.Rows.IdAt(best)))
+                {
+                    (best, bestDistance, bestOffset) = (segment, distance, along);
+                }
+            }
+
+            if (best == Rows.NoSlot) { continue; }
+            lots.Front(slot, roads.Segments.Rows.At(best), new Tiles((int)IntegerMath.FloorDiv(bestOffset, Fixed.One)));
+            fronted++;
+        }
+
+        return fronted;
+    }
+
+    private static StreetSide OnSide(StreetArc line, int along, (int East, int North) point)
+    {
+        var at = line.PointAt(along);
+        var tangent = line.TangentAt(along);
+        long cross = ((long)tangent.East * (point.North - at.North)) - ((long)tangent.North * (point.East - at.East));
+        return cross >= 0 ? StreetSide.Left : StreetSide.Right;
+    }
 
     private static int Attach(
         LotTable lots,

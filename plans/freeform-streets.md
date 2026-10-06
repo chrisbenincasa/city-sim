@@ -237,5 +237,10 @@ pattern of the face they front, or of their own Segment side when the roadside i
 forms carve as Perimeter strips there, and residential plot sizing applies where it does on the
 lattice. A Street edit gathers both kinds of plot and claims them in one pass, by Segment id, then
 side, then offset.
-Road sealing runs only in `RoadGenerator`, where every Street is straight, so it moved from slice 2
-to slice 6, which lays the first curved Street.
+Slice 6 is split in two. 6a is built: `World.LayStreet` lays a Street between any two Tiles with a
+sagitta, joins Nodes exactly, splits the Segments it crosses or ends on, enforces the three `[roads]`
+minimums, seals its ground, and moves Lot, Car Park, Trip and Leg Addresses past each split. The
+split guard stops refining at 1/256 Tile and refuses there. 6b remains: the `connect` Input Log
+line carries both endpoints and the sagitta, the version goes to 2, logs are converted, and the
+command adds refusals, cost and corridor demolition. 6b must also decide what happens to a Vehicle
+in transit past a split, because route hops name the original Segment.
