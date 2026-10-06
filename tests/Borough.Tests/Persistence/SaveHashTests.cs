@@ -1,6 +1,7 @@
 using Borough.Core;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
+using Borough.Core.Input;
 using Borough.Core.Persistence;
 using Borough.Core.Quantities;
 using Borough.Core.Tables;
@@ -190,11 +191,11 @@ public sealed class SaveHashTests(ITestOutputHelper output)
     /// happen to address.
     /// </summary>
     [Theory]
-    [InlineData("bin", "owner", 0, 0x7FFF_FFF0u)]
-    [InlineData("bin", "owner", 4, 0x0000_0002u)]
-    [InlineData("business", "building", 0, 0x7FFF_FFF0u)]
+    [InlineData("bin", "owner", false)]
+    [InlineData("bin", "owner", true)]
+    [InlineData("business", "building", false)]
     public void A_corrupt_handle_is_refused_before_the_rebuild(
-        string table, string column, int byteOffset, uint value)
+        string table, string column, bool corruptGeneration)
     {
         World world = Stepped(256);
 
@@ -202,8 +203,17 @@ public sealed class SaveHashTests(ITestOutputHelper output)
         SaveFile.Write(world, InForce, new WorldSnapshot(), file);
 
         byte[] bytes = file.Bytes;
-        int at = ByteIn(world, table, column, FirstHeldHandle(world, bytes, table, column)) + byteOffset;
-        BitConverter.TryWriteBytes(bytes.AsSpan(at, 4), value);
+        int at = ByteIn(world, table, column, FirstHeldHandle(world, bytes, table, column));
+
+        if (corruptGeneration)
+        {
+            uint generation = BitConverter.ToUInt32(bytes, at + 4);
+            BitConverter.TryWriteBytes(bytes.AsSpan(at + 4, 4), generation + 2);
+        }
+        else
+        {
+            BitConverter.TryWriteBytes(bytes.AsSpan(at, 4), 0x7FFF_FFF0u);
+        }
 
         var corrupt = new MemorySave();
         corrupt.Write(bytes);
@@ -215,6 +225,98 @@ public sealed class SaveHashTests(ITestOutputHelper output)
 
         Assert.Contains($"table '{table}'", refusal);
         Assert.Contains($"'{column}'", refusal);
+    }
+
+    /// <summary>
+    /// The handle check refuses no state the simulation writes. A live row's stale severable handle
+    /// loads, and so does an empty handle whatever its index bytes hold.
+    /// </summary>
+    [Fact]
+    public void Stale_severable_and_empty_handles_still_load()
+    {
+        (World world, Simulation simulation) = Running(256);
+
+        int lot = world.Lots.Rows.Resolve(world.Buildings.Lot[0]);
+        Command[] demolish =
+        [
+            new Command(CommandKind.Demolish, world.Lots.East[lot], world.Lots.North[lot]),
+        ];
+
+        simulation.Step(new TickInput(demolish, 0));
+
+        var file = new MemorySave();
+        SaveFile.Write(world, InForce, new WorldSnapshot(), file);
+
+        byte[] bytes = file.Bytes;
+        int stale = 0;
+        int? empty = null;
+
+        foreach ((Rows rows, Column column, Rows target) in HandleColumns(world))
+        {
+            for (int slot = 0; slot < rows.SlotCount; slot++)
+            {
+                if (!rows.IsLive(slot))
+                {
+                    continue;
+                }
+
+                int at = ByteIn(world, rows.Name, column.Name, slot);
+                uint index = BitConverter.ToUInt32(bytes, at);
+                uint generation = BitConverter.ToUInt32(bytes, at + 4);
+
+                if (generation == 0)
+                {
+                    empty ??= at;
+                }
+                else if (!target.IsValidSlot(index, generation))
+                {
+                    stale++;
+                }
+            }
+        }
+
+        _output.WriteLine($"{stale} stale handles in live rows");
+
+        Assert.True(stale > 0, "the fixture holds no stale handle in a live row.");
+        Assert.NotNull(empty);
+
+        BitConverter.TryWriteBytes(bytes.AsSpan(empty.Value, 4), 0x7FFF_FFF0u);
+
+        var save = new MemorySave();
+        save.Write(bytes);
+
+        World loaded = SaveFile.Read(save, GoldenFixtures.Rules(), out _);
+
+        Assert.Equal(world.HashState(), loaded.HashState());
+    }
+
+    /// <summary>
+    /// A corrupt handle in a retired row is not checked before the rebuild. The fold bounds-checks it,
+    /// so the load refuses it on the State Hash instead of throwing from a resolver.
+    /// </summary>
+    [Fact]
+    public void A_corrupt_handle_in_a_retired_row_is_refused_by_the_hash()
+    {
+        World world = Stepped(1024);
+
+        var file = new MemorySave();
+        SaveFile.Write(world, InForce, new WorldSnapshot(), file);
+
+        byte[] bytes = file.Bytes;
+        int at = FirstRetiredHandle(world);
+
+        BitConverter.TryWriteBytes(bytes.AsSpan(at, 4), 0x7FFF_FFF0u);
+        BitConverter.TryWriteBytes(bytes.AsSpan(at + 4, 4), 3u);
+
+        var corrupt = new MemorySave();
+        corrupt.Write(bytes);
+
+        string refusal = Assert.Throws<InvalidOperationException>(
+            () => SaveFile.Read(corrupt, GoldenFixtures.Rules(), out _)).Message;
+
+        _output.WriteLine(refusal);
+
+        Assert.Contains("hashes to", refusal);
     }
 
     private static int FirstHeldHandle(World world, byte[] bytes, string table, string column)
@@ -239,6 +341,37 @@ public sealed class SaveHashTests(ITestOutputHelper output)
 
         Assert.Fail($"no live row of '{table}' holds a '{column}' handle.");
         return 0;
+    }
+
+    private static int FirstRetiredHandle(World world)
+    {
+        foreach ((Rows rows, Column column, Rows _) in HandleColumns(world))
+        {
+            for (int slot = 0; slot < rows.SlotCount; slot++)
+            {
+                if (!rows.IsLive(slot))
+                {
+                    return ByteIn(world, rows.Name, column.Name, slot);
+                }
+            }
+        }
+
+        Assert.Fail("no table with a handle column has a retired slot.");
+        return 0;
+    }
+
+    private static IEnumerable<(Rows Rows, Column Column, Rows Target)> HandleColumns(World world)
+    {
+        foreach (Rows rows in world.Tables.ToArray())
+        {
+            foreach (Column column in rows.SavedColumns.ToArray())
+            {
+                if (column.HandleTarget is { } target)
+                {
+                    yield return (rows, column, target);
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -310,7 +443,9 @@ public sealed class SaveHashTests(ITestOutputHelper output)
         return 0;
     }
 
-    private static World Stepped(int ticks)
+    private static World Stepped(int ticks) => Running(ticks).World;
+
+    private static (World World, Simulation Simulation) Running(int ticks)
     {
         var key = WorldKey.FromSeed(GoldenFixtures.Seed);
         var world = new World(GoldenFixtures.Population, GoldenFixtures.Rules(), key);
@@ -330,6 +465,6 @@ public sealed class SaveHashTests(ITestOutputHelper output)
         // reason A_fold_over_the_copy_is_the_state_hash sweeps Ticks at all.
         world.CreateBusiness(world.Buildings.Rows.At(0));
 
-        return world;
+        return (world, simulation);
     }
 }
