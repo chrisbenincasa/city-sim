@@ -182,14 +182,26 @@ change for this decision.
 
 Painting a face covers its interior, which stays open ground under the land model.
 
+### Decided: slice 7 junctions, length step and preview
+
+Decided 10/06/2026.
+
+- Carriageways overlap at Nodes. Junction polygons belong to the Arterials and Junction
+  construction row.
+- The length snap step is one plot width. That is `[lots] residential_frontage_tiles` where a
+  Ruleset sets it, and otherwise 2 × `block_tiles` / `lots_per_segment`.
+- The preview shows the snapped line, the refusal sentence, the total clearing price and the
+  Buildings it would clear, highlighted.
+- A zone-grid snap to existing strip Lots, guideline snaps and building-side snaps wait for play
+  to show a need.
+
+Slice 7 is split. 7a is straight mode on `street` with snapping to Nodes and Segments, the preview,
+and curves paved as short chords. 7b is simple-curve and continuous modes, length and angle snaps,
+and the driven demonstration of the acceptance checks.
+
 ### Remaining design decisions
 
-1. **Junction geometry.** Arbitrary angles need junction polygons. Shared with the Arterials and
-   Junction construction row.
-2. **Wedge use.** Leave open, give to the adjacent Lot as yard, or allow parks.
-3. **Snap and preview details.** Choose the length step relative to Lot widths, whether a
-   zone-grid snap aligns new Streets to existing strip Lots, and what the preview shows before
-   commit: snapped geometry, refusals and cost.
+1. **Wedge use.** Leave open, give to the adjacent Lot as yard, or allow parks.
 
 ## Acceptance checks
 
@@ -220,7 +232,7 @@ re-record goldens by the [procedure](../tests/Borough.Tests/Golden/README.md).
 | 4 | Oriented Lot ground | Parcel and footprint as corner, direction, width, depth. Exact overlap test. One uniform spatial hash replaces `StreetGrid` off-lattice buckets, `TrafficPresence._near` and the `LineSourceQueries` window. Shell massing faces the Segment | 3 |
 | 5 | Segment-side carver | Planar face walk, strip carving per side, pattern depth per face, claim order and shrink-or-drop. Blocks become derived; `BlockTable` lattice columns go. Generation lays lattice Streets and carves with the new carver | 4 |
 | 6 | Freeform `Street` verb | Endpoints plus sagitta, exact joins, crossing splits, minimum length and angle, demolition at the `Demolish` price. Seals the laid Street along its centerline | 2, 5 |
-| 7 | Shell drawing | Straight, simple-curve and continuous modes. Snapping, preview with refusals and demolition cost, arc paving meshes. Driven demonstration of the acceptance checks | 6, decisions 1 and 3 |
+| 7 | Shell drawing | Straight, simple-curve and continuous modes. Snapping, preview with refusals and demolition cost, arc paving meshes. Driven demonstration of the acceptance checks | 6 |
 | 8 | Batch modes | Grid and Parallel modes over a batch `Street` | 7 |
 
 Slices 1 and 3 can run in parallel.
