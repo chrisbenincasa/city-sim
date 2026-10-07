@@ -1387,9 +1387,6 @@ public static class RulesetLoader
                     ReadTerms(table, "outputs", name, allOutputs, allEmissions);
                 }
 
-                RefuseUnsupportedPoolTerms(table, name, allInputs, inputFirst, allInputs.Count,
-                    allOutputs, outputFirst, allOutputs.Count);
-
                 definitions[i] = new RuleDefinition(
                     Kind: kind,
                     Rate: ReadRate(table, name),
@@ -1404,6 +1401,10 @@ public static class RulesetLoader
                     OutputCount: allOutputs.Count - outputFirst,
                     EmissionFirst: emissionFirst,
                     EmissionCount: allEmissions.Count - emissionFirst);
+
+                RefuseUnsupportedPoolTerms(table, name, allInputs, inputFirst, allInputs.Count,
+                    allOutputs, outputFirst, allOutputs.Count,
+                    definitions[i].HasFills && definitions[i].Fills.Scope == Scope.Pool);
             }
 
             inputs = [.. allInputs];
@@ -1416,9 +1417,9 @@ public static class RulesetLoader
         private void RefuseUnsupportedPoolTerms(
             TableSyntaxBase table, string? name,
             List<Term> inputs, int inputFirst, int inputEnd,
-            List<Term> outputs, int outputFirst, int outputEnd)
+            List<Term> outputs, int outputFirst, int outputEnd, bool fillsPool)
         {
-            bool hasPool = false;
+            bool hasPool = fillsPool;
             bool hasMoney = _families.Contains(ResourceFamily.Money);
 
             for (int i = inputFirst; i < inputEnd; i++)

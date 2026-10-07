@@ -873,9 +873,12 @@ public sealed class RulesetLoaderTests
             outputs = [ { scope = "local", resource = "flour", amount = 3 } ]
             """, "test.toml");
 
-        Assert.Contains(
-            result.Refusals,
-            r => r.Reason.Contains("pool term needs a Resource with family = \"money\"", StringComparison.Ordinal));
+        RulesetRefusal refusal = Assert.Single(result.Refusals,
+            r => r.Reason.Contains("pool term needs a Resource with family = \"money\"",
+                StringComparison.Ordinal));
+        Assert.Equal("test.toml", refusal.File);
+        Assert.Equal("deliver", refusal.Rule);
+        Assert.Equal(21, refusal.Line);
     }
 
     [Fact]
@@ -942,6 +945,37 @@ public sealed class RulesetLoaderTests
         Assert.Equal("recipe.toml", refusal.File);
         Assert.Equal("buy_flour_recipe", refusal.Rule);
         Assert.Equal(17, refusal.Line);
+    }
+
+    [Theory]
+    [InlineData("inputs = []\noutputs = [ { scope = \"pool\", resource = \"flour\", amount = 1 } ]")]
+    [InlineData("inputs = []\noutputs = []\nfills = { scope = \"pool\", resource = \"flour\" }")]
+    public void A_pool_output_or_fills_without_districts_is_refused(string terms)
+    {
+        RulesetLoadResult result = RulesetLoader.Parse($$"""
+            [[resource]]
+            name = "flour"
+            family = "good"
+
+            [[resource]]
+            name = "money"
+            family = "money"
+
+            [[building]]
+            name = "silo"
+
+            [[rule]]
+            name = "sell_flour"
+            kind = "silo"
+            rate = 10
+            apply = { min = 1, max = 1 }
+            {{terms}}
+            """, "pool.toml");
+
+        RulesetRefusal refusal = Assert.Single(result.Refusals,
+            r => r.Reason.Contains("pool term needs [districts]", StringComparison.Ordinal));
+        Assert.Equal("sell_flour", refusal.Rule);
+        Assert.Equal(12, refusal.Line);
     }
 
     /// <summary>
