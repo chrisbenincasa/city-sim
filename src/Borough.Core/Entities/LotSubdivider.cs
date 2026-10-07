@@ -17,7 +17,7 @@ public static class LotSubdivider
         if (streets.Blocks <= 0 || east.Raw < 0 || north.Raw < 0) { return 0; }
         int column = streets.Lattice.LineAt(east.Raw), row = streets.Lattice.LineAt(north.Raw);
         if (!world.ZoneBlock(column, row, zone)) { return 0; }
-        return zone == 0 ? 0 : CarveBlock(world, column, row);
+        return zone == 0 ? 0 : CarvePainted(world, column, row);
     }
 
     public static bool Contains(Parcel parcel, Tiles east, Tiles north) =>
@@ -87,7 +87,7 @@ public static class LotSubdivider
         if (world.PaintUsePermissions(area, zone) != PermissionRefusal.None) { return 0; }
         int column = world.Roads.Lattice.LineAt(east.Raw), row = world.Roads.Lattice.LineAt(north.Raw);
         // Only subdivision of free ground can add rows; existing realised parcels never move.
-        CarveBlock(world, column, row);
+        CarvePainted(world, column, row);
         return before.CommonUses == zone && before.AnyUses == zone ? 0 : 1;
     }
 
@@ -111,6 +111,15 @@ public static class LotSubdivider
                 band, world.Rules.Bands.Length, world.Rules.Lots.TradeFormWeights, world.Key, patch)
             : BlockPatterns.ForBand(band, world.Rules.Bands.Length, world.Roads.Streets.BlockTiles,
                 world.Rules.Lots.LotsPerSegment, world.Key, patch, world.Rules.Lots.PatternSpread);
+    }
+
+    // Painted ground can lie beside a freeform Street, whose sides otherwise carve only on a Street edit.
+    private static int CarvePainted(World world, int column, int row)
+    {
+        var plots = new List<Plot>();
+        GatherBlock(world, column, row, plots);
+        GatherFreeSides(world, plots);
+        return Settle(world, plots);
     }
 
     private static int CarveBlock(World world, int column, int row, bool tradeForm = false, BlockPattern? form = null)

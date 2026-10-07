@@ -44,11 +44,29 @@ public sealed partial class World
         return StreetLayRefusal.None;
     }
 
+    private bool OnReservedGround((long East, long North) at, int half)
+    {
+        var tile = (new Tiles((int)IntegerMath.ShiftRight(at.East, Fixed.FractionalBits)),
+            new Tiles((int)IntegerMath.ShiftRight(at.North, Fixed.FractionalBits)));
+        foreach (int segment in Roads.Residency.Near(tile.Item1, tile.Item2, new Tiles(half + 1)))
+        {
+            if (Roads.Segments.Rows.IsLive(segment) && (RoadKind)Roads.Segments.Kind[segment] != RoadKind.FootPath
+                && Roads.Segments.Centerline[segment].DistanceTo(at.East, at.North) <= half * Fixed.One)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>Live Lots whose parcel the Street's paved width crosses, in slot order.</summary>
     /// <remarks>
     /// The paved width is one rectangle per Tile of length, two half-widths deep and turned to the
-    /// tangent there. The last rectangle ends exactly at the far end, so a Street ending on another
-    /// does not reach the Lots across it.
+    /// tangent there. A rectangle centered within a half-width of a Segment's centerline lies on that
+    /// Segment's reserved ground, which every parcel beside it already includes, so it clears
+    /// nothing. A Street that joins or crosses another at an angle therefore does not reach the Lots
+    /// across it.
     /// </remarks>
     public List<int> LotsUnder(StreetArc line)
     {
@@ -57,22 +75,26 @@ public sealed partial class World
         if (half <= 0) { return under; }
 
         int steps = (int)IntegerMath.FloorDiv((long)line.Length + Fixed.One - 1, Fixed.One);
-        var paved = new OrientedRectangle[steps];
+        var paved = new List<OrientedRectangle>(steps);
         int west = int.MaxValue, south = int.MaxValue, east = int.MinValue, north = int.MinValue;
         for (int step = 0; step < steps; step++)
         {
             int offset = Larger(0, Smaller(step * Fixed.One, line.Length - Fixed.One));
+            if (OnReservedGround(line.PointAt(Smaller(offset + (Fixed.One >> 1), line.Length)), half)) { continue; }
             var point = line.PointAt(offset);
             var tangent = line.TangentAt(offset);
-            paved[step] = new OrientedRectangle(
+            var piece = new OrientedRectangle(
                 (int)(point.East + (long)tangent.North * half), (int)(point.North - (long)tangent.East * half),
                 tangent.East, tangent.North, 1, 2 * half);
-            LandRectangle bounds = paved[step].Bounds;
+            paved.Add(piece);
+            LandRectangle bounds = piece.Bounds;
             west = Smaller(west, bounds.X);
             south = Smaller(south, bounds.Y);
             east = Larger(east, bounds.X + bounds.Width);
             north = Larger(north, bounds.Y + bounds.Height);
         }
+
+        if (paved.Count == 0) { return under; }
 
         var box = new LandRectangle(Larger(0, west), Larger(0, south), east - Larger(0, west), north - Larger(0, south));
         for (int slot = 0; slot < Lots.Rows.SlotCount; slot++)
