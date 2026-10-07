@@ -389,7 +389,7 @@ public partial class Main
     }
 
     /// <summary>
-    /// Open the door a live driver knocks on. <b>One client, one line, one reply.</b>
+    /// Open the door a live driver knocks on. <b>One client at a time, one line, one reply.</b>
     /// </summary>
     /// <remarks>
     /// <para>
@@ -444,34 +444,112 @@ public partial class Main
         return true;
     }
 
+    /// <summary>How long the door waits before trying a failed accept again.</summary>
+    /// <remarks>
+    /// ⚠ <b>A pause rather than a retry count, because an accept fails for reasons that need TIME to
+    /// clear rather than another immediate attempt.</b> An exhausted descriptor table is the case
+    /// that makes it. Retries run back to back all meet the same exhaustion, so a counter that calls
+    /// itself tolerant closes the door on exactly the failure it claims to survive. ***A paced retry
+    /// never gives up***, which is what <c>plans/0070</c> <b>F16</b> asks for — only cancellation
+    /// closes the door — and a quarter of a second is below what a driver notices while connecting.
+    /// </remarks>
+    private const int AcceptRetryPauseMilliseconds = 250;
+
     /// <summary>Take a line, hand it to the main thread, wait for what it answers.</summary>
     /// <remarks>
+    /// <para>
     /// ⚠ <b>Strictly one reply per line, and the read blocks until it comes.</b> A driver can
     /// therefore send and read in lock step without a clock of its own — which is the only way a
     /// client can know that what it reads is the state <em>after</em> what it sent.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>A DEPARTING CLIENT ENDS ITS OWN SESSION AND NOTHING ELSE.</b> A disconnect, a broken
+    /// pipe and a half-written line all surface here as an exception, and ***one catch around both
+    /// the accept and the read loop made every one of them the end of the run's listener*** — so a
+    /// driver that pressed Ctrl-C left a shell nobody could reach again (issue #27). The two are
+    /// caught separately now: a client's failure drops that client, and the loop returns to accept.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Nothing carries over between clients.</b> The lock step is what guarantees it — this
+    /// thread holds no per-client state, and it is parked in <c>Take</c> from the moment it enqueues
+    /// a line until the answer to that same line comes back, so a session can only end with the
+    /// queues as it found them. The write that fails is the one after the answer was taken.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>ONLY CANCELLATION CLOSES THE DOOR</b>, and every return here is reached through the
+    /// token rather than through an exception type — a failed accept is paced and retried for as
+    /// long as the run lasts. <c>_ExitTree</c> cancels and joins before it disposes the listener, so
+    /// a shutdown arrives as cancellation rather than as an accept on a disposed socket.
+    /// </para>
     /// </remarks>
     private void Serve(System.Net.Sockets.Socket listener, System.Threading.CancellationToken cancellation)
     {
+        bool complained = false;
+
         while (!cancellation.IsCancellationRequested)
         {
+            System.Net.Sockets.Socket client;
+
             try
             {
-                using System.Net.Sockets.Socket client = listener.AcceptAsync(cancellation).AsTask().GetAwaiter().GetResult();
-                using var stream = new System.Net.Sockets.NetworkStream(client);
-                using var reader = new StreamReader(stream);
-                using var writer = new StreamWriter(stream) { AutoFlush = true };
-
-                while (reader.ReadLineAsync(cancellation).AsTask().GetAwaiter().GetResult() is { } line)
+                client = listener.AcceptAsync(cancellation).AsTask().GetAwaiter().GetResult();
+            }
+            catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+            {
+                return;
+            }
+            catch (Exception refused)
+            {
+                if (cancellation.IsCancellationRequested)
                 {
-                    _asked.Add(line, cancellation);
-                    writer.WriteLineAsync(_answered.Take(cancellation).AsMemory(), cancellation).GetAwaiter().GetResult();
+                    return;
                 }
+
+                // Said once per run of failures rather than per attempt: a condition lasting a
+                // minute is 240 attempts, and 240 copies of one sentence is how a log stops being
+                // read. The next successful accept re-arms it.
+                if (!complained)
+                {
+                    GD.PrintErr($"cannot accept on {_door}: {refused.Message}. Still listening, "
+                        + $"retrying every {AcceptRetryPauseMilliseconds} ms.");
+
+                    complained = true;
+                }
+
+                // ⚠ Waiting on the TOKEN and not sleeping, so a shutdown during the pause joins
+                // this thread at once instead of after the rest of the pause.
+                if (cancellation.WaitHandle.WaitOne(AcceptRetryPauseMilliseconds))
+                {
+                    return;
+                }
+
+                continue;
+            }
+
+            complained = false;
+
+            try
+            {
+                using (client)
+                using (var stream = new System.Net.Sockets.NetworkStream(client))
+                using (var reader = new StreamReader(stream))
+                using (var writer = new StreamWriter(stream) { AutoFlush = true })
+                {
+                    while (reader.ReadLineAsync(cancellation).AsTask().GetAwaiter().GetResult() is { } line)
+                    {
+                        _asked.Add(line, cancellation);
+                        writer.WriteLineAsync(_answered.Take(cancellation).AsMemory(), cancellation).GetAwaiter().GetResult();
+                    }
+                }
+            }
+            catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+            {
+                return;
             }
             catch (Exception)
             {
-                // The listener closed under us, or a client left mid-sentence. Neither is this
-                // thread's business to report: the run is either ending or fine without a driver.
-                return;
+                // That client left mid-sentence. Not this thread's business to report, and not the
+                // next driver's problem: the run is fine without a driver and the door stays open.
             }
         }
     }

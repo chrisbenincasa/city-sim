@@ -196,7 +196,7 @@ printf 'pause\nreadout /tmp/a.txt\ndraw /tmp/a.tsv\nquit\n' | nc -U /tmp/borough
 | **Reply** | `ok<TAB><tick><TAB><readout, newlines as tabs>` or `refused<TAB><reason>` |
 | **A poll** | ⚠ **An empty line.** No commands, and the state comes back anyway |
 | **Threading** | Lines are applied on the main thread at a Tick boundary, never where they arrive |
-| **Clients** | One at a time (`Listen(1)`) |
+| **Clients** | One at a time (`Listen(1)`). A client that leaves or breaks ends only its own session; the next one is accepted |
 
 ⚠ **`quit` down the socket is how the run ends cleanly**, and it is what deletes the socket file.
 A killed shell leaves it behind and the next run reports *address in use* — a message about this run
