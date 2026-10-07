@@ -362,7 +362,7 @@ public partial class Main
 
         if (streets.BlockTiles <= 0)
         {
-            said.Add("no Street lattice in this world — this Ruleset states no [roads] block_tiles");
+            said.Add("no grid Streets in this world, so shift-click removes nothing");
 
             return;
         }
@@ -374,9 +374,8 @@ public partial class Main
             + $"({east.Raw:N0}, {north.Raw:N0})";
 
         said.Add(segment == Rows.NoSlot
-            ? $"click LAYS a Street on {edge} — nothing stands there, so shift-click does nothing"
-            : $"shift-click BULLDOZES Segment {_world.Roads.Segments.Rows.IdAt(segment):N0} on "
-                + $"{edge} — a plain click does nothing, it is already built");
+            ? $"no grid Street on {edge}, so shift-click does nothing"
+            : $"shift-click BULLDOZES Segment {_world.Roads.Segments.Rows.IdAt(segment):N0} on {edge}");
 
         Crossing(said, at, streets);
     }
@@ -536,6 +535,12 @@ public partial class Main
         {
             _cursor.Multimesh.VisibleInstanceCount = 0;
 
+            return;
+        }
+
+        if (_verb == Verb.Connect && !(Input.IsKeyPressed(Key.Shift) && _streetStart is null))
+        {
+            StreetCursor(at);
             return;
         }
 

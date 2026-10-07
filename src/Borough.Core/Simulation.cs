@@ -1045,9 +1045,13 @@ public sealed class Simulation
             or TaxControl.ProfitUpperRate;
 
     /// <inheritdoc cref="ApplyStreet"/>
-    private Refusal RefuseStreet(Command command, out List<int> cleared)
+    private Refusal RefuseStreet(Command command, out List<int> cleared) => RefuseStreet(command, out cleared, out _);
+
+    /// <inheritdoc cref="ApplyStreet"/>
+    private Refusal RefuseStreet(Command command, out List<int> cleared, out Money price)
     {
         cleared = [];
+        price = Money.Zero;
         StreetLayRefusal lay = _world.Roads.RefuseStreet(
             command.East.Raw, command.North.Raw, command.EndEast.Raw, command.EndNorth.Raw, command.Sagitta.Raw);
         if (lay != StreetLayRefusal.None)
@@ -1067,14 +1071,38 @@ public sealed class Simulation
             command.Sagitta.Raw, out StreetArc line);
         cleared = _world.LotsUnder(line);
 
-        long price = 0;
+        long total = 0;
         foreach (int lot in cleared)
         {
             int building = _world.Lots.BuildingOn(lot);
-            if (building >= 0) { price += _world.DemolitionPrice(building).Raw; }
+            if (building >= 0) { total += _world.DemolitionPrice(building).Raw; }
         }
 
-        return price > 0 && (_world.TreasuryBalance()?.Raw ?? 0) < price ? Refusal.StreetTreasuryCannotPay : Refusal.None;
+        price = new Money(total);
+        return total > 0 && (_world.TreasuryBalance()?.Raw ?? 0) < total ? Refusal.StreetTreasuryCannotPay : Refusal.None;
+    }
+
+    /// <summary>
+    /// What a <see cref="CommandKind.Street"/> command would do now: <see cref="Refuses"/>'s answer,
+    /// the price it pays and the Buildings it clears. Writes nothing.
+    /// </summary>
+    /// <remarks>Shares <see cref="ApplyStreet"/>'s predicate, so the preview and the lay agree.</remarks>
+    public StreetPreview PreviewStreet(Command command)
+    {
+        if (command.Kind != CommandKind.Street)
+        {
+            throw new ArgumentException($"{command.Kind} is not a street command.", nameof(command));
+        }
+
+        Refusal refusal = RefuseStreet(command, out List<int> cleared, out Money price);
+        var buildings = new List<int>();
+        foreach (int lot in cleared)
+        {
+            int building = _world.Lots.BuildingOn(lot);
+            if (building >= 0) { buildings.Add(building); }
+        }
+
+        return new StreetPreview(refusal, price, buildings);
     }
 
     /// <summary>

@@ -182,14 +182,26 @@ change for this decision.
 
 Painting a face covers its interior, which stays open ground under the land model.
 
+### Decided: slice 7 junctions, length step and preview
+
+Decided 10/06/2026.
+
+- Carriageways overlap at Nodes. Junction polygons belong to the Arterials and Junction
+  construction row.
+- The length snap step is one plot width. That is `[lots] residential_frontage_tiles` where a
+  Ruleset sets it, and otherwise 2 × `block_tiles` / `lots_per_segment`.
+- The preview shows the snapped line, the refusal sentence, the total clearing price and the
+  Buildings it would clear, highlighted.
+- A zone-grid snap to existing strip Lots, guideline snaps and building-side snaps wait for play
+  to show a need.
+
+Slice 7 is split. 7a is straight mode on `street` with snapping to Nodes and Segments, the preview,
+and curves paved as short chords. 7b is simple-curve and continuous modes, length and angle snaps,
+and the driven demonstration of the acceptance checks.
+
 ### Remaining design decisions
 
-1. **Junction geometry.** Arbitrary angles need junction polygons. Shared with the Arterials and
-   Junction construction row.
-2. **Wedge use.** Leave open, give to the adjacent Lot as yard, or allow parks.
-3. **Snap and preview details.** Choose the length step relative to Lot widths, whether a
-   zone-grid snap aligns new Streets to existing strip Lots, and what the preview shows before
-   commit: snapped geometry, refusals and cost.
+1. **Wedge use.** Leave open, give to the adjacent Lot as yard, or allow parks.
 
 ## Acceptance checks
 
@@ -220,7 +232,7 @@ re-record goldens by the [procedure](../tests/Borough.Tests/Golden/README.md).
 | 4 | Oriented Lot ground | Parcel and footprint as corner, direction, width, depth. Exact overlap test. One uniform spatial hash replaces `StreetGrid` off-lattice buckets, `TrafficPresence._near` and the `LineSourceQueries` window. Shell massing faces the Segment | 3 |
 | 5 | Segment-side carver | Planar face walk, strip carving per side, pattern depth per face, claim order and shrink-or-drop. Blocks become derived; `BlockTable` lattice columns go. Generation lays lattice Streets and carves with the new carver | 4 |
 | 6 | Freeform `Street` verb | Endpoints plus sagitta, exact joins, crossing splits, minimum length and angle, demolition at the `Demolish` price. Seals the laid Street along its centerline | 2, 5 |
-| 7 | Shell drawing | Straight, simple-curve and continuous modes. Snapping, preview with refusals and demolition cost, arc paving meshes. Driven demonstration of the acceptance checks | 6, decisions 1 and 3 |
+| 7 | Shell drawing | Straight, simple-curve and continuous modes. Snapping, preview with refusals and demolition cost, arc paving meshes. Driven demonstration of the acceptance checks | 6 |
 | 8 | Batch modes | Grid and Parallel modes over a batch `Street` | 7 |
 
 Slices 1 and 3 can run in parallel.
@@ -244,5 +256,14 @@ stops refining at 1/256 Tile and refuses there. The `street` Input Log verb appl
 by name for each lay refusal and for a treasury that cannot pay. It clears every Lot under the paved
 width first and pays the displaced at the `Demolish` price. A route over a split Segment gains a hop
 for the created half, in its direction of travel. A Vehicle already on that hop keeps the arrival
-time it was priced at for the whole Segment. Slice 7 moves the shell from lattice `connect` to
-`street`.
+time it was priced at for the whole Segment.
+Slice 7a is built. The Street tool lays straight freeform Streets through `street`: two clicks or a
+drag. Shift-click still bulldozes a lattice Street through `connect`, because no freeform bulldoze
+exists; the tool no longer lays lattice runs. Ends snap to Nodes, then to points along Segments,
+within 4 Tiles. A Segment point closer to an end than `min_segment_length_tiles` snaps to that
+end's Node. N switches all snapping. `Simulation.PreviewStreet` gives the preview its refusal,
+price and Buildings from `RefuseStreet`'s own code. Curved Segments pave, footway and kerb as
+chords of at most 1/64 turn, and strip mitres read the Segment tangent at the Node.
+Slice 7b is next: simple-curve and continuous modes, length and angle snaps, and the
+acceptance-check demonstration. The 4-Tile snap reach is a shell constant until 7b settles where
+snap defaults live.

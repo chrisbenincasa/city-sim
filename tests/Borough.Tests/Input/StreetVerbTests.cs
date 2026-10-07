@@ -106,6 +106,46 @@ public sealed class StreetVerbTests
     }
 
     [Fact]
+    public void The_preview_names_the_price_and_buildings_the_lay_then_clears()
+    {
+        (World world, Simulation simulation) = Priced(treasury: 100_000_000);
+        (Command street, int building) = Through(world);
+        var standing = world.Buildings.Rows.At(building);
+
+        StreetPreview preview = simulation.PreviewStreet(street);
+
+        Assert.Equal(Refusal.None, preview.Refusal);
+        Assert.Equal(PriceOf(world, street), preview.Price.Raw);
+        Assert.Contains(building, preview.Buildings);
+
+        simulation.DrainTreasuryFlows();
+        simulation.Step(new TickInput([street], 0));
+
+        Assert.Equal(preview.Price.Raw, simulation.DrainTreasuryFlows().Compensation);
+        Assert.False(world.Buildings.Rows.TryResolve(standing, out _));
+    }
+
+    [Fact]
+    public void Previewing_a_street_writes_nothing()
+    {
+        (World world, Simulation simulation) = Priced(treasury: 0);
+        (Command street, int _) = Through(world);
+        ulong before = world.HashState();
+
+        StreetPreview shortOfMoney = simulation.PreviewStreet(street);
+        StreetPreview tooShort = simulation.PreviewStreet(
+            Command.Street(street.East, street.North, street.East, street.North + new Tiles(1), SubTiles.Zero));
+
+        Assert.Equal(Refusal.StreetTreasuryCannotPay, shortOfMoney.Refusal);
+        Assert.True(shortOfMoney.Price.Raw > 0);
+        Assert.NotEqual(Refusal.None, tooShort.Refusal);
+        Assert.Equal(0, tooShort.Price.Raw);
+        Assert.Empty(tooShort.Buildings);
+        Assert.Throws<ArgumentException>(() => simulation.PreviewStreet(Command.Gate(street.East, street.North, 0)));
+        Assert.Equal(before, world.HashState());
+    }
+
+    [Fact]
     public void A_treasury_short_of_the_total_refuses_and_clears_nothing()
     {
         (World world, Simulation simulation) = Priced(treasury: 0);

@@ -1181,24 +1181,137 @@ public partial class Main
                 _ => (CarriagewayWidthMetres, Carriageway),
             };
 
-            // Scaled along its own length and turned to face the other end: one unit cube per
-            // Segment, which is why the Road Graph costs one draw call however large the city is.
-            //
-            // ⚠ THE SCALE IS COMPOSED IN THE SEGMENT'S OWN FRAME AND NOT THE WORLD'S. Basis.Scaled
-            // scales the basis in the PARENT frame, so the first spelling gave every east-west
-            // Segment 8 m of length and its whole length of width -- and the lattice rendered as
-            // north-south lines with the cross-streets missing. Invisible in the ASCII dump, which
-            // rasterises the line itself and never asks for a transform.
-            var basis = new Basis(Quaternion.FromEuler(
-                    new Vector3(0f, Mathf.Atan2(to.X - from.X, to.Z - from.Z), 0f)))
-                * Basis.FromScale(new Vector3(wide, 1f, from.DistanceTo(to)));
+            foreach (Transform3D chord in Chords(segments.Centerline[slot], from, to, wide))
+            {
+                // ⚠ LINEAR, because a MultiMesh instance colour is multiplied into albedo in linear
+                // space and the constants above are stated in sRGB like every other palette entry here.
+                yield return (segments.Rows.IdAt(slot), chord, paint.SrgbToLinear());
+            }
+        }
+    }
 
-            // ⚠ LINEAR, because a MultiMesh instance colour is multiplied into albedo in linear
-            // space and the constants above are stated in sRGB like every other palette entry here.
-            yield return (
-                segments.Rows.IdAt(slot),
-                new Transform3D(basis, from.Lerp(to, 0.5f)),
-                paint.SrgbToLinear());
+    /// <summary>
+    /// Unit-cube transforms that pave a Segment: one for a straight Segment, one per short chord of
+    /// a curved one.
+    /// </summary>
+    /// <remarks>
+    /// Each chord spans at most <see cref="ChordTurn"/> of the arc and is lengthened by the gap a
+    /// chord of that width leaves on the outside of the bend.
+    /// </remarks>
+    private static System.Collections.Generic.IEnumerable<Transform3D> Chords(
+        StreetArc line, Vector3 from, Vector3 to, float wide)
+    {
+        int pieces = line.IsStraight ? 1 : Math.Max(1, Mathf.CeilToInt(Math.Abs(line.Sweep) / (float)ChordTurn));
+        float overlap = pieces == 1 ? 0f : wide * Mathf.Tan(Mathf.Pi * Math.Abs(line.Sweep) / Q16.One / pieces);
+        Vector3 start = from;
+        for (int piece = 1; piece <= pieces; piece++)
+        {
+            Vector3 end = piece == pieces ? to : Ground(line.PointAt((int)((long)line.Length * piece / pieces)));
+            yield return Box(start, end, wide, overlap);
+            start = end;
+        }
+    }
+
+    /// <summary>The largest share of a turn one paving chord covers, as a Q16.16 fraction of a turn.</summary>
+    private const int ChordTurn = Q16.One / 64;
+
+    /// <summary>A Q16.16 Tile point on the ground plane, in metres.</summary>
+    private static Vector3 Ground((long East, long North) at) =>
+        new(at.East / (float)Q16.One * MetresPerTile, 0f, -at.North / (float)Q16.One * MetresPerTile);
+
+    /// <summary>A unit cube scaled to <paramref name="wide"/> and the span, turned from one end to the other.</summary>
+    /// <remarks>
+    /// ⚠ The scale is composed in the box's own frame. <c>Basis.Scaled</c> scales in the parent
+    /// frame, which once drew every east-west Segment 8 m long and its whole length wide.
+    /// </remarks>
+    private static Transform3D Box(Vector3 from, Vector3 to, float wide, float extra = 0f, float tall = 1f)
+    {
+        var basis = new Basis(Quaternion.FromEuler(
+                new Vector3(0f, Mathf.Atan2(to.X - from.X, to.Z - from.Z), 0f)))
+            * Basis.FromScale(new Vector3(wide, tall, from.DistanceTo(to) + extra));
+
+        return new Transform3D(basis, from.Lerp(to, 0.5f));
+    }
+
+    /// <summary>A Segment's centerline in metres, measured from its A end.</summary>
+    /// <remarks>
+    /// A straight Segment runs node to node. A curved one follows its arc, and a distance past
+    /// either end continues along the end tangent, where a mitre reaches round a bend.
+    /// </remarks>
+    private readonly record struct Run(StreetArc Line, Vector3 From, Vector3 To)
+    {
+        public float Length => Line.IsStraight ? From.DistanceTo(To) : Line.Length / (float)Q16.One * MetresPerTile;
+
+        public Vector3 At(float along)
+        {
+            if (Line.IsStraight || Length <= 0f)
+            {
+                return Length <= 0f ? From : From + ((To - From) * (along / Length));
+            }
+
+            float within = Mathf.Clamp(along, 0f, Length);
+            Vector3 on = within >= Length ? To : within <= 0f ? From
+                : Ground(Line.PointAt((int)(within / MetresPerTile * Q16.One)));
+
+            return on + (Ahead(within) * (along - within));
+        }
+
+        public Vector3 Ahead(float along)
+        {
+            if (Line.IsStraight || Length <= 0f)
+            {
+                return (To - From).Normalized();
+            }
+
+            (int east, int north) = Line.TangentAt((int)(Mathf.Clamp(along, 0f, Length) / MetresPerTile * Q16.One));
+
+            return new Vector3(east, 0f, -north).Normalized();
+        }
+    }
+
+    /// <summary>Unit vector a quarter turn left of <paramref name="ahead"/> on the ground.</summary>
+    private static Vector3 Left(Vector3 ahead) => new(ahead.Z, 0f, -ahead.X);
+
+    /// <summary>A Node's position on the ground, in metres.</summary>
+    private static Vector3 NodeAt(RoadNodeTable nodes, int node) =>
+        new(nodes.East[node].Raw * MetresPerTile, 0f, -nodes.North[node].Raw * MetresPerTile);
+
+    /// <summary>The direction a Segment leaves <paramref name="node"/>, along its own tangent there.</summary>
+    private Vector3 Leaving(int segment, int node)
+    {
+        RoadSegmentTable segments = _world.Roads.Segments;
+        RoadNodeTable nodes = _world.Roads.Nodes;
+        var run = new Run(segments.Centerline[segment],
+            nodes.Rows.TryResolve(segments.NodeA[segment], out int a) ? NodeAt(nodes, a) : Vector3.Zero,
+            nodes.Rows.TryResolve(segments.NodeB[segment], out int b) ? NodeAt(nodes, b) : Vector3.Zero);
+
+        return a == node ? run.Ahead(0f) : -run.Ahead(run.Length);
+    }
+
+    /// <summary>
+    /// Boxes for a strip beside a Segment, from <paramref name="low"/> to <paramref name="high"/>
+    /// metres along it and <paramref name="offset"/> metres to its left.
+    /// </summary>
+    /// <remarks>
+    /// One box on a straight Segment. A curved one gets a box per chord of at most
+    /// <see cref="ChordTurn"/>, each lengthened to close the gap on the outside of the bend.
+    /// </remarks>
+    private static System.Collections.Generic.IEnumerable<Transform3D> Strip(
+        Run run, float low, float high, float offset, float wide, float tall)
+    {
+        float length = run.Length;
+        float sweep = run.Line.IsStraight || length <= 0f ? 0f : Math.Abs(run.Line.Sweep) / (float)Q16.One;
+        int pieces = sweep == 0f ? 1 : Math.Max(1, Mathf.CeilToInt(sweep * 64f * (high - low) / length));
+        float overlap = pieces == 1 ? 0f : wide * Mathf.Tan(Mathf.Pi * sweep * (high - low) / length / pieces);
+        float step = (high - low) / pieces;
+
+        for (int piece = 0; piece < pieces; piece++)
+        {
+            float from = low + (step * piece), to = from + step;
+            yield return Box(
+                run.At(from) + (Left(run.Ahead(from)) * offset),
+                run.At(to) + (Left(run.Ahead(to)) * offset),
+                wide, overlap, tall);
         }
     }
 
@@ -1272,49 +1385,36 @@ public partial class Main
                 continue;
             }
 
-            var from = new Vector3(
-                nodes.East[a].Raw * MetresPerTile, 0f, -nodes.North[a].Raw * MetresPerTile);
-            var to = new Vector3(
-                nodes.East[b].Raw * MetresPerTile, 0f, -nodes.North[b].Raw * MetresPerTile);
+            var run = new Run(segments.Centerline[slot], NodeAt(nodes, a), NodeAt(nodes, b));
 
             float half = ((RoadKind)segments.Kind[slot] == RoadKind.Arterial
                 ? ArterialWidthMetres
                 : CarriagewayWidthMetres) * 0.5f;
 
-            float length = from.DistanceTo(to);
-            float yaw = Mathf.Atan2(to.X - from.X, to.Z - from.Z);
-            var run = new Vector3(Mathf.Sin(yaw), 0f, Mathf.Cos(yaw));
-
-            // Perpendicular to the run, in the world's frame. Composing the offset here rather than
-            // as a local translation on the basis keeps the two strips symmetric about the centre
-            // line whichever way round the Segment's nodes were created.
-            var across = new Vector3(Mathf.Cos(yaw), 0f, -Mathf.Sin(yaw));
+            float length = run.Length;
+            (Vector3 ahead, Vector3 behind) = (run.Ahead(0f), -run.Ahead(length));
             Color paint = Flagstone.SrgbToLinear();
             ulong id = segments.Rows.IdAt(slot);
 
             for (int lateral = 1; lateral >= -1; lateral -= 2)
             {
-                Vector3 side = across * lateral;
-
                 // The pavement's own two edges, measured out from the carriageway: it begins where
                 // the kerb band ends and ends at the whole footway's width.
-                float low = Trim(
-                    Mitre(a, slot, run, side, half, KerbWidthMetres, FootwayWidthMetres), length);
-                float high = length - Trim(
-                    Mitre(b, slot, -run, side, half, KerbWidthMetres, FootwayWidthMetres), length);
+                float low = Trim(Mitre(a, slot, ahead, Left(ahead) * lateral, half,
+                    KerbWidthMetres, FootwayWidthMetres), length);
+                float high = length - Trim(Mitre(b, slot, behind, -Left(behind) * lateral, half,
+                    KerbWidthMetres, FootwayWidthMetres), length);
 
                 if (high <= low)
                 {
                     continue;
                 }
 
-                var basis = new Basis(Quaternion.FromEuler(new Vector3(0f, yaw, 0f)))
-                    * Basis.FromScale(new Vector3(PavementWidthMetres, 1f, high - low));
-
-                Vector3 middle = from + (run * ((low + high) * 0.5f))
-                    + (side * (half + KerbWidthMetres + (PavementWidthMetres * 0.5f)));
-
-                yield return (id, new Transform3D(basis, middle), paint);
+                foreach (Transform3D piece in Strip(run, low, high,
+                    lateral * (half + KerbWidthMetres + (PavementWidthMetres * 0.5f)), PavementWidthMetres, 1f))
+                {
+                    yield return (id, piece, paint);
+                }
             }
 
             // The head of a dead end, at either end or both. The strips above already ran back past
@@ -1323,18 +1423,12 @@ public partial class Main
 
             if (DeadEnd(a, slot))
             {
-                yield return (
-                    id,
-                    Head(from, run, yaw, span, KerbWidthMetres, FootwayWidthMetres, 1f),
-                    paint);
+                yield return (id, Head(run.From, ahead, span, KerbWidthMetres, FootwayWidthMetres, 1f), paint);
             }
 
             if (DeadEnd(b, slot))
             {
-                yield return (
-                    id,
-                    Head(to, -run, yaw, span, KerbWidthMetres, FootwayWidthMetres, 1f),
-                    paint);
+                yield return (id, Head(run.To, behind, span, KerbWidthMetres, FootwayWidthMetres, 1f), paint);
             }
         }
     }
@@ -1435,46 +1529,27 @@ public partial class Main
                 continue;
             }
 
-            var from = new Vector3(
-                nodes.East[a].Raw * MetresPerTile, 0f, -nodes.North[a].Raw * MetresPerTile);
-            var to = new Vector3(
-                nodes.East[b].Raw * MetresPerTile, 0f, -nodes.North[b].Raw * MetresPerTile);
-
-            // A→B oriented east, then north -- see the remark. World +Z is SOUTH, so northward is
-            // the direction in which Z DECREASES. ⚠ The NODE SLOTS turn over with the ends, because
-            // the mitre below is asked of the node the run leaves.
-            if (to.X < from.X || (Mathf.IsEqualApprox(to.X, from.X) && to.Z > from.Z))
-            {
-                (from, to) = (to, from);
-                (a, b) = (b, a);
-            }
+            var run = new Run(segments.Centerline[slot], NodeAt(nodes, a), NodeAt(nodes, b));
 
             float carriageway = (RoadKind)segments.Kind[slot] == RoadKind.Arterial
                 ? ArterialWidthMetres
                 : CarriagewayWidthMetres;
 
             float half = carriageway * 0.5f;
-            float length = from.DistanceTo(to);
-            float yaw = Mathf.Atan2(to.X - from.X, to.Z - from.Z);
-            var run = new Vector3(Mathf.Sin(yaw), 0f, Mathf.Cos(yaw));
-
-            // +across is LEFT of A→B once the run is oriented: for an eastward Segment yaw is a
-            // quarter turn and this is world north, and BlockPatterns.SideOf says Left is the north
-            // side of one. For a northward Segment it comes out west, which is that same rule's
-            // other half.
-            var across = new Vector3(Mathf.Cos(yaw), 0f, -Mathf.Sin(yaw));
-
+            float length = run.Length;
+            (Vector3 ahead, Vector3 behind) = (run.Ahead(0f), -run.Ahead(length));
             ulong id = segments.Rows.IdAt(slot);
 
             for (byte side = 0; side <= 1; side++)
             {
-                Vector3 lateral = across * (side == (byte)StreetSide.Left ? 1f : -1f);
+                // Left is left of A→B, the direction StreetSide and every Address are stated in.
+                float lateral = side == (byte)StreetSide.Left ? 1f : -1f;
 
                 // The band's own two edges: it starts at the channel and is KerbWidthMetres deep.
                 float low = Trim(
-                    Mitre(a, slot, run, lateral, half, 0f, KerbWidthMetres), length);
+                    Mitre(a, slot, ahead, Left(ahead) * lateral, half, 0f, KerbWidthMetres), length);
                 float high = length - Trim(
-                    Mitre(b, slot, -run, lateral, half, 0f, KerbWidthMetres), length);
+                    Mitre(b, slot, behind, -Left(behind) * lateral, half, 0f, KerbWidthMetres), length);
 
                 if (high <= low)
                 {
@@ -1482,8 +1557,7 @@ public partial class Main
                 }
 
                 foreach ((Transform3D where, Color paint) in Kerb(
-                    from, run, lateral, yaw, carriageway, low, high,
-                    addresses, first, at, side))
+                    run, lateral, carriageway, low, high, addresses, first, at, side))
                 {
                     yield return (id, where, paint);
                 }
@@ -1496,12 +1570,12 @@ public partial class Main
 
             if (DeadEnd(a, slot))
             {
-                yield return (id, Head(from, run, yaw, carriageway, 0f, KerbWidthMetres, tall), stone);
+                yield return (id, Head(run.From, ahead, carriageway, 0f, KerbWidthMetres, tall), stone);
             }
 
             if (DeadEnd(b, slot))
             {
-                yield return (id, Head(to, -run, yaw, carriageway, 0f, KerbWidthMetres, tall), stone);
+                yield return (id, Head(run.To, behind, carriageway, 0f, KerbWidthMetres, tall), stone);
             }
         }
     }
@@ -1609,18 +1683,12 @@ public partial class Main
                 continue;
             }
 
-            int target = arcs.Target[arc];
-            var away = new Vector3(
-                (nodes.East[target].Raw - nodes.East[node].Raw) * MetresPerTile,
-                0f,
-                -(nodes.North[target].Raw - nodes.North[node].Raw) * MetresPerTile);
-
-            if (away.LengthSquared() <= 0f)
+            if (arcs.Target[arc] == node)
             {
                 continue;
             }
 
-            away = away.Normalized();
+            Vector3 away = Leaving(other, node);
 
             // The bearing from this Segment round TOWARD the side being drawn, in [0, τ). The arm
             // with the smallest one is the neighbour this side's edge actually runs into; anything
@@ -1734,15 +1802,14 @@ public partial class Main
     /// </remarks>
     /// <param name="at">The node — the head of the road.</param>
     /// <param name="outward">Unit vector, from the node <em>into</em> the Segment.</param>
-    /// <param name="yaw">The Segment's yaw; the bar lies across it.</param>
     /// <param name="span">How wide the bar is, across the road.</param>
     /// <param name="near">The strip's inner edge, out from the carriageway's edge.</param>
     /// <param name="far">The strip's outer edge, out from the carriageway's edge.</param>
     /// <param name="tall">The Y scale, which is a share of the layer's mesh and not a height.</param>
     private static Transform3D Head(
-        Vector3 at, Vector3 outward, float yaw, float span, float near, float far, float tall) =>
+        Vector3 at, Vector3 outward, float span, float near, float far, float tall) =>
         new(
-            new Basis(Quaternion.FromEuler(new Vector3(0f, yaw + (Mathf.Pi * 0.5f), 0f)))
+            new Basis(Quaternion.FromEuler(new Vector3(0f, Mathf.Atan2(outward.X, outward.Z) + (Mathf.Pi * 0.5f), 0f)))
                 * Basis.FromScale(new Vector3(far - near, tall, span)),
             at - (outward * ((near + far) * 0.5f)));
 
@@ -1776,7 +1843,7 @@ public partial class Main
     /// starting behind the cursor extends the one already open, which is the merge.
     /// </remarks>
     private static System.Collections.Generic.IEnumerable<(Transform3D Where, Color What)> Kerb(
-        Vector3 from, Vector3 run, Vector3 across, float yaw, float carriageway,
+        Run run, float lateral, float carriageway,
         float low, float high,
         List<(int Segment, byte Side, float Along)> addresses, int first, int last, byte side)
     {
@@ -1810,9 +1877,12 @@ public partial class Main
 
             if (start > cursor)
             {
-                yield return Piece(
-                    from, run, across, yaw, cursor, start, KerbWidthMetres,
-                    (carriageway * 0.5f) + (KerbWidthMetres * 0.5f), KerbTopMetres);
+                foreach (var piece in Piece(
+                    run, cursor, start, KerbWidthMetres,
+                    lateral * ((carriageway * 0.5f) + (KerbWidthMetres * 0.5f)), KerbTopMetres))
+                {
+                    yield return piece;
+                }
 
                 cursor = start;
             }
@@ -1824,10 +1894,13 @@ public partial class Main
 
             // THE DROP, and it is wider than the band it replaces because it reaches across the
             // channel. Its centre therefore steps toward the road by half the bite.
-            yield return Piece(
-                from, run, across, yaw, cursor, end, KerbWidthMetres + KerbDropBiteMetres,
-                (carriageway * 0.5f) + (KerbWidthMetres * 0.5f) - (KerbDropBiteMetres * 0.5f),
-                KerbDropTopMetres);
+            foreach (var piece in Piece(
+                run, cursor, end, KerbWidthMetres + KerbDropBiteMetres,
+                lateral * ((carriageway * 0.5f) + (KerbWidthMetres * 0.5f) - (KerbDropBiteMetres * 0.5f)),
+                KerbDropTopMetres))
+            {
+                yield return piece;
+            }
 
             cursor = end;
         }
@@ -1841,18 +1914,15 @@ public partial class Main
     /// rather than re-learned: ***a height derived from a scale rather than from the mesh it scales
     /// is a number about the wrong object.***
     /// </remarks>
-    private static (Transform3D Where, Color What) Piece(
-        Vector3 from, Vector3 run, Vector3 across, float yaw,
-        float start, float end, float wide, float offset, float top)
+    private static System.Collections.Generic.IEnumerable<(Transform3D Where, Color What)> Piece(
+        Run run, float start, float end, float wide, float offset, float top)
     {
         const float half = KerbBoxMetres * 0.5f;
 
-        var basis = new Basis(Quaternion.FromEuler(new Vector3(0f, yaw, 0f)))
-            * Basis.FromScale(new Vector3(wide, top / half, end - start));
-
-        return (
-            new Transform3D(basis, from + (run * ((start + end) * 0.5f)) + (across * offset)),
-            Kerbstone.SrgbToLinear());
+        foreach (Transform3D box in Strip(run, start, end, offset, wide, top / half))
+        {
+            yield return (box, Kerbstone.SrgbToLinear());
+        }
     }
 
     /// <summary>Every Lot's Address as a Segment, a side and a distance, sorted for one walk.</summary>

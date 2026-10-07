@@ -24,7 +24,7 @@ public partial class Main
             [new("Parcels", 0), new("Whole blocks", 1)], i => Ui(i == 0 ? "zone-size parcels" : "zone-size blocks")),
         new("erase", "Erase zoning", "Zoning", Key.None, "Remove permissions; keep existing Buildings", true, 0,
             [new("Erase zoning", 0)], i => Apply(Held("erase", i))),
-        new("street", "Street", "Connections", Key.X, "Lay one Street; Shift-click removes it", true, 0,
+        new("street", "Street", "Connections", Key.X, "Click two points to lay a Street; N switches snapping; Shift-click removes a grid Street", true, 0,
             [new("Street", 0)], i => Apply(Held("street", i))),
         new("demolish", "Demolish", "Demolish", Key.B, "Clear a Building; occupants are paid its land value", true, 0,
             [new("Demolish", 0)], i => Apply(Held("demolish", i))),
