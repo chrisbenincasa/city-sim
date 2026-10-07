@@ -268,7 +268,7 @@ chords of at most 1/64 turn, and strip mitres read the Segment tangent at the No
 Slice 7b is built. The Street tool has simple-curve and continuous modes; X cycles them.
 A simple curve takes start, bend and end, and continuous mode lays each Street tangent to the
 last. Ends snap to a whole number of plot widths along the arc (K) and to 90° plus a finer step
-from the Streets at the start or from east (J, and H cycles 45°, 15° and 5°). The snap settings
+from the Streets at the start or from east (J, and H cycles 90°, 45°, 15° and 5°). The snap settings
 and the 4-Tile reach live in shell preferences, `user://street.cfg`; driven and recorded runs
 ignore them. Two Core defects surfaced in the driven run and are fixed. Zoning a block now carves
 the freeform sides beside it. A join no longer clears the Lot across the Street it joins.

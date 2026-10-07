@@ -100,10 +100,19 @@ public sealed class ZoningPaintTests
             .ToArray();
         Assert.NotEmpty(diagonal);
         Assert.Equal(0, Fronting(world, diagonal));
+        var standing = Enumerable.Range(0, world.Lots.Rows.SlotCount).Where(world.Lots.Rows.IsLive)
+            .Select(i => (Lot: world.Lots.Rows.At(i), Parcel: world.Lots.Parcel(i), Building: world.Lots.BuildingOn(i)))
+            .ToArray();
+        Assert.Contains(standing, lot => lot.Building >= 0);
 
         LotSubdivider.PaintAt(world, new Tiles(south.East.Raw + 4), new Tiles(south.North.Raw + 20), LotTable.Housing);
 
         Assert.True(Fronting(world, diagonal) > 0);
+        Assert.All(standing, lot =>
+        {
+            Assert.True(world.Lots.Rows.TryResolve(lot.Lot, out int slot));
+            Assert.Equal((lot.Parcel, lot.Building), (world.Lots.Parcel(slot), world.Lots.BuildingOn(slot)));
+        });
     }
 
     private static int Fronting(World world, int[] segments) =>

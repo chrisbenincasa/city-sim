@@ -223,7 +223,7 @@ public partial class Main
 
         foreach (int segment in _world.Roads.Residency.Near(start.East, start.North, new Tiles(1)))
         {
-            if (!segments.Rows.IsLive(segment)) continue;
+            if (!segments.Rows.IsLive(segment) || (RoadKind)segments.Kind[segment] == RoadKind.FootPath) continue;
             StreetArc line = segments.Centerline[segment];
             if (line.DistanceTo(east, north) > Q16.One) continue;
             var (tangentEast, tangentNorth) = line.TangentAt(line.OffsetAlong(east, north));
