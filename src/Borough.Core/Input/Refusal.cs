@@ -303,4 +303,7 @@ public enum Refusal : ushort
 
     /// <summary><c>Street</c> clears occupied Buildings whose total price is more than the treasury holds.</summary>
     StreetTreasuryCannotPay = 51,
+
+    /// <summary><c>Zone</c> names a Tile in no closed face and beyond one plot depth of every Street side.</summary>
+    ZoneNoStreet = 52,
 }

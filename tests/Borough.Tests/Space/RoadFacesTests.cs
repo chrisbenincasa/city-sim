@@ -79,6 +79,20 @@ public sealed class RoadFacesTests
     }
 
     [Fact]
+    public void A_point_on_a_spur_centerline_lies_in_the_block_around_the_spur()
+    {
+        RoadGraph graph = Grid(2, 64);
+        int corner = Node(graph, 0, 0);
+        Handle<RoadNode> tip = graph.Nodes.Create(new Tiles(20), new Tiles(20));
+        Segment(graph, graph.Nodes.Rows.At(corner), tip);
+        graph.RebuildDerived();
+
+        int block = Assert.Single(Closed(graph.Faces));
+        Assert.Equal(block, graph.Faces.Find(Q(10), Q(10)));
+        Assert.Equal(block, graph.Faces.Find(Q(10) + 1, Q(10)));
+    }
+
+    [Fact]
     public void A_foot_path_across_a_block_does_not_split_it()
     {
         RoadGraph graph = Grid(2, 64);

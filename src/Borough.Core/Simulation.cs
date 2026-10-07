@@ -814,20 +814,20 @@ public sealed class Simulation
 
     private Refusal RefuseZone(Command command)
     {
-        LandRectangle area;
+        PermissionRefusal paint;
         if (command.Kind == CommandKind.ZoneParcel)
         {
             if (!LotSubdivider.ParcelAt(_world, command.East, command.North, out Parcel parcel)) { return Refusal.ZoneNoParcel; }
-            area = new(parcel.East.Raw, parcel.North.Raw, parcel.Wide.Raw, parcel.Deep.Raw);
+            paint = _world.LandPermissions.CanPaintUses(new LandRectangle(parcel.East.Raw, parcel.North.Raw, parcel.Wide.Raw, parcel.Deep.Raw),
+                command.Zone, _world.Rules.PermissionRecordLimit);
         }
         else
         {
             if (command.East.Raw < 0 || command.North.Raw < 0 || command.East.Raw >= CellGrid.WorldTiles || command.North.Raw >= CellGrid.WorldTiles) { return Refusal.ZoneInvalidBounds; }
-            // Compatibility for abstract worlds: block paint has always been a no-op without a lattice.
-            if (_world.Roads.Streets.Blocks <= 0) { return Refusal.None; }
-            area = _world.BlockGroundRectangle(_world.Roads.Lattice.LineAt(command.East.Raw), _world.Roads.Lattice.LineAt(command.North.Raw));
+            if (!_world.TryZoneGround(command.East, command.North, out ZoneGround ground)) { return Refusal.ZoneNoStreet; }
+            paint = _world.LandPermissions.CanPaintUses(ground, command.Zone, _world.Rules.PermissionRecordLimit);
         }
-        return _world.LandPermissions.CanPaintUses(area, command.Zone, _world.Rules.PermissionRecordLimit) switch
+        return paint switch
         {
             PermissionRefusal.None => Refusal.None,
             PermissionRefusal.RecordLimit => Refusal.ZoneRecordLimit,

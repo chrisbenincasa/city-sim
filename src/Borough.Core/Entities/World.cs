@@ -4755,7 +4755,7 @@ public sealed partial class World
     /// <summary>Returns admission for a uniform geographic intensity band, or zero for mixed bands.</summary>
     public ushort BandAdmitting(int lot)
     {
-        LandPermissionSummary summary = LandPermissions.Summary(LotGround(lot));
+        LandPermissionSummary summary = LotPermissions(lot);
         return summary.MixedIntensity ? (ushort)0 : Rules.Band(summary.Band).Admits;
     }
 
