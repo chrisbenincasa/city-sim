@@ -225,7 +225,7 @@ public static class LotSubdivider
     {
         var rules = world.Rules.Lots;
         OrientedRectangle ground = plot.Parcel.Geometry;
-        if (!ClaimRotated(world, plot.AddressEast, plot.AddressNorth, plot.Side, ref ground)) { return false; }
+        if (!ClaimRotated(world, plot, ref ground)) { return false; }
         LandPermissionSummary here = world.LandPermissions.ParcelSummary(ground);
         if (here.AnyUses == 0) { return false; }
 
@@ -548,7 +548,9 @@ public static class LotSubdivider
         int depth = housing ? rules.Plots.DepthTiles
             : BlockPatterns.DepthTiles(form, BlockFace.South, blockTiles, rules.LotsPerSegment);
         if (SegmentSide.Count(line, width) > plots.Length) { plots = new SidePlot[SegmentSide.Count(line, width)]; }
-        cut = SegmentSide.Cut(line, side, width, depth, rules.StreetHalfWidthTiles, plots);
+        List<int> streets = OtherStreetsNear(world, segment, line, depth);
+        if (!ClearSpan(world, streets, line, side, depth, out int from, out int to)) { return; }
+        cut = SegmentSide.Cut(line, side, width, depth, rules.StreetHalfWidthTiles, plots, from, to);
 
         ulong segmentId = roads.Segments.Rows.IdAt(segment);
         for (int i = 0; i < cut; i++)
@@ -561,17 +563,93 @@ public static class LotSubdivider
         }
     }
 
-    private static bool ClaimRotated(World world, Tiles east, Tiles north, StreetSide side, ref OrientedRectangle ground)
+    private static bool ClaimRotated(World world, Plot plot, ref OrientedRectangle ground)
     {
         int minimum = world.Rules.Lots.MinPlotDepthTiles;
+        List<int> streets = OtherStreetsNear(world, plot.Segment, world.Roads.Segments.Centerline[plot.Segment], ground.Deep);
         for (int depth = ground.Deep; depth == ground.Deep || depth >= minimum && minimum > 0; depth--)
         {
             OrientedRectangle candidate = ground with { Deep = depth };
-            if (FreeRotated(world, east, north, side, candidate)) { ground = candidate; return true; }
+            if (!OnStreet(world, streets, candidate)
+                && FreeRotated(world, plot.AddressEast, plot.AddressNorth, plot.Side, candidate)) { ground = candidate; return true; }
             if (minimum == 0) { return false; }
         }
         return false;
     }
+
+    // Every Street other than this Segment whose reserved ground a plot beside it could reach.
+    private static List<int> OtherStreetsNear(World world, int own, StreetArc line, int depth)
+    {
+        var streets = new List<int>();
+        int half = world.Rules.Lots.StreetHalfWidthTiles;
+        if (half <= 0) { return streets; }
+        int reach = 2 * half + depth + 1;
+        int west = (int)IntegerMath.ShiftRight(Smaller(line.A.East, line.B.East), Fixed.FractionalBits) - reach;
+        int south = (int)IntegerMath.ShiftRight(Smaller(line.A.North, line.B.North), Fixed.FractionalBits) - reach;
+        int east = (int)IntegerMath.ShiftRight(Larger(line.A.East, line.B.East), Fixed.FractionalBits) + reach;
+        int north = (int)IntegerMath.ShiftRight(Larger(line.A.North, line.B.North), Fixed.FractionalBits) + reach;
+        if (!line.IsStraight)
+        {
+            int radius = (int)IntegerMath.ShiftRight(line.Radius, Fixed.FractionalBits) + 1;
+            int centerEast = (int)IntegerMath.ShiftRight(line.Center.East, Fixed.FractionalBits);
+            int centerNorth = (int)IntegerMath.ShiftRight(line.Center.North, Fixed.FractionalBits);
+            west = Smaller(west, centerEast - radius - reach); south = Smaller(south, centerNorth - radius - reach);
+            east = Larger(east, centerEast + radius + reach); north = Larger(north, centerNorth + radius + reach);
+        }
+        RoadGraph roads = world.Roads;
+        foreach (int segment in roads.Residency.In(new Tiles(west), new Tiles(south), new Tiles(east - west + 1), new Tiles(north - south + 1)))
+        {
+            if (segment != own && roads.Segments.Rows.IsLive(segment)
+                && (RoadKind)roads.Segments.Kind[segment] != RoadKind.FootPath) { streets.Add(segment); }
+        }
+        return streets;
+    }
+
+    // The stretch of a Segment side where a plot of this depth stays off every other Street's
+    // reserved ground, found one Tile of frontage at a time inward from each end.
+    private static bool ClearSpan(World world, List<int> streets, StreetArc line, StreetSide side, int depth,
+        out int from, out int to)
+    {
+        from = 0; to = line.Length;
+        if (streets.Count == 0) { return true; }
+        int half = world.Rules.Lots.StreetHalfWidthTiles;
+        while (from + Fixed.One <= to && Blocked(from, from + Fixed.One)) { from += Fixed.One; }
+        while (to - Fixed.One >= from && Blocked(to - Fixed.One, to)) { to -= Fixed.One; }
+        return to - from >= Fixed.One;
+
+        bool Blocked(int start, int end) =>
+            SegmentSide.Plot(line, side, start, end, depth, half, out OrientedRectangle column)
+            && OnStreet(world, streets, column);
+    }
+
+    private static bool OnStreet(World world, List<int> streets, OrientedRectangle ground)
+    {
+        if (streets.Count == 0) { return false; }
+        long reach = (long)world.Rules.Lots.StreetHalfWidthTiles * Fixed.One;
+        for (int column = 0; column < ground.Wide; column++)
+        {
+            long along = 2L * column + 1;
+            for (int row = 0; row < ground.Deep; row++)
+            {
+                long back = 2L * row + 1;
+                long east = ground.EastQ16 + IntegerMath.FloorDiv(along * ground.AxisEastQ16 - back * ground.AxisNorthQ16, 2);
+                long north = ground.NorthQ16 + IntegerMath.FloorDiv(along * ground.AxisNorthQ16 + back * ground.AxisEastQ16, 2);
+                foreach (int segment in streets)
+                {
+                    if (world.Roads.Segments.Centerline[segment].DistanceTo(east, north) <= reach) { return true; }
+                }
+            }
+        }
+        return false;
+    }
+
+    private static long Smaller(long a, long b) => a < b ? a : b;
+
+    private static long Larger(long a, long b) => a > b ? a : b;
+
+    private static int Smaller(int a, int b) => a < b ? a : b;
+
+    private static int Larger(int a, int b) => a > b ? a : b;
 
     private static bool FreeRotated(World world, Tiles east, Tiles north, StreetSide side, OrientedRectangle ground)
     {
