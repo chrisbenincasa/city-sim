@@ -180,13 +180,13 @@ public partial class Main
         _cursor.Multimesh.VisibleInstanceCount = count;
     }
 
-    private (Tiles East, Tiles North, Ticks Tick, int Segments, int Faces) _zoneGroundAt = (new Tiles(-1), default, default, 0, 0);
+    private (Tiles East, Tiles North, object? Roads, uint Version, object? Rules) _zoneGroundAt = (new Tiles(-1), default, null, 0, null);
     private readonly System.Collections.Generic.List<Transform3D> _zoneGroundRuns = [];
 
     /// <summary>Draws the face or Street side a click here would paint, as one box per row run of its Tiles.</summary>
     private void FreeformZonePreview((Tiles East, Tiles North) at)
     {
-        var key = (at.East, at.North, _world.Tick, _world.Roads.Segments.Rows.LiveCount, _world.Roads.Faces.Count);
+        var key = (at.East, at.North, (object?)_world.Roads, _world.Roads.Version, (object?)_world.Rules);
         if (key != _zoneGroundAt)
         {
             _zoneGroundAt = key;

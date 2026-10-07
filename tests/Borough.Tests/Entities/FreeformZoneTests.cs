@@ -79,13 +79,18 @@ public sealed class FreeformZoneTests
         int[] lots = Enumerable.Range(0, world.Lots.Rows.SlotCount).Where(world.Lots.Rows.IsLive).ToArray();
         Assert.NotEmpty(lots);
         Assert.All(lots, lot => Assert.Equal((byte)StreetSide.Left, world.Lots.Side[lot]));
+        Assert.All(lots, lot => Assert.True(Within(ground, world.Lots.Parcel(lot)), $"Lot {lot} reaches past the painted side."));
+        Assert.All(lots, lot => Assert.Equal(LotTable.Housing, world.LotPermissions(lot).CommonUses));
     }
 
     [Fact]
     public void Ground_beyond_every_streets_reach_is_refused_by_name()
     {
         (World world, Simulation simulation) = Empty(Street(300, 100, 364, 100));
-        int reach = LotSubdivider.SideReachTiles(world);
+
+        // minimal.toml: a one-Tile half width plus a back-to-back plot half of the 32-Tile block.
+        const int reach = 1 + 16;
+        Assert.Equal(reach, LotSubdivider.SideReachTiles(world));
 
         Assert.False(world.TryZoneGround(new Tiles(332), new Tiles(100 + reach + 1), out _));
         Assert.Equal(Refusal.ZoneNoStreet, simulation.Refuses(Zone(332, 100 + reach + 1)));
