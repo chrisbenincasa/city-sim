@@ -139,6 +139,9 @@ public sealed class StreetVerbTests
         Assert.Equal(Refusal.StreetTreasuryCannotPay, shortOfMoney.Refusal);
         Assert.True(shortOfMoney.Price.Raw > 0);
         Assert.NotEqual(Refusal.None, tooShort.Refusal);
+        Assert.Equal(0, tooShort.Price.Raw);
+        Assert.Empty(tooShort.Buildings);
+        Assert.Throws<ArgumentException>(() => simulation.PreviewStreet(Command.Gate(street.East, street.North, 0)));
         Assert.Equal(before, world.HashState());
     }
 
