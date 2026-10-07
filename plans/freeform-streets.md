@@ -1,7 +1,7 @@
 # Freeform local Streets with road-aligned Lots
 
-State: building. Slices 1 to 7 are built; freeform `Zone` (slice 9) and batch modes (slice 8)
-remain. The acceptance checks pass on lattice-zoned ground. Wedge use remains open.
+State: building. Slices 1 to 7 and 9 are built; batch modes (slice 8) remain. The acceptance
+checks pass on lattice-zoned and freeform ground. Wedge use remains open.
 Survey of current code done 09/27/2026 against `main` at `919290a5`.
 
 ## Outcome
@@ -276,5 +276,16 @@ The acceptance checks are demonstrated on `minimal.toml` at 1,000 Citizens, insi
 with lattice `Zone` painting the blocks. `FreeformStreetsAcceptanceTests` replays the driven
 Input Log and asserts the closure, overlap, frontage and equivalence checks. No Buildings rise on
 the new Lots because `minimal.toml` has no arrivals.
-Slice 9 is next, because a player cannot yet zone ground outside the lattice. The capability is
-complete when slice 9 repeats the demonstration on freeform ground.
+Slice 9 is built. `Zone` paints the closed face holding its Tile. Outside every closed face it
+paints the nearest Segment side within the Street's half-width plus the deepest plot `GatherSide`
+cuts, 17 Tiles on `minimal.toml`. With no side in reach it is refused as `ZoneNoStreet`.
+`ZoneParcel` and the Input Log format are unchanged. Paint stays per Tile in `LandPermissions`,
+selected by Tile center, so diagonal edges paint as steps. Lot permission checks read only the
+Lot's own Tiles. Parcel mode in the shell stays on the lattice. The demonstration repeats on
+`--empty` ground at 1,000 Citizens: a loop with a dead-end spur, an open curve, a triangle and a
+U that a later Street closes. Zoning made 66 Lots and `people` raised 61 Buildings. After the
+closure, zoning the new face painted its interior and added Lots.
+`FreeformStreetsAcceptanceTests` replays that layout without `people`.
+A carver defect remains. At an acute corner the last plot on a side can cross the adjacent Street,
+and that Lot is only partly painted and never builds.
+Slice 8, Grid and Parallel modes, is next.
