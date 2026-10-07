@@ -139,6 +139,37 @@ public sealed class FreeformStreetsAcceptanceTests
         serial.CheckEndOfRun(); parallel.CheckEndOfRun(); resumed.CheckEndOfRun();
     }
 
+    /// <summary>
+    /// A continuous chain driven through the shell's Street tool on an empty <c>minimal.toml</c>
+    /// world: a straight Street east, then a continuous one turning north from its end.
+    /// </summary>
+    private const string Chain = """
+        borough-log 1
+        seed 0x0000000000000000
+        citizens 1000
+        ruleset 0x91EC749C49011D57
+        --
+        0 ground 0 0 0
+        260 street 1000 1000 1038 1000 0
+        264 street 1038 1000 1076 1029 -529414
+        """;
+
+    [Fact]
+    public void A_continuous_street_leaves_along_the_tangent_the_street_before_it_ends_on()
+    {
+        World world = RunTo(InputLogCodec.FromText(Chain), Rules(), 270).World;
+        int[] live = Enumerable.Range(0, world.Roads.Segments.Rows.SlotCount).Where(world.Roads.Segments.Rows.IsLive).ToArray();
+        StreetArc first = world.Roads.Segments.Centerline[live.Single(s => world.Roads.Segments.Centerline[s].IsStraight)];
+        StreetArc second = world.Roads.Segments.Centerline[live.Single(s => !world.Roads.Segments.Centerline[s].IsStraight)];
+
+        var leaving = first.TangentAt(first.Length);
+        var joining = second.TangentAt(0);
+
+        Assert.Equal(first.B, second.A);
+        Assert.InRange(joining.East - leaving.East, -Fixed.One / 256, Fixed.One / 256);
+        Assert.InRange(joining.North - leaving.North, -Fixed.One / 256, Fixed.One / 256);
+    }
+
     private static Dictionary<ulong, (OrientedRectangle Parcel, int Building)> Snapshot(World world) =>
         Enumerable.Range(0, world.Lots.Rows.SlotCount).Where(world.Lots.Rows.IsLive)
             .ToDictionary(s => world.Lots.Rows.IdAt(s), s => (world.Lots.Parcel(s), world.Lots.BuildingOn(s)));
