@@ -22,35 +22,50 @@ public static class SegmentSide
         widthTiles <= 0 ? 0 : (int)IntegerMath.FloorDiv(line.Length, (long)widthTiles * Fixed.One);
 
     /// <summary>Cuts plots along one side, in order of increasing offset.</summary>
+    /// <param name="from">Where the cut starts along the Segment, in Q16.16 Tiles.</param>
+    /// <param name="to">Where the cut ends, or a negative value for the Segment's B end.</param>
     /// <returns>How many plots were written.</returns>
     public static int Cut(StreetArc line, StreetSide side, int widthTiles, int depthTiles, int halfWidthTiles,
-        Span<SidePlot> into)
+        Span<SidePlot> into, int from = 0, int to = -1)
     {
-        int count = Count(line, widthTiles);
+        if (to < 0) { to = line.Length; }
+        int span = to - from;
+        int count = widthTiles <= 0 || span <= 0 ? 0 : (int)IntegerMath.FloorDiv(span, (long)widthTiles * Fixed.One);
         if (count == 0 || depthTiles <= 0) { return 0; }
         if (into.Length < count) { throw new ArgumentException("The plot buffer is smaller than Count.", nameof(into)); }
 
         int written = 0;
         for (int k = 0; k < count; k++)
         {
-            int start = (int)IntegerMath.FloorDiv((long)line.Length * k, count);
-            int end = (int)IntegerMath.FloorDiv((long)line.Length * (k + 1), count);
-            var (from, to) = side == StreetSide.Left
-                ? (line.PointAt(start), line.PointAt(end))
-                : (line.PointAt(end), line.PointAt(start));
-            long east = to.East - from.East, north = to.North - from.North;
-            long chord = StreetArc.Hypot(east, north);
-            int wide = (int)IntegerMath.FloorDiv(chord, Fixed.One);
-            if (wide <= 0) { continue; }
-
-            int axisEast = (int)IntegerMath.FloorDiv(east * Fixed.One, chord);
-            int axisNorth = (int)IntegerMath.FloorDiv(north * Fixed.One, chord);
-            int cornerEast = (int)(from.East - (long)axisNorth * halfWidthTiles);
-            int cornerNorth = (int)(from.North + (long)axisEast * halfWidthTiles);
-            into[written++] = new SidePlot(new Tiles((int)IntegerMath.FloorDiv(start, Fixed.One)),
-                new OrientedRectangle(cornerEast, cornerNorth, axisEast, axisNorth, wide, depthTiles));
+            int start = from + (int)IntegerMath.FloorDiv((long)span * k, count);
+            int end = from + (int)IntegerMath.FloorDiv((long)span * (k + 1), count);
+            if (Plot(line, side, start, end, depthTiles, halfWidthTiles, out OrientedRectangle ground))
+            {
+                into[written++] = new SidePlot(new Tiles((int)IntegerMath.FloorDiv(start, Fixed.One)), ground);
+            }
         }
 
         return written;
+    }
+
+    /// <summary>The plot whose front edge is the chord between two offsets, set back by the half-width.</summary>
+    public static bool Plot(StreetArc line, StreetSide side, int start, int end, int depthTiles, int halfWidthTiles,
+        out OrientedRectangle ground)
+    {
+        ground = default;
+        var (from, to) = side == StreetSide.Left
+            ? (line.PointAt(start), line.PointAt(end))
+            : (line.PointAt(end), line.PointAt(start));
+        long east = to.East - from.East, north = to.North - from.North;
+        long chord = StreetArc.Hypot(east, north);
+        int wide = (int)IntegerMath.FloorDiv(chord, Fixed.One);
+        if (wide <= 0) { return false; }
+
+        int axisEast = (int)IntegerMath.FloorDiv(east * Fixed.One, chord);
+        int axisNorth = (int)IntegerMath.FloorDiv(north * Fixed.One, chord);
+        int cornerEast = (int)(from.East - (long)axisNorth * halfWidthTiles);
+        int cornerNorth = (int)(from.North + (long)axisEast * halfWidthTiles);
+        ground = new OrientedRectangle(cornerEast, cornerNorth, axisEast, axisNorth, wide, depthTiles);
+        return true;
     }
 }

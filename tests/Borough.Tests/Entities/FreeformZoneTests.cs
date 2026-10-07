@@ -54,6 +54,35 @@ public sealed class FreeformZoneTests
         Assert.All(inside, lot => Assert.Equal(LotTable.Housing, world.Lots.Zone[lot]));
     }
 
+    [Fact]
+    public void Corner_plots_stop_at_the_adjacent_street_and_every_lot_is_wholly_painted()
+    {
+        (World world, Simulation simulation) = Empty(Triangle);
+        simulation.Step(new TickInput([Zone(110, 110)], 0));
+
+        int half = world.Rules.Lots.StreetHalfWidthTiles;
+        int[] lots = Enumerable.Range(0, world.Lots.Rows.SlotCount).Where(world.Lots.Rows.IsLive).ToArray();
+        Assert.Equal(10, lots.Length);
+        foreach (int lot in lots)
+        {
+            Assert.Equal(LotTable.Housing, world.LotPermissions(lot).CommonUses);
+            OrientedRectangle parcel = world.Lots.Parcel(lot);
+            int own = world.Lots.FrontageOn(lot);
+            for (int segment = 0; segment < world.Roads.Segments.Rows.SlotCount; segment++)
+            {
+                if (segment == own || !world.Roads.Segments.Rows.IsLive(segment)) { continue; }
+                StreetArc line = world.Roads.Segments.Centerline[segment];
+                for (int column = 0; column < parcel.Wide; column++)
+                    for (int row = 0; row < parcel.Deep; row++)
+                    {
+                        long east = parcel.EastQ16 + IntegerMath.FloorDiv((2L * column + 1) * parcel.AxisEastQ16 - (2L * row + 1) * parcel.AxisNorthQ16, 2);
+                        long north = parcel.NorthQ16 + IntegerMath.FloorDiv((2L * column + 1) * parcel.AxisNorthQ16 + (2L * row + 1) * parcel.AxisEastQ16, 2);
+                        Assert.True(line.DistanceTo(east, north) > half * Fixed.One, $"Lot {lot} reaches Segment {segment}.");
+                    }
+            }
+        }
+    }
+
     private static bool Within(ZoneGround ground, OrientedRectangle parcel)
     {
         var tiles = new OrientedTiles(parcel);
