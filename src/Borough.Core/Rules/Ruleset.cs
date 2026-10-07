@@ -2277,6 +2277,15 @@ public readonly record struct RoadRuleset(
     /// </summary>
     public Money UpkeepPerSegmentPerDay { get; init; }
 
+    /// <summary>The shortest Segment a lay or a split may leave, in Tiles — <c>min_segment_length_tiles</c>.</summary>
+    public int MinSegmentLengthTiles { get; init; }
+
+    /// <summary>The shallowest angle at which a new Street may meet a Segment, in degrees — <c>min_crossing_angle_degrees</c>.</summary>
+    public int MinCrossingAngleDegrees { get; init; }
+
+    /// <summary>The tightest curve a Street may be laid on, in Tiles — <c>min_curve_radius_tiles</c>.</summary>
+    public int MinCurveRadiusTiles { get; init; }
+
     /// <summary>Whether there are roads at all. <see cref="BlockTiles"/> is what a graph cannot lack.</summary>
     public bool Runs => BlockTiles != 0;
 

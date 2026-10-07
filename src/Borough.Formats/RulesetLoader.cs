@@ -397,6 +397,12 @@ public static class RulesetLoader
             // `block_tiles`, so the lattice tables cannot be read until the block is known.
             LatticeDefinition[] lattices = ReadLattices(roads);
             LotRuleset lots = ReadLots(roads);
+            if (roads.Runs && roads.MinSegmentLengthTiles == 0)
+            {
+                int plot = lots.LotsPerSegment > 0 ? 2 * roads.BlockTiles / lots.LotsPerSegment : 0;
+                roads = roads with { MinSegmentLengthTiles = plot > 0 ? plot : 1 };
+            }
+
             TripRuleset trips = ReadTrips();
             JobRuleset jobs = ReadJobs(trips);
             HouseholdRuleset households = ReadHouseholds();
@@ -7647,12 +7653,28 @@ public static class RulesetLoader
                     + "or drop the key.");
             }
 
+            int shortest = OptionalRoadNumber(
+                "min_segment_length_tiles", minimum: 1, maximum: CellGrid.WorldTiles,
+                "It is the shortest Segment a lay or a split may leave, so it is at least 1 Tile. "
+                + "Absent means one plot width, 2 × block_tiles / lots_per_segment.");
+            int angle = OptionalRoadNumber(
+                "min_crossing_angle_degrees", minimum: 1, maximum: 90,
+                "It is the shallowest angle at which a new Street may meet a Segment, so it is "
+                + "between 1 and 90 degrees. Absent means 30.");
+            int radius = OptionalRoadNumber(
+                "min_curve_radius_tiles", minimum: 1, maximum: CellGrid.WorldTiles,
+                "It is the tightest curve a Street may be laid on, so it is at least 1 Tile. "
+                + "Absent means half of block_tiles.");
+
             return new RoadRuleset(
                 block, spread, arterials, junctions, crossings, paths,
                 street, arterial, walk,
                 streetCapacity, arterialCapacity, pathCapacity)
             {
                 UpkeepPerSegmentPerDay = new Money(upkeep),
+                MinSegmentLengthTiles = shortest,
+                MinCrossingAngleDegrees = angle == 0 ? 30 : angle,
+                MinCurveRadiusTiles = radius == 0 ? (block > 1 ? block / 2 : 1) : radius,
             };
         }
 

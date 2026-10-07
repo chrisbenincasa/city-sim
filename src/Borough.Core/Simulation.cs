@@ -1270,8 +1270,7 @@ public sealed class Simulation
         // finds nothing to clear. A Lot that loses its Street keeps standing with no Address
         // (adr/0079), and a re-lay on the same edge gives its frontage back.
         Space.Frontage.Sever(_world.Lots);
-        Space.Frontage.AttachTo(
-            _world.Lots, _world.Roads.Streets, _world.Roads.Segments, laid[..created]);
+        Space.Frontage.AttachTo(_world.Lots, _world.Roads, laid[..created]);
 
         _world.Frontage.Rebuild(_world.Lots);
 
