@@ -4,7 +4,10 @@ using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
 using Borough.Core.Tables;
+using Borough.Core.Movement;
+using Borough.Core.Persistence;
 using Borough.Formats;
+using Borough.Tests.Persistence;
 
 namespace Borough.Tests.Space;
 
@@ -98,6 +101,57 @@ public sealed class FreeformLayTests
         var at = piece.PointAt(world.Lots.FrontageOffset[lot].Raw * Fixed.One);
         Assert.InRange(at.East - (1_090L * Fixed.One), -2L * Fixed.One, 2L * Fixed.One);
         Assert.Equal(3, Live(world.Roads).Count(s => world.Roads.Segments.Centerline[s].IsStraight));
+    }
+
+    [Fact]
+    public void A_split_moves_only_the_addresses_past_it_onto_the_created_segment()
+    {
+        World world = Fresh();
+        Assert.Equal(StreetLayRefusal.None, world.LayStreet(1_000, 1_000, 1_100, 1_000, 0));
+        int street = Assert.Single(Live(world.Roads));
+        int trip = world.Trips.Rows.Resolve(world.Trips.Create(world.Roads.Segments, TripPurpose.Shopping,
+            Address.On(street, new Tiles(20), StreetSide.Left), Address.On(street, new Tiles(80), StreetSide.Left)));
+
+        Assert.Equal(StreetLayRefusal.None, world.LayStreet(1_050, 950, 1_050, 1_050, 0));
+
+        Assert.Equal(street, world.Roads.Segments.Rows.Resolve(world.Trips.OriginSegment[trip]));
+        Assert.Equal(20, world.Trips.OriginOffset[trip].Raw);
+        int moved = world.Roads.Segments.Rows.Resolve(world.Trips.DestinationSegment[trip]);
+        Assert.NotEqual(street, moved);
+        var at = world.Roads.Segments.Centerline[moved].PointAt(world.Trips.DestinationOffset[trip].Raw * Fixed.One);
+        Assert.Equal((1_080L * Fixed.One, 1_000L * Fixed.One), ((long)at.East, (long)at.North));
+    }
+
+    [Fact]
+    public void A_lay_fronts_an_unfronted_lot_beside_it_only_on_the_lots_own_side()
+    {
+        World world = Fresh();
+        int left = world.Lots.Rows.Resolve(world.Lots.Create(new Tiles(1_050), new Tiles(1_001), LotTable.Housing, StreetSide.Left));
+        int right = world.Lots.Rows.Resolve(world.Lots.Create(new Tiles(1_030), new Tiles(1_001), LotTable.Housing, StreetSide.Right));
+
+        Assert.Equal(StreetLayRefusal.None, world.LayStreet(1_000, 1_000, 1_100, 1_000, 0));
+
+        int street = Assert.Single(Live(world.Roads));
+        Assert.True(world.Lots.HasFrontage(left));
+        Assert.Equal(street, world.Lots.FrontageOn(left));
+        Assert.Equal(50, world.Lots.FrontageOffset[left].Raw);
+        Assert.False(world.Lots.Rows.IsLive(right) && world.Lots.HasFrontage(right));
+    }
+
+    [Fact]
+    public void A_world_with_split_freeform_streets_saves_and_reloads_to_the_same_state()
+    {
+        World world = Fresh();
+        Assert.Equal(StreetLayRefusal.None, world.LayStreet(1_000, 1_000, 1_100, 1_000, 0));
+        Assert.Equal(StreetLayRefusal.None, world.LayStreet(1_000, 990, 1_100, 990, 20 * Fixed.One));
+
+        var saved = new MemorySave();
+        SaveFile.Write(world, 1, saved);
+        World loaded = SaveFile.Read(saved, world.Rules, out _);
+
+        Assert.Equal(world.HashState(), loaded.HashState());
+        Assert.Equal(Live(world.Roads).Select(s => world.Roads.Segments.Centerline[s]),
+            Live(loaded.Roads).Select(s => loaded.Roads.Segments.Centerline[s]));
     }
 
     [Theory]
