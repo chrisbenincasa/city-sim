@@ -231,6 +231,57 @@ public sealed class FreeformStreetsAcceptanceTests
             Assert.DoesNotContain(live, b => b > a && world.Lots.Parcel(a).Overlaps(world.Lots.Parcel(b)));
     }
 
+    /// <summary>
+    /// Batch gestures driven through the shell's Street tool on an empty <c>minimal.toml</c> world:
+    /// a 2 × 2 grid of 32-Tile blocks, then a straight and a curved Street each with a parallel copy
+    /// at the default 32-Tile offset.
+    /// </summary>
+    private const string Batch = """
+        borough-log 1
+        seed 0x0000000000000000
+        citizens 1000
+        ruleset 0x91EC749C49011D57
+        --
+        0 ground 0 0 0
+        262 street 1000 1000 1064 1000 0
+        262 street 1000 1032 1064 1032 0
+        262 street 1000 1064 1064 1064 0
+        262 street 1000 1000 1000 1064 0
+        262 street 1032 1000 1032 1064 0
+        262 street 1064 1000 1064 1064 0
+        270 street 1200 1000 1264 1000 0
+        270 street 1200 1032 1264 1032 0
+        280 street 1400 1000 1464 1000 786432
+        280 street 1379 1024 1485 1024 1303538
+        """;
+
+    [Fact]
+    public void A_grid_gesture_closes_its_blocks_and_parallel_copies_keep_their_offset()
+    {
+        World world = RunTo(InputLogCodec.FromText(Batch), Rules(), 290).World;
+        StreetArc[] lines = Enumerable.Range(0, world.Roads.Segments.Rows.SlotCount).Where(world.Roads.Segments.Rows.IsLive)
+            .Select(s => world.Roads.Segments.Centerline[s]).ToArray();
+        StreetArc Starting(int east, int north) =>
+            lines.Single(l => l.A == ((long)east * Fixed.One, (long)north * Fixed.One));
+
+        int[] blocks = [.. new[] { (1_016, 1_016), (1_048, 1_016), (1_016, 1_048), (1_048, 1_048) }.Select(b =>
+        {
+            Assert.True(world.TryZoneGround(new Tiles(b.Item1), new Tiles(b.Item2), out ZoneGround ground));
+            Assert.True(ground.Face >= 0 && world.Roads.Faces.IsClosed(ground.Face));
+            return ground.Face;
+        })];
+        Assert.Equal(4, blocks.Distinct().Count());
+
+        StreetArc straight = Starting(1_200, 1_000), straightCopy = Starting(1_200, 1_032);
+        Assert.Equal(32L * Fixed.One, straight.DistanceTo(straightCopy.A.East, straightCopy.A.North));
+        Assert.Equal(32L * Fixed.One, straight.DistanceTo(straightCopy.B.East, straightCopy.B.North));
+
+        StreetArc curve = Starting(1_400, 1_000), curveCopy = Starting(1_379, 1_024);
+        Assert.InRange(curveCopy.Center.East - curve.Center.East, -Fixed.One, Fixed.One);
+        Assert.InRange(curveCopy.Center.North - curve.Center.North, -Fixed.One, Fixed.One);
+        Assert.InRange(curveCopy.Radius - curve.Radius, 31L * Fixed.One, 33L * Fixed.One);
+    }
+
     private static Dictionary<ulong, (OrientedRectangle Parcel, int Building)> Snapshot(World world) =>
         Enumerable.Range(0, world.Lots.Rows.SlotCount).Where(world.Lots.Rows.IsLive)
             .ToDictionary(s => world.Lots.Rows.IdAt(s), s => (world.Lots.Parcel(s), world.Lots.BuildingOn(s)));
