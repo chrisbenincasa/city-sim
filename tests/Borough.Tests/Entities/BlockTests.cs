@@ -489,6 +489,11 @@ public sealed class BlockTests
         Assert.Contains(order, o => o.Segment == curveId);
         Assert.Contains(order, o => o.Segment > curveId);
         Assert.Equal(order.OrderBy(o => o.Segment).ThenBy(o => o.Side).ThenBy(o => o.Offset), order);
+        var live = Enumerable.Range(0, world.Lots.Rows.SlotCount).Where(world.Lots.Rows.IsLive).ToList();
+        foreach (int lot in live)
+        {
+            Assert.DoesNotContain(live, other => other != lot && world.Lots.Parcel(lot).Overlaps(world.Lots.Parcel(other)));
+        }
     }
 
     /// <summary>The first lattice square with Streets on it that nothing has claimed a face of.</summary>
