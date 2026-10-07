@@ -108,8 +108,10 @@ public sealed partial class World
     /// <remarks>
     /// <paramref name="from"/> keeps the part nearer its NodeA. A forward hop crosses it and then
     /// <paramref name="to"/>; a backward hop crosses <paramref name="to"/> first, so that hop is
-    /// renamed and the original follows it. A Vehicle already on the hop keeps the arrival time it
-    /// was priced at for the whole Segment.
+    /// renamed and the original follows it. A Leg's first hop starts at its own Address and its last
+    /// hop ends at one, so either keeps only the half it drives when that Address lies on the other
+    /// side of the split. Addresses must already have moved. A Vehicle already on the hop keeps the
+    /// arrival time it was priced at for the whole Segment.
     /// </remarks>
     private void SplitRouteHops(Handle<RoadSegment> from, Handle<RoadSegment> to)
     {
@@ -123,10 +125,21 @@ public sealed partial class World
                 if (RouteHops.Segment[hop] == from)
                 {
                     bool forward = RouteHops.Forward[hop] != 0;
-                    int added = RouteHops.Rows.Resolve(RouteHops.Create(
-                        Roads.Segments, Roads.Segments.Rows.Resolve(forward ? to : from), forward));
-                    if (!forward) { RouteHops.Segment[hop] = to; }
-                    Legs.Route(RouteHops).InsertAfter(leg, hop, added);
+                    bool first = hop == Legs.RouteHead[leg] - 1, last = hop == Legs.RouteTail[leg] - 1;
+                    Handle<RoadSegment> start = Legs.FromSegment[leg], end = Legs.ToSegment[leg];
+                    bool near = forward ? !(first && start == to) : !(last && end == to);
+                    bool far = forward ? !(last && end == from) : !(first && start == from);
+                    if (near && far)
+                    {
+                        int added = RouteHops.Rows.Resolve(RouteHops.Create(
+                            Roads.Segments, Roads.Segments.Rows.Resolve(forward ? to : from), forward));
+                        if (!forward) { RouteHops.Segment[hop] = to; }
+                        Legs.Route(RouteHops).InsertAfter(leg, hop, added);
+                    }
+                    else if (far)
+                    {
+                        RouteHops.Segment[hop] = to;
+                    }
                 }
 
                 hop = next;

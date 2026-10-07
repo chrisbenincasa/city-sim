@@ -38,6 +38,7 @@ namespace Borough.Formats;
 /// the rule <see cref="Version"/> states thirty lines below — <em>what would bump it is a sixth field
 /// on a command</em>. A verb needing a second coordinate pair <b>is</b> that sixth field, and would
 /// have bumped the version while this sentence said it could not.
+/// </para>
 /// <para>
 /// <b>Connect arrived and did not bump it — but by design rather than by luck</b> (<c>adr/0077</c>).
 /// A road edit is one Segment named by an <em>origin and an axis</em>, so the far endpoint is derived
@@ -49,7 +50,6 @@ namespace Borough.Formats;
 /// <para>
 /// <b><c>street</c> is the one verb with seven fields</b>: both ends and the sagitta. It is a new
 /// verb, so an old reader refuses its lines by name and no existing line changes meaning.
-/// </para>
 /// </para>
 /// </remarks>
 public static class InputLogCodec

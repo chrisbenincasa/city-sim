@@ -173,9 +173,36 @@ public sealed class FreeformLayTests
         Assert.Equal([(created, false), (street, false)], Hops(world, west));
     }
 
-    private static int Route(World world, params (int Segment, bool Forward)[] hops)
+    [Fact]
+    public void A_route_that_starts_or_ends_on_a_split_street_keeps_only_the_half_it_drives()
     {
-        int leg = world.Legs.Rows.Resolve(world.Legs.Create(world.Roads.Segments, TravelMode.Car, Address.None, Address.None, TravelTime.Zero));
+        World world = Fresh();
+        Assert.Equal(StreetLayRefusal.None, world.LayStreet(1_000, 1_000, 1_100, 1_000, 0));
+        int street = Assert.Single(Live(world.Roads));
+        Address near = Address.On(street, new Tiles(20), StreetSide.Left), far = Address.On(street, new Tiles(80), StreetSide.Left);
+        int leavesEast = Route(world, far, Address.None, (street, true));
+        int leavesWest = Route(world, near, Address.None, (street, false));
+        int arrivesFromWest = Route(world, Address.None, near, (street, true));
+        int arrivesFromEast = Route(world, Address.None, far, (street, false));
+        int along = Route(world, near, far, (street, true));
+
+        Assert.Equal(StreetLayRefusal.None, world.LayStreet(1_050, 950, 1_050, 1_050, 0));
+
+        int created = Live(world.Roads).Single(s => s != street
+            && End(world.Roads, world.Roads.Segments.NodeB[s]) == (1_100, 1_000));
+        Assert.Equal([(created, true)], Hops(world, leavesEast));
+        Assert.Equal([(street, false)], Hops(world, leavesWest));
+        Assert.Equal([(street, true)], Hops(world, arrivesFromWest));
+        Assert.Equal([(created, false)], Hops(world, arrivesFromEast));
+        Assert.Equal([(street, true), (created, true)], Hops(world, along));
+    }
+
+    private static int Route(World world, params (int Segment, bool Forward)[] hops) =>
+        Route(world, Address.None, Address.None, hops);
+
+    private static int Route(World world, Address from, Address to, params (int Segment, bool Forward)[] hops)
+    {
+        int leg = world.Legs.Rows.Resolve(world.Legs.Create(world.Roads.Segments, TravelMode.Car, from, to, TravelTime.Zero));
         foreach ((int segment, bool forward) in hops)
         {
             world.Legs.AppendHop(world.RouteHops, leg, world.RouteHops.Rows.Resolve(world.RouteHops.Create(world.Roads.Segments, segment, forward)));
