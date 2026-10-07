@@ -27,7 +27,9 @@ jobs:
           echo "at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
           echo "head=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR" --jq .head.sha)" >> "$GITHUB_OUTPUT"
           for label in ready caution changes; do
-            gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$PR/labels/bot%3A%20$label" > /dev/null 2>&1 || true
+            if ! out=$(gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$PR/labels/bot%3A%20$label" 2>&1); then
+              case "$out" in *"HTTP 404"*) ;; *) echo "::warning::Could not remove 'bot: $label': $out" ;; esac
+            fi
           done
       - uses: the-pr-agent/pr-agent@main
         env:
@@ -75,7 +77,7 @@ jobs:
 
           # The review's findings can quote this pattern, so match only the summary table cell.
           verdict=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PR/comments" \
-            --jq ".[] | select((.body // \"\") | contains(\"pr-agent:review:full\")) | select(.updated_at >= \"$SINCE\") | .body" \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\") | select((.body // \"\") | contains(\"pr-agent:review:full\")) | select(.updated_at >= \"$SINCE\") | .body" \
             | grep -oE '<strong>Merge recommendation</strong>: (Safe to merge|Merge with caution|Changes required)</td>' \
             | head -n 1 | sed -E 's/.*: (.*)<\/td>/\1/')
 
@@ -106,5 +108,7 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
         run: |
           for label in ready caution changes; do
-            gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$PR/labels/bot%3A%20$label" > /dev/null 2>&1 || true
+            if ! out=$(gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$PR/labels/bot%3A%20$label" 2>&1); then
+              case "$out" in *"HTTP 404"*) ;; *) echo "::warning::Could not remove 'bot: $label': $out" ;; esac
+            fi
           done
