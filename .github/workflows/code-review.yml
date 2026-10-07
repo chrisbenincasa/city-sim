@@ -17,8 +17,18 @@ jobs:
       pull-requests: write
       contents: write
     steps:
+      # A failed review must leave the PR unlabeled, so the old verdict goes before the review runs.
       - id: start
-        run: echo "at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+        if: github.event_name == 'pull_request' || startsWith(github.event.comment.body, '/review')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number || github.event.issue.number }}
+        run: |
+          echo "at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+          echo "head=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR" --jq .head.sha)" >> "$GITHUB_OUTPUT"
+          for label in ready caution changes; do
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$PR/labels/bot%3A%20$label" > /dev/null 2>&1 || true
+          done
       - uses: the-pr-agent/pr-agent@main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -52,31 +62,35 @@ jobs:
       # The verdict lives only in the review comment's text. Labels make it filterable:
       # gh pr list --label 'bot: ready'
       - name: Label the merge recommendation
-        if: github.event_name == 'pull_request' || startsWith(github.event.comment.body, '/review')
+        if: steps.start.outcome == 'success'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ github.event.pull_request.number || github.event.issue.number }}
           SINCE: ${{ steps.start.outputs.at }}
+          REVIEWED: ${{ steps.start.outputs.head }}
         run: |
           gh label create 'bot: ready' --color 0e8a16 --description 'PR-Agent: safe to merge' --force -R "$GITHUB_REPOSITORY"
           gh label create 'bot: caution' --color fbca04 --description 'PR-Agent: merge with caution' --force -R "$GITHUB_REPOSITORY"
           gh label create 'bot: changes' --color d93f0b --description 'PR-Agent: changes required' --force -R "$GITHUB_REPOSITORY"
 
-          for label in ready caution changes; do
-            gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$PR/labels/bot%3A%20$label" > /dev/null 2>&1 || true
-          done
-
-          # Only a review comment written by this run counts; an older one may predate a push.
+          # The review's findings can quote this pattern, so match only the summary table cell.
           verdict=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PR/comments" \
-            --jq ".[] | select(.body | contains(\"pr-agent:review:full\")) | select(.updated_at >= \"$SINCE\") | .body" \
-            | grep -o 'Merge recommendation</strong>: [A-Za-z ]*' | tail -n 1 | sed 's/.*: //')
+            --jq ".[] | select((.body // \"\") | contains(\"pr-agent:review:full\")) | select(.updated_at >= \"$SINCE\") | .body" \
+            | grep -oE '<strong>Merge recommendation</strong>: (Safe to merge|Merge with caution|Changes required)</td>' \
+            | head -n 1 | sed -E 's/.*: (.*)<\/td>/\1/')
 
           case "$verdict" in
             "Safe to merge") label='bot: ready' ;;
             "Merge with caution") label='bot: caution' ;;
             "Changes required") label='bot: changes' ;;
-            *) echo "::notice::No fresh merge recommendation found; PR left unlabeled."; exit 0 ;;
+            *) echo "::warning::No merge recommendation found in a fresh review comment; PR left unlabeled."; exit 0 ;;
           esac
+
+          head=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR" --jq .head.sha)
+          if [ "$head" != "$REVIEWED" ]; then
+            echo "::notice::The PR moved from $REVIEWED to $head during the review; PR left unlabeled."
+            exit 0
+          fi
           gh api -X POST "repos/$GITHUB_REPOSITORY/issues/$PR/labels" -f "labels[]=$label" > /dev/null
 
   # A push makes the last verdict stale until the next /review.
