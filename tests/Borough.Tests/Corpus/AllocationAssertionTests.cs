@@ -7,7 +7,7 @@ namespace Borough.Tests.Corpus;
 /// </summary>
 /// <remarks>
 /// <para>
-/// 🔴 <b><c>plans/0002</c> §B names this set and named it wrongly for months</b> — <i>"there are
+/// 🔴 <b>historical <c>plans/0002</c> §B (at <c>be07abc3</c>) names this set and named it wrongly for months</b> — <i>"there are
 /// eight … and only the first spelling was ever counted"</i>. The sites wrote the same property two
 /// ways, <c>Assert.Equal(before, after)</c> and <c>Assert.Equal(0, after - before)</c>, so a grep for
 /// either found half of them and the row said <b>four</b>. ***A property asserted in two spellings is
@@ -22,7 +22,8 @@ namespace Borough.Tests.Corpus;
 /// <para>
 /// ⚠ <b>Nothing here calls <see cref="AllocationProbe.Check"/>, and the omission is the point.</b>
 /// A test that called it would appear in <c>alloc-probe.csv</c> as a **ninth reading**, and
-/// <c>plans/0002</c> §B's arithmetic is *eight sites × N runs* — so a synthetic row breaks the
+/// The arithmetic in historical <c>plans/0002</c> §B (at <c>be07abc3</c>) is *eight sites × N runs*,
+/// so a synthetic row breaks the
 /// denominator of the open question this class exists to serve. The happy path is therefore left
 /// untested here and is covered ~700 times over by every real run in the file.
 /// ***A test for an instrument must not appear in the instrument's output.***
@@ -38,7 +39,7 @@ public sealed class AllocationAssertionTests
     /// <c>CLAUDE.md</c>'s rule that every diagnostic ships with a test that writes the violation and
     /// watches it fire. ⚠ <b>The message is the point of the method</b>, not the throw: a firing
     /// <em>already</em> failed the suite before this change, and what was missing was anything telling
-    /// the reader that the run had just written the sample <c>plans/0002</c> §B was waiting for.
+    /// the reader that the run had just written the sample historical <c>plans/0002</c> §B (at <c>be07abc3</c>) was waiting for.
     /// </para>
     /// <para>
     /// 🔴 ⚠ <b>It asserted the probe's DEFAULT filename until 2026-08-26, so redirecting the probe
@@ -91,7 +92,8 @@ public sealed class AllocationAssertionTests
     /// <remarks>
     /// ⚠ <b>It counts <see cref="AllocationProbe.Check"/> call sites and refuses the raw spellings.</b>
     /// A site that measured the counter and asserted on it by hand would be invisible to
-    /// <c>plans/0002</c> §B's machine, which is the failure this test exists to make impossible
+    /// the machine in historical <c>plans/0002</c> §B (at <c>be07abc3</c>), which is the failure this
+    /// test exists to make impossible
     /// rather than merely unlikely.
     /// </remarks>
     [Fact]
@@ -134,7 +136,7 @@ public sealed class AllocationAssertionTests
         Assert.True(
             raw.Count == 0,
             "an allocation assertion is written by hand rather than through AllocationProbe.Check, "
-            + "so plans/0002 §B's machine cannot see it and a firing there records no sample:\n  "
+            + "so historical plans/0002 §B's machine cannot see it and a firing there records no sample:\n  "
             + string.Join("\n  ", raw));
 
         Assert.Equal(

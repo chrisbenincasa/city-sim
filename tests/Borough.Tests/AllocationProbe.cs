@@ -239,7 +239,7 @@ internal static class AllocationProbe
     /// <para>
     /// ⚠ <b>The eight sites wrote the assertion eight times and in two spellings</b> —
     /// <c>Assert.Equal(before, after)</c> and <c>Assert.Equal(0, after - before)</c> — which is what
-    /// made them uncountable by grep and left §B naming four of them for months. ***A property
+    /// made them uncountable by grep and left historical §B naming four of them for months. ***A property
     /// asserted in two spellings is a property nothing can enumerate.***
     /// </para>
     /// </remarks>
