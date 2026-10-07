@@ -144,7 +144,9 @@ public partial class Main
         Verb.Zone => ZoneName(),
         Verb.Connect => $"STREET, {StreetModeNames[(int)_streetMode].ToUpperInvariant()} ("
             + (_streetStart is null ? "click the start; shift-click bulldozes)"
-                : _streetMode == StreetMode.Curve && _streetBend is null ? "click the bend point)" : "click the end)"),
+                : _streetMode == StreetMode.Curve && _streetBend is null && !Straightened ? "click the bend point)"
+                : _streetMode == StreetMode.Grid ? _streetGridEdge is null ? "click the far corner)" : "drag sideways, then release)"
+                : "click the end)"),
         Verb.Demolish => "DEMOLISH",
         Verb.Service => _serviceKind != 0
             ? $"SERVICE {_names.Kind(_serviceKind) ?? _serviceKind.ToString()} (s cycles)"
@@ -642,7 +644,7 @@ public partial class Main
         : _pressedInverted
             ? _world.Roads.Streets.Between(from.East, from.North, to.East, to.North).Drag
                 is not (StreetDrag.OneEdge or StreetDrag.NoLattice) ? to : null
-        : _streetStart is { } start && Snap(to) is var end && (end.East, end.North) != start ? to : null;
+        : _streetStart is { } start && from != to && Snap(to) is var end && (end.East, end.North) != start ? to : null;
 
     /// <summary>
     /// Lays the freeform Street a drag covered, or with Shift removes every lattice Street on the
