@@ -422,6 +422,14 @@ public partial class Main
         Refusal.ZoneNoParcel => "Choose a parcel beside a Street or an existing Building.",
         Refusal.ZoneRecordLimit => "This paint is too complex for the city's permission limit. Existing permissions stay; simplify or erase some paint first.",
         Refusal.ZoneInvalidBounds => "Choose ground inside the editable map.",
+        Refusal.StreetOffMap => "both ends of a Street must lie on the map, and this city must allow roads.",
+        Refusal.StreetNotAnArc => "a Street needs two different ends and can bend at most a quarter turn.",
+        Refusal.StreetTooTight => "that curve is tighter than this city allows.",
+        Refusal.StreetTooShort => "that would leave a piece of Street shorter than this city allows.",
+        Refusal.StreetTooShallow => "Streets must meet at a wider angle than that.",
+        Refusal.StreetMovesRoad => "joining there would move an existing Street too far.",
+        Refusal.StreetTreasuryCannotPay =>
+            "the treasury cannot pay the people this Street would displace.",
         Refusal.ConnectRoadKindIsNotStreet =>
             "only a Street can be laid by hand — an Arterial is a route rather than one click.",
 

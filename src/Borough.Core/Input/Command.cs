@@ -338,6 +338,18 @@ public enum CommandKind : ushort
     /// exact Lot origin. Placement requires frontage and exactly one declared Hinterland edge.
     /// </remarks>
     Gate = 14,
+
+    /// <summary>
+    /// Lay a freeform Street between two Tiles, bent by a sagitta. Clears the Lots its paved width
+    /// crosses and pays the displaced at the <see cref="Demolish"/> price.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Command.East"/> and <see cref="Command.North"/> name one end,
+    /// <see cref="Command.EndEast"/> and <see cref="Command.EndNorth"/> the other, and
+    /// <see cref="Command.Sagitta"/> the bend. A new verb rather than a wider <see cref="Connect"/>,
+    /// so existing log lines keep their meaning and the format version stays at 1.
+    /// </remarks>
+    Street = 15,
 }
 
 /// <summary>
@@ -352,8 +364,8 @@ public enum CommandKind : ushort
 /// </para>
 /// <para>
 /// <b>There are no padding bytes here, and that is checked by arithmetic rather than assumed.</b>
-/// Two <see cref="ushort"/>s pack to four bytes and two <see cref="Tiles"/> are four each: twelve
-/// bytes, fully defined. The rule comes from <see cref="Tables.Column{T}"/>, where undefined bytes
+/// Two <see cref="ushort"/>s pack to four bytes, and four <see cref="Tiles"/> and one
+/// <see cref="SubTiles"/> are four bytes each: twenty-four bytes, fully defined. The rule comes from <see cref="Tables.Column{T}"/>, where undefined bytes
 /// would reach the State Hash. Nothing folds a Command today — commands are inputs, not state — but
 /// the discipline is cheaper to keep than to reinstate.
 /// </para>
@@ -371,6 +383,22 @@ public readonly struct Command
         East = east;
         North = north;
     }
+
+    private Command(Tiles east, Tiles north, Tiles endEast, Tiles endNorth, SubTiles sagitta)
+        : this(CommandKind.Street, east, north)
+    {
+        EndEast = endEast;
+        EndNorth = endNorth;
+        Sagitta = sagitta;
+    }
+
+    /// <summary>Lay a freeform Street from one Tile to another — <see cref="CommandKind.Street"/>.</summary>
+    /// <param name="sagitta">
+    /// How far the middle of the Street stands off the straight line between its ends. Positive
+    /// bends it to the left of travel from the first end.
+    /// </param>
+    public static Command Street(Tiles east, Tiles north, Tiles endEast, Tiles endNorth, SubTiles sagitta) =>
+        new(east, north, endEast, endNorth, sagitta);
 
     /// <summary>Set a declared Policy's amount — <c>01 §2</c>'s <c>Govern</c>.</summary>
     /// <remarks>
@@ -508,6 +536,15 @@ public readonly struct Command
 
     /// <summary>Where, northward.</summary>
     public Tiles North { get; }
+
+    /// <summary>A <see cref="CommandKind.Street"/>'s far end, eastward. Zero for every other verb.</summary>
+    public Tiles EndEast { get; }
+
+    /// <summary>A <see cref="CommandKind.Street"/>'s far end, northward. Zero for every other verb.</summary>
+    public Tiles EndNorth { get; }
+
+    /// <summary>A <see cref="CommandKind.Street"/>'s bend. Zero for every other verb.</summary>
+    public SubTiles Sagitta { get; }
 }
 
 /// <summary>

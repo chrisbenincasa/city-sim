@@ -51,7 +51,14 @@ public sealed partial class RoadGraph
     /// in order, so applying them in turn moves frontage correctly when one Segment is cut twice.
     /// </remarks>
     public StreetLayRefusal LayStreet(int aEast, int aNorth, int bEast, int bNorth, int sagitta,
-        List<SegmentSplit> splits, List<int> laid)
+        List<SegmentSplit> splits, List<int> laid) => Lay(aEast, aNorth, bEast, bNorth, sagitta, splits, laid, commit: true);
+
+    /// <summary>Why <see cref="LayStreet"/> would refuse these ends, without changing the graph.</summary>
+    public StreetLayRefusal RefuseStreet(int aEast, int aNorth, int bEast, int bNorth, int sagitta) =>
+        Lay(aEast, aNorth, bEast, bNorth, sagitta, [], [], commit: false);
+
+    private StreetLayRefusal Lay(int aEast, int aNorth, int bEast, int bNorth, int sagitta,
+        List<SegmentSplit> splits, List<int> laid, bool commit)
     {
         ArgumentNullException.ThrowIfNull(splits);
         ArgumentNullException.ThrowIfNull(laid);
@@ -123,6 +130,8 @@ public sealed partial class RoadGraph
         {
             if (TooShallow(line, stop, near, cuts, cosine)) { return StreetLayRefusal.TooShallow; }
         }
+
+        if (!commit) { return StreetLayRefusal.None; }
 
         foreach (var (segment, on, split) in cuts)
         {

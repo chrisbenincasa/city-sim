@@ -282,4 +282,25 @@ public enum Refusal : ushort
     ZoneRecordLimit = 43,
     /// <summary>The requested ground lies outside the editable lattice.</summary>
     ZoneInvalidBounds = 44,
+
+    /// <summary><c>Street</c> names an end off the map, or the Ruleset lays no roads.</summary>
+    StreetOffMap = 45,
+
+    /// <summary><c>Street</c>'s ends coincide, or its sagitta bends it past a quarter turn.</summary>
+    StreetNotAnArc = 46,
+
+    /// <summary><c>Street</c> curves tighter than <c>[roads] min_curve_radius_tiles</c>.</summary>
+    StreetTooTight = 47,
+
+    /// <summary><c>Street</c> would leave a Segment shorter than <c>[roads] min_segment_length_tiles</c>.</summary>
+    StreetTooShort = 48,
+
+    /// <summary><c>Street</c> meets a Street more shallowly than <c>[roads] min_crossing_angle_degrees</c>.</summary>
+    StreetTooShallow = 49,
+
+    /// <summary><c>Street</c> would move an existing Street past the split bound to join it.</summary>
+    StreetMovesRoad = 50,
+
+    /// <summary><c>Street</c> clears occupied Buildings whose total price is more than the treasury holds.</summary>
+    StreetTreasuryCannotPay = 51,
 }
