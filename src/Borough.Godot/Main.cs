@@ -1586,6 +1586,18 @@ public partial class Main : Node3D
             return;
         }
 
+        // Ctrl is a held modifier, so its release matters too. It is recorded as a ui word, so a
+        // replayed click lays the Street the hand saw.
+        if (@event is InputEventKey { Keycode: Key.Ctrl, Echo: false } ctrl)
+        {
+            if (_verb == Verb.Connect && ctrl.Pressed != _streetStraight)
+            {
+                Ui(ctrl.Pressed ? "street-straight on" : "street-straight off");
+            }
+
+            return;
+        }
+
         if (@event is not InputEventKey { Pressed: true } key)
         {
             return;

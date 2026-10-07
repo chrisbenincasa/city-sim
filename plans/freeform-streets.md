@@ -1,7 +1,7 @@
 # Freeform local Streets with road-aligned Lots
 
-State: building. Slices 1 to 7 and 9 are built; batch modes (slice 8) remain. The acceptance
-checks pass on lattice-zoned and freeform ground. Wedge use remains open.
+State: complete. Slices 1 to 9 are built. The acceptance checks pass on lattice-zoned and
+freeform ground. Wedge use remains open.
 Survey of current code done 09/27/2026 against `main` at `919290a5`.
 
 ## Outcome
@@ -91,8 +91,24 @@ The simulation receives endpoints and shape. The shell's tool chooses them.
 - Endpoints are integer Tiles and shapes are Q16.16. Repeated 90° and length snaps land exactly,
   so a grid cannot drift. Cities: Skylines II grids break from accumulated float error in
   endpoints.
-- Grid and Parallel modes issue several Streets from one gesture. The command needs a batch form;
-  `adr/0077`'s lattice run is the precedent.
+- Grid and Parallel modes issue several Streets from one gesture, as ordinary `street` commands on
+  the same Tick. The Input Log format does not change. The shell sends the gesture only when every
+  Street previews clean and the treasury covers the combined price. Phase 0 still checks each
+  Street in order and skips one that the batch's own earlier Streets made invalid.
+- Grid takes a start, the far corner of the first side and a sideways point. The first side snaps
+  to the angle guides and to whole blocks. The sideways distance sets the rows and their side. One
+  Street runs along each grid line, and the core splits them where they cross. A grid line along
+  an existing Street is left out. A grid lays at most 64 Streets.
+- Parallel is a toggle over the straight, simple-curve and continuous modes. Each drawn Street
+  also lays a copy to its left, or to its right when flipped. A curve's copy is concentric, with its
+  sagitta scaled by radius and its ends rounded to Tiles. The offset never falls below two Street
+  half-widths plus `[lots] min_plot_depth_tiles`. A copy that would pass a curve's center is
+  refused in the shell.
+- Holding Ctrl lays a simple-curve or continuous Street straight, with straight mode's angle and
+  length snaps. The shell records it as a `ui street-straight` word, so a replayed session lays the
+  same Street.
+- Block side (`grid_block_tiles`) and parallel offset (`parallel_offset_tiles`) are shell
+  preferences in `user://street.cfg`. Zero, the default, means `[roads] block_tiles`.
 - Snap defaults, the length step and angle steps go in the Ruleset or shell settings, not
   constants.
 - Lattice-only Street runs (`ConnectPayload.Segments`) are the play-testing stopgap. This tool
@@ -288,4 +304,9 @@ closure, zoning the new face painted its interior and added Lots.
 `FreeformStreetsAcceptanceTests` replays that layout without `people`.
 A carver defect remains. At an acute corner the last plot on a side can cross the adjacent Street,
 and that Lot is only partly painted and never builds.
-Slice 8, Grid and Parallel modes, is next.
+Slice 8 is built. X cycles straight, simple curve, continuous and grid. U lays a parallel Street
+and I flips its side. Ctrl held lays a curve or continuous Street straight. The batch modes need no
+Core or Input Log change. The driven run on `--empty` ground at 1,000 Citizens laid a 3 × 3 grid,
+a 2 × 2 grid turned 30°, a straight and a curved parallel pair and a continuous chain with one
+Ctrl-straight piece. Zoning made 68 Lots and `people` raised 68 Buildings. A grid crossing the
+first at 15° was refused whole with the core's sentence for a too-short piece.
