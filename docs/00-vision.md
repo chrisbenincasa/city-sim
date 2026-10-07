@@ -22,6 +22,18 @@ That chain is the product. Everything else is in service of it.
 
 ---
 
+## What a session is for
+
+Borough is a sandbox. The player builds for the love of building, and the game states no goal. `NO VERDICT`
+
+- **The chain is the payoff.** A session pays off when the player reads a decline, intervenes and watches the city recover.
+- **The game never celebrates size.** There is no population milestone and no "your city reached 10,000". Growth visible from anywhere earns no notification ([`01 §6`](01-player-experience.md#notification-and-what-earns-one)), and the scale figure under *Scope commitments* is a benchmark, never a goal.
+- **Goals belong to the player.** A player who wants a target sets one in their head. A player-drawn target line on a pinned metric is a candidate extension of Pins, and it is not scheduled.
+- **History is the fixed-size time series** that [`adr/0006`](adr/0006-no-collection-grows-with-elapsed-time.md) permits. A bounded chronicle of past events is a candidate under the same Pins work.
+- **Interest at hour three is emergent.** The problems change shape as the city grows ([`01 §4`](01-player-experience.md#4-two-hours-and-twenty)). A mature city that stops posing problems is a simulation defect. It is repaired in the systems that should be biting, never with an authored goal or with pressure scaled to city size.
+
+---
+
 ## Pillars
 
 ### 1. Causally honest
@@ -163,7 +175,7 @@ Settled decisions that bound the project. Full rationale lives in the ADRs.
 
 | | |
 |---|---|
-| **Setting** | Single modern era, with no time periods. The map is open from the first second and land is never unlocked ([`adr/0090`](adr/0090-the-generator-makes-land-and-the-player-makes-every-road.md)). How play changes as a city grows is undecided; the backlog's progression row owns it. |
+| **Setting** | Single modern era, with no time periods. The map is open from the first second and land is never unlocked ([`adr/0090`](adr/0090-the-generator-makes-land-and-the-player-makes-every-road.md)). Nothing the player governs is ever locked; play changes as the city grows into larger tools, and special Buildings appear on measured city conditions ([`01 §4`](01-player-experience.md#progression-and-what-is-never-locked)). |
 | **Scale** | **10,000 Citizens is the first hour**, and it sets the responsiveness bar. **1,000,000 is the floor the simulation is designed against** — *at least* a million, on a fully-developed 4096² map. It is a benchmark the design measures itself by, never a cap, a goal, or a number the player is aiming at. Sizing is expressed as a derivation so it stays correct if the map changes. See [`05` — the budget](05-technical-architecture.md). |
 | **Goods** | Between three and eight, with real production chains. Adding one is a design decision, not content. |
 | **Roads** | Grid-snapped streets, plus a small number of freeform arterials using authored junction pieces. |
@@ -195,3 +207,4 @@ Not metrics — smell tests. If these stop being true, something has gone wrong.
 - Changing a production ratio and seeing the effect takes seconds, not a rebuild. `FAST ITERATION`
 - A bug report is an input log, and it reproduces exactly.
 - The city surprises us — it produces patterns we didn't design.
+- A city at hour three poses problems a city at hour one could not.
