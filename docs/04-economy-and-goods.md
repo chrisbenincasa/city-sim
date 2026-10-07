@@ -155,7 +155,7 @@ Businesses decide to produce, expand, or close using the same **satisficing** lo
 
 ## 5. Budget and taxation
 
-All of this lives under one verb, **`Govern`** — `Fund` and `Regulate` were merged, because both are *"set a parameter on a Rule the city then obeys."* The financial levers are deliberately few: **set tax rates**, **set service funding levels**, and **borrow**. Everything place-attached can be overridden per District; only borrowing is irreducibly global, since the city has one balance sheet.
+All of this lives under one verb, **`Govern`** — `Fund` and `Regulate` were merged, because both are *"set a parameter on a Rule the city then obeys."* The financial levers are deliberately few: **set tax rates**, **set service funding levels**, and **borrow**. Everything place-attached can be overridden per Ward ([`adr/0132`](adr/0132-the-district-is-derived-and-a-ward-is-what-the-player-draws.md)); only borrowing is irreducibly global, since the city has one balance sheet.
 
 | Lever | Direct effect | Second-order effect |
 |---|---|---|
@@ -188,6 +188,32 @@ Service funding is likewise not only a coverage lever. Service Buildings employ 
 What service funding **cannot** do is absorb unemployment, and the block is structural rather than punitive: public jobs are **demand-determined**. A school needs teachers in proportion to the children in its catchment. *You cannot fix unemployment by hiring everyone as a teacher, because the number of teachers is set by the number of children.* See [`adr/0026`](adr/0026-wages-are-posted-locally-and-never-cleared.md).
 
 There is **no calendar**, so there is no annual budget cycle. Revenue and expenditure accrue per Day. See [`adr/0010`](adr/0010-one-clock-and-demographics-by-sorting.md).
+
+### The launch Policy catalog
+
+The player picks Policies from an authored catalog and sets each one's controls ([`plans/0072`](../plans/0072-city-income.md) D11). The catalog's membership follows three rules:
+
+- **At least one lever for each failure a Policy can remedy.** The failures are `01 §6`'s trajectories. Where the remedy is spatial, no Policy is added: Gridlock, Labour mismatch and Capacity failure are fixed with roads, transport and zoning.
+- **A second lever on the same failure must differ in incidence.** Several ways to fix one problem, each with different side effects, is what keeps a Policy from being a golden ticket. Two levers with the same payer and the same side effects are one lever.
+- **The simulation produces every side effect.** A side effect the simulation does not model makes the lever free, and a free lever is a modifier.
+
+| Policy | Tool, kind | Payer → beneficiary | Player sets | Answers | Side effect | State |
+|---|---|---|---|---|---|---|
+| Income tax | tax, flow | earning Citizens → treasury | allowance, rate | Insolvency | Less spending, so weaker shops; marginal earners depart | Built. First playable |
+| Business tax | tax, flow | Businesses → treasury | rate | Insolvency | Thinner margins, so fewer firms open and more close | Built. First playable |
+| Service funding, per service | transfer, flow | treasury → service staff and users | grant per job | Insolvency, Quality failure | Treasury drain, so higher taxes elsewhere | School built. First playable |
+| Income support | transfer, flow | treasury → Households under a balance line | the line, the top-up | Immiseration | Treasury drain, paid by taxpayers | Needs Household eligibility |
+| Employment subsidy | subsidy, flow | treasury → employers per worker | rate, daily ceiling | Immiseration | Helps only where jobs exist; rationed past the ceiling; flows to firms | Built |
+| Child benefit | transfer, flow | treasury → Households with children | amount per child | Demographic stall | Treasury drain now; the payoff is a generation later | Needs Household eligibility |
+| Export relief | relief, flow | treasury, as forgone tax → exporting firms | relief percent | Trade deficit | Forgone revenue; helps only exporters | Tool built; exports are in progress |
+| Emissions charge | charge, flow | emitting Businesses → treasury | price per unit | Pollution | Polluters' margins fall; some close and their workers lose jobs | Built |
+| Emission limit | constraint | would-be polluters → nearby land | the limit | Pollution | Polluting development goes elsewhere or nowhere | New mechanism |
+
+**Borrowing** is a Govern instrument with its own design row and is not chosen here. **Retention failure has no lever** until Households pay housing costs; see [`deferred.md`](deferred.md#a-lever-for-retention-failure).
+
+**The emission limit is the first Constraint Policy, and it is grandfathered.** It stops Zone Rules from raising Buildings that would exceed it. Polluters already standing keep running until they close or are redeveloped, and `Demolish` removes one early at market price. So enactment timing is the skill: a limit set early shapes development, and a limit set late must be bought out. ⚠ **Grandfathering is chosen because nothing else is buildable, and it is likely the weaker design.** Failure pressure on over-limit polluters, or a compliance deadline before it, would bite sooner and more honestly. Both need firms to be able to cut their emissions, which no mechanism supports yet ([`plans/0072`](../plans/0072-city-income.md) and the board's pollution-charge deferral). Revisit when one does.
+
+**The limit is citywide at launch.** A Ward override arrives with Wards, and the limit is the first Policy that override is built for. A citywide setting is a complete game, and it already poses the choice of how dirty the whole city may be.
 
 ---
 
