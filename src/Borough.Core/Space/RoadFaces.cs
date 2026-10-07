@@ -78,6 +78,18 @@ public sealed class RoadFaces
     /// <summary>The face's stable identity: the lowest Segment id on its boundary and that Arc's side.</summary>
     public (ulong SegmentId, byte Side) Anchor(int face) => (_anchorId[face], _anchorSide[face]);
 
+    /// <summary>The whole Tiles that cover the face's boundary box, clipped to the map.</summary>
+    public LandRectangle TileBounds(int face)
+    {
+        long west = Clip(IntegerMath.FloorDiv(_minEast[face], Fixed.One));
+        long south = Clip(IntegerMath.FloorDiv(_minNorth[face], Fixed.One));
+        long east = Clip(IntegerMath.CeilDiv(_maxEast[face], Fixed.One));
+        long north = Clip(IntegerMath.CeilDiv(_maxNorth[face], Fixed.One));
+        return new((int)west, (int)south, (int)(east - west), (int)(north - south));
+
+        static long Clip(long tile) => tile < 0 ? 0 : tile > CellGrid.WorldTiles ? CellGrid.WorldTiles : tile;
+    }
+
     /// <summary>Whether a Q16.16 point lies inside the face's boundary.</summary>
     /// <remarks>Boundary points follow the half-open crossing rule, so each lies in exactly one of two adjacent faces.</remarks>
     public bool Contains(int face, long east, long north)
@@ -92,6 +104,9 @@ public sealed class RoadFaces
 
         foreach (int arc in Boundary(face))
         {
+            // Both sides of a spur border this face. Their crossings cancel, except on the centerline.
+            if (_faceOf[_twin[arc]] == face) { continue; }
+
             StreetArc line = segments.Centerline[ArcSegment(arc)];
             var (from, to) = Side(arc) == 0 ? (line.A, line.B) : (line.B, line.A);
 

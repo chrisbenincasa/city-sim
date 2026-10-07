@@ -18,8 +18,9 @@ namespace Borough.Tests.Input;
 /// </summary>
 /// <remarks>
 /// The log clears lattice Streets west of Tile 64 between north 64 and 192, lays a diagonal that
-/// cuts triangular blocks, a dead-end spur inside one, and an open curve, then zones the eight
-/// blocks. <see cref="Closure"/> later joins the curve's end to the lattice Street at north 128.
+/// cuts triangular blocks, a dead-end spur inside one, and an open curve, then zones its blocks and
+/// the curve's sides. <see cref="Closure"/> later joins the curve's end to the lattice Street at
+/// north 128. <see cref="EmptyGround"/> repeats the layouts on ground with no lattice.
 /// </remarks>
 public sealed class FreeformStreetsAcceptanceTests
 {
@@ -44,13 +45,12 @@ public sealed class FreeformStreetsAcceptanceTests
         334 street 32 96 50 114 0
         344 street 64 176 46 158 -325258
         350 zone 16 80 1
-        350 zone 48 80 1
-        350 zone 16 112 1
         350 zone 48 112 1
         350 zone 16 144 1
-        350 zone 48 144 1
-        350 zone 16 176 1
-        350 zone 48 176 1
+        350 zone 40 140 1
+        350 zone 50 150 1
+        350 zone 50 176 1
+        350 zone 58 166 1
         """;
 
     private const ulong ClosureTick = 400;
@@ -168,6 +168,67 @@ public sealed class FreeformStreetsAcceptanceTests
         Assert.Equal(first.B, second.A);
         Assert.InRange(joining.East - leaving.East, -Fixed.One / 256, Fixed.One / 256);
         Assert.InRange(joining.North - leaving.North, -Fixed.One / 256, Fixed.One / 256);
+    }
+
+    private const string EmptyGround = """
+        borough-log 1
+        seed 0x0000000000000000
+        citizens 1000
+        ruleset 0x91EC749C49011D57
+        --
+        0 ground 0 0 0
+        314 street 100 100 164 100 0
+        318 street 164 100 190 144 0
+        322 street 190 144 135 177 0
+        326 street 135 177 100 100 0
+        330 street 135 100 140 138 0
+        338 street 250 100 250 160 -786432
+        344 street 100 250 177 250 0
+        348 street 177 250 101 319 0
+        352 street 101 319 100 250 0
+        356 street 250 250 327 250 0
+        360 street 327 250 327 314 0
+        364 street 250 250 250 314 0
+        374 zone 130 130 1
+        376 zone 135 92 1
+        378 zone 182 118 1
+        380 zone 248 130 1
+        382 zone 268 130 1
+        384 zone 115 265 1
+        386 zone 290 258 1
+        388 zone 322 285 1
+        390 zone 258 285 1
+        392 zone 290 242 1
+        394 street 250 314 327 314 0
+        396 zone 290 300 1
+        """;
+
+    [Fact]
+    public void Zone_on_empty_ground_lots_every_layout_and_a_closure_turns_strips_into_a_block()
+    {
+        InputLog log = InputLogCodec.FromText(EmptyGround);
+        Simulation simulation = RunTo(log, Rules(), 394);
+        World world = simulation.World;
+
+        int Near(int east, int north) => Enumerable.Range(0, world.Lots.Rows.SlotCount).Count(lot =>
+            world.Lots.Rows.IsLive(lot) && OrientedRectangle.FromBounds(new LandRectangle(east - 48, north - 48, 96, 96)).Overlaps(world.Lots.Parcel(lot)));
+        Assert.True(Near(140, 135) > 0, "loop with a spur");
+        Assert.True(Near(250, 130) > 0, "open curve");
+        Assert.True(Near(125, 275) > 0, "triangle");
+        Assert.True(Near(290, 280) > 0, "U before closure");
+        Assert.Equal(0, world.LandPermissions.At(290, 300).Uses);
+
+        Assert.False(world.TryZoneGround(new Tiles(290), new Tiles(300), out ZoneGround open) && open.Face >= 0);
+        simulation.Step(new TickInput(log.At(new Ticks(394)), log.RulesetHashAt(new Ticks(394))));
+        simulation.Step(new TickInput([], log.RulesetHashAt(new Ticks(395))));
+        Assert.True(world.TryZoneGround(new Tiles(290), new Tiles(300), out ZoneGround closed));
+        Assert.True(closed.Face >= 0 && world.Roads.Faces.IsClosed(closed.Face));
+        simulation.Step(new TickInput(log.At(new Ticks(396)), log.RulesetHashAt(new Ticks(396))));
+        Assert.Equal(LotTable.Housing, world.LandPermissions.At(290, 300).Uses);
+
+        int[] live = Enumerable.Range(0, world.Lots.Rows.SlotCount).Where(world.Lots.Rows.IsLive).ToArray();
+        foreach (int a in live)
+            Assert.DoesNotContain(live, b => b > a && world.Lots.Parcel(a).Overlaps(world.Lots.Parcel(b)));
     }
 
     private static Dictionary<ulong, (OrientedRectangle Parcel, int Building)> Snapshot(World world) =>

@@ -10,6 +10,36 @@ public readonly record struct LandRectangle(int X, int Y, int Width, int Height)
         && Width <= CellGrid.WorldTiles - X && Height <= CellGrid.WorldTiles - Y;
 }
 
+/// <summary>Whole Tiles within half-open bounds, chosen by whether each Tile's center lies in the set.</summary>
+public interface ITileSet
+{
+    LandRectangle Bounds { get; }
+
+    bool Contains(int east, int north);
+}
+
+/// <summary>The Tiles whose centers lie inside an oriented rectangle.</summary>
+public readonly record struct OrientedTiles(OrientedRectangle Ground) : ITileSet
+{
+    public LandRectangle Bounds => Ground.IsValid ? Ground.Bounds : default;
+
+    public bool Contains(int east, int north) =>
+        Ground.Contains(Fixed.FromInt(east) + HalfTile, Fixed.FromInt(north) + HalfTile);
+
+    internal const int HalfTile = 1 << (Fixed.FractionalBits - 1);
+
+    /// <summary>The same Tiles as a rectangle, when the ground is unrotated and starts on whole Tiles.</summary>
+    internal bool IsRectangle(out LandRectangle rectangle)
+    {
+        rectangle = default;
+        int east = IntegerMath.FloorDiv(Ground.EastQ16, Fixed.One), north = IntegerMath.FloorDiv(Ground.NorthQ16, Fixed.One);
+        if (Ground.AxisEastQ16 != Fixed.One || Ground.AxisNorthQ16 != 0
+            || Fixed.FromInt(east) != Ground.EastQ16 || Fixed.FromInt(north) != Ground.NorthQ16) { return false; }
+        rectangle = new(east, north, Ground.Wide, Ground.Deep);
+        return rectangle.IsValid;
+    }
+}
+
 /// <summary>Future use, intensity band and an optional form restriction. Zero means unzoned.</summary>
 public readonly record struct GroundPermissions(ushort Uses, byte Band, bool RestrictsForms = false, ushort Forms = 0)
 {
@@ -107,21 +137,60 @@ public sealed class LandPermissions
         return mixed ? PermissionRefusal.MixedIntensity : PermissionRefusal.None;
     }
 
+    /// <summary>Checks the Tiles of a turned site. An unrotated site on whole Tiles is checked as a rectangle.</summary>
+    public PermissionRefusal CheckParcel(OrientedRectangle site, ushort uses, ushort form, out byte band)
+    {
+        var tiles = new OrientedTiles(site);
+        if (tiles.IsRectangle(out LandRectangle rectangle)) { return Check(rectangle, uses, form, out band); }
+        band = 0;
+        if (!site.IsValid) { return PermissionRefusal.InvalidBounds; }
+        if (form == 0 || (form & (form - 1)) != 0) { return PermissionRefusal.InvalidForm; }
+        int covered = 0, total = 0;
+        bool seen = false, wrongUse = false, wrongForm = false, mixed = false;
+        LandRectangle box = tiles.Bounds;
+        for (int y = box.Y; y < box.Y + box.Height; y++)
+        {
+            for (int x = box.X; x < box.X + box.Width; x++)
+            {
+                if (!tiles.Contains(x, y)) { continue; }
+                total++;
+                GroundPermissions permission = At(x, y);
+                if (permission.Uses == 0) { continue; }
+                covered++;
+                wrongUse |= (permission.Uses & uses) == 0;
+                wrongForm |= permission.RestrictsForms && (permission.Forms & form) == 0;
+                mixed |= seen && band != permission.Band;
+                if (!seen) { band = permission.Band; seen = true; }
+            }
+        }
+
+        if (total == 0 || covered != total) { return PermissionRefusal.Unzoned; }
+        if (wrongUse) { return PermissionRefusal.Use; }
+        if (wrongForm) { return PermissionRefusal.Form; }
+        return mixed ? PermissionRefusal.MixedIntensity : PermissionRefusal.None;
+    }
+
     public PermissionRefusal Paint(LandRectangle area, GroundPermissions permission, int recordLimit) =>
-        Paint(area, permission, recordLimit, mask: ulong.MaxValue);
+        Paint(new WholeRectangle(area), permission, recordLimit, mask: ulong.MaxValue);
 
     /// <summary>Changes only form restrictions, including on otherwise unzoned ground.</summary>
     public PermissionRefusal PaintForms(LandRectangle area, bool restricted, ushort forms, int recordLimit) =>
-        Paint(area, new GroundPermissions(0, 0, restricted, forms), recordLimit, mask: ~0xFFFFFFUL);
+        Paint(new WholeRectangle(area), new GroundPermissions(0, 0, restricted, forms), recordLimit, mask: ~0xFFFFFFUL);
 
     public PermissionRefusal CanPaintUses(LandRectangle area, ushort uses, int recordLimit) =>
+        CanPaintUses(new WholeRectangle(area), uses, recordLimit);
+
+    public PermissionRefusal CanPaintUses<T>(T area, ushort uses, int recordLimit) where T : ITileSet =>
         Paint(area, new GroundPermissions(uses, 0), recordLimit, 0xFFFFUL, apply: false);
 
     public PermissionRefusal PaintUses(LandRectangle area, ushort uses, int recordLimit) =>
+        PaintUses(new WholeRectangle(area), uses, recordLimit);
+
+    public PermissionRefusal PaintUses<T>(T area, ushort uses, int recordLimit) where T : ITileSet =>
         Paint(area, new GroundPermissions(uses, 0), recordLimit, 0xFFFFUL);
 
     public PermissionRefusal PaintBand(LandRectangle area, byte band, int recordLimit) =>
-        Paint(area, new GroundPermissions(0, band), recordLimit, 0xFF0000UL);
+        Paint(new WholeRectangle(area), new GroundPermissions(0, band), recordLimit, 0xFF0000UL);
 
     /// <summary>Common uses are conservative; the union is for discovery/display only.</summary>
     public LandPermissionSummary Summary(LandRectangle site)
@@ -160,8 +229,46 @@ public sealed class LandPermissions
         return new(common, any, first.Band, mixedBand, mixed);
     }
 
-    private PermissionRefusal Paint(LandRectangle area, GroundPermissions permission, int limit, ulong mask, bool apply = true)
+    /// <summary>Summarizes the Tiles of a turned site. An unrotated site on whole Tiles is summarized as a rectangle.</summary>
+    public LandPermissionSummary ParcelSummary(OrientedRectangle site)
     {
+        var tiles = new OrientedTiles(site);
+        if (tiles.IsRectangle(out LandRectangle rectangle)) { return Summary(rectangle); }
+        if (!site.IsValid) { return default; }
+        int covered = 0, total = 0;
+        ushort common = ushort.MaxValue, any = 0;
+        GroundPermissions first = default;
+        bool seen = false, mixed = false, mixedBand = false;
+        LandRectangle box = tiles.Bounds;
+        for (int y = box.Y; y < box.Y + box.Height; y++)
+        {
+            for (int x = box.X; x < box.X + box.Width; x++)
+            {
+                if (!tiles.Contains(x, y)) { continue; }
+                total++;
+                GroundPermissions permission = At(x, y);
+                if (permission.Packed == 0) { continue; }
+                covered++;
+                common &= permission.Uses; any |= permission.Uses;
+                mixed |= seen && first != permission;
+                mixedBand |= seen && first.Band != permission.Band;
+                if (!seen) { first = permission; seen = true; }
+            }
+        }
+        if (total == 0) { return default; }
+        if (covered != total)
+        {
+            common = 0;
+            mixed |= seen;
+            mixedBand |= seen && first.Band != 0;
+        }
+        return new(common, any, first.Band, mixedBand, mixed);
+    }
+
+    private PermissionRefusal Paint<T>(T selection, GroundPermissions permission, int limit, ulong mask, bool apply = true)
+        where T : ITileSet
+    {
+        LandRectangle area = selection.Bounds;
         if (!area.IsValid) { return PermissionRefusal.InvalidBounds; }
         if (limit < 8 || _table.Rows.SlotCount > limit) { return PermissionRefusal.RecordLimit; }
         int firstX = PageAxis(area.X), firstY = PageAxis(area.Y);
@@ -176,7 +283,7 @@ public sealed class LandPermissions
         {
             int px = firstX + page % across, py = firstY + IntegerMath.FloorDiv(page, across);
             int oldCount = Decode(px, py, tiles);
-            if (!Edit(px, py, tiles, area, permission, mask)) { counts[page] = -1; continue; }
+            if (!Edit(px, py, tiles, selection, permission, mask)) { counts[page] = -1; continue; }
             int count = Encode(px, py, tiles, rectangles);
             counts[page] = count;
             stagedCount += count;
@@ -194,7 +301,7 @@ public sealed class LandPermissions
             if (counts[page] < 0) { continue; }
             int px = firstX + page % across, py = firstY + IntegerMath.FloorDiv(page, across);
             Decode(px, py, tiles);
-            Edit(px, py, tiles, area, permission, mask);
+            Edit(px, py, tiles, selection, permission, mask);
             int count = Encode(px, py, tiles, rectangles);
             rectangles[..count].CopyTo(staged.AsSpan(offset));
             offset += count;
@@ -326,13 +433,16 @@ public sealed class LandPermissions
         return count;
     }
 
-    private static bool Edit(int px, int py, Span<ulong> tiles, LandRectangle area, GroundPermissions permission, ulong mask)
+    private static bool Edit<T>(int px, int py, Span<ulong> tiles, T selection, GroundPermissions permission, ulong mask)
+        where T : ITileSet
     {
+        LandRectangle area = selection.Bounds;
         bool changed = false;
         for (int y = Max(area.Y, py * Side); y < Min(area.Y + area.Height, (py + 1) * Side); y++)
         {
             for (int x = Max(area.X, px * Side); x < Min(area.X + area.Width, (px + 1) * Side); x++)
             {
+                if (!selection.Contains(x, y)) { continue; }
                 int at = (y - py * Side) * Side + x - px * Side;
                 ulong value = permission.Packed;
                 value = (tiles[at] & ~mask) | (value & mask);
@@ -383,6 +493,11 @@ public sealed class LandPermissions
     private static int Min(int a, int b) => a < b ? a : b;
     private static int Max(int a, int b) => a > b ? a : b;
     private readonly record struct Rectangle(int X, int Y, int Width, int Height, ulong Permission);
+
+    private readonly record struct WholeRectangle(LandRectangle Bounds) : ITileSet
+    {
+        public bool Contains(int east, int north) => true;
+    }
 }
 
 /// <summary>Spatial summary; only a complete Check can authorise construction.</summary>

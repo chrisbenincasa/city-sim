@@ -143,22 +143,19 @@ public sealed class RefusalTests
         Assert.Equal(before + 1, world.Buildings.Rows.LiveCount);
     }
 
-    /// <summary>
-    /// ⚠ <b><c>Zone</c> is refused by nothing, and that is <c>02 §2.2</c> rather than an oversight.</b>
-    /// </summary>
+    /// <summary>A block that yields no new Lots is an outcome of <c>Zone</c>, not a refusal.</summary>
     /// <remarks>
-    /// A block with no Street on any face yields no Lots, and a block already subdivided yields none
-    /// either. ***Both are outcomes and neither is a refusal*** — a front end that greyed the click
-    /// out would be hiding the mechanism by which a bad street layout punishes the player.
+    /// A front end that greyed the click out would hide how a bad street layout punishes the
+    /// player. Only ground beyond every Street's reach is refused, as <see cref="Refusal.ZoneNoStreet"/>.
     /// </remarks>
     [Fact]
-    public void Zoning_empty_ground_is_an_outcome_and_not_a_refusal()
+    public void Zoning_a_subdivided_block_is_an_outcome_and_not_a_refusal()
     {
         (World _, Simulation simulation) = City(Schooled);
 
         Assert.Equal(
             Refusal.None,
-            simulation.Refuses(new Command(CommandKind.Zone, new Tiles(9_000), new Tiles(9_000), 1)));
+            simulation.Refuses(new Command(CommandKind.Zone, new Tiles(16), new Tiles(16), 1)));
     }
 
     /// <summary>Asking costs the world nothing, which is what lets a hover ask every frame.</summary>
@@ -387,8 +384,9 @@ public sealed class RefusalTests
     {
         Refusal.ZoneNoParcel => new Command(CommandKind.ZoneParcel, new Tiles(9000), new Tiles(9000), 1),
         Refusal.ZoneInvalidBounds => new Command(CommandKind.Zone, new Tiles(-1), Tiles.Zero, 1),
-        Refusal.ZoneRecordLimit => new Command(CommandKind.Zone, new Tiles(320), Tiles.Zero, 1),
-        Refusal.None => new Command(CommandKind.Zone, new Tiles(9_000), new Tiles(9_000), 1),
+        Refusal.ZoneRecordLimit => new Command(CommandKind.Zone, new Tiles(16), new Tiles(2), 2),
+        Refusal.ZoneNoStreet => new Command(CommandKind.Zone, new Tiles(9_000), new Tiles(9_000), 1),
+        Refusal.None => new Command(CommandKind.Zone, new Tiles(16), new Tiles(16), 1),
 
         Refusal.VerbNotApplied => new Command(CommandKind.None, default, default),
 

@@ -13,11 +13,38 @@ public static class LotSubdivider
     public static int PaintAt(World world, Tiles east, Tiles north, ushort zone)
     {
         ArgumentNullException.ThrowIfNull(world);
+        if (!world.TryZoneGround(east, north, out ZoneGround ground)
+            || world.PaintUsePermissions(ground, zone) != PermissionRefusal.None || zone == 0) { return 0; }
+        var plots = new List<Plot>();
         var streets = world.Roads.Streets;
-        if (streets.Blocks <= 0 || east.Raw < 0 || north.Raw < 0) { return 0; }
-        int column = streets.Lattice.LineAt(east.Raw), row = streets.Lattice.LineAt(north.Raw);
-        if (!world.ZoneBlock(column, row, zone)) { return 0; }
-        return zone == 0 ? 0 : CarvePainted(world, column, row);
+        LandRectangle painted = ground.Bounds;
+        int lastColumn = streets.Lattice.LineAt(painted.X + painted.Width - 1), lastRow = streets.Lattice.LineAt(painted.Y + painted.Height - 1);
+        if (lastColumn >= streets.Blocks) { lastColumn = streets.Blocks - 1; }
+        if (lastRow >= streets.Blocks) { lastRow = streets.Blocks - 1; }
+        for (int row = streets.Lattice.LineAt(painted.Y); row <= lastRow; row++)
+        {
+            for (int column = streets.Lattice.LineAt(painted.X); column <= lastColumn; column++)
+            {
+                GatherBlock(world, column, row, plots);
+            }
+        }
+        GatherFreeSides(world, plots);
+        return Settle(world, plots);
+    }
+
+    /// <summary>How far a Street side's plots can reach from its centerline, in whole Tiles; zero when none are cut.</summary>
+    internal static int SideReachTiles(World world)
+    {
+        var rules = world.Rules.Lots;
+        int blockTiles = world.Roads.Streets.BlockTiles;
+        if (!rules.Runs || blockTiles <= 0) { return 0; }
+        int depth = rules.Plots.Runs ? rules.Plots.DepthTiles : 0;
+        foreach (BlockPattern form in (ReadOnlySpan<BlockPattern>)[BlockPattern.Detached, BlockPattern.BackToBack, BlockPattern.Perimeter])
+        {
+            int each = BlockPatterns.DepthTiles(form, BlockFace.South, blockTiles, rules.LotsPerSegment);
+            if (each > depth) { depth = each; }
+        }
+        return rules.StreetHalfWidthTiles + depth;
     }
 
     public static bool Contains(Parcel parcel, Tiles east, Tiles north) =>
@@ -199,7 +226,7 @@ public static class LotSubdivider
         var rules = world.Rules.Lots;
         OrientedRectangle ground = plot.Parcel.Geometry;
         if (!ClaimRotated(world, plot.AddressEast, plot.AddressNorth, plot.Side, ref ground)) { return false; }
-        LandPermissionSummary here = world.LandPermissions.Summary(ground.Bounds);
+        LandPermissionSummary here = world.LandPermissions.ParcelSummary(ground);
         if (here.AnyUses == 0) { return false; }
 
         int slot = world.Lots.Rows.Resolve(world.Lots.Create(plot.AddressEast, plot.AddressNorth, here.CommonUses, plot.Side));

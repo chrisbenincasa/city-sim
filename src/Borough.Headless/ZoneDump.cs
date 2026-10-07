@@ -178,7 +178,7 @@ internal static class ZoneDump
                 }
 
                 int building = lots.BuildingOn(slot);
-                LandPermissionSummary permission = world.LandPermissions.Summary(world.LotGround(slot));
+                LandPermissionSummary permission = world.LotPermissions(slot);
 
                 output.WriteLine(string.Create(
                     CultureInfo.InvariantCulture,

@@ -223,7 +223,7 @@ public partial class Main
         {
             case Verb.Zone when _world.Rules.ZoneRules.Length > 0 || _zoneErase:
                 Send(new Command(
-                    _zoneParcels ? CommandKind.ZoneParcel : CommandKind.Zone,
+                    _zoneParcels && OnLattice(at) ? CommandKind.ZoneParcel : CommandKind.Zone,
                     at.East,
                     at.North,
                     ZonePermission()));
@@ -430,6 +430,7 @@ public partial class Main
         Refusal.ZoneNoParcel => "Choose a parcel beside a Street or an existing Building.",
         Refusal.ZoneRecordLimit => "This paint is too complex for the city's permission limit. Existing permissions stay; simplify or erase some paint first.",
         Refusal.ZoneInvalidBounds => "Choose ground inside the editable map.",
+        Refusal.ZoneNoStreet => "Choose ground inside a block or beside a Street.",
         Refusal.StreetOffMap => "both ends of a Street must lie on the map, and this city must allow roads.",
         Refusal.StreetNotAnArc => "a Street needs two different ends and can bend at most a quarter turn.",
         Refusal.StreetTooTight => "that curve is tighter than this city allows.",

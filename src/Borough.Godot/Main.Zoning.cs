@@ -67,16 +67,24 @@ public partial class Main
         if (!_zoneErase && _world.Rules.ZoneRules.Length == 0)
         { _zoneStart = null; _refused = "No development permissions are available in this city."; return true; }
         StreetGrid streets = _world.Roads.Streets;
-        if (_verb != Verb.Zone || streets.Blocks <= 0 || east < 0 || north < 0
-            || east >= CellGrid.WorldTiles || north >= CellGrid.WorldTiles
-            || streets.Lattice.LineAt(east) >= streets.Blocks || streets.Lattice.LineAt(north) >= streets.Blocks)
-        { _zoneStart = null; _refused = "This ground has no editable blocks."; return true; }
+        if (_verb != Verb.Zone || east < 0 || north < 0 || east >= CellGrid.WorldTiles || north >= CellGrid.WorldTiles)
+        { _zoneStart = null; _refused = "Choose ground inside the map."; return true; }
         var at = (new Tiles(east), new Tiles(north));
         _aimed = at;
         if (words[0] == "zone-point") return true;
         if (words[0] == "zone-begin")
         { _zoneStart = at; _refused = string.Empty; _zoneFeedback = string.Empty; return true; }
         if (_zoneStart is null) { _refused = "Start a Zoning rectangle first."; return true; }
+        if (!OnLattice(at))
+        {
+            _zoneStart = null;
+            if (Send(new Command(CommandKind.Zone, at.Item1, at.Item2, ZonePermission())))
+            {
+                _refused = string.Empty;
+                _zoneFeedback = $"{(_world.TryZoneGround(at.Item1, at.Item2, out ZoneGround ground) && ground.Face >= 0 ? "Block" : "Street side")} queued: {ZoneName()}. Existing Buildings stay.";
+            }
+            return true;
+        }
         if (_zoneParcels)
         {
             int painted = 0;
@@ -108,6 +116,17 @@ public partial class Main
         return true;
     }
 
+    /// <summary>Whether a Tile lies in a lattice square with a lattice Street on some side. Other ground zones by face or Street side.</summary>
+    private bool OnLattice((Tiles East, Tiles North) at)
+    {
+        StreetGrid streets = _world.Roads.Streets;
+        if (streets.Blocks <= 0) return false;
+        int column = streets.Lattice.LineAt(at.East.Raw), row = streets.Lattice.LineAt(at.North.Raw);
+        if (column >= streets.Blocks || row >= streets.Blocks) return false;
+        return streets.Horizontal(column, row) != Rows.NoSlot || streets.Horizontal(column, row + 1) != Rows.NoSlot
+            || streets.Vertical(column, row) != Rows.NoSlot || streets.Vertical(column + 1, row) != Rows.NoSlot;
+    }
+
     private (int West, int South, int East, int North) ZoneBounds((Tiles East, Tiles North) at)
     {
         var lattice = _world.Roads.Streets.Lattice;
@@ -120,6 +139,7 @@ public partial class Main
     private int ZoneSelectionCount()
     {
         if (_zoneStart is null || Aim() is not { } at) return 0;
+        if (!OnLattice(at)) return _world.TryZoneGround(at.East, at.North, out _) ? 1 : 0;
         if (_zoneParcels) return System.Linq.Enumerable.Count(SelectedParcels(at));
         var bounds = ZoneBounds(at);
         return (bounds.East - bounds.West + 1) * (bounds.North - bounds.South + 1);
@@ -127,6 +147,11 @@ public partial class Main
 
     private void ZonePreview((Tiles East, Tiles North) at)
     {
+        if (!OnLattice(at))
+        {
+            FreeformZonePreview(at);
+            return;
+        }
         if (_zoneParcels)
         {
             int selected = 0;
@@ -153,6 +178,42 @@ public partial class Main
                     : ZoneColour(ZonePermission()).Lightened(.22f)).SrgbToLinear());
             }
         _cursor.Multimesh.VisibleInstanceCount = count;
+    }
+
+    private (Tiles East, Tiles North, Ticks Tick, int Segments, int Faces) _zoneGroundAt = (new Tiles(-1), default, default, 0, 0);
+    private readonly System.Collections.Generic.List<Transform3D> _zoneGroundRuns = [];
+
+    /// <summary>Draws the face or Street side a click here would paint, as one box per row run of its Tiles.</summary>
+    private void FreeformZonePreview((Tiles East, Tiles North) at)
+    {
+        var key = (at.East, at.North, _world.Tick, _world.Roads.Segments.Rows.LiveCount, _world.Roads.Faces.Count);
+        if (key != _zoneGroundAt)
+        {
+            _zoneGroundAt = key;
+            _zoneGroundRuns.Clear();
+            if (_world.TryZoneGround(at.East, at.North, out ZoneGround ground))
+            {
+                LandRectangle box = ground.Bounds;
+                for (int y = box.Y; y < box.Y + box.Height; y++)
+                    for (int x = box.X; x < box.X + box.Width;)
+                    {
+                        if (!ground.Contains(x, y)) { x++; continue; }
+                        int end = x + 1;
+                        while (end < box.X + box.Width && ground.Contains(end, y)) end++;
+                        _zoneGroundRuns.Add(ParcelTransform(x, y, end - x, 1));
+                        x = end;
+                    }
+            }
+        }
+        Color colour = (_zoneErase ? new Color("e7a095") : ZoneColour(ZonePermission()).Lightened(.22f)).SrgbToLinear();
+        for (int i = 0; i < _zoneGroundRuns.Count; i++)
+        {
+            Transform3D run = _zoneGroundRuns[i];
+            run.Origin += new Vector3(0, .01f, 0);
+            _cursor.Multimesh.SetInstanceTransform(i, run);
+            _cursor.Multimesh.SetInstanceColor(i, colour);
+        }
+        _cursor.Multimesh.VisibleInstanceCount = _zoneGroundRuns.Count;
     }
 
     private static Transform3D ParcelTransform(int east, int north, int wide, int deep) =>
