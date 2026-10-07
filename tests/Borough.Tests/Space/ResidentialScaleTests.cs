@@ -1,4 +1,5 @@
 using Borough.Core;
+using Borough.Core.Arithmetic;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Input;
@@ -174,6 +175,34 @@ public sealed class ResidentialScaleTests
         }
         world.RebuildDerived();
         Assert.Equal(geometry, Geometry(world));
+    }
+
+    [Theory]
+    [InlineData(65_536, 0)]
+    [InlineData(0, 65_536)]
+    [InlineData(-65_536, 0)]
+    [InlineData(0, -65_536)]
+    [InlineData(46_341, 46_341)]
+    [InlineData(-39_322, 52_429)]
+    public void A_rotated_plots_footprint_is_the_same_draw_turned_into_the_plot(int axisEast, int axisNorth)
+    {
+        var rules = Load().Lots;
+        for (ulong seed = 0; seed < 16; seed++)
+        {
+            var key = WorldKey.FromSeed(seed);
+            var flat = new OrientedRectangle(Fixed.FromInt(500), Fixed.FromInt(700), Fixed.One, 0, 9, 14);
+            var turned = flat with { AxisEastQ16 = axisEast, AxisNorthQ16 = axisNorth };
+
+            OrientedRectangle drawn = rules.Footprint(key, flat), foot = rules.Footprint(key, turned);
+
+            Assert.True(foot.IsValid);
+            Assert.True(turned.Contains(foot));
+            Assert.Equal((drawn.Wide, drawn.Deep), (foot.Wide, foot.Deep));
+            Assert.Equal((axisEast, axisNorth), (foot.AxisEastQ16, foot.AxisNorthQ16));
+            long along = (drawn.EastQ16 - flat.EastQ16) / Fixed.One, back = (drawn.NorthQ16 - flat.NorthQ16) / Fixed.One;
+            Assert.Equal(turned.EastQ16 + along * axisEast - back * axisNorth, foot.EastQ16);
+            Assert.Equal(turned.NorthQ16 + along * axisNorth + back * axisEast, foot.NorthQ16);
+        }
     }
 
     private static (int, int, int, int, byte)[] Geometry(World world) =>
