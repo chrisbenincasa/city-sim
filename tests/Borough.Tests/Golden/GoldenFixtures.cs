@@ -290,8 +290,8 @@ internal static class GoldenFixtures
         //
         // Four branches, in the order they can first be reached:
         //
-        //   129  a face is bulldozed off a block nobody has zoned      -- the edit path, nothing freed
-        //   130  that block is zoned                                   -- 7 Lots, not 10: a short block
+        //   128  a closed block is zoned                               -- 10 Lots
+        //   129  its south face is bulldozed                           -- re-subdivision FREES three
         //   200  the face is laid back                                 -- re-subdivision CREATES
         //   300  it is bulldozed again                                 -- re-subdivision FREES
         //   400  all four faces of another block go                    -- four edits in one Tick
@@ -299,8 +299,8 @@ internal static class GoldenFixtures
         //
         // GoldenSessionCoverageTests asserts each of those outcomes against the replayed world, so
         // the coverage is a claim the suite checks rather than a comment.
+        Append(builder, tick: 128, block: (3, 0), zone: 1);
         Connect(builder, tick: 129, node: (3, 0), StreetAxis.East, ConnectAction.Bulldoze);
-        Append(builder, tick: 130, block: (3, 0), zone: 1);
         Connect(builder, tick: 200, node: (3, 0), StreetAxis.East, ConnectAction.Lay);
         Connect(builder, tick: 300, node: (3, 0), StreetAxis.East, ConnectAction.Bulldoze);
 
