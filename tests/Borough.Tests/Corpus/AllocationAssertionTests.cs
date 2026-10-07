@@ -60,7 +60,7 @@ public sealed class AllocationAssertionTests
             "AllocationAssertionTests.A_deliberate_firing", 4_096, 0, 0, 0, 1, 427);
 
         Assert.Contains("4096 bytes", message, StringComparison.Ordinal);
-        Assert.Contains("plans/0002", message, StringComparison.Ordinal);
+        Assert.Contains("Runtime defects previously filed", message, StringComparison.Ordinal);
 
         // 🔴 AllocationProbe.Path rather than the literal "alloc-probe.csv", and the difference was
         // a defect rather than a style. BOROUGH_ALLOC_PROBE is the probe's own supported
@@ -78,10 +78,11 @@ public sealed class AllocationAssertionTests
         Assert.Contains("8,192", message, StringComparison.Ordinal);
 
         // ⚠ The message must carry BOTH mechanisms, because carrying one is how a reader stops
-        // looking. plans/0002 §D and plans/0003 item 13 hold rival explanations for the same firing;
-        // the jit columns were added 2026-08-26 and are the half that had never been recorded.
+        // looking. plans/0000-board.md's "Runtime defects previously filed" row, item 13, holds
+        // rival explanations for the same firing; the jit columns were added 2026-08-26 and are the
+        // half that had never been recorded.
         Assert.Contains("1 methods (427 IL bytes)", message, StringComparison.Ordinal);
-        Assert.Contains("plans/0003 queue item 13", message, StringComparison.Ordinal);
+        Assert.Contains("tiered-JIT rejit", message, StringComparison.Ordinal);
     }
 
     /// <summary>

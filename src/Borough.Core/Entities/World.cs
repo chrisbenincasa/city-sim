@@ -1848,7 +1848,8 @@ public sealed partial class World
         Households.LifeStage[slot] = lifeStage;
 
         // adr/0114: a balance is a Bin, opened here so that a Household never exists without one in a
-        // world whose Ruleset names money. Empty -- World.Endow is the only door money enters by.
+        // world whose Ruleset names money. Empty -- opening a balance does not endow it; whichever
+        // door to the Outside applies does that separately.
         if (TryMoneyResource(out ResourceId money))
         {
             // The saved bin list owns membership; Balance is its maintained derived lookup.
@@ -1946,7 +1947,7 @@ public sealed partial class World
     }
 
     /// <summary>
-    /// Gives a Household money that did not exist before. <b>The only way money enters this world.</b>
+    /// Gives a Household money that did not exist before. <b>A founding door, not the only one.</b>
     /// </summary>
     /// <remarks>
     /// <para>
@@ -1958,12 +1959,10 @@ public sealed partial class World
     /// money axis: there is no second spelling in which the other half can be forgotten.
     /// </para>
     /// <para>
-    /// <b>It is the founding door and it is not the gate.</b> Money's only runtime source and sink is
-    /// the Outside Connection (<c>CONTEXT.md</c> → Money), which is milestone <b>11</b>; until that
-    /// exists a world's supply is fixed at whatever it was founded with, which is what makes the
-    /// invariant an exact equality rather than a sum with a flow term. Nothing in the build calls this
-    /// yet — no production writer sets a Household's money at all — so every world the simulation can
-    /// make on its own is founded on nothing, and the check is correct and temporarily trivial.
+    /// <b>Money's only runtime source and sink is the Outside Connection</b> (<c>CONTEXT.md</c> →
+    /// Money). Every door to it, this one included, moves <see cref="MoneySupplyTable.Issued"/> by
+    /// the amount that crosses it in the same call that moves the balance, which is what keeps the
+    /// conservation check an exact equality rather than a sum with a flow term.
     /// </para>
     /// <para>
     /// ⚠ <b>It refuses a Household with no balance rather than founding one silently.</b> A balance is
@@ -2566,9 +2565,10 @@ public sealed partial class World
     /// <see cref="MoneySupplyTable.Issued"/>'s second writer</b> (<c>adr/0131</c>, milestone 11 task
     /// 5) — the first thing in the project that moves the supply after the founding, so a world's
     /// money is no longer a constant. The amount is drawn from the Hinterland behind the gate's
-    /// edge, uniformly over its band, on the Household's own id. <b><see cref="Endow"/> is still the
-    /// only door money enters by</b>: it deposits through the Bin's wait list and writes the anchor
-    /// in one call, so <see cref="Invariant.MoneyIsConserved"/> needs no flow term and is unchanged.
+    /// edge, uniformly over its band, on the Household's own id. <b>An arrival enters through
+    /// <see cref="Endow"/> rather than writing the anchor itself</b>: it deposits through the Bin's
+    /// wait list and writes the anchor in one call, so <see cref="Invariant.MoneyIsConserved"/> needs
+    /// no flow term and is unchanged.
     /// </para>
     /// <para>
     /// ⚠ <b>How many people arrive is <em>stated</em> by the caller and is not modelled here.</b>
@@ -2633,9 +2633,10 @@ public sealed partial class World
         int slot = OpenArrival(lifeStage, out Handle<Household> handle);
 
         // Money crosses here, which is MoneySupplyTable.Issued's second writer and the first thing in
-        // this project that moves the supply after the founding. Endow is still the only door: it
-        // deposits through the Bin's wait list and writes the anchor in one call, so there is no
-        // spelling in which the second half can be forgotten (adr/0031).
+        // this project that moves the supply after the founding. The arrival enters through Endow
+        // rather than writing the anchor itself: it deposits through the Bin's wait list and writes
+        // the anchor in one call, so there is no spelling in which the second half can be forgotten
+        // (adr/0031).
         //
         // Drawn on the Household's monotonic id rather than its slot, because a slot is recycled and
         // two Households sharing one would draw the same balance -- 02 §8 rule 5, on the coordinate
@@ -2939,7 +2940,7 @@ public sealed partial class World
         Households.LifeStage[slot] = lifeStage;
 
         // CreateHousehold's line, for its reason (adr/0114). Empty: what a family carries in is
-        // endowed by the caller, and World.Endow is still the only door money enters by.
+        // endowed by the caller through whichever door to the Outside applies.
         if (TryMoneyResource(out ResourceId money))
         {
             // adr/0143: the LIST is the saved truth and Balance is derived from it, so the append is
