@@ -1033,46 +1033,20 @@ public partial class Main
             + "saying so and not the overlay failing",
     };
 
-    /// <summary>A Building's rung, read off the pattern its block was carved by.</summary>
+    /// <summary>A Building's rung, read off the form its Lot was carved with.</summary>
     /// <remarks>
-    /// <para>
-    /// 🔴 <b>IT READ THE HEIGHT BACK AND <c>plans/0058</c> MADE THAT IMPOSSIBLE.</b> This was
-    /// <c>(storeys - 2) / step</c>, which worked only while the rung <em>was</em> the storey count.
-    /// A rung now names a plot ratio and the storeys divide it by the ground the pattern claims —
-    /// ***so two Buildings of one height can be on different rungs and two on one rung can be
-    /// different heights***, which is the entire point of the change and the exact thing a recovery
-    /// from height cannot survive. It asks the block instead.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>Cold path, and it is three lookups a Building.</b> The Lot's frontage names its block,
-    /// the block names its pattern, and <see cref="_rungOf"/> holds the ladder so the sort is not
-    /// re-run per Building. It runs when the massing is rebuilt and never inside a Tick.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>A Lot whose block cannot be found reads as rung 0</b> rather than refusing. This is a
-    /// debug view over a picture that is already drawn; a Building the wash cannot classify is
-    /// better shown in the sparsest colour than not shown at all, and nothing downstream reads it.
-    /// </para>
+    /// A rung names a plot ratio, so it cannot be recovered from height: two Buildings of one height
+    /// can sit on different rungs. Cold path. <see cref="_rungOf"/> holds the ladder so the sort runs
+    /// once per wash.
     /// </remarks>
     private int RungOf(int lot)
     {
-        if (_rungOf is null
-            || !Frontage.BlockOf(
-                _world.Roads.Streets, _world.Lots.East[lot], _world.Lots.North[lot],
-                (StreetSide)_world.Lots.Side[lot], out int column, out int row)
-            || !_world.BlockIndex.Contains(column, row))
+        if (_rungOf is null)
         {
             return 0;
         }
 
-        int blockSlot = _world.BlockIndex.Slot(column, row);
-
-        if (blockSlot == BlockResidency.NotResident)
-        {
-            return 0;
-        }
-
-        int rung = _rungOf[(int)_world.PatternOf(blockSlot, out _)];
+        int rung = _rungOf[(int)_world.Lots.PatternOf(lot)];
 
         return rung < 0 ? 0 : rung >= Patterns.Length ? Patterns.Length - 1 : rung;
     }

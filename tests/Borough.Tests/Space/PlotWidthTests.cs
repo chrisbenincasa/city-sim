@@ -61,10 +61,10 @@ public sealed class PlotWidthTests
             {
                 widths[..groups].Clear();
 
-                int unit = BlockPatterns.UnitTiles(Key, column, row, Block);
+                int unit = BlockPatterns.UnitTiles(Key, Patch(column, row), Block);
 
                 BlockPatterns.Widths(
-                    Key, column, row, BlockFace.South, unit, reach, groups, widths[..groups]);
+                    Key, Patch(column, row), BlockFace.South, unit, reach, groups, widths[..groups]);
 
                 int total = 0;
 
@@ -102,10 +102,10 @@ public sealed class PlotWidthTests
             {
                 widths[..groups].Clear();
 
-                int unit = BlockPatterns.UnitTiles(Key, column, 0, Block);
+                int unit = BlockPatterns.UnitTiles(Key, Patch(column, 0), Block);
 
                 BlockPatterns.Widths(
-                    Key, column, 0, BlockFace.South, unit, Block, groups, widths[..groups]);
+                    Key, Patch(column, 0), BlockFace.South, unit, Block, groups, widths[..groups]);
 
                 if (Block / unit < groups)
                 {
@@ -152,7 +152,7 @@ public sealed class PlotWidthTests
 
         for (int column = 0; column < 16; column++)
         {
-            int unit = BlockPatterns.UnitTiles(Key, column, 5, Block);
+            int unit = BlockPatterns.UnitTiles(Key, Patch(column, 5), Block);
 
             if (Block % unit != 0)
             {
@@ -164,7 +164,7 @@ public sealed class PlotWidthTests
                 widths[..groups].Clear();
 
                 BlockPatterns.Widths(
-                    Key, column, 5, BlockFace.South, unit, Block, groups, widths[..groups]);
+                    Key, Patch(column, 5), BlockFace.South, unit, Block, groups, widths[..groups]);
 
                 var seen = new HashSet<int>();
 
@@ -199,7 +199,7 @@ public sealed class PlotWidthTests
         {
             for (int row = 0; row < 24; row++)
             {
-                seen.Add(BlockPatterns.UnitTiles(Key, column, row, Block));
+                seen.Add(BlockPatterns.UnitTiles(Key, Patch(column, row), Block));
             }
         }
 
@@ -217,12 +217,12 @@ public sealed class PlotWidthTests
     public void The_module_is_the_same_every_time_one_block_is_asked()
     {
         Assert.Equal(
-            BlockPatterns.UnitTiles(Key, 7, 11, Block),
-            BlockPatterns.UnitTiles(Key, 7, 11, Block));
+            BlockPatterns.UnitTiles(Key, Patch(7, 11), Block),
+            BlockPatterns.UnitTiles(Key, Patch(7, 11), Block));
 
         Assert.Equal(
-            BlockPatterns.UnitTiles(Key, 7, 11, Block),
-            BlockPatterns.UnitTiles(Key, 7, 11, Block * 2) / 2);
+            BlockPatterns.UnitTiles(Key, Patch(7, 11), Block),
+            BlockPatterns.UnitTiles(Key, Patch(7, 11), Block * 2) / 2);
     }
 
     /// <summary>
@@ -266,4 +266,6 @@ public sealed class PlotWidthTests
 
     /// <summary>The world key these draw against. Any seed; the properties hold for all of them.</summary>
     private static WorldKey Key => WorldKey.FromSeed(0x5E_5E_5E);
+
+    private static ulong Patch(int column, int row) => ((ulong)(uint)column << 32) | (uint)row;
 }

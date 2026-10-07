@@ -273,7 +273,10 @@ public sealed class DerivedRebuildAuditTests
         //
         // 55 -> 56: road_segment.centerline, the arc rebuilt from a Segment's Nodes and its saved
         // sagitta (adr/0174). Every world with a Segment exercises it.
-        Assert.Equal(56, all.Length);
+        //
+        // 56 -> 54: block.zone and block.band went with the block table. A block is a face of the
+        // Street graph, and its zoning is read from the permission paint (adr/0174).
+        Assert.Equal(54, all.Length);
         Assert.Single(ScratchColumns(Stepped(0)));
     }
 

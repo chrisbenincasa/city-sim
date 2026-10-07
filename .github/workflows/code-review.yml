@@ -28,6 +28,9 @@ jobs:
           config.max_output_tokens: "196608"
           config.patch_extra_lines_after: "20"
           pr_reviewer.num_max_findings: "10"
+          # Publish each finding as an inline comment on the diff line. Findings that cannot be
+          # anchored to the diff stay in the review summary instead, so nothing is lost.
+          pr_reviewer.inline_key_issues: "true"
           pr_reviewer.require_estimate_effort_to_review: "false"
           pr_reviewer.extra_instructions: >-
             Act as a strict reviewer. Report every correctness bug, edge case and missing test.

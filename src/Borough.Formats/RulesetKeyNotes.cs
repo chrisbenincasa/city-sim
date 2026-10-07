@@ -1012,6 +1012,13 @@ public static class RulesetKeyNotes
             "Most storeys a Tower's podium stands. Absent means min_tower_podium_storeys, which takes no "
             + "draw. At most 12.",
 
+        ["[lots] min_plot_depth_tiles"] =
+            "The shallowest a new plot may become when it overlaps ground another Lot already holds. "
+            + "The plot keeps its frontage and loses depth from the back until it fits. If it still "
+            + "overlaps at this depth, it is dropped. Omitted or 0 means an overlapping plot is "
+            + "dropped. Otherwise it is more than twice setback_tiles and at most half the block. "
+            + "It affects only Lots carved after it changes.",
+
         ["[lots] pattern_spread"] =
             "How many rungs either side of its band's own rung a block's pattern may be drawn, so a "
             + "density is a mix of forms rather than one form. The band's rung stays the centre of "
