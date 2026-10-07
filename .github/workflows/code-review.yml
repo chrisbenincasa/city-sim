@@ -37,7 +37,7 @@ jobs:
             Simulation code must use integer/Q16.16 math (no float, double or Math.*),
             must not enumerate Dictionary/HashSet, and must keep replay, save/reload and
             thread-count determinism.
-          # comment-only mode: nothing runs automatically on PR open
-          github_action_config.auto_review: "false"
+          # A review runs on PR open; /describe and /improve stay comment-only.
+          github_action_config.auto_review: "true"
           github_action_config.auto_describe: "false"
           github_action_config.auto_improve: "false"
