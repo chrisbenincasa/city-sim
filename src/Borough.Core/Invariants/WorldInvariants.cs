@@ -1236,8 +1236,8 @@ public static class WorldInvariants
     /// <para>
     /// <b>Two independent quantities, which is what <see cref="TrafficIsConserved"/> does and why it
     /// has content.</b> The left side walks the places money can sit; the right side is
-    /// <see cref="MoneySupplyTable.Issued"/>, which only <c>World.Endow</c> moves. The argument for
-    /// each half is on <see cref="Invariant.MoneyIsConserved"/>.
+    /// <see cref="MoneySupplyTable.Issued"/>, which every door to the Outside moves by the amount
+    /// that crosses it. The argument for each half is on <see cref="Invariant.MoneyIsConserved"/>.
     /// </para>
     /// <para>
     /// <b>The places money can sit are one</b> since <c>adr/0114</c>: a Bin whose Resource is
