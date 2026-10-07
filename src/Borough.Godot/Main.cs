@@ -1094,6 +1094,8 @@ public partial class Main : Node3D
             File.WriteAllText(_record, string.Empty);
         }
 
+        LoadStreetPreferences(driven: drive is not null || record is not null);
+
         if (listen is not null && !Listen(Globalize(listen)))
         {
             Stop(2);
