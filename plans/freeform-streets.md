@@ -1,7 +1,7 @@
 # Freeform local Streets with road-aligned Lots
 
-State: design. Land model, saved frontage and arc Streets decided 10/03/2026; junctions, wedge use
-and snap details remain open.
+State: building. Slices 1 to 7 are built; freeform `Zone` (slice 9) and batch modes (slice 8)
+remain. The acceptance checks pass on lattice-zoned ground. Wedge use remains open.
 Survey of current code done 09/27/2026 against `main` at `919290a5`.
 
 ## Outcome
@@ -234,6 +234,7 @@ re-record goldens by the [procedure](../tests/Borough.Tests/Golden/README.md).
 | 6 | Freeform `Street` verb | Endpoints plus sagitta, exact joins, crossing splits, minimum length and angle, demolition at the `Demolish` price. Seals the laid Street along its centerline | 2, 5 |
 | 7 | Shell drawing | Straight, simple-curve and continuous modes. Snapping, preview with refusals and demolition cost, arc paving meshes. Driven demonstration of the acceptance checks | 6 |
 | 8 | Batch modes | Grid and Parallel modes over a batch `Street` | 7 |
+| 9 | Freeform `Zone` | `Zone` and the shell zone tool paint the face holding the Tile, or the nearest Segment side on strip ground, off the lattice. Today both resolve a lattice block | 7 |
 
 Slices 1 and 3 can run in parallel.
 
@@ -264,6 +265,16 @@ within 4 Tiles. A Segment point closer to an end than `min_segment_length_tiles`
 end's Node. N switches all snapping. `Simulation.PreviewStreet` gives the preview its refusal,
 price and Buildings from `RefuseStreet`'s own code. Curved Segments pave, footway and kerb as
 chords of at most 1/64 turn, and strip mitres read the Segment tangent at the Node.
-Slice 7b is next: simple-curve and continuous modes, length and angle snaps, and the
-acceptance-check demonstration. The 4-Tile snap reach is a shell constant until 7b settles where
-snap defaults live.
+Slice 7b is built. The Street tool has simple-curve and continuous modes; X cycles them.
+A simple curve takes start, bend and end, and continuous mode lays each Street tangent to the
+last. Ends snap to a whole number of plot widths along the arc (K) and to 90° plus a finer step
+from the Streets at the start or from east (J, and H cycles 45°, 15° and 5°). The snap settings
+and the 4-Tile reach live in shell preferences, `user://street.cfg`; driven and recorded runs
+ignore them. Two Core defects surfaced in the driven run and are fixed. Zoning a block now carves
+the freeform sides beside it. A join no longer clears the Lot across the Street it joins.
+The acceptance checks are demonstrated on `minimal.toml` at 1,000 Citizens, inside the lattice,
+with lattice `Zone` painting the blocks. `FreeformStreetsAcceptanceTests` replays the driven
+Input Log and asserts the closure, overlap, frontage and equivalence checks. No Buildings rise on
+the new Lots because `minimal.toml` has no arrivals.
+Slice 9 is next, because a player cannot yet zone ground outside the lattice. The capability is
+complete when slice 9 repeats the demonstration on freeform ground.
