@@ -760,11 +760,8 @@ public sealed class RuleEngine
         if (!_world.TryMoneyResource(out ResourceId money))
         {
             throw new InvalidOperationException(
-                $"rule {rule.Raw} buys from a District Pool and this Ruleset declares no Resource "
-                + "whose family is money. A purchase crosses an ownership boundary, so the Good moves "
-                + "one way and money the other at the prevailing price (adr/0050) -- there is no "
-                + "spelling of a pool term that moves only the Good. A file with a pool term and no "
-                + "money Resource is refusable at load and no refusal does so yet.");
+                "a pool term reached the RuleEngine without a money Resource. RulesetLoader refuses "
+                + "pool terms when the Ruleset declares no Resource whose family is money.");
         }
 
         int purse = _world.FindLocalBin(instance, money);
@@ -1639,26 +1636,6 @@ public sealed class RuleEngine
                 // purchase is 1:3. Its level is always zero and that is not a stub: the Pool is a
                 // market and not a store, so the stock is in the selling Business's own Bin and this
                 // row is the price, the wake target and the reachable sellers.
-                // 🔴 A RULESET WITH A POOL TERM AND NO [districts] TABLE HAS NO MARKET AND NEVER
-                // WILL, which is a different thing from not having one YET and must not share its
-                // answer. Firing at zero for ever is the "loads clean and misbehaves in silence"
-                // shape adr/0048 refuses outright, and it would be silent in exactly the file whose
-                // whole point is the purchase. ⚠ THE REFUSAL BELONGS AT LOAD, with a file and a
-                // line; it is here because the loader has no such check yet, and that debt is filed
-                // rather than assumed.
-                if (!world.Rules.Districts.Runs)
-                {
-                    throw new NotSupportedException(
-                        $"rule {rule.Raw} names pool Resource {reference.Resource.Raw} and this "
-                        + "Ruleset states no [districts] table, so the city has no Districts, no "
-                        + "Pools and no markets -- a pool term in it can never resolve. NOTE "
-                        + "(adr/0050, adr/0139): the Pool is a MARKET, not a wider Bin lookup. A "
-                        + "pool term crosses an ownership boundary, so the Good moves one way and "
-                        + "money the other at the prevailing price, settled atomically with the "
-                        + "Rule. rulesets/provisioned.toml is the smallest shipped file that "
-                        + "carries one.");
-                }
-
                 int row = MarketRow(world, instance, reference.Resource);
 
                 // ⚠ NoSlot RATHER THAN A THROW, and the case is ordinary rather than exceptional:

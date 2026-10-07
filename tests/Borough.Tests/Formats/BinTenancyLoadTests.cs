@@ -107,15 +107,34 @@ public sealed class BinTenancyLoadTests
     }
 
     /// <summary>
-    /// A Rule with no local term belongs to the premises: nothing about it leaves with a tenant.
+    /// A Rule with no local term belongs to the premises, so it does not leave with a tenant.
     /// </summary>
     [Fact]
     public void A_rule_with_no_local_term_is_the_premises()
     {
-        Ruleset ruleset = Accepted(Tenanted.Replace(
-            """inputs  = [ { scope = "local", resource = "repairs", amount = 1 } ]""",
-            """inputs  = [ { scope = "pool", resource = "repairs", amount = 1 } ]""",
-            StringComparison.Ordinal));
+        Ruleset ruleset = Accepted(
+            Tenanted.Replace(
+                """inputs  = [ { scope = "local", resource = "repairs", amount = 1 } ]""",
+                """inputs  = [ { scope = "pool", resource = "repairs", amount = 1 } ]""",
+                StringComparison.Ordinal)
+            + """
+
+            [[resource]]
+            name = "money"
+            family = "money"
+
+            [districts]
+            prominence_percent = 50
+            revisit_ticks = 2048
+            hysteresis_percent = 50
+            migrate_cells = 16
+
+            [[hinterland]]
+            edge = "north"
+            emigrant_balance_min = 0
+            emigrant_balance_max = 0
+            prices = [ { resource = "repairs", price = 100 }, { resource = "sundries", price = 100 } ]
+            """);
 
         Assert.Equal(BinTenancy.Premises, ruleset.Rule(new RuleId(2)).Tenancy);
     }

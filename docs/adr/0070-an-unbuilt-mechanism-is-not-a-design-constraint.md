@@ -44,11 +44,12 @@ every Lot this project has ever run was painted. Nothing is wrong with either se
 is the marker. A reader without it does what two ledger entries did — take the document for the build,
 find the build lacking, and conclude something about the **design**.
 
-**The pattern already exists in the code and this extends it to prose.** Slice 6 shipped **named holes
-that throw**: `RuleEngine`'s `pool` scope does not return an empty Bin, it raises with a sentence saying
-the District Pool does not exist. That is exactly this rule, implemented — an absence that **announces
-itself** rather than degrading into a plausible answer. The equivalent in a document is a sentence
-saying which parts exist, and the equivalent in a sitting is this classification.
+**The pattern already exists in the code and this extends it to prose.** The loader names its refusals:
+a Rule using `pool` in a Ruleset without `[districts]`, or without a money Resource, is refused with
+its source location before it can reach the engine. The RuleEngine keeps a backstop throw for the
+missing money Resource, so an absence **announces itself** rather than degrading into a plausible
+answer. The equivalent in a document is a sentence saying which parts exist, and the equivalent in a
+sitting is this classification.
 
 **Why *refused* is the only evidential category.** A refusal is a decision with an ADR, a reason and a
 revisit trigger, so reasoning from it is reasoning from the corpus. *Unbuilt* is a statement about the

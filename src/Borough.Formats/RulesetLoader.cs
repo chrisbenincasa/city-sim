@@ -1387,6 +1387,9 @@ public static class RulesetLoader
                     ReadTerms(table, "outputs", name, allOutputs, allEmissions);
                 }
 
+                RefuseUnsupportedPoolTerms(table, name, allInputs, inputFirst, allInputs.Count,
+                    allOutputs, outputFirst, allOutputs.Count);
+
                 definitions[i] = new RuleDefinition(
                     Kind: kind,
                     Rate: ReadRate(table, name),
@@ -1408,6 +1411,42 @@ public static class RulesetLoader
             emissions = [.. allEmissions];
 
             return definitions;
+        }
+
+        private void RefuseUnsupportedPoolTerms(
+            TableSyntaxBase table, string? name,
+            List<Term> inputs, int inputFirst, int inputEnd,
+            List<Term> outputs, int outputFirst, int outputEnd)
+        {
+            bool hasPool = false;
+            bool hasMoney = _families.Contains(ResourceFamily.Money);
+
+            for (int i = inputFirst; i < inputEnd; i++)
+            {
+                hasPool |= inputs[i].Bin.Scope == Scope.Pool;
+            }
+
+            for (int i = outputFirst; i < outputEnd; i++)
+            {
+                hasPool |= outputs[i].Bin.Scope == Scope.Pool;
+            }
+
+            if (!hasPool)
+            {
+                return;
+            }
+
+            if (_districtsTable is null)
+            {
+                Refuse(LineOf(table), name,
+                    "this Rule uses a pool term, but a pool term needs [districts].");
+            }
+
+            if (!hasMoney)
+            {
+                Refuse(LineOf(table), name,
+                    "this Rule uses a pool term, but a pool term needs a Resource with family = \"money\".");
+            }
         }
 
         /// <summary>
@@ -2666,13 +2705,9 @@ public static class RulesetLoader
         /// a shape is not a specification of the shape</b>.
         /// </para>
         /// <para>
-        /// <b><c>pool</c> is deliberately not refused beside it.</b> That scope is <em>unbuilt</em>
-        /// rather than wrong (<c>adr/0070</c>) — it arrives with the District Pool — so refusing it
-        /// here would refuse a file that is going to be legal, and the Rule engine's named hole is
-        /// the right instrument for an absence with a date on it. This one is different in kind: a
-        /// city-wide store of a Good is not a mechanism waiting to be built, and the treasury is
-        /// fitted from the conserved Resources alone, so there is nothing for such a term to resolve
-        /// to in any world this design describes.
+        /// <b><c>pool</c> is refused when its required world support is absent.</b> A pool term needs
+        /// the District Pool and a money Resource, so <see cref="RefuseUnsupportedPoolTerms"/> checks
+        /// both facts while the Rule still has its source line.
         /// </para>
         /// </remarks>
         private bool GlobalNamesAConservedResource(
