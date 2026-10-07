@@ -142,7 +142,9 @@ public partial class Main
     private string Holding() => _verb switch
     {
         Verb.Zone => ZoneName(),
-        Verb.Connect => _streetStart is null ? "STREET (click the start; shift-click bulldozes)" : "STREET (click the end)",
+        Verb.Connect => $"STREET, {StreetModeNames[(int)_streetMode].ToUpperInvariant()} ("
+            + (_streetStart is null ? "click the start; shift-click bulldozes)"
+                : _streetMode == StreetMode.Curve && _streetBend is null ? "click the bend point)" : "click the end)"),
         Verb.Demolish => "DEMOLISH",
         Verb.Service => _serviceKind != 0
             ? $"SERVICE {_names.Kind(_serviceKind) ?? _serviceKind.ToString()} (s cycles)"
@@ -275,7 +277,7 @@ public partial class Main
         _zoneStart = null;
         _zoneFeedback = string.Empty;
         _zoneErase = tool == "erase";
-        _streetStart = null;
+        StreetReset();
 
         switch (tool)
         {
@@ -295,6 +297,7 @@ public partial class Main
 
             case "street":
                 _verb = Verb.Connect;
+                _streetMode = (StreetMode)Math.Clamp(choice, 0, StreetModeNames.Length - 1);
 
                 break;
 

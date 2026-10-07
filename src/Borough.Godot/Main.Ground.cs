@@ -1199,7 +1199,7 @@ public partial class Main
     /// chord of that width leaves on the outside of the bend.
     /// </remarks>
     private static System.Collections.Generic.IEnumerable<Transform3D> Chords(
-        StreetArc line, Vector3 from, Vector3 to, float wide)
+        StreetArc line, Vector3 from, Vector3 to, float wide, float tall = 1f)
     {
         int pieces = line.IsStraight ? 1 : Math.Max(1, Mathf.CeilToInt(Math.Abs(line.Sweep) / (float)ChordTurn));
         float overlap = pieces == 1 ? 0f : wide * Mathf.Tan(Mathf.Pi * Math.Abs(line.Sweep) / Q16.One / pieces);
@@ -1207,7 +1207,7 @@ public partial class Main
         for (int piece = 1; piece <= pieces; piece++)
         {
             Vector3 end = piece == pieces ? to : Ground(line.PointAt((int)((long)line.Length * piece / pieces)));
-            yield return Box(start, end, wide, overlap);
+            yield return Box(start, end, wide, overlap, tall);
             start = end;
         }
     }
