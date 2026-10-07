@@ -62,7 +62,7 @@ public sealed class FreeformZoneTests
 
         int half = world.Rules.Lots.StreetHalfWidthTiles;
         int[] lots = Enumerable.Range(0, world.Lots.Rows.SlotCount).Where(world.Lots.Rows.IsLive).ToArray();
-        Assert.NotEmpty(lots);
+        Assert.Equal(10, lots.Length);
         foreach (int lot in lots)
         {
             Assert.Equal(LotTable.Housing, world.LotPermissions(lot).CommonUses);
@@ -75,8 +75,8 @@ public sealed class FreeformZoneTests
                 for (int column = 0; column < parcel.Wide; column++)
                     for (int row = 0; row < parcel.Deep; row++)
                     {
-                        long east = parcel.EastQ16 + ((2L * column + 1) * parcel.AxisEastQ16 - (2L * row + 1) * parcel.AxisNorthQ16) / 2;
-                        long north = parcel.NorthQ16 + ((2L * column + 1) * parcel.AxisNorthQ16 + (2L * row + 1) * parcel.AxisEastQ16) / 2;
+                        long east = parcel.EastQ16 + IntegerMath.FloorDiv((2L * column + 1) * parcel.AxisEastQ16 - (2L * row + 1) * parcel.AxisNorthQ16, 2);
+                        long north = parcel.NorthQ16 + IntegerMath.FloorDiv((2L * column + 1) * parcel.AxisNorthQ16 + (2L * row + 1) * parcel.AxisEastQ16, 2);
                         Assert.True(line.DistanceTo(east, north) > half * Fixed.One, $"Lot {lot} reaches Segment {segment}.");
                     }
             }
