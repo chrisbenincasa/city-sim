@@ -84,6 +84,34 @@ public sealed class OpeningGrantTests
     }
 
     [Fact]
+    public void A_grant_above_int_max_is_refused_at_load()
+    {
+        RulesetLoadResult result = RulesetLoader.Parse(
+            Fixture().Replace(
+                $"opening_grant = {Grant}\n", "opening_grant = 2147483648\n", StringComparison.Ordinal),
+            "granted.toml");
+
+        Assert.False(result.Ok);
+        Assert.Contains(
+            "opening_grant is 2147483648, above 2147483647", result.Describe(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_positive_grant_in_a_file_naming_no_money_is_refused_at_load()
+    {
+        string withoutMoney = Fixture().Replace(
+            "[[resource]]\nname = \"money\"\nfamily = \"money\"\n\n", "", StringComparison.Ordinal);
+
+        Assert.NotEqual(Fixture(), withoutMoney);
+
+        RulesetLoadResult result = RulesetLoader.Parse(withoutMoney, "granted.toml");
+
+        Assert.False(result.Ok);
+        Assert.Contains(
+            "states an opening_grant and the file names no money", result.Describe(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_zone_raised_business_is_paid_its_grant_out_of_the_treasury()
     {
         var world = new World(1_000, Parse(Fixture()), Key);
@@ -125,11 +153,64 @@ public sealed class OpeningGrantTests
     }
 
     [Fact]
+    public void A_structural_reload_does_not_open_a_trade_the_treasury_refused()
+    {
+        Ruleset shortRules = WithTreasury(Grant - 1);
+        var world = new World(1_000, shortRules, Key);
+        Raise(world, zoned: true);
+
+        string reloaded = Fixture()
+            .Replace($"opening_balance = {Opening}\n", $"opening_balance = {Grant - 1}\n", StringComparison.Ordinal)
+            .Replace(
+                "  { resource = \"repairs\",  price = 250 },\n",
+                "  { resource = \"repairs\",  price = 250 },\n  { resource = \"timber\",  price = 50 },\n",
+                StringComparison.Ordinal)
+            + "\n[[resource]]\nname = \"timber\"\nfamily = \"good\"\n";
+
+        Assert.NotEqual(RulesetChange.None, RulesetShape.Compare(shortRules, Parse(reloaded)));
+
+        world.Adopt(Parse(reloaded), 1, new Ticks(64), Key);
+
+        Assert.Equal(0, CountBusinesses(world));
+        Assert.Equal(new Money(Grant - 1), world.TreasuryBalance());
+
+        world.Invariants.RunEndOfRun(world);
+    }
+
+    [Fact]
     public void A_treasury_holding_exactly_the_grant_pays_it()
     {
         var world = new World(1_000, WithTreasury(Grant), Key);
 
         Raise(world, zoned: true);
+
+        Assert.Equal(1, CountBusinesses(world));
+        Assert.Equal(Money.Zero, world.TreasuryBalance());
+    }
+
+    [Fact]
+    public void A_reopened_unit_is_paid_its_grant_out_of_the_treasury()
+    {
+        var world = new World(1_000, Parse(Fixture()), Key);
+        int slot = world.Buildings.Rows.Resolve(Raise(world, zoned: true));
+
+        Assert.True(world.HasVacantUnit(slot), "the shopfront has no second Unit to reopen");
+        Assert.True(world.OpenInVacantUnit(slot, granted: true));
+
+        Assert.Equal(2, CountBusinesses(world));
+        Assert.Equal(new Money(Opening - 2 * Grant), world.TreasuryBalance());
+
+        world.Invariants.RunEndOfRun(world);
+    }
+
+    [Fact]
+    public void A_treasury_short_of_the_grant_opens_no_reopened_unit()
+    {
+        var world = new World(1_000, WithTreasury(Grant), Key);
+        int slot = world.Buildings.Rows.Resolve(Raise(world, zoned: true));
+
+        Assert.True(world.HasVacantUnit(slot), "the shopfront has no second Unit to reopen");
+        Assert.False(world.OpenInVacantUnit(slot, granted: true));
 
         Assert.Equal(1, CountBusinesses(world));
         Assert.Equal(Money.Zero, world.TreasuryBalance());

@@ -1553,7 +1553,7 @@ public sealed partial class World
         {
             if (Buildings.Rows.IsLive(slot))
             {
-                rearmed += Fit(Buildings.Rows.At(slot), Buildings.Kind[slot], now, key);
+                rearmed += Fit(Buildings.Rows.At(slot), Buildings.Kind[slot], now, key, constructing: false);
             }
         }
 
@@ -5071,7 +5071,7 @@ public sealed partial class World
         Buildings.MarkRaised(Buildings.Rows.Resolve(building), now);
 
         RaiseUnits(Buildings.Rows.Resolve(building));
-        Fit(building, kind, now, key, zoned);
+        Fit(building, kind, now, key, constructing: true, zoned);
         Changes?.Building(Buildings.Rows.Resolve(building));
 
         return building;
@@ -5111,9 +5111,13 @@ public sealed partial class World
     /// one Tick out, but the ordering costs nothing and the alternative relies on that staying true.
     /// </para>
     /// </remarks>
+    /// <param name="constructing">
+    /// Whether <see cref="CreateBuilding"/> is calling. Only construction opens the kind's own trade.
+    /// </param>
     /// <param name="zoned">Whether a Zone Rule raised it, as <see cref="CreateBuilding"/> takes it.</param>
     /// <returns>How many Rule Instances were armed.</returns>
-    private int Fit(Handle<Building> building, byte kind, Ticks now, WorldKey key, bool zoned = false)
+    private int Fit(
+        Handle<Building> building, byte kind, Ticks now, WorldKey key, bool constructing, bool zoned = false)
     {
         if (!Rules.Declares(kind))
         {
@@ -5161,9 +5165,10 @@ public sealed partial class World
         // ORDINARY Business carrying no flag and no founder, and it takes one of the kind's occupant
         // slots exactly as a Household does (adr/0147).
         //
-        // Asked rather than assumed, for the Bins' reason and the Car Park's: a refit meets a
-        // Building that already holds the trade it came with, and a second one would double the
-        // city's employment on every reload.
+        // ⚠ CONSTRUCTION ONLY. A Building without its own trade at a refit is one whose trade was
+        // refused for want of the grant, or one whose shop failed and closed. Recreating it on a
+        // reload would reverse either outcome for free. After construction only a Zone Rule's reopen
+        // opens the trade again.
         int armed = 0;
         byte trade = Rules.Kind(kind).Business;
 
@@ -5189,7 +5194,7 @@ public sealed partial class World
         // declaring `business` without it, so `trade != 0` already carries the permission
         // (plans/0054 F1). Asking again would be a second copy of that rule, in the file that would
         // not be edited when it moved.
-        if (trade != 0 && roomBeside && !HoldsOwnTrade(buildingSlot))
+        if (constructing && trade != 0 && roomBeside)
         {
             // The origin is written here rather than inside CreateBusiness, because this is the one
             // caller that has premises to claim. A founded Business is created unpremised and a
@@ -5229,8 +5234,7 @@ public sealed partial class World
     /// <summary>Whether a Building already holds the Business it instantiated itself.</summary>
     /// <remarks>
     /// <para>
-    /// <b><see cref="Fit"/>'s idempotence for <c>adr/0148</c>'s declared trade</b>, and it asks the
-    /// same question the Bin walk and the Car Park check ask. It is <see cref="DestroyBuilding"/>'s
+    /// <b>The pairing for <c>adr/0148</c>'s declared trade.</b> It is <see cref="DestroyBuilding"/>'s
     /// predicate exactly, run in the other direction: ***the pairing that keeps the shop count bounded
     /// has to identify the same row at both ends, or it is not a pairing.***
     /// </para>
