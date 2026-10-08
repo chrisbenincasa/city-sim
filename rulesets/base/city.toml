@@ -42,6 +42,7 @@ commute_moderate_minutes = 40
 commute_budget_minutes = 50
 
 [jobs]
+labour_per_day = 1024
 interval      = 32
 revisit_ticks = 1024
 candidates    = 3
@@ -86,3 +87,23 @@ floor = -1000
 # The money the city is founded with. It pays for the school and every grant after it.
 [treasury]
 opening_balance = 4194304
+
+# Grocers buy flour through a District Pool, so the city needs Districts. shopping.toml has the numbers.
+[districts]
+prominence_percent = 50
+revisit_ticks = 2048
+hysteresis_percent = 50
+migrate_cells = 16
+
+[market]
+decay_percent = 50
+move_cap_percent = 10
+
+[shopping]
+interval = 64
+low_days = 1
+target_days = 3
+severe_need = -16
+known_shops = 3
+search_candidates = 32
+retry_ticks = 128

@@ -3,11 +3,22 @@
 [[resource]]
 id = "sundries"
 family = "good"
+need = "sustenance"
 
 [[resource]]
 id = "repairs"
 family = "good"
 
 [[resource]]
+id = "flour"
+family = "good"
+
+[[resource]]
 id = "money"
 family = "money"
+
+[[resource]]
+id = "labour"
+family = "labour"
+shelf_life_cycles = 4
+shelf_life_cycle_minutes = 15

@@ -18,6 +18,11 @@ queue_reconsider_days = 1
 [[hinterland]]
 id = "west"
 edge = "west"
+prices = [
+  { resource = "sundries", price = 140 },
+  { resource = "flour",    price = 1800 },
+  { resource = "repairs",  price = 250 },
+]
 rent = 900
 centrality_tiles = 6000
 emigrant_balance_min = 800
@@ -47,6 +52,11 @@ households      = 100
 [[hinterland]]
 id = "south"
 edge = "south"
+prices = [
+  { resource = "sundries", price = 120 },
+  { resource = "flour",    price = 1600 },
+  { resource = "repairs",  price = 250 },
+]
 rent = 600
 centrality_tiles = 4000
 emigrant_balance_min = 1200
@@ -76,6 +86,11 @@ households      = 100
 [[hinterland]]
 id = "east"
 edge = "east"
+prices = [
+  { resource = "sundries", price = 100 },
+  { resource = "flour",    price = 1400 },
+  { resource = "repairs",  price = 250 },
+]
 rent = 300
 centrality_tiles = 2000
 emigrant_balance_min = 2000
@@ -105,6 +120,11 @@ households      = 100
 [[hinterland]]
 id = "north"
 edge = "north"
+prices = [
+  { resource = "sundries", price = 160 },
+  { resource = "flour",    price = 2000 },
+  { resource = "repairs",  price = 250 },
+]
 rent = 1500
 centrality_tiles = 9000
 emigrant_balance_min = 3000

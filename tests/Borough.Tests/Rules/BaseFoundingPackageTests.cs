@@ -24,6 +24,8 @@ public sealed class BaseFoundingPackageTests
     private const int Blocks = 4;
     private const int Days = 12;
     private const int SaveDay = 6;
+    private const byte HousingZone = 1;
+    private const byte TradeZone = 2;
 
     [Fact]
     public void The_committed_founding_log_is_the_one_the_package_produces()
@@ -55,11 +57,37 @@ public sealed class BaseFoundingPackageTests
         Assert.True(world.Households.Rows.LiveCount > 0, "nobody arrived through the gate.");
         Assert.True(Trading(world, teaching) == 1, "the school stands without its teaching trade.");
         Assert.True(
-            Trading(world, ShopTrade(rules)) > 0,
-            "no dwelling houses a shop, so the package's shop never opened.");
+            Trading(world, Trades(rules).Mill) > 0,
+            "no dwelling houses a mill, so the package's mill never opened.");
         Assert.True(
             world.TreasuryBalance()!.Value.Raw < opening - price,
             "the treasury paid for the school and nothing after, so no grant reached it.");
+
+        world.Invariants.RunEndOfRun(world);
+    }
+
+    [Fact]
+    public void Households_buy_sundries_that_grocers_bake_from_flour_milled_in_the_city()
+    {
+        (Ruleset rules, _) = Package();
+        InputLog log = InputLogCodec.FromText(Committed());
+        Simulation simulation = Replay.Start(log, rules);
+        (byte mill, byte grocer) = Trades(rules);
+        long millRevenue = 0;
+        long grocerRevenue = 0;
+
+        for (int day = 0; day < Days; day++)
+        {
+            Replay.Trace(simulation, log, new Ticks(Ticks.PerDay), hashEvery: Ticks.PerDay, []);
+            millRevenue += Revenue(simulation.World, mill);
+            grocerRevenue += Revenue(simulation.World, grocer);
+        }
+
+        World world = simulation.World;
+
+        Assert.True(Trading(world, grocer) > 0, "the trade zone raised no grocer.");
+        Assert.True(millRevenue > 0, "no grocer bought flour from a mill.");
+        Assert.True(grocerRevenue > 0, "no Household bought sundries from a grocer.");
 
         world.Invariants.RunEndOfRun(world);
     }
@@ -118,8 +146,8 @@ public sealed class BaseFoundingPackageTests
     }
 
     /// <summary>
-    /// Ground, a <see cref="Blocks"/>-square Street grid at the origin corner, housing zoned on every
-    /// block, then a gate on the first vacant edge Lot and a school on the first vacant inner one.
+    /// Ground, a <see cref="Blocks"/>-square Street grid at the origin corner, trade zoned on three blocks and housing on the rest,
+    /// then a gate on the first vacant edge Lot and a school on the first vacant inner one.
     /// </summary>
     /// <remarks>
     /// Zoning follows the Streets by a Tick because the subdivider carves against standing faces.
@@ -179,12 +207,15 @@ public sealed class BaseFoundingPackageTests
                         CommandKind.Zone,
                         new Tiles((column * block) + (block / 2)),
                         new Tiles((row * block) + (block / 2)),
-                        zone: 1));
+                        zone: IsTrade(column, row) ? TradeZone : HousingZone));
             }
         }
 
         return builder;
     }
+
+    private static bool IsTrade(int column, int row) =>
+        (column, row) is (1, 1) or (2, 2) or (3, 0);
 
     private static Command Lay(int block, int column, int row, StreetAxis axis) => new(
         CommandKind.Connect,
@@ -242,17 +273,37 @@ public sealed class BaseFoundingPackageTests
         throw new InvalidOperationException($"the package declares no kind serving {need}.");
     }
 
-    private static byte ShopTrade(Ruleset rules)
+    /// <summary>The trades of the two housing kinds, in declaration order: the dwelling's mill, then the shopfront's grocer.</summary>
+    private static (byte Mill, byte Grocer) Trades(Ruleset rules)
     {
+        List<byte> trades = [];
+
         for (int kind = 1; kind <= rules.KindCount; kind++)
         {
             if (rules.Kind((byte)kind).Houses)
             {
-                return rules.Kind((byte)kind).Business;
+                trades.Add(rules.Kind((byte)kind).Business);
             }
         }
 
-        throw new InvalidOperationException("the package declares no housing kind.");
+        Assert.True(trades.Count == 2, $"the package declares {trades.Count} housing kinds, not a dwelling and a shopfront.");
+
+        return (trades[0], trades[1]);
+    }
+
+    private static long Revenue(World world, byte trade)
+    {
+        long total = 0;
+
+        for (int slot = 0; slot < world.Businesses.Rows.SlotCount; slot++)
+        {
+            if (world.Businesses.Rows.IsLive(slot) && world.Businesses.Kind[slot] == trade)
+            {
+                total += world.Businesses.DayRevenue[slot];
+            }
+        }
+
+        return total;
     }
 
     private static int Standing(World world, byte kind)
