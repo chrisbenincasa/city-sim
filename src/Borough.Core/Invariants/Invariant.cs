@@ -615,10 +615,10 @@ public enum Invariant
     /// <para>
     /// <b>Two sums arrived at differently.</b> Every live Household's <c>Money</c> and <c>Savings</c>,
     /// plus every live Bin holding a conserved Resource, against
-    /// <see cref="Entities.MoneySupplyTable.Issued"/> — which moves only at <c>World.Endow</c>. An
-    /// anchor recovered by summing the balances would be the failure milestone 10 task 1 found in a
-    /// different invariant: recomputing the producer's own expression checks that the write happened
-    /// and never what was written.
+    /// <see cref="Entities.MoneySupplyTable.Issued"/> — which every door to the Outside moves by the
+    /// amount that crosses it. An anchor recovered by summing the balances would be the failure
+    /// milestone 10 task 1 found in a different invariant: recomputing the producer's own expression
+    /// checks that the write happened and never what was written.
     /// </para>
     /// <para>
     /// <b>The Bin side walks every owner rather than the treasury's list</b>, because conservation is a

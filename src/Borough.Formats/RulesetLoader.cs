@@ -398,6 +398,12 @@ public static class RulesetLoader
             // `block_tiles`, so the lattice tables cannot be read until the block is known.
             LatticeDefinition[] lattices = ReadLattices(roads);
             LotRuleset lots = ReadLots(roads);
+            if (roads.Runs && roads.MinSegmentLengthTiles == 0)
+            {
+                int plot = lots.LotsPerSegment > 0 ? 2 * roads.BlockTiles / lots.LotsPerSegment : 0;
+                roads = roads with { MinSegmentLengthTiles = plot > 0 ? plot : 1 };
+            }
+
             TripRuleset trips = ReadTrips();
             JobRuleset jobs = ReadJobs(trips);
             RefuseUndepositedLabour();
@@ -1406,6 +1412,10 @@ public static class RulesetLoader
                     OutputCount: allOutputs.Count - outputFirst,
                     EmissionFirst: emissionFirst,
                     EmissionCount: allEmissions.Count - emissionFirst);
+
+                RefuseUnsupportedPoolTerms(table, name, allInputs, inputFirst, allInputs.Count,
+                    allOutputs, outputFirst, allOutputs.Count,
+                    definitions[i].HasFills && definitions[i].Fills.Scope == Scope.Pool);
             }
 
             inputs = [.. allInputs];
@@ -1413,6 +1423,42 @@ public static class RulesetLoader
             emissions = [.. allEmissions];
 
             return definitions;
+        }
+
+        private void RefuseUnsupportedPoolTerms(
+            TableSyntaxBase table, string? name,
+            List<Term> inputs, int inputFirst, int inputEnd,
+            List<Term> outputs, int outputFirst, int outputEnd, bool fillsPool)
+        {
+            bool hasPool = fillsPool;
+            bool hasMoney = _families.Contains(ResourceFamily.Money);
+
+            for (int i = inputFirst; i < inputEnd; i++)
+            {
+                hasPool |= inputs[i].Bin.Scope == Scope.Pool;
+            }
+
+            for (int i = outputFirst; i < outputEnd; i++)
+            {
+                hasPool |= outputs[i].Bin.Scope == Scope.Pool;
+            }
+
+            if (!hasPool)
+            {
+                return;
+            }
+
+            if (_districtsTable is null)
+            {
+                Refuse(LineOf(table), name,
+                    "this Rule uses a pool term, but a pool term needs [districts].");
+            }
+
+            if (!hasMoney)
+            {
+                Refuse(LineOf(table), name,
+                    "this Rule uses a pool term, but a pool term needs a Resource with family = \"money\".");
+            }
         }
 
         /// <summary>
@@ -2723,13 +2769,9 @@ public static class RulesetLoader
         /// a shape is not a specification of the shape</b>.
         /// </para>
         /// <para>
-        /// <b><c>pool</c> is deliberately not refused beside it.</b> That scope is <em>unbuilt</em>
-        /// rather than wrong (<c>adr/0070</c>) — it arrives with the District Pool — so refusing it
-        /// here would refuse a file that is going to be legal, and the Rule engine's named hole is
-        /// the right instrument for an absence with a date on it. This one is different in kind: a
-        /// city-wide store of a Good is not a mechanism waiting to be built, and the treasury is
-        /// fitted from the conserved Resources alone, so there is nothing for such a term to resolve
-        /// to in any world this design describes.
+        /// <b><c>pool</c> is refused when its required world support is absent.</b> A pool term needs
+        /// the District Pool and a money Resource, so <see cref="RefuseUnsupportedPoolTerms"/> checks
+        /// both facts while the Rule still has its source line.
         /// </para>
         /// </remarks>
         private bool GlobalNamesAConservedResource(
@@ -3538,6 +3580,7 @@ public static class RulesetLoader
                     ShopHours = ReadShopHours(table),
                     RequiresTier = ReadRequiresTier(table, name),
                     TuitionPerDay = ReadTuitionPerDay(table, name, kinds),
+                    OpeningGrant = ReadOpeningGrant(table, name),
                 };
             }
 
@@ -3565,6 +3608,55 @@ public static class RulesetLoader
             }
 
             return (byte)tier;
+        }
+
+        /// <summary>
+        /// What the treasury pays a Business of this trade that a Zone Rule opens —
+        /// <c>opening_grant</c>, optional. Absent pays nothing.
+        /// </summary>
+        /// <remarks>
+        /// Bounded as <c>placement_cost</c> is, because the treasury it is paid from is bounded there.
+        /// </remarks>
+        private Money ReadOpeningGrant(TableSyntaxBase table, string? name)
+        {
+            if (!TryInteger(table, "opening_grant", out long grant, required: false, name))
+            {
+                return Money.Zero;
+            }
+
+            SyntaxNodeBase at = (SyntaxNodeBase?)Find(table, "opening_grant") ?? table;
+
+            if (grant < 0)
+            {
+                Refuse(LineOf(at), name,
+                    $"opening_grant is {grant}. It is what the treasury pays a Business of this "
+                    + "trade when a Zone Rule opens one, so it cannot be negative. Omit the key or "
+                    + "state zero for a trade that opens with nothing.");
+
+                return Money.Zero;
+            }
+
+            if (grant > int.MaxValue)
+            {
+                Refuse(LineOf(at), name,
+                    $"opening_grant is {grant}, above {int.MaxValue}. The treasury's opening balance "
+                    + "is bounded there too, so no city could pay it and no Zone Rule could open "
+                    + "this trade.");
+
+                return Money.Zero;
+            }
+
+            if (grant > 0 && !_families.Contains(ResourceFamily.Money))
+            {
+                Refuse(LineOf(at), name,
+                    "this trade states an opening_grant and the file names no money, so there is no "
+                    + "treasury to pay it from and no balance to pay it into. Add a [[resource]] "
+                    + "block with family = \"money\", or drop the key.");
+
+                return Money.Zero;
+            }
+
+            return new Money(grant);
         }
 
         /// <summary>
@@ -7753,12 +7845,28 @@ public static class RulesetLoader
                     + "or drop the key.");
             }
 
+            int shortest = OptionalRoadNumber(
+                "min_segment_length_tiles", minimum: 1, maximum: CellGrid.WorldTiles,
+                "It is the shortest Segment a lay or a split may leave, so it is at least 1 Tile. "
+                + "Absent means one plot width, 2 × block_tiles / lots_per_segment.");
+            int angle = OptionalRoadNumber(
+                "min_crossing_angle_degrees", minimum: 1, maximum: 90,
+                "It is the shallowest angle at which a new Street may meet a Segment, so it is "
+                + "between 1 and 90 degrees. Absent means 30.");
+            int radius = OptionalRoadNumber(
+                "min_curve_radius_tiles", minimum: 1, maximum: CellGrid.WorldTiles,
+                "It is the tightest curve a Street may be laid on, so it is at least 1 Tile. "
+                + "Absent means half of block_tiles.");
+
             return new RoadRuleset(
                 block, spread, arterials, junctions, crossings, paths,
                 street, arterial, walk,
                 streetCapacity, arterialCapacity, pathCapacity)
             {
                 UpkeepPerSegmentPerDay = new Money(upkeep),
+                MinSegmentLengthTiles = shortest,
+                MinCrossingAngleDegrees = angle == 0 ? 30 : angle,
+                MinCurveRadiusTiles = radius == 0 ? (block > 1 ? block / 2 : 1) : radius,
             };
         }
 

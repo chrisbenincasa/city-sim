@@ -22,7 +22,7 @@ Replay and save/reload hold throughout. Completion does not require every planne
 | Start | Shell defaults to `rulesets/base/ruleset.toml`. "New empty city" steps `Ground` (`CityPreparation.cs`) | The shell never reads `founding.borough`, which only `BaseFoundingPackageTests` and Headless `--log` use |
 | Arrival | A gate plus zoned vacant Lots is enough. `HinterlandEngine` admits families, and the housing Zone Rule builds a free `dwelling` while the Unplaced Pool is non-empty | — |
 | Supply | `restock` has `inputs = []`, so every dwelling makes its own `sundries` for free | Production, shop sales and Household purchases. Base declares no `[shopping]`, `pool` term or Hinterland `prices` |
-| Business Money | Wages, arrears and bankruptcy (`WageEngine`) | Zone-raised Businesses open at zero balance (`World.CreateBusiness`). Only `Found` capitalises one. The `shop` trade posts no wage and buys nothing |
+| Business Money | Wages, arrears and bankruptcy (`WageEngine`). `[[business]] opening_grant` pays a zone-raised Business out of the treasury (slice 3a) | Base declares no grant, so its zone-raised Businesses open at zero balance. The `shop` trade posts no wage and buys nothing |
 | City Money | Opening treasury 4,194,304. School `placement_cost` 262,144. `school_funding` grant per job. Demolition paid to the displaced | Income. `ruleset.toml` says "the city has no income". `[income_tax]` and `[business_tax]` exist only in `taxed.toml`/`taxing.toml`. Road upkeep code exists (`SpendOnUpkeep`) but no shipped Ruleset sets it |
 | Shortage | `StarvedSince` clock, `SupplyEvidence`, the inspector's "Waiting for X" line, the city evidence panel and the trouble layer | Staffing, school places and jobs have counters but no elapsed episode. No notification surface |
 | Recovery | Zone, Street, Service, Gate, Govern, Fund, Tax and Demolish all reach the shell. `scripts/ui/check-diagnosis.py` shows a player-led recovery on a `taxed.toml` fixture | No shortage-then-recovery run on base |
@@ -73,10 +73,12 @@ Each slice is one PR. [Execution](#execution) gives the order and which slices r
    Day 12, and match the uninterrupted run. Needs nothing else.
 2. **Production chain in base (D1).** After #105 merges. Replace free `restock` with the labour chain.
    Mills and shops post wages. Households buy sundries with Money. Price the fallback import at the gate edge.
-3a. **Opening grant (D2).** Add a Ruleset key for the grant a zone-raised Business receives from the
-   treasury, with its loader entry, schema, key notes and refusal when the treasury is short. The
-   transfer belongs in `World.CreateBusiness`. Absent by default, so existing Rulesets and goldens
-   keep their hashes. Prove it on a fixture Ruleset, not base.
+3a. **Opening grant (D2). Built.** `[[business]] opening_grant` is the Money the treasury pays a
+   Business that a Zone Rule opens, on a raised Building or in a vacant Unit. `World.CreateBusiness`
+   moves it from the treasury Bin to the Business's balance. A treasury short of the grant opens no
+   Business, and the Building stands without its trade. `Found` and placed Buildings receive none.
+   The budget panel and the Census count it as the `opening grant` flow. Absent pays nothing, and no
+   golden or shipped Ruleset hash moved. `rulesets/granted.toml` and `OpeningGrantTests` prove it.
 3b. **City income in base (D3, D5).** Turn on 3a's grant and add `[business_tax]`, `[income_tax]` and
    road upkeep to base. Run 120 Days headless. Record the treasury, the sum of Business tills and the
    Household balances by Day.

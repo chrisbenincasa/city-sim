@@ -1158,6 +1158,16 @@ public readonly record struct BusinessKindDefinition
 
     /// <summary>Whether this trade charges for a degree.</summary>
     public bool Charges => TuitionPerDay > 0;
+
+    /// <summary>
+    /// What the treasury pays into the balance of a Business of this trade that a Zone Rule opens.
+    /// Zero pays nothing.
+    /// </summary>
+    /// <remarks>
+    /// A transfer, so the money supply does not move. A Zone Rule opens no Business the treasury
+    /// cannot pay for in full. A founded Business is capitalized by its founder and receives none.
+    /// </remarks>
+    public Money OpeningGrant { get; init; }
 }
 
 
@@ -2298,6 +2308,15 @@ public readonly record struct RoadRuleset(
     /// </summary>
     public Money UpkeepPerSegmentPerDay { get; init; }
 
+    /// <summary>The shortest Segment a lay or a split may leave, in Tiles — <c>min_segment_length_tiles</c>.</summary>
+    public int MinSegmentLengthTiles { get; init; }
+
+    /// <summary>The shallowest angle at which a new Street may meet a Segment, in degrees — <c>min_crossing_angle_degrees</c>.</summary>
+    public int MinCrossingAngleDegrees { get; init; }
+
+    /// <summary>The tightest curve a Street may be laid on, in Tiles — <c>min_curve_radius_tiles</c>.</summary>
+    public int MinCurveRadiusTiles { get; init; }
+
     /// <summary>Whether there are roads at all. <see cref="BlockTiles"/> is what a graph cannot lack.</summary>
     public bool Runs => BlockTiles != 0;
 
@@ -3210,6 +3229,32 @@ public readonly record struct LotRuleset(
     {
         var footprint = Footprint(key, parcel.East, parcel.North, parcel.Wide, parcel.Deep);
         return Clipped(footprint.East.Raw, footprint.North.Raw, footprint.Wide.Raw, footprint.Deep.Raw, ground);
+    }
+
+    /// <summary>A Building's footprint on a rotated plot, drawn in the plot's own frame.</summary>
+    /// <remarks>
+    /// The setback draw is keyed on the plot's corner Tile, as it is for a lattice parcel. On an
+    /// east-facing plot the result equals the lattice footprint.
+    /// </remarks>
+    public Space.OrientedRectangle Footprint(WorldKey key, Space.OrientedRectangle parcel)
+    {
+        int east = (int)Arithmetic.IntegerMath.ShiftRight(parcel.EastQ16, Arithmetic.Fixed.FractionalBits);
+        int north = (int)Arithmetic.IntegerMath.ShiftRight(parcel.NorthQ16, Arithmetic.Fixed.FractionalBits);
+        var drawn = Footprint(key, new Quantities.Tiles(east), new Quantities.Tiles(north),
+            new Quantities.Tiles(parcel.Wide), new Quantities.Tiles(parcel.Deep));
+        if (drawn.Wide.Raw <= 0 || drawn.Deep.Raw <= 0)
+        {
+            return default;
+        }
+
+        long along = drawn.East.Raw - east, back = drawn.North.Raw - north;
+        return parcel with
+        {
+            EastQ16 = (int)(parcel.EastQ16 + (along * parcel.AxisEastQ16) - (back * parcel.AxisNorthQ16)),
+            NorthQ16 = (int)(parcel.NorthQ16 + (along * parcel.AxisNorthQ16) + (back * parcel.AxisEastQ16)),
+            Wide = drawn.Wide.Raw,
+            Deep = drawn.Deep.Raw,
+        };
     }
 
     /// <summary>A rectangle clipped to the block's street edges.</summary>

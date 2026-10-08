@@ -336,6 +336,98 @@ public class StreetArcTests
         Assert.False(arc.TrySplitAt(1, out _, out _, out _, out _));
     }
 
+    [Theory]
+    [InlineData(0, 0, 100, 0, 0, 50, -50, 50, 50, 0, 1)]
+    [InlineData(0, 0, 100, 0, 20, -10, 10, 110, 10, 0, 2)]
+    [InlineData(0, 0, 100, 0, 20, 0, 30, 100, -30, -20, 1)]
+    [InlineData(0, 0, 100, 0, 0, 0, 10, 100, 10, 0, 0)]
+    [InlineData(0, 0, 50, 0, 0, 50, -10, 50, 10, 0, 1)]
+    [InlineData(0, 0, 100, 0, 10, 0, 0, 100, 0, -10, 2)]
+    public void Crossings_find_every_point_where_two_streets_meet(
+        int aE, int aN, int bE, int bN, int sagitta, int oaE, int oaN, int obE, int obN, int otherSagitta, int expected)
+    {
+        StreetArc arc = Create(aE, aN, bE, bN, sagitta * Fixed.One);
+        StreetArc other = Create(oaE, oaN, obE, obN, otherSagitta * Fixed.One);
+        Span<int> offsets = stackalloc int[4];
+
+        int found = arc.Crossings(other, offsets);
+        int onBoth = 0;
+        for (int i = 0; i < found; i++)
+        {
+            var point = arc.PointAt(offsets[i]);
+            if (other.DistanceTo(point.East, point.North) <= Fixed.One / 64) { onBoth++; }
+            if (i > 0) { Assert.True(offsets[i] > offsets[i - 1]); }
+        }
+
+        Assert.Equal(expected, onBoth);
+        Assert.Equal(expected, BruteCrossings(arc, other));
+    }
+
+    [Fact]
+    public void A_piece_between_two_tiles_on_a_curve_keeps_its_ends_and_stays_within_the_bound()
+    {
+        StreetArc arc = Create(0, 0, 100, 0, 20 * Fixed.One);
+        int from = arc.Length / 3, to = 2 * arc.Length / 3;
+        var a = arc.PointAt(from);
+        var b = arc.PointAt(to);
+        int aE = (int)Math.Round(a.East / (double)Fixed.One), aN = (int)Math.Round(a.North / (double)Fixed.One);
+        int bE = (int)Math.Round(b.East / (double)Fixed.One), bN = (int)Math.Round(b.North / (double)Fixed.One);
+
+        Assert.True(arc.TryPiece(from, aE, aN, to, bE, bN, out StreetArc piece, out int sagitta));
+
+        Assert.Equal(((long)aE * Fixed.One, (long)aN * Fixed.One), piece.A);
+        Assert.Equal(((long)bE * Fixed.One, (long)bN * Fixed.One), piece.B);
+        Assert.True(sagitta > 0);
+        for (int k = 0; k <= 32; k++)
+        {
+            var point = piece.PointAt(piece.Length * k / 32);
+            Assert.InRange(arc.DistanceTo(point.East, point.North) / (double)Fixed.One, 0, (Math.Sqrt(2) / 2) + (1.0 / 64));
+        }
+    }
+
+    [Fact]
+    public void A_piece_whose_ends_are_far_from_the_curve_is_refused()
+    {
+        StreetArc arc = Create(0, 0, 100, 0, 0);
+
+        Assert.False(arc.TryPiece(0, 0, 0, arc.Length / 2, 50, 3, out _, out _));
+    }
+
+    // Counts sign changes of the side of the other's curve along a dense walk, keeping those on its finite extent.
+    private static int BruteCrossings(StreetArc arc, StreetArc other)
+    {
+        const int Steps = 4096;
+        int count = 0;
+        double previous = Side(other, arc.PointAt(0));
+        if (previous == 0 && OnFinite(other, arc.PointAt(0))) { count++; }
+        for (int k = 1; k <= Steps; k++)
+        {
+            var point = arc.PointAt((int)((long)arc.Length * k / Steps));
+            double side = Side(other, point);
+            if ((side == 0 || Math.Sign(side) != Math.Sign(previous)) && previous != 0 && OnFinite(other, point)) { count++; }
+            previous = side;
+        }
+
+        return count;
+    }
+
+    private static bool OnFinite(StreetArc other, (long East, long North) point) =>
+        other.DistanceTo(point.East, point.North) <= Fixed.One / 4;
+
+    private static double Side(StreetArc other, (long East, long North) point)
+    {
+        double east = point.East / (double)Fixed.One, north = point.North / (double)Fixed.One;
+        if (other.IsStraight)
+        {
+            double dx = (other.B.East - other.A.East) / (double)Fixed.One, dy = (other.B.North - other.A.North) / (double)Fixed.One;
+            return (dx * (north - (other.A.North / (double)Fixed.One))) - (dy * (east - (other.A.East / (double)Fixed.One)));
+        }
+
+        double cx = east - (other.Center.East / (double)Fixed.One), cy = north - (other.Center.North / (double)Fixed.One);
+        double r = other.Radius / (double)Fixed.One;
+        return (cx * cx) + (cy * cy) - (r * r);
+    }
+
     private static StreetArc Create(int aE, int aN, int bE, int bN, int sagitta)
     {
         Assert.True(StreetArc.TryCreate(aE, aN, bE, bN, sagitta, out var arc));

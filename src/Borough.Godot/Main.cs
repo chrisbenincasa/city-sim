@@ -1094,6 +1094,8 @@ public partial class Main : Node3D
             File.WriteAllText(_record, string.Empty);
         }
 
+        LoadStreetPreferences(driven: drive is not null || record is not null);
+
         if (listen is not null && !Listen(Globalize(listen)))
         {
             Stop(2);
@@ -1580,6 +1582,18 @@ public partial class Main : Node3D
             && (drag.ButtonMask & (MouseButtonMask.Right | MouseButtonMask.Middle)) != 0)
         {
             Pan(drag.Relative);
+
+            return;
+        }
+
+        // Ctrl is a held modifier, so its release matters too. It is recorded as a ui word, so a
+        // replayed click lays the Street the hand saw.
+        if (@event is InputEventKey { Keycode: Key.Ctrl, Echo: false } ctrl)
+        {
+            if (_verb == Verb.Connect && ctrl.Pressed != _streetStraight)
+            {
+                Ui(ctrl.Pressed ? "street-straight on" : "street-straight off");
+            }
 
             return;
         }

@@ -389,7 +389,7 @@ internal static class KindDump
         {
             if (lots.Rows.IsLive(slot))
             {
-                painted |= world.LandPermissions.Summary(world.LotGround(slot)).AnyUses;
+                painted |= world.LotPermissions(slot).AnyUses;
             }
         }
 

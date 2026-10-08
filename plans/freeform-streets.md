@@ -1,7 +1,7 @@
 # Freeform local Streets with road-aligned Lots
 
-State: design. Land model, saved frontage and arc Streets decided 10/03/2026; junctions, wedge use
-and snap details remain open.
+State: complete. Slices 1 to 9 are built. The acceptance checks pass on lattice-zoned and
+freeform ground. Wedge use remains open.
 Survey of current code done 09/27/2026 against `main` at `919290a5`.
 
 ## Outcome
@@ -91,8 +91,24 @@ The simulation receives endpoints and shape. The shell's tool chooses them.
 - Endpoints are integer Tiles and shapes are Q16.16. Repeated 90° and length snaps land exactly,
   so a grid cannot drift. Cities: Skylines II grids break from accumulated float error in
   endpoints.
-- Grid and Parallel modes issue several Streets from one gesture. The command needs a batch form;
-  `adr/0077`'s lattice run is the precedent.
+- Grid and Parallel modes issue several Streets from one gesture, as ordinary `street` commands on
+  the same Tick. The Input Log format does not change. The shell sends the gesture only when every
+  Street previews clean and the treasury covers the combined price. Phase 0 still checks each
+  Street in order and skips one that the batch's own earlier Streets made invalid.
+- Grid takes a start, the far corner of the first side and a sideways point. The first side snaps
+  to the angle guides and to whole blocks. The sideways distance sets the rows and their side. One
+  Street runs along each grid line, and the core splits them where they cross. A grid line along
+  an existing Street is left out. A grid lays at most 64 Streets.
+- Parallel is a toggle over the straight, simple-curve and continuous modes. Each drawn Street
+  also lays a copy to its left, or to its right when flipped. A curve's copy is concentric, with its
+  sagitta scaled by radius and its ends rounded to Tiles. The offset never falls below two Street
+  half-widths plus `[lots] min_plot_depth_tiles`. A copy that would pass a curve's center is
+  refused in the shell.
+- Holding Ctrl lays a simple-curve or continuous Street straight, with straight mode's angle and
+  length snaps. The shell records it as a `ui street-straight` word, so a replayed session lays the
+  same Street.
+- Block side (`grid_block_tiles`) and parallel offset (`parallel_offset_tiles`) are shell
+  preferences in `user://street.cfg`. Zero, the default, means `[roads] block_tiles`.
 - Snap defaults, the length step and angle steps go in the Ruleset or shell settings, not
   constants.
 - Lattice-only Street runs (`ConnectPayload.Segments`) are the play-testing stopgap. This tool
@@ -143,7 +159,7 @@ curves, and an offset arc is an arc.
 | Plots on a curve | Front edge is the chord between the plot's two offsets. Convex side fans out and leaves wedges; concave side converges and the conflict rule applies |
 | Gestures | Shell only. Simple curve is the arc through start, bend point and end. Continuous is the arc tangent to the previous Segment through the new end |
 | Parallel mode | Concentric arc. Endpoints round to Tiles, so the copy is concentric to within a Tile |
-| Command | `Connect` carries both endpoint Tiles and the sagitta. Bumps `InputLogCodec.Version` |
+| Command | A new `Street` verb carries both endpoint Tiles and the sagitta. `Connect` keeps lattice lays and bulldozes, so no log line changes meaning and the format stays at version 1 |
 | Drawing | The shell tessellates arcs from the same parameters |
 
 ### Decided: Streets demolish what they cross
@@ -182,14 +198,26 @@ change for this decision.
 
 Painting a face covers its interior, which stays open ground under the land model.
 
+### Decided: slice 7 junctions, length step and preview
+
+Decided 10/06/2026.
+
+- Carriageways overlap at Nodes. Junction polygons belong to the Arterials and Junction
+  construction row.
+- The length snap step is one plot width. That is `[lots] residential_frontage_tiles` where a
+  Ruleset sets it, and otherwise 2 × `block_tiles` / `lots_per_segment`.
+- The preview shows the snapped line, the refusal sentence, the total clearing price and the
+  Buildings it would clear, highlighted.
+- A zone-grid snap to existing strip Lots, guideline snaps and building-side snaps wait for play
+  to show a need.
+
+Slice 7 is split. 7a is straight mode on `street` with snapping to Nodes and Segments, the preview,
+and curves paved as short chords. 7b is simple-curve and continuous modes, length and angle snaps,
+and the driven demonstration of the acceptance checks.
+
 ### Remaining design decisions
 
-1. **Junction geometry.** Arbitrary angles need junction polygons. Shared with the Arterials and
-   Junction construction row.
-2. **Wedge use.** Leave open, give to the adjacent Lot as yard, or allow parks.
-3. **Snap and preview details.** Choose the length step relative to Lot widths, whether a
-   zone-grid snap aligns new Streets to existing strip Lots, and what the preview shows before
-   commit: snapped geometry, refusals and cost.
+1. **Wedge use.** Leave open, give to the adjacent Lot as yard, or allow parks.
 
 ## Acceptance checks
 
@@ -219,9 +247,10 @@ re-record goldens by the [procedure](../tests/Borough.Tests/Golden/README.md).
 | 3 | Saved frontage | Lot saves Segment handle and offset. `Frontage.Locate` runs only at creation. Bulldoze leaves Lots unfronted. Split migration with a unit test | — |
 | 4 | Oriented Lot ground | Parcel and footprint as corner, direction, width, depth. Exact overlap test. One uniform spatial hash replaces `StreetGrid` off-lattice buckets, `TrafficPresence._near` and the `LineSourceQueries` window. Shell massing faces the Segment | 3 |
 | 5 | Segment-side carver | Planar face walk, strip carving per side, pattern depth per face, claim order and shrink-or-drop. Blocks become derived; `BlockTable` lattice columns go. Generation lays lattice Streets and carves with the new carver | 4 |
-| 6 | Freeform `Connect` | Endpoints plus sagitta, exact joins, crossing splits, minimum length and angle, demolition at the `Demolish` price. Seals the laid Street along its centerline. Bumps `InputLogCodec.Version` and re-records logs | 2, 5 |
-| 7 | Shell drawing | Straight, simple-curve and continuous modes. Snapping, preview with refusals and demolition cost, arc paving meshes. Driven demonstration of the acceptance checks | 6, decisions 1 and 3 |
-| 8 | Batch modes | Grid and Parallel modes over a batch `Connect` | 7 |
+| 6 | Freeform `Street` verb | Endpoints plus sagitta, exact joins, crossing splits, minimum length and angle, demolition at the `Demolish` price. Seals the laid Street along its centerline | 2, 5 |
+| 7 | Shell drawing | Straight, simple-curve and continuous modes. Snapping, preview with refusals and demolition cost, arc paving meshes. Driven demonstration of the acceptance checks | 6 |
+| 8 | Batch modes | Grid and Parallel modes over a batch `Street` | 7 |
+| 9 | Freeform `Zone` | `Zone` and the shell zone tool paint the face holding the Tile, or the nearest Segment side on strip ground, off the lattice. Today both resolve a lattice block | 7 |
 
 Slices 1 and 3 can run in parallel.
 
@@ -231,10 +260,53 @@ the louder background lowers total intensity by the quieter source's contributio
 
 ## Next step
 
-Slices 1 to 4 are built. Slice 5 is built for lattice Streets: the face walk, derived blocks with
-`BlockTable` gone, the face anchor, `[lots] min_plot_depth_tiles` with shrink-or-drop, and the claim
-order. The carver still walks lattice squares, and it finds a side's Street only when that Street
-is straight and spans the square's edge exactly. A face that is not a lattice square carves no Lots.
-Before slice 6 lays a non-lattice Street, the carver has to cut plots along any Segment side.
-Road sealing runs only in `RoadGenerator`, where every Street is straight, so it moved from slice 2
-to slice 6, which lays the first curved Street.
+Slices 1 to 5 are built. Lattice squares keep the pattern carver. Every other Street side, curved
+or off the lattice, is cut by `SegmentSide` into plots turned to the Street. Those plots take the
+pattern of the face they front, or of their own Segment side when the roadside is open. Whole-block
+forms carve as Perimeter strips there, and residential plot sizing applies where it does on the
+lattice. A Street edit gathers both kinds of plot and claims them in one pass, by Segment id, then
+side, then offset.
+Slice 6 is built. `World.LayStreet` lays a Street between any two Tiles with a sagitta, joins
+Nodes exactly, splits the Segments it crosses or ends on, enforces the three `[roads]` minimums,
+seals its ground, and moves Lot, Car Park, Trip and Leg Addresses past each split. The split guard
+stops refining at 1/256 Tile and refuses there. The `street` Input Log verb applies it. It refuses
+by name for each lay refusal and for a treasury that cannot pay. It clears every Lot under the paved
+width first and pays the displaced at the `Demolish` price. A route over a split Segment gains a hop
+for the created half, in its direction of travel. A Vehicle already on that hop keeps the arrival
+time it was priced at for the whole Segment.
+Slice 7a is built. The Street tool lays straight freeform Streets through `street`: two clicks or a
+drag. Shift-click still bulldozes a lattice Street through `connect`, because no freeform bulldoze
+exists; the tool no longer lays lattice runs. Ends snap to Nodes, then to points along Segments,
+within 4 Tiles. A Segment point closer to an end than `min_segment_length_tiles` snaps to that
+end's Node. N switches all snapping. `Simulation.PreviewStreet` gives the preview its refusal,
+price and Buildings from `RefuseStreet`'s own code. Curved Segments pave, footway and kerb as
+chords of at most 1/64 turn, and strip mitres read the Segment tangent at the Node.
+Slice 7b is built. The Street tool has simple-curve and continuous modes; X cycles them.
+A simple curve takes start, bend and end, and continuous mode lays each Street tangent to the
+last. Ends snap to a whole number of plot widths along the arc (K) and to 90° plus a finer step
+from the Streets at the start or from east (J, and H cycles 90°, 45°, 15° and 5°). The snap settings
+and the 4-Tile reach live in shell preferences, `user://street.cfg`; driven and recorded runs
+ignore them. Two Core defects surfaced in the driven run and are fixed. Zoning a block now carves
+the freeform sides beside it. A join no longer clears the Lot across the Street it joins.
+The acceptance checks are demonstrated on `minimal.toml` at 1,000 Citizens, inside the lattice,
+with lattice `Zone` painting the blocks. `FreeformStreetsAcceptanceTests` replays the driven
+Input Log and asserts the closure, overlap, frontage and equivalence checks. No Buildings rise on
+the new Lots because `minimal.toml` has no arrivals.
+Slice 9 is built. `Zone` paints the closed face holding its Tile. Outside every closed face it
+paints the nearest Segment side within the Street's half-width plus the deepest plot `GatherSide`
+cuts, 17 Tiles on `minimal.toml`. With no side in reach it is refused as `ZoneNoStreet`.
+`ZoneParcel` and the Input Log format are unchanged. Paint stays per Tile in `LandPermissions`,
+selected by Tile center, so diagonal edges paint as steps. Lot permission checks read only the
+Lot's own Tiles. Parcel mode in the shell stays on the lattice. The demonstration repeats on
+`--empty` ground at 1,000 Citizens: a loop with a dead-end spur, an open curve, a triangle and a
+U that a later Street closes. Zoning made 66 Lots and `people` raised 61 Buildings. After the
+closure, zoning the new face painted its interior and added Lots.
+`FreeformStreetsAcceptanceTests` replays that layout without `people`.
+A carver defect remains. At an acute corner the last plot on a side can cross the adjacent Street,
+and that Lot is only partly painted and never builds.
+Slice 8 is built. X cycles straight, simple curve, continuous and grid. U lays a parallel Street
+and I flips its side. Ctrl held lays a curve or continuous Street straight. The batch modes need no
+Core or Input Log change. The driven run on `--empty` ground at 1,000 Citizens laid a 3 × 3 grid,
+a 2 × 2 grid turned 30°, a straight and a curved parallel pair and a continuous chain with one
+Ctrl-straight piece. Zoning made 68 Lots and `people` raised 68 Buildings. A grid crossing the
+first at 15° was refused whole with the core's sentence for a too-short piece.

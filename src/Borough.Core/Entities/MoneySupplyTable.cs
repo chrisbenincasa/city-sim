@@ -69,11 +69,10 @@ public sealed class MoneySupplyTable
     /// Money that has entered this world, net of anything that has left it.
     /// </summary>
     /// <remarks>
-    /// <b>Written by <see cref="World.Endow"/> and by nothing else</b>, which is what makes it an
-    /// anchor rather than a second copy of the balances. ✅ <b>The second writer landed at milestone
-    /// 11 task 5</b>: <see cref="World.TryArrive"/> endows an arriving Household from the Hinterland
-    /// behind its gate, so the supply is no longer constant over a run — the Outside Connection is
-    /// money's only source and sink (<c>CONTEXT.md</c> → Money).
+    /// <b>Written by every door to the Outside, each by the amount that crosses it.</b> The Outside
+    /// Connection is money's only source and sink (<c>CONTEXT.md</c> → Money), so this column is an
+    /// anchor rather than a second copy of the balances: it moves only where money enters or leaves
+    /// the city, never where it changes hands inside it.
     /// </remarks>
     /// <remarks>
     /// ⚠ <b>The check stayed an exact equality, and this column is the reason.</b>

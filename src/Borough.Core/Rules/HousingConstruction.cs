@@ -116,7 +116,7 @@ public static class HousingConstruction
         if (!site.Accepted) { return site; }
         if (!AdmitsForm(world, proposal)) { return new(LocalLayoutRefusal.InvalidGeometry); }
         if (!HousingNeedAssessment.Evaluate(world, key, proposal).Accepted) { return new(LocalLayoutRefusal.HousingNeed); }
-        return LocalLayoutCommit.Apply(world, proposal, key, out building);
+        return LocalLayoutCommit.Apply(world, proposal, key, out building, zoned: true);
     }
 
     private static bool AdmitsForm(World world, LocalLayoutProposal proposal)

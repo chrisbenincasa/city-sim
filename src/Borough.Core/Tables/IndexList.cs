@@ -135,6 +135,18 @@ public readonly ref struct IndexList
         _tail[owner] = node + 1;
     }
 
+    /// <summary>Adds an element directly after <paramref name="after"/>, which must be in the list.</summary>
+    public void InsertAfter(int owner, int after, int node)
+    {
+        _next[node] = _next[after];
+        _next[after] = node + 1;
+
+        if (_tail[owner] == after + 1)
+        {
+            _tail[owner] = node + 1;
+        }
+    }
+
     /// <summary>
     /// Adds an element at the position that keeps the list in ascending slot order.
     /// </summary>

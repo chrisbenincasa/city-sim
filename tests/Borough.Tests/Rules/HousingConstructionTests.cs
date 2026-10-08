@@ -278,6 +278,61 @@ public sealed class HousingConstructionTests(Xunit.Abstractions.ITestOutputHelpe
     }
 
     [Fact]
+    public void Housing_construction_pays_the_fitted_trade_its_opening_grant()
+    {
+        var (world, built) = CommitGranted(treasury: 4 * Grant);
+
+        Assert.True(world.Buildings.Rows.TryResolve(built, out int slot));
+        Assert.True(world.HoldsOwnTrade(slot));
+        Assert.Equal(new Money(3 * Grant), world.TreasuryBalance());
+        Assert.Equal(Grant, BusinessBalances(world));
+
+        world.Invariants.RunEndOfRun(world);
+    }
+
+    [Fact]
+    public void Housing_construction_short_of_the_grant_raises_the_home_without_its_trade()
+    {
+        var (world, built) = CommitGranted(treasury: Grant - 1);
+
+        Assert.True(world.Buildings.Rows.TryResolve(built, out int slot));
+        Assert.False(world.HoldsOwnTrade(slot));
+        Assert.Equal(new Money(Grant - 1), world.TreasuryBalance());
+        Assert.Equal(0, BusinessBalances(world));
+
+        world.Invariants.RunEndOfRun(world);
+    }
+
+    private const long Grant = 65_536;
+
+    private static (World World, Handle<Building> Built) CommitGranted(long treasury)
+    {
+        var (world, lots) = LocalLayoutTests.Fixture(mixed: true,
+            extra: Settings + $"\n[treasury]\nopening_balance = {treasury}\n",
+            edit: toml => toml.Replace("name = \"shop\"\n", $"name = \"shop\"\nopening_grant = {Grant}\n", StringComparison.Ordinal));
+        for (int i = 0; i < 2; i++) { world.Unplace(world.CreateHousehold(world.Buildings.Rows.At(world.Lots.BuildingOn(world.Lots.Rows.Resolve(lots[0]))), 0)); }
+        foreach (int index in new[] { 0, 4 })
+        {
+            int row = world.Lots.BuildingOn(world.Lots.Rows.Resolve(lots[index]));
+            while (world.HasRoomForHousehold(row)) { world.CreateHousehold(world.Buildings.Rows.At(row), 0); }
+        }
+        Assert.Equal(new Money(treasury), world.TreasuryBalance());
+        var plan = LocalLayoutTests.Evaluate(world, [lots[1]], BlockPattern.BackToBack);
+        Assert.True(new Simulation(world, Key).CommitHousingLayout(plan, out Handle<Building> built).Accepted);
+        return (world, built);
+    }
+
+    private static long BusinessBalances(World world)
+    {
+        long total = 0;
+        for (int slot = 0; slot < world.Businesses.Rows.SlotCount; slot++)
+        {
+            if (world.Businesses.Rows.IsLive(slot)) { total += world.Bins.LevelAt(world.Bins.Rows.Resolve(world.Businesses.Balance[slot])); }
+        }
+        return total;
+    }
+
+    [Fact]
     public void Save_load_continues_automatic_construction_with_thread_equivalence()
     {
         var (world, lots) = City(4, zoneRules: true);

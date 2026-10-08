@@ -27,14 +27,14 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-53 sections, 375 keys.
+53 sections, 379 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
 - [`[[building]]`](#building) — 22 keys
 - [`[[building]] bins`](#building-bins) — 4 keys
 - [`[[building]] bins reserve`](#building-bins-reserve) — 3 keys
-- [`[[business]]`](#business) — 14 keys
+- [`[[business]]`](#business) — 15 keys
 - [`[[hinterland.population]]`](#hinterlandpopulation) — 5 keys
 - [`[[hinterland]]`](#hinterland) — 8 keys
 - [`[[hinterland]] prices`](#hinterland-prices) — 2 keys
@@ -74,7 +74,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[needs]`](#needs) — 9 keys
 - [`[parking]`](#parking) — 5 keys
 - [`[placement]`](#placement) — 10 keys
-- [`[roads]`](#roads) — 13 keys
+- [`[roads]`](#roads) — 16 keys
 - [`[school]`](#school) — 7 keys
 - [`[schooling]`](#schooling) — 5 keys
 - [`[shopping]`](#shopping) — 7 keys
@@ -294,6 +294,10 @@ What this trade is called. [[building]] business names it.
 **`open_days`** · *whole number*
 
 Shop operating days as a Monday-first weekly bit mask, independent of staffing.
+
+**`opening_grant`** · *whole number*
+
+What the treasury pays into the balance of a Business of this trade that a Zone Rule opens. The Money moves from the treasury, so none is created. A Zone Rule opens no Business the treasury cannot pay in full, and its Building stands without the trade. A Household that founds a Business capitalizes it from [founding] instead, and no grant is paid. Absent pays nothing.
 
 **`opens_hour`** · *whole number*
 
@@ -1670,6 +1674,18 @@ The same for a foot path.
 **`foot_paths_per_thousand_blocks`** · *whole number*
 
 How many blocks in a thousand get a cut-through for pedestrians. The stronger Severance lever of the two.
+
+**`min_crossing_angle_degrees`** · *whole number*
+
+The shallowest angle, in degrees, at which a new Street may cross or end on an existing Segment. A shallower meeting is refused, because it leaves a sliver of ground no plot fits. Absent means 30.
+
+**`min_curve_radius_tiles`** · *whole number*
+
+The tightest curve a Street may be laid on, as a radius in Tiles. A tighter curve is refused. Straight Streets have no radius and always pass. Absent means half of block_tiles.
+
+**`min_segment_length_tiles`** · *whole number*
+
+The shortest Segment a Street lay may leave, including both halves of every Segment the new Street splits where it crosses or ends. An edit that would leave a shorter one is refused. Absent means one plot width, 2 × block_tiles / lots_per_segment.
 
 **`street_capacity_per_hour`** · *whole number*
 

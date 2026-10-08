@@ -312,6 +312,12 @@ public static class RulesetKeyNotes
             + "route to a degree, rationed by what a Household can pay rather than by places. "
             + "Refused unless the file declares a [[building]] serving education at level 3. "
             + "Absent means the trade is not a private university.",
+        ["[[business]] opening_grant"] =
+            "What the treasury pays into the balance of a Business of this trade that a Zone Rule "
+            + "opens. The Money moves from the treasury, so none is created. A Zone Rule opens no "
+            + "Business the treasury cannot pay in full, and its Building stands without the trade. "
+            + "A Household that founds a Business capitalizes it from [founding] instead, and no "
+            + "grant is paid. Absent pays nothing.",
 
         // ---- [[rule]] -------------------------------------------------------------------------
         ["[[rule]] name"] =
@@ -864,6 +870,18 @@ public static class RulesetKeyNotes
             "The same for an Arterial.",
         ["[roads] foot_path_capacity_per_hour"] =
             "The same for a foot path.",
+        ["[roads] min_segment_length_tiles"] =
+            "The shortest Segment a Street lay may leave, including both halves of every Segment "
+            + "the new Street splits where it crosses or ends. An edit that would leave a shorter "
+            + "one is refused. Absent means one plot width, 2 × block_tiles / lots_per_segment.",
+        ["[roads] min_crossing_angle_degrees"] =
+            "The shallowest angle, in degrees, at which a new Street may cross or end on an "
+            + "existing Segment. A shallower meeting is refused, because it leaves a sliver of "
+            + "ground no plot fits. Absent means 30.",
+        ["[roads] min_curve_radius_tiles"] =
+            "The tightest curve a Street may be laid on, as a radius in Tiles. A tighter curve is "
+            + "refused. Straight Streets have no radius and always pass. Absent means half of "
+            + "block_tiles.",
         ["[roads] upkeep_per_segment_per_day"] =
             "What the treasury pays each Day for every Road Segment, foot paths and Arterials "
             + "included. Absent or zero means roads cost nothing to keep. A treasury that cannot "

@@ -1,14 +1,14 @@
 name: PR Agent
 on:
   pull_request:
-    types: [opened, reopened, ready_for_review]
+    types: [opened, reopened, ready_for_review, synchronize]
   issue_comment:
     types: [created, edited]
 jobs:
   pr_agent:
     if: >
       github.event.sender.type != 'Bot' &&
-      (github.event_name == 'pull_request' ||
+      ((github.event_name == 'pull_request' && github.event.action != 'synchronize') ||
        (github.event.issue.pull_request &&
         contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)))
     runs-on: ubuntu-latest
@@ -17,6 +17,20 @@ jobs:
       pull-requests: write
       contents: write
     steps:
+      # A failed review must leave the PR unlabeled, so the old verdict goes before the review runs.
+      - id: start
+        if: github.event_name == 'pull_request' || startsWith(github.event.comment.body, '/review')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number || github.event.issue.number }}
+        run: |
+          echo "at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+          echo "head=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR" --jq .head.sha)" >> "$GITHUB_OUTPUT"
+          for label in ready caution changes; do
+            if ! out=$(gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$PR/labels/bot%3A%20$label" 2>&1); then
+              case "$out" in *"HTTP 404"*) ;; *) echo "::warning::Could not remove 'bot: $label': $out" ;; esac
+            fi
+          done
       - uses: the-pr-agent/pr-agent@main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -32,12 +46,69 @@ jobs:
           # anchored to the diff stay in the review summary instead, so nothing is lost.
           pr_reviewer.inline_key_issues: "true"
           pr_reviewer.require_estimate_effort_to_review: "false"
+          pr_reviewer.require_merge_recommendation: "true"
           pr_reviewer.extra_instructions: >-
             Act as a strict reviewer. Report every correctness bug, edge case and missing test.
             Simulation code must use integer/Q16.16 math (no float, double or Math.*),
             must not enumerate Dictionary/HashSet, and must keep replay, save/reload and
             thread-count determinism.
-          # comment-only mode: nothing runs automatically on PR open
-          github_action_config.auto_review: "false"
+            Merge recommendation: answer changes_required only for a defect that produces wrong
+            behavior, breaks determinism, loses or corrupts saved state, or is a security issue.
+            Missing tests, stale comments or documentation, naming and performance concerns are
+            merge_with_caution at most. Answer safe_to_merge when no finding needs a change before merge.
+          # A review runs on PR open; /describe and /improve stay comment-only.
+          github_action_config.auto_review: "true"
           github_action_config.auto_describe: "false"
           github_action_config.auto_improve: "false"
+
+      # The verdict lives only in the review comment's text. Labels make it filterable:
+      # gh pr list --label 'bot: ready'
+      - name: Label the merge recommendation
+        if: steps.start.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number || github.event.issue.number }}
+          SINCE: ${{ steps.start.outputs.at }}
+          REVIEWED: ${{ steps.start.outputs.head }}
+        run: |
+          gh label create 'bot: ready' --color 0e8a16 --description 'PR-Agent: safe to merge' --force -R "$GITHUB_REPOSITORY"
+          gh label create 'bot: caution' --color fbca04 --description 'PR-Agent: merge with caution' --force -R "$GITHUB_REPOSITORY"
+          gh label create 'bot: changes' --color d93f0b --description 'PR-Agent: changes required' --force -R "$GITHUB_REPOSITORY"
+
+          # The review's findings can quote this pattern, so match only the summary table cell.
+          verdict=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PR/comments" \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\") | select((.body // \"\") | contains(\"pr-agent:review:full\")) | select(.updated_at >= \"$SINCE\") | .body" \
+            | grep -oE '<strong>Merge recommendation</strong>: (Safe to merge|Merge with caution|Changes required)</td>' \
+            | head -n 1 | sed -E 's/.*: (.*)<\/td>/\1/')
+
+          case "$verdict" in
+            "Safe to merge") label='bot: ready' ;;
+            "Merge with caution") label='bot: caution' ;;
+            "Changes required") label='bot: changes' ;;
+            *) echo "::warning::No merge recommendation found in a fresh review comment; PR left unlabeled."; exit 0 ;;
+          esac
+
+          head=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR" --jq .head.sha)
+          if [ "$head" != "$REVIEWED" ]; then
+            echo "::notice::The PR moved from $REVIEWED to $head during the review; PR left unlabeled."
+            exit 0
+          fi
+          gh api -X POST "repos/$GITHUB_REPOSITORY/issues/$PR/labels" -f "labels[]=$label" > /dev/null
+
+  # A push makes the last verdict stale until the next /review.
+  clear_verdict:
+    if: github.event_name == 'pull_request' && github.event.action == 'synchronize'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          for label in ready caution changes; do
+            if ! out=$(gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$PR/labels/bot%3A%20$label" 2>&1); then
+              case "$out" in *"HTTP 404"*) ;; *) echo "::warning::Could not remove 'bot: $label': $out" ;; esac
+            fi
+          done

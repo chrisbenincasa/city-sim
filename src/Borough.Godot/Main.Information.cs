@@ -534,6 +534,7 @@ public partial class Main
             return;
         }
         if (ZoningAction(words)) return;
+        if (StreetAction(words)) return;
         if (CityEvidenceAction(words)) return;
         if (BudgetAction(words)) return;
         if (HinterlandAction(words)) return;
@@ -924,6 +925,7 @@ public partial class Main
         if (_verb == Verb.Zone)
             return _zoneStart is not null ? $"{ZoneSelectionCount()} {(_zoneParcels ? "parcels" : "blocks")} · {ZoneName()} · release to apply; Escape cancels"
                 : _zoneFeedback.Length > 0 ? _zoneFeedback : $"{ZoneName()} · {(_zoneParcels ? "click a parcel or drag an area" : "drag a rectangle of whole blocks")}";
+        if (_verb == Verb.Connect) return StreetSynopsis(at);
         var picked = PickInformation();
         if (_world.Roads.Segments.Rows.TryResolve(picked.Road, out int road))
         {

@@ -179,9 +179,11 @@ public sealed class TwinLatticeTests
             // world that both PAYS A WAGE and holds a treasury Bin, which is what withholding needs.
             // traded.toml IS pictured.toml with banded trade forms, so it inherits both lattices.
             // milled.toml keeps shopping.toml's two lattices for the District Pool its grocers buy through.
+            // granted.toml IS shopping.toml with opening grants and a treasury, so it inherits both
+            // lattices for that file's reason.
             if (file is "provisioned.toml" or "oversupplied.toml" or "waged.toml" or "pictured.toml"
                 or "shopping.toml" or "insolvent.toml" or "stress-shopping.toml" or "profile-services.toml"
-                or "schooling.toml" or "taxing.toml" or "traded.toml" or "milled.toml")
+                or "schooling.toml" or "taxing.toml" or "traded.toml" or "milled.toml" or "granted.toml")
             {
                 Assert.Equal(2, Shipped(file).Lattices.Length);
                 continue;

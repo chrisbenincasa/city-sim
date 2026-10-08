@@ -148,6 +148,11 @@ public sealed class ZoneRuleEngine
     private RuleFlow _unpremisedFlow;
     private RuleFlow _reopenedFlow;
 
+    /// <summary>Opening grants paid out of the treasury this Tick, before the fold.</summary>
+    private long _tickGranted;
+
+    private MoneyFlow _grantFlow;
+
     /// <summary>Elapsed unserved need per District market row, recomputed each trigger.</summary>
     private long[] _demand = [];
 
@@ -201,6 +206,23 @@ public sealed class ZoneRuleEngine
         _reopenedFlow = default;
 
         return activity;
+    }
+
+    /// <summary>
+    /// Reads what the treasury paid in <c>[[business]] opening_grant</c> since the last call, and
+    /// resets it.
+    /// </summary>
+    /// <remarks>
+    /// Its own drain rather than a member of <see cref="ZoneActivity"/>, because the treasury's
+    /// account and the Zone Rule counters have different readers.
+    /// </remarks>
+    public MoneyFlow DrainGrants()
+    {
+        MoneyFlow flow = _grantFlow;
+
+        _grantFlow = default;
+
+        return flow;
     }
 
     /// <summary>
@@ -448,11 +470,24 @@ public sealed class ZoneRuleEngine
             return;
         }
 
-        if (_world.OpenInVacantUnit(building))
+        if (_world.OpenInVacantUnit(building, granted: true))
         {
             _tickReopened++;
+            _tickGranted += OpeningGrant(definition.Kind);
         }
     }
+
+    /// <summary>Counts the grant paid when a Building this engine raised opened its own trade.</summary>
+    private void CountGrant(Handle<Building> raised)
+    {
+        if (_world.Buildings.Rows.TryResolve(raised, out int slot) && _world.HoldsOwnTrade(slot))
+        {
+            _tickGranted += OpeningGrant(_world.Buildings.Kind[slot]);
+        }
+    }
+
+    private long OpeningGrant(byte kind) =>
+        _world.Rules.BusinessKind(_world.Rules.Kind(kind).Business).OpeningGrant.Raw;
 
     private bool ClaimJobless(ZoneRuleDefinition definition, int lot)
     {
@@ -762,7 +797,11 @@ public sealed class ZoneRuleEngine
         {
             if ((definition.Admits & LotTable.Housing) == 0) { return; }
             LocalLayoutProposal? proposal = HousingConstruction.Select(_world, _key, _world.Lots.Rows.At(lot), definition.Kind);
-            if (proposal is not null && HousingConstruction.Commit(_world, _key, proposal, out _).Accepted) { _tickCreated++; }
+            if (proposal is not null && HousingConstruction.Commit(_world, _key, proposal, out Handle<Building> housed).Accepted)
+            {
+                _tickCreated++;
+                CountGrant(housed);
+            }
             return;
         }
 
@@ -783,9 +822,10 @@ public sealed class ZoneRuleEngine
             return;
         }
 
-        _world.CreateBuilding(_world.Lots.Rows.At(lot), definition.Kind, tick, _key);
+        Handle<Building> raised = _world.CreateBuilding(_world.Lots.Rows.At(lot), definition.Kind, tick, _key, zoned: true);
 
         _tickCreated++;
+        CountGrant(raised);
     }
 
     /// <summary>
@@ -1380,6 +1420,7 @@ public sealed class ZoneRuleEngine
         _shedFlow = _shedFlow.Fold(_tickShed);
         _unpremisedFlow = _unpremisedFlow.Fold(_tickUnpremised);
         _reopenedFlow = _reopenedFlow.Fold(_tickReopened);
+        _grantFlow = _grantFlow.Fold(_tickGranted);
 
         _tickTriggers = 0;
         _tickVacant = 0;
@@ -1390,5 +1431,6 @@ public sealed class ZoneRuleEngine
         _tickShed = 0;
         _tickUnpremised = 0;
         _tickReopened = 0;
+        _tickGranted = 0;
     }
 }

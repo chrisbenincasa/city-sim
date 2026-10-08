@@ -1553,7 +1553,7 @@ public sealed partial class World
         {
             if (Buildings.Rows.IsLive(slot))
             {
-                rearmed += Fit(Buildings.Rows.At(slot), Buildings.Kind[slot], now, key);
+                rearmed += Fit(Buildings.Rows.At(slot), Buildings.Kind[slot], now, key, constructing: false);
             }
         }
 
@@ -1848,7 +1848,8 @@ public sealed partial class World
         Households.LifeStage[slot] = lifeStage;
 
         // adr/0114: a balance is a Bin, opened here so that a Household never exists without one in a
-        // world whose Ruleset names money. Empty -- World.Endow is the only door money enters by.
+        // world whose Ruleset names money. Empty -- opening a balance does not endow it; whichever
+        // door to the Outside applies does that separately.
         if (TryMoneyResource(out ResourceId money))
         {
             // The saved bin list owns membership; Balance is its maintained derived lookup.
@@ -1882,18 +1883,14 @@ public sealed partial class World
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>It opens with a zero balance and there is no door that funds one</b> (<c>adr/0113</c>).
-    /// Milestone 10 needs exactly one property of a Business — somewhere for conserved money to sit
-    /// that is not a Building — and the counterparty that would pay it is milestone <b>13</b>'s price
-    /// surface. <see cref="Endow"/> is deliberately not widened to reach here: money entering the
-    /// world is a founding act about Households, and a Business funded from nowhere is the failure
-    /// <see cref="Invariant.MoneyIsConserved"/> exists to report.
+    /// It opens with a zero balance unless <paramref name="granted"/> is set. Money never enters the
+    /// world here: a granted Business is paid out of the treasury, and a founded one is capitalized
+    /// by <see cref="Found"/> after this returns.
     /// </para>
     /// <para>
-    /// ⚠ <b>Nothing in the simulation calls this.</b> A Business is placed by no pass, because what
-    /// would place one is commercial and industrial placement, which is milestone <b>13</b>. The door
-    /// exists so the table is reachable and its balance is testable, which is <c>adr/0070</c>'s
-    /// <em>unbuilt</em> rather than an omission.
+    /// ⚠ <b>A granted Business the treasury cannot pay for in full is not created</b>, and the
+    /// default handle comes back. Only a Zone Rule asks for the grant, so no command is refused and
+    /// no <c>Refusal</c> is reported. The callers leave the premises standing without the trade.
     /// </para>
     /// </remarks>
     /// <param name="premises">The Building it occupies.</param>
@@ -1910,8 +1907,25 @@ public sealed partial class World
     /// consequence, making it required is a change with a reason behind it.***
     /// </para>
     /// </param>
-    public Handle<Business> CreateBusiness(Handle<Building> premises, byte kind = 0)
+    /// <param name="granted">
+    /// Whether the treasury pays the trade's <c>[[business]] opening_grant</c> into the new balance.
+    /// </param>
+    /// <returns>The Business, or the default handle when the treasury cannot pay the grant.</returns>
+    public Handle<Business> CreateBusiness(Handle<Building> premises, byte kind = 0, bool granted = false)
     {
+        Money grant = granted && kind != 0 ? Rules.BusinessKind(kind).OpeningGrant : Money.Zero;
+        int treasury = Rows.NoSlot;
+
+        if (grant.Raw > 0)
+        {
+            treasury = TryMoneyResource(out ResourceId currency) ? FindTreasuryBin(currency) : Rows.NoSlot;
+
+            if (treasury == Rows.NoSlot || Bins.LevelAt(treasury) < grant.Raw)
+            {
+                return default;
+            }
+        }
+
         // A DEFAULT handle is accepted and means unpremised, which milestone 27 task 8 made
         // reachable (adr/0145): a founded Business is created with no premises and looks for them
         // from the pool. It is not a new state -- BusinessTable.Building is Reference.Severable and
@@ -1932,6 +1946,13 @@ public sealed partial class World
 
             AppendOwnerBin(Businesses.BinHead, Businesses.BinTail, slot, balance);
             Businesses.Balance[slot] = balance;
+
+            // Out before in, as Found orders its transfer.
+            if (grant.Raw > 0)
+            {
+                Withdraw(Bins.Rows.At(treasury), grant.Raw, Tick);
+                Deposit(balance, grant.Raw, Tick);
+            }
         }
 
         // Only when there are premises to list it against. An unpremised Business is in the pool's
@@ -1946,7 +1967,7 @@ public sealed partial class World
     }
 
     /// <summary>
-    /// Gives a Household money that did not exist before. <b>The only way money enters this world.</b>
+    /// Gives a Household money that did not exist before. <b>A founding door, not the only one.</b>
     /// </summary>
     /// <remarks>
     /// <para>
@@ -1958,12 +1979,10 @@ public sealed partial class World
     /// money axis: there is no second spelling in which the other half can be forgotten.
     /// </para>
     /// <para>
-    /// <b>It is the founding door and it is not the gate.</b> Money's only runtime source and sink is
-    /// the Outside Connection (<c>CONTEXT.md</c> → Money), which is milestone <b>11</b>; until that
-    /// exists a world's supply is fixed at whatever it was founded with, which is what makes the
-    /// invariant an exact equality rather than a sum with a flow term. Nothing in the build calls this
-    /// yet — no production writer sets a Household's money at all — so every world the simulation can
-    /// make on its own is founded on nothing, and the check is correct and temporarily trivial.
+    /// <b>Money's only runtime source and sink is the Outside Connection</b> (<c>CONTEXT.md</c> →
+    /// Money). Every door to it, this one included, moves <see cref="MoneySupplyTable.Issued"/> by
+    /// the amount that crosses it in the same call that moves the balance, which is what keeps the
+    /// conservation check an exact equality rather than a sum with a flow term.
     /// </para>
     /// <para>
     /// ⚠ <b>It refuses a Household with no balance rather than founding one silently.</b> A balance is
@@ -2566,9 +2585,10 @@ public sealed partial class World
     /// <see cref="MoneySupplyTable.Issued"/>'s second writer</b> (<c>adr/0131</c>, milestone 11 task
     /// 5) — the first thing in the project that moves the supply after the founding, so a world's
     /// money is no longer a constant. The amount is drawn from the Hinterland behind the gate's
-    /// edge, uniformly over its band, on the Household's own id. <b><see cref="Endow"/> is still the
-    /// only door money enters by</b>: it deposits through the Bin's wait list and writes the anchor
-    /// in one call, so <see cref="Invariant.MoneyIsConserved"/> needs no flow term and is unchanged.
+    /// edge, uniformly over its band, on the Household's own id. <b>An arrival enters through
+    /// <see cref="Endow"/> rather than writing the anchor itself</b>: it deposits through the Bin's
+    /// wait list and writes the anchor in one call, so <see cref="Invariant.MoneyIsConserved"/> needs
+    /// no flow term and is unchanged.
     /// </para>
     /// <para>
     /// ⚠ <b>How many people arrive is <em>stated</em> by the caller and is not modelled here.</b>
@@ -2633,9 +2653,10 @@ public sealed partial class World
         int slot = OpenArrival(lifeStage, out Handle<Household> handle);
 
         // Money crosses here, which is MoneySupplyTable.Issued's second writer and the first thing in
-        // this project that moves the supply after the founding. Endow is still the only door: it
-        // deposits through the Bin's wait list and writes the anchor in one call, so there is no
-        // spelling in which the second half can be forgotten (adr/0031).
+        // this project that moves the supply after the founding. The arrival enters through Endow
+        // rather than writing the anchor itself: it deposits through the Bin's wait list and writes
+        // the anchor in one call, so there is no spelling in which the second half can be forgotten
+        // (adr/0031).
         //
         // Drawn on the Household's monotonic id rather than its slot, because a slot is recycled and
         // two Households sharing one would draw the same balance -- 02 §8 rule 5, on the coordinate
@@ -2939,7 +2960,7 @@ public sealed partial class World
         Households.LifeStage[slot] = lifeStage;
 
         // CreateHousehold's line, for its reason (adr/0114). Empty: what a family carries in is
-        // endowed by the caller, and World.Endow is still the only door money enters by.
+        // endowed by the caller through whichever door to the Outside applies.
         if (TryMoneyResource(out ResourceId money))
         {
             // adr/0143: the LIST is the saved truth and Balance is derived from it, so the append is
@@ -4776,7 +4797,7 @@ public sealed partial class World
     /// <summary>Returns admission for a uniform geographic intensity band, or zero for mixed bands.</summary>
     public ushort BandAdmitting(int lot)
     {
-        LandPermissionSummary summary = LandPermissions.Summary(LotGround(lot));
+        LandPermissionSummary summary = LotPermissions(lot);
         return summary.MixedIntensity ? (ushort)0 : Rules.Band(summary.Band).Admits;
     }
 
@@ -4973,7 +4994,12 @@ public sealed partial class World
     /// one piece of code.
     /// </para>
     /// </remarks>
-    public Handle<Building> CreateBuilding(Handle<Lot> lot, byte kind, Ticks now, WorldKey key)
+    /// <param name="zoned">
+    /// Whether a Zone Rule raised it. The trade its kind comes with then opens with the trade's
+    /// <c>opening_grant</c> from the treasury, or does not open.
+    /// </param>
+    public Handle<Building> CreateBuilding(
+        Handle<Lot> lot, byte kind, Ticks now, WorldKey key, bool zoned = false)
     {
         int lotSlot = Lots.Rows.Resolve(lot);
 
@@ -5068,7 +5094,7 @@ public sealed partial class World
         Buildings.MarkRaised(Buildings.Rows.Resolve(building), now);
 
         RaiseUnits(Buildings.Rows.Resolve(building));
-        Fit(building, kind, now, key);
+        Fit(building, kind, now, key, constructing: true, zoned);
         Changes?.Building(Buildings.Rows.Resolve(building));
 
         return building;
@@ -5108,8 +5134,13 @@ public sealed partial class World
     /// one Tick out, but the ordering costs nothing and the alternative relies on that staying true.
     /// </para>
     /// </remarks>
+    /// <param name="constructing">
+    /// Whether <see cref="CreateBuilding"/> is calling. Only construction opens the kind's own trade.
+    /// </param>
+    /// <param name="zoned">Whether a Zone Rule raised it, as <see cref="CreateBuilding"/> takes it.</param>
     /// <returns>How many Rule Instances were armed.</returns>
-    private int Fit(Handle<Building> building, byte kind, Ticks now, WorldKey key)
+    private int Fit(
+        Handle<Building> building, byte kind, Ticks now, WorldKey key, bool constructing, bool zoned = false)
     {
         if (!Rules.Declares(kind))
         {
@@ -5157,9 +5188,10 @@ public sealed partial class World
         // ORDINARY Business carrying no flag and no founder, and it takes one of the kind's occupant
         // slots exactly as a Household does (adr/0147).
         //
-        // Asked rather than assumed, for the Bins' reason and the Car Park's: a refit meets a
-        // Building that already holds the trade it came with, and a second one would double the
-        // city's employment on every reload.
+        // ⚠ CONSTRUCTION ONLY. A Building without its own trade at a refit is one whose trade was
+        // refused for want of the grant, or one whose shop failed and closed. Recreating it on a
+        // reload would reverse either outcome for free. After construction only a Zone Rule's reopen
+        // opens the trade again.
         int armed = 0;
         byte trade = Rules.Kind(kind).Business;
 
@@ -5185,21 +5217,26 @@ public sealed partial class World
         // declaring `business` without it, so `trade != 0` already carries the permission
         // (plans/0054 F1). Asking again would be a second copy of that rule, in the file that would
         // not be edited when it moved.
-        if (trade != 0 && roomBeside && !HoldsOwnTrade(buildingSlot))
+        if (constructing && trade != 0 && roomBeside)
         {
             // The origin is written here rather than inside CreateBusiness, because this is the one
             // caller that has premises to claim. A founded Business is created unpremised and a
             // fixture's is created with no origin at all, and both of those are ordinary Businesses
             // that no demolition may raze.
-            Handle<Business> came = CreateBusiness(building, trade);
+            Handle<Business> came = CreateBusiness(building, trade, zoned);
 
-            Businesses.Origin[Businesses.Rows.Resolve(came)] = building;
+            // The default handle is a treasury that could not pay the grant. The Building stands
+            // without its trade, as it does where there is no room beside the dwelling.
+            if (!came.IsNone)
+            {
+                Businesses.Origin[Businesses.Rows.Resolve(came)] = building;
 
-            // And it takes up its tenancy in the same breath, because it was created already
-            // premised (adr/0166). Every OTHER Business reaches FitBusiness through Premise; this
-            // one never goes through that door, so a shop instantiated with its Building would
-            // otherwise stand there holding nothing and running nothing.
-            armed += FitBusiness(came);
+                // And it takes up its tenancy in the same breath, because it was created already
+                // premised (adr/0166). Every OTHER Business reaches FitBusiness through Premise; this
+                // one never goes through that door, so a shop instantiated with its Building would
+                // otherwise stand there holding nothing and running nothing.
+                armed += FitBusiness(came);
+            }
         }
 
         foreach (RuleId rule in Rules.RulesOf(kind))
@@ -5220,8 +5257,7 @@ public sealed partial class World
     /// <summary>Whether a Building already holds the Business it instantiated itself.</summary>
     /// <remarks>
     /// <para>
-    /// <b><see cref="Fit"/>'s idempotence for <c>adr/0148</c>'s declared trade</b>, and it asks the
-    /// same question the Bin walk and the Car Park check ask. It is <see cref="DestroyBuilding"/>'s
+    /// <b>The pairing for <c>adr/0148</c>'s declared trade.</b> It is <see cref="DestroyBuilding"/>'s
     /// predicate exactly, run in the other direction: ***the pairing that keeps the shop count bounded
     /// has to identify the same row at both ends, or it is not a pairing.***
     /// </para>
@@ -5236,7 +5272,7 @@ public sealed partial class World
     /// handle that stops meaning anything the moment the Business leaves is the opposite of a flag.
     /// </para>
     /// </remarks>
-    private bool HoldsOwnTrade(int buildingSlot) => OwnTrade(buildingSlot) != Rows.NoSlot;
+    internal bool HoldsOwnTrade(int buildingSlot) => OwnTrade(buildingSlot) != Rows.NoSlot;
 
     /// <summary>
     /// The Business this Building instantiated itself, or <see cref="Rows.NoSlot"/> where it holds

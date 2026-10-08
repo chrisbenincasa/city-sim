@@ -422,6 +422,35 @@ And they pull against each other in the way the design is really about: **afford
 
 By this point the player should be managing Districts rather than Lots, thinking in Arterials rather than Streets, and using overlays as their primary view.
 
+### What keeps a mature city interesting
+
+**Only the simulation.** The game is a sandbox with no stated goal ([`00` — what a session is for](00-vision.md#what-a-session-is-for)), so the city itself must keep posing problems. Nothing authored escalates with size: no shock, recession or migration wave is scheduled by population, age or a milestone. The intensity dial's shocks are world-scheduled (§5.3) and stay that way.
+
+Each problem below becomes reachable only at a size the city must first grow to:
+
+| Problem | Why size brings it | Source |
+|---|---|---|
+| Commutes degrade | The paved extent outgrows the fast rung | [`adr/0095`](adr/0095-a-commute-budget-is-three-rungs-and-only-the-last-one-refuses.md) |
+| Growth gets dearer | Building spends land and Woodland, so Materials become imports | [`adr/0022`](adr/0022-land-is-a-stock-the-city-spends.md) |
+| Old stock blocks new growth | Redevelopment needs priced clearance | [`adr/0091`](adr/0091-clearing-land-is-bought-rather-than-taken-and-demolish-is-the-sixth-verb.md) |
+| Trade deficit | A mature city is a permanent net importer | §6 |
+| Infrastructure renewal | Roads and networks age | Unbuilt; only flat Segment upkeep exists |
+| Demographic stall and retention | Generations turn over (around twenty hours) | [`adr/0011`](adr/0011-household-life-stages-and-self-generating-population.md) |
+
+This is a prediction under §1's *hour markers are expectations*, and it can fail. A mature city that settles into a calm equilibrium is a defect in whichever system should be biting. The check is a headless long run on a non-fixture world that reports which §6 trajectories become reachable at each size. It is owned by the playtesting row on [the board](../plans/0000-board.md), because no Ruleset can yet grow a city to hour three.
+
+### Progression, and what is never locked
+
+**The toolbox is the same at minute one and hour three.** Every tool and every Policy is available from the start. Progression is the city growing until the larger tools pay off: an Arterial exists at minute one, and nothing needs one until commutes stretch. The same holds for Ward Policy overrides and area-scale zoning. No tool or Policy is locked behind population, age or a milestone (`CONTEXT.md`, *No Policy is ever hidden or locked*).
+
+**Special Buildings appear on measured city conditions.** A landmark or unique Building is content the city raises, like any other Building, when a fact the simulation measures holds: an education share, a school enrollment, a life expectancy. The condition is the same kind of fact Evidence already shows, so the Building's existence explains itself. This follows the genre's best-regarded precedent (SimCity 3000 and 4 reward conditions, Cities: Skylines unique buildings). Population alone is never the condition, and an aggregate rating never is.
+
+**Onboarding is a presentation problem.** A new player facing the whole toolbox at once is the genre's real argument for unlocks. The answer is in the interface: a tutorial, or a toolbar that introduces a tool when it first becomes useful without withholding it.
+
+**Milestone unlocks with an unlock-all toggle are the named alternative.** This is the Cities: Skylines model. It is refused for now because it locks levers the player governs and needs saved unlock state, a *why can I not build this* explanation and a toggle. Revisit it if playtests show new players overwhelmed by the full toolbox after the interface work above has shipped.
+
+⚠ **The hour-three tools are unbuilt or deferred.** Arterials and Junction construction, Ward Policy overrides and area-scale zoning each have a board row. The first playable does not need them; playtesting hour three does.
+
 ---
 
 ## 5. Pressure, and the intensity dial

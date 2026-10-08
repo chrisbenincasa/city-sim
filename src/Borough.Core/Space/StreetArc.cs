@@ -12,6 +12,11 @@ public readonly record struct StreetArc
 
     // Round sqrt(2)/2 downward so the displacement guard never exceeds the stated bound.
     private const int SplitDisplacement = 46340 + SplitRoundoff;
+
+    // The guard refuses rather than refine below this span, so a fit costs at most about 512
+    // samples per Tile, and only where it nears the bound. It refuses only fits within 1/512 Tile
+    // of the bound.
+    private const int GuardSpan = Fixed.One >> 8;
     private readonly long _startAngle;
     private readonly long _sweep;
 
@@ -263,22 +268,9 @@ public readonly record struct StreetArc
         int aN = RoundTile(A.North);
         int bE = RoundTile(B.East);
         int bN = RoundTile(B.North);
-        if ((nodeEast == aE && nodeNorth == aN) || (nodeEast == bE && nodeNorth == bN))
-        {
-            return false;
-        }
-
-        var a = ((long)aE * Fixed.One, (long)aN * Fixed.One);
-        var b = ((long)bE * Fixed.One, (long)bN * Fixed.One);
-        var node = ((long)nodeEast * Fixed.One, (long)nodeNorth * Fixed.One);
-        if (!TryHalfSagitta(a, PointAt(offset >> 1), node, out int firstS)
-            || !TryHalfSagitta(node, PointAt(offset + ((Length - offset) >> 1)), b, out int secondS)
-            || !TryCreate(aE, aN, nodeEast, nodeNorth, firstS, out var first)
-            || !TryCreate(nodeEast, nodeNorth, bE, bN, secondS, out var second)
-            || !WithinDisplacement(first, 0, first.Length, this)
-            || !WithinDisplacement(second, 0, second.Length, this)
-            || !WithinDisplacement(this, 0, offset, first)
-            || !WithinDisplacement(this, offset, Length, second))
+        if ((nodeEast == aE && nodeNorth == aN) || (nodeEast == bE && nodeNorth == bN)
+            || !TryPiece(0, aE, aN, offset, nodeEast, nodeNorth, out _, out int firstS)
+            || !TryPiece(offset, nodeEast, nodeNorth, Length, bE, bN, out _, out int secondS))
         {
             return false;
         }
@@ -286,6 +278,123 @@ public readonly record struct StreetArc
         firstSagitta = firstS;
         secondSagitta = secondS;
         return true;
+    }
+
+    /// <summary>
+    /// Fits the part of this arc between two offsets as an arc between two integer Tiles, through
+    /// this arc's point at the mid-offset.
+    /// </summary>
+    /// <remarks>Refuses a piece over a quarter turn or one that moves the road past the split bound.</remarks>
+    public bool TryPiece(int from, int fromEast, int fromNorth, int to, int toEast, int toNorth,
+        out StreetArc piece, out int sagitta)
+    {
+        piece = default;
+        sagitta = 0;
+        from = ClampOffset(from);
+        to = ClampOffset(to);
+        var a = ((long)fromEast * Fixed.One, (long)fromNorth * Fixed.One);
+        var b = ((long)toEast * Fixed.One, (long)toNorth * Fixed.One);
+        if (to <= from
+            || !TryHalfSagitta(a, PointAt(from + ((to - from) >> 1)), b, out int s)
+            || !TryCreate(fromEast, fromNorth, toEast, toNorth, s, out var fitted)
+            || !WithinDisplacement(fitted, 0, fitted.Length, this)
+            || !WithinDisplacement(this, from, to, fitted))
+        {
+            return false;
+        }
+
+        piece = fitted;
+        sagitta = s;
+        return true;
+    }
+
+    /// <summary>
+    /// The offsets along this arc where it meets the other's whole circle or line, ascending.
+    /// </summary>
+    /// <remarks>
+    /// The side of the other curve a point lies on is exact in integers, so a crossing is a sign
+    /// change of that side. Along this arc the side function turns at most twice, at the points
+    /// nearest and farthest from the other curve, so each piece between turns holds at most one
+    /// crossing and bisection finds it. A caller keeps only offsets whose point lies on the
+    /// other's finite extent.
+    /// </remarks>
+    /// <returns>How many offsets were written, at most four.</returns>
+    public int Crossings(StreetArc other, Span<int> into)
+    {
+        Span<int> cuts = stackalloc int[4];
+        int count = 0;
+        cuts[count++] = 0;
+        if (!IsStraight)
+        {
+            long angle = other.IsStraight
+                ? Transcendental.Atan2Wide(other.B.East - other.A.East, other.A.North - other.B.North)
+                : Transcendental.Atan2Wide(other.Center.North - Center.North, other.Center.East - Center.East);
+            Turn(cuts, ref count, OffsetAt(angle), Length);
+            Turn(cuts, ref count, OffsetAt(angle + (Transcendental.WideOne >> 1)), Length);
+        }
+        else if (!other.IsStraight)
+        {
+            Turn(cuts, ref count, OffsetAlong(other.Center.East, other.Center.North), Length);
+        }
+
+        cuts[count++] = Length;
+        cuts[..count].Sort();
+
+        int found = 0;
+        for (int i = 0; i + 1 < count; i++)
+        {
+            int low = cuts[i], high = cuts[i + 1];
+            int lowSide = other.SideOf(PointAt(low)), highSide = other.SideOf(PointAt(high));
+            if (lowSide == 0) { Add(into, ref found, low); continue; }
+            if (highSide == 0 || lowSide == highSide) { continue; }
+            while (high - low > 1)
+            {
+                int middle = low + ((high - low) >> 1);
+                int side = other.SideOf(PointAt(middle));
+                if (side == 0) { low = high = middle; break; }
+                if (side == lowSide) { low = middle; } else { high = middle; }
+            }
+
+            Add(into, ref found, high);
+        }
+
+        if (other.SideOf(B) == 0) { Add(into, ref found, Length); }
+        return found;
+    }
+
+    private static void Turn(Span<int> cuts, ref int count, int offset, int length)
+    {
+        if (offset > 0 && offset < length) { cuts[count++] = offset; }
+    }
+
+    private static void Add(Span<int> into, ref int found, int offset)
+    {
+        if (found == 0 || into[found - 1] != offset) { into[found++] = offset; }
+    }
+
+    // The sign of a point's side of this arc's whole line or circle. Left of a line is positive;
+    // outside a circle is positive.
+    private int SideOf((long East, long North) point)
+    {
+        Int128 value;
+        if (IsStraight)
+        {
+            value = ((Int128)(B.East - A.East) * (point.North - A.North))
+                - ((Int128)(B.North - A.North) * (point.East - A.East));
+        }
+        else
+        {
+            long east = point.East - Center.East, north = point.North - Center.North;
+            value = ((Int128)east * east) + ((Int128)north * north) - ((Int128)Radius * Radius);
+        }
+
+        return value > 0 ? 1 : value < 0 ? -1 : 0;
+    }
+
+    private int OffsetAt(long angle)
+    {
+        var point = CirclePoint(Radius, angle);
+        return OffsetAlong(point.East, point.North);
     }
 
     private (long East, long North) CirclePoint(long radius, long angle)
@@ -312,7 +421,7 @@ public readonly record struct StreetArc
     private static long ArcLength(long radius, long sweep) =>
         IntegerMath.MulDivFloor(radius, Transcendental.RadiansWide(sweep < 0 ? -sweep : sweep), Transcendental.WideOne);
 
-    private static long Hypot(long x, long y)
+    internal static long Hypot(long x, long y)
     {
         x = x < 0 ? -x : x;
         y = y < 0 ? -y : y;
@@ -426,14 +535,17 @@ public readonly record struct StreetArc
     }
 
     // Distance to a curve is 1-Lipschitz. Reserve 1/64 Tile for geometry rounding between samples.
-    // ponytail: adaptive checks can visit every raw offset; use analytic extrema if edits need throughput.
     private static bool WithinDisplacement(StreetArc source, int start, int end, StreetArc target,
         int startDistance, int endDistance)
     {
-        if ((long)startDistance + endDistance + (end - start) + (2 * SplitRoundoff) <= (2 * SplitDisplacement)
-            || end - start <= 1)
+        if ((long)startDistance + endDistance + (end - start) + (2 * SplitRoundoff) <= (2 * SplitDisplacement))
         {
             return true;
+        }
+
+        if (end - start <= GuardSpan)
+        {
+            return false;
         }
 
         int middle = start + ((end - start) >> 1);

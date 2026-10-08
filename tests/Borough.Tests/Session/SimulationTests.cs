@@ -148,8 +148,8 @@ public sealed class SimulationTests
     /// </summary>
     /// <remarks>
     /// <b>This is <c>adr/0025</c>'s rejected road-derived cap, shown working the way that ADR said it
-    /// would.</b> The player who zones land the streets do not reach is <em>not refused</em> — the
-    /// command applies, nothing throws, and what they get is a dead block interior that explains
+    /// would.</b> The stripped block lies inside a larger face, so the command paints that face and
+    /// lots the Streets around its edge. The block itself stays a dead interior that explains
     /// itself. `LEGIBLE CAUSE`
     /// </remarks>
     [Fact]
@@ -172,7 +172,7 @@ public sealed class SimulationTests
             [Paint(east: block + (block / 2), north: block + (block / 2), permissions: 1)],
             rulesetHash: 0));
 
-        Assert.Equal(0, simulation.World.Lots.Rows.LiveCount);
+        Assert.Equal(0, LotsInside(simulation.World, 1, 1));
     }
 
     /// <summary>
@@ -199,7 +199,7 @@ public sealed class SimulationTests
         Command zone = Paint(east: block + (block / 2), north: block + (block / 2), permissions: 1);
 
         simulation.Step(new TickInput([zone], rulesetHash: 0));
-        Assert.Equal(0, simulation.World.Lots.Rows.LiveCount);
+        Assert.Equal(0, LotsInside(simulation.World, 1, 1));
 
         // The player runs one Street back along the block's south face. That is one SIDE of one
         // Segment, so it is a quarter of the block's faces and not a quarter of its Lots: a block
@@ -209,7 +209,14 @@ public sealed class SimulationTests
         simulation.Step(new TickInput(
             [Connect(east: block, north: block, StreetAxis.East), zone], rulesetHash: 0));
 
-        Assert.Equal(3, simulation.World.Lots.Rows.LiveCount);
+        Assert.Equal(3, LotsInside(simulation.World, 1, 1));
+    }
+
+    private static int LotsInside(World world, int column, int row)
+    {
+        var block = OrientedRectangle.FromBounds(world.BlockGroundRectangle(column, row));
+        return Enumerable.Range(0, world.Lots.Rows.SlotCount)
+            .Count(lot => world.Lots.Rows.IsLive(lot) && block.Contains(world.Lots.Parcel(lot)));
     }
 
     /// <summary>

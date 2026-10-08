@@ -12,7 +12,8 @@ using System.Threading;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>The machine <c>plans/0002</c> §B names, and nothing more.</b> The question is whether
+/// <b>The machine historical <c>plans/0002</c> §B (at <c>be07abc3</c>) names, and nothing
+/// more.</b> The question is whether
 /// <c>GC.GetAllocatedBytesForCurrentThread</c>'s error is bounded by one gen0 allocation context, so
 /// that an exact equality can survive a suite that runs in parallel. Four discrepancies are on record
 /// — 5,672, 5,696, 6,768 and 7,896 bytes — and every one is under <b>8,192</b>, which is the size of
@@ -52,18 +53,21 @@ using System.Threading;
 /// open question it serves.</b> <c>AppContext.BaseDirectory</c> is <c>bin/Release/net10.0/</c>, which
 /// <c>dotnet clean</c>, a worktree prune and a fresh clone all discard <em>by design</em> — and on
 /// 2026-08-21 a dead worktree was about to be removed carrying **48 readings from six full runs that
-/// existed nowhere else**, which is the sample <c>plans/0002</c> §B quotes. ***An instrument whose
+/// existed nowhere else**, which is the sample historical <c>plans/0002</c> §B (at
+/// <c>be07abc3</c>) quotes. ***An instrument whose
 /// output lives in a build directory is an instrument whose evidence is deleted by routine
 /// housekeeping***, and the readings are the slowest thing in this project to reproduce: six full
 /// unfiltered runs is about four hours.
 /// </para>
 /// <para>
-/// <b>So the file is durable and committable now.</b> The archive directory sits in the test project
-/// rather than under <c>bin/</c>, nothing gitignores it, and the two datasets rescued that day are in
-/// it under names saying what they are. ⚠ <b>Whether the readings should be *committed* is a separate
-/// question and is deliberately not answered here</b> — it is what would make §B's figures checkable
-/// rather than quotable, which is <c>plans/0012</c> **Cause 5**'s repair on a dataset instead of a
-/// sentence.
+/// <b>So the directory is durable, and the rescued datasets in it are committed.</b> It sits in the
+/// test project rather than under <c>bin/</c>, and the two datasets rescued that day are in it under
+/// names saying what they are and are tracked. The live <c>alloc-probe.csv</c> accumulates in the
+/// same directory and is gitignored, so routine runs do not churn a tracked file. ⚠ <b>Whether more
+/// of its readings should be committed is a separate question and is deliberately not answered
+/// here</b> — it is what would make historical
+/// <c>plans/0002</c> §B's (at <c>be07abc3</c>) figures checkable rather than quotable, which is
+/// <c>plans/0012</c> **Cause 5**'s repair on a dataset instead of a sentence.
 /// </para>
 /// </remarks>
 internal static class AllocationProbe
@@ -94,8 +98,9 @@ internal static class AllocationProbe
         /// </summary>
         /// <remarks>
         /// <b>The rival mechanism's counter, which this probe recorded nothing for until
-        /// 2026-08-26.</b> <c>plans/0003</c> queue item 13 holds a <em>tiered-JIT rejit allocating on
-        /// the measuring thread</em> against <c>plans/0002</c> §D's allocation context, and the probe
+        /// 2026-08-26.</b> <c>plans/0000-board.md</c>'s "Runtime defects previously filed" row, item
+        /// 13, holds a <em>tiered-JIT rejit allocating on the measuring thread</em> against historical
+        /// <c>plans/0002</c> §D's (at <c>be07abc3</c>) allocation context, and the probe
         /// recorded <see cref="GC.CollectionCount"/> for one of them and nothing at all for the other.
         /// ***An instrument that records only one of two rival mechanisms cannot separate them***, and
         /// separating them is the entire reason the class exists.
@@ -116,8 +121,8 @@ internal static class AllocationProbe
         /// <c>process,test,bytes,gen0,gen1,gen2,thread</c> and no clock, so of three samples found that
         /// day only the two somebody watched go red could be dated — the third sat at row 706 of 853
         /// and could have come from any run in four days. ***A reading that cannot be ordered in time
-        /// cannot be read against a change to the tree***, which is what <c>plans/0002</c> §D's history
-        /// is made of: every sample in it is carried by its date.
+        /// cannot be read against a change to the tree***, which is what historical <c>plans/0002</c>
+        /// §D's (at <c>be07abc3</c>) history is made of: every sample in it is carried by its date.
         /// </para>
         /// <para>
         /// ⚠ <b>Ticks rather than a formatted string, because <see cref="Record"/> may not allocate.</b>
@@ -226,15 +231,15 @@ internal static class AllocationProbe
     /// 🔴 <b>The failure message names the file, and that is the whole reason this method exists.</b>
     /// Every non-zero row in <see cref="Path"/> is a test that went red in that process —
     /// <see cref="Record"/> runs before the assertion and writes a firing through immediately — so a
-    /// red allocation assertion means <c>plans/0002</c> §B's open question has just been handed a
-    /// sample. **One was lost that way**: a 5,208-byte firing sat in the file unread while §B went on
-    /// saying the half it answers was untested, because the correct response to an intermittent is to
-    /// re-run it and the re-run was green.
+    /// red allocation assertion means historical <c>plans/0002</c> §B (at <c>be07abc3</c>) has just
+    /// been handed a sample. **One was lost that way**: a 5,208-byte firing sat in the file unread
+    /// while that open question went on saying the half it answers was untested, because the correct
+    /// response to an intermittent is to re-run it and the re-run was green.
     /// </para>
     /// <para>
     /// ⚠ <b>The eight sites wrote the assertion eight times and in two spellings</b> —
     /// <c>Assert.Equal(before, after)</c> and <c>Assert.Equal(0, after - before)</c> — which is what
-    /// made them uncountable by grep and left §B naming four of them for months. ***A property
+    /// made them uncountable by grep and left historical §B naming four of them for months. ***A property
     /// asserted in two spellings is a property nothing can enumerate.***
     /// </para>
     /// </remarks>
@@ -272,7 +277,8 @@ internal static class AllocationProbe
     /// ⚠ <b>Separate from <see cref="Check"/> so that the message can be tested without recording a
     /// sample.</b> The first draft of <c>AllocationAssertionTests</c> asserted on the message by
     /// calling <see cref="Check"/> with a fabricated delta, which appended a **synthetic firing to
-    /// the evidence file on every run** — <c>plans/0002</c> §B counts the rows in that file, and six
+    /// the evidence file on every run** — historical <c>plans/0002</c> §B (at <c>be07abc3</c>) counts
+    /// the rows in that file, and six
     /// real samples in four years would have been buried under one fake per test run.
     /// ***A test for an instrument must not write to the instrument's output.***
     /// </remarks>
@@ -283,20 +289,22 @@ internal static class AllocationProbe
             $"{test} moved the allocation counter by {delta} bytes, with "
             + $"{gen0} gen0, {gen1} gen1 and {gen2} gen2 collections inside the window, and "
             + $"{jitMethods} methods ({jitIl} IL bytes) compiled on this thread inside it.\n\n"
-            + "⚠ THIS MAY BE THE INTERMITTENT AND NOT A REGRESSION. plans/0002 §D is open on exactly "
-            + "this, and TWO RIVAL MECHANISMS are on the table with the evidence split between them:\n"
-            + "  - plans/0002 §D: GC.GetAllocatedBytesForCurrentThread is served out of a per-thread "
-            + "allocation context, and every recorded firing is under 8,192 bytes, which is that "
-            + "context's size. The gen columns are this mechanism's counter.\n"
-            + "  - plans/0003 queue item 13: a tiered-JIT rejit allocating on the measuring thread. "
-            + "The jit columns are this mechanism's counter, and they exist only since 2026-08-26.\n\n"
+            + "⚠ THIS MAY BE THE INTERMITTENT AND NOT A REGRESSION. plans/0000-board.md's "
+            + "\"Runtime defects previously filed\" row, item 13 (intermittent Zone allocation "
+            + "counter), is open on exactly this, and TWO RIVAL MECHANISMS are on the table with the "
+            + "evidence split between them:\n"
+            + "  - GC.GetAllocatedBytesForCurrentThread is served out of a per-thread allocation "
+            + "context, and every recorded firing is under 8,192 bytes, which is that context's "
+            + "size. The gen columns are this mechanism's counter.\n"
+            + "  - A tiered-JIT rejit allocating on the measuring thread, the same board row's other "
+            + "half. The jit columns are this mechanism's counter.\n\n"
             + "🔴 SO READ THE JIT COLUMNS FIRST -- they are the half nobody had. A firing with jit "
-            + "movement inside the window supports item 13; one without it, on a site whose delta "
-            + "repeats a previous reading exactly, supports neither and is the state the question was "
-            + "left in.\n\n"
-            + $"🔴 THE SAMPLE HAS ALREADY BEEN WRITTEN TO {Path} -- go and read it, and put the row "
-            + "in plans/0002 §D, BEFORE re-running. A green re-run is the correct response to an "
-            + "intermittent and it is also how the last sample was lost.";
+            + "movement inside the window supports the JIT mechanism; one without it, on a site whose "
+            + "delta repeats a previous reading exactly, supports neither and is the state the "
+            + "question was left in.\n\n"
+            + $"🔴 THE SAMPLE HAS ALREADY BEEN WRITTEN TO {Path} -- go and read it before re-running. "
+            + "A green re-run is the correct response to an intermittent and it is also how a sample "
+            + "was lost before this probe wrote firings through immediately.";
     }
 
     /// <summary>

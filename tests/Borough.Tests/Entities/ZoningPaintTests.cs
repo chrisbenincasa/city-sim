@@ -72,6 +72,53 @@ public sealed class ZoningPaintTests
         }
     }
 
+    [Fact]
+    public void Zoning_ground_after_a_freeform_street_is_laid_cuts_lots_along_that_street()
+    {
+        var rules = RulesetLoader.Load(Path.Combine(AppContext.BaseDirectory, "Rulesets", "minimal.toml")).Ruleset!;
+        var world = new World(1_000, rules, WorldKey.FromSeed(0));
+        SyntheticCity.PopulateInto(world, WorldKey.FromSeed(0), Ticks.Zero);
+        StreetGrid streets = world.Roads.Streets;
+        (int column, int row) = Enumerable.Range(0, streets.Blocks * streets.Blocks)
+            .Select(i => (i % streets.Blocks, i / streets.Blocks))
+            .First(b => world.LandPermissions.Summary(world.BlockGroundRectangle(b.Item1, b.Item2)).AnyUses == 0);
+        var south = streets.IntersectionTile(column, row);
+        var north = streets.IntersectionTile(column + 1, row + 1);
+        Assert.True(world.Roads.BulldozeStreet(column, row, StreetAxis.East));
+        Assert.True(world.Roads.BulldozeStreet(column, row + 1, StreetAxis.East));
+        Assert.True(world.Roads.BulldozeStreet(column, row, StreetAxis.North));
+        Assert.True(world.Roads.BulldozeStreet(column + 1, row, StreetAxis.North));
+        world.RebuildDerived();
+        LotSubdivider.Resubdivide(world);
+
+        Assert.Equal(StreetLayRefusal.None,
+            world.LayStreet(south.East.Raw, south.North.Raw, north.East.Raw, north.North.Raw, 0));
+        int[] diagonal = Enumerable.Range(0, world.Roads.Segments.Rows.SlotCount)
+            .Where(s => world.Roads.Segments.Rows.IsLive(s) && (RoadKind)world.Roads.Segments.Kind[s] == RoadKind.Street
+                && world.Roads.Segments.Centerline[s].A.East != world.Roads.Segments.Centerline[s].B.East
+                && world.Roads.Segments.Centerline[s].A.North != world.Roads.Segments.Centerline[s].B.North)
+            .ToArray();
+        Assert.NotEmpty(diagonal);
+        Assert.Equal(0, Fronting(world, diagonal));
+        var standing = Enumerable.Range(0, world.Lots.Rows.SlotCount).Where(world.Lots.Rows.IsLive)
+            .Select(i => (Lot: world.Lots.Rows.At(i), Parcel: world.Lots.Parcel(i), Building: world.Lots.BuildingOn(i)))
+            .ToArray();
+        Assert.Contains(standing, lot => lot.Building >= 0);
+
+        LotSubdivider.PaintAt(world, new Tiles(south.East.Raw + 4), new Tiles(south.North.Raw + 20), LotTable.Housing);
+
+        Assert.True(Fronting(world, diagonal) > 0);
+        Assert.All(standing, lot =>
+        {
+            Assert.True(world.Lots.Rows.TryResolve(lot.Lot, out int slot));
+            Assert.Equal((lot.Parcel, lot.Building), (world.Lots.Parcel(slot), world.Lots.BuildingOn(slot)));
+        });
+    }
+
+    private static int Fronting(World world, int[] segments) =>
+        Enumerable.Range(0, world.Lots.Rows.SlotCount)
+            .Count(i => world.Lots.Rows.IsLive(i) && segments.Contains(world.Lots.FrontageOn(i)));
+
     private static World City()
     {
         var rules = RulesetLoader.Load(Path.Combine(AppContext.BaseDirectory, "Rulesets", "minimal.toml")).Ruleset!;

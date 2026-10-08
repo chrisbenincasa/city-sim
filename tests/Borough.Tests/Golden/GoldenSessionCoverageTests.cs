@@ -139,11 +139,11 @@ public sealed class GoldenSessionCoverageTests
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Three readings of one block, because the two directions are separate branches.</b> At Tick
-    /// 131 <see cref="Edited"/> has been zoned with its south face already gone, so it holds the seven
-    /// Lots its three remaining faces can carry rather than ten. At Tick 201 the face has been laid
-    /// back and <c>Resubdivide</c> has found a block that gained frontage — three more. At Tick 301 it
-    /// is gone again and the three are freed, because they are vacant.
+    /// <b>Three readings of one block, because the two directions are separate branches.</b>
+    /// <see cref="Edited"/> is zoned while it is a closed block, so the paint covers all of it. At Tick
+    /// 131 its south face has gone and the three vacant Lots on it are freed, leaving seven. At Tick
+    /// 201 the face has been laid back and <c>Resubdivide</c> has found a block that gained frontage —
+    /// three more. At Tick 301 it is gone again and the three are freed once more.
     /// </para>
     /// <para>
     /// <b>Seven and not eight, and the asymmetry is real.</b> A block takes the Left side of its south
