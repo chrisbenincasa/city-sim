@@ -24,7 +24,7 @@ namespace Borough.Tests.Input;
 /// </remarks>
 public sealed class FreeformStreetsAcceptanceTests
 {
-    private const string Scenario = """
+    internal const string Scenario = """
         borough-log 1
         seed 0x0000000000000000
         citizens 1000
@@ -58,10 +58,10 @@ public sealed class FreeformStreetsAcceptanceTests
     private static readonly Command Closure =
         Command.Street(new Tiles(46), new Tiles(158), new Tiles(47), new Tiles(128), SubTiles.Zero);
 
-    private static Ruleset Rules() =>
+    internal static Ruleset Rules() =>
         RulesetLoader.Load(Path.Combine(AppContext.BaseDirectory, "Rulesets", "minimal.toml")).Ruleset!;
 
-    private static Simulation RunTo(InputLog log, Ruleset rules, ulong tick)
+    internal static Simulation RunTo(InputLog log, Ruleset rules, ulong tick)
     {
         Simulation simulation = Replay.Start(log, rules);
         for (ulong at = 0; at < tick; at++)
@@ -170,7 +170,7 @@ public sealed class FreeformStreetsAcceptanceTests
         Assert.InRange(joining.North - leaving.North, -Fixed.One / 256, Fixed.One / 256);
     }
 
-    private const string EmptyGround = """
+    internal const string EmptyGround = """
         borough-log 1
         seed 0x0000000000000000
         citizens 1000

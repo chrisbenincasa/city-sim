@@ -806,7 +806,7 @@ public sealed class Simulation
         CommandKind.Govern => RefuseGovern(command),
         CommandKind.Fund => RefuseFund(command),
         CommandKind.Tax => RefuseTax(command, _world.Tick, out _, out _),
-        CommandKind.Demolish => RefuseDemolish(command, out _, out _),
+        CommandKind.Demolish => RefuseDemolish(command, out _, out _, out _),
         CommandKind.Service => RefuseService(command, out _, out _),
         CommandKind.Gate => RefuseGate(command, out _, out _, out _),
         CommandKind.People => RefusePeople(),
@@ -1143,15 +1143,30 @@ public sealed class Simulation
     }
 
     /// <inheritdoc cref="ApplyDemolish"/>
-    private Refusal RefuseDemolish(Command command, out int building, out Money price)
+    private Refusal RefuseDemolish(Command command, out int building, out Money price, out int street)
     {
-        building = BuildingOn(command.East, command.North);
-        price = building < 0 ? Money.Zero : _world.DemolitionPrice(building);
+        building = -1;
+        price = Money.Zero;
+        street = -1;
 
-        return building < 0 ? Refusal.DemolishNoBuildingOnThatTile
-            : price.Raw > 0 && (_world.TreasuryBalance()?.Raw ?? 0) < price.Raw
-                ? Refusal.DemolishTreasuryCannotPay
-            : Refusal.None;
+        switch ((DemolishTarget)command.Zone)
+        {
+            case DemolishTarget.Street:
+                street = _world.StreetAt(command.East, command.North);
+                return street < 0 ? Refusal.DemolishNoStreetThere : Refusal.None;
+
+            case DemolishTarget.Building:
+                building = BuildingOn(command.East, command.North);
+                price = building < 0 ? Money.Zero : _world.DemolitionPrice(building);
+
+                return building < 0 ? Refusal.DemolishNoBuildingOnThatTile
+                    : price.Raw > 0 && (_world.TreasuryBalance()?.Raw ?? 0) < price.Raw
+                        ? Refusal.DemolishTreasuryCannotPay
+                    : Refusal.None;
+
+            default:
+                return Refusal.DemolishUnknownTarget;
+        }
     }
 
     /// <inheritdoc cref="ApplyService"/>
@@ -1685,11 +1700,17 @@ public sealed class Simulation
     /// </remarks>
     private void ApplyDemolish(Command command, Ticks tick)
     {
-        Refusal refusal = RefuseDemolish(command, out int building, out Money price);
+        Refusal refusal = RefuseDemolish(command, out int building, out Money price, out int street);
 
         if (refusal != Refusal.None)
         {
             throw Refused(refusal, command);
+        }
+
+        if (street >= 0)
+        {
+            _world.RemoveStreet(street);
+            return;
         }
 
         _world.PayDisplaced(building, price, tick);
