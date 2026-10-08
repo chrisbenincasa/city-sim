@@ -125,14 +125,15 @@ public static class RulesetKeyNotes
             + "Building rather than by buying, and are declared with [[building]] serves instead. "
             + "Absent means the Resource feeds no Need, which is the ordinary case.",
         ["[[resource]] shelf_life_cycles"] =
-            "How many cycles stock of this Resource stays good, from 1 to 4. At each cycle boundary "
-            + "every Bin's stock ages by one cycle and stock older than this is discarded. Withdrawals "
+            "How many cycles stock of this Resource stays good, from 1 to 4. At each of its own cycle "
+            + "boundaries, a Bin's stock ages by one cycle and stock older than this is discarded. Withdrawals "
             + "take the oldest stock first. State it with shelf_life_cycle_minutes or not at all; "
             + "absent means the Resource never spoils. Money may not spoil.",
         ["[[resource]] shelf_life_cycle_minutes"] =
-            "How long one shelf-life cycle lasts, in in-world minutes, from 1 to a year. Every Bin "
-            + "of the Resource shares the same boundaries, so stock deposited just before one ages "
-            + "a full cycle at once.",
+            "How long one shelf-life cycle lasts, in in-world minutes, from 1 to a year. Each Bin "
+            + "ages on its own boundary within the cycle, offset from other Bins so a city's stock "
+            + "does not all age on one Tick. Stock deposited just before its Bin's boundary ages a "
+            + "full cycle at once.",
 
         // ---- [[building]] ---------------------------------------------------------------------
         ["[[building]] name"] =
