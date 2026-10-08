@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://bbt6ube78eva0"
 path.s3tc="res://.godot/imported/oriented-strand-board-roughness.jpg-53b80922605f3e261d925b2c023fa0d5.s3tc.ctex"
+path.etc2="res://.godot/imported/oriented-strand-board-roughness.jpg-53b80922605f3e261d925b2c023fa0d5.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/oriented-strand-board-roughness.jpg"
-dest_files=["res://.godot/imported/oriented-strand-board-roughness.jpg-53b80922605f3e261d925b2c023fa0d5.s3tc.ctex"]
+dest_files=["res://.godot/imported/oriented-strand-board-roughness.jpg-53b80922605f3e261d925b2c023fa0d5.s3tc.ctex", "res://.godot/imported/oriented-strand-board-roughness.jpg-53b80922605f3e261d925b2c023fa0d5.etc2.ctex"]
 
 [params]
 

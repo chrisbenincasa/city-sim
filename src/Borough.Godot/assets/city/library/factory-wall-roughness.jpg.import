@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://jxx7lkiq5vki"
 path.s3tc="res://.godot/imported/factory-wall-roughness.jpg-163e624ea8eaee3e31431b041111bb0e.s3tc.ctex"
+path.etc2="res://.godot/imported/factory-wall-roughness.jpg-163e624ea8eaee3e31431b041111bb0e.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/factory-wall-roughness.jpg"
-dest_files=["res://.godot/imported/factory-wall-roughness.jpg-163e624ea8eaee3e31431b041111bb0e.s3tc.ctex"]
+dest_files=["res://.godot/imported/factory-wall-roughness.jpg-163e624ea8eaee3e31431b041111bb0e.s3tc.ctex", "res://.godot/imported/factory-wall-roughness.jpg-163e624ea8eaee3e31431b041111bb0e.etc2.ctex"]
 
 [params]
 

@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://cn7kk836qrjgc"
 path.s3tc="res://.godot/imported/rough-block-wall-albedo.jpg-ff1913da8c8173286f2afaf24b367282.s3tc.ctex"
+path.etc2="res://.godot/imported/rough-block-wall-albedo.jpg-ff1913da8c8173286f2afaf24b367282.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/rough-block-wall-albedo.jpg"
-dest_files=["res://.godot/imported/rough-block-wall-albedo.jpg-ff1913da8c8173286f2afaf24b367282.s3tc.ctex"]
+dest_files=["res://.godot/imported/rough-block-wall-albedo.jpg-ff1913da8c8173286f2afaf24b367282.s3tc.ctex", "res://.godot/imported/rough-block-wall-albedo.jpg-ff1913da8c8173286f2afaf24b367282.etc2.ctex"]
 
 [params]
 

@@ -1,0 +1,94 @@
+# Exports the shell for Linux, Windows and macOS and uploads each build as an artifact.
+# Locally the same build is `scripts/export.sh` with the export templates installed.
+name: export
+
+# Every push to main, every pull request that changes how the export is made, and by hand. An
+# export takes minutes and uploads about a gigabyte, so it does not run on every branch push the
+# way the commit lane does.
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    paths:
+      - .github/workflows/export.yml
+      - scripts/export.sh
+      - src/Borough.Godot/export_presets.cfg
+      - src/Borough.Godot/project.godot
+      - src/Borough.Godot/Borough.Godot.sln
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: 4.7.2
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Cache Godot and export templates
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/godot
+            ~/.local/share/godot/export_templates
+          key: godot-${{ env.GODOT_VERSION }}-mono
+
+      - name: Install Godot and export templates
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        run: |
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          curl -sSL -o godot.zip "$base/Godot_v${GODOT_VERSION}-stable_mono_linux_x86_64.zip"
+          unzip -q godot.zip -d ~/godot
+          curl -sSL -o templates.tpz "$base/Godot_v${GODOT_VERSION}-stable_mono_export_templates.tpz"
+          unzip -q templates.tpz
+          templates=~/.local/share/godot/export_templates/${GODOT_VERSION}.stable.mono
+          mkdir -p "$templates"
+          mv templates/* "$templates/"
+          rm -rf godot.zip templates.tpz templates
+
+      # The texture import is most of a cold export. Keyed on the assets, and a near miss still
+      # restores, because Godot reimports only what changed.
+      - name: Cache imported assets
+        uses: actions/cache@v4
+        with:
+          path: src/Borough.Godot/.godot/imported
+          key: godot-import-${{ env.GODOT_VERSION }}-${{ hashFiles('src/Borough.Godot/assets/**', 'src/Borough.Godot/project.godot') }}
+          restore-keys: godot-import-${{ env.GODOT_VERSION }}-
+
+      - name: Export
+        run: |
+          export GODOT="$(find ~/godot -name 'Godot_v*_mono_linux.x86_64' -type f)"
+          scripts/export.sh
+
+      # A zip artifact drops the executable bit, so the Linux build travels as a tarball.
+      - name: Package Linux
+        run: tar -czf build/Borough-linux.tar.gz -C build/linux .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Borough-linux-x86_64
+          path: build/Borough-linux.tar.gz
+          retention-days: 14
+          compression-level: 0
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Borough-windows-x86_64
+          path: build/windows
+          retention-days: 14
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Borough-macos-universal
+          path: build/macos/Borough.zip
+          retention-days: 14
+          compression-level: 0

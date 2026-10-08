@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://cbi2v6505jykf"
 path.s3tc="res://.godot/imported/aerial-rocks-01-albedo.jpg-480f13428c3a3eeaa5249534bff72a09.s3tc.ctex"
+path.etc2="res://.godot/imported/aerial-rocks-01-albedo.jpg-480f13428c3a3eeaa5249534bff72a09.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/aerial-rocks-01-albedo.jpg"
-dest_files=["res://.godot/imported/aerial-rocks-01-albedo.jpg-480f13428c3a3eeaa5249534bff72a09.s3tc.ctex"]
+dest_files=["res://.godot/imported/aerial-rocks-01-albedo.jpg-480f13428c3a3eeaa5249534bff72a09.s3tc.ctex", "res://.godot/imported/aerial-rocks-01-albedo.jpg-480f13428c3a3eeaa5249534bff72a09.etc2.ctex"]
 
 [params]
 

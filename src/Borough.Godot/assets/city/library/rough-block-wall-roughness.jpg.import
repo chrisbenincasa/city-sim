@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://dohqh8v5yh3sg"
 path.s3tc="res://.godot/imported/rough-block-wall-roughness.jpg-2ec107854e8b756d4fa2eb521e267051.s3tc.ctex"
+path.etc2="res://.godot/imported/rough-block-wall-roughness.jpg-2ec107854e8b756d4fa2eb521e267051.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/rough-block-wall-roughness.jpg"
-dest_files=["res://.godot/imported/rough-block-wall-roughness.jpg-2ec107854e8b756d4fa2eb521e267051.s3tc.ctex"]
+dest_files=["res://.godot/imported/rough-block-wall-roughness.jpg-2ec107854e8b756d4fa2eb521e267051.s3tc.ctex", "res://.godot/imported/rough-block-wall-roughness.jpg-2ec107854e8b756d4fa2eb521e267051.etc2.ctex"]
 
 [params]
 

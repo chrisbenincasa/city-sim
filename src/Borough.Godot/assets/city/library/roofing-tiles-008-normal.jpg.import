@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://ch7qeyvp006jf"
 path.s3tc="res://.godot/imported/roofing-tiles-008-normal.jpg-54f14189dbd13932ed0e3b958efc0f48.s3tc.ctex"
+path.etc2="res://.godot/imported/roofing-tiles-008-normal.jpg-54f14189dbd13932ed0e3b958efc0f48.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/roofing-tiles-008-normal.jpg"
-dest_files=["res://.godot/imported/roofing-tiles-008-normal.jpg-54f14189dbd13932ed0e3b958efc0f48.s3tc.ctex"]
+dest_files=["res://.godot/imported/roofing-tiles-008-normal.jpg-54f14189dbd13932ed0e3b958efc0f48.s3tc.ctex", "res://.godot/imported/roofing-tiles-008-normal.jpg-54f14189dbd13932ed0e3b958efc0f48.etc2.ctex"]
 
 [params]
 

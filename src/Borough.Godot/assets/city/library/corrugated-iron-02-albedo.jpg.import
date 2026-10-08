@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://dgjrgultg1c3c"
 path.s3tc="res://.godot/imported/corrugated-iron-02-albedo.jpg-1a088a67db8f6ca8f74e3a0f99b57308.s3tc.ctex"
+path.etc2="res://.godot/imported/corrugated-iron-02-albedo.jpg-1a088a67db8f6ca8f74e3a0f99b57308.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/corrugated-iron-02-albedo.jpg"
-dest_files=["res://.godot/imported/corrugated-iron-02-albedo.jpg-1a088a67db8f6ca8f74e3a0f99b57308.s3tc.ctex"]
+dest_files=["res://.godot/imported/corrugated-iron-02-albedo.jpg-1a088a67db8f6ca8f74e3a0f99b57308.s3tc.ctex", "res://.godot/imported/corrugated-iron-02-albedo.jpg-1a088a67db8f6ca8f74e3a0f99b57308.etc2.ctex"]
 
 [params]
 

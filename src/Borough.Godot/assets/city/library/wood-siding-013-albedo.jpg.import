@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://cwjrgw2d6dff6"
 path.s3tc="res://.godot/imported/wood-siding-013-albedo.jpg-2f4591f7e0f0921227cabdb86b7cb0d3.s3tc.ctex"
+path.etc2="res://.godot/imported/wood-siding-013-albedo.jpg-2f4591f7e0f0921227cabdb86b7cb0d3.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/wood-siding-013-albedo.jpg"
-dest_files=["res://.godot/imported/wood-siding-013-albedo.jpg-2f4591f7e0f0921227cabdb86b7cb0d3.s3tc.ctex"]
+dest_files=["res://.godot/imported/wood-siding-013-albedo.jpg-2f4591f7e0f0921227cabdb86b7cb0d3.s3tc.ctex", "res://.godot/imported/wood-siding-013-albedo.jpg-2f4591f7e0f0921227cabdb86b7cb0d3.etc2.ctex"]
 
 [params]
 

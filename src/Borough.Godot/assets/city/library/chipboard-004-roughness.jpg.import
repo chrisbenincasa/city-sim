@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://84li3wu03sco"
 path.s3tc="res://.godot/imported/chipboard-004-roughness.jpg-af3a53db389fd3635f3e3627c1295d4f.s3tc.ctex"
+path.etc2="res://.godot/imported/chipboard-004-roughness.jpg-af3a53db389fd3635f3e3627c1295d4f.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/chipboard-004-roughness.jpg"
-dest_files=["res://.godot/imported/chipboard-004-roughness.jpg-af3a53db389fd3635f3e3627c1295d4f.s3tc.ctex"]
+dest_files=["res://.godot/imported/chipboard-004-roughness.jpg-af3a53db389fd3635f3e3627c1295d4f.s3tc.ctex", "res://.godot/imported/chipboard-004-roughness.jpg-af3a53db389fd3635f3e3627c1295d4f.etc2.ctex"]
 
 [params]
 

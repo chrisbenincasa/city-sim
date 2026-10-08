@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://cawv2w7mrpndm"
 path.s3tc="res://.godot/imported/asphalt-track-roughness.jpg-66021e2ee2721b453d1a0159705e0690.s3tc.ctex"
+path.etc2="res://.godot/imported/asphalt-track-roughness.jpg-66021e2ee2721b453d1a0159705e0690.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/asphalt-track-roughness.jpg"
-dest_files=["res://.godot/imported/asphalt-track-roughness.jpg-66021e2ee2721b453d1a0159705e0690.s3tc.ctex"]
+dest_files=["res://.godot/imported/asphalt-track-roughness.jpg-66021e2ee2721b453d1a0159705e0690.s3tc.ctex", "res://.godot/imported/asphalt-track-roughness.jpg-66021e2ee2721b453d1a0159705e0690.etc2.ctex"]
 
 [params]
 

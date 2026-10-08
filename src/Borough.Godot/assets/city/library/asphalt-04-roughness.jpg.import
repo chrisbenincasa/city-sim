@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://wcqfp06g2m4r"
 path.s3tc="res://.godot/imported/asphalt-04-roughness.jpg-0a7a7643b2dd5ddf3ea80d9a21516558.s3tc.ctex"
+path.etc2="res://.godot/imported/asphalt-04-roughness.jpg-0a7a7643b2dd5ddf3ea80d9a21516558.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/asphalt-04-roughness.jpg"
-dest_files=["res://.godot/imported/asphalt-04-roughness.jpg-0a7a7643b2dd5ddf3ea80d9a21516558.s3tc.ctex"]
+dest_files=["res://.godot/imported/asphalt-04-roughness.jpg-0a7a7643b2dd5ddf3ea80d9a21516558.s3tc.ctex", "res://.godot/imported/asphalt-04-roughness.jpg-0a7a7643b2dd5ddf3ea80d9a21516558.etc2.ctex"]
 
 [params]
 

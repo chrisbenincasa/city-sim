@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://dwlw8sea0ylxm"
 path.s3tc="res://.godot/imported/brick-wall-001-roughness.jpg-042edf95e6cfcbf23fc4f5264cca39bf.s3tc.ctex"
+path.etc2="res://.godot/imported/brick-wall-001-roughness.jpg-042edf95e6cfcbf23fc4f5264cca39bf.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/brick-wall-001-roughness.jpg"
-dest_files=["res://.godot/imported/brick-wall-001-roughness.jpg-042edf95e6cfcbf23fc4f5264cca39bf.s3tc.ctex"]
+dest_files=["res://.godot/imported/brick-wall-001-roughness.jpg-042edf95e6cfcbf23fc4f5264cca39bf.s3tc.ctex", "res://.godot/imported/brick-wall-001-roughness.jpg-042edf95e6cfcbf23fc4f5264cca39bf.etc2.ctex"]
 
 [params]
 

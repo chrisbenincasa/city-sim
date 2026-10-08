@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://dilx2rhcu30pi"
 path.s3tc="res://.godot/imported/forest-leaves-02-roughness.jpg-d919b7252f46738f21992790cb7dae7d.s3tc.ctex"
+path.etc2="res://.godot/imported/forest-leaves-02-roughness.jpg-d919b7252f46738f21992790cb7dae7d.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/forest-leaves-02-roughness.jpg"
-dest_files=["res://.godot/imported/forest-leaves-02-roughness.jpg-d919b7252f46738f21992790cb7dae7d.s3tc.ctex"]
+dest_files=["res://.godot/imported/forest-leaves-02-roughness.jpg-d919b7252f46738f21992790cb7dae7d.s3tc.ctex", "res://.godot/imported/forest-leaves-02-roughness.jpg-d919b7252f46738f21992790cb7dae7d.etc2.ctex"]
 
 [params]
 
