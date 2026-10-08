@@ -828,3 +828,11 @@ The census output after the trace was byte-identical in both sessions, **20,583 
 **20,488 bytes**, respectively. Only State Hash samples moved. Permissions still read parcel
 bounding boxes; sealing still reads footprint bounding boxes. No parcel area was substituted
 for the footprint's sealed area.
+
+### Labour-bound production (2026-10-03)
+
+`business` gains a saved `search_since`, the Tick a Business's search for premises began. With
+`citizen.labour_remainder` and each spoiling Bin's per-Day waste count, this takes Core save format
+to **17**. All three artefacts moved on the new columns. Both traces and `world-hash.txt` were
+regenerated with the commands above. Baseline Ruleset content hashes and the hash seed are
+unchanged; no baseline Ruleset declares labour.

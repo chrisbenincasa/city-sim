@@ -6,4 +6,4 @@ lots 6
 buildings 4
 households 7
 citizens 18
-hash 0x79E1D2C1D4CE28E1
+hash 0xBEBB431866FB7602

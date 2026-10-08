@@ -1,5 +1,6 @@
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
+using Borough.Core.Evidence;
 using Borough.Core.Persistence;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
@@ -19,7 +20,7 @@ public sealed class ExpiryTests
     private const byte Kind = 1;
     private const ulong Cycle = 16;
 
-    private static Ruleset Declaring(bool breadSpoils = true)
+    private static Ruleset Declaring(bool breadSpoils = true, ShelfLife flour = default)
     {
         RuleDefinition[] rules =
         [
@@ -40,7 +41,7 @@ public sealed class ExpiryTests
             kindRules: [new RuleId(1), FillingTen],
             zoneRules: [])
         {
-            ResourceShelfLives = breadSpoils ? [default, new ShelfLife(Cycle, 2)] : [],
+            ResourceShelfLives = breadSpoils ? [flour, new ShelfLife(Cycle, 2)] : [],
         };
     }
 
@@ -90,8 +91,30 @@ public sealed class ExpiryTests
         Assert.Equal(5, world.SpoilExpired(new Ticks(2 * Cycle)));
 
         Assert.Equal(3, Level(world, bread));
-        Assert.Equal(5, world.Expiries.Spoiled[RowOf(world, bread)]);
+        Assert.Equal(5, world.Expiries.SpoiledOn(RowOf(world, bread), today: 0));
         world.Invariants.RunEndOfRun(world);
+    }
+
+    [Fact]
+    public void Evidence_reports_today_s_waste_and_yesterday_s_after_the_day_turns()
+    {
+        (World world, Handle<Building> building) = Built();
+        Handle<Bin> bread = BreadBin(world, building);
+
+        world.Deposit(bread, 5, new Ticks(1));
+        world.SpoilExpired(new Ticks(Cycle));
+        world.SpoilExpired(new Ticks(2 * Cycle));
+
+        WasteEvidence sameDay = Assert.Single(Core.Evidence.Evidence.OfBuilding(world, building).Waste.ToArray());
+        Assert.Equal(new WasteEvidence(Bread, default, default, Today: 5, Yesterday: 0), sameDay);
+
+        world.Deposit(bread, 2, new Ticks(Ticks.PerDay + 1));
+        world.SpoilExpired(new Ticks(Ticks.PerDay + Cycle));
+        world.SpoilExpired(new Ticks(Ticks.PerDay + 2 * Cycle));
+        world.Clock.Tick[0] = new Ticks(Ticks.PerDay + 2 * Cycle);
+
+        WasteEvidence nextDay = Assert.Single(Core.Evidence.Evidence.OfBuilding(world, building).Waste.ToArray());
+        Assert.Equal(new WasteEvidence(Bread, default, default, Today: 2, Yesterday: 5), nextDay);
     }
 
     [Fact]
@@ -119,6 +142,57 @@ public sealed class ExpiryTests
 
         Assert.Equal(1, world.SpoilExpired(new Ticks(2 * Cycle)));
         Assert.Equal(3, Level(world, bread));
+    }
+
+    [Fact]
+    public void Rows_in_different_blocks_spoil_on_different_ticks()
+    {
+        (World world, Handle<Building> first) = Built();
+        var bins = new Handle<Bin>[ShelfLife.StaggerRows + 1];
+
+        bins[0] = BreadBin(world, first);
+
+        for (int i = 1; i < bins.Length; i++)
+        {
+            Handle<Lot> lot = world.Lots.Create(new Tiles(1 + 2 * i), new Tiles(2), zone: 1);
+            bins[i] = BreadBin(world, world.Buildings.Create(world.Lots, lot, Kind));
+        }
+
+        foreach (Handle<Bin> bin in bins)
+        {
+            world.Deposit(bin, 5, new Ticks(2));
+        }
+
+        Handle<Bin> early = bins[ShelfLife.StaggerRows - 1];
+        Handle<Bin> late = bins[ShelfLife.StaggerRows];
+        Assert.Equal(ShelfLife.StaggerRows - 1, RowOf(world, early));
+        Assert.Equal(ShelfLife.StaggerRows, RowOf(world, late));
+
+        for (ulong tick = 3; tick < 2 * Cycle; tick++)
+        {
+            Assert.Equal(0, world.SpoilExpired(new Ticks(tick)));
+        }
+
+        Assert.Equal(5 * ShelfLife.StaggerRows, world.SpoilExpired(new Ticks(2 * Cycle)));
+        Assert.Equal((0, 5), (Level(world, early), Level(world, late)));
+
+        Assert.Equal(5, world.SpoilExpired(new Ticks(2 * Cycle + 1)));
+        Assert.Equal(0, Level(world, late));
+    }
+
+    [Fact]
+    public void A_shorter_cycle_on_another_resource_does_not_age_a_row_twice()
+    {
+        (World world, Handle<Building> building) = Built(Declaring(flour: new ShelfLife(Cycle / 2, 2)));
+        Handle<Bin> bread = BreadBin(world, building);
+
+        world.Deposit(bread, 5, new Ticks(1));
+
+        for (ulong tick = 2; tick <= 2 * Cycle; tick++)
+        {
+            world.SpoilExpired(new Ticks(tick));
+            Assert.Equal(tick < 2 * Cycle ? 5 : 0, Level(world, bread));
+        }
     }
 
     [Fact]

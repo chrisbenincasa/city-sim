@@ -138,6 +138,7 @@ historical implementation claims; use current code and tests to establish behavi
 | [founded.toml](founded.toml) | Households capitalising Businesses and Businesses taking premises. **Business founding**, distinct from starting a city with `base/`. |
 | [provisioned.toml](provisioned.toml) | Providers selling Goods through District markets, with demand-responsive shop construction. |
 | [oversupplied.toml](oversupplied.toml) | Excess shop construction and competitive failure; compare with `provisioned.toml`. |
+| [milled.toml](milled.toml) | A labour-bound production chain: mills turn staff labour into flour, and grocers bake it into sundries for Households. Flour trade fades after about two weeks; see the file header. |
 | [waged.toml](waged.toml) | Businesses paying wages on staggered paydays. |
 | [insolvent.toml](insolvent.toml) | Repeated short payrolls winding up a Business while leaving its premises standing. |
 | [taxed.toml](taxed.toml) | Household money and policy transfers, making taxation and treasury spending observable. |

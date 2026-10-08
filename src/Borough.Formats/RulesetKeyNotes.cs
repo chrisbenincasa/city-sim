@@ -112,24 +112,28 @@ public static class RulesetKeyNotes
             "What this Resource is called. Every other table refers to it by this name, and the "
             + "engine never sees the string.",
         ["[[resource]] family"] =
-            "Which of the three kinds of thing this is: a good moves as a Shipment on the Road "
+            "Which of the four kinds of thing this is: a good moves as a Shipment on the Road "
             + "Graph and shows up in the traffic, a utility flows along the District adjacency "
-            + "graph, and money is conserved and does not move at all. The family decides transport "
-            + "and whether a Bin holding it has a ceiling, so there is no default.",
+            + "graph, money is conserved and does not move at all, and labour is worker-time a "
+            + "Business's present staff deposit and its own Rules spend as a local input. The "
+            + "family decides transport and whether a Bin holding it has a ceiling, so there is no "
+            + "default. A labour Resource must declare a shelf life, and its Bin is owned by the "
+            + "business and states no capacity.",
         ["[[resource]] need"] =
             "Which Household Need this Resource feeds when it is consumed. Only sustenance and "
             + "satisfaction may be named: the other two Needs are fed by travelling to a service "
             + "Building rather than by buying, and are declared with [[building]] serves instead. "
             + "Absent means the Resource feeds no Need, which is the ordinary case.",
         ["[[resource]] shelf_life_cycles"] =
-            "How many cycles stock of this Resource stays good, from 1 to 4. At each cycle boundary "
-            + "every Bin's stock ages by one cycle and stock older than this is discarded. Withdrawals "
+            "How many cycles stock of this Resource stays good, from 1 to 4. At each of its own cycle "
+            + "boundaries, a Bin's stock ages by one cycle and stock older than this is discarded. Withdrawals "
             + "take the oldest stock first. State it with shelf_life_cycle_minutes or not at all; "
             + "absent means the Resource never spoils. Money may not spoil.",
         ["[[resource]] shelf_life_cycle_minutes"] =
-            "How long one shelf-life cycle lasts, in in-world minutes, from 1 to a year. Every Bin "
-            + "of the Resource shares the same boundaries, so stock deposited just before one ages "
-            + "a full cycle at once.",
+            "How long one shelf-life cycle lasts, in in-world minutes, from 1 to a year. Each Bin "
+            + "ages on its own boundary within the cycle, offset from other Bins so a city's stock "
+            + "does not all age on one Tick. Stock deposited just before its Bin's boundary ages a "
+            + "full cycle at once.",
 
         // ---- [[building]] ---------------------------------------------------------------------
         ["[[building]] name"] =
@@ -796,6 +800,20 @@ public static class RulesetKeyNotes
             "The premium a Citizen has earned inside their own band at its ceiling, as a percent "
             + "added to their pay — the design's one source of productivity growth within a tier. "
             + "Absent means experience never adds to pay.",
+        ["[jobs] labour_per_day"] =
+            "What a full Day of continuous work deposits into the Business's labour Bin, before "
+            + "grading. It counts elapsed work: each on-duty Tick deposits an equal share, so a "
+            + "longer shift deposits more. wage_per_day counts a Day worked instead and pays the "
+            + "same for any shift length. Required exactly when a labour Resource is declared.",
+        ["[jobs] labour_tier_percent"] =
+            "What each of the three Skill Tiers deposits, as a percent of labour_per_day — exactly "
+            + "three entries, the first of which can only be 100. Independent of wage_tier_percent, "
+            + "because pay and productivity are separate causes. Absent means every tier deposits "
+            + "the same.",
+        ["[jobs] labour_experience_premium_percent"] =
+            "The premium a Citizen has earned inside their own band at its ceiling, as a percent "
+            + "added to the labour they deposit. Independent of experience_premium_percent. Absent "
+            + "means experience never adds to labour.",
 
         // ---- [schooling] ------------------------------------------------------------------------
         ["[schooling] attendance_weight_percent"] =

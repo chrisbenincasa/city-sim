@@ -140,6 +140,16 @@ public readonly record struct RuleEvidence(
     public long WaitingCapacity { get; init; }
 }
 
+/// <summary>What spoiled from one of a Building's Bins whose Resource has a shelf life.</summary>
+/// <param name="Resource">Which Resource spoiled.</param>
+/// <param name="Business">The Business that owns the Bin, or the unset handle.</param>
+/// <param name="Tenant">The Household that owns the Bin, or the unset handle.</param>
+/// <param name="Today">What has spoiled so far today.</param>
+/// <param name="Yesterday">What spoiled over the whole of yesterday.</param>
+/// <remarks>Both owner handles are unset when the premises own the Bin.</remarks>
+public readonly record struct WasteEvidence(
+    ResourceId Resource, Handle<Business> Business, Handle<Household> Tenant, long Today, long Yesterday);
+
 public readonly record struct SupplyEvidence(bool Available, int Shortfalls, int RoutineWaits,
     int Unavailable, RuleEvidence Primary);
 
@@ -174,9 +184,11 @@ public readonly struct BuildingEvidence
         Handle<Citizen>[] workers,
         BinEvidence[] bins,
         RuleEvidence[] rules,
+        WasteEvidence[] waste,
         long pressure,
         long tenantPressure)
     {
+        Waste = waste;
         Building = building;
         Kind = kind;
         Lot = lot;
@@ -227,6 +239,12 @@ public readonly struct BuildingEvidence
 
     /// <summary>Its Rule Instances.</summary>
     public ReadOnlyMemory<RuleEvidence> Rules { get; }
+
+    /// <summary>
+    /// What spoiled from each of its Bins that can spoil — the premises', its Households' and its
+    /// Businesses'.
+    /// </summary>
+    public ReadOnlyMemory<WasteEvidence> Waste { get; }
 
     /// <summary>
     /// The <b>premises'</b> accumulated failure pressure, in missed firings — what condemns this

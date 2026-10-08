@@ -38,7 +38,7 @@ public sealed class ShoppingTests
         long bought = 0, delivered = 0, lost = 0;
         bool sawCargo = false;
         int outings = 0;
-        for (int t = 0; t < 4096; t++)
+        for (int t = 0; t < 4 * Ticks.PerDay; t++)
         {
             sim.Step(default);
             var r = sim.Shopping.Last;
@@ -63,7 +63,7 @@ public sealed class ShoppingTests
     {
         var (world, sim) = Start();
         int ticks = 0;
-        while (Cargo(world) == 0 && ticks++ < 4096) { sim.Step(default); }
+        while (Cargo(world) == 0 && ticks++ < 4 * Ticks.PerDay) { sim.Step(default); }
         Assert.True(Cargo(world) > 0);
         var file = new MemorySave();
         SaveFile.Write(world, 1, file);
@@ -247,7 +247,7 @@ public sealed class ShoppingTests
     {
         var (world, sim) = Start();
         int t = 0;
-        while (Cargo(world) == 0 && t++ < 4096) { sim.Step(default); }
+        while (Cargo(world) == 0 && t++ < 4 * Ticks.PerDay) { sim.Step(default); }
         Assert.True(Cargo(world) > 0);
         int row = Enumerable.Range(0, world.Shopping.Rows.SlotCount).First(r => world.Shopping.Rows.IsLive(r) && world.Shopping.Cargo[r] > 0);
         long cargo = world.Shopping.Cargo[row];

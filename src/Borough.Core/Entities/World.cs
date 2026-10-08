@@ -3779,8 +3779,15 @@ public sealed partial class World
         // the time control reaches here the row is off the list. IndexList.Remove walks, fails to
         // find it and returns false, which is a no-op -- and the list is at most `occupants` long, so
         // the wasted walk is bounded by a Ruleset constant.
+        Ticks searching = now;
+
         if (Buildings.Rows.TryResolve(Businesses.Building[slot], out int buildingSlot))
         {
+            if (Businesses.SearchSince[slot] > 0 && !RunsARuleIn(buildingSlot, business))
+            {
+                searching = new Ticks((ulong)(Businesses.SearchSince[slot] - 1));
+            }
+
             BuildingBusinesses.Remove(buildingSlot, slot);
         }
 
@@ -3807,7 +3814,20 @@ public sealed partial class World
         // No gate: a Business that LOST its premises is inside the city however it got here, and the
         // gate column records how it ARRIVED rather than where it is. adr/0145 makes the column
         // meaningful for the arrival channel; an orphan is neither channel and reads default.
-        UnpremisedPool.Join(Businesses, business, default, now);
+        UnpremisedPool.Join(Businesses, business, default, searching);
+    }
+
+    private bool RunsARuleIn(int buildingSlot, Handle<Business> business)
+    {
+        foreach (int instance in BuildingRules.Walk(buildingSlot))
+        {
+            if (RuleInstances.Business[instance] == business)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -3845,7 +3865,9 @@ public sealed partial class World
             return;
         }
 
-        UnpremisedPool.Leave(Businesses, Businesses.PoolPosition(slot));
+        int position = Businesses.PoolPosition(slot);
+        Businesses.SearchSince[slot] = UnpremisedPool.Since[position] + 1;
+        UnpremisedPool.Leave(Businesses, position);
 
         Businesses.Building[slot] = premises;
         BuildingBusinesses.InsertOrdered(buildingSlot, slot);
@@ -6723,6 +6745,27 @@ public sealed partial class World
         tail[ownerSlot] = bin;
     }
 
+    /// <summary>The Business's labour Bin, or none when its premises' kind declares none.</summary>
+    /// <remarks>The loader admits at most one labour Bin per kind.</remarks>
+    public Handle<Bin> LabourBinOf(int businessSlot)
+    {
+        Handle<Bin> at = Businesses.BinHead[businessSlot];
+
+        while (!at.IsNone)
+        {
+            int slot = Bins.Rows.Resolve(at);
+
+            if (Rules.Family(Bins.Resource[slot]) == ResourceFamily.Labour)
+            {
+                return at;
+            }
+
+            at = Bins.OwnerNext[slot];
+        }
+
+        return default;
+    }
+
     /// <summary>
     /// The Bin an Occupant holds for one Resource, or the unset handle if it holds none.
     /// </summary>
@@ -8144,6 +8187,7 @@ public sealed partial class World
         Citizens.Workplace[slot] = workplace;
         Citizens.EarnedWage[slot] = 0;
         Citizens.WageRemainder[slot] = 0;
+        Citizens.LabourRemainder[slot] = 0;
         Citizens.PlannedCommute[slot] = plannedCommute;
         Citizens.Employment[slot] = (byte)EmploymentState.Employed;
 
@@ -8317,6 +8361,7 @@ public sealed partial class World
         Citizens.Workplace[slot] = default;
         Citizens.EarnedWage[slot] = 0;
         Citizens.WageRemainder[slot] = 0;
+        Citizens.LabourRemainder[slot] = 0;
 
         // Back to concluding nothing rather than to a refusal. A Citizen whose employer was demolished
         // or went bankrupt has not been turned down by anybody, and the next occasion that looks at
@@ -8594,58 +8639,87 @@ public sealed partial class World
     }
 
     /// <summary>
-    /// Discards the stock that has outlived its Resource's shelf life, at each of that Resource's
-    /// cycle boundaries, and returns how much went.
+    /// Discards the stock that has outlived its Resource's shelf life from each row whose cycle
+    /// boundary falls on <paramref name="tick"/>, and returns how much went.
     /// </summary>
+    /// <remarks>
+    /// A row's boundary is offset within its cycle by its block of slots (<see cref="ShelfLife.Phase"/>),
+    /// so each Tick visits the blocks due on it and a city's spoilage spreads across the cycle.
+    /// </remarks>
     internal long SpoilExpired(Ticks tick)
     {
-        if (!AnyShelfLifeBoundary(tick))
-        {
-            return 0;
-        }
-
         long spoiled = 0;
+        ushort today = BusinessAccounts.DayOf(tick);
+        ShelfLife[] shelfLives = Rules.ResourceShelfLives;
 
-        for (int row = 0; row < Expiries.Rows.SlotCount; row++)
+        for (int i = 0; i < shelfLives.Length; i++)
         {
-            if (!Expiries.Rows.IsLive(row))
+            if (shelfLives[i].Expires && !SharesEarlierCycle(shelfLives, i))
             {
-                continue;
-            }
-
-            int bin = Bins.Rows.Resolve(Expiries.Bin[row]);
-            ShelfLife shelfLife = Rules.ShelfLifeOf(Bins.Resource[bin]);
-
-            if (!shelfLife.IsBoundary(tick))
-            {
-                continue;
-            }
-
-            long discarded = Expiries.Shift(row, shelfLife.Cycles);
-
-            if (discarded > 0)
-            {
-                Bins.Move(bin, -discarded);
-                Markets.Moved(this, bin, Bins.LevelAt(bin) + discarded, Bins.LevelAt(bin));
-                Drain(bin, Blocking.Space, tick);
-                spoiled += discarded;
+                spoiled += SpoilStride(tick, shelfLives[i].CycleTicks, today);
             }
         }
 
         return spoiled;
     }
 
-    private bool AnyShelfLifeBoundary(Ticks tick)
+    private static bool SharesEarlierCycle(ShelfLife[] shelfLives, int index)
     {
-        foreach (ShelfLife shelfLife in Rules.ResourceShelfLives)
+        for (int i = 0; i < index; i++)
         {
-            if (shelfLife.IsBoundary(tick))
+            if (shelfLives[i].Expires && shelfLives[i].CycleTicks == shelfLives[index].CycleTicks)
             {
                 return true;
             }
         }
 
         return false;
+    }
+
+    private long SpoilStride(Ticks tick, ulong cycleTicks, ushort today)
+    {
+        long spoiled = 0;
+        ulong slots = (ulong)Expiries.Rows.SlotCount;
+        ulong blockStride = cycleTicks * ShelfLife.StaggerRows;
+
+        for (ulong start = tick.Raw % cycleTicks * ShelfLife.StaggerRows; start < slots; start += blockStride)
+        {
+            ulong end = start + ShelfLife.StaggerRows < slots ? start + ShelfLife.StaggerRows : slots;
+
+            for (int row = (int)start; row < (int)end; row++)
+            {
+                spoiled += SpoilRow(tick, cycleTicks, row, today);
+            }
+        }
+
+        return spoiled;
+    }
+
+    private long SpoilRow(Ticks tick, ulong cycleTicks, int row, ushort today)
+    {
+        if (!Expiries.Rows.IsLive(row))
+        {
+            return 0;
+        }
+
+        int bin = Bins.Rows.Resolve(Expiries.Bin[row]);
+        ShelfLife shelfLife = Rules.ShelfLifeOf(Bins.Resource[bin]);
+
+        if (shelfLife.CycleTicks != cycleTicks || !shelfLife.IsBoundary(tick, row))
+        {
+            return 0;
+        }
+
+        long discarded = Expiries.Shift(row, shelfLife.Cycles, today);
+
+        if (discarded > 0)
+        {
+            Bins.Move(bin, -discarded);
+            Markets.Moved(this, bin, Bins.LevelAt(bin) + discarded, Bins.LevelAt(bin));
+            Drain(bin, Blocking.Space, tick);
+        }
+
+        return discarded;
     }
 
     private void CloseUnexpiringAges()

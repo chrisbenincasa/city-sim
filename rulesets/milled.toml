@@ -1,9 +1,23 @@
-# Paid Outside supply. All new tuning is PROVISIONAL.
-# shopping.toml with no synthetic shop supply: every shopfront restocks sundries from its District
-# Pool, nobody in the city makes them, so each restock is an import bought at a gate. A `port` gate
-# stands on every edge and each edge's Hinterland charges a different price; a purchase pays the
-# cheapest edge that has a gate, and that Money leaves the city.
-# Households still shop physically at shopfronts. This is not a balance or performance ratifier.
+# The milled Ruleset demonstrates a labour-bound production chain from founding.
+#
+# Each dwelling hosts a mill. Its staff deposit labour, and `mill` turns labour into flour. Grocers
+# buy flour from the District Pool, `bake` it with their own labour into sundries, and sell those to
+# Households. Every trade pays its staff from its takings. Nothing is endowed by the file or a test.
+#
+# `grind` is how the chain starts. A zone-raised grocer opens with no Money, so it cannot buy its
+# first flour. `grind` lets a staffed grocer make flour slowly from labour alone, and those first
+# sales fund its first purchase. Without `grind` nothing ever trades.
+#
+# The second [[lattice]] and the [districts] table come from shopping.toml. Grocers buy flour
+# through a District Pool, and a Pool needs Districts.
+#
+# `floor_tiles_per_job = 12` keeps mills from hiring most of the city. At 3, the 50 mills employ
+# about 368 of the 400 workers and leave the grocers unstaffed.
+#
+# This is a fixture, not a balanced city. Flour trade is strong for about two weeks and then falls
+# to a trickle. Money collects in mill balances, Households run short, and grocers sit fully stocked.
+# A Ruleset cannot fix this, because Businesses open with no Money and demand is the only brake on
+# new grocers. MilledRulesetTests asserts the first two weeks only.
 
 [[resource]]
 name = "sundries"
@@ -12,6 +26,10 @@ need = "sustenance"
 
 [[resource]]
 name = "repairs"
+family = "good"
+
+[[resource]]
+name = "flour"
 family = "good"
 
 [[resource]]
@@ -25,9 +43,9 @@ shelf_life_cycles = 4
 shelf_life_cycle_minutes = 15
 
 [[business]]
-name = "shop"
+name = "mill"
 work_days = 31
-wage_per_day = 4096
+wage_per_day = 256
 pay_period_days = 7
 goes_bankrupt_after_days_in_arrears = 28
 shift_start_earliest_hour = 6
@@ -50,16 +68,20 @@ name = "dwelling"
 bins = [
     { resource = "sundries", capacity = 128, owner = "occupant" },
     { resource = "repairs",  capacity = 4 },
+    { resource = "flour",    capacity = 256, owner = "business" },
+    { resource = "money",    owner = "business" },
+    { resource = "labour",   owner = "business" },
 ]
 houses   = true
 premises = true
 parked = true
-business = "shop"
+business = "mill"
 
 [[building]]
 name = "shopfront"
 bins = [
     { resource = "sundries", capacity = 1024, owner = "business" },
+    { resource = "flour",    capacity = 64, owner = "business" },
     { resource = "repairs",  capacity = 4 },
     { resource = "money",    owner = "business" },
     { resource = "labour",   owner = "business" },
@@ -67,11 +89,6 @@ bins = [
 houses   = true
 premises = true
 business = "grocer"
-
-# An Outside Connection: it houses and employs nobody and declares no Bins.
-[[building]]
-name = "port"
-arrivals_per_day = 12
 
 [[rule]]
 name    = "restock"
@@ -98,20 +115,42 @@ inputs  = [ { scope = "local", resource = "repairs", amount = 4 } ]
 outputs = []
 
 [[rule]]
-name    = "import"
+name    = "mill"
+kind    = "dwelling"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = [ { scope = "local", resource = "labour", amount = 1 } ]
+outputs = [ { scope = "local", resource = "flour", amount = 4 } ]
+
+[[rule]]
+name    = "bake"
 kind    = "shopfront"
 rate    = 8
 apply   = { min = 1, max = 4 }
-inputs  = [ { scope = "local", resource = "labour", amount = 1 }, { scope = "pool", resource = "sundries", amount = 8 } ]
-outputs = [ { scope = "local", resource = "sundries", amount = 8 } ]
+inputs  = [
+    { scope = "local", resource = "labour", amount = 1 },
+    { scope = "local", resource = "flour",  amount = 1 },
+]
+outputs = [ { scope = "local", resource = "sundries", amount = 16 } ]
 
 [[rule]]
-name    = "rates"
+name    = "buy_flour"
 kind    = "shopfront"
-rate    = 2048
+rate    = 8
 apply   = { min = 1, max = 1 }
-inputs  = [ { scope = "local",  resource = "money", amount = 16384 } ]
-outputs = [ { scope = "global", resource = "money", amount = 16384 } ]
+inputs  = [
+    { scope = "local", resource = "labour", amount = 1 },
+    { scope = "pool",  resource = "flour",  amount = 8 },
+]
+outputs = [ { scope = "local", resource = "flour", amount = 8 } ]
+
+[[rule]]
+name    = "grind"
+kind    = "shopfront"
+rate    = 64
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "labour", amount = 8 } ]
+outputs = [ { scope = "local", resource = "flour", amount = 1 } ]
 
 [[zone_rule]]
 name          = "housing"
@@ -126,14 +165,13 @@ kind          = "shopfront"
 zone          = 1
 interval      = 32
 revisit_ticks = 2048
-build_threshold_days = 1
-cooldown_days        = 1
+build_threshold_days = 3
+cooldown_days        = 7
 
 [placement]
 interval      = 32
 revisit_ticks = 1024
 candidates    = 3
-gives_up_after_days = 14
 
 [layers]
 noise_range_metres            = 300
@@ -167,7 +205,7 @@ setback_tiles = 2
 
 [capacity]
 floor_tiles_per_occupant      = 25
-floor_tiles_per_job           = 3
+floor_tiles_per_job           = 12
 floor_tiles_per_parking_space = 12
 
 [parking]
@@ -194,6 +232,14 @@ car_ownership_percent = 0
 opening_balance_min = 12800
 opening_balance_max = 25600
 
+[[lattice]]
+origin_east_tiles  = 0
+origin_north_tiles = 0
+
+[[lattice]]
+origin_east_tiles  = 2048
+origin_north_tiles = 0
+
 [districts]
 prominence_percent = 50
 revisit_ticks = 2048
@@ -207,6 +253,7 @@ emigrant_balance_max = 0
 prices = [
   { resource = "sundries", price = 100 },
   { resource = "repairs",  price = 250 },
+  { resource = "flour",    price = 1400 },
 ]
 
 [[hinterland]]
@@ -216,24 +263,7 @@ emigrant_balance_max = 0
 prices = [
   { resource = "sundries", price = 120 },
   { resource = "repairs",  price = 200 },
-]
-
-[[hinterland]]
-edge = "south"
-emigrant_balance_min = 0
-emigrant_balance_max = 0
-prices = [
-  { resource = "sundries", price = 140 },
-  { resource = "repairs",  price = 220 },
-]
-
-[[hinterland]]
-edge = "west"
-emigrant_balance_min = 0
-emigrant_balance_max = 0
-prices = [
-  { resource = "sundries", price = 160 },
-  { resource = "repairs",  price = 240 },
+  { resource = "flour",    price = 1600 },
 ]
 
 [market]

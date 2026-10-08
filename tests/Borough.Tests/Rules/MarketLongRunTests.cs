@@ -58,10 +58,11 @@ public sealed class MarketLongRunTests(MarketLongRun run) : IClassFixture<Market
     /// </summary>
     /// <remarks>
     /// <c>Simulation.CheckEndOfRun</c> already ran the invariant at every reading and would have
-    /// thrown, so what is added here is the <b>stronger</b> claim it cannot make: the supply never
-    /// moved and neither did the total held. ⚠ <b>Both are needed.</b> A supply that moved with
-    /// holdings would satisfy the invariant and mean the city had minted money; holdings that moved
-    /// against a fixed supply would mean it had leaked.
+    /// thrown, so what is added here is the claim it cannot make: nothing in either world mints, so
+    /// the supply never rises. It falls only when a Household or Business gives up and leaves the
+    /// city with its balance. ⚠ <b>Both halves are needed.</b> A supply that rose with holdings would
+    /// satisfy the invariant and mean the city had minted money; holdings that moved against the
+    /// supply would mean it had leaked.
     /// </remarks>
     [Fact]
     public void The_supply_is_conserved_to_the_penny_at_every_reading()
@@ -74,8 +75,11 @@ public sealed class MarketLongRunTests(MarketLongRun run) : IClassFixture<Market
 
             foreach (MarketLongRun.Reading reading in world.Readings)
             {
-                Assert.Equal(issued, reading.Issued);
-                Assert.Equal(issued, reading.Held);
+                Assert.True(
+                    reading.Issued <= issued,
+                    $"{world.File}'s supply rose {issued:N0} -> {reading.Issued:N0}, and nothing in it mints.");
+                Assert.Equal(reading.Issued, reading.Held);
+                issued = reading.Issued;
             }
         }
     }

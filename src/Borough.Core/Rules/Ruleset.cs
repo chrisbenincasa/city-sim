@@ -267,27 +267,48 @@ public enum ResourceFamily : byte
     /// mean a Business too full of money to be paid.
     /// </remarks>
     Money = 3,
+
+    /// <summary>
+    /// Worker-time at a Business's premises, deposited by present workers and spent by its Rules.
+    /// </summary>
+    /// <remarks>
+    /// It never moves, is never traded and has no market. Its Bin is unbounded, because a
+    /// Business's posts already cap how many workers deposit, and it must declare a shelf life,
+    /// which is the only thing that bounds it (<c>plans/private-production-and-labour.md</c>).
+    /// </remarks>
+    Labour = 4,
 }
 
 /// <summary>
-/// How long a Resource keeps before it spoils: <see cref="Cycles"/> global cycles of
+/// How long a Resource keeps before it spoils: <see cref="Cycles"/> cycles of
 /// <see cref="CycleTicks"/> each.
 /// </summary>
 /// <remarks>
 /// A unit deposited during a cycle spoils at the boundary <see cref="Cycles"/> boundaries later, so it
 /// lives between <c>Cycles − 1</c> and <c>Cycles</c> whole cycles. The error is one cycle, a constant
 /// fraction of the shelf life. <c>default</c> means the Resource keeps for ever.
+/// <para>
+/// Each block of <see cref="StaggerRows"/> adjacent expiry rows is offset one Tick from the block before
+/// it, so a city's rows age on different Ticks and no single Tick carries the whole sweep. Blocks keep
+/// each Tick's walk sequential in memory. Slots are saved state, so the offset survives a reload.
+/// </para>
 /// </remarks>
 public readonly record struct ShelfLife(ulong CycleTicks, int Cycles)
 {
     /// <summary>The most cycles a Resource may declare. Every expiring Bin stores this many buckets.</summary>
     public const int MaxCycles = 4;
 
+    /// <summary>How many adjacent expiry rows share one boundary Tick.</summary>
+    public const int StaggerRows = 64;
+
     /// <summary>Whether the Resource spoils at all.</summary>
     public bool Expires => Cycles > 0;
 
-    /// <summary>Whether <paramref name="tick"/> is one of this Resource's cycle boundaries.</summary>
-    public bool IsBoundary(Ticks tick) => Expires && tick.Raw % CycleTicks == 0;
+    /// <summary>Whether <paramref name="tick"/> is a cycle boundary for the expiry row in <paramref name="row"/>.</summary>
+    public bool IsBoundary(Ticks tick, int row) => Expires && tick.Raw % CycleTicks == Phase(row);
+
+    /// <summary>The Tick within each cycle on which the expiry row in <paramref name="row"/> ages.</summary>
+    public ulong Phase(int row) => (ulong)IntegerMath.FloorDiv(row, StaggerRows) % CycleTicks;
 }
 
 /// <summary>
@@ -3963,10 +3984,25 @@ public readonly record struct JobRuleset(
     int ExperiencePerDay = 0,
     int Tier2Experience = 0,
     int UnschooledExperiencePercent = 0,
-    int ExperiencePremiumPercent = 0)
+    int ExperiencePremiumPercent = 0,
+    long LabourPerDay = 0,
+    int LabourTier2Percent = 0,
+    int LabourTier3Percent = 0,
+    int LabourExperiencePremiumPercent = 0)
 {
     /// <summary>A Ruleset whose city assigns nobody to work.</summary>
     public static JobRuleset None => default;
+
+    public bool GradesLabour => LabourTier2Percent > 0 || LabourTier3Percent > 0;
+
+    public int LabourPercentOf(byte tier) =>
+        !GradesLabour ? 100
+        : tier >= SchoolingRuleset.TopTier ? LabourTier3Percent
+        : tier == 2 ? LabourTier2Percent
+        : 100;
+
+    public long LabourPremiumPercent(long experience) =>
+        Premium(LabourExperiencePremiumPercent, experience);
 
     /// <summary>Whether a Citizen's history changes what they are paid in this city.</summary>
     public bool Grades => WageTier2Percent > 0 || WageTier3Percent > 0;
@@ -4011,16 +4047,18 @@ public readonly record struct JobRuleset(
     /// 10,000 produces the same on Day 100 and Day 5,000. ⚠ <b>Capped at the band ceiling and never
     /// past it</b>, which is what keeps it an intensive margin rather than a second tier ladder.
     /// </remarks>
-    public long PremiumPercent(long experience)
+    public long PremiumPercent(long experience) => Premium(ExperiencePremiumPercent, experience);
+
+    private long Premium(int percent, long experience)
     {
-        if (ExperiencePremiumPercent <= 0 || Tier2Experience <= 0 || experience <= 0)
+        if (percent <= 0 || Tier2Experience <= 0 || experience <= 0)
         {
             return 0;
         }
 
         long capped = experience > Tier2Experience ? Tier2Experience : experience;
 
-        return IntegerMath.FloorDiv((long)ExperiencePremiumPercent * capped, Tier2Experience);
+        return IntegerMath.FloorDiv((long)percent * capped, Tier2Experience);
     }
 
     /// <summary>

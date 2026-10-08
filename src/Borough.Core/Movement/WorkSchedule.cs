@@ -2,6 +2,7 @@ using Borough.Core.Arithmetic;
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
+using Borough.Core.Tables;
 
 namespace Borough.Core.Movement;
 
@@ -55,6 +56,49 @@ public static class WorkSchedule
         return premium <= 0 ? graded : IntegerMath.FloorDiv(graded * (100 + premium), 100);
     }
 
+    /// <summary>
+    /// What one Day of this Citizen's continuous work deposits as labour: <c>labour_per_day</c>,
+    /// graded by Skill Tier and experience on percentages of its own.
+    /// </summary>
+    public static long LabourGraded(World world, int citizen)
+    {
+        JobRuleset jobs = world.Rules.Jobs;
+        long graded = IntegerMath.FloorDiv(
+            jobs.LabourPerDay * jobs.LabourPercentOf(world.Citizens.SkillTier[citizen]), 100);
+        long premium = jobs.LabourPremiumPercent(world.Citizens.Experience[citizen]);
+
+        return premium <= 0 ? graded : IntegerMath.FloorDiv(graded * (100 + premium), 100);
+    }
+
+    /// <remarks>
+    /// The wage divides by the Citizen's own shift length, so a Day worked pays the same however long
+    /// it is. Labour divides by the whole Day, so each on-duty Tick deposits the same share and
+    /// longer shifts make more.
+    /// </remarks>
+    private static void DepositLabour(World world, int citizen, int job, Ticks tick)
+    {
+        if (world.Rules.Jobs.LabourPerDay <= 0)
+        {
+            return;
+        }
+
+        Handle<Bin> bin = world.LabourBinOf(job);
+
+        if (bin.IsNone)
+        {
+            return;
+        }
+
+        long scaled = world.Citizens.LabourRemainder[citizen] + LabourGraded(world, citizen);
+        long whole = IntegerMath.FloorDiv(scaled, Ticks.PerDay);
+        world.Citizens.LabourRemainder[citizen] = scaled - whole * Ticks.PerDay;
+
+        if (whole > 0)
+        {
+            world.Deposit(bin, whole, tick);
+        }
+    }
+
     public static bool PayrollAttributionEnabled =>
 #if PAYROLL_ATTRIBUTION
         true;
@@ -98,6 +142,11 @@ public static class WorkSchedule
         return (days & IntegerMath.ShiftLeft(1, WeeklyHours.DayOf(day * Ticks.PerDay + start))) != 0;
     }
 
+    /// <remarks>
+    /// Wages accrue by attendance only where the schedule <see cref="Runs"/>. Labour accrues from
+    /// every present, on-duty worker in any world that declares it, because a trade without a
+    /// declared week still staffs its shift.
+    /// </remarks>
     public static void Accrue(World world, Ticks tick)
 #if PAYROLL_ATTRIBUTION
         => AccrueMeasured(world, tick, null);
@@ -105,7 +154,8 @@ public static class WorkSchedule
     public static void AccrueMeasured(World world, Ticks tick, Action<PayrollStage>? observe)
 #endif
     {
-        if (!Runs(world)) { return; }
+        bool accruesWages = Runs(world);
+        if (!accruesWages && world.Rules.Jobs.LabourPerDay <= 0) { return; }
 #if PAYROLL_ATTRIBUTION
         observe?.Invoke(PayrollStage.Begin);
 #endif
@@ -126,29 +176,29 @@ public static class WorkSchedule
             observe?.Invoke(PayrollStage.WageBegin);
 #endif
             int job = world.Businesses.Rows.Resolve(world.Citizens.Workplace[citizen]);
-            BusinessKindDefinition trade = world.Rules.BusinessKind(world.Businesses.Kind[job]);
-            long length = (long)world.Rules.Jobs.ShiftLengthOf(world.Key, world.Citizens.Rows.IdAt(citizen)).Raw;
-            if (length <= 0)
-            {
-#if PAYROLL_ATTRIBUTION
-                observe?.Invoke(PayrollStage.WageEnd);
-#endif
-                continue;
-            }
-            long rate = Graded(world, citizen, trade.WagePerDay);
-            long scaled = world.Citizens.WageRemainder[citizen] + rate;
-            long whole = IntegerMath.FloorDiv(scaled, length);
-            world.Citizens.WageRemainder[citizen] = scaled % length;
-            long cap = rate * trade.PayPeriodDays;
-            long earned = world.Citizens.EarnedWage[citizen] + whole;
-            world.Citizens.EarnedWage[citizen] = earned > cap ? cap : earned;
+            if (accruesWages) { AccrueWage(world, citizen, job); }
 #if PAYROLL_ATTRIBUTION
             observe?.Invoke(PayrollStage.WageEnd);
 #endif
+            DepositLabour(world, citizen, job, tick);
         }
 #if PAYROLL_ATTRIBUTION
         observe?.Invoke(PayrollStage.End);
 #endif
+    }
+
+    private static void AccrueWage(World world, int citizen, int job)
+    {
+        BusinessKindDefinition trade = world.Rules.BusinessKind(world.Businesses.Kind[job]);
+        long length = (long)world.Rules.Jobs.ShiftLengthOf(world.Key, world.Citizens.Rows.IdAt(citizen)).Raw;
+        if (length <= 0) { return; }
+        long rate = Graded(world, citizen, trade.WagePerDay);
+        long scaled = world.Citizens.WageRemainder[citizen] + rate;
+        long whole = IntegerMath.FloorDiv(scaled, length);
+        world.Citizens.WageRemainder[citizen] = scaled % length;
+        long cap = rate * trade.PayPeriodDays;
+        long earned = world.Citizens.EarnedWage[citizen] + whole;
+        world.Citizens.EarnedWage[citizen] = earned > cap ? cap : earned;
     }
 }
 

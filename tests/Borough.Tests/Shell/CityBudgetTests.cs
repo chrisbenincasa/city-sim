@@ -214,7 +214,7 @@ public sealed class CityBudgetTests
     public void An_undrained_run_accumulates_its_whole_history_into_one_reading()
     {
         const int citizens = 500;
-        const ulong ticks = 4_096;
+        const ulong ticks = 4 * Ticks.PerDay;
 
         Ruleset rules = RulesetLoader.Load(
             Path.Combine(AppContext.BaseDirectory, "Rulesets", "taxing.toml")).Ruleset!;

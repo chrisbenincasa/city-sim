@@ -124,7 +124,9 @@ public sealed class UnpremisedTable
     /// the bound is a <em>duration</em> — and the argument is
     /// <see cref="UnplacedTable.Since"/>'s in full: a bound whose clock only advances when you are
     /// drawn is not a bound. ⚠ <b>It is per spell rather than per Business</b>, so a Business
-    /// tenanted, later orphaned and back here starts its clock again.
+    /// tenanted, later orphaned and back here starts its clock again. A spell spent in premises
+    /// where the trade ran no Rule does not count as tenanted, and
+    /// <see cref="BusinessTable.SearchSince"/> carries the earlier start across it.
     /// </remarks>
     public Column<int> Since { get; }
 
@@ -184,6 +186,7 @@ public sealed class UnpremisedTable
         // clock makes a Business give up for somebody else's waiting, and nothing about the result
         // looks wrong. UnplacedTable.Leave's remark, which is where the reasoning lives.
         Business[position] = moved;
+        Gate[position] = Gate[last];
         Since[position] = Since[last];
         _rows.Free(_rows.At(last));
 

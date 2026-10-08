@@ -380,9 +380,56 @@ public static class Evidence
             rules[at++] = evidence;
         }
 
+        var waste = new List<WasteEvidence>();
+        ushort today = BusinessAccounts.DayOf(now);
+
+        foreach (int bin in world.BuildingBins.Walk(slot))
+        {
+            AddWaste(world, waste, bin, default, default, today);
+        }
+
+        foreach (Handle<Household> tenant in occupants)
+        {
+            for (Handle<Bin> owned = world.Households.BinHead[world.Households.Rows.Resolve(tenant)];
+                 !owned.IsNone;)
+            {
+                int bin = world.Bins.Rows.Resolve(owned);
+                AddWaste(world, waste, bin, default, tenant, today);
+                owned = world.Bins.OwnerNext[bin];
+            }
+        }
+
+        foreach (int business in world.BuildingBusinesses.Walk(slot))
+        {
+            Handle<Business> owner = world.Businesses.Rows.At(business);
+
+            for (Handle<Bin> owned = world.Businesses.BinHead[business]; !owned.IsNone;)
+            {
+                int bin = world.Bins.Rows.Resolve(owned);
+                AddWaste(world, waste, bin, owner, default, today);
+                owned = world.Bins.OwnerNext[bin];
+            }
+        }
+
         return new BuildingEvidence(
             building, kind, world.Buildings.Lot[slot], declared, occupancy, jobs,
-            occupants, workers, [.. bins], rules, pressure, tenantPressure);
+            occupants, workers, [.. bins], rules, [.. waste], pressure, tenantPressure);
+    }
+
+    private static void AddWaste(
+        World world, List<WasteEvidence> waste, int bin, Handle<Business> business,
+        Handle<Household> tenant, ushort today)
+    {
+        int row = world.Expiries.RowOf(world.Bins, bin);
+
+        if (row == Rows.NoSlot)
+        {
+            return;
+        }
+
+        waste.Add(new WasteEvidence(
+            world.Bins.Resource[bin], business, tenant,
+            world.Expiries.SpoiledOn(row, today), world.Expiries.PriorSpoiledOn(row, today)));
     }
 
     /// <summary>
