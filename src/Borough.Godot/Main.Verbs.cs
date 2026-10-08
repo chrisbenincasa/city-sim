@@ -55,7 +55,8 @@ public partial class Main
         // the top of the next Tick, so the Segment does not exist until Step returns.
         foreach (Command command in raised)
         {
-            if (command.Kind is CommandKind.Connect or CommandKind.Street)
+            if (command.Kind is CommandKind.Connect or CommandKind.Street
+                || command is { Kind: CommandKind.Demolish, Zone: (ushort)DemolishTarget.Street })
             {
                 _repave = true;
             }
@@ -143,7 +144,7 @@ public partial class Main
     {
         Verb.Zone => ZoneName(),
         Verb.Connect => $"STREET, {StreetModeNames[(int)_streetMode].ToUpperInvariant()} ("
-            + (_streetStart is null ? "click the start; shift-click bulldozes)"
+            + (_streetStart is null ? "click the start; shift-click removes a Street)"
                 : _streetMode == StreetMode.Curve && _streetBend is null && !Straightened ? "click the bend point)"
                 : _streetMode == StreetMode.Grid ? _streetGridEdge is null ? "click the far corner)" : "drag sideways, then release)"
                 : "click the end)"),
@@ -192,7 +193,7 @@ public partial class Main
     /// hiding the lesson. <see cref="Simulation.Refuses"/> says so too.
     /// </para>
     /// </remarks>
-    /// <param name="inverted">Whether shift was held, which turns <c>Connect</c> into a bulldoze.</param>
+    /// <param name="inverted">Whether shift was held, which turns <c>Connect</c> into a Street removal.</param>
     private void Act(bool inverted)
     {
         // 🔴 CLEARED AFTER THE LOOK CHECK AND NOT BEFORE IT, which was found by driving a script
@@ -236,7 +237,7 @@ public partial class Main
                 break;
 
             case Verb.Connect when inverted:
-                Bulldoze(at);
+                RemoveStreet(at);
                 break;
 
             case Verb.Connect:
@@ -588,50 +589,16 @@ public partial class Main
         _ => $"refused for reason {(ushort)refusal}, which this shell has no sentence for.",
     };
 
-    /// <summary>Removes the Street on the lattice edge <b>nearest</b> the cursor.</summary>
+    /// <summary>Removes the Street Segment nearest the cursor through <c>demolish</c>.</summary>
     /// <remarks>
-    /// <para>
-    /// 🔴 <b>THIS SENT THE CURSOR'S OWN TILE AND SPLIT THE BLOCK ON A DIAGONAL, AND THE PLAYER
-    /// COULD NOT AIM IT.</b> Two invisible rules composed. <c>Simulation.ApplyConnect</c> FLOORS
-    /// whatever Tile it is given, so the edit landed on the south-west corner of the block clicked
-    /// in and never on the nearest one; the axis was then <c>alongEast >= alongNorth</c>, a diagonal
-    /// split of that same block. ***So a click near a block's top-right corner laid a Street at its
-    /// bottom-left.*** ⚠ <b>Face midpoints were right and the interior was not</b>, which is why the
-    /// playtest's forty clicks produced forty Segments and no surprise.
-    /// </para>
-    /// <para>
-    /// <b><see cref="StreetGrid.NearestEdge"/> resolves the aim and
-    /// <see cref="StreetGrid.IntersectionTile"/> addresses it</b>, so the Tile this sends is the
-    /// intersection itself and the core's floor is a no-op on it. ⚠ <b>The floor is not the defect
-    /// and is not touched</b>: it is <c>adr/0014</c>'s <em>Streets snap to the grid</em>, and moving
-    /// it would change what every already-recorded <c>.borough</c> log replays to. ***A rule belongs
-    /// to the city and an aim belongs to the hand***, which is the division
-    /// <see cref="Act"/> already states.
-    /// </para>
+    /// The command carries the cursor's own Tile, and the core picks the Segment with
+    /// <see cref="Borough.Core.Entities.World.StreetAt"/>. The hover asks the same query.
     /// </remarks>
-    private void Bulldoze((Tiles East, Tiles North) at)
+    private void RemoveStreet((Tiles East, Tiles North) at)
     {
-        // ⚠ A world with no lattice has block 0 and NearestEdge answers NoSlot for it. The CORE
-        // refuses that world by name (Refusal.ConnectWorldHasNoLattice) and Send is what reports it
-        // -- so this is an aim the shell cannot take rather than a rule it is restating.
-        StreetGrid streets = _world.Roads.Streets;
-
-        if (streets.BlockTiles <= 0)
-        {
-            Send(new Command(CommandKind.Connect, at.East, at.North, default));
-
-            return;
-        }
-
-        (int column, int row, StreetAxis axis) = streets.NearestEdge(at.East, at.North);
-        (Tiles east, Tiles north) = streets.IntersectionTile(column, row);
-
-        var payload = new ConnectPayload(
-            axis,
-            ConnectAction.Bulldoze,
-            RoadKind.Street);
-
-        Send(new Command(CommandKind.Connect, east, north, payload.Encode()));
+        int segment = _world.StreetAt(at.East, at.North);
+        _pressedStreet = segment >= 0 ? _world.Roads.Segments.Rows.IdAt(segment) : null;
+        Send(Command.Demolish(at.East, at.North, DemolishTarget.Street));
     }
 
     /// <summary>
@@ -639,31 +606,27 @@ public partial class Main
     /// mouse applies before a <see cref="DriveVerb.Release"/> is recorded at all.</b>
     /// </summary>
     /// <remarks>
-    /// <b>An ordinary click must record exactly what it always did</b>, so this answers null unless
-    /// the drag left the edge it started on with the Street tool held. ***A recording gains a line
-    /// only where a person would have seen a sentence.***
+    /// An ordinary click records only its press, so this answers null unless the Street tool's
+    /// drag ended on a different Tile.
     /// </remarks>
     private (Tiles East, Tiles North)? Dragging((Tiles East, Tiles North)? at) =>
         _verb != Verb.Connect || _pressed is not { } from || at is not { } to ? null
-        : _pressedInverted
-            ? _world.Roads.Streets.Between(from.East, from.North, to.East, to.North).Drag
-                is not (StreetDrag.OneEdge or StreetDrag.NoLattice) ? to : null
+        : _pressedInverted ? from != to ? to : null
         : _streetStart is { } start && from != to && Snap(to) is var end && (end.East, end.North) != start ? to : null;
 
     /// <summary>
-    /// Lays the freeform Street a drag covered, or with Shift removes every lattice Street on the
-    /// straight line it covered.
+    /// Lays the freeform Street a drag covered, or with Shift removes every Street the drag's
+    /// straight line crosses.
     /// </summary>
     /// <remarks>
+    /// Removal walks the line Tile by Tile and sends one <c>demolish</c> per Segment, at the first
+    /// Tile that picks it. The press already removed its own Segment, so the walk skips that one.
+    /// Each Tile keeps picking its Segment after the others go, because a removal only takes
+    /// candidates away.
     /// <para>
-    /// The press already acted on its own edge, so the run repeats it harmlessly: laying a laid Street
-    /// changes nothing. A run longer than <see cref="ConnectPayload.MaxSegments"/> goes as several
-    /// commands.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>There are no diagonal Streets.</b> <c>StreetAxis</c> declares east and north only and
-    /// <c>adr/0077</c> refuses a spline, so a two-axis drag lays only the pressed edge and says so.
-    /// The diagonals a generated city shows are foot paths, which no tool lays.
+    /// A Tile within the Street's half-width of the picked Segment's end Node is skipped. At a
+    /// junction the nearest centerline is often a side Street that only touches the drag, and the
+    /// Segments the drag follows or crosses are picked away from their ends.
     /// </para>
     /// </remarks>
     private void Dragged((Tiles East, Tiles North) to)
@@ -684,44 +647,40 @@ public partial class Main
             return;
         }
 
-        StreetGrid streets = _world.Roads.Streets;
-        StreetDrag drag = streets.Between(from.East, from.North, to.East, to.North).Drag;
-
-        if (drag == StreetDrag.TwoAxes)
+        int east = to.East.Raw - from.East.Raw, north = to.North.Raw - from.North.Raw;
+        int steps = Math.Max(Math.Abs(east), Math.Abs(north));
+        var removed = new System.Collections.Generic.HashSet<ulong>();
+        if (_pressedStreet is { } pressed)
         {
-            // ⚠ Two lines because the readout does not wrap; one line collided with the hover panel.
-            _refused =
-                "grid Streets run EAST and NORTH, so the drag removed only the edge you pressed on."
-                + "\nDrag one straight run, then the next.";
-
-            return;
+            removed.Add(pressed);
         }
 
-        if (drag != StreetDrag.OneLine)
+        for (int step = 0; step <= steps; step++)
         {
-            return;
+            var tile = (East: new Tiles(from.East.Raw + (east * step / Math.Max(steps, 1))),
+                North: new Tiles(from.North.Raw + (north * step / Math.Max(steps, 1))));
+            int segment = _world.StreetAt(tile.East, tile.North);
+            if (segment >= 0 && !NearEnd(segment, tile) && removed.Add(_world.Roads.Segments.Rows.IdAt(segment)))
+            {
+                Send(Command.Demolish(tile.East, tile.North, DemolishTarget.Street));
+            }
+        }
+    }
+
+    private bool NearEnd(int segment, (Tiles East, Tiles North) tile)
+    {
+        float reach = _world.Rules.Lots.StreetHalfWidthTiles;
+        var nodes = _world.Roads.Nodes;
+        foreach (var end in new[] { _world.Roads.Segments.NodeA[segment], _world.Roads.Segments.NodeB[segment] })
+        {
+            if (nodes.Rows.TryResolve(end, out int node)
+                && new Vector2(tile.East.Raw + 0.5f - nodes.East[node].Raw, tile.North.Raw + 0.5f - nodes.North[node].Raw).Length() <= reach)
+            {
+                return true;
+            }
         }
 
-        (int fromColumn, int fromRow, StreetAxis axis) = streets.NearestEdge(from.East, from.North);
-        (int toColumn, int toRow, _) = streets.NearestEdge(to.East, to.North);
-        (int first, int last) = axis == StreetAxis.East
-            ? (Math.Min(fromColumn, toColumn), Math.Max(fromColumn, toColumn))
-            : (Math.Min(fromRow, toRow), Math.Max(fromRow, toRow));
-
-        for (int start = first; start <= last; start += ConnectPayload.MaxSegments)
-        {
-            int count = Math.Min(ConnectPayload.MaxSegments, last - start + 1);
-            (Tiles east, Tiles north) = axis == StreetAxis.East
-                ? streets.IntersectionTile(start, fromRow)
-                : streets.IntersectionTile(fromColumn, start);
-            var payload = new ConnectPayload(
-                axis,
-                ConnectAction.Bulldoze,
-                RoadKind.Street,
-                count);
-
-            Send(new Command(CommandKind.Connect, east, north, payload.Encode()));
-        }
+        return false;
     }
 
     /// <summary>Clears the Building nearest the cursor, at its own Lot's Tile.</summary>

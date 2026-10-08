@@ -333,4 +333,16 @@ Slice 10 is built. `demolish` with payload 1 removes the Street Segment nearest 
 `World.StreetAt` and `World.RemoveStreet`, and frees each Node left with no Segment. Any other
 payload is refused as `DemolishUnknownTarget`. `StreetRemovalTests` removes a dead-end spur, an
 occupied lattice Street and the Street closing a block, and checks replay, save/reload and four
-route workers. The shell still sends `connect` bulldoze. Next: slice 11.
+route workers.
+Slice 11 is built. In the Street tool, Shift-click sends `demolish` payload 1 at the cursor's Tile,
+and Shift-drag sends one per Segment along the drag's straight line. The drag skips Tiles within a
+half-width of the picked Segment's end Nodes, so a side Street that only meets the line at a
+junction stays. The hover names the Street and counts the Buildings that keep standing and the
+empty Lots that go. With Shift held the cursor draws the Street in red, its occupied Lots in amber
+and its vacant Lots in red. The shell no longer sends `connect` bulldoze, and it repaints roads
+after a Street removal. The driven run used the slice 9 empty-ground layout with `people`, on
+`minimal.toml` at 1,000 Citizens, and zoned 6 vacant Lots north of the Street that closes the U
+just before removing it. The hover said 6 Buildings stand and 6 empty Lots go, and the city
+agreed: 67 Buildings before and after, and the 6 vacant Lots freed. A Shift-drag along the loop's
+south side removed its two Segments and kept the spur that meets it. A driven run cannot hold
+Shift, so the red ghost was not photographed.

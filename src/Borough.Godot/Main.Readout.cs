@@ -330,54 +330,21 @@ public partial class Main
     }
 
     /// <summary>
-    /// Which Segment a Street click would lay or bulldoze, <b>and whether one is already there.</b>
+    /// Which Street a Shift-click here would remove, and what happens to the Lots that front it.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// 🔴 <b>THE STREET TOOL WAS THE ONE VERB THAT CHANGED THE GROUND WITH NOTHING TO HOVER.</b>
-    /// <see cref="Virgin"/> gives <c>Zone</c> a line, <see cref="Raise"/>'s Lot line gives
-    /// <c>Service</c> one and <see cref="Built"/> gives <c>Demolish</c> the Building it will
-    /// actually clear — and <c>Connect</c> got the Tile coordinate, which is where the cursor is and
-    /// not what the click does. ***A verb you cannot aim is a verb you cannot test***, and until
-    /// this line existed the only way to know which edge a click had chosen was to click and look.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>It resolves the aim through <see cref="StreetGrid.NearestEdge"/>, which is what
-    /// <see cref="Lay"/> sends</b> — the same sharing <see cref="NearestIn"/> has with
-    /// <see cref="Clear"/>, and for the same reason: ***a panel that named one edge while the verb
-    /// acted on another would be worse than no panel at all.***
-    /// </para>
-    /// <para>
-    /// ⚠ <b>Both outcomes of a plain click are stated, because one of them is nothing.</b>
-    /// <c>RoadGraph.LayStreet</c> returns <c>false</c> on an edge that already carries a Street and
-    /// <c>BulldozeStreet</c> returns it on one that carries none, and <c>ApplyConnect</c> treats
-    /// either as a Tick with no edit rather than as a refusal — so there is no sentence in
-    /// <see cref="Sentence"/> to reach and this is the only place a person can be told.
-    /// </para>
+    /// The line is shown whether or not Shift is held, so a driven run, which cannot hold a key,
+    /// still reads the removal it would make.
     /// </remarks>
     private void Aiming(System.Collections.Generic.List<string> said, (Tiles East, Tiles North) at)
     {
+        said.Add(RemovalSentence(Removal(at)));
+
         StreetGrid streets = _world.Roads.Streets;
-
-
-        if (streets.BlockTiles <= 0)
+        if (streets.BlockTiles > 0)
         {
-            said.Add("no grid Streets in this world, so shift-click removes nothing");
-
-            return;
+            Crossing(said, at, streets);
         }
-
-        (int column, int row, StreetAxis axis) = streets.NearestEdge(at.East, at.North);
-        (Tiles east, Tiles north) = streets.IntersectionTile(column, row);
-        int segment = streets.SegmentOn(column, row, axis);
-        string edge = $"the edge running {(axis == StreetAxis.East ? "EAST" : "NORTH")} from "
-            + $"({east.Raw:N0}, {north.Raw:N0})";
-
-        said.Add(segment == Rows.NoSlot
-            ? $"no grid Street on {edge}, so shift-click does nothing"
-            : $"shift-click BULLDOZES Segment {_world.Roads.Segments.Rows.IdAt(segment):N0} on {edge}");
-
-        Crossing(said, at, streets);
     }
 
     /// <summary>
@@ -538,9 +505,17 @@ public partial class Main
             return;
         }
 
-        if (_verb == Verb.Connect && !(Input.IsKeyPressed(Key.Shift) && _streetStart is null))
+        if (_verb == Verb.Connect)
         {
-            StreetCursor(at);
+            if (Input.IsKeyPressed(Key.Shift) && _streetStart is null)
+            {
+                RemovalCursor(at);
+            }
+            else
+            {
+                StreetCursor(at);
+            }
+
             return;
         }
 
@@ -551,18 +526,11 @@ public partial class Main
             return;
         }
 
-        // 🔴 THE STREET TOOL GETS THE EDGE AND EVERY OTHER VERB GETS THE BLOCK, because those are
-        // the things the two act on. Connect edits ONE lattice edge (adr/0077) and the block was the
-        // only thing drawn, so the ghost agreed with the click on which block and said nothing at
-        // all about which of its four sides -- the half of row 22 a sentence in the hover cannot fix,
-        // since a person aiming is looking at the ground rather than at the panel.
         _cursor.Multimesh.SetInstanceTransform(
             0,
-            _verb == Verb.Connect && block > 0
-                ? Edge(at, _world.Roads.Streets.Lattice)
-                : block > 0
-                    ? Block(at, _world.Roads.Streets.Lattice, 0.03f)
-                    : Tile(CellGrid.ToCells(at.East), CellGrid.ToCells(at.North), 0.03f));
+            block > 0
+                ? Block(at, _world.Roads.Streets.Lattice, 0.03f)
+                : Tile(CellGrid.ToCells(at.East), CellGrid.ToCells(at.North), 0.03f));
         _cursor.Multimesh.SetInstanceColor(0, new Color(.95f, .80f, .25f).SrgbToLinear());
         _cursor.Multimesh.VisibleInstanceCount = 1;
     }
