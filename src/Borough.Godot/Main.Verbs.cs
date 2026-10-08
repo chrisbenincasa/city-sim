@@ -450,6 +450,10 @@ public partial class Main
         Refusal.DemolishNoBuildingOnThatTile =>
             "nothing stands on that plot to clear.",
 
+        Refusal.DemolishNoStreetThere => "there is no Street there to remove.",
+
+        Refusal.DemolishUnknownTarget => "only a building or a Street can be demolished.",
+
         Refusal.DemolishTreasuryCannotPay =>
             "the treasury cannot pay the people who would be displaced. Clearing occupied ground "
             + "pays its land value to everyone who lives or trades there.",

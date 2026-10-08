@@ -306,4 +306,10 @@ public enum Refusal : ushort
 
     /// <summary><c>Zone</c> names a Tile in no closed face and beyond one plot depth of every Street side.</summary>
     ZoneNoStreet = 52,
+
+    /// <summary><c>Demolish</c> names a target other than a Building or a Street.</summary>
+    DemolishUnknownTarget = 53,
+
+    /// <summary><c>Demolish</c> names a Street, and no Street's centerline passes within a half-width of the Tile.</summary>
+    DemolishNoStreetThere = 54,
 }

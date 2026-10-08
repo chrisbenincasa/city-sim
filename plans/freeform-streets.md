@@ -159,7 +159,7 @@ curves, and an offset arc is an arc.
 | Plots on a curve | Front edge is the chord between the plot's two offsets. Convex side fans out and leaves wedges; concave side converges and the conflict rule applies |
 | Gestures | Shell only. Simple curve is the arc through start, bend point and end. Continuous is the arc tangent to the previous Segment through the new end |
 | Parallel mode | Concentric arc. Endpoints round to Tiles, so the copy is concentric to within a Tile |
-| Command | A new `Street` verb carries both endpoint Tiles and the sagitta. `Connect` keeps lattice lays and bulldozes, so no log line changes meaning and the format stays at version 1 |
+| Command | A new `Street` verb carries both endpoint Tiles and the sagitta. `Connect` keeps lattice lays, so no log line changes meaning and the format stays at version 1. Removal is `demolish` (below) |
 | Drawing | The shell tessellates arcs from the same parameters |
 
 ### Decided: Streets demolish what they cross
@@ -215,6 +215,23 @@ Slice 7 is split. 7a is straight mode on `street` with snapping to Nodes and Seg
 and curves paved as short chords. 7b is simple-curve and continuous modes, length and angle snaps,
 and the driven demonstration of the acceptance checks.
 
+### Decided: removing a Street
+
+Decided 10/08/2026.
+
+| Item | Choice |
+|---|---|
+| Verb | `demolish` with payload 1 removes the Street nearest its Tile. Payload 0 keeps its meaning, a Building, so the Input Log format stays at version 1 (`adr/0091`) |
+| Unit | One Segment, Node to Node. A Street that crossings split takes one command per piece |
+| Pick | The live Segment whose centerline lies within `[lots] street_half_width_tiles` of the Tile center. A tie goes to the lowest monotonic Segment id. Nothing in reach is refused as `DemolishNoStreetThere` |
+| Lattice | The same path removes lattice Segments. The shell stops sending `connect` bulldoze; the reader keeps it for old logs until #32 retires it |
+| Nodes | A Node with no Segments left is freed. Two halves left at a degree-2 Node stay two Segments |
+| Lots | `adr/0079`. An occupied Lot keeps standing unfronted and its Trips end `NoRouteFound`. A vacant unfronted Lot is freed. Interior plots of an opened face follow the same rule |
+| Refronting | None. A Lot whose parcel touches another Street does not take it as frontage |
+| Car Parks | Stay live with no Address, out of every Segment list |
+| Price | Free. Removal displaces nobody and laying charges nothing to refund. Per-Segment upkeep stops with the row |
+| Travellers on the Segment | Out of scope. The lattice bulldoze has the same gap ([#132](https://github.com/chrisbenincasa/city-sim/issues/132)) |
+
 ### Remaining design decisions
 
 1. **Wedge use.** Leave open, give to the adjacent Lot as yard, or allow parks.
@@ -251,6 +268,8 @@ re-record goldens by the [procedure](../tests/Borough.Tests/Golden/README.md).
 | 7 | Shell drawing | Straight, simple-curve and continuous modes. Snapping, preview with refusals and demolition cost, arc paving meshes. Driven demonstration of the acceptance checks | 6 |
 | 8 | Batch modes | Grid and Parallel modes over a batch `Street` | 7 |
 | 9 | Freeform `Zone` | `Zone` and the shell zone tool paint the face holding the Tile, or the nearest Segment side on strip ground, off the lattice. Today both resolve a lattice block | 7 |
+| 10 | Street removal in Core | `demolish` payload 1, the pick and its refusal, Node freeing, sever and re-lot through the existing bulldoze path. Tests for a freeform and a lattice Segment, an opened face, replay, save/reload and thread-count equivalence. Moves the State Hash only where a log removes a Street | 6 |
+| 11 | Street removal in the shell | Shift-click and Shift-drag in the Street tool send `demolish` per Segment, with a hover preview of the Segment and the Lots it unfronts. Driven demonstration: open a closed loop and show the occupied Lots standing unfronted and the vacant ones gone | 10 |
 
 Slices 1 and 3 can run in parallel.
 
@@ -310,3 +329,8 @@ Core or Input Log change. The driven run on `--empty` ground at 1,000 Citizens l
 a 2 × 2 grid turned 30°, a straight and a curved parallel pair and a continuous chain with one
 Ctrl-straight piece. Zoning made 68 Lots and `people` raised 68 Buildings. A grid crossing the
 first at 15° was refused whole with the core's sentence for a too-short piece.
+Slice 10 is built. `demolish` with payload 1 removes the Street Segment nearest its Tile through
+`World.StreetAt` and `World.RemoveStreet`, and frees each Node left with no Segment. Any other
+payload is refused as `DemolishUnknownTarget`. `StreetRemovalTests` removes a dead-end spur, an
+occupied lattice Street and the Street closing a block, and checks replay, save/reload and four
+route workers. The shell still sends `connect` bulldoze. Next: slice 11.

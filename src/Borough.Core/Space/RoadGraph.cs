@@ -310,6 +310,41 @@ public sealed partial class RoadGraph
         return true;
     }
 
+
+    /// <summary>
+    /// Removes one Segment and frees each of its Nodes that no other Segment ends at.
+    /// </summary>
+    /// <remarks>
+    /// Two Segments left meeting at a Node stay two Segments. Merging them would move every Address
+    /// and route hop on one half onto the other.
+    /// </remarks>
+    public void RemoveSegment(int slot)
+    {
+        Handle<RoadNode> a = _segments.NodeA[slot], b = _segments.NodeB[slot];
+        _segments.Rows.Free(_segments.Rows.At(slot));
+        FreeIfBare(a);
+        FreeIfBare(b);
+        RebuildDerived();
+    }
+
+    private void FreeIfBare(Handle<RoadNode> node)
+    {
+        if (!_nodes.Rows.TryResolve(node, out _))
+        {
+            return;
+        }
+
+        for (int segment = 0; segment < _segments.Rows.SlotCount; segment++)
+        {
+            if (_segments.Rows.IsLive(segment) && (_segments.NodeA[segment] == node || _segments.NodeB[segment] == node))
+            {
+                return;
+            }
+        }
+
+        _nodes.Rows.Free(node);
+    }
+
     /// <summary>Whether an edge named this way exists on the lattice at all.</summary>
     private bool OnLattice(int column, int row, StreetAxis axis)
     {

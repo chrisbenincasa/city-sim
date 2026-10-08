@@ -435,6 +435,10 @@ public sealed class RefusalTests
 
         Refusal.DemolishTreasuryCannotPay => Standing(world),
 
+        Refusal.DemolishNoStreetThere => Command.Demolish(new Tiles(9_000), new Tiles(9_000), DemolishTarget.Street),
+
+        Refusal.DemolishUnknownTarget => new Command(CommandKind.Demolish, new Tiles(9_000), new Tiles(9_000), zone: 2),
+
         Refusal.StreetOffMap => Street(-5, 1_000, 1_000, 1_000),
         Refusal.StreetNotAnArc => Street(9_000, 9_000, 9_000, 9_000),
         Refusal.StreetTooTight => Street(9_000, 9_100, 9_020, 9_100, sagittaTiles: 4),

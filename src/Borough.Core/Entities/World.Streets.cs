@@ -44,6 +44,50 @@ public sealed partial class World
         return StreetLayRefusal.None;
     }
 
+    /// <summary>
+    /// The Street Segment whose centerline passes nearest the Tile's center, within the Street's
+    /// half-width, or -1.
+    /// </summary>
+    /// <remarks>An exact tie goes to the lower monotonic Segment id.</remarks>
+    public int StreetAt(Tiles east, Tiles north)
+    {
+        int half = Rules.Lots.StreetHalfWidthTiles;
+        long centerEast = (long)east.Raw * Fixed.One + (Fixed.One >> 1);
+        long centerNorth = (long)north.Raw * Fixed.One + (Fixed.One >> 1);
+        int nearest = -1, nearestDistance = 0;
+        foreach (int segment in Roads.Residency.Near(east, north, new Tiles(half + 1)))
+        {
+            if (!Roads.Segments.Rows.IsLive(segment) || (RoadKind)Roads.Segments.Kind[segment] != RoadKind.Street) { continue; }
+            int distance = Roads.Segments.Centerline[segment].DistanceTo(centerEast, centerNorth);
+            if (distance > half * Fixed.One) { continue; }
+            if (nearest < 0 || distance < nearestDistance
+                || (distance == nearestDistance && Roads.Segments.Rows.IdAt(segment) < Roads.Segments.Rows.IdAt(nearest)))
+            {
+                nearest = segment;
+                nearestDistance = distance;
+            }
+        }
+
+        return nearest;
+    }
+
+    /// <summary>Removes one Street Segment and re-lots the land it fronted.</summary>
+    /// <remarks>
+    /// A Lot that loses its Street keeps standing unfronted while a Building occupies it, and a
+    /// vacant one is freed (<c>adr/0079</c>). Car Parks on the Segment keep their rows with no Address.
+    /// </remarks>
+    public void RemoveStreet(int segment)
+    {
+        Roads.RemoveSegment(segment);
+        Space.Frontage.Sever(Lots);
+        Frontage.Rebuild(Lots);
+
+        // Before Resubdivide, because the Parking Shed's index is keyed on Segment slots and
+        // resubdividing unlists the Car Parks of the Lots it frees.
+        CarParksOnSegments.Rebuild(CarParks, Roads.Segments);
+        LotSubdivider.Resubdivide(this);
+    }
+
     private bool OnReservedGround((long East, long North) at, int half)
     {
         var tile = (new Tiles((int)IntegerMath.ShiftRight(at.East, Fixed.FractionalBits)),

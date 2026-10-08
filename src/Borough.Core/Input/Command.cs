@@ -175,20 +175,17 @@ public enum CommandKind : ushort
     /// than maintenance the simulation could not perform for itself.
     /// </para>
     /// <para>
-    /// <b>No payload, and the Tile is matched EXACTLY.</b> There is nothing to say about a demolition
-    /// beyond where it is, and <see cref="Command.Zone"/> stays zero. The exactness is
-    /// <c>Simulation.GateOn</c>'s narrowing taken for its reason rather than by analogy:
-    /// <c>[lots] lots_per_segment</c> is five, so <em>the Building in this block</em> names up to
-    /// twenty of them, and a verb that removes a neighbour's house because the click resolved to the
-    /// first Lot in the block is worse than one that refuses.
+    /// <b>The payload is a <see cref="DemolishTarget"/>.</b> A Building is matched on its Tile
+    /// EXACTLY. That is <c>Simulation.GateOn</c>'s narrowing taken for its reason rather than by
+    /// analogy: <c>[lots] lots_per_segment</c> is five, so <em>the Building in this block</em> names up
+    /// to twenty of them, and a verb that removes a neighbour's house because the click resolved to
+    /// the first Lot in the block is worse than one that refuses. A Street is the one Segment whose
+    /// centerline passes within <c>[lots] street_half_width_tiles</c> of the Tile's center, lattice
+    /// or freeform.
     /// </para>
     /// <para>
-    /// 🔴 ⚠ <b><c>Connect</c>'s bulldoze flag is NOT superseded here, and <c>adr/0091</c> says it
-    /// should be</b> — <em>"one spelling of remove a thing in the Input Log rather than two"</em>.
-    /// Retiring <see cref="ConnectAction"/> re-spells six of the committed golden session's seven
-    /// <c>connect</c> commands, so it is a change to the baseline artefact rather than to a
-    /// mechanism, and it is owed rather than done. ***Two spellings stand today and that is a debt,
-    /// not the design.***
+    /// ⚠ <b><c>Connect</c>'s bulldoze flag still reads</b>, because the committed golden session
+    /// spells removals with it. The shell sends <see cref="DemolishTarget.Street"/> instead.
     /// </para>
     /// </remarks>
     Demolish = 8,
@@ -514,6 +511,10 @@ public readonly struct Command
     public static Command Gate(Tiles east, Tiles north, byte kind) =>
         new(CommandKind.Gate, east, north, kind);
 
+    /// <summary>Remove what stands at a Tile — <see cref="CommandKind.Demolish"/>.</summary>
+    public static Command Demolish(Tiles east, Tiles north, DemolishTarget target = DemolishTarget.Building) =>
+        new(CommandKind.Demolish, east, north, (ushort)target);
+
     /// <summary>Which verb.</summary>
     public CommandKind Kind { get; }
 
@@ -590,6 +591,16 @@ public enum TaxControl : ushort
 
     /// <summary>The marginal rate on Business profit above the threshold, as a percentage.</summary>
     ProfitUpperRate = 6,
+}
+
+/// <summary>What a <see cref="CommandKind.Demolish"/> removes, carried in <see cref="Command.Zone"/>.</summary>
+public enum DemolishTarget : ushort
+{
+    /// <summary>The Building standing on the Tile.</summary>
+    Building = 0,
+
+    /// <summary>The Street Segment nearest the Tile, and any Node it leaves with no Segment.</summary>
+    Street = 1,
 }
 
 /// <summary>What a <see cref="CommandKind.Connect"/> does to the edge it names.</summary>
