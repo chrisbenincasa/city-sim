@@ -71,8 +71,14 @@ Each slice is one PR. [Execution](#execution) gives the order and which slices r
 1. **Base in the verification lanes.** Built. Add `rulesets/base/` to the all-Ruleset sweeps. Replay
    `founding.borough` twice and compare State Hashes. Save at Day 6, reload and continue to
    Day 12, and match the uninterrupted run. Needs nothing else.
-2. **Production chain in base (D1).** After #105 merges. Replace free `restock` with the labour chain.
-   Mills and shops post wages. Households buy sundries with Money. Price the fallback import at the gate edge.
+2. **Production chain in base (D1).** Built on branch `founding-2`. Every dwelling hosts a `mill`.
+   A trade zone (bit 1) raises `shopfront` Buildings, each hosting a `grocer` that buys flour through
+   the District Pool and bakes sundries. `restock` draws from the Pool. Every gate prices sundries,
+   flour and repairs. `founding.borough` zones blocks (1,1), (2,2) and (3,0) for trade.
+   `BaseFoundingPackageTests` asserts that grocers open and that mills and grocers both earn revenue
+   by Day 12. In a Day 30 replay, Households grow to 624 and Businesses to 147. Business balances
+   peak at 1,533,350 and end at 1,074,631. Jobs run out from about Day 18, and 87 seekers find no
+   vacancy by Day 30. Slices 3b and 4 own both effects.
 3a. **Opening grant (D2). Built.** `[[business]] opening_grant` is the Money the treasury pays a
    Business that a Zone Rule opens, on a raised Building or in a vacant Unit. `World.CreateBusiness`
    moves it from the treasury Bin to the Business's balance. A treasury short of the grant opens no

@@ -1,8 +1,31 @@
-# The dwelling the housing zone builds, the shop each one houses, and what a dwelling consumes.
+# The dwelling the housing zone builds, the shopfront the trade zone builds, and the chain between them.
+#
+# Each dwelling hosts a mill whose staff turn labour into flour. Grocers buy flour through the
+# District Pool, bake it with their own labour into sundries, and sell those to Households. Every
+# trade pays its staff from its takings. `grind` starts the chain: a zone-raised grocer opens with no
+# Money, so it makes its first flour slowly from labour alone. Gates sell sundries and flour at a
+# high price when local supply runs out. milled.toml carries the reasoning behind the shared numbers.
+#
 # Nothing produces `repairs`, so dwellings decline over time; minimal.toml says why.
 
 [[business]]
-id = "shop"
+id = "mill"
+work_days = 31
+wage_per_day = 256
+pay_period_days = 7
+goes_bankrupt_after_days_in_arrears = 28
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+[[business]]
+id = "grocer"
+work_days = 124
+open_days = 127
+opens_hour = 7
+closes_hour = 21
+wage_per_day    = 4096
+pay_period_days = 7
+goes_bankrupt_after_days_in_arrears = 28
 shift_start_earliest_hour = 6
 shift_start_latest_hour   = 10
 
@@ -10,14 +33,33 @@ shift_start_latest_hour   = 10
 id = "dwelling"
 label = "Terraced house"
 bins = [
-    { resource = "sundries", capacity = 48, owner = "occupant" },
+    { resource = "sundries", capacity = 128, owner = "occupant" },
     { resource = "repairs",  capacity = 4 },
+    { resource = "flour",    capacity = 256, owner = "business" },
+    { resource = "money",    owner = "business" },
+    { resource = "labour",   owner = "business" },
 ]
 houses   = true
 premises = true
 rent     = 400
 parked   = true
-business = "shop"
+business = "mill"
+
+[[building]]
+id = "shopfront"
+label = "Corner shop"
+bins = [
+    { resource = "sundries", capacity = 1024, owner = "business" },
+    { resource = "flour",    capacity = 64, owner = "business" },
+    { resource = "repairs",  capacity = 4 },
+    { resource = "money",    owner = "business" },
+    { resource = "labour",   owner = "business" },
+]
+houses   = true
+premises = true
+rent     = 400
+parked   = true
+business = "grocer"
 
 [[zone_rule]]
 id            = "housing"
@@ -26,20 +68,32 @@ zone          = 0
 interval      = 32
 revisit_ticks = 2048
 
+[[zone_rule]]
+id            = "trade"
+kind          = "shopfront"
+zone          = 1
+interval      = 32
+revisit_ticks = 2048
+build_threshold_days = 3
+cooldown_days        = 7
+
 [[rule]]
 id      = "restock"
 order   = 1
 kind    = "dwelling"
 rate    = 8
 apply   = { min = 1, max = 4 }
-inputs  = []
+inputs  = [ { scope = "pool", resource = "sundries", amount = 4 } ]
 outputs = [ { scope = "local", resource = "sundries", amount = 4 } ]
 
+# A Household eats 32 sundries a Day. Shopping sizes a trip from this rule, so three Days of use
+# (`target_days`) fit the 128-sundry bin. At rate 32 a Day's use would be 256, more than the bin
+# holds, so the Household would stay below `low_days` and shop without pause.
 [[rule]]
 id      = "consume"
 order   = 2
 kind    = "dwelling"
-rate    = 32
+rate    = 256
 apply   = { min = 1, max = 1 }
 inputs  = [ { scope = "local", resource = "sundries", amount = 4 } ]
 outputs = []
@@ -52,3 +106,45 @@ rate    = 16
 apply   = { min = 1, max = 1 }
 inputs  = [ { scope = "local", resource = "repairs", amount = 4 } ]
 outputs = []
+
+[[rule]]
+id      = "mill"
+order   = 4
+kind    = "dwelling"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = [ { scope = "local", resource = "labour", amount = 1 } ]
+outputs = [ { scope = "local", resource = "flour", amount = 4 } ]
+
+[[rule]]
+id      = "bake"
+order   = 5
+kind    = "shopfront"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = [
+    { scope = "local", resource = "labour", amount = 1 },
+    { scope = "local", resource = "flour",  amount = 1 },
+]
+outputs = [ { scope = "local", resource = "sundries", amount = 16 } ]
+
+[[rule]]
+id      = "buy_flour"
+order   = 6
+kind    = "shopfront"
+rate    = 8
+apply   = { min = 1, max = 1 }
+inputs  = [
+    { scope = "local", resource = "labour", amount = 1 },
+    { scope = "pool",  resource = "flour",  amount = 8 },
+]
+outputs = [ { scope = "local", resource = "flour", amount = 8 } ]
+
+[[rule]]
+id      = "grind"
+order   = 7
+kind    = "shopfront"
+rate    = 64
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "labour", amount = 8 } ]
+outputs = [ { scope = "local", resource = "flour", amount = 1 } ]
