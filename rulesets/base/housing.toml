@@ -86,6 +86,9 @@ apply   = { min = 1, max = 4 }
 inputs  = [ { scope = "pool", resource = "sundries", amount = 4 } ]
 outputs = [ { scope = "local", resource = "sundries", amount = 4 } ]
 
+# A Household eats 32 sundries a Day. Shopping sizes a trip from this rule, so three Days of use
+# (`target_days`) fit the 128-sundry bin. At rate 32 a Day's use would be 256, more than the bin
+# holds, so the Household would stay below `low_days` and shop without pause.
 [[rule]]
 id      = "consume"
 order   = 2

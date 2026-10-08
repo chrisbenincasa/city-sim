@@ -1,4 +1,6 @@
+using System.Text;
 using Borough.Core;
+using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Input;
 using Borough.Core.Quantities;
@@ -75,16 +77,18 @@ public sealed class BaseFoundingPackageTests
         (byte mill, byte grocer) = Trades(rules);
         long millRevenue = 0;
         long grocerRevenue = 0;
+        List<ulong> hashes = [];
 
         for (int day = 0; day < Days; day++)
         {
-            Replay.Trace(simulation, log, new Ticks(Ticks.PerDay), hashEvery: Ticks.PerDay, []);
+            Replay.Trace(simulation, log, new Ticks(Ticks.PerDay), hashEvery: Ticks.PerDay, hashes);
             millRevenue += Revenue(simulation.World, mill);
             grocerRevenue += Revenue(simulation.World, grocer);
         }
 
         World world = simulation.World;
 
+        Assert.Equal(DailyHashes(rules, log), hashes);
         Assert.True(Trading(world, grocer) > 0, "the trade zone raised no grocer.");
         Assert.True(millRevenue > 0, "no grocer bought flour from a mill.");
         Assert.True(grocerRevenue > 0, "no Household bought sundries from a grocer.");
@@ -273,22 +277,21 @@ public sealed class BaseFoundingPackageTests
         throw new InvalidOperationException($"the package declares no kind serving {need}.");
     }
 
-    /// <summary>The trades of the two housing kinds, in declaration order: the dwelling's mill, then the shopfront's grocer.</summary>
-    private static (byte Mill, byte Grocer) Trades(Ruleset rules)
-    {
-        List<byte> trades = [];
+    private static (byte Mill, byte Grocer) Trades(Ruleset rules) => (Trade(rules, "mill"), Trade(rules, "grocer"));
 
-        for (int kind = 1; kind <= rules.KindCount; kind++)
+    private static byte Trade(Ruleset rules, string id)
+    {
+        ulong key = ContentHash.Of(Encoding.UTF8.GetBytes(id));
+
+        for (int kind = 1; kind <= rules.BusinessKindCount; kind++)
         {
-            if (rules.Kind((byte)kind).Houses)
+            if (rules.BusinessKindKey((byte)kind) == key)
             {
-                trades.Add(rules.Kind((byte)kind).Business);
+                return (byte)kind;
             }
         }
 
-        Assert.True(trades.Count == 2, $"the package declares {trades.Count} housing kinds, not a dwelling and a shopfront.");
-
-        return (trades[0], trades[1]);
+        throw new InvalidOperationException($"the package declares no {id} trade.");
     }
 
     private static long Revenue(World world, byte trade)
