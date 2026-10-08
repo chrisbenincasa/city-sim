@@ -471,6 +471,7 @@ public static class RulesetLoader
                 // Cycles first, and it is not a nicety: three of the checks below walk a chain to
                 // its end, and a chain with a cycle in it is a walk that does not terminate.
                 RefuseCycles(rules);
+                RefuseDeepChains(rules, inputs, outputs);
             }
 
             if (_refusals.Count == 0)
@@ -5406,6 +5407,128 @@ public static class RulesetLoader
                     walked[index] = start + 1;
                     at = rules[index].OnFail;
                 }
+            }
+        }
+
+        private const int MaxChainDepth = 3;
+
+        /// <summary>
+        /// Refuses a production cycle, or a production chain more than <see cref="MaxChainDepth"/>
+        /// Resources deep (<c>adr/0031</c>).
+        /// </summary>
+        /// <remarks>
+        /// A Rule links each Good or Utility it draws to each different Good or Utility it makes.
+        /// Labour and Money are left out, because every staffed or paid chain would otherwise be one
+        /// link deeper and every wage would close a loop. A Rule whose input and output are the same
+        /// Resource moves stock between Bins and makes nothing, so it adds no link.
+        /// </remarks>
+        private void RefuseDeepChains(RuleDefinition[] rules, Term[] inputs, Term[] outputs)
+        {
+            int count = _families.Count;
+            var maker = new int[count * count];
+
+            for (int r = 0; r < rules.Length; r++)
+            {
+                RuleDefinition rule = rules[r];
+
+                for (int i = 0; i < rule.InputCount; i++)
+                {
+                    int from = inputs[rule.InputFirst + i].Bin.Resource.Raw - 1;
+                    if (!Chained(from)) continue;
+
+                    for (int o = 0; o < rule.OutputCount; o++)
+                    {
+                        int to = outputs[rule.OutputFirst + o].Bin.Resource.Raw - 1;
+                        if (to != from && Chained(to) && maker[(from * count) + to] == 0)
+                        {
+                            maker[(from * count) + to] = r + 1;
+                        }
+                    }
+                }
+            }
+
+            var depth = new int[count];
+            var next = new int[count];
+            var state = new byte[count];
+            var path = new List<int>();
+
+            for (int start = 0; start < count; start++)
+            {
+                if (state[start] == 0 && !Walk(start))
+                {
+                    return;
+                }
+            }
+
+            int deepest = 0;
+            for (int at = 1; at < count; at++)
+            {
+                if (depth[at] > depth[deepest]) deepest = at;
+            }
+
+            if (count == 0 || depth[deepest] <= MaxChainDepth)
+            {
+                return;
+            }
+
+            var chain = new List<string>();
+            for (int at = deepest; at >= 0; at = next[at])
+            {
+                chain.Add(NameOfResource(new ResourceId((ushort)(at + 1))));
+            }
+
+            int head = maker[(deepest * count) + next[deepest]] - 1;
+            Refuse(LineOf(_ruleTables[head]), NameOfRule(head),
+                $"starts the chain {string.Join(" -> ", chain)}, which is {depth[deepest]} Resources "
+                + $"deep. A production chain is at most {MaxChainDepth} deep (adr/0031): each link "
+                + "adds a supply chain, and pressure has to reach people rather than become an "
+                + "optimization puzzle. Merge a link, or make one of these Goods an import.");
+
+            bool Chained(int resource) =>
+                resource >= 0 && _families[resource] is ResourceFamily.Good or ResourceFamily.Utility;
+
+            bool Walk(int at)
+            {
+                state[at] = 1;
+                path.Add(at);
+                depth[at] = 1;
+                next[at] = -1;
+
+                for (int to = 0; to < count; to++)
+                {
+                    int rule = maker[(at * count) + to] - 1;
+                    if (rule < 0) continue;
+
+                    if (state[to] == 1)
+                    {
+                        var loop = new List<string>();
+                        for (int p = path.IndexOf(to); p < path.Count; p++)
+                        {
+                            loop.Add(NameOfResource(new ResourceId((ushort)(path[p] + 1))));
+                        }
+
+                        loop.Add(loop[0]);
+                        Refuse(LineOf(_ruleTables[rule]), NameOfRule(rule),
+                            $"closes the production cycle {string.Join(" -> ", loop)}. A Resource "
+                            + "cannot be made, however indirectly, from itself (adr/0031).");
+                        return false;
+                    }
+
+                    if (state[to] == 0 && !Walk(to))
+                    {
+                        return false;
+                    }
+
+                    if (depth[to] + 1 > depth[at])
+                    {
+                        depth[at] = depth[to] + 1;
+                        next[at] = to;
+                    }
+                }
+
+                path.RemoveAt(path.Count - 1);
+                state[at] = 2;
+                return true;
             }
         }
 
