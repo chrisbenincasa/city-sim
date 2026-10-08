@@ -25,7 +25,7 @@ public sealed class OutsideSupplyTests
     /// capital it could never pay for its first import. The capital enters the supply of record as
     /// an endowment does.
     /// </remarks>
-    private static (World World, Simulation Sim) Start(bool verify = false)
+    private static (World World, Simulation Sim) Start()
     {
         RulesetLoadResult loaded =
             RulesetLoader.Load(Path.Combine(AppContext.BaseDirectory, "Rulesets", "imported.toml"));
@@ -33,7 +33,7 @@ public sealed class OutsideSupplyTests
 
         var key = WorldKey.FromSeed(0);
         var world = new World(400, loaded.Ruleset!, key);
-        var sim = new Simulation(world, key) { VerifyDecideWritesNothing = verify };
+        var sim = new Simulation(world, key);
         SyntheticCity.PopulateInto(world, key, Ticks.Zero);
 
         for (int t = 0; t < 2048 && Capitalise(world) == 0; t++)
@@ -180,7 +180,13 @@ public sealed class OutsideSupplyTests
     [Fact]
     public void A_shop_with_no_city_supplier_imports_at_the_cheapest_gated_price()
     {
-        var (world, sim) = Start(verify: true);
+        var (world, sim) = Start();
+
+        // The decide-writes-nothing proof walks the world every Tick, so it covers the import and
+        // not the Days spent waiting for workers to deposit labour.
+        for (int t = 0; t < 4 * Ticks.PerDay && !Staffed(world); t++) { sim.Step(default); }
+        Assert.True(Staffed(world), "no shopfront ever held labour");
+        sim.VerifyDecideWritesNothing = true;
 
         (long stocked, long issued) = FirstImport(world, sim);
 
