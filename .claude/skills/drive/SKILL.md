@@ -141,8 +141,11 @@ there is one applier rather than two behaviours that can part company.
 **Tools for `hold`** — `look`, `zone`, `street`, `demolish`, `service`, `gate`. The second word is
 *which one*: a Zone Rule by declaration position, a service or a gate by its 1-based kind id. ⚠ **An
 unknown tool disarms the hand to `look`** and prints a refusal, rather than leaving the previous
-tool loaded. ⚠ **`shift` on a `click` with `street` held is a bulldoze, and with `gate` held it
-removes the Outside Connection in that Cell.**
+tool loaded. ⚠ **`shift` on a `click` with `street` held removes the Street nearest that Tile
+through `demolish` payload 1, and with `gate` held it removes the Outside Connection in that Cell.**
+A `release` after a shifted `click` removes every other Street the straight drag crosses. A driven
+run cannot hold Shift, so the red removal ghost never draws; the hover line `shift-click removes
+Street N` carries the same preview into every readout.
 
 **Layer names for `overlay`** — `off` (or `none`), `pollution`, `value` (or `land`, `land-value`),
 `sealing` (or `sealed`). An unknown name is a refusal in the readout, not a silent `off`.
@@ -323,7 +326,7 @@ same population**.
 150 hold zone 1
 150 click 8200 8200
 150 hold street
-152 click 8200 8232 shift     # shift is the bulldoze
+152 click 8200 8232 shift     # shift removes the Street nearest the Tile
 160 shoot /tmp/run/after.png
 ```
 

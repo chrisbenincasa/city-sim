@@ -25,7 +25,7 @@ public partial class Main
         new("erase", "Erase zoning", "Zoning", Key.None, "Remove permissions; keep existing Buildings", true, 0,
             [new("Erase zoning", 0)], i => Apply(Held("erase", i))),
         new("street", "Street / next mode", "Connections", Key.X,
-            "Straight: start, end. Simple curve: start, bend point, end. Continuous: each Street leaves the last one's end along its direction. Grid: two corners, then drag sideways for rows of blocks. Hold Ctrl to lay a curve straight; U adds a parallel Street and I flips its side. N switches snapping, K the length snap, J the angle snap, H the angle step; Shift-click removes a grid Street",
+            "Straight: start, end. Simple curve: start, bend point, end. Continuous: each Street leaves the last one's end along its direction. Grid: two corners, then drag sideways for rows of blocks. Hold Ctrl to lay a curve straight; U adds a parallel Street and I flips its side. N switches snapping, K the length snap, J the angle snap, H the angle step; Shift-click or Shift-drag removes Streets",
             true, _verb == Verb.Connect ? ((int)_streetMode + 1) % StreetModeNames.Length : 0,
             StreetModeNames.Select((name, i) => new ToolOption(name, i)).ToArray(), i => Apply(Held("street", i))),
         new("demolish", "Demolish", "Demolish", Key.B, "Clear a Building; occupants are paid its land value", true, 0,

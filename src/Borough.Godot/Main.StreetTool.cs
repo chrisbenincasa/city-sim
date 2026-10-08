@@ -45,6 +45,8 @@ public partial class Main
     private bool _streetPreferences;
     private (Command[] Streets, ulong Tick, object? Simulation) _streetAsked = ([], 0, null);
     private StreetBatchPreview _streetPreview;
+    private (StreetRemoval Removal, ulong Tick, object? World) _removalAsked = (new(-1, [], []), 0, null);
+    private ulong? _pressedStreet;
 
     private static readonly int[] StreetAngleSteps = [90, 45, 15, 5];
 
@@ -726,6 +728,11 @@ public partial class Main
     /// <summary>The hover line for the Street tool: what the next click does and what it would cost.</summary>
     private string StreetSynopsis((Tiles East, Tiles North) at)
     {
+        if (_streetStart is null && Input.IsKeyPressed(Key.Shift))
+        {
+            return $"Street, remove · {RemovalSentence(Removal(at))} · drag to remove every Street the drag crosses";
+        }
+
         var end = Snap(at);
         bool grid = _streetMode == StreetMode.Grid;
         string unit = grid ? "block" : "plot";
@@ -748,7 +755,7 @@ public partial class Main
         if (_streetStart is not { } start)
         {
             return $"Street, {mode} · click the start ({end.East.Raw:N0}, {end.North.Raw:N0}){snapped}{parallel} · "
-                + $"X changes mode · U lays a parallel Street · Ctrl lays a curve straight · Shift-click removes a grid Street · {snapping}";
+                + $"X changes mode · U lays a parallel Street · Ctrl lays a curve straight · Shift-click or Shift-drag removes Streets · {snapping}";
         }
 
         if (_streetMode == StreetMode.Curve && _streetBend is null && !Straightened)
@@ -859,4 +866,102 @@ public partial class Main
         new(RectangleBasis(rectangle) * Basis.FromScale(new Vector3(
                 (rectangle.Wide * MetresPerTile) + (2f * margin), tall, (rectangle.Deep * MetresPerTile) + (2f * margin))),
             RectanglePoint(rectangle, rectangle.Wide * 0.5f, up, rectangle.Deep * 0.5f));
+
+    /// <summary>
+    /// The Street Segment a removal at a Tile picks, the occupied Lots that will stand without a
+    /// Street and the vacant Lots that will be freed.
+    /// </summary>
+    /// <param name="Segment">The Segment slot, or -1 when no Street is in reach.</param>
+    private readonly record struct StreetRemoval(int Segment, int[] Standing, int[] Freed);
+
+    /// <summary>What removing the Street at <paramref name="at"/> would do, asked once per Tick and Segment.</summary>
+    /// <remarks>
+    /// The pick is <see cref="Borough.Core.Entities.World.StreetAt"/>, the same query the core's
+    /// <c>demolish</c> applies. Finding the fronting Lots walks the Lot table, because no index maps a
+    /// Segment to its Lots.
+    /// </remarks>
+    private StreetRemoval Removal((Tiles East, Tiles North) at)
+    {
+        int segment = _world.StreetAt(at.East, at.North);
+        var (asked, tick, world) = _removalAsked;
+        if (asked.Segment == segment && tick == _world.Tick.Raw && ReferenceEquals(world, _world))
+        {
+            return asked;
+        }
+
+        var standing = new List<int>();
+        var freed = new List<int>();
+        for (int lot = 0; segment >= 0 && lot < _world.Lots.Rows.SlotCount; lot++)
+        {
+            if (_world.Lots.Rows.IsLive(lot) && _world.Lots.FrontageOn(lot) == segment)
+            {
+                (_world.Lots.BuildingOn(lot) >= 0 ? standing : freed).Add(lot);
+            }
+        }
+
+        var removal = new StreetRemoval(segment, [.. standing], [.. freed]);
+        _removalAsked = (removal, _world.Tick.Raw, _world);
+
+        return removal;
+    }
+
+    private string RemovalSentence(StreetRemoval removal) => removal.Segment < 0
+        ? "no Street in reach, so shift-click removes nothing"
+        : $"shift-click removes Street {_world.Roads.Segments.Rows.IdAt(removal.Segment):N0} · "
+            + $"{Count(removal.Standing.Length, "Building")} keep standing without a Street · "
+            + $"{Count(removal.Freed.Length, "empty Lot")} go";
+
+    private static string Count(int count, string noun) => $"{count:N0} {noun}{(count == 1 ? "" : "s")}";
+
+    /// <summary>
+    /// Draws the Street a Shift-click would remove in red, the occupied Lots it fronts in amber and
+    /// the vacant Lots it fronts in red.
+    /// </summary>
+    private void RemovalCursor((Tiles East, Tiles North) at)
+    {
+        StreetRemoval removal = Removal(at);
+        Color removed = new Color(.90f, .30f, .25f).SrgbToLinear();
+        Color standing = new Color(.95f, .80f, .25f).SrgbToLinear();
+        int count = 0;
+
+        if (removal.Segment < 0)
+        {
+            Vector3 point = TileGround(at.East, at.North);
+            _cursor.Multimesh.SetInstanceTransform(count, Box(point - new Vector3(1.5f, 0f, 0f),
+                point + new Vector3(1.5f, 0f, 0f), 3f, 0f, 0.4f));
+            _cursor.Multimesh.SetInstanceColor(count++, new Color(.95f, .95f, .95f).SrgbToLinear());
+            _cursor.Multimesh.VisibleInstanceCount = count;
+
+            return;
+        }
+
+        var segments = _world.Roads.Segments;
+        var nodes = _world.Roads.Nodes;
+        if (nodes.Rows.TryResolve(segments.NodeA[removal.Segment], out int a)
+            && nodes.Rows.TryResolve(segments.NodeB[removal.Segment], out int b))
+        {
+            Vector3 lift = new(0f, 0.1f, 0f);
+            foreach (Transform3D chord in Chords(segments.Centerline[removal.Segment],
+                TileGround(nodes.East[a], nodes.North[a]), TileGround(nodes.East[b], nodes.North[b]),
+                CarriagewayWidthMetres, 0.3f))
+            {
+                _cursor.Multimesh.SetInstanceTransform(count, chord with { Origin = chord.Origin + lift });
+                _cursor.Multimesh.SetInstanceColor(count++, removed);
+            }
+        }
+
+        foreach (int lot in removal.Standing)
+        {
+            _cursor.Multimesh.SetInstanceTransform(count, Plate(_world.Lots.Parcel(lot), 0f, 0.06f, 0.02f));
+            _cursor.Multimesh.SetInstanceColor(count++, standing);
+        }
+
+        foreach (int lot in removal.Freed)
+        {
+            _cursor.Multimesh.SetInstanceTransform(count, Plate(_world.Lots.Parcel(lot), 0f, 0.06f, 0.02f));
+            _cursor.Multimesh.SetInstanceColor(count++, removed);
+        }
+
+        _cursor.Multimesh.VisibleInstanceCount = count;
+    }
 }

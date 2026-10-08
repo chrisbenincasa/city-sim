@@ -2055,7 +2055,7 @@ internal enum Verb : byte
     /// </remarks>
     Zone = 1,
 
-    /// <summary>Lay or bulldoze one Street on the lattice edge leaving the nearest intersection.</summary>
+    /// <summary>Lay a freeform Street, or with Shift remove the Street nearest the cursor.</summary>
     Connect = 2,
 
     /// <summary>Clear abandoned stock, and only that.</summary>
