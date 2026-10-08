@@ -853,6 +853,18 @@ public static class RulesetKeyNotes
             "The same for an Arterial.",
         ["[roads] foot_path_capacity_per_hour"] =
             "The same for a foot path.",
+        ["[roads] min_segment_length_tiles"] =
+            "The shortest Segment a Street lay may leave, including both halves of every Segment "
+            + "the new Street splits where it crosses or ends. An edit that would leave a shorter "
+            + "one is refused. Absent means one plot width, 2 × block_tiles / lots_per_segment.",
+        ["[roads] min_crossing_angle_degrees"] =
+            "The shallowest angle, in degrees, at which a new Street may cross or end on an "
+            + "existing Segment. A shallower meeting is refused, because it leaves a sliver of "
+            + "ground no plot fits. Absent means 30.",
+        ["[roads] min_curve_radius_tiles"] =
+            "The tightest curve a Street may be laid on, as a radius in Tiles. A tighter curve is "
+            + "refused. Straight Streets have no radius and always pass. Absent means half of "
+            + "block_tiles.",
         ["[roads] upkeep_per_segment_per_day"] =
             "What the treasury pays each Day for every Road Segment, foot paths and Arterials "
             + "included. Absent or zero means roads cost nothing to keep. A treasury that cannot "

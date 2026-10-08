@@ -54,6 +54,12 @@ public partial class Main
         new("Time", "4×", "4", [Key.Key4], () => ViewCommand(DriveVerb.Speed, DesignSpeed + 3)),
         .. ToolDefinitions().Where(t => t.Key != Key.None).Select(t => new Shortcut("Tools", t.Label,
             t.Key.ToString(), [t.Key], () => { if (t.Available) t.Select(t.NextChoice); })),
+        new("Tools", "Street snapping", "N", [Key.N], () => Ui(_streetSnaps ? "street-snap off" : "street-snap on")),
+        new("Tools", "Street length snap", "K", [Key.K], () => Ui(_streetLengthSnaps ? "street-length off" : "street-length on")),
+        new("Tools", "Street angle snap", "J", [Key.J], () => Ui(_streetAngleSnaps ? "street-angle off" : "street-angle on")),
+        new("Tools", "Parallel Street", "U", [Key.U], () => Ui(_streetParallel ? "street-parallel off" : "street-parallel on")),
+        new("Tools", "Parallel side", "I", [Key.I], () => Ui(_streetParallelRight ? "street-parallel-side left" : "street-parallel-side right")),
+        new("Tools", "Street angle step", "H", [Key.H], () => Ui($"street-angle-step {StreetAngleSteps[(Array.IndexOf(StreetAngleSteps, _streetAngleDegrees) + 1) % StreetAngleSteps.Length]}")),
         new("Views", "Next map layer", "O", [Key.O], () => Apply(new DriveCommand(_world.Tick.Raw, DriveVerb.Overlay, 0, _washing switch { Wash.None => "pollution", Wash.Pollution => "value", Wash.Value => "sealing", Wash.Sealed => "health", Wash.Health => "trouble", Wash.Trouble => "rung", Wash.Rung => "age", Wash.Age => "family", _ => "off" }))),
         new("Views", "Photograph view", "L", [Key.L], () => ViewCommand(DriveVerb.Lens, _photographing ? 0 : 1)),
         new("Views", "Road drawing", "G", [Key.G], () => ViewCommand(DriveVerb.Roads, _roads.Visible ? 0 : 1)),
@@ -218,7 +224,8 @@ public partial class Main
         if (_cityPicker is not null && _cityPicker.Visible) return;
         if (key.Keycode == Key.Escape)
         {
-            if (_zoneStart is not null) Ui("zone-cancel");
+            if (_streetStart is not null) Ui("street-cancel");
+            else if (_zoneStart is not null) Ui("zone-cancel");
             else if (_helpPanel.Visible) Ui("help off");
             else if (_settingsPanel.Visible) Ui("settings off");
             else if (_menuOpen) Ui(_menuPage == "main" ? "menu off" : "menu cancel");

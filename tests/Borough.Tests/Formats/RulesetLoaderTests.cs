@@ -49,7 +49,7 @@ public sealed class RulesetLoaderTests
         kind    = "bakery"
         rate    = 10
         apply   = { min = 1, max = 4 }
-        on_fail = "draw_flour_from_pool"
+        on_fail = "draw_flour_locally"
         inputs  = [ { scope = "local", resource = "flour", amount = 6 } ]
         outputs = [
           { scope = "local", resource = "bread",     amount = 1 },
@@ -57,12 +57,12 @@ public sealed class RulesetLoaderTests
         ]
 
         [[rule]]
-        name    = "draw_flour_from_pool"
+        name    = "draw_flour_locally"
         kind    = "bakery"
         rate    = 10
         apply   = { min = 1, max = 1 }
         on_fail = "request_shipment"
-        inputs  = [ { scope = "pool",  resource = "flour", amount = 6 } ]
+        inputs  = [ { scope = "local",  resource = "flour", amount = 6 } ]
         outputs = [ { scope = "local", resource = "flour", amount = 6 } ]
 
         [[rule]]
@@ -303,7 +303,7 @@ public sealed class RulesetLoaderTests
             rate    = 10
             apply   = { min = 1, max = 1 }
             on_fail = "mark_starved"
-            inputs  = [ { scope = "pool",  resource = "sugar", amount = 6 } ]
+            inputs  = [ { scope = "local",  resource = "sugar", amount = 6 } ]
             outputs = [ { scope = "local", resource = "sugar", amount = 6 } ]
 
             [[rule]]
@@ -837,24 +837,28 @@ public sealed class RulesetLoaderTests
     }
 
     /// <summary>
-    /// <c>pool</c> on a Good is <em>not</em> refused beside it, and the difference is the whole
-    /// argument.
+    /// A pool Rule needs both Districts and a money Resource, so the loader refuses it before a
+    /// simulation can reach the missing payment mechanism.
     /// </summary>
-    /// <remarks>
-    /// <b><c>pool</c> is unbuilt and <c>global</c>-on-a-Good is not a mechanism at all</b>
-    /// (<c>adr/0070</c>). The District Pool arrives at milestone 12 and every Good in the design
-    /// crosses it, so refusing this file would refuse one that is going to be legal — the Rule
-    /// engine's named hole is the right instrument for an absence with a date on it. Asserted
-    /// rather than left implicit, because the two sit one line apart in <c>TryScope</c> and the
-    /// next person to widen one will read this.
-    /// </remarks>
     [Fact]
-    public void A_pool_term_naming_a_good_is_accepted_because_that_scope_is_unbuilt_rather_than_wrong()
+    public void A_pool_term_without_money_is_refused_at_load()
     {
-        Ruleset ruleset = Accepted("""
+        RulesetLoadResult result = RulesetLoader.Parse("""
             [[resource]]
             name = "flour"
             family = "good"
+
+            [districts]
+            prominence_percent = 50
+            revisit_ticks = 2048
+            hysteresis_percent = 50
+            migrate_cells = 16
+
+            [[hinterland]]
+            edge = "north"
+            emigrant_balance_min = 0
+            emigrant_balance_max = 0
+            prices = [ { resource = "flour", price = 100 } ]
 
             [[building]]
             name = "silo"
@@ -867,9 +871,111 @@ public sealed class RulesetLoaderTests
             apply   = { min = 1, max = 1 }
             inputs  = [ { scope = "pool", resource = "flour", amount = 3 } ]
             outputs = [ { scope = "local", resource = "flour", amount = 3 } ]
-            """);
+            """, "test.toml");
 
-        Assert.Equal(1, ruleset.RuleCount);
+        RulesetRefusal refusal = Assert.Single(result.Refusals,
+            r => r.Reason.Contains("pool term needs a Resource with family = \"money\"",
+                StringComparison.Ordinal));
+        Assert.Equal("test.toml", refusal.File);
+        Assert.Equal("deliver", refusal.Rule);
+        Assert.Equal(21, refusal.Line);
+    }
+
+    [Fact]
+    public void A_direct_pool_term_without_districts_names_the_rule_source()
+    {
+        RulesetLoadResult result = RulesetLoader.Parse("""
+            [[resource]]
+            name = "flour"
+            family = "good"
+
+            [[resource]]
+            name = "money"
+            family = "money"
+
+            [[building]]
+            name = "silo"
+
+            [[rule]]
+            name = "buy_flour"
+            kind = "silo"
+            rate = 10
+            apply = { min = 1, max = 1 }
+            inputs = [ { scope = "pool", resource = "flour", amount = 1 } ]
+            outputs = []
+            """, "direct.toml");
+
+        RulesetRefusal refusal = Assert.Single(result.Refusals,
+            r => r.Reason.Contains("pool term needs [districts]", StringComparison.Ordinal));
+        Assert.Equal("direct.toml", refusal.File);
+        Assert.Equal("buy_flour", refusal.Rule);
+        Assert.Equal(12, refusal.Line);
+    }
+
+    [Fact]
+    public void A_recipe_pool_term_without_districts_names_the_rule_source()
+    {
+        RulesetLoadResult result = RulesetLoader.Parse("""
+            [[resource]]
+            name = "flour"
+            family = "good"
+
+            [[resource]]
+            name = "money"
+            family = "money"
+
+            [[recipe]]
+            name = "buy_recipe"
+            inputs = [ { scope = "pool", resource = "flour", amount = 1 } ]
+            outputs = []
+
+            [[building]]
+            name = "silo"
+
+            [[rule]]
+            name = "buy_flour_recipe"
+            kind = "silo"
+            recipe = "buy_recipe"
+            rate = 10
+            apply = { min = 1, max = 1 }
+            """, "recipe.toml");
+
+        RulesetRefusal refusal = Assert.Single(result.Refusals,
+            r => r.Reason.Contains("pool term needs [districts]", StringComparison.Ordinal));
+        Assert.Equal("recipe.toml", refusal.File);
+        Assert.Equal("buy_flour_recipe", refusal.Rule);
+        Assert.Equal(17, refusal.Line);
+    }
+
+    [Theory]
+    [InlineData("inputs = []\noutputs = [ { scope = \"pool\", resource = \"flour\", amount = 1 } ]")]
+    [InlineData("inputs = []\noutputs = []\nfills = { scope = \"pool\", resource = \"flour\" }")]
+    public void A_pool_output_or_fills_without_districts_is_refused(string terms)
+    {
+        RulesetLoadResult result = RulesetLoader.Parse($$"""
+            [[resource]]
+            name = "flour"
+            family = "good"
+
+            [[resource]]
+            name = "money"
+            family = "money"
+
+            [[building]]
+            name = "silo"
+
+            [[rule]]
+            name = "sell_flour"
+            kind = "silo"
+            rate = 10
+            apply = { min = 1, max = 1 }
+            {{terms}}
+            """, "pool.toml");
+
+        RulesetRefusal refusal = Assert.Single(result.Refusals,
+            r => r.Reason.Contains("pool term needs [districts]", StringComparison.Ordinal));
+        Assert.Equal("sell_flour", refusal.Rule);
+        Assert.Equal(12, refusal.Line);
     }
 
     /// <summary>

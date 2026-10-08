@@ -13,13 +13,9 @@ namespace Borough.Core.Space;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>A generator rather than a player, and that is what makes 5a shippable without a
-/// <c>build_road</c> command.</b> <c>CommandKind.Connect</c> is declared and throws;
-/// <c>01 §2</c> counts road editing among the player's five verbs and the corpus calls it the
-/// player's core verb, and <b>nowhere specifies its command surface</b>. Giving the graph a producer
-/// that is not the player lets this slice retire its own risk — <i>geometry leaking into the
-/// simulation</i> — without also settling a command shape nobody has designed. That is 5a-bis, along
-/// with the Lot subdivider.
+/// <b>The generator lays the starting city.</b> The player edits it afterwards.
+/// <c>CommandKind.Connect</c> lays and bulldozes lattice Streets, and <c>RoadGraph.LayStreet</c>
+/// lays freeform ones.
 /// </para>
 /// <para>
 /// <b>The Arterials genuinely sever, and that is this generator's one substantive claim.</b> An

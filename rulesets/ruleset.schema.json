@@ -1417,6 +1417,18 @@
           "description": "How many blocks in a thousand get a cut-through for pedestrians. The stronger Severance lever of the two.",
           "type": "integer"
         },
+        "min_crossing_angle_degrees": {
+          "description": "The shallowest angle, in degrees, at which a new Street may cross or end on an existing Segment. A shallower meeting is refused, because it leaves a sliver of ground no plot fits. Absent means 30.",
+          "type": "integer"
+        },
+        "min_curve_radius_tiles": {
+          "description": "The tightest curve a Street may be laid on, as a radius in Tiles. A tighter curve is refused. Straight Streets have no radius and always pass. Absent means half of block_tiles.",
+          "type": "integer"
+        },
+        "min_segment_length_tiles": {
+          "description": "The shortest Segment a Street lay may leave, including both halves of every Segment the new Street splits where it crosses or ends. An edit that would leave a shorter one is refused. Absent means one plot width, 2 × block_tiles / lots_per_segment.",
+          "type": "integer"
+        },
         "street_capacity_per_hour": {
           "description": "How many Vehicles an hour a Street carries before the volume-delay function starts slowing it.",
           "type": "integer"

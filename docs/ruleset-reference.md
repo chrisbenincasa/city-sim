@@ -27,7 +27,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-53 sections, 373 keys.
+53 sections, 376 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
@@ -74,7 +74,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[needs]`](#needs) — 9 keys
 - [`[parking]`](#parking) — 5 keys
 - [`[placement]`](#placement) — 10 keys
-- [`[roads]`](#roads) — 13 keys
+- [`[roads]`](#roads) — 16 keys
 - [`[school]`](#school) — 7 keys
 - [`[schooling]`](#schooling) — 5 keys
 - [`[shopping]`](#shopping) — 7 keys
@@ -1662,6 +1662,18 @@ The same for a foot path.
 **`foot_paths_per_thousand_blocks`** · *whole number*
 
 How many blocks in a thousand get a cut-through for pedestrians. The stronger Severance lever of the two.
+
+**`min_crossing_angle_degrees`** · *whole number*
+
+The shallowest angle, in degrees, at which a new Street may cross or end on an existing Segment. A shallower meeting is refused, because it leaves a sliver of ground no plot fits. Absent means 30.
+
+**`min_curve_radius_tiles`** · *whole number*
+
+The tightest curve a Street may be laid on, as a radius in Tiles. A tighter curve is refused. Straight Streets have no radius and always pass. Absent means half of block_tiles.
+
+**`min_segment_length_tiles`** · *whole number*
+
+The shortest Segment a Street lay may leave, including both halves of every Segment the new Street splits where it crosses or ends. An edit that would leave a shorter one is refused. Absent means one plot width, 2 × block_tiles / lots_per_segment.
 
 **`street_capacity_per_hour`** · *whole number*
 

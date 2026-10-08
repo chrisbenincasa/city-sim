@@ -38,6 +38,7 @@ namespace Borough.Formats;
 /// the rule <see cref="Version"/> states thirty lines below — <em>what would bump it is a sixth field
 /// on a command</em>. A verb needing a second coordinate pair <b>is</b> that sixth field, and would
 /// have bumped the version while this sentence said it could not.
+/// </para>
 /// <para>
 /// <b>Connect arrived and did not bump it — but by design rather than by luck</b> (<c>adr/0077</c>).
 /// A road edit is one Segment named by an <em>origin and an axis</em>, so the far endpoint is derived
@@ -46,6 +47,9 @@ namespace Borough.Formats;
 /// never of when it was declared.</b> Service and Govern have not been examined against this test and
 /// should be, before either is built.
 /// </para>
+/// <para>
+/// <b><c>street</c> is the one verb with seven fields</b>: both ends and the sagitta. It is a new
+/// verb, so an old reader refuses its lines by name and no existing line changes meaning.
 /// </para>
 /// </remarks>
 public static class InputLogCodec
@@ -138,8 +142,9 @@ public static class InputLogCodec
         {
             (Ticks tick, Command command) = log.Entry(i);
 
-            writer.Write(Line(
-                $"{tick.Raw} {Verb(command.Kind)} {command.East.Raw} {command.North.Raw} {command.Zone}"));
+            writer.Write(command.Kind == CommandKind.Street
+                ? Line($"{tick.Raw} street {command.East.Raw} {command.North.Raw} {command.EndEast.Raw} {command.EndNorth.Raw} {command.Sagitta.Raw}")
+                : Line($"{tick.Raw} {Verb(command.Kind)} {command.East.Raw} {command.North.Raw} {command.Zone}"));
         }
     }
 
@@ -196,6 +201,16 @@ public static class InputLogCodec
 
         while (lines.Next() is { } line)
         {
+            if (line.Split(' ', StringSplitOptions.RemoveEmptyEntries) is [_, "street", ..])
+            {
+                string[] fields = Fields(lines, line, expected: 7);
+                builder.Append(new Ticks(Number(lines, fields[0])), Command.Street(
+                    new Tiles(Signed(lines, fields[2])), new Tiles(Signed(lines, fields[3])),
+                    new Tiles(Signed(lines, fields[4])), new Tiles(Signed(lines, fields[5])),
+                    new SubTiles(Signed(lines, fields[6]))));
+                continue;
+            }
+
             builder.Append(ReadTick(lines, line), ReadCommand(lines, line));
         }
 
@@ -338,6 +353,7 @@ public static class InputLogCodec
         CommandKind.Tax => "tax",
         CommandKind.Fund => "fund",
         CommandKind.Gate => "gate",
+        CommandKind.Street => "street",
         _ => throw new ArgumentOutOfRangeException(
             nameof(kind), kind, "a command with no verb cannot be written."),
     };

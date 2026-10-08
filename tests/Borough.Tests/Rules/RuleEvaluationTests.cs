@@ -655,48 +655,6 @@ public sealed class RuleEvaluationTests
         kindRules: [new RuleId(1)],
         zoneRules: []);
 
-    /// <summary>
-    /// 🔴 <b>WHAT THIS ASSERTS CHANGED AT MILESTONE 26 TASK 4 AND THE ASSERTION DID NOT, so read
-    /// this before reading anything into its passing.</b>
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <b>It used to mean <c>pool</c> is unbuilt. It now means <see cref="Scoped"/>'s Ruleset states
-    /// no <c>[districts]</c> table.</b> <c>Scope.Pool</c> resolves — a purchase settles a Good one
-    /// way and money the other against a seller in the buyer's District (<c>adr/0139</c>,
-    /// <c>adr/0050</c>) — but a Ruleset with no Districts has no Pools and no markets, so a
-    /// <c>pool</c> term in it can never resolve and never will. ***That is a permanent condition and
-    /// not an early one***, which is why it still throws, while a Building merely standing on ground
-    /// the watershed has not claimed yet fires at zero applications instead.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>The refusal belongs at load and is here because the loader has no such check</b>, which
-    /// is <c>adr/0048</c>'s rule owed rather than met. When it lands this test moves to the loader
-    /// and this file keeps whatever the engine still does.
-    /// </para>
-    /// <para>
-    /// <b>⚠ <c>global</c> was the second row of this theory and left it in milestone 10 task 1</b>,
-    /// which is the whole point of that task — <c>adr/0114</c> supplied the entity decision the throw
-    /// was waiting on. It is not deleted: it is replaced by the positive assertions below, because a
-    /// closed hole whose negative test simply vanishes leaves nothing saying what it closed to.
-    /// </para>
-    /// </remarks>
-    [Theory]
-    [InlineData(Scope.Pool)]
-    public void A_scope_this_build_does_not_have_is_a_named_hole(Scope scope)
-    {
-        (World world, Simulation simulation, Handle<Building> building) = Built(Scoped(scope));
-
-        world.Deposit(world.Bins.Rows.At(BinOf(world, building, Flour)), 60, Ticks.Zero);
-
-        string refusal =
-            Assert.Throws<NotSupportedException>(() => StepToTheFiring(simulation)).Message;
-
-        // The cause, and it is the half that moved: not *pool is unbuilt* but *this file has no
-        // Districts*. Asserted so the message and this test's own summary cannot drift apart again.
-        Assert.Contains("states no [districts] table", refusal);
-    }
-
     // ---- the treasury -------------------------------------------------------------------------------
 
     /// <summary><c>02 §4.3</c>'s transfer: local money out, global money in, in one atomic Rule.</summary>
@@ -815,32 +773,6 @@ public sealed class RuleEvaluationTests
 
         Assert.Equal(treasury, world.FindTreasuryBin(Coin));
         Assert.Equal(before, world.HashState());
-    }
-
-    /// <summary>
-    /// <b>The corpus's own worked example rescues its bakery from the District Pool</b>, so what is
-    /// caught is caught at evaluation and not at load. A loader that refused <c>02 §4.3</c> would
-    /// not be a loader.
-    /// </summary>
-    /// <remarks>
-    /// ⚠ <b>As of milestone 26 task 4 the thing caught here is the MISSING <c>[districts]</c> TABLE
-    /// and not the scope</b> — see <see cref="A_scope_this_build_does_not_have_is_a_named_hole"/>,
-    /// which carries the whole of it. What survives unchanged is this test's actual subject: the
-    /// world steps perfectly well right up to the reach, so a file naming a Pool is well-formed and
-    /// is diagnosed where it is used.
-    /// </remarks>
-    [Fact]
-    public void A_pool_ruleset_loads_and_only_fails_when_a_rule_reaches_for_it()
-    {
-        (World world, Simulation simulation, Handle<Building> building) = Built(Scoped(Scope.Pool));
-
-        Assert.Equal(1, world.Rules.RuleCount);
-
-        // Nothing is due until Tick 1, so the world runs perfectly well right up to the reach.
-        simulation.Step(TickInput.Empty);
-
-        Assert.Equal(0, Level(world, building, Flour));
-        Assert.Throws<NotSupportedException>(() => simulation.Step(TickInput.Empty));
     }
 
     // ---- the derived apply count ---------------------------------------------------------------------

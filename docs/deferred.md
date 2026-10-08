@@ -548,3 +548,16 @@ The test street's bodies carry the elements that explain a Building: openings, r
 These details matter most at street distance and cost triangles everywhere, so the pass has to decide which ones survive at each drawing distance.
 
 Revisit when the material pass on the test street is reviewed and the kit's bodies stop changing shape.
+
+---
+
+## A lever for Retention failure
+
+**Status:** parked until Households pay housing costs.
+**Retrofit cost:** ✅ **Low.** The lever is a catalog entry built from an existing tool once the cost it answers exists.
+
+Retention failure is Households raised in the city leaving because it is too expensive to stay ([`01 §6`](01-player-experience.md#6-failure-and-what-losing-means)). Every other Policy-remediable failure has a lever in [the launch catalog](04-economy-and-goods.md#the-launch-policy-catalog). This one has none, because Households pay no rent. Rent appears only as the threshold a Household compares before moving. A housing-support transfer would pay against a cost the simulation does not charge, so it would be a modifier.
+
+Income support targeted by Life Stage at young adults was considered and refused, because it answers poverty and not the cost of staying.
+
+Revisit when a Household pays for its dwelling.

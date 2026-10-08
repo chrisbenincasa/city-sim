@@ -293,6 +293,68 @@ public sealed class RunnerTests
         Assert.Contains("carries its own", complaint, StringComparison.Ordinal);
     }
 
+    /// <summary>The School dump owns its world, so it cannot apply a session reload.</summary>
+    [Fact]
+    public void A_school_and_a_reload_disagree()
+    {
+        Assert.False(Options.TryParse(
+            ["--school", "--ruleset", "a.toml", "--reload-at", "200", "--ruleset", "b.toml"],
+            out _, out string? complaint));
+        Assert.Contains("--school and --reload-at disagree", complaint, StringComparison.Ordinal);
+    }
+
+    /// <summary>The Business dump owns its world, so it cannot replay a recorded session.</summary>
+    [Fact]
+    public void A_business_and_a_log_disagree()
+    {
+        Assert.False(Options.TryParse(
+            ["--business", "--ruleset", "a.toml", "--log", "session.borough"],
+            out _, out string? complaint));
+        Assert.Contains("--business and --log disagree", complaint, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("--zones")]
+    [InlineData("--kinds")]
+    [InlineData("--income")]
+    [InlineData("--money")]
+    [InlineData("--evidence")]
+    [InlineData("--market")]
+    [InlineData("--commute")]
+    [InlineData("--land-value")]
+    [InlineData("--parking")]
+    [InlineData("--traffic")]
+    public void A_dump_that_owns_its_world_refuses_a_reload(string mode)
+    {
+        Assert.False(Options.TryParse(
+            [mode, "--ruleset", "a.toml", "--reload-at", "200", "--ruleset", "b.toml"],
+            out _, out string? complaint));
+        Assert.Contains($"{mode} and --reload-at disagree", complaint, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("--school", "--log", "--school and --log disagree")]
+    [InlineData("--kinds", "--log", "--kinds and --log disagree")]
+    [InlineData("--business", "--reload-at", "--business and --reload-at disagree")]
+    [InlineData("--day", "--log", "--day and --log disagree")]
+    [InlineData("--day", "--reload-at", "--day and --reload-at disagree")]
+    [InlineData("--stages", "--log", "--stages and --log disagree")]
+    [InlineData("--stages", "--reload-at", "--stages and --reload-at disagree")]
+    [InlineData("--flood", "--log", "--flood and --log disagree")]
+    [InlineData("--flood", "--reload-at", "--flood and --reload-at disagree")]
+    [InlineData("--watch", "--log", "--watch and --log disagree")]
+    [InlineData("--watch", "--reload-at", "--watch and --reload-at disagree")]
+    public void An_independent_dump_refuses_an_unsupported_flag(
+        string mode, string flag, string expected)
+    {
+        string[] arguments = flag == "--reload-at"
+            ? [mode, "--ruleset", "a.toml", flag, "200", "--ruleset", "b.toml"]
+            : [mode, "--ruleset", "a.toml", flag, "session.borough"];
+
+        Assert.False(Options.TryParse(arguments, out _, out string? complaint));
+        Assert.Contains(expected, complaint, StringComparison.Ordinal);
+    }
+
     /// <summary>One Tick per Ruleset after the first, because each reload swaps to the next one.</summary>
     [Theory]
     [InlineData(new[] { "--ruleset", "a.toml", "--reload-at", "200" }, "one Tick per Ruleset")]

@@ -496,7 +496,7 @@ public static class Evidence
 
         return new LotEvidence(
             lot,
-            world.LandPermissions.Summary(world.LotGround(slot)),
+            world.LotPermissions(slot),
             ConstructionRefusal(world, slot),
             vacant,
             world.Lots.AddressOf(slot),

@@ -31,7 +31,7 @@ namespace Borough.Core.Space;
 /// the number lands is this slice's decision and what the number is, is not.
 /// </para>
 /// </remarks>
-public sealed class RoadGraph
+public sealed partial class RoadGraph
 {
     private readonly RoadNodeTable _nodes;
     private readonly RoadSegmentTable _segments;
@@ -338,10 +338,8 @@ public sealed class RoadGraph
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Wholesale rather than incremental, and that is a decision this slice is allowed to make
-    /// cheaply.</b> Nothing yet edits the graph after generation — <c>CommandKind.Connect</c> is
-    /// 5a-bis — so an incremental rebuild would be an optimisation of a call that happens once, sized
-    /// against a cost nobody has measured. It is called from <c>World.RebuildDerived</c> on load and
+    /// <b>Wholesale rather than incremental.</b> Street edits call it once per edit, and nobody has
+    /// measured a cost that would justify an incremental rebuild. It is called from <c>World.RebuildDerived</c> on load and
     /// from <see cref="Adopt"/> on reload, which is the same discipline every other derived structure
     /// in the project follows.
     /// </para>
