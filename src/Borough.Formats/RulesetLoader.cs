@@ -3522,6 +3522,7 @@ public static class RulesetLoader
                     ShopHours = ReadShopHours(table),
                     RequiresTier = ReadRequiresTier(table, name),
                     TuitionPerDay = ReadTuitionPerDay(table, name, kinds),
+                    OpeningGrant = ReadOpeningGrant(table, name),
                 };
             }
 
@@ -3549,6 +3550,55 @@ public static class RulesetLoader
             }
 
             return (byte)tier;
+        }
+
+        /// <summary>
+        /// What the treasury pays a Business of this trade that a Zone Rule opens —
+        /// <c>opening_grant</c>, optional. Absent pays nothing.
+        /// </summary>
+        /// <remarks>
+        /// Bounded as <c>placement_cost</c> is, because the treasury it is paid from is bounded there.
+        /// </remarks>
+        private Money ReadOpeningGrant(TableSyntaxBase table, string? name)
+        {
+            if (!TryInteger(table, "opening_grant", out long grant, required: false, name))
+            {
+                return Money.Zero;
+            }
+
+            SyntaxNodeBase at = (SyntaxNodeBase?)Find(table, "opening_grant") ?? table;
+
+            if (grant < 0)
+            {
+                Refuse(LineOf(at), name,
+                    $"opening_grant is {grant}. It is what the treasury pays a Business of this "
+                    + "trade when a Zone Rule opens one, so it cannot be negative. Omit the key or "
+                    + "state zero for a trade that opens with nothing.");
+
+                return Money.Zero;
+            }
+
+            if (grant > int.MaxValue)
+            {
+                Refuse(LineOf(at), name,
+                    $"opening_grant is {grant}, above {int.MaxValue}. The treasury's opening balance "
+                    + "is bounded there too, so no city could pay it and no Zone Rule could open "
+                    + "this trade.");
+
+                return Money.Zero;
+            }
+
+            if (grant > 0 && !_families.Contains(ResourceFamily.Money))
+            {
+                Refuse(LineOf(at), name,
+                    "this trade states an opening_grant and the file names no money, so there is no "
+                    + "treasury to pay it from and no balance to pay it into. Add a [[resource]] "
+                    + "block with family = \"money\", or drop the key.");
+
+                return Money.Zero;
+            }
+
+            return new Money(grant);
         }
 
         /// <summary>

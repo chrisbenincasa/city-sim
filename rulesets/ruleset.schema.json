@@ -220,6 +220,10 @@
             "description": "Shop operating days as a Monday-first weekly bit mask, independent of staffing.",
             "type": "integer"
           },
+          "opening_grant": {
+            "description": "What the treasury pays into the balance of a Business of this trade that a Zone Rule opens. The Money moves from the treasury, so none is created. A Zone Rule opens no Business the treasury cannot pay in full, and its Building stands without the trade. A Household that founds a Business capitalizes it from [founding] instead, and no grant is paid. Absent pays nothing.",
+            "type": "integer"
+          },
           "opens_hour": {
             "description": "The daily opening hour for shopping purchases.",
             "type": "integer"

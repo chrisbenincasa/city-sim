@@ -8,7 +8,7 @@ using Borough.Core.Rules;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Nine magnitudes and no tenth that nets any of them.</b> <c>MoneyFlowCounter.FromTreasury</c>
+/// <b>Eleven magnitudes and no twelfth that nets any of them.</b> <c>MoneyFlowCounter.FromTreasury</c>
 /// carries the argument and <c>Borough.Headless.IncomeDump</c> prints it: a net cannot say whether a
 /// city taxed nothing and paid nothing or taxed heavily and paid it all back. Within the income the
 /// same argument holds one level down — a withholding, a profit tax, a <c>[[policy]]</c> and a
@@ -56,6 +56,10 @@ using Borough.Core.Rules;
 /// What the city paid the displaced to demolish occupied Buildings (<c>adr/0091</c>). A transfer to
 /// Households and Businesses, so the money supply does not move.
 /// </param>
+/// <param name="Grant">
+/// What the city paid zone-raised Businesses to open — <c>[[business]] opening_grant</c>. A transfer,
+/// so the money supply does not move.
+/// </param>
 public readonly record struct TreasuryFlows(
     long Withheld,
     long ProfitTax,
@@ -66,13 +70,15 @@ public readonly record struct TreasuryFlows(
     long Subsidy,
     long Placement,
     long Upkeep,
-    long Compensation)
+    long Compensation,
+    long Grant)
 {
     /// <summary>Everything that arrived, through all four levers.</summary>
     public long Income => Withheld + ProfitTax + PolicyIn + RuleIn;
 
-    /// <summary>Everything that left, through all five paths.</summary>
-    public long Expenditure => PolicyOut + RuleOut + Subsidy + Placement + Upkeep + Compensation;
+    /// <summary>Everything that left, through all seven paths.</summary>
+    public long Expenditure =>
+        PolicyOut + RuleOut + Subsidy + Placement + Upkeep + Compensation + Grant;
 
     /// <summary>Adds another interval's flows to this one, column by column.</summary>
     /// <param name="other">The interval to add.</param>
@@ -87,5 +93,6 @@ public readonly record struct TreasuryFlows(
         Subsidy + other.Subsidy,
         Placement + other.Placement,
         Upkeep + other.Upkeep,
-        Compensation + other.Compensation);
+        Compensation + other.Compensation,
+        Grant + other.Grant);
 }

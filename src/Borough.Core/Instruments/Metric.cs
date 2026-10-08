@@ -810,6 +810,12 @@ public enum MoneyFlowCounter : byte
     /// transfer to Households and Businesses, so the supply does not move.
     /// </summary>
     Compensation,
+
+    /// <summary>
+    /// Money the treasury paid zone-raised Businesses to open — <c>[[business]] opening_grant</c>. A
+    /// transfer to Businesses, so the supply does not move.
+    /// </summary>
+    Grant,
 }
 
 /// <summary>Which family of thing a <see cref="Metric"/> names.</summary>

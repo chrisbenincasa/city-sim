@@ -361,9 +361,11 @@ public sealed class LocalLayoutTests
         return new(1, form, new(x, y, end - x, top - y), 2);
     }
 
-    internal static (World World, Handle<Lot>[] Lots) Fixture(bool mixed = false, BlockFace face = BlockFace.South, string extra = "")
+    internal static (World World, Handle<Lot>[] Lots) Fixture(bool mixed = false, BlockFace face = BlockFace.South, string extra = "",
+        Func<string, string>? edit = null)
     {
-        var loaded = RulesetLoader.Parse((mixed ? MixedToml : Toml) + "\n" + extra, "local-layout.toml");
+        string toml = mixed ? MixedToml : Toml;
+        var loaded = RulesetLoader.Parse((edit is null ? toml : edit(toml)) + "\n" + extra, "local-layout.toml");
         Assert.True(loaded.Ok, loaded.Describe());
         var world = new World(0, loaded.Ruleset!, Key);
         Assert.True(world.Roads.LayStreet(face == BlockFace.East ? 1 : 0, face == BlockFace.North ? 1 : 0,

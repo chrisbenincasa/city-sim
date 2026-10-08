@@ -315,7 +315,7 @@ public partial class Main
         _budgetBody.AddChild(_budgetResidual = Wrapped(string.Empty));
     }
 
-    /// <summary>The nine flows, in the order the panel states them.</summary>
+    /// <summary>The flows, in the order the panel states them.</summary>
     /// <remarks>
     /// ⚠ <b><c>placement · out</c> is the one row that pays nobody.</b> A placement's price leaves
     /// the treasury and leaves the money supply with it, because construction money buys imported
@@ -326,11 +326,11 @@ public partial class Main
     [
         "withheld · in", "profit tax · in", "policy · in", "rule · in",
         "policy · out", "rule · out", "subsidy · out", "placement · out", "upkeep · out",
-        "compensation · out",
+        "compensation · out", "opening grant · out",
     ];
 
     /// <summary>
-    /// Writes the levels, the ten flows and the sentence that makes the balance checkable.
+    /// Writes the levels, the flows and the sentence that makes the balance checkable.
     /// </summary>
     /// <remarks>
     /// 🔴 <b>The residual is the point of the whole panel.</b> <c>plans/0072</c> F11 found 89% of
@@ -364,6 +364,7 @@ public partial class Main
         Line(7, today.Placement, day.Placement, running.Placement);
         Line(8, today.Upkeep, day.Upkeep, running.Upkeep);
         Line(9, today.Compensation, day.Compensation, running.Compensation);
+        Line(10, today.Grant, day.Grant, running.Grant);
 
         long residual = budget.Residual(held);
         long explained = budget.Opening + running.Income - running.Expenditure;
