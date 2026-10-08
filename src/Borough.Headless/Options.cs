@@ -1213,6 +1213,13 @@ internal sealed class Options
             return false;
         }
 
+        if (school && reloadAt.Count != 0)
+        {
+            complaint = "--school and --reload-at disagree: the School dump builds its own world, "
+                      + "so a reload would be ignored rather than changing the picture it reports.";
+            return false;
+        }
+
         if (school && (stages || day || money || market || business || arrivals || landValue
                        || parking || evidence || traffic || commute || zones || roads || trips
                        || dump is not null))
@@ -1316,6 +1323,36 @@ internal sealed class Options
                       + "rulesets/levied.toml is the file this mode was written for -- it is the "
                       + "only shipped world in which a Business is created, funded, staffed and "
                       + "read by a Rule.";
+            return false;
+        }
+
+        if (business && log is not null)
+        {
+            complaint = "--business and --log disagree: the dump populates its own world and steps it, "
+                      + "so a recorded session would be replayed and then over-populated.";
+            return false;
+        }
+
+        if (business && reloadAt.Count != 0)
+        {
+            complaint = "--business and --reload-at disagree: the dump builds its own world, "
+                      + "so a reload would be ignored rather than changing the picture it reports.";
+            return false;
+        }
+
+        if ((day || stages || flood || watch) && log is not null)
+        {
+            string modeName = day ? "day" : stages ? "stages" : flood ? "flood" : "watch";
+            complaint = $"--{modeName} and --log disagree: the dump populates its own world and steps it, "
+                      + "so a recorded session would be replayed and then over-populated.";
+            return false;
+        }
+
+        if ((day || stages || flood || watch) && reloadAt.Count != 0)
+        {
+            string modeName = day ? "day" : stages ? "stages" : flood ? "flood" : "watch";
+            complaint = $"--{modeName} and --reload-at disagree: the dump builds its own world, "
+                      + "so a reload would be ignored rather than changing the picture it reports.";
             return false;
         }
 
@@ -1702,7 +1739,7 @@ internal sealed class Options
                     or "--profile-reuse" or "--profile-services" or "--route-workers" or "--warmup-ticks" or "--profile-wait" or "--profile-work" or "--profile-population" or "--profile-load" or "--profile-save" or "--no-decide-guard"))))
         { complaint = "--profile accepts only --profile-reuse, --profile-services, --route-workers, --ruleset, --citizens, --seed, --ticks, --warmup-ticks, --profile-wait, --profile-work, --profile-population, --profile-load, --profile-save and --no-decide-guard; supply one Ruleset and 1..2147483647 measured Ticks."; return false; }
 
-        if ((shopping || care) && (shopping && care || flood || rulesets.Count != 1 || log is not null || save is not null
+        if ((shopping || care) && (shopping && care || flood || rulesets.Count != 1 || log is not null || reloadAt.Count != 0 || save is not null
             || school || stages || day || money || income || market || business || arrivals
             || landValue
             || parking || evidence || traffic || commute || trips || roads || morphology || zones

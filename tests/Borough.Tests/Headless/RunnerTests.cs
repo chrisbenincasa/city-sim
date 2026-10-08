@@ -293,6 +293,30 @@ public sealed class RunnerTests
         Assert.Contains("carries its own", complaint, StringComparison.Ordinal);
     }
 
+    /// <summary>The School dump owns its world, so it cannot apply a session reload.</summary>
+    [Fact]
+    public void A_school_and_a_reload_disagree()
+    {
+        Assert.False(Options.TryParse(
+            ["--school", "--ruleset", "a.toml", "--reload-at", "200", "--ruleset", "b.toml"],
+            out _,
+            out string? complaint));
+
+        Assert.Contains("--school and --reload-at disagree", complaint, StringComparison.Ordinal);
+    }
+
+    /// <summary>The Business dump owns its world, so it cannot replay a recorded session.</summary>
+    [Fact]
+    public void A_business_and_a_log_disagree()
+    {
+        Assert.False(Options.TryParse(
+            ["--business", "--ruleset", "a.toml", "--log", "session.borough"],
+            out _,
+            out string? complaint));
+
+        Assert.Contains("--business and --log disagree", complaint, StringComparison.Ordinal);
+    }
+
     /// <summary>One Tick per Ruleset after the first, because each reload swaps to the next one.</summary>
     [Theory]
     [InlineData(new[] { "--ruleset", "a.toml", "--reload-at", "200" }, "one Tick per Ruleset")]
