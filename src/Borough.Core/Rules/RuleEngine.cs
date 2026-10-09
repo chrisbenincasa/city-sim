@@ -1310,6 +1310,53 @@ public sealed class RuleEngine
             verdict.Blocking);
 
         _world.Drain(verdict.Bin, verdict.Blocking, tick);
+
+        ReleaseClaims(verdict, tick);
+    }
+
+    /// <summary>
+    /// Drains every other Bin the stopped Rule names, in the direction the Rule would have moved it.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="World.Drain(int, Blocking, Ticks)"/> spends its budget on each waiter it wakes, so a
+    /// woken Rule holds a claim on the Bin that woke it until it runs. A Rule that stops draws nothing,
+    /// and the waiters its claim held back are owed a wake that no write to that Bin will bring.
+    /// </remarks>
+    private void ReleaseClaims(RuleVerdict verdict, Ticks tick)
+    {
+        int instance = verdict.Instance;
+        RuleId rule = _world.RuleInstances.Rule[instance];
+        ReadOnlySpan<Term> inputs = _world.Rules.Inputs(rule);
+        ReadOnlySpan<Term> outputs = _world.Rules.Outputs(rule);
+        int terms = inputs.Length + outputs.Length;
+
+        for (int position = 0; position < terms; position++)
+        {
+            int bin = BinAt(_world, instance, rule, inputs, outputs, position);
+            Blocking blocking = position < inputs.Length ? Blocking.Supply : Blocking.Space;
+
+            if (bin == Rows.NoSlot || (bin == verdict.Bin && blocking == verdict.Blocking))
+            {
+                continue;
+            }
+
+            bool drained = false;
+
+            for (int earlier = 0; earlier < position; earlier++)
+            {
+                if (BinAt(_world, instance, rule, inputs, outputs, earlier) == bin
+                    && (earlier < inputs.Length ? Blocking.Supply : Blocking.Space) == blocking)
+                {
+                    drained = true;
+                    break;
+                }
+            }
+
+            if (!drained)
+            {
+                _world.Drain(bin, blocking, tick);
+            }
+        }
     }
 
     /// <summary>
@@ -1512,9 +1559,11 @@ public sealed class RuleEngine
     /// where <c>02 §10</c> already puts a whole-world walk.
     /// </para>
     /// <para>
-    /// <b>Armed is <see cref="EventWheel.IsArmed"/>'s sense rather than <c>Blocked == Nothing</c>.</b>
-    /// The latter reads the same for a row Phase 1 has already popped, which is in flight rather than
-    /// owed — <c>adr/0056</c>'s third state, and the reason that predicate exists.
+    /// <b>A claim belongs to every row due on <c>world.Tick</c> or later.</b> The check runs between
+    /// Ticks, after <c>World.Advance</c>, so a waiter woken on the last Tick is due on
+    /// <c>world.Tick</c> and still on the wheel. <see cref="EventWheel.IsArmed"/> reads that row as in
+    /// flight, which is true only between Phase 1 and Phase 3, so it misses the very claim the drain
+    /// just made. A row in flight also still draws this Tick, so it claims the same way.
     /// </para>
     /// </remarks>
     internal static void AccumulateClaims(World world, Blocking blocking, Span<long> claims)
@@ -1525,7 +1574,9 @@ public sealed class RuleEngine
 
         for (int instance = 0; instance < instances.Rows.SlotCount; instance++)
         {
-            if (!instances.Rows.IsLive(instance) || !world.Wheel.IsArmed(instance, world.Tick))
+            if (!instances.Rows.IsLive(instance)
+                || instances.Blocked[instance] != Blocking.Nothing
+                || instances.NextTick[instance] < world.Tick)
             {
                 continue;
             }
