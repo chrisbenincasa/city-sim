@@ -157,5 +157,5 @@ static byte Kind(Ruleset rules, string id)
         }
     }
 
-    return 0;
+    throw new InvalidOperationException($"the Ruleset declares no trade '{id}'.");
 }

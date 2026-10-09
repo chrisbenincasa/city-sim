@@ -3,6 +3,7 @@ using Borough.Core;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Input;
+using Borough.Core.Instruments;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
@@ -94,6 +95,28 @@ public sealed class BaseFoundingPackageTests
         Assert.True(grocerRevenue > 0, "no Household bought sundries from a grocer.");
 
         world.Invariants.RunEndOfRun(world);
+    }
+
+    [Fact]
+    public void The_treasury_grants_new_trades_collects_taxes_and_pays_road_upkeep()
+    {
+        (Ruleset rules, _) = Package();
+        InputLog log = InputLogCodec.FromText(Committed());
+        Simulation simulation = Replay.Start(log, rules);
+        TreasuryFlows flows = default;
+
+        for (int day = 0; day < Days; day++)
+        {
+            Replay.Trace(simulation, log, new Ticks(Ticks.PerDay), hashEvery: Ticks.PerDay, []);
+            flows = flows.Add(simulation.DrainTreasuryFlows());
+        }
+
+        Assert.True(flows.Grant > 0, "no zone-raised trade received an opening grant.");
+        Assert.True(flows.Withheld > 0, "no wage paid income tax.");
+        Assert.True(flows.ProfitTax > 0, "no Business paid business tax.");
+        Assert.True(flows.Upkeep > 0, "the treasury paid no road upkeep.");
+
+        simulation.World.Invariants.RunEndOfRun(simulation.World);
     }
 
     [Fact]
