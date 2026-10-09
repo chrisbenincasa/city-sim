@@ -71,7 +71,7 @@ Each slice is one PR. [Execution](#execution) gives the order and which slices r
 1. **Base in the verification lanes.** Built. Add `rulesets/base/` to the all-Ruleset sweeps. Replay
    `founding.borough` twice and compare State Hashes. Save at Day 6, reload and continue to
    Day 12, and match the uninterrupted run. Needs nothing else.
-2. **Production chain in base (D1).** Built on branch `founding-2`. Every dwelling hosts a `mill`.
+2. **Production chain in base (D1).** Built. Every dwelling hosts a `mill`.
    A trade zone (bit 1) raises `shopfront` Buildings, each hosting a `grocer` that buys flour through
    the District Pool and bakes sundries. `restock` draws from the Pool. Every gate prices sundries,
    flour and repairs. `founding.borough` zones blocks (1,1), (2,2) and (3,0) for trade.
@@ -85,9 +85,9 @@ Each slice is one PR. [Execution](#execution) gives the order and which slices r
    Business, and the Building stands without its trade. `Found` and placed Buildings receive none.
    The budget panel and the Census count it as the `opening grant` flow. Absent pays nothing, and no
    golden or shipped Ruleset hash moved. `rulesets/granted.toml` and `OpeningGrantTests` prove it.
-3b. **City income in base (D3, D5).** Turn on 3a's grant and add `[business_tax]`, `[income_tax]` and
-   road upkeep to base. Run 120 Days headless. Record the treasury, the sum of Business tills and the
-   Household balances by Day.
+3b. **City income in base (D3, D5). Built.** Base turns on 3a's grant and adds `[business_tax]`,
+   `[income_tax]` and road upkeep. Every number is provisional, and slice 4 tunes them.
+   [City income record](#city-income-record-slice-3b) has the 120-Day run.
 4. **Continued operation.** Tune provisional numbers until the 120-Day run meets the operation
    checks below. Record the run's command, seed and measurements in this plan.
 5. **Shortage and recovery (D4).** A headless test pairs an intervention run with a control.
@@ -97,6 +97,63 @@ Each slice is one PR. [Execution](#execution) gives the order and which slices r
    shortage, the player's action and the recovery. Record what observation exposed. Run this after
    freeform slice 5 lands, or plan to re-record. Freeform replaces the Street command and the Lot layer
    that `founding.borough` and the drive script use.
+
+## City income record (slice 3b)
+
+Provisional numbers, as shipped:
+
+| Key | Value | Anchor |
+|---|---|---|
+| `mill` `opening_grant` | 2,048 | About one worker-week at 256 a Day |
+| `grocer` `opening_grant` | 32,768 | About one worker-week at 4,096 a Day |
+| `[income_tax]` | allowance 512, upper threshold 8,192, rates 10% / 20% | Mill wages untaxed; grocer and teacher wages in the middle band |
+| `[business_tax]` | threshold 16,384, rates 10% / 20% | Threshold is four grocer day-wages; rates from `taxing.toml` |
+| `[roads] upkeep_per_segment_per_day` | 128 | 40 Segments cost 5,120 a Day |
+
+Run:
+
+- Log `rulesets/base/founding.borough`, seed `0x135283C`, 120 Days (245,760 Ticks), at `founding-3b`.
+- Command: `dotnet spikes/FoundingProbe/bin/Release/net10.0/FoundingProbe.dll rulesets/base/ruleset.toml rulesets/base/founding.borough 120 30`.
+  [The probe's README](../spikes/FoundingProbe/README.md) explains the build and the columns.
+- End-of-run invariants hold at Day 120. Save at Day 30, reload and continue matches all 120 daily
+  State Hashes.
+
+| Day | Treasury | Business tills | Household balances | Households | Employed | Businesses | Mills | Grocers |
+|---|---|---|---|---|---|---|---|---|
+| 10 | 3,084,020 | 1,646,367 | 202,838 | 321 | 374 | 114 | 93 | 20 |
+| 20 | 2,681,097 | 2,281,070 | 535,956 | 511 | 589 | 129 | 100 | 28 |
+| 30 | 2,058,010 | 2,070,611 | 1,682,003 | 624 | 711 | 147 | 102 | 44 |
+| 40 | 1,533,427 | 1,445,965 | 3,097,746 | 717 | 737 | 148 | 89 | 58 |
+| 50 | 1,072,402 | 1,045,478 | 4,121,547 | 785 | 619 | 118 | 50 | 67 |
+| 60 | 135,662 | 1,468,392 | 4,813,113 | 844 | 521 | 101 | 26 | 74 |
+| 70 | 0 | 1,257,757 | 5,234,095 | 870 | 458 | 88 | 25 | 62 |
+| 80 | 11,690 | 1,349,544 | 5,315,523 | 896 | 343 | 66 | 25 | 40 |
+| 90 | 7,687 | 1,734,257 | 5,188,614 | 931 | 287 | 55 | 25 | 29 |
+| 100 | 0 | 1,228,012 | 5,885,920 | 970 | 175 | 34 | 25 | 8 |
+| 110 | 0 | 1,299,991 | 5,910,235 | 1,009 | 181 | 35 | 25 | 9 |
+| 120 | 2,745 | 1,962,337 | 5,015,434 | 1,027 | 169 | 33 | 25 | 7 |
+
+Treasury flows over 120 Days:
+
+| Flow | Total |
+|---|---|
+| Opening grants | 3,846,144 out |
+| School funding (policy) | 1,781,760 out |
+| Road upkeep | 538,653 out |
+| School placement | 262,144 out |
+| Income tax | 1,057,086 in |
+| Business tax | 399,050 in |
+
+Findings for slice 4:
+
+- Opening grants empty the treasury on Day 63. Grocers close and reopen, and each opening draws a
+  new grant. Afterwards the treasury lives on each Day's taxes. It pays school funding on some Days
+  and almost no grants, and employment falls from 737 at Day 40 to 169 at Day 120.
+- Mills fall from 102 at Day 30 to 25 by Day 70, as in slice 2. Base's flour trade fades as
+  `milled.toml`'s does.
+- Business tills do not settle. They fall to about 1.0M by Day 50 and climb back to 1.96M by Day 120,
+  while the Businesses holding them drop from 148 to 33.
+- Household balances rise from 0.2M to 5.0M and hold most of the city's Money after Day 50.
 
 ## Execution
 
