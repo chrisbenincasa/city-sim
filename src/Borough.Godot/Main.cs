@@ -1483,6 +1483,8 @@ public partial class Main : Node3D
             // larger slop radius would have been the same defect with a longer fuse.
             if (button is { Pressed: true, ButtonIndex: MouseButton.Left })
             {
+                _streetPointOnRelease = false;
+
                 // Record inspected subject ids and edit Tiles, so playback does not depend on
                 // the camera. Use this event's pixel for inspection, including injected input.
                 if (_verb == Verb.Look)
