@@ -194,11 +194,13 @@ public sealed class MarketDumpTests
             }
 
             long ceiling = Number(cells[2]);
+            long now = Number(cells[3]);
+            long high = Number(cells[5]);
             long recovery = ceiling * capPercent / 100;
 
-            Assert.Equal(ceiling, Number(cells[5]));
+            Assert.True(high == ceiling, $"'{row}' rose above the price it opened at, its ceiling.");
             Assert.True(
-                Number(cells[3]) >= ceiling - recovery,
+                now >= ceiling - recovery,
                 $"'{row}' ends under a Day's cover more than one Day's recovery below its ceiling.");
         }
 

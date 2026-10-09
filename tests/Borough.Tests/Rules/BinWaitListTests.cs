@@ -491,4 +491,44 @@ public sealed class BinWaitListTests
 
         simulation.CheckEndOfRun();
     }
+
+    // ---- a waiter woken on the last Tick still claims between Ticks --------------------------------
+
+    /// <summary>
+    /// A waiter the last Tick woke holds a claim on its Bin until it runs, so the waiter it left
+    /// parked is not stranded.
+    /// </summary>
+    /// <remarks>
+    /// Three flour wakes the head, which needs three, and leaves the second waiter parked. Between
+    /// Ticks the head is due on <c>world.Tick</c>, and the three flour are still in the Bin. The
+    /// end-of-run check must count the head's claim, or it reports the second waiter as owed a wake.
+    /// The deposit is stamped with the previous Tick to reproduce a wake made inside that Tick.
+    /// </remarks>
+    [Fact]
+    public void A_waiter_woken_on_the_last_tick_claims_its_bin_between_ticks()
+    {
+        (World world, Simulation simulation, Handle<Building> building) = Built(Consuming());
+
+        int second = world.RuleInstances.Rows.Resolve(
+            world.CreateRuleInstance(building, new RuleId(1), simulation.Tick, delay: 2));
+
+        for (int step = 0; step < 3; step++)
+        {
+            simulation.Step(TickInput.Empty);
+        }
+
+        int flour = BinOf(world, building, Flour);
+        int head = world.SupplyWaiters.PeekFront(flour);
+
+        Assert.NotEqual(second, head);
+        Assert.True(world.RuleInstances.IsWaiting(second));
+
+        world.Deposit(world.Bins.Rows.At(flour), 3, new Ticks(simulation.Tick.Raw - 1));
+
+        Assert.Equal(simulation.Tick, world.RuleInstances.NextTick[head]);
+        Assert.Equal(second, world.SupplyWaiters.PeekFront(flour));
+        Assert.Equal(3, world.Bins.LevelAt(flour));
+
+        simulation.CheckEndOfRun();
+    }
 }
