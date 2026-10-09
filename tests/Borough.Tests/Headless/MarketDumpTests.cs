@@ -1,4 +1,5 @@
 using System.Globalization;
+using Borough.Formats;
 using Borough.Headless;
 
 namespace Borough.Tests.Headless;
@@ -125,6 +126,11 @@ public sealed class MarketDumpTests
     /// <c>adr/0171</c>.
     /// </para>
     /// <para>
+    /// ⚠ <b>A row under cover at the end may still sit one Day's recovery below its ceiling.</b> A
+    /// short glut a few Days earlier pulls the price down, and each reprice under cover climbs back by
+    /// at most <c>move_cap_percent</c> of the ceiling. The row must never rise above its ceiling.
+    /// </para>
+    /// <para>
     /// 🔴 <b>A ROW WITH NO DRAW IS SKIPPED AND COUNTED, added at <c>plans/0053</c>.</b> The cover
     /// assertion divides by a demand, and a District can hold sellers and no consumers — this one
     /// grew such a row the moment occupancy started dividing the ground, District 3 standing with
@@ -176,6 +182,8 @@ public sealed class MarketDumpTests
             "no row in this market has a draw at all, so the cover assertion above ran on nothing "
             + "and this half of the test is vacuous. The scarce world has stopped consuming.");
 
+        int capPercent = RulesetLoader.Load(Ruleset("provisioned.toml")).Ruleset!.Market.MoveCapPercent;
+
         foreach (string row in Rows(scarce, "What the price did"))
         {
             string[] cells = Cells(row);
@@ -185,8 +193,15 @@ public sealed class MarketDumpTests
                 continue;
             }
 
-            Assert.Equal(cells[2], cells[3]);
-            Assert.Equal("0", cells[^1]);
+            long ceiling = Number(cells[2]);
+            long now = Number(cells[3]);
+            long high = Number(cells[5]);
+            long recovery = ceiling * capPercent / 100;
+
+            Assert.True(high == ceiling, $"'{row}' rose above the price it opened at, its ceiling.");
+            Assert.True(
+                now >= ceiling - recovery,
+                $"'{row}' ends under a Day's cover more than one Day's recovery below its ceiling.");
         }
 
         if (covered.Count == 0)

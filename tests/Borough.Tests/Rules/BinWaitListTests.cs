@@ -408,4 +408,127 @@ public sealed class BinWaitListTests
             simulation.CheckEndOfRun();
         }
     }
+
+    // ---- a woken waiter that draws nothing hands its budget back ----------------------------------
+
+    /// <summary>
+    /// Two Rules share a flour Bin. The first needs eight flour and one bread, and the second needs
+    /// one flour.
+    /// </summary>
+    private static Ruleset SharingFlour() => new(
+        resources: [ResourceFamily.Good, ResourceFamily.Good],
+        rules:
+        [
+            new RuleDefinition(
+                Kind, 64, ApplyCount.Band(1, 1), RuleId.None, false, default, ConditionId.None,
+                0, 2, 0, 0, 0, 0),
+            new RuleDefinition(
+                Kind, 64, ApplyCount.Band(1, 1), RuleId.None, false, default, ConditionId.None,
+                2, 1, 0, 0, 0, 0),
+        ],
+        kinds: [new KindDefinition(0, 2, 0, 2)],
+        inputs:
+        [
+            new Term(new BinRef(Scope.Local, Flour), 8),
+            new Term(new BinRef(Scope.Local, Bread), 1),
+            new Term(new BinRef(Scope.Local, Flour), 1),
+        ],
+        outputs: [],
+        emissions: [],
+        bins: [new BinDeclaration(Flour, BinCapacity.Of(12)), new BinDeclaration(Bread, BinCapacity.Of(12))],
+        kindRules: [new RuleId(1), new RuleId(2)],
+        zoneRules: []);
+
+    /// <summary>
+    /// A waiter woken ahead of another, that then parks on a different Bin, leaves the one behind it
+    /// awake.
+    /// </summary>
+    /// <remarks>
+    /// The drain spends its budget on each waiter it wakes. Eight flour wakes the head, which needs
+    /// eight, and leaves nothing for the second waiter, which needs one. The head then fails on bread
+    /// and takes no flour, so the eight are free again. Its stop must drain the flour Bin, because no
+    /// other write to that Bin is coming.
+    /// </remarks>
+    [Fact]
+    public void A_woken_waiter_that_parks_elsewhere_wakes_the_waiter_behind_it()
+    {
+        Ruleset ruleset = SharingFlour();
+        var world = new World(1_000, ruleset);
+        var simulation = new Simulation(world, WorldKey.FromSeed(1)) { VerifyDecideWritesNothing = true };
+
+        Handle<Lot> lot = world.Lots.Create(new Tiles(1), new Tiles(2), zone: 1);
+        Handle<Building> building = world.Buildings.Create(world.Lots, lot, Kind);
+
+        foreach (BinDeclaration bin in ruleset.BinsOf(Kind))
+        {
+            world.CreateBin(building, bin.Resource);
+        }
+
+        int head = world.RuleInstances.Rows.Resolve(
+            world.CreateRuleInstance(building, new RuleId(1), simulation.Tick, delay: 1));
+        int behind = world.RuleInstances.Rows.Resolve(
+            world.CreateRuleInstance(building, new RuleId(2), simulation.Tick, delay: 2));
+
+        for (int step = 0; step < 3; step++)
+        {
+            simulation.Step(TickInput.Empty);
+        }
+
+        int flour = BinOf(world, building, Flour);
+
+        Assert.Equal(head, world.SupplyWaiters.PeekFront(flour));
+        Assert.True(world.RuleInstances.IsWaiting(behind));
+
+        world.Deposit(world.Bins.Rows.At(flour), 8, simulation.Tick);
+
+        Assert.True(world.RuleInstances.IsWaiting(behind));
+
+        StepToTheFiring(simulation);
+
+        Assert.Equal(BinOf(world, building, Bread), world.Bins.Rows.Resolve(world.RuleInstances.WaitingOn[head]));
+        Assert.Equal(8, world.Bins.LevelAt(flour));
+        Assert.False(world.RuleInstances.IsWaiting(behind));
+
+        simulation.CheckEndOfRun();
+    }
+
+    // ---- a waiter woken on the last Tick still claims between Ticks --------------------------------
+
+    /// <summary>
+    /// A waiter the last Tick woke holds a claim on its Bin until it runs, so the waiter it left
+    /// parked is not stranded.
+    /// </summary>
+    /// <remarks>
+    /// Three flour wakes the head, which needs three, and leaves the second waiter parked. Between
+    /// Ticks the head is due on <c>world.Tick</c>, and the three flour are still in the Bin. The
+    /// end-of-run check must count the head's claim, or it reports the second waiter as owed a wake.
+    /// The deposit is stamped with the previous Tick to reproduce a wake made inside that Tick.
+    /// </remarks>
+    [Fact]
+    public void A_waiter_woken_on_the_last_tick_claims_its_bin_between_ticks()
+    {
+        (World world, Simulation simulation, Handle<Building> building) = Built(Consuming());
+
+        int second = world.RuleInstances.Rows.Resolve(
+            world.CreateRuleInstance(building, new RuleId(1), simulation.Tick, delay: 2));
+
+        for (int step = 0; step < 3; step++)
+        {
+            simulation.Step(TickInput.Empty);
+        }
+
+        int flour = BinOf(world, building, Flour);
+        int head = world.SupplyWaiters.PeekFront(flour);
+
+        Assert.NotEqual(second, head);
+        Assert.True(world.RuleInstances.IsWaiting(second));
+
+        world.Deposit(world.Bins.Rows.At(flour), 3, new Ticks(simulation.Tick.Raw - 1));
+
+        Assert.Equal(simulation.Tick, world.RuleInstances.NextTick[head]);
+        Assert.Equal(second, world.SupplyWaiters.PeekFront(flour));
+        Assert.Equal(3, world.Bins.LevelAt(flour));
+
+        simulation.CheckEndOfRun();
+    }
 }
