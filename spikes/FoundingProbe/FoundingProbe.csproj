@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Borough.Core/Borough.Core.csproj" />
+    <ProjectReference Include="../../src/Borough.Formats/Borough.Formats.csproj" />
+  </ItemGroup>
+</Project>
