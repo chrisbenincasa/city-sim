@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://mwc5hqc6k7lc"
 path.s3tc="res://.godot/imported/facade-001-albedo.jpg-96137b1a0a3185f7645f97ca7efd541d.s3tc.ctex"
+path.etc2="res://.godot/imported/facade-001-albedo.jpg-96137b1a0a3185f7645f97ca7efd541d.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/facade-001-albedo.jpg"
-dest_files=["res://.godot/imported/facade-001-albedo.jpg-96137b1a0a3185f7645f97ca7efd541d.s3tc.ctex"]
+dest_files=["res://.godot/imported/facade-001-albedo.jpg-96137b1a0a3185f7645f97ca7efd541d.s3tc.ctex", "res://.godot/imported/facade-001-albedo.jpg-96137b1a0a3185f7645f97ca7efd541d.etc2.ctex"]
 
 [params]
 

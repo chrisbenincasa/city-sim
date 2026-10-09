@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://cgrben0d78c0x"
 path.s3tc="res://.godot/imported/aerial-grass-rock-roughness.jpg-6d9c2fd5f00f2c1e39e7ac5ebd462d1b.s3tc.ctex"
+path.etc2="res://.godot/imported/aerial-grass-rock-roughness.jpg-6d9c2fd5f00f2c1e39e7ac5ebd462d1b.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/aerial-grass-rock-roughness.jpg"
-dest_files=["res://.godot/imported/aerial-grass-rock-roughness.jpg-6d9c2fd5f00f2c1e39e7ac5ebd462d1b.s3tc.ctex"]
+dest_files=["res://.godot/imported/aerial-grass-rock-roughness.jpg-6d9c2fd5f00f2c1e39e7ac5ebd462d1b.s3tc.ctex", "res://.godot/imported/aerial-grass-rock-roughness.jpg-6d9c2fd5f00f2c1e39e7ac5ebd462d1b.etc2.ctex"]
 
 [params]
 

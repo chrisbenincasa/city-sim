@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://cmr1oee8atgbg"
 path.s3tc="res://.godot/imported/plaster-001-albedo.jpg-8d741d07f2367259c9f78af7356e7595.s3tc.ctex"
+path.etc2="res://.godot/imported/plaster-001-albedo.jpg-8d741d07f2367259c9f78af7356e7595.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/plaster-001-albedo.jpg"
-dest_files=["res://.godot/imported/plaster-001-albedo.jpg-8d741d07f2367259c9f78af7356e7595.s3tc.ctex"]
+dest_files=["res://.godot/imported/plaster-001-albedo.jpg-8d741d07f2367259c9f78af7356e7595.s3tc.ctex", "res://.godot/imported/plaster-001-albedo.jpg-8d741d07f2367259c9f78af7356e7595.etc2.ctex"]
 
 [params]
 

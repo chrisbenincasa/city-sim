@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://dpkbcisf2qfc0"
 path.s3tc="res://.godot/imported/aerial-rocks-01-normal.jpg-9a9dfd89393385a2803280f3296c1708.s3tc.ctex"
+path.etc2="res://.godot/imported/aerial-rocks-01-normal.jpg-9a9dfd89393385a2803280f3296c1708.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/aerial-rocks-01-normal.jpg"
-dest_files=["res://.godot/imported/aerial-rocks-01-normal.jpg-9a9dfd89393385a2803280f3296c1708.s3tc.ctex"]
+dest_files=["res://.godot/imported/aerial-rocks-01-normal.jpg-9a9dfd89393385a2803280f3296c1708.s3tc.ctex", "res://.godot/imported/aerial-rocks-01-normal.jpg-9a9dfd89393385a2803280f3296c1708.etc2.ctex"]
 
 [params]
 

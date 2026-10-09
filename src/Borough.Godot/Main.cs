@@ -1807,7 +1807,48 @@ public partial class Main : Node3D
     /// file resolves the same way, so a script and its output land where they were asked for.
     /// </remarks>
     private static string Globalize(string path) =>
-        Path.IsPathRooted(path) ? path : ProjectSettings.GlobalizePath($"res://../../{path}");
+        Path.IsPathRooted(path) ? path : Path.Combine(Root.Value, path);
+
+    private static readonly string[] BundledFolders = ["rulesets", "appearance"];
+
+    /// <summary>
+    /// The repository root, or in an exported build the user data folder holding the Rulesets and
+    /// Style Presets unpacked from the pack.
+    /// </summary>
+    /// <remarks>
+    /// Both folders ship inside the pack because a file added beside a signed macOS app breaks its
+    /// signature. Each launch replaces the unpacked folders, so a new build never reads an old file.
+    /// </remarks>
+    private static readonly Lazy<string> Root = new(() =>
+    {
+        if (!OS.HasFeature("template"))
+        {
+            return ProjectSettings.GlobalizePath("res://../../");
+        }
+
+        foreach (string folder in BundledFolders)
+        {
+            string unpacked = ProjectSettings.GlobalizePath($"user://{folder}");
+            if (Directory.Exists(unpacked)) Directory.Delete(unpacked, recursive: true);
+            Unpack($"res://{folder}", $"user://{folder}");
+        }
+
+        return ProjectSettings.GlobalizePath("user://");
+    });
+
+    private static void Unpack(string from, string to)
+    {
+        DirAccess.MakeDirRecursiveAbsolute(to);
+        foreach (string file in DirAccess.GetFilesAt(from))
+        {
+            DirAccess.CopyAbsolute($"{from}/{file}", $"{to}/{file}");
+        }
+
+        foreach (string folder in DirAccess.GetDirectoriesAt(from))
+        {
+            Unpack($"{from}/{folder}", $"{to}/{folder}");
+        }
+    }
 
     /// <summary>Apply world changes, interpolate movement, and retain the standing geometry.</summary>
     private void Draw(Ratio alpha)

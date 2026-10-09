@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://b7tdtau8ceh1y"
 path.s3tc="res://.godot/imported/factory-wall-albedo.jpg-74e16df2813b11866450b97ec9fcf957.s3tc.ctex"
+path.etc2="res://.godot/imported/factory-wall-albedo.jpg-74e16df2813b11866450b97ec9fcf957.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/factory-wall-albedo.jpg"
-dest_files=["res://.godot/imported/factory-wall-albedo.jpg-74e16df2813b11866450b97ec9fcf957.s3tc.ctex"]
+dest_files=["res://.godot/imported/factory-wall-albedo.jpg-74e16df2813b11866450b97ec9fcf957.s3tc.ctex", "res://.godot/imported/factory-wall-albedo.jpg-74e16df2813b11866450b97ec9fcf957.etc2.ctex"]
 
 [params]
 

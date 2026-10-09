@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://bwvvip4rmwvd4"
 path.s3tc="res://.godot/imported/roofing-tiles-007-albedo.jpg-36611638a6295526a30ec61f6d43e582.s3tc.ctex"
+path.etc2="res://.godot/imported/roofing-tiles-007-albedo.jpg-36611638a6295526a30ec61f6d43e582.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/roofing-tiles-007-albedo.jpg"
-dest_files=["res://.godot/imported/roofing-tiles-007-albedo.jpg-36611638a6295526a30ec61f6d43e582.s3tc.ctex"]
+dest_files=["res://.godot/imported/roofing-tiles-007-albedo.jpg-36611638a6295526a30ec61f6d43e582.s3tc.ctex", "res://.godot/imported/roofing-tiles-007-albedo.jpg-36611638a6295526a30ec61f6d43e582.etc2.ctex"]
 
 [params]
 

@@ -547,3 +547,8 @@ artifacts/visual-study/fidelity-research/
 
 !artifacts/aged-city-performance/
 !artifacts/aged-city-performance/**
+
+# Exported builds and the folders scripts/export.sh copies in to pack.
+/build/
+/src/Borough.Godot/rulesets/
+/src/Borough.Godot/appearance/

@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://b5ts6m87esxs3"
 path.s3tc="res://.godot/imported/preconcrete-wall-001-roughness.jpg-f945b165ed65edd7d05a171d4675dc78.s3tc.ctex"
+path.etc2="res://.godot/imported/preconcrete-wall-001-roughness.jpg-f945b165ed65edd7d05a171d4675dc78.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/preconcrete-wall-001-roughness.jpg"
-dest_files=["res://.godot/imported/preconcrete-wall-001-roughness.jpg-f945b165ed65edd7d05a171d4675dc78.s3tc.ctex"]
+dest_files=["res://.godot/imported/preconcrete-wall-001-roughness.jpg-f945b165ed65edd7d05a171d4675dc78.s3tc.ctex", "res://.godot/imported/preconcrete-wall-001-roughness.jpg-f945b165ed65edd7d05a171d4675dc78.etc2.ctex"]
 
 [params]
 

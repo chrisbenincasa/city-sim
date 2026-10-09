@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://xgk0smd7527j"
 path.s3tc="res://.godot/imported/roofing-tiles-008-roughness.jpg-b5f66e72ec5b0c08a4cd6ccf43cebd2e.s3tc.ctex"
+path.etc2="res://.godot/imported/roofing-tiles-008-roughness.jpg-b5f66e72ec5b0c08a4cd6ccf43cebd2e.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/roofing-tiles-008-roughness.jpg"
-dest_files=["res://.godot/imported/roofing-tiles-008-roughness.jpg-b5f66e72ec5b0c08a4cd6ccf43cebd2e.s3tc.ctex"]
+dest_files=["res://.godot/imported/roofing-tiles-008-roughness.jpg-b5f66e72ec5b0c08a4cd6ccf43cebd2e.s3tc.ctex", "res://.godot/imported/roofing-tiles-008-roughness.jpg-b5f66e72ec5b0c08a4cd6ccf43cebd2e.etc2.ctex"]
 
 [params]
 

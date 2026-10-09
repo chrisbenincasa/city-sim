@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://ldocdw83bd2q"
 path.s3tc="res://.godot/imported/corrugated-iron-02-roughness.jpg-7d66eb5e153178893c64e65905211e7f.s3tc.ctex"
+path.etc2="res://.godot/imported/corrugated-iron-02-roughness.jpg-7d66eb5e153178893c64e65905211e7f.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/corrugated-iron-02-roughness.jpg"
-dest_files=["res://.godot/imported/corrugated-iron-02-roughness.jpg-7d66eb5e153178893c64e65905211e7f.s3tc.ctex"]
+dest_files=["res://.godot/imported/corrugated-iron-02-roughness.jpg-7d66eb5e153178893c64e65905211e7f.s3tc.ctex", "res://.godot/imported/corrugated-iron-02-roughness.jpg-7d66eb5e153178893c64e65905211e7f.etc2.ctex"]
 
 [params]
 

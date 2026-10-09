@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://s5y7gxxc0khx"
 path.s3tc="res://.godot/imported/concrete-panels-normal.jpg-a746e78b227cdd100277fdba85723c09.s3tc.ctex"
+path.etc2="res://.godot/imported/concrete-panels-normal.jpg-a746e78b227cdd100277fdba85723c09.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/concrete-panels-normal.jpg"
-dest_files=["res://.godot/imported/concrete-panels-normal.jpg-a746e78b227cdd100277fdba85723c09.s3tc.ctex"]
+dest_files=["res://.godot/imported/concrete-panels-normal.jpg-a746e78b227cdd100277fdba85723c09.s3tc.ctex", "res://.godot/imported/concrete-panels-normal.jpg-a746e78b227cdd100277fdba85723c09.etc2.ctex"]
 
 [params]
 

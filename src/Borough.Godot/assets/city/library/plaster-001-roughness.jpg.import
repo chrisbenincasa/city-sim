@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://c7y7w1npg84c8"
 path.s3tc="res://.godot/imported/plaster-001-roughness.jpg-efe69428cbf6e892c5849b46cebd4cb3.s3tc.ctex"
+path.etc2="res://.godot/imported/plaster-001-roughness.jpg-efe69428cbf6e892c5849b46cebd4cb3.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/plaster-001-roughness.jpg"
-dest_files=["res://.godot/imported/plaster-001-roughness.jpg-efe69428cbf6e892c5849b46cebd4cb3.s3tc.ctex"]
+dest_files=["res://.godot/imported/plaster-001-roughness.jpg-efe69428cbf6e892c5849b46cebd4cb3.s3tc.ctex", "res://.godot/imported/plaster-001-roughness.jpg-efe69428cbf6e892c5849b46cebd4cb3.etc2.ctex"]
 
 [params]
 

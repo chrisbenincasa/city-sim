@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://bvxmcq3ijm4el"
 path.s3tc="res://.godot/imported/gravel-road-normal.jpg-9991ea45b1dbbe4c7962fb87ac885cbc.s3tc.ctex"
+path.etc2="res://.godot/imported/gravel-road-normal.jpg-9991ea45b1dbbe4c7962fb87ac885cbc.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/gravel-road-normal.jpg"
-dest_files=["res://.godot/imported/gravel-road-normal.jpg-9991ea45b1dbbe4c7962fb87ac885cbc.s3tc.ctex"]
+dest_files=["res://.godot/imported/gravel-road-normal.jpg-9991ea45b1dbbe4c7962fb87ac885cbc.s3tc.ctex", "res://.godot/imported/gravel-road-normal.jpg-9991ea45b1dbbe4c7962fb87ac885cbc.etc2.ctex"]
 
 [params]
 

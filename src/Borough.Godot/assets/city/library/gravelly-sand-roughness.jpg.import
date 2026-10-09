@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://dg38gpxcgkhxv"
 path.s3tc="res://.godot/imported/gravelly-sand-roughness.jpg-711aae69746c3f8a3360ace971652adb.s3tc.ctex"
+path.etc2="res://.godot/imported/gravelly-sand-roughness.jpg-711aae69746c3f8a3360ace971652adb.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/gravelly-sand-roughness.jpg"
-dest_files=["res://.godot/imported/gravelly-sand-roughness.jpg-711aae69746c3f8a3360ace971652adb.s3tc.ctex"]
+dest_files=["res://.godot/imported/gravelly-sand-roughness.jpg-711aae69746c3f8a3360ace971652adb.s3tc.ctex", "res://.godot/imported/gravelly-sand-roughness.jpg-711aae69746c3f8a3360ace971652adb.etc2.ctex"]
 
 [params]
 

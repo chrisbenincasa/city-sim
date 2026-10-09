@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://vr32c0i4b7oj"
 path.s3tc="res://.godot/imported/preconcrete-wall-001-normal.jpg-31a86b9707e4dbaef7e8de82aa79464b.s3tc.ctex"
+path.etc2="res://.godot/imported/preconcrete-wall-001-normal.jpg-31a86b9707e4dbaef7e8de82aa79464b.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/preconcrete-wall-001-normal.jpg"
-dest_files=["res://.godot/imported/preconcrete-wall-001-normal.jpg-31a86b9707e4dbaef7e8de82aa79464b.s3tc.ctex"]
+dest_files=["res://.godot/imported/preconcrete-wall-001-normal.jpg-31a86b9707e4dbaef7e8de82aa79464b.s3tc.ctex", "res://.godot/imported/preconcrete-wall-001-normal.jpg-31a86b9707e4dbaef7e8de82aa79464b.etc2.ctex"]
 
 [params]
 

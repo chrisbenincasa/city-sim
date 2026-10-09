@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://cep6kinvm61ac"
 path.s3tc="res://.godot/imported/asphalt-track-albedo.jpg-904267b63ea79e744de83ef89c8994fe.s3tc.ctex"
+path.etc2="res://.godot/imported/asphalt-track-albedo.jpg-904267b63ea79e744de83ef89c8994fe.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/library/asphalt-track-albedo.jpg"
-dest_files=["res://.godot/imported/asphalt-track-albedo.jpg-904267b63ea79e744de83ef89c8994fe.s3tc.ctex"]
+dest_files=["res://.godot/imported/asphalt-track-albedo.jpg-904267b63ea79e744de83ef89c8994fe.s3tc.ctex", "res://.godot/imported/asphalt-track-albedo.jpg-904267b63ea79e744de83ef89c8994fe.etc2.ctex"]
 
 [params]
 
