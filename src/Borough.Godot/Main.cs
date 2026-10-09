@@ -920,6 +920,7 @@ public partial class Main : Node3D
     /// </para>
     /// </remarks>
     private (Tiles East, Tiles North)? _pressed;
+    private bool _streetPointOnRelease;
     private bool _pressedInverted;
     private Label _readout = null!;
     private VisibleAgent[] _agents = new VisibleAgent[8192];
@@ -1482,6 +1483,8 @@ public partial class Main : Node3D
             // larger slop radius would have been the same defect with a longer fuse.
             if (button is { Pressed: true, ButtonIndex: MouseButton.Left })
             {
+                _streetPointOnRelease = false;
+
                 // Record inspected subject ids and edit Tiles, so playback does not depend on
                 // the camera. Use this event's pixel for inspection, including injected input.
                 if (_verb == Verb.Look)
@@ -1500,6 +1503,15 @@ public partial class Main : Node3D
                         Ui($"zone-begin {at.East.Raw} {at.North.Raw}");
                         return;
                     }
+
+                    // A Street with its start placed takes its next point where the button comes
+                    // up, so a press that drags on lays to the release Tile.
+                    if (_verb == Verb.Connect && !button.ShiftPressed && _streetStart is not null)
+                    {
+                        _streetPointOnRelease = true;
+                        return;
+                    }
+
                     Apply(new DriveCommand(
                         _world.Tick.Raw,
                         DriveVerb.Click,
@@ -1525,6 +1537,23 @@ public partial class Main : Node3D
                     if (Aim(button.Position) is { } end) Ui($"zone-end {end.East.Raw} {end.North.Raw}");
                     else Ui("zone-cancel");
                     return;
+                }
+                if (_streetPointOnRelease)
+                {
+                    _streetPointOnRelease = false;
+                    if (_verb == Verb.Connect && _streetStart is not null)
+                    {
+                        if (Aim(button.Position) is { } end)
+                        {
+                            Apply(new DriveCommand(_world.Tick.Raw, DriveVerb.Click, 0, null, end.East.Raw, end.North.Raw));
+                        }
+                        else
+                        {
+                            _refused = "that is not on the map.";
+                        }
+
+                        return;
+                    }
                 }
                 if (Dragging(Aim(button.Position)) is { } upTo)
                 {
