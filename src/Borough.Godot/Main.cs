@@ -1788,7 +1788,7 @@ public partial class Main : Node3D
     /// </summary>
     /// <remarks>
     /// Both folders ship inside the pack because a file added beside a signed macOS app breaks its
-    /// signature. Each launch overwrites the unpacked copy, so a new build never reads an old file.
+    /// signature. Each launch replaces the unpacked folders, so a new build never reads an old file.
     /// </remarks>
     private static readonly Lazy<string> Root = new(() =>
     {
@@ -1799,6 +1799,8 @@ public partial class Main : Node3D
 
         foreach (string folder in BundledFolders)
         {
+            string unpacked = ProjectSettings.GlobalizePath($"user://{folder}");
+            if (Directory.Exists(unpacked)) Directory.Delete(unpacked, recursive: true);
             Unpack($"res://{folder}", $"user://{folder}");
         }
 
