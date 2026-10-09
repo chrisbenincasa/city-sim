@@ -22,6 +22,10 @@ public sealed class RuleChainLoadTests
         name = "d"
         family = "good"
 
+        [[resource]]
+        name = "money"
+        family = "money"
+
         [[building]]
         name = "works"
         bins = [
@@ -29,6 +33,7 @@ public sealed class RuleChainLoadTests
           { resource = "b", capacity = 60 },
           { resource = "c", capacity = 60 },
           { resource = "d", capacity = 60 },
+          { resource = "money" },
         ]
 
         """;
@@ -44,6 +49,30 @@ public sealed class RuleChainLoadTests
         outputs = [ { scope = "local", resource = "{{to}}", amount = 1 } ]
 
         """;
+
+    private static string PaidRule(string name, string from, string to) => $$"""
+
+        [[rule]]
+        name    = "{{name}}"
+        kind    = "works"
+        rate    = 10
+        apply   = { min = 1, max = 1 }
+        inputs  = [
+            { scope = "local", resource = "{{from}}", amount = 1 },
+            { scope = "local", resource = "money", amount = 5 },
+        ]
+        outputs = [
+            { scope = "local",  resource = "{{to}}", amount = 1 },
+            { scope = "global", resource = "money", amount = 5 },
+        ]
+
+        """;
+
+    private static string Replaced(string text, string old, string replacement)
+    {
+        Assert.Contains(old, text, StringComparison.Ordinal);
+        return text.Replace(old, replacement, StringComparison.Ordinal);
+    }
 
     private static RulesetLoadResult Load(string toml) => RulesetLoader.Parse(toml, "test.toml");
 
@@ -86,23 +115,28 @@ public sealed class RuleChainLoadTests
     }
 
     [Fact]
+    public void Money_does_not_link_a_paid_chain()
+    {
+        RulesetLoadResult result = Load(Works + PaidRule("make_b", "a", "b") + PaidRule("make_c", "b", "c"));
+
+        Assert.True(result.Ok, result.Describe());
+    }
+
+    [Fact]
     public void Labour_does_not_count_toward_depth()
     {
         string milled = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "milled.toml"));
-        string packed = milled
-            .Replace(
-                "    { resource = \"sundries\", capacity = 1024, owner = \"business\" },\n",
-                "    { resource = \"sundries\", capacity = 1024, owner = \"business\" },\n"
-                + "    { resource = \"hampers\",  capacity = 64, owner = \"business\" },\n",
-                StringComparison.Ordinal)
-            .Replace(
-                "[[resource]]\nname = \"labour\"\n",
-                "[[resource]]\nname = \"hampers\"\nfamily = \"good\"\n\n[[resource]]\nname = \"labour\"\n",
-                StringComparison.Ordinal)
-            .Replace(
+        string packed = Replaced(
+                Replaced(
+                    Replaced(
+                        milled,
+                        "    { resource = \"sundries\", capacity = 1024, owner = \"business\" },\n",
+                        "    { resource = \"sundries\", capacity = 1024, owner = \"business\" },\n"
+                        + "    { resource = \"hampers\",  capacity = 64, owner = \"business\" },\n"),
+                    "[[resource]]\nname = \"labour\"\n",
+                    "[[resource]]\nname = \"hampers\"\nfamily = \"good\"\n\n[[resource]]\nname = \"labour\"\n"),
                 "  { resource = \"flour\",    price = 1400 },\n",
-                "  { resource = \"flour\",    price = 1400 },\n  { resource = \"hampers\",  price = 500 },\n",
-                StringComparison.Ordinal)
+                "  { resource = \"flour\",    price = 1400 },\n  { resource = \"hampers\",  price = 500 },\n")
             + """
 
             [[rule]]
@@ -117,8 +151,6 @@ public sealed class RuleChainLoadTests
             outputs = [ { scope = "local", resource = "hampers", amount = 1 } ]
 
             """;
-
-        Assert.Contains("resource = \"hampers\"", packed, StringComparison.Ordinal);
 
         RulesetLoadResult result = Load(packed);
 
