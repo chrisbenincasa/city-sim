@@ -89,7 +89,8 @@ Each slice is one PR. [Execution](#execution) gives the order and which slices r
    `[income_tax]` and road upkeep. Every number is provisional, and slice 4 tunes them.
    [City income record](#city-income-record-slice-3b) has the 120-Day run.
 4. **Continued operation.** Tune provisional numbers until the 120-Day run meets the operation
-   checks below. Record the run's command, seed and measurements in this plan.
+   checks below. Record the run's command, seed and measurements in this plan. Blocked.
+   [Slice 4 blocker](#slice-4-blocker) has the cause and the ways forward.
 5. **Shortage and recovery (D4).** A headless test pairs an intervention run with a control.
    If D4 needs an elapsed episode that does not exist, coordinate it with row 30 (decline and recovery),
    which owns failure-duration semantics.
@@ -154,6 +155,58 @@ Findings for slice 4:
 - Business tills do not settle. They fall to about 1.0M by Day 50 and climb back to 1.96M by Day 120,
   while the Businesses holding them drop from 148 to 33.
 - Household balances rise from 0.2M to 5.0M and hold most of the city's Money after Day 50.
+
+## Slice 4 blocker
+
+Slice 4 is blocked. No set of base's provisional numbers meets the operation checks, because jobs
+follow floor area and not production need.
+
+### Engine fixes found while tuning
+
+Each fix has a regression test that fails without it.
+
+| Commit | Defect |
+|---|---|
+| `1d52a634` | Unaffordable and Closed outings raised shops that could serve them no better |
+| `7046cabb` | A buyer priced out of the import slept on its till and missed a city seller's restock |
+| `33dea1ea` | A driver's own parked car counted as taking its space, so it could not leave a full area |
+| `5916da9d` | Discovery walked a shared building's tenants in slot order, hiding later grocers from every shopper |
+
+`33dea1ea` re-baselines `driving-session-trace.txt`.
+
+### Tuning attempts
+
+All runs use the founding log, seed `0x135283C`, 120 Days, with the four fixes in place.
+
+| Attempt | Result |
+|---|---|
+| Budget point: flour bins 3 and 8, shop sundries bin 64, no `grind`, consume rate 2,048, mill and grocer wages 480, grants 8,192 and 16,384, parking 6 tiles a space | Mills in arrears by Day 20 and collapsed by Day 50–60. Flour sits at its 1,400 ceiling, grocers churn, and grants drain the treasury |
+| Budget point with wages 384, mill grant 16,384, and `bake` output 20, 24 or 32 | Same failure. 95 of 100 mills in arrears by Day 30 |
+| Mills raised by flour demand on trade land, gate still imports flour | No mill is ever raised. Employment 32 and treasury 5,787 at Day 120 |
+| Mills raised by flour demand, flour priced only on an edge with no gate | 2–3 mills. Employment 211 of about 970 Households at Day 120. The flour pool price reads 0, so mills earn nothing |
+
+`floor_tiles_per_parking_space = 6` removes the trips stranded by full car parks. It is not applied
+to base yet.
+
+### Cause
+
+- A Business's staff count comes from its floor area, at 3 tiles per job. It does not depend on how
+  much the Business needs to make.
+- One worker's 1,024 labour a Day bakes about 16,000 sundries. The city eats about 31,000 a Day.
+- Mills on every dwelling give about 535 jobs. The flour those jobs make far exceeds what grocers
+  buy, so mills fall into arrears.
+- Mills raised by demand make the flour the city needs with 2–3 mills, so most residents have no work.
+- The gate's import price is also the flour pool's ceiling. The loader refuses a District good
+  without one, so the import cannot be removed to make grocers wait for city mills.
+
+### Ways forward
+
+Each needs a design decision before more tuning.
+
+- Hire by need. A Business takes staff in proportion to the labour its Rules consume.
+- Lower output per worker. Cut `labour_per_day`, or raise the labour each Rule consumes, until the
+  city's consumption needs most of its residents.
+- Add a second trade that employs residents and sells to Households, so jobs do not rest on one chain.
 
 ## Execution
 

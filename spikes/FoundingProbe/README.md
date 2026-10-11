@@ -19,6 +19,9 @@ Day, the probe also saves at that Day, reloads, continues to the last Day and co
 State Hash with the uninterrupted run. It exits 1 when they differ. The end-of-run invariants run
 at the last Day.
 
+Set `PROBE_NOON=1` to sample each Day at noon instead of midnight. Shops are shut at midnight, so
+midnight samples report most unserved outings as `Closed`.
+
 ## Columns
 
 | Column | Meaning |
@@ -26,6 +29,10 @@ at the last Day.
 | `treasury`, `tills`, `households$` | Money held by the treasury, all Businesses and all Households |
 | `supply` | Money issued so far |
 | `citizens`, `households`, `unplaced`, `employed`, `businesses`, `segments` | Live counts |
-| `mill#`, `mill$`, and the same for `grocer` and `teaching` | Count and summed till of each trade |
+| `mill#`, `mill$`, `mill_arrears`, `mill_staff`, and the same for `grocer` and `teaching` | Count, summed till, Businesses in arrears and staff of each trade |
+| `flour_min` … `sundries_rate` | Lowest and highest District Pool price, seller stock and summed rate of each good |
+| `starving` | Starving Rule Instances, as `rule:count` pairs |
+| `shopping` | Unserved outings, failed attempts, unserved reasons and outing stages |
+| `purses` | Households with a worker, without a purse, at 0 and under 100, and balance percentiles |
 | `hash` | State Hash at the end of the Day |
 | `income_tax` … `other_out` | Treasury flows during the Day, from `TreasuryFlows` |
