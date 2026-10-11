@@ -7990,8 +7990,13 @@ public sealed partial class World
     /// immediately with Fate exceeded commute budget, which is exactly why this ADR refused a no
     /// parking Fate."</i>
     /// </para>
+    /// <para>
+    /// <b>The space <paramref name="driver"/> holds counts as room</b>, because the car gives it back
+    /// when it pulls out. Counting it full strands a driver behind its own car.
+    /// </para>
     /// </remarks>
-    internal bool TryChooseParking(Address door, Parking.ShedScratch scratch, out int carParkSlot)
+    internal bool TryChooseParking(
+        Address door, Parking.ShedScratch scratch, out int carParkSlot, int driver = Rows.NoSlot)
     {
         ArgumentNullException.ThrowIfNull(scratch);
 
@@ -8007,9 +8012,13 @@ public sealed partial class World
         int kept = Parking.ParkingShed.Nearest(
             Roads, CarParks, CarParksOnSegments, door, Rules.Parking.Radius, scratch, shed, out _);
 
+        int held = driver != Rows.NoSlot && CarParks.Rows.TryResolve(Citizens.ParkedIn[driver], out int slot)
+            ? slot
+            : Rows.NoSlot;
+
         for (int i = 0; i < kept; i++)
         {
-            if (CarParks.SpaceAt(shed[i]) > 0)
+            if (CarParks.SpaceAt(shed[i]) > 0 || shed[i] == held)
             {
                 carParkSlot = shed[i];
 
