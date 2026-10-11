@@ -763,17 +763,8 @@ public sealed class RuleEngine
         int row = MarketRow(_world, instance, term.Bin.Resource);
 
         Space.Offer seller = Seller(instance, row, floor * term.Amount);
-        long price;
 
-        if (seller.Bin != Rows.NoSlot)
-        {
-            price = _world.DistrictPools.Price[row].Raw;
-        }
-        else if (_world.TryImportPrice(term.Bin.Resource, out Money imported))
-        {
-            price = imported.Raw;
-        }
-        else
+        if (seller.Bin == Rows.NoSlot && !_world.TryImportPrice(term.Bin.Resource, out _))
         {
             return market;
         }
@@ -796,6 +787,29 @@ public sealed class RuleEngine
                 + "with a pool term -- the landlord shopping. Give the Rule a local term whose Bin is "
                 + "owner = \"occupant\" or owner = \"business\" and RulesetLoader.ApplyTenancies will "
                 + "derive the payer.");
+        }
+
+        long price;
+
+        if (seller.Bin != Rows.NoSlot)
+        {
+            price = _world.DistrictPools.Price[row].Raw;
+        }
+        else
+        {
+            _world.TryImportPrice(term.Bin.Resource, out Money imported);
+            price = imported.Raw;
+
+            // A buyer that can meet the city price but not the import price waits on the market row,
+            // because a restock lowers what it owes without depositing into its purse.
+            long held = _world.Bins.LevelAt(purse);
+
+            if (_world.Markets.SellerCount(_world, row) > 0
+                && held < floor * term.Amount * price
+                && held >= floor * term.Amount * _world.DistrictPools.Price[row].Raw)
+            {
+                return market;
+            }
         }
 
         long payment = term.Amount * price;
