@@ -216,10 +216,15 @@ public sealed class ShoppingEngine
             int building = _world.BuildingsInCells.NthIn(box, _world.Buildings, (int)(draw % (ulong)buildings), Work?.Selection);
             if (work is not null) { work.Draws++; }
             if (building < 0) { continue; }
-            bool hasBusiness = false;
-            foreach (int business in _world.BuildingBusinesses.Walk(building))
+            int tenants = 0;
+            foreach (int _ in _world.BuildingBusinesses.Walk(building)) { tenants++; }
+            if (tenants == 0) { if (work is not null) { work.DrawsWithoutBusiness++; } continue; }
+
+            // The walk starts at a drawn tenant, so every unit of a shared building can be found.
+            int first = (int)((draw >> 32) % (ulong)tenants);
+            for (int step = 0; step < tenants && count < _world.Rules.Shopping.KnownShops; step++)
             {
-                hasBusiness = true;
+                int business = Tenant(building, (first + step) % tenants);
                 if (work is not null) { work.BusinessesChecked++; }
                 if (StockBin(business, State.Good[row]) < 0)
                 { if (work is not null) { work.NoSaleBin++; } continue; }
@@ -240,11 +245,19 @@ public sealed class ShoppingEngine
                 count++;
                 added++;
                 if (work is not null) { work.ProvidersAdded++; }
-                if (count >= _world.Rules.Shopping.KnownShops) { break; }
             }
-            if (!hasBusiness && work is not null) { work.DrawsWithoutBusiness++; }
         }
         if (added == 0 && work is not null) { work.DiscoveryWithoutAddition++; }
+    }
+
+    private int Tenant(int building, int ordinal)
+    {
+        foreach (int business in _world.BuildingBusinesses.Walk(building))
+        {
+            if (ordinal-- == 0) { return business; }
+        }
+
+        throw new InvalidOperationException($"building {building} has fewer tenants than it counted.");
     }
 
     private bool Knows(int row, int business)

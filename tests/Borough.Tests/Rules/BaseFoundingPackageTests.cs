@@ -158,6 +158,56 @@ public sealed class BaseFoundingPackageTests
         world.Invariants.RunEndOfRun(world);
     }
 
+    /// <summary>
+    /// Every grocer in a shared shop building is known to some Household, so stock in a later unit
+    /// still reaches a shopper.
+    /// </summary>
+    [Fact]
+    public void Every_grocer_in_a_shared_building_is_known_to_a_household()
+    {
+        (Ruleset rules, _) = Package();
+        InputLog log = InputLogCodec.FromText(Committed());
+        Simulation simulation = Replay.Start(log, rules);
+        Replay.Trace(simulation, log, new Ticks((ulong)Days * Ticks.PerDay), hashEvery: Ticks.PerDay, []);
+
+        World world = simulation.World;
+        (_, byte grocer) = Trades(rules);
+        var knownBy = new Dictionary<int, int>();
+
+        for (int entry = 0; entry < world.KnownShops.Rows.SlotCount; entry++)
+        {
+            if (world.KnownShops.Rows.IsLive(entry)
+                && world.Businesses.Rows.TryResolve(world.KnownShops.Business[entry], out int shop))
+            {
+                knownBy[shop] = knownBy.GetValueOrDefault(shop) + 1;
+            }
+        }
+
+        var unknown = new List<int>();
+        int shared = 0;
+
+        for (int business = 0; business < world.Businesses.Rows.SlotCount; business++)
+        {
+            if (!world.Businesses.Rows.IsLive(business)
+                || world.Businesses.Kind[business] != grocer
+                || !world.Buildings.Rows.TryResolve(world.Businesses.Building[business], out int building)
+                || Tenants(world, building) < 2)
+            {
+                continue;
+            }
+
+            shared++;
+
+            if (knownBy.GetValueOrDefault(business) == 0)
+            {
+                unknown.Add(business);
+            }
+        }
+
+        Assert.True(shared > 3, $"only {shared} grocers share a building by Day {Days}.");
+        Assert.True(unknown.Count == 0, $"no Household knows grocers {string.Join(", ", unknown)}.");
+    }
+
     [Fact]
     public void Replaying_the_founding_log_twice_yields_the_same_city()
     {
@@ -424,6 +474,18 @@ public sealed class BaseFoundingPackageTests
         }
 
         throw new InvalidOperationException("no grocer buys from a market by Day 12.");
+    }
+
+    private static int Tenants(World world, int building)
+    {
+        int tenants = 0;
+
+        foreach (int _ in world.BuildingBusinesses.Walk(building))
+        {
+            tenants++;
+        }
+
+        return tenants;
     }
 
     private static void EmptySellers(World world, ResourceId good)
