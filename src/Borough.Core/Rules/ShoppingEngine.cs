@@ -126,7 +126,8 @@ public sealed class ShoppingEngine
         int provider = Choose(row, tick, -1);
         if (provider < 0)
         {
-            Failure(row, ShoppingFailure.NoKnownShop); CountFailure(row);
+            Failure(row, State.ProviderHead[row] == 0 ? ShoppingFailure.NoKnownShop : ShoppingFailure.Closed);
+            CountFailure(row);
             State.NextAt[row] = tick + new Ticks((ulong)rules.RetryTicks);
             return;
         }
