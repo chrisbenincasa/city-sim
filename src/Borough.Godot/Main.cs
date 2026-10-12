@@ -1857,7 +1857,6 @@ public partial class Main : Node3D
         if (key != _built || _world.Changes!.Full)
         {
             _built = key;
-            if (_world.Changes!.Full) Fill(_zones, ZonedBlocks());
             UpdateBuildings();
             _underWater = Fill(_flood, Inundated());
             TravellerHeadings();

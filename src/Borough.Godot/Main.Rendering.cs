@@ -29,6 +29,7 @@ public partial class Main
             else RefreshFamilyBodies(changes.Buildings);
             _drawnBuildings = Massings(Buildings());
             _vacantLots = Fill(_plots, Plots(), _plotIds);
+            Fill(_zones, ZonedBlocks());
             FillCarParks();
             _renderedBuildings.Clear();
             var drawn = new HashSet<ulong>();
@@ -100,6 +101,7 @@ public partial class Main
                 foreach ((_, var surface) in CarParkSurfaces()) FoliageFootprint(surface, at++);
                 RefreshFoliage(at);
                 _vacantLots = Fill(_plots, Plots(), _plotIds);
+                Fill(_zones, ZonedBlocks());
                 FillCarParks();
             }
             else if (fronts)

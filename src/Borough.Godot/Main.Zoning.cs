@@ -23,14 +23,30 @@ public partial class Main
         _ => new Color("d5b76b"),
     };
 
+    /// <summary>
+    /// Each zoned rectangle nothing has been built on yet, drawn whole, the block's unlotted middle
+    /// included. The first built Lot on it clears the rectangle's wash.
+    /// </summary>
     private System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where, Color What)> ZonedBlocks()
     {
         var paint = _world.PermissionRectangles;
+        LotTable lots = _world.Lots;
+        var built = new System.Collections.Generic.List<OrientedRectangle>();
+        for (int lot = 0; lot < lots.Rows.SlotCount; lot++)
+        {
+            if (!lots.Rows.IsLive(lot) || lots.IsVacant(lot)) continue;
+            OrientedRectangle parcel = lots.Parcel(lot);
+            if (parcel.IsValid) built.Add(parcel);
+        }
+
         for (int slot = 0; slot < paint.Rows.SlotCount; slot++)
         {
             if (!paint.Rows.IsLive(slot)) continue;
             ushort uses = GroundPermissions.Unpack(paint.Permission[slot]).Uses;
             if (uses == 0) continue;
+            var zoned = OrientedRectangle.FromBounds(new LandRectangle(
+                paint.X[slot], paint.Y[slot], paint.Width[slot], paint.Height[slot]));
+            if (built.Exists(zoned.Overlaps)) continue;
             yield return (paint.Rows.IdAt(slot), ParcelTransform(paint.X[slot], paint.Y[slot],
                 paint.Width[slot], paint.Height[slot]), ZoneColour(uses).SrgbToLinear());
         }
@@ -216,9 +232,11 @@ public partial class Main
         _cursor.Multimesh.VisibleInstanceCount = _zoneGroundRuns.Count;
     }
 
+    // At the plot layer's height, which it replaces while zoning: car parks, stall lines and roads
+    // sit above it. At 0.045 its top was coplanar with the road top and its slab with the stall lines.
     private static Transform3D ParcelTransform(int east, int north, int wide, int deep) =>
         new(Basis.FromScale(new Vector3(wide * MetresPerTile, .01f, deep * MetresPerTile)),
-            new Vector3((east + wide * .5f) * MetresPerTile, .045f, -(north + deep * .5f) * MetresPerTile));
+            new Vector3((east + wide * .5f) * MetresPerTile, .02f, -(north + deep * .5f) * MetresPerTile));
 
     private System.Collections.Generic.IEnumerable<Parcel> SelectedParcels((Tiles East, Tiles North) at)
     {
