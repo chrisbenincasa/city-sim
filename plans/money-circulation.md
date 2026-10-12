@@ -14,7 +14,7 @@ accumulates it.
 | Business tax | `BusinessTaxEngine` | Treasury |
 | Rule inputs | `RuleEngine` trades | Selling Business, or outside the city |
 | Levies | Content `[[policy]]` only | Treasury |
-| Profit to an owner | No | — |
+| Profit to an owner | `WageEngine.Draw`, founded Businesses only | Founding Household |
 | Rent | No | — |
 | Premises upkeep | No | — |
 | Utilities | No | — |
@@ -23,9 +23,8 @@ accumulates it.
   Household.
 - `[[building]] rent` is a placement filter only. Placement skips a dwelling a Household cannot
   afford. Nothing charges it.
-- A Business records no owner. `World.Found` moves the founding band from the founder's Household
-  to the new Business's till and keeps no link back. A Zone Rule's Business is funded by the
-  treasury's opening grant.
+- `World.Found` saves the founding Household as the Business's owner. A Zone Rule's Business has
+  no owner, and the treasury's opening grant funds it.
 - Street upkeep is the only maintenance cost, and the treasury pays it.
 
 ## Evidence
@@ -51,7 +50,7 @@ The founding loop's base city, run with `quits_after_days_unpaid` and the M2 con
 
 | Item | State | Next step |
 |---|---|---|
-| Owner draw | Active in `founding-4` | Build. See decisions below |
+| Owner draw | Built (`adr/0176`) | Measure on base with M2's content |
 | Rent collection | Design | Decide the recipient. Coordinate with the land ownership row |
 | Premises upkeep | Scoping | Decide whether upkeep is Money only or consumes repairs |
 | Utility billing | Scoping | Waits on the Power, Water and Sewage delivery row |

@@ -20,6 +20,7 @@ namespace Borough.Core.Rules;
 /// <param name="Underpaying">Businesses that could not pay everybody in full.</param>
 /// <param name="Bankrupted">Businesses wound up on this Day for coming up short too often.</param>
 /// <param name="Quit">Workers who left their job on this Day for going unpaid too long.</param>
+/// <param name="Drawn">Money founded Businesses paid their owners on this Day.</param>
 /// <param name="Tilless">
 /// Businesses that declare a wage and hold no money Bin, so they can neither pay nor come up short.
 /// ⚠ <b>It is a DEFECT ROW and not a census</b> — <c>plans/0065</c> <b>P1</b>. A trade's Bins come
@@ -29,7 +30,7 @@ namespace Borough.Core.Rules;
 /// </param>
 public readonly record struct PayrollReading(
     long Paid, int Workers, long Shortfall, int Employers, int Underpaying,
-    int Bankrupted, int Tilless, long Withheld, int Quit);
+    int Bankrupted, int Tilless, long Withheld, int Quit, long Drawn);
 
 /// <summary>
 /// <b>Pays wages: the one edge in the money loop that ran in no direction until 2026-08-27.</b>
@@ -140,6 +141,7 @@ internal sealed class WageEngine(World world, WorldKey key)
         int tilless = 0;
         long withheld = 0;
         int quit = 0;
+        long drawn = 0;
 
         for (int slot = 0; slot < _world.Businesses.Rows.SlotCount; slot++)
         {
@@ -179,7 +181,8 @@ internal sealed class WageEngine(World world, WorldKey key)
             // ⚠ A walk of the worker list per employer per Day, which is what it costs. The
             // alternative -- workers × WagePerDay -- is a different number, because WorkSchedule
             // .Graded prices a Day by WHO worked it.
-            BusinessAccounts.Wages(_world, slot, DailyWageBill(slot, trade), tick);
+            long bill = DailyWageBill(slot, trade);
+            BusinessAccounts.Wages(_world, slot, bill, tick);
 
             ushort arrears = _world.Businesses.DaysInArrears[slot];
 
@@ -224,6 +227,7 @@ internal sealed class WageEngine(World world, WorldKey key)
                     // with nobody owed would otherwise clear the arrears of an employer that has
                     // no money.
                     arrears = 0;
+                    drawn += Draw(slot, trade, bill, tick);
                 }
             }
 
@@ -244,7 +248,8 @@ internal sealed class WageEngine(World world, WorldKey key)
         _withheldFlow = _withheldFlow.Fold(withheld);
 
         return new PayrollReading(
-            paid, workers, shortfall, employers, underpaying, bankrupted, tilless, withheld, quit);
+            paid, workers, shortfall, employers, underpaying, bankrupted, tilless, withheld, quit,
+            drawn);
     }
 
     /// <summary>Whether <paramref name="slot"/>'s payday falls on <paramref name="today"/>.</summary>
@@ -503,6 +508,39 @@ internal sealed class WageEngine(World world, WorldKey key)
 
         _world.Citizens.DaysUnpaid[worker] = (ushort)run;
         return false;
+    }
+
+    /// <summary>
+    /// Pays a founded Business's owner what its till holds above the trade's reserve.
+    /// </summary>
+    /// <remarks>
+    /// The caller runs this only after a payroll paid every worker in full. A Business with no staff
+    /// has a wage bill of zero and would pay out its whole till, which is why a payday that paid
+    /// nobody pays no draw.
+    /// </remarks>
+    /// <returns>The money paid to the owner.</returns>
+    private long Draw(int slot, in BusinessKindDefinition trade, long bill, Ticks tick)
+    {
+        if (trade.PaysOwnerAbovePayPeriods <= 0
+            || !_world.Households.Rows.TryResolve(_world.Businesses.Owner[slot], out int owner)
+            || !_world.Bins.Rows.TryResolve(_world.Households.Balance[owner], out int purse)
+            || !_world.Bins.Rows.TryResolve(_world.Businesses.Balance[slot], out int till))
+        {
+            return 0;
+        }
+
+        long reserve = (long)trade.PaysOwnerAbovePayPeriods * trade.PayPeriodDays * bill;
+        long surplus = _world.Bins.LevelAt(till) - reserve;
+
+        if (surplus <= 0)
+        {
+            return 0;
+        }
+
+        _world.Withdraw(_world.Bins.Rows.At(till), surplus, tick);
+        _world.Deposit(_world.Bins.Rows.At(purse), surplus, tick);
+
+        return surplus;
     }
 
     /// <summary>

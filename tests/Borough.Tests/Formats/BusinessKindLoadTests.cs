@@ -727,4 +727,37 @@ public sealed class BusinessKindLoadTests
 
         Assert.Contains("pays no wage", refusal.Reason, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void A_waged_trade_reads_its_owner_reserve()
+    {
+        Ruleset rules = Accepted(Waged(
+            "goes_bankrupt_after_days_in_arrears = 9\npays_owner_above_pay_periods = 3"));
+
+        Assert.Equal(3, rules.BusinessKind(1).PaysOwnerAbovePayPeriods);
+    }
+
+    [Fact]
+    public void An_owner_reserve_of_zero_is_refused()
+    {
+        RulesetRefusal refusal = Refused(Waged(
+            "goes_bankrupt_after_days_in_arrears = 9\npays_owner_above_pay_periods = 0"));
+
+        Assert.Contains("at least 1", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_owner_reserve_on_a_trade_with_no_wage_is_refused()
+    {
+        RulesetRefusal refusal = Refused(Nothing + "\n" + Employing + """
+
+            [[business]]
+            name = "shop"
+            shift_start_earliest_hour = 6
+            shift_start_latest_hour   = 10
+            pays_owner_above_pay_periods = 2
+            """);
+
+        Assert.Contains("pays no wage", refusal.Reason, StringComparison.Ordinal);
+    }
 }

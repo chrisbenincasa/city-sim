@@ -52,9 +52,11 @@ public sealed class BusinessTable
     /// <param name="capacity">Initial slot count.</param>
     /// <param name="buildings">The table this one's premises handles address.</param>
     /// <param name="bins">The table this one's balance handles address.</param>
-    public BusinessTable(int capacity, BuildingTable buildings, BinTable bins, UnitTable units)
+    public BusinessTable(
+        int capacity, BuildingTable buildings, BinTable bins, UnitTable units, HouseholdTable households)
     {
         ArgumentNullException.ThrowIfNull(buildings);
+        ArgumentNullException.ThrowIfNull(households);
         ArgumentNullException.ThrowIfNull(units);
         ArgumentNullException.ThrowIfNull(bins);
 
@@ -86,6 +88,9 @@ public sealed class BusinessTable
         // whatever premises it was later placed in and get it razed there; a handle naming ONE
         // Building stops meaning anything the moment it leaves, which is exactly right.
         Origin = _rows.SavedHandle("origin", buildings.Rows, reference: Reference.Severable);
+
+        // Severable: an owner that departs leaves the Business trading with nobody to pay.
+        Owner = _rows.SavedHandle("owner", households.Rows, reference: Reference.Severable);
         BinHead = _rows.SavedHandle("bin_head", bins.Rows);
         BinTail = _rows.SavedHandle("bin_tail", bins.Rows);
         // Saved, because nothing else records that a Business is in arrears. Saturating at the
@@ -163,6 +168,12 @@ public sealed class BusinessTable
     /// </para>
     /// </remarks>
     public HandleColumn<Building> Origin { get; }
+
+    /// <summary>
+    /// The Household that founded this Business, which receives its owner draw. None for a Business a
+    /// Zone Rule instantiated, which has no founder (<c>adr/0148</c>).
+    /// </summary>
+    public HandleColumn<Household> Owner { get; }
 
     /// <summary>Which Business kind — the trade. Resolved through the Ruleset.</summary>
     /// <remarks>

@@ -306,6 +306,11 @@ public static class RulesetKeyNotes
             + "dismissed and the premises are left standing and empty. A trade falls into arrears "
             + "on a payday it cannot meet in full and leaves them on a payday it pays wages in full. "
             + "Required on a trade that pays a wage, and refused on one that does not.",
+        ["[[business]] pays_owner_above_pay_periods"] =
+            "How many pay periods of wages a founded Business keeps in its till. On a payday that "
+            + "pays every worker in full, it pays the rest to the Household that founded it. A "
+            + "Business a Zone Rule opened has no owner and keeps everything. Absent means no owner "
+            + "draw. Refused on a trade that pays no wage.",
         ["[[business]] quits_after_days_unpaid"] =
             "How many Days a worker at this trade goes paid short before leaving the job and "
             + "looking for another. Each payday that pays a worker less than they are owed adds "

@@ -1145,6 +1145,22 @@ public readonly record struct BusinessKindDefinition
     public int QuitsAfterDaysUnpaid { get; init; }
 
     /// <summary>
+    /// How many pay periods of wages a founded Business keeps in its till before paying the rest to
+    /// its owner.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The draw runs on a payday that paid every worker in full. The reserve is this many pay periods
+    /// of the Day's graded wage bill, and the owner is the Household that founded the Business. A
+    /// Business a Zone Rule instantiated has no owner and pays no draw.
+    /// </para>
+    /// <para>
+    /// <b>Zero means never</b>, reached by omitting the key.
+    /// </para>
+    /// </remarks>
+    public int PaysOwnerAbovePayPeriods { get; init; }
+
+    /// <summary>
     /// The lowest Skill Tier this trade will hire — <b>a minimum, never a band</b>. Zero means it
     /// hires anybody.
     /// </summary>

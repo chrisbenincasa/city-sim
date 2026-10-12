@@ -190,7 +190,7 @@ public sealed partial class World
         // One Unit per tenancy, so the Household ratio bounds it.
         Units = new UnitTable(PerThousand(citizens, 360), Buildings);
 
-        Businesses = new BusinessTable(PerThousand(citizens, 150), Buildings, Bins, Units);
+        Businesses = new BusinessTable(PerThousand(citizens, 150), Buildings, Bins, Units, Households);
 
         Citizens = new CitizenTable(citizens, Households, Buildings, Businesses, CarParks);
 
@@ -2467,6 +2467,7 @@ public sealed partial class World
         }
 
         Deposit(into, band.Raw, now);
+        Businesses.Owner[slot] = Households.Rows.At(founderSlot);
 
         // No gate: see UnpremisedTable.Gate. A founder came from inside the city.
         UnpremisedPool.Join(Businesses, business, default, now);
@@ -2479,10 +2480,8 @@ public sealed partial class World
         // an empty Bin, and a 27-shaped stand-in would be a second, worse answer somebody has to find
         // and delete on the day 15 lands.
         //
-        // ⚠ AND IT IS WHY NO `founder` COLUMN EXISTS. The link is the job, which is a column that
-        // already had to be there -- declaring a severable handle from BusinessTable to CitizenTable
-        // would make the two tables mutually dependent at construction, and they are built in one
-        // ordered pass.
+        // The founder's job is not the ownership link, because a founder can quit or be dismissed.
+        // BusinessTable.Owner names the founding Household instead.
         //
         // Ticks.Zero for the planned commute, and it is a fact rather than a placeholder: the
         // employer is unpremised, so there is no journey to plan. CommuteRoster.Add reads the

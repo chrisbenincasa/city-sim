@@ -27,14 +27,14 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-53 sections, 380 keys.
+53 sections, 381 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
 - [`[[building]]`](#building) — 22 keys
 - [`[[building]] bins`](#building-bins) — 4 keys
 - [`[[building]] bins reserve`](#building-bins-reserve) — 3 keys
-- [`[[business]]`](#business) — 16 keys
+- [`[[business]]`](#business) — 17 keys
 - [`[[hinterland.population]]`](#hinterlandpopulation) — 5 keys
 - [`[[hinterland]]`](#hinterland) — 8 keys
 - [`[[hinterland]] prices`](#hinterland-prices) — 2 keys
@@ -306,6 +306,10 @@ The daily opening hour for shopping purchases.
 **`pay_period_days`** · *whole number*
 
 How many Days pass between paydays at this trade. One is daily; zero would be a payday that never comes round.
+
+**`pays_owner_above_pay_periods`** · *whole number*
+
+How many pay periods of wages a founded Business keeps in its till. On a payday that pays every worker in full, it pays the rest to the Household that founded it. A Business a Zone Rule opened has no owner and keeps everything. Absent means no owner draw. Refused on a trade that pays no wage.
 
 **`quits_after_days_unpaid`** · *whole number*
 
