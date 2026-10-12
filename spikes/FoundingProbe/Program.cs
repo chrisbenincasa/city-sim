@@ -46,7 +46,7 @@ Console.WriteLine(
     + string.Join("\t", trades.Select(t => $"{t}#\t{t}$\t{t}_arrears\t{t}_staff"))
     + string.Concat(goods.Select(g => $"\t{g}_min\t{g}_max\t{g}_stock\t{g}_rate"))
     + "\tstarving\tshopping\tpurses\thash\tincome_tax\tbusiness_tax\tpolicy_out\trule_out\tupkeep\tgrant\tplacement\tother_in\tother_out"
-    + "\tpaid\tshortfall\temployers\tunderpaying\tquit\tbankrupted\tdrawn");
+    + "\tpaid\tshortfall\temployers\tunderpaying\tquit\tbankrupted\tdrawn\towned\towned$");
 
 if (Environment.GetEnvironmentVariable("PROBE_NOON") is not null)
 {
@@ -142,6 +142,21 @@ void Print(int day, World w, ulong hash, TreasuryFlows f, PayrollReading p)
     }
 
     var cells = new StringBuilder();
+    int owned = 0;
+    long ownedHeld = 0;
+
+    for (int s = 0; s < w.Businesses.Rows.SlotCount; s++)
+    {
+        if (w.Businesses.Rows.IsLive(s) && !w.Businesses.Owner[s].IsNone)
+        {
+            owned++;
+
+            if (w.Bins.Rows.TryResolve(w.Businesses.Balance[s], out int ownedBin))
+            {
+                ownedHeld += w.Bins.LevelAt(ownedBin);
+            }
+        }
+    }
 
     foreach (byte k in tradeKinds)
     {
@@ -296,7 +311,7 @@ void Print(int day, World w, ulong hash, TreasuryFlows f, PayrollReading p)
         + cells
         + $"\t{hash:X16}\t{f.Withheld}\t{f.ProfitTax}\t{f.PolicyOut}\t{f.RuleOut}\t{f.Upkeep}\t{f.Grant}\t{f.Placement}"
         + $"\t{f.PolicyIn + f.RuleIn}\t{f.Subsidy + f.Compensation}"
-        + $"\t{p.Paid}\t{p.Shortfall}\t{p.Employers}\t{p.Underpaying}\t{p.Quit}\t{p.Bankrupted}\t{p.Drawn}");
+        + $"\t{p.Paid}\t{p.Shortfall}\t{p.Employers}\t{p.Underpaying}\t{p.Quit}\t{p.Bankrupted}\t{p.Drawn}\t{owned}\t{ownedHeld}");
 }
 
 static byte Kind(Ruleset rules, string id)
