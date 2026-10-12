@@ -12,6 +12,8 @@ walk_speed_kph                 = 5
 street_capacity_per_hour       = 3600
 arterial_capacity_per_hour     = 12000
 foot_path_capacity_per_hour    = 1000
+# PROVISIONAL: the founding log's 40 Segments cost 5,120 a Day.
+upkeep_per_segment_per_day     = 128
 
 [lots]
 lots_per_segment = 5
@@ -87,6 +89,19 @@ floor = -1000
 # The money the city is founded with. It pays for the school and every grant after it.
 [treasury]
 opening_balance = 4194304
+
+# PROVISIONAL. Mill wages fall under the allowance, and grocer and teacher wages in the middle band.
+[income_tax]
+allowance_per_day       = 512
+upper_threshold_per_day = 8192
+middle_rate_percent     = 10
+upper_rate_percent      = 20
+
+# PROVISIONAL. The threshold is four grocer day-wages. The rates are taxing.toml's.
+[business_tax]
+threshold_per_day  = 16384
+lower_rate_percent = 10
+upper_rate_percent = 20
 
 # Grocers buy flour through a District Pool, so the city needs Districts. shopping.toml has the numbers.
 [districts]

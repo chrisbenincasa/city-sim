@@ -2,14 +2,16 @@
 #
 # Each dwelling hosts a mill whose staff turn labour into flour. Grocers buy flour through the
 # District Pool, bake it with their own labour into sundries, and sell those to Households. Every
-# trade pays its staff from its takings. `grind` starts the chain: a zone-raised grocer opens with no
-# Money, so it makes its first flour slowly from labour alone. Gates sell sundries and flour at a
-# high price when local supply runs out. milled.toml carries the reasoning behind the shared numbers.
+# trade pays its staff from its takings. The treasury pays each zone-raised trade an opening grant of
+# about one worker-week's wages. `grind` lets a new grocer make its first flour from labour alone.
+# Gates sell sundries and flour at a high price when local supply runs out. milled.toml carries the
+# reasoning behind the shared numbers.
 #
 # Nothing produces `repairs`, so dwellings decline over time; minimal.toml says why.
 
 [[business]]
 id = "mill"
+opening_grant = 2048
 work_days = 31
 wage_per_day = 256
 pay_period_days = 7
@@ -19,6 +21,7 @@ shift_start_latest_hour   = 10
 
 [[business]]
 id = "grocer"
+opening_grant = 32768
 work_days = 124
 open_days = 127
 opens_hour = 7
