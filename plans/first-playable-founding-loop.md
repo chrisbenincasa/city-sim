@@ -89,7 +89,8 @@ Each slice is one PR. [Execution](#execution) gives the order and which slices r
    `[income_tax]` and road upkeep. Every number is provisional, and slice 4 tunes them.
    [City income record](#city-income-record-slice-3b) has the 120-Day run.
 4. **Continued operation.** Tune provisional numbers until the 120-Day run meets the operation
-   checks below. Record the run's command, seed and measurements in this plan.
+   checks below, and confirm the result holds to Day 200. Record the run's command, seed and
+   measurements in this plan. Built; [slice 4 record](#slice-4-record).
 5. **Shortage and recovery (D4).** A headless test pairs an intervention run with a control.
    If D4 needs an elapsed episode that does not exist, coordinate it with row 30 (decline and recovery),
    which owns failure-duration semantics.
@@ -154,6 +155,69 @@ Findings for slice 4:
 - Business tills do not settle. They fall to about 1.0M by Day 50 and climb back to 1.96M by Day 120,
   while the Businesses holding them drop from 148 to 33.
 - Household balances rise from 0.2M to 5.0M and hold most of the city's Money after Day 50.
+
+## Slice 4 record
+
+Base runs 400 Days of the founding log with every stock bounded. Unpaid wages settle near 7%
+rather than zero.
+
+### Engine changes
+
+Each change has a regression test that fails without it.
+
+| Commit | Change |
+|---|---|
+| `1d52a634` | Unaffordable and Closed outings raised shops that could serve them no better |
+| `7046cabb` | A buyer priced out of the import slept on its till and missed a city seller's restock |
+| `33dea1ea` | A driver's own parked car counted as taking its space, so it could not leave a full area |
+| `5916da9d` | Discovery walked a shared building's tenants in slot order, hiding later grocers from every shopper |
+| `4b06838d` | Founding drew the treasury-funded `teaching` trade about a third of the time |
+| `a5553cbb` | Unpaid workers never left. `quits_after_days_unpaid` and its hiring rule ([`adr/0175`](../docs/adr/0175-unpaid-workers-quit-and-a-trade-hires-only-what-it-can-pay.md)) |
+| `6ddf8475` | A Business pays its owner what its till holds above a reserve ([`adr/0176`](../docs/adr/0176-a-founded-business-pays-its-owner-above-a-reserve.md)) |
+| `e9003934` | A Business with no owner draws a housed Household on its first payday with a surplus |
+| `05db4b20` | A `housed` Readout lets a Policy pay housed Households only |
+
+`33dea1ea`, `a5553cbb` and `6ddf8475` re-baseline the golden traces.
+
+### Base content
+
+Changes from slice 3b's base:
+
+- `mill` makes one flour per application, and `grind` is gone. `buy_flour` moves 4 flour.
+- Parking 6 floor tiles a space. Shop flour bin 8, sundries bin 256, dwelling flour bin 128.
+- Mill and grocer opening grants 8,192. Every wage 1,024, paid daily. School funding 1,024 per
+  declared job, weekly as before.
+- `labour_per_day` 16. Trade Zone Rule threshold 2 and cooldown 2 Days.
+- Workers quit after 3 unpaid Days. Mill and grocer pay their owner above 2 Days' wages.
+- `[founding]` band 8,192, reconsidered every 8,192 Ticks.
+- A 5% daily levy on Business and Household balances, and a 384 daily rebate to housed Households.
+
+### Measurements
+
+Founding log, seed `0x135283C`, committed base, 400 Days. Command:
+`spikes/FoundingProbe/tuning/tune.sh final 400 ""`, then `summary.sh final`.
+
+| Measure | Result |
+|---|---|
+| Employed, Days 30–120 | 731–968 |
+| Households, Days 30–120 | 645–808 |
+| Businesses, Days 30–120 | 229–344 |
+| Employed, Days 30–200 | 731–969 |
+| Business tills, Days 60–400 | 2.1M–2.8M, no trend |
+| Treasury, Days 60–400 | 0.8M–2.2M, no trend |
+| Unpaid share of wages | 13.4% Days 1–100, 9.3% Days 101–200, 7.1% Days 301–400 |
+| Owner draws | 84.5M over 400 Days |
+| Bankruptcies | 95 |
+
+### Findings
+
+- Without levies and rebate, income tax piles up in the treasury and employment collapses. With
+  a rebate to every Household, unhoused arrivals take it with them when they emigrate, and the
+  money supply fell from 6M to 3.1M. The housed-only rebate holds it at 5.3M–6.0M.
+- Slower trade openings (threshold 3, cooldown 7) leave 364 employed at Day 40 against 792.
+- A founded grocer that takes a vacant unit late is known to no Household. A Household with a
+  full list of working shops hears of a new one only after its own shops fail, so late entrants
+  sell little. This likely feeds the remaining unpaid wages and is not addressed here.
 
 ## Execution
 

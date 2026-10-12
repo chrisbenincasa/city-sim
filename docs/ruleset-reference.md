@@ -27,14 +27,14 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-53 sections, 379 keys.
+53 sections, 381 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
 - [`[[building]]`](#building) — 22 keys
 - [`[[building]] bins`](#building-bins) — 4 keys
 - [`[[building]] bins reserve`](#building-bins-reserve) — 3 keys
-- [`[[business]]`](#business) — 15 keys
+- [`[[business]]`](#business) — 17 keys
 - [`[[hinterland.population]]`](#hinterlandpopulation) — 5 keys
 - [`[[hinterland]]`](#hinterland) — 8 keys
 - [`[[hinterland]] prices`](#hinterland-prices) — 2 keys
@@ -211,7 +211,7 @@ Whether a BUSINESS may take a tenancy in a Building of this kind. houses' other 
 
 **`rent`** · *whole number*
 
-What a Household pays per Day to live in a Building of this kind. Zero or absent means the dwelling is free. A Household that cannot afford the rent skips the dwelling during placement.
+The daily rent a Building of this kind asks. Nothing charges it: placement skips a dwelling whose rent exceeds a seeking Household's money, reconsideration moves out a housed Household that falls below it, and the choice model weighs it. A recurring charge needs a [[rule]] or [[policy]]. Zero or absent means the dwelling is free.
 
 **`serves`** · *quoted string*
 
@@ -306,6 +306,14 @@ The daily opening hour for shopping purchases.
 **`pay_period_days`** · *whole number*
 
 How many Days pass between paydays at this trade. One is daily; zero would be a payday that never comes round.
+
+**`pays_owner_above_pay_periods`** · *whole number*
+
+How many pay periods of wages a Business keeps in its till. On a payday that pays every worker in full, it pays the rest to its owner. A founded Business's owner is the Household that founded it. A Business with no owner draws a housed Household at random. Absent means no owner draw. Refused on a trade that pays no wage.
+
+**`quits_after_days_unpaid`** · *whole number*
+
+How many Days a worker at this trade goes paid short before leaving the job and looking for another. Each payday that pays a worker less than they are owed adds the pay period; a payday that pays them in full starts the count again. A trade that states it also hires only while its till holds one pay period's wages for its staff and the new hire. Absent means workers never leave for want of pay. Refused on a trade that pays no wage.
 
 **`requires_tier`** · *whole number*
 

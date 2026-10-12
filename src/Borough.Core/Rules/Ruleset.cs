@@ -809,8 +809,8 @@ public readonly record struct KindDefinition(
 
 
     /// <summary>
-    /// What a Household pays per Day to live in a Building of this kind. <see cref="Money.Zero"/>
-    /// means the dwelling is free.
+    /// The daily rent a Building of this kind asks, which placement and the choice model read and
+    /// nothing charges. <see cref="Money.Zero"/> means the dwelling is free.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -1122,6 +1122,43 @@ public readonly record struct BusinessKindDefinition
     /// </para>
     /// </remarks>
     public int GoesBankruptAfterDaysInArrears { get; init; }
+
+    /// <summary>
+    /// How many Days a worker goes paid short, counted in whole pay periods, before leaving the job.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A payday that pays a worker less than they are owed adds the pay period to their run, and a
+    /// payday that pays them in full ends it. A worker who leaves becomes unemployed and the ordinary
+    /// job search may place them at a trade that pays.
+    /// </para>
+    /// <para>
+    /// A trade that sets it also hires only while its till holds one pay period's wages for its staff
+    /// and the new hire (<see cref="Entities.World.HasJob"/>). Without that, each worker who left
+    /// would be replaced by one who would also go unpaid.
+    /// </para>
+    /// <para>
+    /// <b>Zero means never</b>, reached by omitting the key, so a Ruleset that says nothing keeps
+    /// workers at an employer that cannot pay them until it goes bankrupt.
+    /// </para>
+    /// </remarks>
+    public int QuitsAfterDaysUnpaid { get; init; }
+
+    /// <summary>
+    /// How many pay periods of wages a founded Business keeps in its till before paying the rest to
+    /// its owner.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The draw runs on a payday that paid every worker in full. The reserve is this many pay periods
+    /// of the Day's graded wage bill, and the owner is the Household that founded the Business. A
+    /// Business a Zone Rule instantiated has no owner and pays no draw.
+    /// </para>
+    /// <para>
+    /// <b>Zero means never</b>, reached by omitting the key.
+    /// </para>
+    /// </remarks>
+    public int PaysOwnerAbovePayPeriods { get; init; }
 
     /// <summary>
     /// The lowest Skill Tier this trade will hire — <b>a minimum, never a band</b>. Zero means it
@@ -5323,6 +5360,17 @@ public sealed class Ruleset
     /// derelict, and a derelict school is a Building nobody can attend rather than a load failure.
     /// </remarks>
     public Need ServedBy(byte kind) => Declares(kind) ? Kind(kind).Serves : Need.None;
+
+    /// <summary>Whether a service kind hosts this trade, so the treasury rather than a founder funds it.</summary>
+    public bool IsServiceTrade(byte trade)
+    {
+        foreach (KindDefinition kind in _kinds)
+        {
+            if (kind.IsService && kind.Business == trade) { return true; }
+        }
+
+        return false;
+    }
 
     /// <summary>Whether any declared kind is attended for this Need.</summary>
     /// <remarks>

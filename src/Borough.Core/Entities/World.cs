@@ -190,7 +190,7 @@ public sealed partial class World
         // One Unit per tenancy, so the Household ratio bounds it.
         Units = new UnitTable(PerThousand(citizens, 360), Buildings);
 
-        Businesses = new BusinessTable(PerThousand(citizens, 150), Buildings, Bins, Units);
+        Businesses = new BusinessTable(PerThousand(citizens, 150), Buildings, Bins, Units, Households);
 
         Citizens = new CitizenTable(citizens, Households, Buildings, Businesses, CarParks);
 
@@ -2467,6 +2467,7 @@ public sealed partial class World
         }
 
         Deposit(into, band.Raw, now);
+        Businesses.Owner[slot] = Households.Rows.At(founderSlot);
 
         // No gate: see UnpremisedTable.Gate. A founder came from inside the city.
         UnpremisedPool.Join(Businesses, business, default, now);
@@ -2479,10 +2480,8 @@ public sealed partial class World
         // an empty Bin, and a 27-shaped stand-in would be a second, worse answer somebody has to find
         // and delete on the day 15 lands.
         //
-        // ⚠ AND IT IS WHY NO `founder` COLUMN EXISTS. The link is the job, which is a column that
-        // already had to be there -- declaring a severable handle from BusinessTable to CitizenTable
-        // would make the two tables mutually dependent at construction, and they are built in one
-        // ordered pass.
+        // The founder's job is not the ownership link, because a founder can quit or be dismissed.
+        // BusinessTable.Owner names the founding Household instead.
         //
         // Ticks.Zero for the planned commute, and it is a fact rather than a placeholder: the
         // employer is unpremised, so there is no journey to plan. CommuteRoster.Add reads the
@@ -2492,6 +2491,54 @@ public sealed partial class World
 
         return business;
     }
+
+    /// <summary>
+    /// The slot of the Household that receives a Business's owner draw. A Business with none draws a
+    /// housed Household and keeps it.
+    /// </summary>
+    /// <remarks>
+    /// A Business opened with its Building has no founder, and a founder can depart. Either way the
+    /// draw goes to a housed Household picked on the Business's id and the payday, each equally
+    /// likely (<c>adr/0176</c>).
+    /// </remarks>
+    /// <returns>The owner's slot, or <see cref="Rows.NoSlot"/> when nobody is housed.</returns>
+    internal int OwnerOf(int business, Ticks payday)
+    {
+        if (Households.Rows.TryResolve(Businesses.Owner[business], out int owner))
+        {
+            return owner;
+        }
+
+        int housed = 0;
+
+        for (int household = 0; household < Households.Rows.SlotCount; household++)
+        {
+            if (Housed(household))
+            {
+                housed++;
+            }
+        }
+
+        if (housed == 0)
+        {
+            return Rows.NoSlot;
+        }
+
+        ulong pick = Randomness.Draw(Key, Businesses.Rows.IdAt(business), payday, PurposeTag.BusinessOwner)
+            % (ulong)housed;
+
+        for (int household = 0; ; household++)
+        {
+            if (Housed(household) && pick-- == 0)
+            {
+                Businesses.Owner[business] = Households.Rows.At(household);
+                return household;
+            }
+        }
+    }
+
+    private bool Housed(int household) =>
+        Households.Rows.IsLive(household) && Buildings.Rows.IsValid(Households.Dwelling[household]);
 
     /// <summary>
     /// Moves a housed Household into the Unplaced Pool, keeping its balance.
@@ -7990,8 +8037,13 @@ public sealed partial class World
     /// immediately with Fate exceeded commute budget, which is exactly why this ADR refused a no
     /// parking Fate."</i>
     /// </para>
+    /// <para>
+    /// <b>The space <paramref name="driver"/> holds counts as room</b>, because the car gives it back
+    /// when it pulls out. Counting it full strands a driver behind its own car.
+    /// </para>
     /// </remarks>
-    internal bool TryChooseParking(Address door, Parking.ShedScratch scratch, out int carParkSlot)
+    internal bool TryChooseParking(
+        Address door, Parking.ShedScratch scratch, out int carParkSlot, int driver = Rows.NoSlot)
     {
         ArgumentNullException.ThrowIfNull(scratch);
 
@@ -8007,9 +8059,13 @@ public sealed partial class World
         int kept = Parking.ParkingShed.Nearest(
             Roads, CarParks, CarParksOnSegments, door, Rules.Parking.Radius, scratch, shed, out _);
 
+        int held = driver != Rows.NoSlot && CarParks.Rows.TryResolve(Citizens.ParkedIn[driver], out int slot)
+            ? slot
+            : Rows.NoSlot;
+
         for (int i = 0; i < kept; i++)
         {
-            if (CarParks.SpaceAt(shed[i]) > 0)
+            if (CarParks.SpaceAt(shed[i]) > 0 || shed[i] == held)
             {
                 carParkSlot = shed[i];
 
@@ -8138,13 +8194,35 @@ public sealed partial class World
     /// Whether <paramref name="buildingSlot"/> has a job nobody holds.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>The predicate the assignment pass asks of every candidate it samples</b>, and
     /// <see cref="HasRoom"/>'s exact shape: a full employer is an ordinary answer rather than a
     /// fault, so this is where the cost of asking is paid and there is no invariant behind it.
+    /// </para>
+    /// <para>
+    /// A trade whose workers quit for want of pay hires only while its till holds one pay period's
+    /// wages for its staff and the new hire. Otherwise each worker who leaves is replaced by one who
+    /// will also go unpaid. Graded wages are ignored here, so the test is approximate.
+    /// </para>
     /// </remarks>
     public bool HasJob(int businessSlot) =>
         TryDeclaredJobs(Businesses.Kind[businessSlot], businessSlot, out int jobs)
-        && Workers.Length(businessSlot) < jobs;
+        && Workers.Length(businessSlot) < jobs
+        && CanAffordHire(businessSlot);
+
+    private bool CanAffordHire(int businessSlot)
+    {
+        BusinessKindDefinition trade = Rules.BusinessKind(Businesses.Kind[businessSlot]);
+
+        if (trade.QuitsAfterDaysUnpaid <= 0)
+        {
+            return true;
+        }
+
+        long payroll = (long)(Workers.Length(businessSlot) + 1) * trade.WagePerDay * trade.PayPeriodDays;
+
+        return BalanceOf(Businesses.Rows.At(businessSlot)).Raw >= payroll;
+    }
 
     /// <summary>
     /// Gives a Citizen a Workplace, linking them into that Building's worker list.
@@ -8209,6 +8287,7 @@ public sealed partial class World
 
         Citizens.LastPaidDay[slot] =
             today >= ushort.MaxValue ? ushort.MaxValue : (ushort)today;
+        Citizens.DaysUnpaid[slot] = 0;
 
         Invariants.Require(
             !Lists(Workers, buildingSlot, slot),

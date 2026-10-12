@@ -173,7 +173,7 @@
             "type": "boolean"
           },
           "rent": {
-            "description": "What a Household pays per Day to live in a Building of this kind. Zero or absent means the dwelling is free. A Household that cannot afford the rent skips the dwelling during placement.",
+            "description": "The daily rent a Building of this kind asks. Nothing charges it: placement skips a dwelling whose rent exceeds a seeking Household's money, reconsideration moves out a housed Household that falls below it, and the choice model weighs it. A recurring charge needs a [[rule]] or [[policy]]. Zero or absent means the dwelling is free.",
             "type": "integer"
           },
           "serves": {
@@ -230,6 +230,14 @@
           },
           "pay_period_days": {
             "description": "How many Days pass between paydays at this trade. One is daily; zero would be a payday that never comes round.",
+            "type": "integer"
+          },
+          "pays_owner_above_pay_periods": {
+            "description": "How many pay periods of wages a Business keeps in its till. On a payday that pays every worker in full, it pays the rest to its owner. A founded Business's owner is the Household that founded it. A Business with no owner draws a housed Household at random. Absent means no owner draw. Refused on a trade that pays no wage.",
+            "type": "integer"
+          },
+          "quits_after_days_unpaid": {
+            "description": "How many Days a worker at this trade goes paid short before leaving the job and looking for another. Each payday that pays a worker less than they are owed adds the pay period; a payday that pays them in full starts the count again. A trade that states it also hires only while its till holds one pay period's wages for its staff and the new hire. Absent means workers never leave for want of pay. Refused on a trade that pays no wage.",
             "type": "integer"
           },
           "requires_tier": {

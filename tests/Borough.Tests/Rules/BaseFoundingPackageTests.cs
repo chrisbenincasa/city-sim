@@ -7,6 +7,7 @@ using Borough.Core.Instruments;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
+using Borough.Core.Tables;
 using Borough.Formats;
 
 namespace Borough.Tests.Rules;
@@ -117,6 +118,99 @@ public sealed class BaseFoundingPackageTests
         Assert.True(flows.Upkeep > 0, "the treasury paid no road upkeep.");
 
         simulation.World.Invariants.RunEndOfRun(simulation.World);
+    }
+
+    /// <summary>
+    /// A grocer that can pay the city's price for flour but not the Outside's waits while no mill
+    /// holds a batch, and a mill's restock wakes it.
+    /// </summary>
+    /// <remarks>
+    /// With no city seller the purchase is priced at the import, so the grocer is short of Money. The
+    /// restock lowers what it owes to the city price, which it can pay, and nothing deposits into its
+    /// till to tell it so.
+    /// </remarks>
+    [Fact]
+    public void A_buyer_priced_out_of_the_import_wakes_when_a_city_seller_restocks()
+    {
+        (Ruleset rules, ulong hash) = Package();
+        InputLog log = InputLogCodec.FromText(Committed());
+        Simulation simulation = Replay.Start(log, rules);
+        Replay.Trace(simulation, log, new Ticks((ulong)Days * Ticks.PerDay), hashEvery: Ticks.PerDay, []);
+
+        World world = simulation.World;
+        (int buyer, Term purchase) = FlourBuyer(world, rules);
+        int business = world.Businesses.Rows.Resolve(world.RuleInstances.Business[buyer]);
+        int till = world.Bins.Rows.Resolve(world.Businesses.Balance[business]);
+        Assert.True(world.TryImportPrice(purchase.Bin.Resource, out Money imported));
+
+        for (int tick = 0; tick < 64 && world.RuleInstances.Blocked[buyer] != Blocking.Supply; tick++)
+        {
+            EmptySellers(world, purchase.Bin.Resource);
+            SetLevel(world, till, (purchase.Amount * imported.Raw) - 1);
+            simulation.Step(new TickInput([], hash));
+        }
+
+        Assert.Equal(Blocking.Supply, world.RuleInstances.Blocked[buyer]);
+
+        Restock(world, purchase.Bin.Resource, purchase.Amount);
+        simulation.Step(new TickInput([], hash));
+
+        world.Invariants.RunEndOfRun(world);
+    }
+
+    /// <summary>
+    /// Every grocer that opened with a shared shop building is known to some Household, so stock in
+    /// a later unit still reaches a shopper.
+    /// </summary>
+    /// <remarks>
+    /// A founded grocer that takes a vacant unit later is left out. Households with a full list of
+    /// working shops hear of it only after their own shops fail.
+    /// </remarks>
+    [Fact]
+    public void Every_grocer_opened_with_a_shared_building_is_known_to_a_household()
+    {
+        (Ruleset rules, _) = Package();
+        InputLog log = InputLogCodec.FromText(Committed());
+        Simulation simulation = Replay.Start(log, rules);
+        Replay.Trace(simulation, log, new Ticks((ulong)Days * Ticks.PerDay), hashEvery: Ticks.PerDay, []);
+
+        World world = simulation.World;
+        (_, byte grocer) = Trades(rules);
+        var knownBy = new Dictionary<int, int>();
+
+        for (int entry = 0; entry < world.KnownShops.Rows.SlotCount; entry++)
+        {
+            if (world.KnownShops.Rows.IsLive(entry)
+                && world.Businesses.Rows.TryResolve(world.KnownShops.Business[entry], out int shop))
+            {
+                knownBy[shop] = knownBy.GetValueOrDefault(shop) + 1;
+            }
+        }
+
+        var unknown = new List<int>();
+        int shared = 0;
+
+        for (int business = 0; business < world.Businesses.Rows.SlotCount; business++)
+        {
+            if (!world.Businesses.Rows.IsLive(business)
+                || world.Businesses.Kind[business] != grocer
+                || world.Businesses.Origin[business].IsNone
+                || !world.Buildings.Rows.TryResolve(world.Businesses.Building[business], out int building)
+                || Tenants(world, building) < 2)
+            {
+                continue;
+            }
+
+            shared++;
+
+            if (knownBy.GetValueOrDefault(business) == 0)
+            {
+                unknown.Add(business);
+            }
+        }
+
+        Assert.True(shared > 3, $"only {shared} grocers share a building by Day {Days}.");
+        Assert.True(unknown.Count == 0, $"no Household knows grocers {string.Join(", ", unknown)}.");
     }
 
     [Fact]
@@ -360,6 +454,98 @@ public sealed class BaseFoundingPackageTests
         }
 
         return count;
+    }
+
+    private static (int Instance, Term Purchase) FlourBuyer(World world, Ruleset rules)
+    {
+        (_, byte grocer) = Trades(rules);
+
+        for (int instance = 0; instance < world.RuleInstances.Rows.SlotCount; instance++)
+        {
+            if (!world.RuleInstances.Rows.IsLive(instance)
+                || !world.Businesses.Rows.TryResolve(world.RuleInstances.Business[instance], out int business)
+                || world.Businesses.Kind[business] != grocer)
+            {
+                continue;
+            }
+
+            foreach (Term term in rules.Inputs(world.RuleInstances.Rule[instance]))
+            {
+                if (term.Bin.Scope == Scope.Pool)
+                {
+                    return (instance, term);
+                }
+            }
+        }
+
+        throw new InvalidOperationException("no grocer buys from a market by Day 12.");
+    }
+
+    private static int Tenants(World world, int building)
+    {
+        int tenants = 0;
+
+        foreach (int _ in world.BuildingBusinesses.Walk(building))
+        {
+            tenants++;
+        }
+
+        return tenants;
+    }
+
+    private static void EmptySellers(World world, ResourceId good)
+    {
+        foreach (int bin in SellerBins(world, good))
+        {
+            world.Withdraw(world.Bins.Rows.At(bin), world.Bins.LevelAt(bin), world.Tick);
+        }
+    }
+
+    private static void Restock(World world, ResourceId good, long amount)
+    {
+        foreach (int bin in SellerBins(world, good))
+        {
+            long room = world.Bins.Capacity[bin] - world.Bins.LevelAt(bin);
+            world.Deposit(world.Bins.Rows.At(bin), Math.Min(amount, room), world.Tick);
+        }
+    }
+
+    private static List<int> SellerBins(World world, ResourceId good)
+    {
+        List<int> bins = [];
+
+        for (int row = 0; row < world.DistrictPools.Rows.SlotCount; row++)
+        {
+            if (!world.DistrictPools.Rows.IsLive(row)
+                || !world.Bins.Rows.TryResolve(world.DistrictPools.Bin[row], out int pool)
+                || world.Bins.Resource[pool] != good)
+            {
+                continue;
+            }
+
+            for (int ordinal = 0; ordinal < world.Markets.SellerCount(world, row); ordinal++)
+            {
+                bins.Add(world.Markets.Seller(world, row, ordinal).Bin);
+            }
+        }
+
+        return bins;
+    }
+
+    private static void SetLevel(World world, int bin, long level)
+    {
+        long was = world.Bins.LevelAt(bin);
+
+        if (was > level)
+        {
+            world.Withdraw(world.Bins.Rows.At(bin), was - level, world.Tick);
+        }
+        else if (was < level)
+        {
+            world.Deposit(world.Bins.Rows.At(bin), level - was, world.Tick);
+        }
+
+        world.MoneySupply.Issued[MoneySupplyTable.Slot] += new Money(level - was);
     }
 
     private static (Ruleset Rules, ulong Hash) Package()

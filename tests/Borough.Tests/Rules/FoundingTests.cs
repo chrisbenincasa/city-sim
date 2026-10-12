@@ -382,4 +382,65 @@ public sealed class FoundingTests(Xunit.Abstractions.ITestOutputHelper output)
                 $"Building {building} holds more tenants than its kind admits.");
         }
     }
+
+    /// <summary>
+    /// A Household never founds the trade a service kind hosts, because the treasury funds that trade.
+    /// </summary>
+    [Fact]
+    public void A_household_never_founds_a_service_kinds_trade()
+    {
+        string file = Path.Combine(Path.GetTempPath(), $"founded-school-{Environment.ProcessId}.toml");
+        File.WriteAllText(
+            file,
+            File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "founded.toml"))
+            + """
+
+            [[business]]
+            name = "teaching"
+            shift_start_earliest_hour = 6
+            shift_start_latest_hour   = 10
+
+            [[building]]
+            name     = "school"
+            serves   = "education"
+            premises = true
+            business = "teaching"
+            """);
+
+        RulesetLoadResult loaded = RulesetLoader.Load(file);
+        File.Delete(file);
+        Assert.True(loaded.Ok, loaded.Describe());
+
+        var key = WorldKey.FromSeed(0xF0DDU);
+        var world = new World(2_000, loaded.Ruleset!);
+        SyntheticCity.PopulateInto(world, key, Ticks.Zero);
+        var running = new Simulation(world, key);
+
+        byte teaching = 0;
+        for (byte kind = 1; kind <= world.Rules.KindCount; kind++)
+        {
+            if (world.Rules.Kind(kind).IsService) { teaching = world.Rules.Kind(kind).Business; }
+        }
+        Assert.NotEqual(0, teaching);
+
+        int foundedTeaching = 0;
+        for (int tick = 0; tick < 4_096; tick++)
+        {
+            running.Step(TickInput.Empty);
+            for (int slot = 0; slot < world.Businesses.Rows.SlotCount; slot++)
+            {
+                if (world.Businesses.Rows.IsLive(slot) && world.Businesses.Origin[slot].IsNone
+                    && world.Businesses.Kind[slot] == teaching)
+                {
+                    foundedTeaching++;
+                }
+            }
+        }
+
+        long founded = running.Placement.Drain().Founded.Sum;
+        _out.WriteLine($"founded={founded} teaching business-ticks={foundedTeaching}");
+
+        Assert.True(founded > 0, "nothing was founded, so the test exercises nothing.");
+        Assert.Equal(0, foundedTeaching);
+    }
 }

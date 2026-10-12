@@ -534,7 +534,7 @@ public sealed class TripEngine
 
         Address door = _world.PedestrianAccessPoint(toBuilding);
 
-        if (!_world.TryChooseParking(door, _shed, out int carPark))
+        if (!_world.TryChooseParking(door, _shed, out int carPark, citizen))
         {
             return NoParking;
         }

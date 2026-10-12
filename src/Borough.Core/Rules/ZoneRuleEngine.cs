@@ -3,6 +3,7 @@ namespace Borough.Core.Rules;
 using Borough.Core.Arithmetic;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
+using Borough.Core.Movement;
 using Borough.Core.Quantities;
 using Borough.Core.Space;
 using Borough.Core.Tables;
@@ -638,6 +639,11 @@ public sealed class ZoneRuleEngine
     /// artefact.***
     /// </para>
     /// <para>
+    /// <b>An outing that last failed for want of Money, or because every shop it knows was shut, is
+    /// not counted.</b> Another shop would serve neither: it would charge the same prices and keep
+    /// the same hours.
+    /// </para>
+    /// <para>
     /// ⚠ <b>Recomputed whole and stored nowhere.</b> One pass over live Rule Instances, which is the
     /// cost <c>adr/0163</c> owes <c>plans/0013</c> a measured row for. Keeping a running total instead
     /// would be a magnitude that only grows, needing a decay rate nobody could ratify —
@@ -678,6 +684,7 @@ public sealed class ZoneRuleEngine
             var outings = _world.Shopping;
             if (!outings.Rows.IsLive(shopping) || outings.UnservedSince[shopping].Raw == 0
                 || tick.Raw + 1 < outings.UnservedSince[shopping].Raw
+                || (ShoppingFailure)outings.Reason[shopping] is ShoppingFailure.Unaffordable or ShoppingFailure.Closed
                 || !_world.Households.Rows.TryResolve(outings.Household[shopping], out int hh)
                 || !_world.Buildings.Rows.TryResolve(_world.Households.Dwelling[hh], out int home)
                 || !_world.Lots.Rows.TryResolve(_world.Buildings.Lot[home], out int lot)) { continue; }

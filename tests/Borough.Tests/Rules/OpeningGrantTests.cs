@@ -232,6 +232,7 @@ public sealed class OpeningGrantTests
 
         Assert.Equal(1_000, world.Bins.LevelAt(world.Bins.Rows.Resolve(world.Businesses.Balance[slot])));
         Assert.Equal(treasury, world.TreasuryBalance());
+        Assert.Equal(world.Citizens.HouseholdOf[founder], world.Businesses.Owner[slot]);
     }
 
     [Fact]

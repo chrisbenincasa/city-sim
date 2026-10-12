@@ -1735,6 +1735,92 @@ public static class RulesetLoader
             return (int)(days > ushort.MaxValue ? ushort.MaxValue : days);
         }
 
+        /// <summary>
+        /// Reads <c>quits_after_days_unpaid</c>: optional, and refused on a trade that pays no wage.
+        /// </summary>
+        /// <remarks>Absent reads as zero, which means workers never quit for want of pay.</remarks>
+        private int ReadQuitsAfterDaysUnpaid(
+            TableSyntaxBase table, string? name, int wagePerDay, int payPeriodDays)
+        {
+            const string key = "quits_after_days_unpaid";
+
+            if (wagePerDay <= 0 || payPeriodDays <= 0)
+            {
+                if (Find(table, key, RulesetKeyKind.Whole) is { } stray)
+                {
+                    Refuse(
+                        LineOf((SyntaxNodeBase)stray), name,
+                        $"this trade states `{key}` and pays no wage. Nobody can go unpaid at a trade "
+                        + "with no `wage_per_day` and `pay_period_days`, so the key would load clean "
+                        + "and do nothing. State a wage, or delete this key.");
+                }
+
+                return 0;
+            }
+
+            if (!TryInteger(table, key, out long days, required: false, name))
+            {
+                return 0;
+            }
+
+            if (days <= 0)
+            {
+                Refuse(
+                    LineOf((SyntaxNodeBase?)Find(table, key) ?? table), name,
+                    $"{key} is {days}. It is how many unpaid Days a worker at this trade puts up with "
+                    + "before leaving, so it is at least 1. Delete the key for workers who never quit.");
+
+                return 0;
+            }
+
+            return (int)(days > ushort.MaxValue ? ushort.MaxValue : days);
+        }
+
+        /// <summary>
+        /// Reads <c>pays_owner_above_pay_periods</c>: optional, and refused on a trade that pays no
+        /// wage.
+        /// </summary>
+        /// <remarks>
+        /// Absent reads as zero, which means no draw. The draw runs on paydays, so a trade with no
+        /// payday could never pay one.
+        /// </remarks>
+        private int ReadPaysOwnerAbovePayPeriods(
+            TableSyntaxBase table, string? name, int wagePerDay, int payPeriodDays)
+        {
+            const string key = "pays_owner_above_pay_periods";
+
+            if (wagePerDay <= 0 || payPeriodDays <= 0)
+            {
+                if (Find(table, key, RulesetKeyKind.Whole) is { } stray)
+                {
+                    Refuse(
+                        LineOf((SyntaxNodeBase)stray), name,
+                        $"this trade states `{key}` and pays no wage. The owner draw runs on paydays, "
+                        + "and a trade with no `wage_per_day` and `pay_period_days` has none, so the "
+                        + "key would load clean and do nothing. State a wage, or delete this key.");
+                }
+
+                return 0;
+            }
+
+            if (!TryInteger(table, key, out long periods, required: false, name))
+            {
+                return 0;
+            }
+
+            if (periods <= 0)
+            {
+                Refuse(
+                    LineOf((SyntaxNodeBase?)Find(table, key) ?? table), name,
+                    $"{key} is {periods}. It is how many pay periods of wages this trade keeps before "
+                    + "paying its owner, so it is at least 1. Delete the key for no owner draw.");
+
+                return 0;
+            }
+
+            return (int)(periods > ushort.MaxValue ? ushort.MaxValue : periods);
+        }
+
         private uint ReadRate(TableSyntaxBase table, string? rule)
         {
             if (!TryInteger(table, "rate", out long rate, required: true, rule))
@@ -3576,6 +3662,10 @@ public static class RulesetLoader
                     WagePerDay = wagePerDay,
                     PayPeriodDays = payPeriodDays,
                     GoesBankruptAfterDaysInArrears = ReadGoesBankruptAfterDaysInArrears(
+                        table, name, wagePerDay, payPeriodDays),
+                    QuitsAfterDaysUnpaid = ReadQuitsAfterDaysUnpaid(
+                        table, name, wagePerDay, payPeriodDays),
+                    PaysOwnerAbovePayPeriods = ReadPaysOwnerAbovePayPeriods(
                         table, name, wagePerDay, payPeriodDays),
                     WorkDays = ReadDays(table, "work_days"),
                     ShopHours = ReadShopHours(table),

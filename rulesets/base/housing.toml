@@ -2,8 +2,11 @@
 #
 # Each dwelling hosts a mill whose staff turn labour into flour. Grocers buy flour through the
 # District Pool, bake it with their own labour into sundries, and sell those to Households. Every
-# trade pays its staff from its takings. The treasury pays each zone-raised trade an opening grant of
-# about one worker-week's wages. `grind` lets a new grocer make its first flour from labour alone.
+# trade pays its staff daily from its takings, and a worker leaves after 3 unpaid Days. The treasury
+# pays each zone-raised trade an opening grant of about one worker-week's wages, which buys a new
+# grocer its first flour. A trade pays its owner what its till holds above two Days' wages; a
+# zone-raised trade draws a housed Household as owner. plans/first-playable-founding-loop.md
+# records the tuning run behind these numbers.
 # Gates sell sundries and flour at a high price when local supply runs out. milled.toml carries the
 # reasoning behind the shared numbers.
 #
@@ -11,24 +14,28 @@
 
 [[business]]
 id = "mill"
-opening_grant = 2048
+opening_grant = 8192
 work_days = 31
-wage_per_day = 256
-pay_period_days = 7
+wage_per_day = 1024
+pay_period_days = 1
 goes_bankrupt_after_days_in_arrears = 28
+pays_owner_above_pay_periods = 2
+quits_after_days_unpaid = 3
 shift_start_earliest_hour = 6
 shift_start_latest_hour   = 10
 
 [[business]]
 id = "grocer"
-opening_grant = 32768
+opening_grant = 8192
 work_days = 124
 open_days = 127
 opens_hour = 7
 closes_hour = 21
-wage_per_day    = 4096
-pay_period_days = 7
+wage_per_day    = 1024
+pay_period_days = 1
 goes_bankrupt_after_days_in_arrears = 28
+pays_owner_above_pay_periods = 2
+quits_after_days_unpaid = 3
 shift_start_earliest_hour = 6
 shift_start_latest_hour   = 10
 
@@ -38,7 +45,7 @@ label = "Terraced house"
 bins = [
     { resource = "sundries", capacity = 128, owner = "occupant" },
     { resource = "repairs",  capacity = 4 },
-    { resource = "flour",    capacity = 256, owner = "business" },
+    { resource = "flour",    capacity = 128, owner = "business" },
     { resource = "money",    owner = "business" },
     { resource = "labour",   owner = "business" },
 ]
@@ -52,8 +59,8 @@ business = "mill"
 id = "shopfront"
 label = "Corner shop"
 bins = [
-    { resource = "sundries", capacity = 1024, owner = "business" },
-    { resource = "flour",    capacity = 64, owner = "business" },
+    { resource = "sundries", capacity = 256, owner = "business" },
+    { resource = "flour",    capacity = 8, owner = "business" },
     { resource = "repairs",  capacity = 4 },
     { resource = "money",    owner = "business" },
     { resource = "labour",   owner = "business" },
@@ -77,8 +84,8 @@ kind          = "shopfront"
 zone          = 1
 interval      = 32
 revisit_ticks = 2048
-build_threshold_days = 3
-cooldown_days        = 7
+build_threshold_days = 2
+cooldown_days        = 2
 
 [[rule]]
 id      = "restock"
@@ -117,7 +124,7 @@ kind    = "dwelling"
 rate    = 8
 apply   = { min = 1, max = 4 }
 inputs  = [ { scope = "local", resource = "labour", amount = 1 } ]
-outputs = [ { scope = "local", resource = "flour", amount = 4 } ]
+outputs = [ { scope = "local", resource = "flour", amount = 1 } ]
 
 [[rule]]
 id      = "bake"
@@ -139,15 +146,6 @@ rate    = 8
 apply   = { min = 1, max = 1 }
 inputs  = [
     { scope = "local", resource = "labour", amount = 1 },
-    { scope = "pool",  resource = "flour",  amount = 8 },
+    { scope = "pool",  resource = "flour",  amount = 4 },
 ]
-outputs = [ { scope = "local", resource = "flour", amount = 8 } ]
-
-[[rule]]
-id      = "grind"
-order   = 7
-kind    = "shopfront"
-rate    = 64
-apply   = { min = 1, max = 1 }
-inputs  = [ { scope = "local", resource = "labour", amount = 8 } ]
-outputs = [ { scope = "local", resource = "flour", amount = 1 } ]
+outputs = [ { scope = "local", resource = "flour", amount = 4 } ]

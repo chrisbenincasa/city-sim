@@ -160,9 +160,10 @@ public static class RulesetKeyNotes
             + "parking minimum is a property of the city, and an exemption from it is a property of "
             + "the kind. Absent means the kind provides none.",
         ["[[building]] rent"] =
-            "What a Household pays per Day to live in a Building of this kind. Zero or absent "
-            + "means the dwelling is free. A Household that cannot afford the rent skips the "
-            + "dwelling during placement.",
+            "The daily rent a Building of this kind asks. Nothing charges it: placement skips a "
+            + "dwelling whose rent exceeds a seeking Household's money, reconsideration moves out a "
+            + "housed Household that falls below it, and the choice model weighs it. A recurring "
+            + "charge needs a [[rule]] or [[policy]]. Zero or absent means the dwelling is free.",
         ["[[building]] placement_cost"] =
             "What the treasury pays to place a Building of this kind by hand. Absent or zero means "
             + "the placement is free, which is what every kind meant before the key existed. The "
@@ -305,6 +306,18 @@ public static class RulesetKeyNotes
             + "dismissed and the premises are left standing and empty. A trade falls into arrears "
             + "on a payday it cannot meet in full and leaves them on a payday it pays wages in full. "
             + "Required on a trade that pays a wage, and refused on one that does not.",
+        ["[[business]] pays_owner_above_pay_periods"] =
+            "How many pay periods of wages a Business keeps in its till. On a payday that pays "
+            + "every worker in full, it pays the rest to its owner. A founded Business's owner is "
+            + "the Household that founded it. A Business with no owner draws a housed Household "
+            + "at random. Absent means no owner draw. Refused on a trade that pays no wage.",
+        ["[[business]] quits_after_days_unpaid"] =
+            "How many Days a worker at this trade goes paid short before leaving the job and "
+            + "looking for another. Each payday that pays a worker less than they are owed adds "
+            + "the pay period; a payday that pays them in full starts the count again. A trade that "
+            + "states it also hires only while its till holds one pay period's wages for its staff "
+            + "and the new hire. Absent means workers never leave for want of pay. Refused on a trade "
+            + "that pays no wage.",
         ["[[business]] requires_tier"] =
             "The lowest Skill Tier this trade will hire, a minimum rather than a band — a Citizen "
             + "above it may still take the post. Absent means it hires anybody.",

@@ -251,6 +251,24 @@ public sealed class ParkingHoldTests
     }
 
     /// <summary>
+    /// <b>A driver may choose the space it holds</b>, because pulling out gives that space back before
+    /// the car arrives anywhere.
+    /// </summary>
+    [Fact]
+    public void A_full_shed_still_offers_its_driver_the_space_it_holds()
+    {
+        Fixture city = Fixture.WithParking(spaces: 1);
+
+        Assert.True(city.Take(out int carPark));
+
+        int stranger = city.AddCitizen();
+
+        Assert.True(city.Choose(city.Citizen, out int chosen));
+        Assert.Equal(carPark, chosen);
+        Assert.False(city.Choose(stranger, out _));
+    }
+
+    /// <summary>
     /// <b>A Citizen holding nothing releases nothing, and that is not a violation.</b>
     /// </summary>
     /// <remarks>
@@ -384,6 +402,14 @@ public sealed class ParkingHoldTests
                 World.VehicleAccessPoint(World.Buildings.Rows.Resolve(Building)),
                 _scratch,
                 out carPark);
+
+        /// <summary>Which space <paramref name="driver"/> would park in at the dwelling's door.</summary>
+        public bool Choose(int driver, out int carPark) =>
+            World.TryChooseParking(
+                World.PedestrianAccessPoint(World.Buildings.Rows.Resolve(Building)),
+                _scratch,
+                out carPark,
+                driver);
 
         /// <summary>
         /// Two nodes and one Segment, built by hand so the Address is known in advance.

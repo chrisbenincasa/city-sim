@@ -114,6 +114,7 @@ public sealed class CitizenTable
         Age = _rows.Saved<ushort>("age", Touch.Cold);
         Health = _rows.Saved<byte>("health", Touch.Cold);
         LastPaidDay = _rows.Saved<ushort>("last_paid_day", Touch.Cold);
+        DaysUnpaid = _rows.Saved<ushort>("days_unpaid", Touch.Cold);
         TaxedDay = _rows.Saved<ushort>("taxed_day", Touch.Cold);
         TaxedGross = _rows.Saved<long>("taxed_gross", Touch.Cold);
 
@@ -577,6 +578,16 @@ public sealed class CitizenTable
     /// </para>
     /// </remarks>
     public Column<ushort> LastPaidDay { get; }
+
+    /// <summary>
+    /// Days of pay periods this Citizen's employer has paid short in a row, which
+    /// <c>[[business]] quits_after_days_unpaid</c> compares against.
+    /// </summary>
+    /// <remarks>
+    /// A short payday adds the trade's pay period and a payday paid in full resets it. Hire resets it,
+    /// so a Citizen does not carry a previous employer's shortfall into a new job.
+    /// </remarks>
+    public Column<ushort> DaysUnpaid { get; }
 
     /// <summary>
     /// The earning Day <see cref="TaxedGross"/> refers to.
