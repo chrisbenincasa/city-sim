@@ -31,6 +31,7 @@ public static class ReadoutNames
         ("balance", Readout.Balance),
         ("emission", Readout.Emission),
         ("jobs", Readout.Jobs),
+        ("housed", Readout.Housed),
     ];
 
     /// <summary>Every declared name, comma-separated, for a refusal to quote back at the author.</summary>

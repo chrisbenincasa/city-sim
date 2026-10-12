@@ -155,6 +155,15 @@ public enum Readout : ushort
     /// </para>
     /// </remarks>
     Jobs = 4,
+
+    /// <summary>
+    /// One for a Household with a dwelling, zero for one in the Unplaced Pool.
+    /// </summary>
+    /// <remarks>
+    /// A Policy's apply count can scale by it, so a transfer reaches housed Households only. An
+    /// unhoused Household may emigrate, and money paid to it leaves the city with it.
+    /// </remarks>
+    Housed = 5,
 }
 
 /// <summary>
@@ -211,7 +220,7 @@ public enum ReadoutScope : byte
 public static class Readouts
 {
     private static readonly Readout[] DeclaredSet =
-        [Readout.Occupancy, Readout.Balance, Readout.Emission, Readout.Jobs];
+        [Readout.Occupancy, Readout.Balance, Readout.Emission, Readout.Jobs, Readout.Housed];
 
     /// <summary>
     /// Every declared Readout, which is the set a shell may enumerate to build an inspector.
@@ -276,6 +285,7 @@ public static class Readouts
             // the loader refuses `sweeps = "building"` by name). ⚠ A Household is NOT admitted: a
             // Household holds no post.
             Readout.Jobs => scope is ReadoutScope.Business,
+            Readout.Housed => scope is ReadoutScope.Household,
             _ => false,
         };
 
@@ -359,6 +369,9 @@ public static class Readouts
             case Readout.Balance:
                 return world.BalanceOf(world.Households.Rows.At(household)).Raw;
 
+            case Readout.Housed:
+                return world.Buildings.Rows.IsValid(world.Households.Dwelling[household]) ? 1 : 0;
+
             case Readout.Occupancy:
             case Readout.Emission:
             case Readout.Jobs:
@@ -403,6 +416,7 @@ public static class Readouts
                 return world.Buildings.PriorEmissionOn(building, BusinessAccounts.DayOf(world.Tick));
 
             case Readout.Balance:
+            case Readout.Housed:
                 throw new InvalidOperationException(
                     $"readout id {id.Raw} is declared and is Household-scoped, so it has no value "
                     + "against a Building row. Use ReadHousehold. The loader refuses a [[rule]] that "

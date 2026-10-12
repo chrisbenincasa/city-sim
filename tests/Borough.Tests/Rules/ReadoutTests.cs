@@ -94,6 +94,27 @@ public sealed class ReadoutTests
         Assert.Equal(2, Readouts.Read(world, slot, occupancy));
     }
 
+    [Fact]
+    public void Housed_reads_one_for_a_household_with_a_dwelling_and_zero_once_it_is_unplaced()
+    {
+        var world = new World(1_000, Empty());
+
+        Handle<Lot> lot = world.Lots.Create(new Tiles(1), new Tiles(2), zone: 1);
+        Handle<Building> building = world.Buildings.Create(world.Lots, lot, kind: 1);
+        Handle<Household> household = world.CreateHousehold(building, lifeStage: 1);
+        int slot = world.Households.Rows.Resolve(household);
+
+        var housed = new ReadoutId((ushort)Readout.Housed);
+
+        Assert.True(Readouts.IsReadableAgainst(housed, ReadoutScope.Household));
+        Assert.False(Readouts.IsReadableAgainst(housed, ReadoutScope.Business));
+        Assert.Equal(1, Readouts.ReadHousehold(world, slot, housed));
+
+        world.Unplace(household);
+
+        Assert.Equal(0, Readouts.ReadHousehold(world, slot, housed));
+    }
+
     /// <summary>
     /// <b>An undeclared id throws rather than reading zero</b>, and the reason is sharper for a Readout
     /// than for the usual named hole: the value is an apply count, so a silent zero is a Rule that

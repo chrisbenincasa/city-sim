@@ -24,6 +24,7 @@ import sys, os, re
 #   parkrate cars          floor tiles per parking space, car ownership percent
 #   blevy hlevy            daily levy on Business or Household balances, in percent
 #   rebate                 daily treasury payment to every Household
+#   hrebate                daily treasury payment to every housed Household
 #   demandmill=THR,COOL    move mills to their own kind raised by flour demand
 #   noflourimport flouredge=EDGE   remove flour from every gate, or from all but one edge
 d=sys.argv[1]; kv=dict(a.split('=') for a in os.environ.get('VARY','').split() if a)
@@ -81,6 +82,7 @@ def policy(pid, order, sweeps, apply, transfer):
 if 'blevy' in kv: policy('business_levy', 2, 'business', '{ derived = "balance", percent = '+kv['blevy']+' }', '{ from = "local", to = "global", resource = "money", amount = 1 }')
 if 'hlevy' in kv: policy('household_levy', 3, 'household', '{ derived = "balance", percent = '+kv['hlevy']+' }', '{ from = "local", to = "global", resource = "money", amount = 1 }')
 if 'rebate' in kv: policy('household_rebate', 4, 'household', '{ min = '+kv['rebate']+', max = '+kv['rebate']+' }', '{ from = "global", to = "local", resource = "money", amount = 1 }')
+if 'hrebate' in kv: policy('housed_rebate', 4, 'household', '{ derived = "housed", percent = '+str(int(kv['hrebate'])*100)+' }', '{ from = "global", to = "local", resource = "money", amount = 1 }')
 if 'bankrupt' in kv: sub(H, r'(goes_bankrupt_after_days_in_arrears = )\d+', r'\g<1>'+kv['bankrupt'])
 if 'quit' in kv:
     for f in os.listdir(d):
