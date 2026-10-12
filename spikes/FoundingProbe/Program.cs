@@ -45,17 +45,34 @@ Console.WriteLine(
     "day\ttreasury\ttills\thouseholds$\tsupply\tcitizens\thouseholds\tunplaced\temployed\tbusinesses\tsegments\t"
     + string.Join("\t", trades.Select(t => $"{t}#\t{t}$\t{t}_arrears\t{t}_staff"))
     + string.Concat(goods.Select(g => $"\t{g}_min\t{g}_max\t{g}_stock\t{g}_rate"))
-    + "\tstarving\tshopping\tpurses\thash\tincome_tax\tbusiness_tax\tpolicy_out\trule_out\tupkeep\tgrant\tplacement\tother_in\tother_out");
+    + "\tstarving\tshopping\tpurses\thash\tincome_tax\tbusiness_tax\tpolicy_out\trule_out\tupkeep\tgrant\tplacement\tother_in\tother_out"
+    + "\tpaid\tshortfall\temployers\tunderpaying\tquit\tbankrupted");
 
 if (Environment.GetEnvironmentVariable("PROBE_NOON") is not null)
 {
     Replay.Trace(sim, log, new Ticks(Ticks.PerDay / 2), hashEvery: Ticks.PerDay, []);
 }
 
+// Payroll runs on the Day-boundary Tick and the next Tick overwrites LastPayroll, so the loop stops
+// right after that Tick to read it.
 for (int day = 1; day <= days; day++)
 {
-    Replay.Trace(sim, log, new Ticks(Ticks.PerDay), hashEvery: Ticks.PerDay, hashes);
-    Print(day, sim.World, hashes[^1], sim.DrainTreasuryFlows());
+    ulong lead = ((ulong)Ticks.PerDay - sim.Tick.Raw % (ulong)Ticks.PerDay) % (ulong)Ticks.PerDay;
+
+    if (lead > 0)
+    {
+        Replay.Trace(sim, log, new Ticks(lead), hashEvery: Ticks.PerDay, hashes);
+    }
+
+    Replay.Trace(sim, log, new Ticks(1), hashEvery: Ticks.PerDay, hashes);
+    PayrollReading payroll = sim.LastPayroll;
+
+    if ((ulong)Ticks.PerDay - lead - 1 > 0)
+    {
+        Replay.Trace(sim, log, new Ticks((ulong)Ticks.PerDay - lead - 1), hashEvery: Ticks.PerDay, hashes);
+    }
+
+    Print(day, sim.World, hashes[^1], sim.DrainTreasuryFlows(), payroll);
 }
 
 sim.World.Invariants.RunEndOfRun(sim.World);
@@ -109,7 +126,7 @@ bool SaveReloadMatches()
     }
 }
 
-void Print(int day, World w, ulong hash, TreasuryFlows f)
+void Print(int day, World w, ulong hash, TreasuryFlows f, PayrollReading p)
 {
     MoneyLedger m = MoneyLedger.Of(w);
     int employed = 0;
@@ -278,7 +295,8 @@ void Print(int day, World w, ulong hash, TreasuryFlows f)
         + $"{w.Businesses.Rows.LiveCount}\t{w.Roads.Segments.Rows.LiveCount}"
         + cells
         + $"\t{hash:X16}\t{f.Withheld}\t{f.ProfitTax}\t{f.PolicyOut}\t{f.RuleOut}\t{f.Upkeep}\t{f.Grant}\t{f.Placement}"
-        + $"\t{f.PolicyIn + f.RuleIn}\t{f.Subsidy + f.Compensation}");
+        + $"\t{f.PolicyIn + f.RuleIn}\t{f.Subsidy + f.Compensation}"
+        + $"\t{p.Paid}\t{p.Shortfall}\t{p.Employers}\t{p.Underpaying}\t{p.Quit}\t{p.Bankrupted}");
 }
 
 static byte Kind(Ruleset rules, string id)
