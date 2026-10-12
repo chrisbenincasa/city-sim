@@ -5324,6 +5324,17 @@ public sealed class Ruleset
     /// </remarks>
     public Need ServedBy(byte kind) => Declares(kind) ? Kind(kind).Serves : Need.None;
 
+    /// <summary>Whether a service kind hosts this trade, so the treasury rather than a founder funds it.</summary>
+    public bool IsServiceTrade(byte trade)
+    {
+        foreach (KindDefinition kind in _kinds)
+        {
+            if (kind.IsService && kind.Business == trade) { return true; }
+        }
+
+        return false;
+    }
+
     /// <summary>Whether any declared kind is attended for this Need.</summary>
     /// <remarks>
     /// <b>Asked once at a sweep's front door and not per Household.</b> A city whose Ruleset declares

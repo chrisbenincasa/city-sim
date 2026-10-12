@@ -1282,6 +1282,19 @@ public sealed class PlacementEngine
             return;
         }
 
+        Span<byte> foundable = stackalloc byte[trades];
+        int choices = 0;
+
+        for (int trade = 1; trade <= trades; trade++)
+        {
+            if (!_world.Rules.IsServiceTrade((byte)trade)) { foundable[choices++] = (byte)trade; }
+        }
+
+        if (choices == 0)
+        {
+            return;
+        }
+
         Span<int> into = Scratch(founding.SampleFor(slots, interval));
 
         for (int draw = 0; draw < into.Length; draw++)
@@ -1338,7 +1351,7 @@ public sealed class PlacementEngine
                 continue;
             }
 
-            // Uniform over the declared trades, on its own tag -- see PurposeTag.FoundingTrade. Drawn
+            // Uniform over the trades no service kind hosts, on its own tag -- see PurposeTag.FoundingTrade. Drawn
             // on the CITIZEN's monotonic id rather than the sample index, because this is a decision
             // about a known founder rather than a choice of position: two draws of the same slot in
             // one pass must not open two different trades for one reason and the same trade for
@@ -1349,7 +1362,7 @@ public sealed class PlacementEngine
                 tick,
                 PurposeTag.FoundingTrade);
 
-            var kind = (byte)((pick % (ulong)(uint)trades) + 1);
+            byte kind = foundable[(int)(pick % (ulong)(uint)choices)];
 
             _world.Found(_world.Citizens.Rows.At(slot), kind, founding.FoundingBand, tick);
             _tickFounded++;
