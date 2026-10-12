@@ -10,6 +10,7 @@ import sys, os, re
 #   ggrant mgrant          grocer and mill opening_grant
 #   pay                    every pay_period_days
 #   bankrupt quit          every goes_bankrupt_after_days_in_arrears; add quits_after_days_unpaid
+#   draw                   add pays_owner_above_pay_periods to every waged trade
 #   fund                   school funding amount
 #   btax itax upkeep       business tax threshold, income tax allowance, Street upkeep
 #   trade_thr trade_cool   trade Zone Rule build threshold and cooldown, in Days
@@ -86,4 +87,10 @@ if 'quit' in kv:
         if f.endswith('.toml'):
             p=os.path.join(d,f); s=open(p).read()
             s=re.sub(r'(goes_bankrupt_after_days_in_arrears\s*=\s*\d+\n)', r'\g<1>quits_after_days_unpaid = '+kv['quit']+'\n', s)
+            open(p,'w').write(s)
+if 'draw' in kv:
+    for f in os.listdir(d):
+        if f.endswith('.toml'):
+            p=os.path.join(d,f); s=open(p).read()
+            s=re.sub(r'(goes_bankrupt_after_days_in_arrears\s*=\s*\d+\n)', r'\g<1>pays_owner_above_pay_periods = '+kv['draw']+'\n', s)
             open(p,'w').write(s)

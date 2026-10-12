@@ -14,12 +14,12 @@ for name in "$@"; do
     NR == 1 { for (i = 1; i <= NF; i++) h[$i] = i
               print "day treasury tills households$ households employed businesses grocer$ mill$ starving"
               next }
-    { paid += $(h["paid"]); short += $(h["shortfall"]); quit += $(h["quit"]); bankrupt += $(h["bankrupted"])
+    { paid += $(h["paid"]); short += $(h["shortfall"]); quit += $(h["quit"]); bankrupt += $(h["bankrupted"]); drawn += $(h["drawn"])
       if ($1 > 60) { latePaid += $(h["paid"]); lateShort += $(h["shortfall"]) } }
     $1 % every == 0 { print $1, $(h["treasury"]), $(h["tills"]), $(h["households$"]), $(h["households"]),
                       $(h["employed"]), $(h["businesses"]), $(h["grocer$"]), $(h["mill$"]), $(h["starving"]) }
-    END { printf("paid %d, unpaid %d, quit %d, bankrupt %d, unpaid share after Day 60 %.3f\n",
-                 paid, short, quit, bankrupt,
+    END { printf("paid %d, unpaid %d, quit %d, bankrupt %d, drawn %d, unpaid share after Day 60 %.3f\n",
+                 paid, short, quit, bankrupt, drawn,
                  (latePaid + lateShort) ? lateShort / (latePaid + lateShort) : 0) > "/dev/stderr" }
   ' "$run" | column -t
   tail -1 "$(dirname "$run")/err.txt"
