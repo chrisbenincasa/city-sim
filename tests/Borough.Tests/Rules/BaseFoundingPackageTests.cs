@@ -159,11 +159,15 @@ public sealed class BaseFoundingPackageTests
     }
 
     /// <summary>
-    /// Every grocer in a shared shop building is known to some Household, so stock in a later unit
-    /// still reaches a shopper.
+    /// Every grocer that opened with a shared shop building is known to some Household, so stock in
+    /// a later unit still reaches a shopper.
     /// </summary>
+    /// <remarks>
+    /// A founded grocer that takes a vacant unit later is left out. Households with a full list of
+    /// working shops hear of it only after their own shops fail.
+    /// </remarks>
     [Fact]
-    public void Every_grocer_in_a_shared_building_is_known_to_a_household()
+    public void Every_grocer_opened_with_a_shared_building_is_known_to_a_household()
     {
         (Ruleset rules, _) = Package();
         InputLog log = InputLogCodec.FromText(Committed());
@@ -190,6 +194,7 @@ public sealed class BaseFoundingPackageTests
         {
             if (!world.Businesses.Rows.IsLive(business)
                 || world.Businesses.Kind[business] != grocer
+                || world.Businesses.Origin[business].IsNone
                 || !world.Buildings.Rows.TryResolve(world.Businesses.Building[business], out int building)
                 || Tenants(world, building) < 2)
             {
@@ -500,7 +505,8 @@ public sealed class BaseFoundingPackageTests
     {
         foreach (int bin in SellerBins(world, good))
         {
-            world.Deposit(world.Bins.Rows.At(bin), amount, world.Tick);
+            long room = world.Bins.Capacity[bin] - world.Bins.LevelAt(bin);
+            world.Deposit(world.Bins.Rows.At(bin), Math.Min(amount, room), world.Tick);
         }
     }
 

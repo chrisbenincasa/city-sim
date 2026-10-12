@@ -31,7 +31,7 @@ accumulates it.
 ## Evidence
 
 The founding loop's base city, run with `quits_after_days_unpaid` and the M2 content set from
-[slice 4](first-playable-founding-loop.md#slice-4-blocker). Founding log, seed `0x135283C`.
+[slice 4](first-playable-founding-loop.md#slice-4-record). Founding log, seed `0x135283C`.
 
 | Day 400 | No quitting | N = 3 with hiring rule |
 |---|---|---|
@@ -51,7 +51,8 @@ The founding loop's base city, run with `quits_after_days_unpaid` and the M2 con
 
 | Item | State | Next step |
 |---|---|---|
-| Owner draw | Built (`adr/0176`) | Measure on base with M2's content |
+| Owner draw | Built and in base (`adr/0176`) | — |
+| Housed-only rebate | Built and in base (`housed` Readout) | Replace with rent once its recipient is decided |
 | Rent collection | Design | Decide the recipient. Coordinate with the land ownership row |
 | Premises upkeep | Scoping | Decide whether upkeep is Money only or consumes repairs |
 | Utility billing | Scoping | Waits on the Power, Water and Sewage delivery row |
@@ -79,7 +80,9 @@ The founding loop's base city, run with `quits_after_days_unpaid` and the M2 con
 
 - **Rent recipient.** The treasury makes rent a tax and enlarges the treasury's surplus. An owning
   Household makes rent a second income channel. No landlord entity exists yet.
-- **Rent and the rebate.** Rent may let base drop its levies and rebate. Measure after owner draw.
+- **Rent and the rebate.** Rent may let base drop its levies and rebate. With owner draw and no
+  levies, income tax still piles up in the treasury and employment collapses
+  ([slice 4 record](first-playable-founding-loop.md#findings)).
 
 ## Acceptance
 

@@ -27,7 +27,7 @@ demolition_price_per_tile = 1024
 [capacity]
 floor_tiles_per_occupant      = 16
 floor_tiles_per_job           = 3
-floor_tiles_per_parking_space = 12
+floor_tiles_per_parking_space = 6
 floor_tiles_per_place         = 3
 
 [households]
@@ -44,7 +44,7 @@ commute_moderate_minutes = 40
 commute_budget_minutes = 50
 
 [jobs]
-labour_per_day = 1024
+labour_per_day = 16
 interval      = 32
 revisit_ticks = 1024
 candidates    = 3
@@ -122,3 +122,34 @@ severe_need = -16
 known_shops = 3
 search_candidates = 32
 retry_ticks = 128
+
+[founding]
+founding_band    = 8192
+reconsider_ticks = 8192
+
+# The treasury's return path. Income tax and business tax flow into the treasury, and these two
+# levies take 5% of each balance a Day. The rebate pays every housed Household 384 a Day. An
+# unhoused Household gets nothing, because it may emigrate and take the money with it.
+[[policy]]
+id       = "business_levy"
+order    = 2
+sweeps   = "business"
+interval = 2048
+apply    = { derived = "balance", percent = 5 }
+transfer = { from = "local", to = "global", resource = "money", amount = 1 }
+
+[[policy]]
+id       = "household_levy"
+order    = 3
+sweeps   = "household"
+interval = 2048
+apply    = { derived = "balance", percent = 5 }
+transfer = { from = "local", to = "global", resource = "money", amount = 1 }
+
+[[policy]]
+id       = "housed_rebate"
+order    = 4
+sweeps   = "household"
+interval = 2048
+apply    = { derived = "housed", percent = 38400 }
+transfer = { from = "global", to = "local", resource = "money", amount = 1 }

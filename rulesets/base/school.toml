@@ -3,15 +3,18 @@
 # The player places it with the `service` command, and the treasury pays `placement_cost`. No zone
 # rule names the school, because the city does not site its own schools. The grant lands in the
 # school's till, and the teachers are paid from it. If the grant stops, paydays fall short and the
-# trade closes after 14 Days in arrears, which is three short weekly paydays. plans/0070 records how each number was chosen.
+# trade closes after 14 Days in arrears, which is two short weekly paydays. A teacher leaves after 3
+# unpaid Days. The grant per declared job equals the daily wage, so a fully staffed school's till
+# holds steady. plans/0070 records how the original numbers were chosen.
 
 [[business]]
 id = "teaching"
 shift_start_earliest_hour = 6
 shift_start_latest_hour   = 10
-wage_per_day    = 4096
+wage_per_day    = 1024
 pay_period_days = 7
 goes_bankrupt_after_days_in_arrears = 14
+quits_after_days_unpaid = 3
 
 [[building]]
 id             = "school"
@@ -32,4 +35,4 @@ sweeps   = "business"
 trade    = "teaching"
 interval = 2048
 apply    = { derived = "jobs", percent = 100 }
-transfer = { from = "global", to = "local", resource = "money", amount = 4096 }
+transfer = { from = "global", to = "local", resource = "money", amount = 1024 }
