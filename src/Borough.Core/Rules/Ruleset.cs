@@ -809,8 +809,8 @@ public readonly record struct KindDefinition(
 
 
     /// <summary>
-    /// What a Household pays per Day to live in a Building of this kind. <see cref="Money.Zero"/>
-    /// means the dwelling is free.
+    /// The daily rent a Building of this kind asks, which placement and the choice model read and
+    /// nothing charges. <see cref="Money.Zero"/> means the dwelling is free.
     /// </summary>
     /// <remarks>
     /// <para>

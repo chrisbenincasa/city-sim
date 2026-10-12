@@ -160,9 +160,10 @@ public static class RulesetKeyNotes
             + "parking minimum is a property of the city, and an exemption from it is a property of "
             + "the kind. Absent means the kind provides none.",
         ["[[building]] rent"] =
-            "What a Household pays per Day to live in a Building of this kind. Zero or absent "
-            + "means the dwelling is free. A Household that cannot afford the rent skips the "
-            + "dwelling during placement.",
+            "The daily rent a Building of this kind asks. Nothing charges it: placement skips a "
+            + "dwelling whose rent exceeds a seeking Household's money, reconsideration moves out a "
+            + "housed Household that falls below it, and the choice model weighs it. A recurring "
+            + "charge needs a [[rule]] or [[policy]]. Zero or absent means the dwelling is free.",
         ["[[building]] placement_cost"] =
             "What the treasury pays to place a Building of this kind by hand. Absent or zero means "
             + "the placement is free, which is what every kind meant before the key existed. The "
