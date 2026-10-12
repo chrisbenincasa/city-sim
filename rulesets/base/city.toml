@@ -128,8 +128,11 @@ founding_band    = 8192
 reconsider_ticks = 8192
 
 # The treasury's return path. Income tax and business tax flow into the treasury, and these two
-# levies take 5% of each balance a Day. The rebate pays every housed Household 384 a Day. An
+# levies take 5% of each balance a Day. The rebate pays every housed Household 640 a Day. An
 # unhoused Household gets nothing, because it may emigrate and take the money with it.
+#
+# The rebate outgrows tax income as the city fills, so the treasury runs dry around Day 40 and the
+# school grant, paid after the rebate, stops. Governing the rebate down is the player's fix.
 [[policy]]
 id       = "business_levy"
 order    = 2
@@ -151,5 +154,5 @@ id       = "housed_rebate"
 order    = 4
 sweeps   = "household"
 interval = 2048
-apply    = { derived = "housed", percent = 38400 }
-transfer = { from = "global", to = "local", resource = "money", amount = 1 }
+apply    = { derived = "housed", percent = 100 }
+transfer = { from = "global", to = "local", resource = "money", amount = 640 }

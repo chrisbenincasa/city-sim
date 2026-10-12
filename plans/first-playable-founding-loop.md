@@ -59,7 +59,7 @@ Out of scope:
 | D1 | Where do sundries come from? | (a) The labour chain from `milled.toml`: mill → flour → shop bakes → Households buy. (b) Priced imports only | (a), with a priced import at the gate edge as the expensive fallback. Imports alone drain Money every purchase and make the city a pass-through |
 | D2 | Where does a zone-raised Business get its opening Money? | (a) The treasury pays a Ruleset-declared opening grant, refused when the treasury is short. (b) A founder Household capitalises it, as `Found` does. (c) New Money is minted at opening | (a). It conserves Money and gives the treasury a growth cost the player feels. (b) needs zoning and founding to be reconciled. (c) adds a Money door outside export-base |
 | D3 | How does Business surplus return to circulation? | (a) `[business_tax]` to the treasury. (b) A dividend to an owner Household. (c) Leave it and accept accumulation | (a). It exists, it is daily, and it closes the loop through school funding and wages. Check in the long run whether tills stay bounded. Revisit with private capital |
-| D4 | Which shortage does the acceptance run show? | (a) Treasury squeeze. Growth raises school funding past tax income, teachers go unpaid, and the school closes places. The fix is Tax or Fund. (b) Supply break. A cut Street starves shops. The fix is relaying the Street. (c) School places. Growth fills the school. The fix is placing a second one | (a). Growth causes it, so the player did not stage it, and it uses the levers base already has. (b) is a player-caused break. (c) needs a school-place episode record that does not exist |
+| D4 | Which shortage does the acceptance run show? | (a) Treasury squeeze. Growth raises school funding past tax income, teachers go unpaid, and the school closes places. The fix is Tax or Fund. (b) Supply break. A cut Street starves shops. The fix is relaying the Street. (c) School places. Growth fills the school. The fix is placing a second one | (a), restated 10/12/2026: growth raises the treasury's outflows, not school funding. School funding is fixed by floor area. The housed rebate grows with the city, and the school grant is paid after it, so a short treasury stops the grant first. The fix is `govern` on the rebate, because `fund` accepts only subsidy Policies. (b) is a player-caused break. (c) needs a school-place episode record that does not exist |
 | D5 | Road upkeep in base? | On / off | On. The code exists. It gives the treasury a cost that scales with the network |
 
 D1 to D3 fix the Money circuit that slices 2–4 build. D4 fixes the shortage that slice 5 demonstrates.
@@ -91,9 +91,9 @@ Each slice is one PR. [Execution](#execution) gives the order and which slices r
 4. **Continued operation.** Tune provisional numbers until the 120-Day run meets the operation
    checks below, and confirm the result holds to Day 200. Record the run's command, seed and
    measurements in this plan. Built; [slice 4 record](#slice-4-record).
-5. **Shortage and recovery (D4).** A headless test pairs an intervention run with a control.
-   If D4 needs an elapsed episode that does not exist, coordinate it with row 30 (decline and recovery),
-   which owns failure-duration semantics.
+5. **Shortage and recovery (D4).** Built; [slice 5 record](#slice-5-record). A headless test pairs
+   an intervention run with a control. It samples the school each Day and defines no episode,
+   because row 30 (decline and recovery) owns failure-duration semantics.
 6. **Driven demonstration.** From the shell's "New empty city", drive the founding commands, then the
    shortage, the player's action and the recovery. Record what observation exposed. Run this after
    freeform slice 5 lands, or plan to re-record. Freeform replaces the Street command and the Lot layer
@@ -219,6 +219,66 @@ Founding log, seed `0x135283C`, committed base, 400 Days. Command:
   full list of working shops hears of a new one only after its own shops fail, so late entrants
   sell little. This likely feeds the remaining unpaid wages and is not addressed here.
 
+## Slice 5 record
+
+Growth empties the treasury by Day 35, and the school has no teachers by Day 45. Governing the
+housed rebate from 640 to 384 on Day 45 restores all 5 teachers within 15 Days. Without the
+command the school stays short through Day 400.
+
+### Engine changes
+
+| Change | Test |
+|---|---|
+| A service trade that goes bankrupt reopens at once in its Building, with an empty till. Before, nothing recreated it, and a founded mill or grocer could take the school's unit | `A_school_whose_trade_went_bankrupt_opens_it_again_empty` |
+| The Policy engine reports which Policies the treasury ran short on at their last firing. This is engine memory, not saved state, so a reloaded world reads false until each Policy next fires | `A_rebate_the_treasury_cannot_cover_is_named_as_short` |
+| The city evidence panel lists each Policy the treasury could not pay in full, and whom it pays | Driven on the Day 50 control save: both `housed_rebate` and `school_funding` are listed |
+
+### Base content
+
+Changes from slice 4's base:
+
+- The housed rebate is one application per housed Household of 640, up from 384. `govern` sets
+  that amount directly.
+- `school_funding` is order 5, after the rebate. It pays 1,280 per declared job, a quarter above the
+  wage, which covers the 5% levy on the school's till. At 1,024 the school was in arrears on 14 of
+  120 Days with a full treasury.
+
+### Measurements
+
+Founding log, seed `0x135283C`, committed base, 400 Days. Control:
+`spikes/FoundingProbe/tuning/tune.sh control 400 ""`. Governed: the same log with
+`92160 govern 384 0 2` appended (Day 45, Policy 2 is `housed_rebate`).
+
+| Day | 5 | 15 | 25 | 30 | 35 | 40 | 45 |
+|---|---|---|---|---|---|---|---|
+| Treasury | 2,976,549 | 2,016,543 | 892,690 | 400,676 | 0 | 0 | 0 |
+| Teachers (of 5) | 3 | 5 | 5 | 5 | 5 | 4 | 0 |
+
+| Measure, governed city | Result |
+|---|---|
+| Teachers back to 5 | Day 60 |
+| Employed, Days 30–120 | 707–974 |
+| Households, Days 30–120 | 625–810 |
+| Businesses, Days 30–120 | 245–365 |
+| Business tills, Days 60–400 | 2.0M–3.1M, no trend |
+| Treasury, Days 60–400 | 0.3M–2.4M, no trend |
+| Money supply, Days 60–400 | 5.3M–6.6M |
+| Unpaid share of wages after Day 60 | 9.1% |
+| Bankruptcies | 109 |
+
+In the control, the school is short of teachers on every Day from 46 to 400.
+
+### Findings
+
+- Household balances in the governed city drift down, from 2.7M on Day 100 to 1.7M on Day 400,
+  while the tills and the treasury hold. The money supply stays inside slice 4's band.
+- The governed school still drops below 5 teachers on 52 Days after Day 46, as workers quit and
+  are replaced. The acceptance test checks Days 61–70 only.
+- The evidence panel names the short Policy but not what outgrew tax income. The budget panel's
+  flows carry that.
+- The panel says `housed_rebate` "did not pay all households". It pays housed Households only, and
+  the wording comes from the Policy's swept population, not its Readout.
+
 ## Execution
 
 ```text
@@ -233,7 +293,7 @@ Founding log, seed `0x135283C`, committed base, 400 Days. Command:
 | 2 | Medium | #105 | Serial chain | Base needs a work zone so Zone Rules raise mills |
 | 3b | Small | 2, 3a | Serial chain | — |
 | 4 | Large | 3b | Serial chain, fan-out for tuning | Business tax may not bound tills. That would need a new mechanism |
-| 5 | Medium | 4 | Serial chain | Unchecked whether a bankrupt school's teaching Business reopens after funding returns |
+| 5 | Medium | 4 | Serial chain | Resolved: a bankrupt school did not reopen, and slice 5 makes it |
 | 6 | Small–medium | 5, freeform slice 5 | Serial chain | Freeform re-records the log and the drive script |
 
 Rules for parallel sessions:

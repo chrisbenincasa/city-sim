@@ -4,8 +4,10 @@
 # rule names the school, because the city does not site its own schools. The grant lands in the
 # school's till, and the teachers are paid from it. If the grant stops, paydays fall short and the
 # trade closes after 14 Days in arrears, which is two short weekly paydays. A teacher leaves after 3
-# unpaid Days. The grant per declared job equals the daily wage, so a fully staffed school's till
-# holds steady. plans/0070 records how the original numbers were chosen.
+# unpaid Days. The grant per declared job is a quarter above the daily wage, which covers the 5%
+# business levy on the school's till. A school whose trade goes bankrupt opens it again with an
+# empty till, and hires once the grant returns. The grant is paid after the housed rebate, so a
+# short treasury stops the school first.
 
 [[business]]
 id = "teaching"
@@ -30,9 +32,9 @@ bins = [
 
 [[policy]]
 id       = "school_funding"
-order    = 1
+order    = 5
 sweeps   = "business"
 trade    = "teaching"
 interval = 2048
 apply    = { derived = "jobs", percent = 100 }
-transfer = { from = "global", to = "local", resource = "money", amount = 1024 }
+transfer = { from = "global", to = "local", resource = "money", amount = 1280 }
