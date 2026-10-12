@@ -170,8 +170,9 @@ public sealed class BusinessTable
     public HandleColumn<Building> Origin { get; }
 
     /// <summary>
-    /// The Household that founded this Business, which receives its owner draw. None for a Business a
-    /// Zone Rule instantiated, which has no founder (<c>adr/0148</c>).
+    /// The Household that receives this Business's owner draw. A founded Business's owner is its
+    /// founder. A Business that opened with its Building draws a housed Household when its trade pays
+    /// a draw, and otherwise has none (<c>adr/0176</c>).
     /// </summary>
     public HandleColumn<Household> Owner { get; }
 

@@ -133,6 +133,10 @@ is the same absence a Business has before its first trade.
 [`adr/0146`](0146-founding-costs-a-citizen-and-the-households-money-so-the-founder-is-the-first-worker.md)
 governs **founding**, and this is not founding: nobody spent anything, so nobody is owed a job by it.
 
+Amended 10/12/2026: having no founder no longer means having no owner. Where its trade pays an
+owner draw, a kind-declared shop draws a housed Household as owner on its first payday with a
+surplus ([`adr/0176`](0176-a-founded-business-pays-its-owner-above-a-reserve.md)).
+
 ### It takes a slot, and the content pays for it in the open
 
 `adr/0147` decided **one ceiling over both kinds of tenant**. An instantiated trade is a tenant, so it

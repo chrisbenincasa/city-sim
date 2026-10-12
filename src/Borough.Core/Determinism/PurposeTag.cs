@@ -953,4 +953,10 @@ public enum PurposeTag : ulong
     /// the Lot's parcel corner, so a re-platted block draws the same podium.
     /// </summary>
     TowerPodium = 66,
+
+    /// <summary>
+    /// Which housed Household a Business with no owner pays its owner draw to. Drawn on the
+    /// Business's id at the payday.
+    /// </summary>
+    BusinessOwner = 67,
 }

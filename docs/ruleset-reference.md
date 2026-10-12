@@ -309,7 +309,7 @@ How many Days pass between paydays at this trade. One is daily; zero would be a 
 
 **`pays_owner_above_pay_periods`** · *whole number*
 
-How many pay periods of wages a founded Business keeps in its till. On a payday that pays every worker in full, it pays the rest to the Household that founded it. A Business a Zone Rule opened has no owner and keeps everything. Absent means no owner draw. Refused on a trade that pays no wage.
+How many pay periods of wages a Business keeps in its till. On a payday that pays every worker in full, it pays the rest to its owner. A founded Business's owner is the Household that founded it. A Business with no owner draws a housed Household at random. Absent means no owner draw. Refused on a trade that pays no wage.
 
 **`quits_after_days_unpaid`** · *whole number*
 

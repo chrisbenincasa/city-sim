@@ -511,19 +511,17 @@ internal sealed class WageEngine(World world, WorldKey key)
     }
 
     /// <summary>
-    /// Pays a founded Business's owner what its till holds above the trade's reserve.
+    /// Pays a Business's owner what its till holds above the trade's reserve.
     /// </summary>
     /// <remarks>
     /// The caller runs this only after a payroll paid every worker in full. A Business with no staff
     /// has a wage bill of zero and would pay out its whole till, which is why a payday that paid
-    /// nobody pays no draw.
+    /// nobody pays no draw. A Business with a surplus and no owner draws one first.
     /// </remarks>
     /// <returns>The money paid to the owner.</returns>
     private long Draw(int slot, in BusinessKindDefinition trade, long bill, Ticks tick)
     {
         if (trade.PaysOwnerAbovePayPeriods <= 0
-            || !_world.Households.Rows.TryResolve(_world.Businesses.Owner[slot], out int owner)
-            || !_world.Bins.Rows.TryResolve(_world.Households.Balance[owner], out int purse)
             || !_world.Bins.Rows.TryResolve(_world.Businesses.Balance[slot], out int till))
         {
             return 0;
@@ -533,6 +531,13 @@ internal sealed class WageEngine(World world, WorldKey key)
         long surplus = _world.Bins.LevelAt(till) - reserve;
 
         if (surplus <= 0)
+        {
+            return 0;
+        }
+
+        int owner = _world.OwnerOf(slot, tick);
+
+        if (owner == Tables.Rows.NoSlot || !_world.Bins.Rows.TryResolve(_world.Households.Balance[owner], out int purse))
         {
             return 0;
         }

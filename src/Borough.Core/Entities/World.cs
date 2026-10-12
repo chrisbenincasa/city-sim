@@ -2493,6 +2493,54 @@ public sealed partial class World
     }
 
     /// <summary>
+    /// The slot of the Household that receives a Business's owner draw. A Business with none draws a
+    /// housed Household and keeps it.
+    /// </summary>
+    /// <remarks>
+    /// A Business opened with its Building has no founder, and a founder can depart. Either way the
+    /// draw goes to a housed Household picked on the Business's id and the payday, each equally
+    /// likely (<c>adr/0176</c>).
+    /// </remarks>
+    /// <returns>The owner's slot, or <see cref="Rows.NoSlot"/> when nobody is housed.</returns>
+    internal int OwnerOf(int business, Ticks payday)
+    {
+        if (Households.Rows.TryResolve(Businesses.Owner[business], out int owner))
+        {
+            return owner;
+        }
+
+        int housed = 0;
+
+        for (int household = 0; household < Households.Rows.SlotCount; household++)
+        {
+            if (Housed(household))
+            {
+                housed++;
+            }
+        }
+
+        if (housed == 0)
+        {
+            return Rows.NoSlot;
+        }
+
+        ulong pick = Randomness.Draw(Key, Businesses.Rows.IdAt(business), payday, PurposeTag.BusinessOwner)
+            % (ulong)housed;
+
+        for (int household = 0; ; household++)
+        {
+            if (Housed(household) && pick-- == 0)
+            {
+                Businesses.Owner[business] = Households.Rows.At(household);
+                return household;
+            }
+        }
+    }
+
+    private bool Housed(int household) =>
+        Households.Rows.IsLive(household) && Buildings.Rows.IsValid(Households.Dwelling[household]);
+
+    /// <summary>
     /// Moves a housed Household into the Unplaced Pool, keeping its balance.
     /// </summary>
     /// <remarks>

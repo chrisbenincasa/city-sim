@@ -14,7 +14,7 @@ accumulates it.
 | Business tax | `BusinessTaxEngine` | Treasury |
 | Rule inputs | `RuleEngine` trades | Selling Business, or outside the city |
 | Levies | Content `[[policy]]` only | Treasury |
-| Profit to an owner | `WageEngine.Draw`, founded Businesses only | Founding Household |
+| Profit to an owner | `WageEngine.Draw` | Founding Household, or a housed Household drawn at random |
 | Rent | No | — |
 | Premises upkeep | No | — |
 | Utilities | No | — |
@@ -24,7 +24,8 @@ accumulates it.
 - `[[building]] rent` is a placement filter only. Placement skips a dwelling a Household cannot
   afford. Nothing charges it.
 - `World.Found` saves the founding Household as the Business's owner. A Zone Rule's Business has
-  no owner, and the treasury's opening grant funds it.
+  no founder, and the treasury's opening grant funds it. It draws an owner on its first payday
+  with a surplus.
 - Street upkeep is the only maintenance cost, and the treasury pays it.
 
 ## Evidence
@@ -63,12 +64,19 @@ The founding loop's base city, run with `quits_after_days_unpaid` and the M2 con
 - On each payday after wages, an owned Business pays its owner what its till holds above a
   reserve. A Ruleset key on `[[business]]` sets the reserve in pay periods of the trade's wage bill.
 - Absent means no draw, so existing Rulesets do not change.
-- A Business whose owner departs or dissolves keeps trading with no owner and pays no draw.
+
+### Owner of a Business with none (decided 10/12/2026)
+
+- A Business with no owner and a surplus on a payday draws a housed Household as owner and keeps
+  it. Each housed Household is equally likely.
+- This covers a Zone Rule's Business and a Business whose owner departed or dissolved.
+- The pick happens at the payday, not at opening. Generated cities raise Buildings before they
+  house anyone, so a pick at opening finds nobody.
+- A draw to the treasury was rejected. The treasury already piles up money when levies run, and
+  Households would get money back only through the rebate.
 
 ### Open
 
-- **Profit of a Zone Rule's Business.** The treasury funded its opening grant, and it has no
-  founder. Options are no draw, a draw to the treasury, or an owner picked at opening.
 - **Rent recipient.** The treasury makes rent a tax and enlarges the treasury's surplus. An owning
   Household makes rent a second income channel. No landlord entity exists yet.
 - **Rent and the rebate.** Rent may let base drop its levies and rebate. Measure after owner draw.

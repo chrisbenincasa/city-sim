@@ -16,7 +16,8 @@ namespace Borough.Tests.Rules;
 /// </summary>
 /// <remarks>
 /// <c>insolvent.toml</c> pays its grocers weekly. Each test funds one grocer, lets the job search
-/// staff it, and names as owner a Household with no wage, so its purse moves only by the draw.
+/// staff it, and names as its only owner a Household with no wage, so its purse moves only by the
+/// draw.
 /// </remarks>
 public sealed class OwnerDrawTests
 {
@@ -32,16 +33,15 @@ public sealed class OwnerDrawTests
         int purse = world.Bins.Rows.Resolve(world.Households.Balance[owner]);
         long drawn = 0;
 
-        for (int tick = 0; tick < 8 * Ticks.PerDay && drawn == 0; tick++)
+        for (int tick = 0; tick < 8 * Ticks.PerDay && drawn <= 0; tick++)
         {
             long before = world.Bins.LevelAt(purse);
 
             simulation.Step(default);
-            drawn = simulation.LastPayroll.Drawn;
+            drawn = world.Bins.LevelAt(purse) - before;
 
             if (drawn > 0)
             {
-                Assert.Equal(before + drawn, world.Bins.LevelAt(purse));
                 Assert.Equal(Reserve * PayPeriod(world, grocer) * Bill(world, grocer), world.Bins.LevelAt(till));
             }
         }
@@ -59,11 +59,16 @@ public sealed class OwnerDrawTests
     }
 
     [Fact]
-    public void A_business_with_no_owner_pays_nothing()
+    public void A_business_with_no_owner_pays_a_housed_household_it_draws()
     {
-        (_, Simulation simulation, _, _) = Owned(Reserve, owned: false);
+        (World world, Simulation simulation, int grocer, _) = Owned(Reserve, owned: false);
 
-        Assert.Equal(0, DrawnOverAWeek(simulation));
+        Assert.True(DrawnOverAWeek(simulation) > 0, "no payday paid an owner.");
+        Assert.True(
+            world.Households.Rows.TryResolve(world.Businesses.Owner[grocer], out int owner),
+            "the grocer drew no owner.");
+        Assert.True(world.Buildings.Rows.IsValid(world.Households.Dwelling[owner]));
+        world.Invariants.RunEndOfRun(world);
     }
 
     [Fact]
@@ -109,6 +114,50 @@ public sealed class OwnerDrawTests
     /// </summary>
     private static (World, Simulation, int Grocer, int Owner) Owned(int reserve, bool owned)
     {
+        (World world, Simulation simulation) = Populated(reserve);
+
+        for (int tick = 0; tick < Ticks.PerDay; tick++)
+        {
+            simulation.Step(default);
+        }
+
+        int grocer = Grocer(world);
+
+        world.Deposit(world.Businesses.Balance[grocer], Funding, simulation.Tick);
+        world.MoneySupply.Issued[MoneySupplyTable.Slot] += new Money(Funding);
+
+        for (int tick = 0; tick < 3 * Ticks.PerDay; tick++)
+        {
+            simulation.Step(default);
+        }
+
+        Assert.True(world.Workers.Walk(grocer).MoveNext(), "the job search staffed nobody.");
+
+        int owner = Workless(world);
+
+        for (int slot = 0; slot < world.Businesses.Rows.SlotCount; slot++)
+        {
+            world.Businesses.Owner[slot] = default;
+        }
+
+        if (owned)
+        {
+            world.Businesses.Owner[grocer] = world.Households.Rows.At(owner);
+        }
+
+        // A payday during the job search can already have drawn the till down to its reserve.
+        world.Deposit(world.Businesses.Balance[grocer], Funding, simulation.Tick);
+        world.MoneySupply.Issued[MoneySupplyTable.Slot] += new Money(Funding);
+
+        return (world, simulation, grocer, owner);
+    }
+
+    /// <summary>
+    /// The synthetic city on <c>insolvent.toml</c>, its grocers paying a draw above
+    /// <paramref name="reserve"/> pay periods when it is positive.
+    /// </summary>
+    private static (World, Simulation) Populated(int reserve)
+    {
         string text = File.ReadAllText(
             Path.Combine(AppContext.BaseDirectory, "Rulesets", "insolvent.toml"));
 
@@ -131,31 +180,7 @@ public sealed class OwnerDrawTests
 
         SyntheticCity.PopulateInto(world, key, new Ticks(0));
 
-        for (int tick = 0; tick < Ticks.PerDay; tick++)
-        {
-            simulation.Step(default);
-        }
-
-        int grocer = Grocer(world);
-
-        world.Deposit(world.Businesses.Balance[grocer], Funding, simulation.Tick);
-        world.MoneySupply.Issued[MoneySupplyTable.Slot] += new Money(Funding);
-
-        for (int tick = 0; tick < 3 * Ticks.PerDay; tick++)
-        {
-            simulation.Step(default);
-        }
-
-        Assert.True(world.Workers.Walk(grocer).MoveNext(), "the job search staffed nobody.");
-
-        int owner = Workless(world);
-
-        if (owned)
-        {
-            world.Businesses.Owner[grocer] = world.Households.Rows.At(owner);
-        }
-
-        return (world, simulation, grocer, owner);
+        return (world, simulation);
     }
 
     private static int Workless(World world)
