@@ -305,6 +305,13 @@ public static class RulesetKeyNotes
             + "dismissed and the premises are left standing and empty. A trade falls into arrears "
             + "on a payday it cannot meet in full and leaves them on a payday it pays wages in full. "
             + "Required on a trade that pays a wage, and refused on one that does not.",
+        ["[[business]] quits_after_days_unpaid"] =
+            "How many Days a worker at this trade goes paid short before leaving the job and "
+            + "looking for another. Each payday that pays a worker less than they are owed adds "
+            + "the pay period; a payday that pays them in full starts the count again. A trade that "
+            + "states it also hires only while its till holds one pay period's wages for its staff "
+            + "and the new hire. Absent means workers never leave for want of pay. Refused on a trade "
+            + "that pays no wage.",
         ["[[business]] requires_tier"] =
             "The lowest Skill Tier this trade will hire, a minimum rather than a band — a Citizen "
             + "above it may still take the post. Absent means it hires anybody.",

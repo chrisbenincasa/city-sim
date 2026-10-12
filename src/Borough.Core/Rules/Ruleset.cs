@@ -1124,6 +1124,27 @@ public readonly record struct BusinessKindDefinition
     public int GoesBankruptAfterDaysInArrears { get; init; }
 
     /// <summary>
+    /// How many Days a worker goes paid short, counted in whole pay periods, before leaving the job.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A payday that pays a worker less than they are owed adds the pay period to their run, and a
+    /// payday that pays them in full ends it. A worker who leaves becomes unemployed and the ordinary
+    /// job search may place them at a trade that pays.
+    /// </para>
+    /// <para>
+    /// A trade that sets it also hires only while its till holds one pay period's wages for its staff
+    /// and the new hire (<see cref="Entities.World.HasJob"/>). Without that, each worker who left
+    /// would be replaced by one who would also go unpaid.
+    /// </para>
+    /// <para>
+    /// <b>Zero means never</b>, reached by omitting the key, so a Ruleset that says nothing keeps
+    /// workers at an employer that cannot pay them until it goes bankrupt.
+    /// </para>
+    /// </remarks>
+    public int QuitsAfterDaysUnpaid { get; init; }
+
+    /// <summary>
     /// The lowest Skill Tier this trade will hire — <b>a minimum, never a band</b>. Zero means it
     /// hires anybody.
     /// </summary>

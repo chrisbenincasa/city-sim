@@ -19,6 +19,7 @@ namespace Borough.Core.Rules;
 /// <param name="Employers">Businesses whose payday came round this Day.</param>
 /// <param name="Underpaying">Businesses that could not pay everybody in full.</param>
 /// <param name="Bankrupted">Businesses wound up on this Day for coming up short too often.</param>
+/// <param name="Quit">Workers who left their job on this Day for going unpaid too long.</param>
 /// <param name="Tilless">
 /// Businesses that declare a wage and hold no money Bin, so they can neither pay nor come up short.
 /// ⚠ <b>It is a DEFECT ROW and not a census</b> — <c>plans/0065</c> <b>P1</b>. A trade's Bins come
@@ -28,7 +29,7 @@ namespace Borough.Core.Rules;
 /// </param>
 public readonly record struct PayrollReading(
     long Paid, int Workers, long Shortfall, int Employers, int Underpaying,
-    int Bankrupted, int Tilless, long Withheld);
+    int Bankrupted, int Tilless, long Withheld, int Quit);
 
 /// <summary>
 /// <b>Pays wages: the one edge in the money loop that ran in no direction until 2026-08-27.</b>
@@ -138,6 +139,7 @@ internal sealed class WageEngine(World world, WorldKey key)
         int bankrupted = 0;
         int tilless = 0;
         long withheld = 0;
+        int quit = 0;
 
         for (int slot = 0; slot < _world.Businesses.Rows.SlotCount; slot++)
         {
@@ -198,12 +200,14 @@ internal sealed class WageEngine(World world, WorldKey key)
                     tilless++;
                 }
 
-                (long moved, int reached, long owed, long taken) = Pay(slot, trade, today, tick);
+                (long moved, int reached, long owed, long taken, int left) =
+                    Pay(slot, trade, today, tick);
 
                 paid += moved;
                 workers += reached;
                 shortfall += owed;
                 withheld += taken;
+                quit += left;
 
                 if (owed > 0)
                 {
@@ -240,7 +244,7 @@ internal sealed class WageEngine(World world, WorldKey key)
         _withheldFlow = _withheldFlow.Fold(withheld);
 
         return new PayrollReading(
-            paid, workers, shortfall, employers, underpaying, bankrupted, tilless, withheld);
+            paid, workers, shortfall, employers, underpaying, bankrupted, tilless, withheld, quit);
     }
 
     /// <summary>Whether <paramref name="slot"/>'s payday falls on <paramref name="today"/>.</summary>
@@ -364,14 +368,14 @@ internal sealed class WageEngine(World world, WorldKey key)
     /// is not a lottery, and the honest repair for it is an employer that can pay.
     /// </para>
     /// </remarks>
-    private (long Paid, int Workers, long Owed, long Withheld) Pay(
+    private (long Paid, int Workers, long Owed, long Withheld, int Quit) Pay(
         int slot, in BusinessKindDefinition trade, long today, Ticks tick)
     {
         if (!_world.Bins.Rows.TryResolve(_world.Businesses.Balance[slot], out int till))
         {
             // A world whose Ruleset names no money. Nothing holds a balance, so there is nothing to
             // pay out of and nothing to pay into -- Readouts' own answer, one table across.
-            return (0, 0, 0, 0);
+            return (0, 0, 0, 0, 0);
         }
 
         // Resolved once for the whole worker list rather than per payment. NoSlot is a world whose
@@ -390,7 +394,10 @@ internal sealed class WageEngine(World world, WorldKey key)
         long owed = 0;
         long withheld = 0;
         int reached = 0;
+        int quit = 0;
 
+        // Safe to dismiss inside the walk because IndexListWalk reads the next node before it
+        // yields the current one.
         foreach (int worker in _world.Workers.Walk(slot))
         {
             long days = today - _world.Citizens.LastPaidDay[worker];
@@ -438,57 +445,110 @@ internal sealed class WageEngine(World world, WorldKey key)
                 ? _world.Citizens.EarnedWage[worker] : days * rate;
             long available = _world.Bins.LevelAt(till);
 
-            if (available < due)
+            bool paidShort = available < due;
+
+            if (paidShort)
             {
                 owed += due - available;
                 due = available;
             }
 
-            if (due <= 0)
+            bool leaves = Endure(worker, trade, paidShort);
+
+            if (due > 0)
             {
-                continue;
+                withheld += Transfer(worker, till, purse, treasury, levies, due, rate, today, tick);
+                paid += due;
+                reached++;
             }
 
-            long tax = levies ? Withhold(worker, _world.Citizens.LastPaidDay[worker], due, rate) : 0;
-
-            // Through World's doors rather than BinTable.Move, so both writes drain their wait
-            // lists -- PolicyEngine.Move's reason, and the same one applies: nothing subscribes to a
-            // balance today, and going round them would make that permanent.
-            //
-            // 🔴 THE SPLIT, and it is one debit against two credits that sum to it exactly.
-            // plans/0072 D5 requires that no Money is lost to taxation, so the employer's till
-            // gives up the gross and the Household gives up the tax -- rather than the treasury
-            // collecting separately from a Household that has already been paid in full, which
-            // would collect nothing from a Household that had already spent it.
-            _world.Withdraw(_world.Bins.Rows.At(till), due, tick);
-            _world.Deposit(_world.Bins.Rows.At(purse), due - tax, tick);
-
-            if (tax > 0)
+            if (leaves)
             {
-                _world.Deposit(_world.Bins.Rows.At(treasury), tax, tick);
+                _world.Dismiss(_world.Citizens.Rows.At(worker));
+                quit++;
             }
-
-            paid += due;
-            withheld += tax;
-            reached++;
-
-            // Only as far as what was paid for. Integer division is exact when the employer paid in
-            // full and truncates toward the last whole Day covered otherwise, so a part payment
-            // leaves the remainder owed rather than rounding it away.
-            if (Borough.Core.Movement.WorkSchedule.Runs(_world))
-            {
-                _world.Citizens.EarnedWage[worker] -= due;
-                _world.Citizens.LastPaidDay[worker] = (ushort)today;
-                continue;
-            }
-            long covered = IntegerMath.FloorDiv(due, rate);
-            long upTo = _world.Citizens.LastPaidDay[worker] + covered;
-
-            _world.Citizens.LastPaidDay[worker] =
-                upTo >= ushort.MaxValue ? ushort.MaxValue : (ushort)upTo;
         }
 
-        return (paid, reached, owed, withheld);
+        return (paid, reached, owed, withheld, quit);
+    }
+
+    /// <summary>
+    /// Extends or ends <paramref name="worker"/>'s run of unpaid Days, and says whether it has reached
+    /// the trade's <see cref="BusinessKindDefinition.QuitsAfterDaysUnpaid"/>.
+    /// </summary>
+    /// <remarks>
+    /// Writes nothing for a trade whose workers never quit, so a Ruleset without the key leaves
+    /// <see cref="CitizenTable.DaysUnpaid"/> at zero.
+    /// </remarks>
+    private bool Endure(int worker, in BusinessKindDefinition trade, bool paidShort)
+    {
+        if (trade.QuitsAfterDaysUnpaid <= 0)
+        {
+            return false;
+        }
+
+        if (!paidShort)
+        {
+            _world.Citizens.DaysUnpaid[worker] = 0;
+            return false;
+        }
+
+        int run = _world.Citizens.DaysUnpaid[worker] + trade.PayPeriodDays;
+
+        if (run >= trade.QuitsAfterDaysUnpaid)
+        {
+            _world.Citizens.DaysUnpaid[worker] = 0;
+            return true;
+        }
+
+        _world.Citizens.DaysUnpaid[worker] = (ushort)run;
+        return false;
+    }
+
+    /// <summary>
+    /// Moves one payment of <paramref name="due"/> from the employer's till to the worker's
+    /// Household, withholding income tax, and advances the worker's pay clock over what it covered.
+    /// </summary>
+    /// <returns>The tax withheld from the payment.</returns>
+    private long Transfer(
+        int worker, int till, int purse, int treasury, bool levies, long due, long rate, long today,
+        Ticks tick)
+    {
+        long tax = levies ? Withhold(worker, _world.Citizens.LastPaidDay[worker], due, rate) : 0;
+
+        // Through World's doors rather than BinTable.Move, so both writes drain their wait
+        // lists -- PolicyEngine.Move's reason, and the same one applies: nothing subscribes to a
+        // balance today, and going round them would make that permanent.
+        //
+        // 🔴 THE SPLIT, and it is one debit against two credits that sum to it exactly.
+        // plans/0072 D5 requires that no Money is lost to taxation, so the employer's till
+        // gives up the gross and the Household gives up the tax -- rather than the treasury
+        // collecting separately from a Household that has already been paid in full, which
+        // would collect nothing from a Household that had already spent it.
+        _world.Withdraw(_world.Bins.Rows.At(till), due, tick);
+        _world.Deposit(_world.Bins.Rows.At(purse), due - tax, tick);
+
+        if (tax > 0)
+        {
+            _world.Deposit(_world.Bins.Rows.At(treasury), tax, tick);
+        }
+
+        // Only as far as what was paid for. Integer division is exact when the employer paid in
+        // full and truncates toward the last whole Day covered otherwise, so a part payment
+        // leaves the remainder owed rather than rounding it away.
+        if (Borough.Core.Movement.WorkSchedule.Runs(_world))
+        {
+            _world.Citizens.EarnedWage[worker] -= due;
+            _world.Citizens.LastPaidDay[worker] = (ushort)today;
+            return tax;
+        }
+        long covered = IntegerMath.FloorDiv(due, rate);
+        long upTo = _world.Citizens.LastPaidDay[worker] + covered;
+
+        _world.Citizens.LastPaidDay[worker] =
+            upTo >= ushort.MaxValue ? ushort.MaxValue : (ushort)upTo;
+
+        return tax;
     }
 
     /// <summary>

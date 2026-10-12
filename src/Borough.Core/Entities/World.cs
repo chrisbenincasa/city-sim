@@ -8147,13 +8147,35 @@ public sealed partial class World
     /// Whether <paramref name="buildingSlot"/> has a job nobody holds.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>The predicate the assignment pass asks of every candidate it samples</b>, and
     /// <see cref="HasRoom"/>'s exact shape: a full employer is an ordinary answer rather than a
     /// fault, so this is where the cost of asking is paid and there is no invariant behind it.
+    /// </para>
+    /// <para>
+    /// A trade whose workers quit for want of pay hires only while its till holds one pay period's
+    /// wages for its staff and the new hire. Otherwise each worker who leaves is replaced by one who
+    /// will also go unpaid. Graded wages are ignored here, so the test is approximate.
+    /// </para>
     /// </remarks>
     public bool HasJob(int businessSlot) =>
         TryDeclaredJobs(Businesses.Kind[businessSlot], businessSlot, out int jobs)
-        && Workers.Length(businessSlot) < jobs;
+        && Workers.Length(businessSlot) < jobs
+        && CanAffordHire(businessSlot);
+
+    private bool CanAffordHire(int businessSlot)
+    {
+        BusinessKindDefinition trade = Rules.BusinessKind(Businesses.Kind[businessSlot]);
+
+        if (trade.QuitsAfterDaysUnpaid <= 0)
+        {
+            return true;
+        }
+
+        long payroll = (long)(Workers.Length(businessSlot) + 1) * trade.WagePerDay * trade.PayPeriodDays;
+
+        return BalanceOf(Businesses.Rows.At(businessSlot)).Raw >= payroll;
+    }
 
     /// <summary>
     /// Gives a Citizen a Workplace, linking them into that Building's worker list.
@@ -8218,6 +8240,7 @@ public sealed partial class World
 
         Citizens.LastPaidDay[slot] =
             today >= ushort.MaxValue ? ushort.MaxValue : (ushort)today;
+        Citizens.DaysUnpaid[slot] = 0;
 
         Invariants.Require(
             !Lists(Workers, buildingSlot, slot),

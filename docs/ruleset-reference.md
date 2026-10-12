@@ -27,14 +27,14 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-53 sections, 379 keys.
+53 sections, 380 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
 - [`[[building]]`](#building) — 22 keys
 - [`[[building]] bins`](#building-bins) — 4 keys
 - [`[[building]] bins reserve`](#building-bins-reserve) — 3 keys
-- [`[[business]]`](#business) — 15 keys
+- [`[[business]]`](#business) — 16 keys
 - [`[[hinterland.population]]`](#hinterlandpopulation) — 5 keys
 - [`[[hinterland]]`](#hinterland) — 8 keys
 - [`[[hinterland]] prices`](#hinterland-prices) — 2 keys
@@ -306,6 +306,10 @@ The daily opening hour for shopping purchases.
 **`pay_period_days`** · *whole number*
 
 How many Days pass between paydays at this trade. One is daily; zero would be a payday that never comes round.
+
+**`quits_after_days_unpaid`** · *whole number*
+
+How many Days a worker at this trade goes paid short before leaving the job and looking for another. Each payday that pays a worker less than they are owed adds the pay period; a payday that pays them in full starts the count again. A trade that states it also hires only while its till holds one pay period's wages for its staff and the new hire. Absent means workers never leave for want of pay. Refused on a trade that pays no wage.
 
 **`requires_tier`** · *whole number*
 
