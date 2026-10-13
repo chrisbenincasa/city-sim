@@ -1,0 +1,86 @@
+# Undo: the cases that decide whether a reversal is exact (#157).
+#
+# BOROUGH_LOG=1 godot --path src/Borough.Godot -- --empty --seed 0x135283C --citizens 2000 \
+#   --drive scripts/ui/undo-refusals.drive
+#
+# Three cases scripts/ui/undo.drive does not reach, on two closed faces either side of one Street.
+#
+# 1. A gesture whose frame collects no batch. The shot holds the queue over a frame, and the entry
+#    still settles on the frame its Commands apply, so the undo removes the Street it laid.
+# 2. Two strokes of one moment over the same ground. The second read the permission from before
+#    either landed, so its undo is refused rather than erasing the first stroke's paint too.
+# 3. A stroke whose ground changed shape. Removing the Street between two faces merges them, so a
+#    repaint through the Tile the stroke painted would reach the face it never touched.
+
+256 pause
+256 ui tools off
+256 ui layers off
+256 focus 32 16 400
+256 tilt 50
+256 ui street-length off
+256 hold street
+256 click 0 0
+256 click 64 0
+256 click 0 32
+256 click 64 32
+256 click 0 0
+256 click 0 32
+256 click 32 0
+256 click 32 32
+256 click 64 0
+256 click 64 32
+256 speed 1
+
+# Case 1: the shot leaves the Street Commands queued, so the gesture settles a frame late.
+257 pause
+257 hold street
+257 click 0 64
+257 click 64 64
+257 shoot artifacts/undo/09-held-over.png
+257 speed 1
+258 pause
+258 readout artifacts/undo/09-held-over.txt
+258 draw artifacts/undo/09-held-over.tsv
+258 ui undo
+258 speed 1
+259 pause
+259 readout artifacts/undo/10-held-over-undone.txt
+259 draw artifacts/undo/10-held-over-undone.tsv
+259 speed 1
+
+# Case 2: housing then trade over the left face, both on Tick 260.
+260 pause
+260 ui zone-size blocks
+260 hold zone 0
+260 click 4 4
+260 hold zone 1
+260 click 4 4
+260 speed 1
+261 pause
+261 ui undo
+261 speed 1
+262 pause
+262 readout artifacts/undo/11-refused-covered.txt
+262 speed 1
+
+# Case 3: trade on the right face, housing on the left, then the Street between them goes.
+263 pause
+263 hold zone 1
+263 click 36 4
+263 speed 1
+264 pause
+264 hold zone 0
+264 click 4 4
+264 speed 1
+265 pause
+265 hold street
+265 click 32 16 shift
+265 speed 1
+266 pause
+266 ui undo
+266 speed 1
+267 pause
+267 readout artifacts/undo/12-refused-reshaped.txt
+267 draw artifacts/undo/12-refused-reshaped.tsv
+267 speed 1
+268 quit

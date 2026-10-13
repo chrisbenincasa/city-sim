@@ -45,6 +45,7 @@ public partial class Main
         }
 
         Command[] raised = [.. _queued];
+        SubmitGestures();
         _world.Changes?.Invalidate();
 
         // 🔴 THE ROAD GRAPH IS LAID ONCE AND A PLAYER CAN CHANGE IT, WHICH IS THE WHOLE DEFECT.
@@ -230,9 +231,11 @@ public partial class Main
 
                 // A queued Command has changed nothing yet, so the note still reads the paint the
                 // ground holds before this one lands.
-                if (Send(new Command(painting, at.East, at.North, ZonePermission())))
+                var paint = new Command(painting, at.East, at.North, ZonePermission());
+
+                if (Send(paint))
                 {
-                    NoteZonePainted(painting, at.East, at.North);
+                    NoteZonePainted(paint);
                     PushZoneStroke();
                 }
 

@@ -14,9 +14,10 @@ namespace Borough.Shell;
 /// </summary>
 /// <remarks>
 /// <para>
-/// A Command a gesture queues applies at the top of the next Tick, so what a gesture did is not
-/// known when it is made. Recording is in two halves: the gesture notes what stands near it
-/// before, and <see cref="SettleGestures"/> reads what changed once the step has run.
+/// A Command a gesture queues applies at the top of the Tick the batch holding it runs, so what a
+/// gesture did is not known when it is made. Recording is in three steps: the gesture notes what
+/// stands near it before, <see cref="SubmitGestures"/> marks the notes whose Commands went into a
+/// batch, and <see cref="SettleGestures"/> reads what changed once that batch has stepped.
 /// </para>
 /// <para>
 /// An undo is offered only when the reversal is exact, and the refusals are the shell's own
@@ -33,9 +34,10 @@ public partial class Main
 
     /// <summary>Ground a zone stroke painted, and the one permission it held before.</summary>
     /// <param name="Before">The uses every Tile of the ground held; 0 is unzoned.</param>
+    /// <param name="After">The uses the stroke painted, which the ground must still hold to undo.</param>
     /// <param name="Mixed">Whether the ground held more than one permission, which no repaint restores.</param>
     private readonly record struct PaintedGround(
-        CommandKind Kind, Tiles East, Tiles North, LandRectangle Bounds, ushort Before, bool Mixed);
+        CommandKind Kind, Tiles East, Tiles North, LandRectangle Bounds, ushort Before, ushort After, bool Mixed);
 
     /// <summary>One gesture, and everything reversing it exactly depends on.</summary>
     private sealed class Gesture
@@ -53,6 +55,9 @@ public partial class Main
         /// <summary>Whether the gesture cut a Segment that already stood.</summary>
         public bool Split { get; set; }
 
+        /// <summary>Whether another gesture of the same batch had already painted ground this one paints.</summary>
+        public bool Covered { get; set; }
+
         /// <summary>Whether laying cleared Buildings.</summary>
         public bool Cleared { get; init; }
 
@@ -66,6 +71,9 @@ public partial class Main
         public required Gesture Entry { get; init; }
 
         public required object World { get; init; }
+
+        /// <summary>Whether the gesture's Commands have gone into a batch; only then can it settle.</summary>
+        public bool Submitted { get; set; }
 
         /// <summary>The Street Commands the gesture sent.</summary>
         public Command[] Streets { get; init; } = [];
@@ -136,23 +144,27 @@ public partial class Main
         _settling.Add(settling);
     }
 
-    /// <summary>Notes one ground a zone stroke painted, with the permission it held before.</summary>
+    /// <summary>Notes one ground a zone Command paints, with the permission it held before.</summary>
     /// <remarks>Called before the paint applies, so the reading is the ground as it stood.</remarks>
-    private void NoteZonePainted(CommandKind kind, Tiles east, Tiles north)
+    private void NoteZonePainted(Command command)
     {
-        if (!PaintedGroundAt(kind, east, north, out LandRectangle bounds, out ushort before, out bool mixed))
+        if (!PaintedGroundAt(command.Kind, command.East, command.North,
+                out LandRectangle bounds, out ushort before, out bool mixed))
         {
             return;
         }
 
         Forget();
+        bool covered = AlreadyPainted(command.Kind, command.East, command.North, bounds);
         _painting ??= new Settling
         {
             Entry = new Gesture { BuiltBefore = Highest(_world.Buildings.Rows) },
             World = _world,
             LotsBefore = Highest(_world.Lots.Rows),
         };
-        _painting.Entry.Grounds.Add(new PaintedGround(kind, east, north, bounds, before, mixed));
+        _painting.Entry.Covered |= covered;
+        _painting.Entry.Grounds.Add(
+            new PaintedGround(command.Kind, command.East, command.North, bounds, before, command.Zone, mixed));
     }
 
     /// <summary>Closes the zone stroke being noted. One stroke is one entry however many grounds it painted.</summary>
@@ -165,8 +177,28 @@ public partial class Main
     }
 
     /// <summary>
-    /// Attributes what the applied Commands laid, cut and created to the gestures that sent them,
-    /// and pushes one entry for each.
+    /// Marks every noted gesture as sent, which is what lets it settle.
+    /// </summary>
+    /// <remarks>
+    /// Called from <see cref="Ordered"/> as the batch is collected, because that is the moment the
+    /// gesture's Commands leave the shell. A frame that collects no batch -- a shot, an open menu,
+    /// a frame whose next drive entry is due at the Tick already presented -- leaves the queue
+    /// standing, and a note settled against a city its Commands had not reached yet would find
+    /// nothing and drop the entry.
+    /// </remarks>
+    private void SubmitGestures()
+    {
+        PushZoneStroke();
+
+        foreach (Settling pending in _settling)
+        {
+            pending.Submitted = true;
+        }
+    }
+
+    /// <summary>
+    /// Attributes what the applied Commands laid, cut and created to the submitted gestures that
+    /// sent them, and pushes one entry for each.
     /// </summary>
     /// <remarks>
     /// Several gestures can share a Tick, so a laid Segment is attributed by lying along the arc one
@@ -177,9 +209,14 @@ public partial class Main
     {
         if (_settling.Count == 0) { return; }
 
-        List<Settling> settling = [.. _settling];
-        _settling.Clear();
-        settling.RemoveAll(pending => !ReferenceEquals(pending.World, _world));
+        List<Settling> settling = [];
+
+        foreach (Settling pending in _settling)
+        {
+            if (pending.Submitted && ReferenceEquals(pending.World, _world)) { settling.Add(pending); }
+        }
+
+        _settling.RemoveAll(pending => pending.Submitted || !ReferenceEquals(pending.World, _world));
         if (settling.Count == 0) { return; }
 
         RoadSegmentTable segments = _world.Roads.Segments;
@@ -331,6 +368,12 @@ public partial class Main
                 + "does not join the halves back together.";
         }
 
+        if (entry.Covered)
+        {
+            return "another stroke of the same moment painted over the same ground, so the "
+                + "permission this one replaced is no longer the one underneath it.";
+        }
+
         foreach (PaintedGround ground in entry.Grounds)
         {
             if (ground.Mixed)
@@ -349,6 +392,21 @@ public partial class Main
         {
             return $"Building {building:N0} has been raised on the ground that gesture made, so "
                 + "undoing it would take the ground out from under it.";
+        }
+
+        // Asked of the city again and not trusted from the note: removing a Street merges the faces
+        // either side of it, so the Tile a stroke painted through can name ground wider than the
+        // stroke covered, and a repaint through it would reach ground the stroke never touched.
+        foreach (PaintedGround ground in entry.Grounds)
+        {
+            if (!PaintedGroundAt(ground.Kind, ground.East, ground.North,
+                    out LandRectangle bounds, out ushort uses, out bool since)
+                || bounds != ground.Bounds || since || uses != ground.After)
+            {
+                return "the ground that stroke painted is not the shape it was, or no longer holds "
+                    + "what the stroke put there, so repainting it would cover ground the stroke "
+                    + "never touched.";
+            }
         }
 
         RoadSegmentTable segments = _world.Roads.Segments;
@@ -507,6 +565,69 @@ public partial class Main
 
         return Holds(bounds, ground, out before, out mixed);
     }
+
+    /// <summary>
+    /// Whether a gesture of the batch still being collected has already painted this ground.
+    /// </summary>
+    /// <remarks>
+    /// That paint has not landed yet, so the permission read here is the one from before the batch
+    /// rather than the one this stroke replaces. Only a refusal keeps the undo exact, which also
+    /// keeps the older stroke out of reach while it stands.
+    /// </remarks>
+    private bool AlreadyPainted(CommandKind kind, Tiles east, Tiles north, LandRectangle bounds)
+    {
+        foreach (Settling pending in _settling)
+        {
+            if (pending.Submitted) { continue; }
+
+            foreach (PaintedGround ground in pending.Entry.Grounds)
+            {
+                if (Shares(ground, kind, east, north, bounds)) { return true; }
+            }
+        }
+
+        if (_painting is null) { return false; }
+
+        foreach (PaintedGround ground in _painting.Entry.Grounds)
+        {
+            if (Shares(ground, kind, east, north, bounds)) { return true; }
+        }
+
+        return false;
+    }
+
+    /// <summary>Whether two patches of ground hold a Tile in common.</summary>
+    /// <remarks>The bounds reject cheaply, so the Tile walk only runs where two patches overlap.</remarks>
+    private bool Shares(PaintedGround ground, CommandKind kind, Tiles east, Tiles north, LandRectangle bounds)
+    {
+        LandRectangle box = ground.Bounds;
+        int west = Upper(box.X, bounds.X), south = Upper(box.Y, bounds.Y);
+        int over = Lower(box.X + box.Width, bounds.X + bounds.Width);
+        int under = Lower(box.Y + box.Height, bounds.Y + bounds.Height);
+
+        if (west >= over || south >= under) { return false; }
+
+        ZoneGround? mine = Shape(kind, east, north), theirs = Shape(ground.Kind, ground.East, ground.North);
+
+        for (int up = south; up < under; up++)
+        {
+            for (int along = west; along < over; along++)
+            {
+                if ((mine is not { } set || set.Contains(along, up))
+                    && (theirs is not { } other || other.Contains(along, up)))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>The face or Street side a zone Command paints; null for a parcel, whose bounds are exact.</summary>
+    private ZoneGround? Shape(CommandKind kind, Tiles east, Tiles north) =>
+        kind != CommandKind.ZoneParcel && _world.TryZoneGround(east, north, out ZoneGround ground)
+            ? ground : null;
 
     /// <summary>The uses the first Tile of a region holds, and whether every other Tile matches it.</summary>
     private bool Holds(LandRectangle bounds, ZoneGround? ground, out ushort uses, out bool mixed)

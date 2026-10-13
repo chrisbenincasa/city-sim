@@ -94,10 +94,11 @@ public partial class Main
         if (!OnLattice(at))
         {
             _zoneStart = null;
-            if (Send(new Command(CommandKind.Zone, at.Item1, at.Item2, ZonePermission())))
+            var paint = new Command(CommandKind.Zone, at.Item1, at.Item2, ZonePermission());
+            if (Send(paint))
             {
                 _refused = string.Empty;
-                NoteZonePainted(CommandKind.Zone, at.Item1, at.Item2);
+                NoteZonePainted(paint);
                 PushZoneStroke();
                 _zoneFeedback = $"{(_world.TryZoneGround(at.Item1, at.Item2, out ZoneGround ground) && ground.Face >= 0 ? "Block" : "Street side")} queued: {ZoneName()}. Existing Buildings stay.";
             }
@@ -110,8 +111,9 @@ public partial class Main
             {
                 var middle = (East: new Tiles(parcel.East.Raw + parcel.Wide.Raw / 2),
                     North: new Tiles(parcel.North.Raw + parcel.Deep.Raw / 2));
-                if (!Send(new Command(CommandKind.ZoneParcel, middle.East, middle.North, ZonePermission()))) continue;
-                NoteZonePainted(CommandKind.ZoneParcel, middle.East, middle.North);
+                var paint = new Command(CommandKind.ZoneParcel, middle.East, middle.North, ZonePermission());
+                if (!Send(paint)) continue;
+                NoteZonePainted(paint);
                 painted++;
             }
             PushZoneStroke();
@@ -132,8 +134,9 @@ public partial class Main
                 if (canSkip && previous.CommonUses == permission && previous.AnyUses == permission)
                 { unchanged++; continue; }
                 var tile = streets.IntersectionTile(column, row);
-                if (!Send(new Command(CommandKind.Zone, tile.East, tile.North, ZonePermission()))) continue;
-                NoteZonePainted(CommandKind.Zone, tile.East, tile.North);
+                var paint = new Command(CommandKind.Zone, tile.East, tile.North, ZonePermission());
+                if (!Send(paint)) continue;
+                NoteZonePainted(paint);
                 count++;
             }
         PushZoneStroke();
