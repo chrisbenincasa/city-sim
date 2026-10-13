@@ -43,7 +43,10 @@ commute_fast_minutes = 20
 commute_moderate_minutes = 40
 commute_budget_minutes = 50
 
+# PROVISIONAL: ten Days of failed commutes cost the job (adr/0177). A full-parking measurement
+# tests it.
 [jobs]
+dismissed_after_failed_commute_days = 10
 labour_per_day = 16
 interval      = 32
 revisit_ticks = 1024

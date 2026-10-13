@@ -4025,10 +4025,21 @@ public readonly record struct JobRuleset(
     long LabourPerDay = 0,
     int LabourTier2Percent = 0,
     int LabourTier3Percent = 0,
-    int LabourExperiencePremiumPercent = 0)
+    int LabourExperiencePremiumPercent = 0,
+    int DismissedAfterFailedCommuteDays = 0)
 {
     /// <summary>A Ruleset whose city assigns nobody to work.</summary>
     public static JobRuleset None => default;
+
+    /// <summary>
+    /// Whether a run of failed outbound commutes costs the job, at
+    /// <see cref="FailedCommuteDeadline"/>.
+    /// </summary>
+    public bool DismissesFailedCommuters => DismissedAfterFailedCommuteDays > 0;
+
+    /// <summary>Elapsed time from a Citizen's first failed outbound commute to the dismissal.</summary>
+    public Ticks FailedCommuteDeadline =>
+        new((ulong)DismissedAfterFailedCommuteDays * Ticks.PerDay);
 
     public bool GradesLabour => LabourTier2Percent > 0 || LabourTier3Percent > 0;
 

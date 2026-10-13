@@ -1,51 +1,40 @@
 using Borough.Core;
-using Borough.Core.Determinism;
 using Borough.Core.Entities;
-using Borough.Core.Input;
 using Borough.Core.Movement;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
 using Borough.Core.Tables;
-using Borough.Formats;
 
 using Xunit.Abstractions;
+
+using static Borough.Tests.Movement.BridgeCity;
 
 namespace Borough.Tests.Movement;
 
 /// <summary>
-/// Row 30's bridge fixture, measured before either failure clock exists.
+/// Measures row 30's bridge fixture (<see cref="BridgeCity"/>) through a removal and a repair.
 /// </summary>
-/// <remarks>
-/// Two lattice districts joined by a single one-block Street. The gate stands on the near side, so
-/// removing the bridge cuts the far side off from the Outside Connection and fails every commute
-/// that crosses it. See <c>plans/decline-recovery.md</c>.
-/// </remarks>
 [Trait(Tier.Key, Tier.Instrument)]
 public sealed class BridgeCommuteProbe(ITestOutputHelper output)
 {
-    private const ulong Seed = 0xB121_D6E0_0000_0030UL;
-    private const int BlockTiles = 32;
-    private const int DistrictBlocks = 2;
-    private const int BridgeColumn = DistrictBlocks;
-    private const int FarColumn = DistrictBlocks + 1;
-    private const int Population = 1_000;
     private const int RemovedOnDay = 2;
     private const int Days = 16;
-
-    private static readonly WorldKey Key = WorldKey.FromSeed(Seed);
-    private static readonly Tiles BridgeEast = new((BridgeColumn * BlockTiles) + (BlockTiles / 2));
+    private const int ShippedDeadlineDays = 10;
 
     private readonly ITestOutputHelper _output = output;
 
     [Fact]
-    public void Repaired_on_day_5() => Run(rebuiltOnDay: 5);
+    public void Repaired_on_day_5() => Run(rebuiltOnDay: 5, dismissAfterDays: ShippedDeadlineDays);
 
     [Fact]
-    public void Repaired_on_day_12() => Run(rebuiltOnDay: 12);
+    public void Repaired_on_day_12() => Run(rebuiltOnDay: 12, dismissAfterDays: ShippedDeadlineDays);
 
     [Fact]
-    public void Never_repaired() => Run(rebuiltOnDay: null);
+    public void Never_repaired() => Run(rebuiltOnDay: null, dismissAfterDays: ShippedDeadlineDays);
+
+    [Fact]
+    public void Never_repaired_without_a_deadline() => Run(rebuiltOnDay: null, dismissAfterDays: null);
 
     /// <summary>
     /// Whether the price the Commute Budget judges moves when the road it crosses is loaded.
@@ -53,10 +42,10 @@ public sealed class BridgeCommuteProbe(ITestOutputHelper output)
     [Fact]
     public void The_budget_test_prices_free_flow_only()
     {
-        Simulation simulation = Start();
+        Simulation simulation = Start(BridgeRules());
         World world = simulation.World;
 
-        StepTo(simulation, (1 * Ticks.PerDay) + (Ticks.PerDay / 4));
+        StepTo(simulation, LateMorning(1));
 
         int bridge = world.StreetAt(BridgeEast, new Tiles(0));
         (int home, int work) = FirstCrossing(world);
@@ -90,41 +79,39 @@ public sealed class BridgeCommuteProbe(ITestOutputHelper output)
         Assert.True(driven > freeFlow, "the loaded bridge costs a driver no more than an empty one.");
     }
 
-    private void Run(int? rebuiltOnDay)
+    private void Run(int? rebuiltOnDay, int? dismissAfterDays)
     {
-        Simulation simulation = Start();
+        Simulation simulation = Start(BridgeRules(dismissAfterDays));
         World world = simulation.World;
 
-        int gate = Gate(world);
-
         _output.WriteLine(
-            $"gate on the {(IsFar(world, gate) ? "far" : "near")} side; bridge removed Day {RemovedOnDay} 23:00; "
-            + (rebuiltOnDay is { } d ? $"rebuilt Day {d} 23:00" : "never rebuilt"));
+            $"bridge removed Day {RemovedOnDay} 23:00; "
+            + (rebuiltOnDay is { } d ? $"rebuilt Day {d} 23:00; " : "never rebuilt; ")
+            + (dismissAfterDays is { } days ? $"dismissal after {days} Days" : "no dismissal"));
 
-        Assert.False(IsFar(world, gate), "the gate stands on the far side, so the fixture cuts off the wrong half.");
+        Assert.False(IsFar(world, Gate(world)), "the gate stands on the far side, so the fixture cuts off the wrong half.");
 
         List<Handle<Citizen>> crossers = [];
         long completed = 0, noRoute = 0, overBudget = 0;
 
         for (int day = 0; day < Days; day++)
         {
-            int lateEvening = (day * Ticks.PerDay) + (Ticks.PerDay * 18 / 24);
             (long Completed, long NoRoute, long OverBudget) before = (0, 0, 0);
 
             if (day == RemovedOnDay)
             {
-                before = StepTo(simulation, lateEvening);
+                before = StepTo(simulation, LateEvening(day));
                 crossers = Crossers(world);
 
                 _output.WriteLine(
                     $"Day {day}: {crossers.Count} crossers, {world.Travellers.Rows.LiveCount} Travellers in flight at removal");
 
-                Issue(simulation, Command.Demolish(BridgeEast, new Tiles(0), DemolishTarget.Street));
+                RemoveBridge(simulation);
             }
             else if (day == rebuiltOnDay)
             {
-                before = StepTo(simulation, lateEvening);
-                Issue(simulation, Lay(BridgeColumn, 0, StreetAxis.East));
+                before = StepTo(simulation, LateEvening(day));
+                RebuildBridge(simulation);
             }
 
             (long c, long n, long o) = StepTo(simulation, (day + 1) * Ticks.PerDay);
@@ -146,7 +133,7 @@ public sealed class BridgeCommuteProbe(ITestOutputHelper output)
 
     private void Report(World world, int day, List<Handle<Citizen>> crossers, long completed, long noRoute, long overBudget)
     {
-        int alive = 0, stillCrossing = 0, sameSide = 0, jobless = 0, failedToday = 0, completedToday = 0;
+        int alive = 0, stillCrossing = 0, sameSide = 0, jobless = 0, clocked = 0, failedToday = 0, completedToday = 0;
 
         foreach (Handle<Citizen> crosser in crossers)
         {
@@ -156,12 +143,13 @@ public sealed class BridgeCommuteProbe(ITestOutputHelper output)
             }
 
             alive++;
+            clocked += world.Citizens.CommuteFailedSince[citizen] != Ticks.Zero ? 1 : 0;
 
-            if (!world.Businesses.Rows.TryResolve(world.Citizens.Workplace[citizen], out int business))
+            if (!world.Businesses.Rows.IsValid(world.Citizens.Workplace[citizen]))
             {
                 jobless++;
             }
-            else if (IsFar(world, HomeOf(world, citizen)) != IsFar(world, PremisesOf(world, business)))
+            else if (Crosses(world, citizen))
             {
                 stillCrossing++;
             }
@@ -182,70 +170,9 @@ public sealed class BridgeCommuteProbe(ITestOutputHelper output)
 
         _output.WriteLine(
             $"Day {day,2}: crossers alive {alive}, still crossing {stillCrossing}, now same side {sameSide}, "
-            + $"jobless {jobless}; last trip today failed {failedToday}, completed {completedToday} | "
-            + $"city trips completed {completed}, no route {noRoute}, over budget {overBudget} | "
-            + $"far Buildings {far}, cut off {cutOff}, abandoned {abandoned}");
-    }
-
-    private static Simulation Start()
-    {
-        InputLogBuilder builder = new(Seed, new WorldConfiguration(Population), rulesetHash: 0);
-        Simulation simulation = Replay.Start(builder.Build(), Rules());
-
-        simulation.VerifyDecideWritesNothing = false;
-
-        simulation.Step(new TickInput(Streets(), rulesetHash: 0));
-        simulation.Step(new TickInput(Zoning(), rulesetHash: 0));
-
-        SyntheticCity.PeopleInto(simulation.World, Key, Ticks.Zero);
-
-        return simulation;
-    }
-
-    private static (long Completed, long NoRoute, long OverBudget) StepTo(Simulation simulation, long tick)
-    {
-        long completed = 0, noRoute = 0, overBudget = 0;
-
-        while ((long)simulation.World.Tick.Raw < tick)
-        {
-            simulation.Step(new TickInput(default, rulesetHash: 0));
-            simulation.Employment.Drain();
-
-            TripActivity trips = simulation.Trips.Drain();
-            completed += trips.Completed.Sum;
-            noRoute += trips.NoRouteFound.Sum;
-            overBudget += trips.ExceededCommuteBudget.Sum;
-        }
-
-        return (completed, noRoute, overBudget);
-    }
-
-    private static void Issue(Simulation simulation, Command command)
-    {
-        long refused = simulation.CommandsRefused;
-        int segments = simulation.World.Roads.Segments.Rows.LiveCount;
-
-        simulation.Step(new TickInput([command], rulesetHash: 0));
-
-        Assert.Equal(refused, simulation.CommandsRefused);
-        Assert.NotEqual(segments, simulation.World.Roads.Segments.Rows.LiveCount);
-    }
-
-    private static List<Handle<Citizen>> Crossers(World world)
-    {
-        List<Handle<Citizen>> crossers = [];
-
-        for (int citizen = 0; citizen < world.Citizens.Rows.SlotCount; citizen++)
-        {
-            if (world.Citizens.Rows.IsLive(citizen)
-                && world.Businesses.Rows.TryResolve(world.Citizens.Workplace[citizen], out int business)
-                && IsFar(world, HomeOf(world, citizen)) != IsFar(world, PremisesOf(world, business)))
-            {
-                crossers.Add(world.Citizens.Rows.At(citizen));
-            }
-        }
-
-        return crossers;
+            + $"jobless {jobless}, clock running {clocked}; last trip today failed {failedToday}, "
+            + $"completed {completedToday} | city trips completed {completed}, no route {noRoute}, "
+            + $"over budget {overBudget} | far Buildings {far}, cut off {cutOff}, abandoned {abandoned}");
     }
 
     private static (int Home, int Work) FirstCrossing(World world)
@@ -294,98 +221,4 @@ public sealed class BridgeCommuteProbe(ITestOutputHelper output)
 
         return world.Roads.Nodes.CarComponent[node];
     }
-
-    private static int Gate(World world)
-    {
-        for (int building = 0; building < world.Buildings.Rows.SlotCount; building++)
-        {
-            if (world.Buildings.Rows.IsLive(building) && world.IsOutsideConnection(world.Buildings.Kind[building]))
-            {
-                return building;
-            }
-        }
-
-        Assert.Fail("no gate was raised, so nothing defines what the far side is cut off from.");
-
-        return Rows.NoSlot;
-    }
-
-    private static bool IsFar(World world, int building) =>
-        world.Lots.East[world.Lots.Rows.Resolve(world.Buildings.Lot[building])].Raw >= FarColumn * BlockTiles;
-
-    private static int HomeOf(World world, int citizen) =>
-        world.Buildings.Rows.Resolve(
-            world.Households.Dwelling[world.Households.Rows.Resolve(world.Citizens.HouseholdOf[citizen])]);
-
-    private static int PremisesOf(World world, int business) =>
-        world.Buildings.Rows.Resolve(world.Businesses.Building[business]);
-
-    private static Command[] Streets()
-    {
-        List<Command> commands = [];
-
-        Grid(commands, 0);
-        Grid(commands, FarColumn);
-        commands.Add(Lay(BridgeColumn, 0, StreetAxis.East));
-
-        return [.. commands];
-    }
-
-    private static void Grid(List<Command> into, int at)
-    {
-        for (int row = 0; row <= DistrictBlocks; row++)
-        {
-            for (int column = at; column < at + DistrictBlocks; column++)
-            {
-                into.Add(Lay(column, row, StreetAxis.East));
-            }
-        }
-
-        for (int column = at; column <= at + DistrictBlocks; column++)
-        {
-            for (int row = 0; row < DistrictBlocks; row++)
-            {
-                into.Add(Lay(column, row, StreetAxis.North));
-            }
-        }
-    }
-
-    private static Command[] Zoning()
-    {
-        List<Command> commands = [];
-
-        foreach (int at in (int[])[0, FarColumn])
-        {
-            for (int column = at; column < at + DistrictBlocks; column++)
-            {
-                for (int row = 0; row < DistrictBlocks; row++)
-                {
-                    commands.Add(new Command(CommandKind.Zone, Middle(column), Middle(row), zone: 1));
-                }
-            }
-        }
-
-        return [.. commands];
-    }
-
-    private static Ruleset Rules()
-    {
-        string toml = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "congested.toml"))
-            .Replace("\n[layers]\n", "gives_up_after_days = 120\n\n[layers]\n", StringComparison.Ordinal)
-            + "\n[[building]]\nname = \"port\"\narrivals_per_day = 1\n";
-
-        RulesetLoadResult result = RulesetLoader.Parse(toml, "bridge.toml");
-
-        Assert.True(result.Ok, result.Describe());
-
-        return result.Ruleset!;
-    }
-
-    private static Command Lay(int column, int row, StreetAxis axis) => new(
-        CommandKind.Connect,
-        new Tiles(column * BlockTiles),
-        new Tiles(row * BlockTiles),
-        new ConnectPayload(axis, ConnectAction.Lay, RoadKind.Street).Encode());
-
-    private static Tiles Middle(int block) => new((block * BlockTiles) + (BlockTiles / 2));
 }
