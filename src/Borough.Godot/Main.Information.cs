@@ -1090,6 +1090,7 @@ public partial class Main
         [new(_world.Buildings.IsAbandoned(slot) ? "Abandoned" : evidence.IsDeclared ? "Occupied places: " + occupants + " / " + evidence.DeclaredOccupancy : "Kind no longer declared")]));
         sections[0] = new("summary", "Current condition", true,
             [new(SupplySummary(Evidence.SupplyOfBuilding(_world, _selectedBuilding))), sections[0].Rows[0]]);
+        if (StaffingSummary(slot) is { } staffing) sections[0].Rows.Insert(1, new(staffing));
         sections.Add(Attention(evidence, default, false));
         sections.Add(Attention(evidence, default, false, true));
         AddFacilityHealth(sections, slot);
@@ -1251,6 +1252,7 @@ public partial class Main
             citizens.Add(new($"Citizen {_world.Citizens.Rows.IdAt(member)}\n{trip}"));
             citizens.Add(new(work + (who.Workplace.IsNone ? "" : " →"), who.Workplace.IsNone
                 ? null : $"business {RowId(_world.Businesses.Rows, who.Workplace)}"));
+            if (CommuteReading(who) is { } commute) citizens.Add(new(commute));
         }
         if (citizens.Count == 0) citizens.Add(new("No Citizens in this Household."));
         sections.Add(new("citizens", "Citizens", true, citizens));

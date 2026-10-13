@@ -171,10 +171,22 @@ two 2×2-block districts, a gate on the near side, one bridge Segment. Measured 
   Day. Congestion cannot cause this, so a full parking shed is the likely cause. The parking
   measurement in the acceptance list should confirm it.
 
+- **The readout.** Each Citizen saves its most recent ended episode in three columns: start Day,
+  end Day and outcome (`CommuteEpisodeOutcome`: recovered or dismissed). Only a completed commute
+  and the deadline dismissal write it. A run cut short by another dismissal or a job change leaves
+  the previous record. `CitizenEvidence.FailingCommute` gives the running clock's start and the
+  first Tick a failure dismisses; `CitizenEvidence.LastCommuteEpisode` gives the record.
+  `Evidence.FailingCommutersOf` derives a workplace's failing workers from their clocks.
+  - Household panel, per Citizen: days unable to reach work, the Fate, days left before
+    dismissal; afterwards the restored commute or the dismissal with its duration.
+  - Business panel: how many workers cannot reach it, since when, each linked to its Household.
+  - Building summary: a staffing line under the supply line for any Building that serves a Need.
+  - Not yet driven in the shell.
+
 ## Next step
 
-The readout: each Citizen's most recent ended episode (start, end, outcome) and the Household,
-workplace and service panels in the table above. The cut-off clock follows.
+Drive the readout on the bridge fixture in the shell: trigger, response and consequence, and the
+unstaffed school. Then the cut-off clock.
 
 ## Evidence and acceptance
 

@@ -1,5 +1,6 @@
 using Borough.Core;
 using Borough.Core.Entities;
+using Borough.Core.Evidence;
 using Borough.Core.Persistence;
 using Borough.Tests.Persistence;
 using Borough.Core.Quantities;
@@ -130,6 +131,131 @@ public sealed class FailedCommuteClockTests
         StepTo(resumed, end);
 
         Assert.Equal(world.HashState(), reloaded.HashState());
+    }
+
+    [Fact]
+    public void A_running_clock_reads_as_evidence_with_its_dismissal_due()
+    {
+        (Simulation simulation, List<Handle<Citizen>> crossers) = Severed(DeadlineDays);
+        World world = simulation.World;
+
+        StepTo(simulation, 3 * Ticks.PerDay);
+
+        foreach (int citizen in Live(world, crossers))
+        {
+            CitizenEvidence who = Core.Evidence.Evidence.OfCitizen(world, world.Citizens.Rows.At(citizen));
+            FailingCommuteEvidence failing = Assert.NotNull(who.FailingCommute);
+
+            Assert.Equal(world.Citizens.CommuteFailedSince[citizen].Raw - 1, failing.Since.Raw);
+            Assert.Equal(failing.Since.Raw + ((ulong)DeadlineDays * Ticks.PerDay), failing.DismissalDue.Raw);
+            Assert.Null(who.LastCommuteEpisode);
+        }
+    }
+
+    [Fact]
+    public void A_workplace_lists_exactly_the_workers_whose_clocks_run()
+    {
+        (Simulation simulation, List<Handle<Citizen>> crossers) = Severed(DeadlineDays);
+        World world = simulation.World;
+
+        StepTo(simulation, 3 * Ticks.PerDay);
+
+        int listed = 0;
+
+        for (int business = 0; business < world.Businesses.Rows.SlotCount; business++)
+        {
+            if (!world.Businesses.Rows.IsLive(business))
+            {
+                continue;
+            }
+
+            foreach (Handle<Citizen> worker in Core.Evidence.Evidence.FailingCommutersOf(world, world.Businesses.Rows.At(business)).Span)
+            {
+                int citizen = world.Citizens.Rows.Resolve(worker);
+
+                Assert.NotEqual(Ticks.Zero, world.Citizens.CommuteFailedSince[citizen]);
+                Assert.Equal(world.Businesses.Rows.At(business), world.Citizens.Workplace[citizen]);
+                listed++;
+            }
+        }
+
+        int running = 0;
+
+        for (int citizen = 0; citizen < world.Citizens.Rows.SlotCount; citizen++)
+        {
+            running += world.Citizens.Rows.IsLive(citizen) && world.Citizens.CommuteFailedSince[citizen] != Ticks.Zero ? 1 : 0;
+        }
+
+        Assert.Equal(running, listed);
+        Assert.True(listed >= crossers.Count, "a severed crosser is missing from the workplace reading.");
+    }
+
+    [Fact]
+    public void A_repair_before_the_deadline_records_a_recovered_episode()
+    {
+        (Simulation simulation, List<Handle<Citizen>> crossers) = Severed(DeadlineDays);
+        World world = simulation.World;
+
+        StepTo(simulation, LateEvening(2));
+        RebuildBridge(simulation);
+        StepTo(simulation, 5 * Ticks.PerDay);
+
+        foreach (int citizen in Live(world, crossers))
+        {
+            CitizenEvidence who = Core.Evidence.Evidence.OfCitizen(world, world.Citizens.Rows.At(citizen));
+            CommuteEpisodeEvidence episode = Assert.NotNull(who.LastCommuteEpisode);
+
+            Assert.Null(who.FailingCommute);
+            Assert.Equal(CommuteEpisodeOutcome.Recovered, episode.Outcome);
+            Assert.Equal(2, episode.StartDay);
+            Assert.Equal(3, episode.EndDay);
+        }
+    }
+
+    [Fact]
+    public void The_deadline_records_a_dismissed_episode_with_its_duration()
+    {
+        (Simulation simulation, List<Handle<Citizen>> crossers) = Severed(DeadlineDays);
+        World world = simulation.World;
+
+        StepTo(simulation, (2 + DeadlineDays + 2) * Ticks.PerDay);
+
+        foreach (int citizen in Live(world, crossers))
+        {
+            CommuteEpisodeEvidence episode = Assert.NotNull(
+                Core.Evidence.Evidence.OfCitizen(world, world.Citizens.Rows.At(citizen)).LastCommuteEpisode);
+
+            Assert.Equal(CommuteEpisodeOutcome.Dismissed, episode.Outcome);
+            Assert.Equal(2, episode.StartDay);
+            Assert.InRange(episode.EndDay - episode.StartDay, DeadlineDays, DeadlineDays + 1);
+        }
+    }
+
+    [Fact]
+    public void A_recorded_episode_survives_save_and_reload()
+    {
+        var rules = BridgeRules(DeadlineDays);
+        (Simulation simulation, List<Handle<Citizen>> crossers) = Severed(DeadlineDays, rules);
+        World world = simulation.World;
+
+        StepTo(simulation, LateEvening(2));
+        RebuildBridge(simulation);
+        StepTo(simulation, 4 * Ticks.PerDay);
+
+        var file = new MemorySave();
+        simulation.SaveAtEndOfTick(file);
+        simulation.Step(default);
+
+        World reloaded = SaveFile.Read(file, rules, out _);
+
+        Assert.Equal(world.HashState(), reloaded.HashState());
+
+        foreach (int citizen in Live(world, crossers))
+        {
+            Assert.Equal(
+                Core.Evidence.Evidence.OfCitizen(world, world.Citizens.Rows.At(citizen)).LastCommuteEpisode,
+                Core.Evidence.Evidence.OfCitizen(reloaded, world.Citizens.Rows.At(citizen)).LastCommuteEpisode);
+        }
     }
 
     [Theory]
