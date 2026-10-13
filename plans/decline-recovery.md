@@ -60,9 +60,10 @@ Decided in a design session on 10/13/2026.
 - **An over-budget commute counts because it is a real mismatch.** One completed commute resets
   the clock, so intermittent congestion cannot reach the deadline. Only a commute that fails every
   working day for the whole deadline costs the job, and each dismissal relieves the road.
-  Open: whether the plan-time budget test reads congested travel times. The probe answers it.
-  Counting it is provisional until a measurement shows how often it dismisses workers in a
-  growing, congested city. The acceptance list below carries that measurement.
+  The budget test prices free-flow only, so congestion alone never fails it (probe below).
+  Distance and a full parking shed are its only causes. Counting it is provisional until a
+  measurement shows how often a full parking shed dismisses workers in a growing city. The acceptance list below
+  carries that measurement.
 
 - **Commute failure adds no premises pressure.** The employer feels it only as missing labour,
   and a labour shortage does not start `StarvedSince`. So one failed commute is never counted
@@ -133,10 +134,29 @@ Decided in a design session on 10/13/2026.
   - Remove the bridge outside commute hours. A Traveller on a removed Segment still arrives until
     #132 is fixed.
 
+## Probe results
+
+`BridgeCommuteProbe` (instrument tier) builds the fixture on `congested.toml` with a gate kind:
+two 2×2-block districts, a gate on the near side, one bridge Segment. Measured on 10/13/2026.
+
+- The budget test prices free-flow only. With 10,000 vehicles on the bridge, a planned car
+  commute across it is unchanged (71,580 raw), while a driver on the bridge pays 39 times free-flow.
+  Arc times are precomputed from free-flow; congestion is charged only in `TripEngine.Enter`.
+- 271 of 1,000 Citizens commute across the bridge. Removing it at 23:00 found no Traveller in
+  flight, so #132 does not touch the fixture.
+- Each crosser fails once per working Day with *no route found* and stays home. No homeward
+  failure follows. Nothing retries within the Day, and the next Day's departure tries again.
+- No current mechanism ends the failure. After 13 Days unrepaired, all 271 crossers still hold
+  the same job, and none moves or finds work on their own side.
+- One completed commute follows the repair. Rebuilt on Day 5 or Day 12, all 271 complete the
+  next Day's commute and city trips return to the baseline 1,070 per Day.
+- The cut-off test works as designed: all 32 far-side Buildings lose the gate's car component
+  on removal and regain it on repair. Nothing is abandoned today.
+- No commute exceeded the budget in any run.
+
 ## First implementation step
 
-A small headless probe on the fixture. It checks the decided lifecycle against real activity
-transitions, and answers whether the plan-time budget test reads congested travel times.
+The commuting Citizen's failure clock and dismissal, tested on the probe's fixture.
 
 ## Evidence and acceptance
 
@@ -146,9 +166,10 @@ transitions, and answers whether the plan-time budget test reads congested trave
 - Demonstrate a stable baseline, broken connection, sustained failed commute and consequence,
   player reconnection, then successful activity and stopped pressure. Run a matching no-intervention
   case to show that time alone does not produce the claimed recovery.
-- Measure over-budget dismissals in a growing city with congested commutes and no broken
-  connection. Report dismissals per thousand workers per game month at the shipped deadline, and
-  whether the city's employment settles or spirals. This decides whether over-budget keeps counting.
+- Measure over-budget dismissals in a growing city whose parking fills, with no broken
+  connection. Congestion cannot cause one, so a full parking shed is the dynamic cause to test.
+  Report dismissals per thousand workers per game month at the shipped deadline, and whether the
+  city's employment settles or spirals. This decides whether over-budget keeps counting.
 - Cover intermittent failures, unrelated successful Trips, no retry, multiple tenants, subject
   removal/slot reuse and simultaneous supply/Trip failure. A change in observation cadence must
   not change the elapsed failure being measured.
