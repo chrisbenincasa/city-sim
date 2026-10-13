@@ -462,6 +462,7 @@ public partial class Main
     /// </remarks>
     private string Aimed(in PolicyDefinition policy) => policy.Subject switch
     {
+        PolicySubject.Household when policy.Apply.Derived.Raw == (ushort)Borough.Core.Rules.Readout.Housed => "housed households",
         PolicySubject.Household => "all households",
         PolicySubject.Building => "all buildings",
         PolicySubject.Business when policy.Trade == TradeKind.Any => "all businesses",
@@ -770,6 +771,33 @@ public partial class Main
         TaxControl.ProfitLowerRate => "the lower rate on profit",
         _ => "the upper rate on profit",
     };
+
+    /// <summary><c>ui govern POLICY AMOUNT</c> opens the Government panel, types the amount into the Policy's field and sets it.</summary>
+    private bool GovernAction(string[] words)
+    {
+        if (words.Length != 3 || words[0] != "govern") return false;
+
+        if (!int.TryParse(words[1], out int position) || position < 0 || position >= _policyFields.Length)
+        {
+            _refused = $"ui govern: no Policy at position {words[1]}.";
+
+            return true;
+        }
+
+        if (!int.TryParse(words[2], out _))
+        {
+            _refused = $"ui govern: {words[2]} is not a whole number.";
+
+            return true;
+        }
+
+        if (!_governing) Govern();
+
+        _policyFields[position].Text = words[2];
+        Govern(position);
+
+        return true;
+    }
 
     /// <summary>Queues a <c>Govern</c> for one Policy, or says why it cannot.</summary>
     private void Govern(int position)
