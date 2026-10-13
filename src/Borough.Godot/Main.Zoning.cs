@@ -170,30 +170,26 @@ public partial class Main
         }
         if (_zoneParcels)
         {
-            int selected = 0;
+            int selectedParcelsCount = 0;
             foreach (var parcel in SelectedParcels(at))
             {
-                _cursor.Multimesh.SetInstanceTransform(selected, ParcelTransform(parcel.East.Raw,
+                _cursor.Multimesh.SetInstanceTransform(selectedParcelsCount, ParcelTransform(parcel.East.Raw,
                     parcel.North.Raw, parcel.Wide.Raw, parcel.Deep.Raw));
-                _cursor.Multimesh.SetInstanceColor(selected++, (_zoneErase ? new Color("e7a095")
+                _cursor.Multimesh.SetInstanceColor(selectedParcelsCount++, (_zoneErase ? new Color("e7a095")
                     : ZoneColour(ZonePermission()).Lightened(.22f)).SrgbToLinear());
             }
-            _cursor.Multimesh.VisibleInstanceCount = selected;
+            _cursor.Multimesh.VisibleInstanceCount = selectedParcelsCount;
             return;
         }
-        var bounds = ZoneBounds(at);
-        var streets = _world.Roads.Streets;
-        int count = 0;
-        for (int row = Math.Max(0, bounds.South); row <= Math.Min(streets.Blocks - 1, bounds.North); row++)
-            for (int column = Math.Max(0, bounds.West); column <= Math.Min(streets.Blocks - 1, bounds.East); column++)
-            {
-                if (ZoneInterior(column, row) is not { } interior) continue;
-                interior.Origin += new Vector3(0, .01f, 0);
-                _cursor.Multimesh.SetInstanceTransform(count, interior);
-                _cursor.Multimesh.SetInstanceColor(count++, (_zoneErase ? new Color("e7a095")
-                    : ZoneColour(ZonePermission()).Lightened(.22f)).SrgbToLinear());
-            }
-        _cursor.Multimesh.VisibleInstanceCount = count;
+        int selected = 0;
+        foreach (var parcel in SelectedParcels(at, false))
+        {
+            _cursor.Multimesh.SetInstanceTransform(selected, ParcelTransform(parcel.East.Raw,
+                parcel.North.Raw, parcel.Wide.Raw, parcel.Deep.Raw));
+            _cursor.Multimesh.SetInstanceColor(selected++, (_zoneErase ? new Color("e7a095")
+                : ZoneColour(ZonePermission()).Lightened(.22f)).SrgbToLinear());
+        }
+        _cursor.Multimesh.VisibleInstanceCount = selected;
     }
 
     private (Tiles East, Tiles North, object? Roads, uint Version, object? Rules) _zoneGroundAt = (new Tiles(-1), default, null, 0, null);
@@ -238,7 +234,8 @@ public partial class Main
         new(Basis.FromScale(new Vector3(wide * MetresPerTile, .01f, deep * MetresPerTile)),
             new Vector3((east + wide * .5f) * MetresPerTile, .02f, -(north + deep * .5f) * MetresPerTile));
 
-    private System.Collections.Generic.IEnumerable<Parcel> SelectedParcels((Tiles East, Tiles North) at)
+    private System.Collections.Generic.IEnumerable<Parcel> SelectedParcels(
+        (Tiles East, Tiles North) at, bool clipToPointer = true)
     {
         var start = _zoneStart ?? at;
         int west = Math.Min(start.East.Raw, at.East.Raw), east = Math.Max(start.East.Raw, at.East.Raw);
@@ -255,10 +252,30 @@ public partial class Main
                 for (int i = 0; i < count; i++)
                 {
                     var p = buffer[i];
-                    if (p.East.Raw <= east && p.East.Raw + p.Wide.Raw > west
-                        && p.North.Raw <= north && p.North.Raw + p.Deep.Raw > south) yield return p;
+                    if (!clipToPointer || (p.East.Raw <= east && p.East.Raw + p.Wide.Raw > west
+                        && p.North.Raw <= north && p.North.Raw + p.Deep.Raw > south)) yield return p;
                 }
             }
+    }
+
+    private int PreviewProposedCount((Tiles East, Tiles North) at)
+    {
+        int proposed = 0;
+        LotTable lots = _world.Lots;
+        foreach (var parcel in SelectedParcels(at, false))
+        {
+            bool realised = false;
+            for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
+            {
+                if (lots.Rows.IsLive(slot) && lots.Parcel(slot).Equals(parcel))
+                {
+                    realised = true;
+                    break;
+                }
+            }
+            if (!realised) proposed++;
+        }
+        return proposed;
     }
 
     private Transform3D? ZoneInterior(int column, int row)

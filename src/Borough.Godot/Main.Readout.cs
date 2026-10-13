@@ -455,6 +455,10 @@ public partial class Main
             return;
         }
 
+        int proposed = PreviewProposedCount(at);
+        int blocks = _zoneStart is null ? 1 : ZoneSelectionCount();
+        said.Add($"{proposed} Lots to create across {blocks} block{(blocks == 1 ? "" : "s")}");
+
         int column = streets.Lattice.LineAt(at.East.Raw);
         int row = streets.Lattice.LineAt(at.North.Raw);
         int free = 0;
