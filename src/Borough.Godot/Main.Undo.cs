@@ -29,15 +29,23 @@ public partial class Main
     /// <summary>How many gestures the shell remembers. Provisional, plans/construction-tools.</summary>
     private const int UndoDepth = 16;
 
+    /// <summary>The widest ground a stroke's shape is remembered over, in Tiles of its bounds.</summary>
+    private const int MostGroundTiles = 1 << 18;
+
     /// <summary>A Segment a gesture laid, by monotonic id and the length it was laid at.</summary>
     private readonly record struct LaidStreet(ulong Id, int LengthTiles);
 
-    /// <summary>Ground a zone stroke painted, and the one permission it held before.</summary>
+    /// <summary>Ground a zone stroke painted: the shape it covered and the permissions either side.</summary>
+    /// <param name="Set">The Tiles of the ground, a bit each over <paramref name="Bounds"/>.</param>
     /// <param name="Before">The uses every Tile of the ground held; 0 is unzoned.</param>
     /// <param name="After">The uses the stroke painted, which the ground must still hold to undo.</param>
     /// <param name="Mixed">Whether the ground held more than one permission, which no repaint restores.</param>
     private readonly record struct PaintedGround(
-        CommandKind Kind, Tiles East, Tiles North, LandRectangle Bounds, ushort Before, ushort After, bool Mixed);
+        CommandKind Kind, Tiles East, Tiles North, LandRectangle Bounds, ulong[] Set,
+        ushort Before, ushort After, bool Mixed);
+
+    /// <summary>A paint queued in the batch being collected, in the order the Commands apply.</summary>
+    private readonly record struct QueuedPaint(LandRectangle Bounds, ulong[] Set, ushort Uses);
 
     /// <summary>One gesture, and everything reversing it exactly depends on.</summary>
     private sealed class Gesture
@@ -54,9 +62,6 @@ public partial class Main
 
         /// <summary>Whether the gesture cut a Segment that already stood.</summary>
         public bool Split { get; set; }
-
-        /// <summary>Whether another gesture of the same batch had already painted ground this one paints.</summary>
-        public bool Covered { get; set; }
 
         /// <summary>Whether laying cleared Buildings.</summary>
         public bool Cleared { get; init; }
@@ -90,6 +95,7 @@ public partial class Main
 
     private readonly List<Gesture> _gestures = [];
     private readonly List<Settling> _settling = [];
+    private readonly List<QueuedPaint> _queuedPaint = [];
     private Settling? _painting;
     private object? _undoWorld;
     private string _undoSaid = string.Empty;
@@ -144,27 +150,26 @@ public partial class Main
         _settling.Add(settling);
     }
 
-    /// <summary>Notes one ground a zone Command paints, with the permission it held before.</summary>
-    /// <remarks>Called before the paint applies, so the reading is the ground as it stood.</remarks>
+    /// <summary>Notes one ground a zone Command paints, with the permission it replaces.</summary>
     private void NoteZonePainted(Command command)
     {
-        if (!PaintedGroundAt(command.Kind, command.East, command.North,
-                out LandRectangle bounds, out ushort before, out bool mixed))
+        if (!GroundAt(command.Kind, command.East, command.North,
+                out LandRectangle bounds, out ulong[] set))
         {
             return;
         }
 
         Forget();
-        bool covered = AlreadyPainted(command.Kind, command.East, command.North, bounds);
+        Underneath(bounds, set, out ushort before, out bool mixed);
+        _queuedPaint.Add(new QueuedPaint(bounds, set, command.Zone));
         _painting ??= new Settling
         {
             Entry = new Gesture { BuiltBefore = Highest(_world.Buildings.Rows) },
             World = _world,
             LotsBefore = Highest(_world.Lots.Rows),
         };
-        _painting.Entry.Covered |= covered;
-        _painting.Entry.Grounds.Add(
-            new PaintedGround(command.Kind, command.East, command.North, bounds, before, command.Zone, mixed));
+        _painting.Entry.Grounds.Add(new PaintedGround(
+            command.Kind, command.East, command.North, bounds, set, before, command.Zone, mixed));
     }
 
     /// <summary>Closes the zone stroke being noted. One stroke is one entry however many grounds it painted.</summary>
@@ -189,6 +194,7 @@ public partial class Main
     private void SubmitGestures()
     {
         PushZoneStroke();
+        _queuedPaint.Clear();
 
         foreach (Settling pending in _settling)
         {
@@ -306,6 +312,7 @@ public partial class Main
         _undoWorld = _world;
         _gestures.Clear();
         _settling.Clear();
+        _queuedPaint.Clear();
         _painting = null;
     }
 
@@ -352,6 +359,13 @@ public partial class Main
             Send(command);
         }
 
+        // The repaint joins the batch, so a stroke noted after it reads the permission it restores
+        // rather than the one standing in the city.
+        foreach (PaintedGround ground in entry.Grounds)
+        {
+            _queuedPaint.Add(new QueuedPaint(ground.Bounds, ground.Set, ground.Before));
+        }
+
         _gestures.RemoveAt(_gestures.Count - 1);
         _undoSaid = (entry.Laying
                 ? $"removed {Count(entry.Streets.Count, "Street")}"
@@ -366,12 +380,6 @@ public partial class Main
         {
             return "that gesture cut a Street that was already there in two, and removing a Street "
                 + "does not join the halves back together.";
-        }
-
-        if (entry.Covered)
-        {
-            return "another stroke of the same moment painted over the same ground, so the "
-                + "permission this one replaced is no longer the one underneath it.";
         }
 
         foreach (PaintedGround ground in entry.Grounds)
@@ -394,18 +402,26 @@ public partial class Main
                 + "undoing it would take the ground out from under it.";
         }
 
-        // Asked of the city again and not trusted from the note: removing a Street merges the faces
-        // either side of it, so the Tile a stroke painted through can name ground wider than the
-        // stroke covered, and a repaint through it would reach ground the stroke never touched.
+        // Asked of the city again and not trusted from the note: a Street laid or removed since
+        // reshapes the faces either side of it, and the Tile the stroke painted through then names
+        // different ground. Two patches of ground can share a bounding box, so the comparison is
+        // Tile by Tile.
         foreach (PaintedGround ground in entry.Grounds)
         {
-            if (!PaintedGroundAt(ground.Kind, ground.East, ground.North,
-                    out LandRectangle bounds, out ushort uses, out bool since)
-                || bounds != ground.Bounds || since || uses != ground.After)
+            if (!GroundAt(ground.Kind, ground.East, ground.North,
+                    out LandRectangle bounds, out ulong[] set)
+                || bounds != ground.Bounds || !Same(set, ground.Set))
             {
-                return "the ground that stroke painted is not the shape it was, or no longer holds "
-                    + "what the stroke put there, so repainting it would cover ground the stroke "
-                    + "never touched.";
+                return "the ground that stroke painted is not the shape it was, so repainting it "
+                    + "would cover ground the stroke never touched.";
+            }
+
+            Holding(bounds, set, out ushort uses, out bool since);
+
+            if (since || uses != ground.After)
+            {
+                return "the ground that stroke painted no longer holds what the stroke put there, "
+                    + "so repainting it would take back something else as well.";
             }
         }
 
@@ -535,159 +551,157 @@ public partial class Main
 
     // ---- reading the city -------------------------------------------------------------------------
 
-    /// <summary>
-    /// The ground a zone Command paints, the single permission it holds and whether it holds more
-    /// than one.
-    /// </summary>
+    /// <summary>The ground a zone Command paints: its bounds, and the Tiles of it as a bitmap.</summary>
     /// <remarks>
     /// A parcel paints its whole bounds, as <c>LotSubdivider.PaintParcelAt</c> does. Other ground
-    /// paints one face or one Street side, so the walk tests each Tile of the bounds for membership.
+    /// is one face or one Street side, which the bounds only enclose -- and two different patches
+    /// of ground can share a bounding box, so the Tiles and not the box are what an exact undo
+    /// compares. Ground wider than <see cref="MostGroundTiles"/> is not recorded, which leaves the
+    /// gesture without an entry rather than holding a bitmap of unbounded size.
     /// </remarks>
-    private bool PaintedGroundAt(CommandKind kind, Tiles east, Tiles north,
-        out LandRectangle bounds, out ushort before, out bool mixed)
+    private bool GroundAt(CommandKind kind, Tiles east, Tiles north,
+        out LandRectangle bounds, out ulong[] set)
     {
         bounds = default;
-        before = 0;
-        mixed = false;
+        set = [];
+        ZoneGround? shape = null;
 
         if (kind == CommandKind.ZoneParcel)
         {
             if (!LotSubdivider.ParcelAt(_world, east, north, out Parcel parcel)) { return false; }
 
             bounds = new LandRectangle(parcel.East.Raw, parcel.North.Raw, parcel.Wide.Raw, parcel.Deep.Raw);
+        }
+        else
+        {
+            if (!_world.TryZoneGround(east, north, out ZoneGround ground)) { return false; }
 
-            return Holds(bounds, null, out before, out mixed);
+            bounds = ground.Bounds;
+            shape = ground;
         }
 
-        if (!_world.TryZoneGround(east, north, out ZoneGround ground)) { return false; }
+        if (!bounds.IsValid || (long)bounds.Width * bounds.Height > MostGroundTiles) { return false; }
 
-        bounds = ground.Bounds;
+        set = new ulong[((bounds.Width * bounds.Height) + 63) / 64];
+        int bit = 0, held = 0;
 
-        return Holds(bounds, ground, out before, out mixed);
-    }
-
-    /// <summary>
-    /// Whether a gesture of the batch still being collected has already painted this ground.
-    /// </summary>
-    /// <remarks>
-    /// That paint has not landed yet, so the permission read here is the one from before the batch
-    /// rather than the one this stroke replaces. Only a refusal keeps the undo exact, which also
-    /// keeps the older stroke out of reach while it stands.
-    /// </remarks>
-    private bool AlreadyPainted(CommandKind kind, Tiles east, Tiles north, LandRectangle bounds)
-    {
-        foreach (Settling pending in _settling)
+        for (int up = bounds.Y; up < bounds.Y + bounds.Height; up++)
         {
-            if (pending.Submitted) { continue; }
-
-            foreach (PaintedGround ground in pending.Entry.Grounds)
+            for (int along = bounds.X; along < bounds.X + bounds.Width; along++, bit++)
             {
-                if (Shares(ground, kind, east, north, bounds)) { return true; }
+                if (shape is { } ground && !ground.Contains(along, up)) { continue; }
+
+                set[bit >> 6] |= 1UL << (bit & 63);
+                held++;
             }
         }
 
-        if (_painting is null) { return false; }
-
-        foreach (PaintedGround ground in _painting.Entry.Grounds)
-        {
-            if (Shares(ground, kind, east, north, bounds)) { return true; }
-        }
-
-        return false;
+        return held > 0;
     }
 
-    /// <summary>Whether two patches of ground hold a Tile in common.</summary>
-    /// <remarks>The bounds reject cheaply, so the Tile walk only runs where two patches overlap.</remarks>
-    private bool Shares(PaintedGround ground, CommandKind kind, Tiles east, Tiles north, LandRectangle bounds)
-    {
-        LandRectangle box = ground.Bounds;
-        int west = Upper(box.X, bounds.X), south = Upper(box.Y, bounds.Y);
-        int over = Lower(box.X + box.Width, bounds.X + bounds.Width);
-        int under = Lower(box.Y + box.Height, bounds.Y + bounds.Height);
-
-        if (west >= over || south >= under) { return false; }
-
-        ZoneGround? mine = Shape(kind, east, north), theirs = Shape(ground.Kind, ground.East, ground.North);
-
-        for (int up = south; up < under; up++)
-        {
-            for (int along = west; along < over; along++)
-            {
-                if ((mine is not { } set || set.Contains(along, up))
-                    && (theirs is not { } other || other.Contains(along, up)))
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>The face or Street side a zone Command paints; null for a parcel, whose bounds are exact.</summary>
-    private ZoneGround? Shape(CommandKind kind, Tiles east, Tiles north) =>
-        kind != CommandKind.ZoneParcel && _world.TryZoneGround(east, north, out ZoneGround ground)
-            ? ground : null;
-
-    /// <summary>The uses the first Tile of a region holds, and whether every other Tile matches it.</summary>
-    private bool Holds(LandRectangle bounds, ZoneGround? ground, out ushort uses, out bool mixed)
+    /// <summary>The uses every Tile of a ground holds now, and whether they differ across it.</summary>
+    private void Holding(LandRectangle bounds, ulong[] set, out ushort uses, out bool mixed)
     {
         uses = 0;
         mixed = false;
-        if (!bounds.IsValid) { return false; }
-
         bool seen = false;
+        int bit = 0;
 
-        for (int north = bounds.Y; north < bounds.Y + bounds.Height; north++)
+        for (int up = bounds.Y; up < bounds.Y + bounds.Height; up++)
         {
-            for (int east = bounds.X; east < bounds.X + bounds.Width; east++)
+            for (int along = bounds.X; along < bounds.X + bounds.Width; along++, bit++)
             {
-                if (ground is { } set && !set.Contains(east, north)) { continue; }
+                if ((set[bit >> 6] & (1UL << (bit & 63))) == 0) { continue; }
 
-                ushort here = _world.LandPermissions.At(east, north).Uses;
+                ushort here = _world.LandPermissions.At(along, up).Uses;
 
-                if (!seen)
-                {
-                    (uses, seen) = (here, true);
-                }
-                else if (here != uses)
-                {
-                    mixed = true;
-
-                    return true;
-                }
+                if (!seen) { (uses, seen) = (here, true); }
+                else if (here != uses) { mixed = true; return; }
             }
         }
+    }
 
-        return seen;
+    /// <summary>
+    /// The uses a ground will hold when the Command being noted lands, and whether they will differ
+    /// across it.
+    /// </summary>
+    /// <remarks>
+    /// Nothing in the batch has applied yet, so a Tile an earlier Command of the batch paints will
+    /// hold that Command's permission and not the one standing in the city. A stroke over ground
+    /// another stroke of the same moment covered exactly is therefore still undone exactly; one
+    /// that covers part of another's leaves a mixture, which the mixed-paint refusal catches.
+    /// </remarks>
+    private void Underneath(LandRectangle bounds, ulong[] set, out ushort before, out bool mixed)
+    {
+        before = 0;
+        mixed = false;
+        bool seen = false;
+        int bit = 0;
+
+        for (int up = bounds.Y; up < bounds.Y + bounds.Height; up++)
+        {
+            for (int along = bounds.X; along < bounds.X + bounds.Width; along++, bit++)
+            {
+                if ((set[bit >> 6] & (1UL << (bit & 63))) == 0) { continue; }
+
+                ushort here = Queued(along, up) ?? _world.LandPermissions.At(along, up).Uses;
+
+                if (!seen) { (before, seen) = (here, true); }
+                else if (here != before) { mixed = true; return; }
+            }
+        }
+    }
+
+    /// <summary>The uses a Tile takes from the batch being collected, or null when none paints it.</summary>
+    private ushort? Queued(int east, int north)
+    {
+        ushort? uses = null;
+
+        foreach (QueuedPaint paint in _queuedPaint)
+        {
+            if (Covers(paint.Bounds, paint.Set, east, north)) { uses = paint.Uses; }
+        }
+
+        return uses;
     }
 
     /// <summary>Whether a Tile lies on ground the gesture painted.</summary>
-    /// <remarks>
-    /// The bounds reject cheaply and are exact for a parcel. Other ground is asked of the city
-    /// again, because a face or a Street side is only a shape while the Streets stand still.
-    /// </remarks>
-    private bool Painted(Gesture entry, Tiles east, Tiles north)
+    /// <remarks>The shape the stroke covered and not whatever the Tile names now: a Street laid or
+    /// removed since would answer for different ground.</remarks>
+    private static bool Painted(Gesture entry, Tiles east, Tiles north)
     {
         foreach (PaintedGround ground in entry.Grounds)
         {
-            LandRectangle box = ground.Bounds;
-
-            if (east.Raw < box.X || east.Raw >= box.X + box.Width
-                || north.Raw < box.Y || north.Raw >= box.Y + box.Height)
-            {
-                continue;
-            }
-
-            if (ground.Kind == CommandKind.ZoneParcel
-                || !_world.TryZoneGround(ground.East, ground.North, out ZoneGround set)
-                || set.Contains(east.Raw, north.Raw))
-            {
-                return true;
-            }
+            if (Covers(ground.Bounds, ground.Set, east.Raw, north.Raw)) { return true; }
         }
 
         return false;
+    }
+
+    /// <summary>Whether a Tile is one of a ground's own, by its bit over the ground's bounds.</summary>
+    private static bool Covers(LandRectangle bounds, ulong[] set, int east, int north)
+    {
+        if (east < bounds.X || east >= bounds.X + bounds.Width
+            || north < bounds.Y || north >= bounds.Y + bounds.Height)
+        {
+            return false;
+        }
+
+        int bit = ((north - bounds.Y) * bounds.Width) + (east - bounds.X);
+
+        return (set[bit >> 6] & (1UL << (bit & 63))) != 0;
+    }
+
+    private static bool Same(ulong[] set, ulong[] other)
+    {
+        if (set.Length != other.Length) { return false; }
+
+        for (int at = 0; at < set.Length; at++)
+        {
+            if (set[at] != other[at]) { return false; }
+        }
+
+        return true;
     }
 
     /// <summary>The Tile box a gesture's Streets reach, padded for the bulge of a curve.</summary>

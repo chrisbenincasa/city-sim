@@ -3,14 +3,17 @@
 # BOROUGH_LOG=1 godot --path src/Borough.Godot -- --empty --seed 0x135283C --citizens 2000 \
 #   --drive scripts/ui/undo-refusals.drive
 #
-# Three cases scripts/ui/undo.drive does not reach, on two closed faces either side of one Street.
+# Five cases scripts/ui/undo.drive does not reach.
 #
 # 1. A gesture whose frame collects no batch. The shot holds the queue over a frame, and the entry
 #    still settles on the frame its Commands apply, so the undo removes the Street it laid.
-# 2. Two strokes of one moment over the same ground. The second read the permission from before
-#    either landed, so its undo is refused rather than erasing the first stroke's paint too.
-# 3. A stroke whose ground changed shape. Removing the Street between two faces merges them, so a
-#    repaint through the Tile the stroke painted would reach the face it never touched.
+# 2. Two strokes of one moment over the same ground. The second replaced the first's paint and not
+#    the permission standing in the city, and its undo restores the first's.
+# 3. Two strokes of one moment where the second covers only part of the first's ground. The
+#    permission underneath is a mixture, which one Zone Command cannot restore.
+# 4. A stroke whose ground merges with its neighbour when the Street between them goes.
+# 5. A stroke whose ground keeps its bounding box but changes Tiles: two Streets 12 Tiles apart,
+#    and the side the stroke painted gives way to the other Street's side of the same size.
 
 256 pause
 256 ui tools off
@@ -48,7 +51,7 @@
 259 draw artifacts/undo/10-held-over-undone.tsv
 259 speed 1
 
-# Case 2: housing then trade over the left face, both on Tick 260.
+# Case 2: housing then trade over the left face, both on Tick 260. The undo puts housing back.
 260 pause
 260 ui zone-size blocks
 260 hold zone 0
@@ -57,30 +60,70 @@
 260 click 4 4
 260 speed 1
 261 pause
+261 draw artifacts/undo/11-same-moment.tsv
 261 ui undo
 261 speed 1
 262 pause
-262 readout artifacts/undo/11-refused-covered.txt
+262 readout artifacts/undo/12-same-moment-undone.txt
+262 draw artifacts/undo/12-same-moment-undone.tsv
 262 speed 1
 
-# Case 3: trade on the right face, housing on the left, then the Street between them goes.
+# Case 3: a parcel of the right face, then the whole face, both on Tick 263.
 263 pause
+263 ui zone-size parcels
+263 hold zone 0
+263 click 36 4
+263 ui zone-size blocks
 263 hold zone 1
 263 click 36 4
 263 speed 1
 264 pause
-264 hold zone 0
-264 click 4 4
+264 ui undo
 264 speed 1
 265 pause
-265 hold street
-265 click 32 16 shift
+265 readout artifacts/undo/13-refused-part.txt
 265 speed 1
+
+# Case 4: trade on the right face, housing on the left, then the Street between them goes.
 266 pause
-266 ui undo
+266 hold zone 0
+266 click 4 4
 266 speed 1
 267 pause
-267 readout artifacts/undo/12-refused-reshaped.txt
-267 draw artifacts/undo/12-refused-reshaped.tsv
+267 hold street
+267 click 32 16 shift
 267 speed 1
-268 quit
+268 pause
+268 ui undo
+268 speed 1
+269 pause
+269 readout artifacts/undo/14-refused-reshaped.txt
+269 draw artifacts/undo/14-refused-reshaped.tsv
+269 speed 1
+
+# Case 5: two Streets 12 Tiles apart, so the two sides between them share a bounding box.
+270 pause
+270 ui street-snap off
+270 hold street
+270 click 0 160
+270 click 0 288
+270 click 12 160
+270 click 12 288
+270 speed 1
+271 pause
+271 hold zone 1
+271 click 4 200
+271 speed 1
+272 pause
+272 draw artifacts/undo/15-side-painted.tsv
+272 hold street
+272 click 0 200 shift
+272 speed 1
+273 pause
+273 ui undo
+273 speed 1
+274 pause
+274 readout artifacts/undo/16-refused-side.txt
+274 draw artifacts/undo/16-refused-side.tsv
+274 speed 1
+275 quit
