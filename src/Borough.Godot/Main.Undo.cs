@@ -63,6 +63,14 @@ public partial class Main
         /// <summary>Whether the gesture cut a Segment that already stood.</summary>
         public bool Split { get; set; }
 
+        /// <summary>
+        /// Whether the ground the stroke painted is remembered only by its bounds, either because
+        /// it is wider than <see cref="MostGroundTiles"/> or because such a stroke of the same
+        /// batch paints under it. The entry is kept and refused, so the order of the stack still
+        /// matches the order of the gestures.
+        /// </summary>
+        public bool Unknown { get; set; }
+
         /// <summary>Whether laying cleared Buildings.</summary>
         public bool Cleared { get; init; }
 
@@ -89,6 +97,9 @@ public partial class Main
         /// <summary>The Tile box the gesture reaches, for finding what it laid.</summary>
         public (int West, int South, int Wide, int Deep) Box { get; init; }
 
+        /// <summary>The highest Segment id standing when the gesture was made.</summary>
+        public required ulong StreetsBefore { get; init; }
+
         /// <summary>The highest Lot id standing when the gesture was made.</summary>
         public required ulong LotsBefore { get; init; }
     }
@@ -96,6 +107,7 @@ public partial class Main
     private readonly List<Gesture> _gestures = [];
     private readonly List<Settling> _settling = [];
     private readonly List<QueuedPaint> _queuedPaint = [];
+    private bool _vaguePaint;
     private Settling? _painting;
     private object? _undoWorld;
     private string _undoSaid = string.Empty;
@@ -139,6 +151,7 @@ public partial class Main
             Streets = sent,
             Box = StreetBox(sent),
             LotsBefore = Highest(_world.Lots.Rows),
+            StreetsBefore = Highest(_world.Roads.Segments.Rows),
         };
 
         RoadSegmentTable segments = _world.Roads.Segments;
@@ -151,23 +164,34 @@ public partial class Main
     }
 
     /// <summary>Notes one ground a zone Command paints, with the permission it replaces.</summary>
+    /// <remarks>
+    /// The Command has been accepted, so the paint will land. Ground the shell cannot remember
+    /// exactly still leaves an entry, marked unknown, because an entry the undo refuses is the only
+    /// thing that keeps it from reaching past a stroke that stands.
+    /// </remarks>
     private void NoteZonePainted(Command command)
     {
-        if (!GroundAt(command.Kind, command.East, command.North,
-                out LandRectangle bounds, out ulong[] set))
-        {
-            return;
-        }
-
         Forget();
-        Underneath(bounds, set, out ushort before, out bool mixed);
-        _queuedPaint.Add(new QueuedPaint(bounds, set, command.Zone));
         _painting ??= new Settling
         {
             Entry = new Gesture { BuiltBefore = Highest(_world.Buildings.Rows) },
             World = _world,
             LotsBefore = Highest(_world.Lots.Rows),
+            StreetsBefore = Highest(_world.Roads.Segments.Rows),
         };
+
+        if (!GroundAt(command.Kind, command.East, command.North,
+                out LandRectangle bounds, out ulong[] set))
+        {
+            _painting.Entry.Unknown = true;
+            _vaguePaint = true;
+
+            return;
+        }
+
+        Underneath(bounds, set, out ushort before, out bool mixed, out bool vague);
+        _queuedPaint.Add(new QueuedPaint(bounds, set, command.Zone));
+        _painting.Entry.Unknown |= vague || set.Length == 0;
         _painting.Entry.Grounds.Add(new PaintedGround(
             command.Kind, command.East, command.North, bounds, set, before, command.Zone, mixed));
     }
@@ -195,6 +219,7 @@ public partial class Main
     {
         PushZoneStroke();
         _queuedPaint.Clear();
+        _vaguePaint = false;
 
         foreach (Settling pending in _settling)
         {
@@ -246,6 +271,16 @@ public partial class Main
             }
         }
 
+        // A new Segment no gesture claimed is a lay nothing could be attributed to. The gesture
+        // applied all the same, so it keeps an entry the undo refuses rather than one the undo
+        // reaches past.
+        foreach (Settling pending in settling)
+        {
+            if (!pending.Entry.Laying || pending.Entry.Streets.Count > 0) { continue; }
+
+            pending.Entry.Unknown = Unclaimed(settling, pending.StreetsBefore);
+        }
+
         SettleLots(settling);
         foreach (Settling pending in settling)
         {
@@ -294,9 +329,34 @@ public partial class Main
         return Painted(pending.Entry, _world.Lots.East[lot], _world.Lots.North[lot]);
     }
 
+    /// <summary>Whether a Segment laid in this batch belongs to no gesture of it.</summary>
+    private bool Unclaimed(List<Settling> settling, ulong before)
+    {
+        Rows<RoadSegment> rows = _world.Roads.Segments.Rows;
+
+        for (int slot = 0; slot < rows.SlotCount; slot++)
+        {
+            if (!rows.IsLive(slot) || rows.IdAt(slot) <= before) { continue; }
+
+            bool claimed = false;
+
+            foreach (Settling pending in settling)
+            {
+                if (Laid(pending.Entry, rows.IdAt(slot))) { claimed = true; break; }
+            }
+
+            if (!claimed) { return true; }
+        }
+
+        return false;
+    }
+
     private void Push(Gesture entry)
     {
-        if (entry.Laying ? entry.Streets.Count == 0 : entry.Grounds.Count == 0) { return; }
+        if (!entry.Unknown && (entry.Laying ? entry.Streets.Count == 0 : entry.Grounds.Count == 0))
+        {
+            return;
+        }
 
         _gestures.Add(entry);
         if (_gestures.Count > UndoDepth) { _gestures.RemoveAt(0); }
@@ -313,6 +373,7 @@ public partial class Main
         _gestures.Clear();
         _settling.Clear();
         _queuedPaint.Clear();
+        _vaguePaint = false;
         _painting = null;
     }
 
@@ -376,6 +437,13 @@ public partial class Main
     /// <summary>Why this gesture cannot be reversed exactly, or null when it can.</summary>
     private string? Inexact(Gesture entry)
     {
+        if (entry.Unknown)
+        {
+            return "that gesture covered more ground than the shell remembers Tile by Tile, so "
+                + "reversing it would reach ground the gesture never touched. It is kept here so "
+                + "that undoing does not step over it to an earlier gesture.";
+        }
+
         if (entry.Split)
         {
             return "that gesture cut a Street that was already there in two, and removing a Street "
@@ -410,7 +478,7 @@ public partial class Main
         {
             if (!GroundAt(ground.Kind, ground.East, ground.North,
                     out LandRectangle bounds, out ulong[] set)
-                || bounds != ground.Bounds || !Same(set, ground.Set))
+                || set.Length == 0 || bounds != ground.Bounds || !Same(set, ground.Set))
             {
                 return "the ground that stroke painted is not the shape it was, so repainting it "
                     + "would cover ground the stroke never touched.";
@@ -556,8 +624,9 @@ public partial class Main
     /// A parcel paints its whole bounds, as <c>LotSubdivider.PaintParcelAt</c> does. Other ground
     /// is one face or one Street side, which the bounds only enclose -- and two different patches
     /// of ground can share a bounding box, so the Tiles and not the box are what an exact undo
-    /// compares. Ground wider than <see cref="MostGroundTiles"/> is not recorded, which leaves the
-    /// gesture without an entry rather than holding a bitmap of unbounded size.
+    /// compares. Ground wider than <see cref="MostGroundTiles"/> returns its bounds and an empty
+    /// bitmap, which reads as the whole box at an unknown shape rather than as a bitmap of
+    /// unbounded size; the gesture keeps an entry and the undo refuses it.
     /// </remarks>
     private bool GroundAt(CommandKind kind, Tiles east, Tiles north,
         out LandRectangle bounds, out ulong[] set)
@@ -580,7 +649,9 @@ public partial class Main
             shape = ground;
         }
 
-        if (!bounds.IsValid || (long)bounds.Width * bounds.Height > MostGroundTiles) { return false; }
+        if (!bounds.IsValid) { return false; }
+
+        if ((long)bounds.Width * bounds.Height > MostGroundTiles) { return true; }
 
         set = new ulong[((bounds.Width * bounds.Height) + 63) / 64];
         int bit = 0, held = 0;
@@ -631,12 +702,16 @@ public partial class Main
     /// another stroke of the same moment covered exactly is therefore still undone exactly; one
     /// that covers part of another's leaves a mixture, which the mixed-paint refusal catches.
     /// </remarks>
-    private void Underneath(LandRectangle bounds, ulong[] set, out ushort before, out bool mixed)
+    private void Underneath(LandRectangle bounds, ulong[] set,
+        out ushort before, out bool mixed, out bool vague)
     {
         before = 0;
         mixed = false;
+        vague = _vaguePaint || set.Length == 0;
         bool seen = false;
         int bit = 0;
+
+        if (vague) { return; }
 
         for (int up = bounds.Y; up < bounds.Y + bounds.Height; up++)
         {
@@ -644,7 +719,9 @@ public partial class Main
             {
                 if ((set[bit >> 6] & (1UL << (bit & 63))) == 0) { continue; }
 
-                ushort here = Queued(along, up) ?? _world.LandPermissions.At(along, up).Uses;
+                ushort here = Queued(along, up, ref vague) ?? _world.LandPermissions.At(along, up).Uses;
+
+                if (vague) { return; }
 
                 if (!seen) { (before, seen) = (here, true); }
                 else if (here != before) { mixed = true; return; }
@@ -653,13 +730,18 @@ public partial class Main
     }
 
     /// <summary>The uses a Tile takes from the batch being collected, or null when none paints it.</summary>
-    private ushort? Queued(int east, int north)
+    /// <remarks>The last paint over a Tile is the one it holds, and a paint whose shape is unknown
+    /// leaves the Tile unknown.</remarks>
+    private ushort? Queued(int east, int north, ref bool vague)
     {
         ushort? uses = null;
 
         foreach (QueuedPaint paint in _queuedPaint)
         {
-            if (Covers(paint.Bounds, paint.Set, east, north)) { uses = paint.Uses; }
+            if (!Covers(paint.Bounds, paint.Set, east, north)) { continue; }
+
+            uses = paint.Uses;
+            vague = paint.Set.Length == 0;
         }
 
         return uses;
@@ -679,6 +761,7 @@ public partial class Main
     }
 
     /// <summary>Whether a Tile is one of a ground's own, by its bit over the ground's bounds.</summary>
+    /// <remarks>An empty bitmap is ground known only by its box, so the whole box counts.</remarks>
     private static bool Covers(LandRectangle bounds, ulong[] set, int east, int north)
     {
         if (east < bounds.X || east >= bounds.X + bounds.Width
@@ -686,6 +769,8 @@ public partial class Main
         {
             return false;
         }
+
+        if (set.Length == 0) { return true; }
 
         int bit = ((north - bounds.Y) * bounds.Width) + (east - bounds.X);
 

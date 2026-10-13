@@ -14,6 +14,9 @@
 # 4. A stroke whose ground merges with its neighbour when the Street between them goes.
 # 5. A stroke whose ground keeps its bounding box but changes Tiles: two Streets 12 Tiles apart,
 #    and the side the stroke painted gives way to the other Street's side of the same size.
+# 6. A stroke over ground too wide to remember Tile by Tile, beside a long diagonal Street. The
+#    stroke stands, so it keeps an entry the undo refuses rather than one the undo steps over to
+#    reach the Street laid before it.
 
 256 pause
 256 ui tools off
@@ -126,4 +129,23 @@
 274 readout artifacts/undo/16-refused-side.txt
 274 draw artifacts/undo/16-refused-side.tsv
 274 speed 1
-275 quit
+
+# Case 6: a Street side 700 Tiles across, whose bounds hold more Tiles than the shell remembers.
+275 pause
+275 hold street
+275 click 0 700
+275 click 700 1400
+275 speed 1
+276 pause
+276 hold zone 1
+276 click 350 1052
+276 speed 1
+277 pause
+277 draw artifacts/undo/17-wide-painted.tsv
+277 ui undo
+277 speed 1
+278 pause
+278 readout artifacts/undo/18-refused-wide.txt
+278 draw artifacts/undo/18-refused-wide.tsv
+278 speed 1
+279 quit
