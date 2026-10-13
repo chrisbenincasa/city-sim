@@ -71,7 +71,8 @@ writes.
 | `--record PATH` | — | Appends every applied command as a script line |
 | `--govern` | off | Opens the Policy panel at start, so a machine with no hands can photograph it |
 | `--empty` | off | 🔴 **Declines to generate a city.** No lattice, no Lots, no Buildings, no Citizens — and see below, because it withholds the terrain too |
-| `--load PATH` | — | Opens a city save at its saved Tick and simulates nothing before it. Headless `--save-city` and the menu write one. Refuses `--ruleset`, `--citizens` and `--empty`. `--start-at` stays absolute and may not precede the save |
+| `--seed N` | `0` | The world seed, decimal or `0x` hex as an Input Log header writes it. Pass the log's seed to reproduce a committed log |
+| `--load PATH` | — | Opens a city save at its saved Tick and simulates nothing before it. Headless `--save-city` and the menu write one. Refuses `--ruleset`, `--citizens`, `--seed` and `--empty`. `--start-at` stays absolute and may not precede the save |
 | `BOROUGH_LOG` (env) | — | Any value: writes the Input Log at `quit`, so play → write → replay → compare runs in a script |
 
 🔴 **`--empty` is the only argument that changes what the shell is a picture of.** Everything else
@@ -146,6 +147,18 @@ through `demolish` payload 1, and with `gate` held it removes the Outside Connec
 A `release` after a shifted `click` removes every other Street the straight drag crosses. A driven
 run cannot hold Shift, so the red removal ghost never draws; the hover line `shift-click removes
 Street N` carries the same preview into every readout.
+
+⚠ **Zone Rules count from 0 and a zone `click` paints nothing.** On base, `hold zone 0` is housing
+and `hold zone 1` is trade. Zoning is a stroke: `ui zone-size blocks`, then `ui zone-begin E N` and
+`ui zone-end E N`. A lattice block is sent as one `zone` at its south-west corner Tile.
+
+**Governing from a script** is `ui govern POLICY AMOUNT`. It opens the Government panel, types the
+amount into that Policy's field and presses Set, so the panel's status line and refusals apply.
+Policies count from 0 in declaration order.
+
+⚠ **Rung 8 is a Day in 64 s**, 32 Ticks a second. Day 60 takes about an hour of wall clock.
+`scripts/ui/founding.drive` is the worked example: a whole founding from `--empty` whose Input Log
+equals `rulesets/base/founding.borough`.
 
 **Layer names for `overlay`** — `off` (or `none`), `pollution`, `value` (or `land`, `land-value`),
 `sealing` (or `sealed`). An unknown name is a refusal in the readout, not a silent `off`.

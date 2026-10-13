@@ -537,6 +537,7 @@ public partial class Main
         if (StreetAction(words)) return;
         if (CityEvidenceAction(words)) return;
         if (BudgetAction(words)) return;
+        if (GovernAction(words)) return;
         if (HinterlandAction(words)) return;
         switch (words[0])
         {
@@ -849,7 +850,7 @@ public partial class Main
                 GetWindow().Mode = Window.ModeEnum.Windowed;
                 GetWindow().Size = new Vector2I(w, h);
                 break;
-            default: _refused = "ui: use health, close, back, theme light|dark, debug on|off, tools on|off, layers on|off, building ID, road ID, frontage ID, household ID, section KEY on|off, point EAST NORTH, scroll PIXELS, read PATH, press X Y, or size WIDTH HEIGHT (minimum 1280 × 800)."; break;
+            default: _refused = "ui: use health, close, back, govern POLICY AMOUNT, theme light|dark, debug on|off, tools on|off, layers on|off, building ID, road ID, frontage ID, household ID, section KEY on|off, point EAST NORTH, scroll PIXELS, read PATH, press X Y, or size WIDTH HEIGHT (minimum 1280 × 800)."; break;
         }
         LayoutInformation();
     }
