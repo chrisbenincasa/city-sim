@@ -2125,20 +2125,18 @@ internal enum Verb : byte
     Look = 0,
 
     /// <summary>
-    /// Subdivide the block under the cursor into Lots admitting one <c>[[zone_rule]]</c>.
+    /// Paint a <c>[[zone_rule]]</c>'s permission on ground, then subdivide its unclaimed frontage into Lots.
     /// </summary>
     /// <remarks>
-    /// ⚠ <b>SUBDIVIDE and not paint, however the verb is named in <c>01 §2</c>.</b>
-    /// <c>LotSubdivider.Face</c> returns zero on frontage <c>World.Frontage</c> has already claimed,
-    /// so this works on virgin faces and can never repaint a block that has Lots.
-    /// <c>PlayerVerbTests.Zoning_ground_that_is_already_subdivided_changes_nothing</c> holds it.
+    /// Repainting changes the permission on existing Lots and leaves their shape and Buildings alone.
+    /// <c>LotSubdivider.Face</c> returns zero on frontage <c>World.Frontage</c> has already claimed.
     /// </remarks>
     Zone = 1,
 
     /// <summary>Lay a freeform Street, or with Shift remove the Street nearest the cursor.</summary>
     Connect = 2,
 
-    /// <summary>Clear abandoned stock, and only that.</summary>
+    /// <summary>Clear a Building, paying the displaced its demolition price.</summary>
     Demolish = 3,
 
     /// <summary>

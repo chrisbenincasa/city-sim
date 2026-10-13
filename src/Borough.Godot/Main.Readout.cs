@@ -157,7 +157,8 @@ public partial class Main
             said.Add(lot == Rows.NoSlot
                 ? "no vacant Lot in this Cell — a shell is not vacant, demolish first"
                 : $"would raise on Lot {_world.Lots.Rows.IdAt(lot):N0} at "
-                    + $"({_world.Lots.East[lot].Raw:N0}, {_world.Lots.North[lot].Raw:N0})");
+                    + $"({_world.Lots.East[lot].Raw:N0}, {_world.Lots.North[lot].Raw:N0})"
+                    + PlacementPrice(_serviceKind));
         }
 
         if (_verb == Verb.Gate)
@@ -171,10 +172,24 @@ public partial class Main
                     ? $"shift-click removes the gate on Lot {_world.Lots.Rows.IdAt(lot):N0} at "
                         + $"({_world.Lots.East[lot].Raw:N0}, {_world.Lots.North[lot].Raw:N0})"
                     : $"would open on Lot {_world.Lots.Rows.IdAt(lot):N0} at "
-                        + $"({_world.Lots.East[lot].Raw:N0}, {_world.Lots.North[lot].Raw:N0})");
+                        + $"({_world.Lots.East[lot].Raw:N0}, {_world.Lots.North[lot].Raw:N0})"
+                        + PlacementPrice(_gateKind));
         }
 
         return string.Join('\n', said);
+    }
+
+    /// <summary>The treasury charge a hand-placed kind costs, against what the treasury holds.</summary>
+    /// <remarks>Mirrors the last check in <c>RefuseService</c> and <c>RefuseGate</c>.</remarks>
+    private string PlacementPrice(byte kind)
+    {
+        if (kind == 0 || !_world.Rules.Declares(kind)) { return string.Empty; }
+        long price = _world.Rules.Kind(kind).PlacementCost.Raw;
+        if (price <= 0) { return " · free"; }
+        long held = _world.TreasuryBalance()?.Raw ?? 0;
+        return held < price
+            ? $" · costs {price:N0}, the treasury holds {held:N0}"
+            : $" · costs {price:N0} from the treasury";
     }
 
     /// <summary>
@@ -418,8 +433,8 @@ public partial class Main
     /// 🔴 <b><c>Zone</c>'s commonest misuse is silent, which is why this line exists.</b> A block
     /// whose four faces are all claimed accepts the command, creates nothing and reports nothing —
     /// so the panel counts the faces that are present <em>and</em> unclaimed, which is exactly what
-    /// <c>LotSubdivider.Face</c> tests. ***The alternative was a refusal, and a refusal would be
-    /// wrong***: subdividing three of four faces is a real edit, and only the zero case is a no-op.
+    /// <c>LotSubdivider.Face</c> tests. A fully claimed block still repaints its permission, so the
+    /// zero case is a no-op only when the held permission already covers the whole block.
     /// </remarks>
     private void Virgin(System.Collections.Generic.List<string> said, (Tiles East, Tiles North) at)
     {
@@ -470,9 +485,16 @@ public partial class Main
             }
         }
 
-        said.Add(free > 0
-            ? $"block ({column}, {row}) — {free} of {faces} faces still to subdivide"
-            : $"block ({column}, {row}) — nothing to subdivide, a click does nothing");
+        var held = _world.LandPermissions.Summary(_world.BlockGroundRectangle(column, row));
+        ushort permission = ZonePermission();
+        bool repaints = held.CommonUses != permission || held.AnyUses != permission;
+
+        said.Add((free > 0, repaints) switch
+        {
+            (true, _) => $"block ({column}, {row}) — {free} of {faces} faces still to subdivide",
+            (false, true) => $"block ({column}, {row}) — repaints to {ZoneName()}; its Lots keep their shape and Buildings stay",
+            (false, false) => $"block ({column}, {row}) — already {ZoneName()}, a click changes nothing",
+        });
     }
 
     /// <summary>The block under the cursor, so a person can see what they are aiming at.</summary>
