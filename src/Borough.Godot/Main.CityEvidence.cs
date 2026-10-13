@@ -20,6 +20,7 @@ public partial class Main
     private CityEvidence _cityReading;
     private bool _cityRead;
     private readonly List<(ulong Id, HousingSearchReading Reading)> _housingReading = [];
+    private readonly List<int> _shortPolicies = [];
     private int _housingFrom, _housingCount;
     private int _cityGroup = -1, _cityFrom;
     private CityCause? _cityCause;
@@ -82,6 +83,9 @@ public partial class Main
     private void ReadCity()
     {
         _cityReading = Evidence.OfCity(_world);
+        _shortPolicies.Clear();
+        for (int policy = 0; policy < _world.Rules.Policies.Length; policy++)
+            if (_simulation.Policies.RanShortAtLastFiring(policy)) _shortPolicies.Add(policy);
         _housingReading.Clear();
         _housingCount = _world.UnplacedPool.Count;
         _housingFrom = Math.Min(_housingFrom, Math.Max(0, _housingCount - 1));
@@ -272,6 +276,15 @@ public partial class Main
                     : $"read at Tick {_cityReading.ReadAt.Raw:N0}",
             SecondaryPoints));
         _cityBody.AddChild(head);
+
+        foreach (int policy in _shortPolicies)
+        {
+            _cityBody.AddChild(Filled(
+                $"Treasury short · {_names.Policy(policy) ?? $"policy {policy}"} did not pay {Aimed(_world.Rules.Policies[policy])} in full"));
+            _cityBody.AddChild(Filled(
+                "The city's own Bin ran dry at this Policy's last firing · it pays whom it reaches and stops",
+                SecondaryPoints));
+        }
 
         if (_cityRead)
         {

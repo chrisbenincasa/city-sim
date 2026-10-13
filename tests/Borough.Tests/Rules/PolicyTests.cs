@@ -114,6 +114,21 @@ public sealed class PolicyTests(ITestOutputHelper output)
         Assert.True(applied < swept, "the rebate paid everybody, so nothing ran dry.");
     }
 
+    /// <summary>The engine names the Policy the treasury ran short on, and only that one.</summary>
+    [Fact]
+    public void A_rebate_the_treasury_cannot_cover_is_named_as_short()
+    {
+        (_, Simulation shortRun) = City(Levy(percent: 10) + Rebate(amount: 100));
+        (_, Simulation coveredRun) = City(Levy(percent: 10) + Rebate(amount: 1));
+
+        Step(shortRun, Ticks.PerDay);
+        Step(coveredRun, Ticks.PerDay);
+
+        Assert.False(shortRun.Policies.RanShortAtLastFiring(0), "the levy pays the treasury.");
+        Assert.True(shortRun.Policies.RanShortAtLastFiring(1), "the short rebate was not named.");
+        Assert.False(coveredRun.Policies.RanShortAtLastFiring(1), "a covered rebate was named.");
+    }
+
     /// <summary>
     /// ⚠ <b>The rotation is what makes exhaustion a gradient rather than a permanent boundary.</b>
     /// </summary>

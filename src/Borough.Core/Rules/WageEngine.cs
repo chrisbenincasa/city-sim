@@ -2,6 +2,7 @@ using Borough.Core.Arithmetic;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
+using Borough.Core.Tables;
 
 namespace Borough.Core.Rules;
 
@@ -321,7 +322,17 @@ internal sealed class WageEngine(World world, WorldKey key)
                 new Money(_world.Bins.LevelAt(till));
         }
 
+        Handle<Building> premises = _world.Businesses.Building[slot];
+        bool service = _world.Rules.IsServiceTrade(_world.Businesses.Kind[slot]);
+
         _world.DestroyBusiness(_world.Businesses.Rows.At(slot));
+
+        // Nothing else recreates a service Building's own trade. The new trade's till is empty, so
+        // it hires nobody until the Building is funded again.
+        if (service && _world.Buildings.Rows.TryResolve(premises, out int building))
+        {
+            _world.OpenInVacantUnit(building);
+        }
     }
 
     /// <summary>

@@ -30,6 +30,10 @@ public sealed class BaseFoundingPackageTests
     private const int SaveDay = 6;
     private const byte HousingZone = 1;
     private const byte TradeZone = 2;
+    private const int ActionDay = 45;
+    private const int RecoveryDays = 15;
+    private const int ShortageDays = 70;
+    private const int GovernedRebate = 384;
 
     [Fact]
     public void The_committed_founding_log_is_the_one_the_package_produces()
@@ -255,6 +259,73 @@ public sealed class BaseFoundingPackageTests
             File.Delete(path);
         }
     }
+
+    /// <summary>
+    /// Growth outruns the treasury and the school loses its teachers. One command cutting the housed
+    /// rebate restores them; the same city without it stays short.
+    /// </summary>
+    /// <remarks>
+    /// The rebate outgrows tax income as the city fills, and the school grant is paid after it, so
+    /// the grant is the first thing a short treasury stops. Nothing in the log stages the shortage.
+    /// </remarks>
+    [Fact]
+    public void Governing_the_rebate_down_restores_the_school_and_the_control_stays_short()
+    {
+        (Ruleset rules, _) = Package();
+        int rebate = PolicyNamed(rules, "housed_rebate");
+        int funding = PolicyNamed(rules, "school_funding");
+        string committed = Committed().TrimEnd('\n') + "\n";
+        string governed = committed
+            + $"{(ulong)ActionDay * Ticks.PerDay} govern {GovernedRebate} 0 {rebate}\n";
+
+        List<SchoolDay> control = SchoolDays(rules, committed, funding);
+        List<SchoolDay> recovered = SchoolDays(rules, governed, funding);
+
+        Assert.Contains(control.Take(ActionDay), day => day.FundingShort);
+        Assert.Equal(control.Take(ActionDay), recovered.Take(ActionDay));
+
+        foreach (SchoolDay day in control.Skip(ActionDay + RecoveryDays))
+        {
+            Assert.True(day.Teachers < day.Jobs, $"the control recovered: {day}");
+        }
+
+        foreach (SchoolDay day in recovered.Skip(ActionDay + RecoveryDays))
+        {
+            Assert.False(day.FundingShort, $"the school grant still went unpaid: {day}");
+            Assert.True(day.Teachers == day.Jobs, $"the school is short of teachers: {day}");
+        }
+    }
+
+    private readonly record struct SchoolDay(int Day, bool FundingShort, int Teachers, int Jobs);
+
+    private static List<SchoolDay> SchoolDays(Ruleset rules, string text, int funding)
+    {
+        InputLog log = InputLogCodec.FromText(text);
+        Simulation simulation = Replay.Start(log, rules);
+        byte teaching = Trade(rules, "teaching");
+        List<SchoolDay> days = [];
+
+        for (int day = 1; day <= ShortageDays; day++)
+        {
+            Replay.Trace(simulation, log, new Ticks(Ticks.PerDay), hashEvery: Ticks.PerDay, []);
+
+            World world = simulation.World;
+            int school = Assert.Single(
+                Enumerable.Range(0, world.Businesses.Rows.SlotCount),
+                slot => world.Businesses.Rows.IsLive(slot) && world.Businesses.Kind[slot] == teaching);
+
+            days.Add(new SchoolDay(
+                day,
+                simulation.Policies.RanShortAtLastFiring(funding),
+                world.Workers.Length(school),
+                world.DeclaredJobs(school)));
+        }
+
+        return days;
+    }
+
+    private static int PolicyNamed(Ruleset rules, string id) =>
+        Array.IndexOf(rules.PolicyKeys, ContentHash.Of(Encoding.UTF8.GetBytes(id)));
 
     private static List<ulong> DailyHashes(Ruleset rules, InputLog log)
     {
