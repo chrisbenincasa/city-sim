@@ -321,8 +321,9 @@ Lot's own Tiles. Parcel mode in the shell stays on the lattice. The demonstratio
 U that a later Street closes. Zoning made 66 Lots and `people` raised 61 Buildings. After the
 closure, zoning the new face painted its interior and added Lots.
 `FreeformStreetsAcceptanceTests` replays that layout without `people`.
-A carver defect remains. At an acute corner the last plot on a side can cross the adjacent Street,
-and that Lot is only partly painted and never builds.
+A plot that would reach another Street's ground is dropped (#124). A turned plot is created only
+when its whole ground is painted, so a Street-side Zone near a second Street leaves no partly
+painted Lot that never builds (#152).
 Slice 8 is built. X cycles straight, simple curve, continuous and grid. U lays a parallel Street
 and I flips its side. Ctrl held lays a curve or continuous Street straight. The batch modes need no
 Core or Input Log change. The driven run on `--empty` ground at 1,000 Citizens laid a 3 × 3 grid,

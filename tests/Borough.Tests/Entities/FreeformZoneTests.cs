@@ -54,15 +54,25 @@ public sealed class FreeformZoneTests
         Assert.All(inside, lot => Assert.Equal(LotTable.Housing, world.Lots.Zone[lot]));
     }
 
-    [Fact]
-    public void Corner_plots_stop_at_the_adjacent_street_and_every_lot_is_wholly_painted()
+    public static TheoryData<string> Corners => ["right", "sharp", "open"];
+
+    [Theory]
+    [MemberData(nameof(Corners))]
+    public void Corner_plots_stop_at_the_adjacent_street_and_every_lot_is_wholly_painted(string corner)
     {
-        (World world, Simulation simulation) = Empty(Triangle);
-        simulation.Step(new TickInput([Zone(110, 110)], 0));
+        (Command[] streets, Command zone) = corner switch
+        {
+            "right" => (Triangle, Zone(110, 110)),
+            "sharp" => ([Street(100, 100, 200, 100), Street(200, 100, 100, 160), Street(100, 160, 100, 100)], Zone(110, 110)),
+            _ => ([Street(300, 300, 428, 300), Street(300, 300, 410, 366)], Zone(400, 312)),
+        };
+        (World world, Simulation simulation) = Empty(streets);
+        simulation.Step(new TickInput([zone], 0));
 
         int half = world.Rules.Lots.StreetHalfWidthTiles;
         int[] lots = Enumerable.Range(0, world.Lots.Rows.SlotCount).Where(world.Lots.Rows.IsLive).ToArray();
-        Assert.Equal(10, lots.Length);
+        Assert.NotEmpty(lots);
+        if (corner == "right") { Assert.Equal(10, lots.Length); }
         foreach (int lot in lots)
         {
             Assert.Equal(LotTable.Housing, world.LotPermissions(lot).CommonUses);
