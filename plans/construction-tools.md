@@ -65,7 +65,7 @@ service and gate placement.
 
 ## Slices
 
-1. **Acute-corner drop.** Core carve change and golden check. Tracked as a GitHub issue.
+1. **Acute-corner drop.** Core carve change and golden check: [#152](https://github.com/chrisbenincasa/city-sim/issues/152).
 2. **Whole-block Lot preview.** Shell: draw parcels and the Lot count in whole-block mode.
 3. **Freeform Lot preview.** Core read-only carve, then the shell draws it with a cached result.
 4. **Undo.** Shell: the gesture stack, the opposite Commands and the exactness refusals.
