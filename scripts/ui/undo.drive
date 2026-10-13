@@ -1,0 +1,203 @@
+# Undo: the last construction gestures reversed with the opposite Commands (#157).
+#
+# BOROUGH_LOG=1 godot --path src/Borough.Godot -- --empty --seed 0x135283C --citizens 2000 \
+#   --drive scripts/ui/undo.drive
+#
+# It founds the city scripts/ui/founding.drive founds, then makes two mistakes and undoes them: a
+# Street gesture in open ground, and a trade stroke over a housing block. Then it shows three of
+# the refusals -- a gesture that split a Street that was already there, a stroke over ground
+# holding more than one permission, and a stroke with a Building since raised on a Lot it made.
+#
+# Read the Segment count off the `road` rows of each draw list, the permission off its `zone`
+# rows, and the Building count off the readout. BOROUGH_LOG=1 writes the Input Log at quit, which
+# replays to the same State Hash.
+
+256 pause
+256 ui tools off
+256 ui layers off
+256 focus 64 64 700
+256 tilt 50
+256 hold street
+256 click 0 0
+256 click 128 0
+256 click 0 32
+256 click 128 32
+256 click 0 64
+256 click 128 64
+256 click 0 96
+256 click 128 96
+256 click 0 128
+256 click 128 128
+256 click 0 0
+256 click 0 128
+256 click 32 0
+256 click 32 128
+256 click 64 0
+256 click 64 128
+256 click 96 0
+256 click 96 128
+256 click 128 0
+256 click 128 128
+256 speed 1
+257 pause
+257 ui zone-size blocks
+257 hold zone 0
+257 ui zone-begin 0 0
+257 ui zone-end 0 0
+257 hold zone 0
+257 ui zone-begin 0 32
+257 ui zone-end 0 32
+257 hold zone 0
+257 ui zone-begin 0 64
+257 ui zone-end 0 64
+257 hold zone 0
+257 ui zone-begin 0 96
+257 ui zone-end 0 96
+257 hold zone 0
+257 ui zone-begin 32 0
+257 ui zone-end 32 0
+257 hold zone 1
+257 ui zone-begin 32 32
+257 ui zone-end 32 32
+257 hold zone 0
+257 ui zone-begin 32 64
+257 ui zone-end 32 64
+257 hold zone 0
+257 ui zone-begin 32 96
+257 ui zone-end 32 96
+257 hold zone 0
+257 ui zone-begin 64 0
+257 ui zone-end 64 0
+257 hold zone 0
+257 ui zone-begin 64 32
+257 ui zone-end 64 32
+257 hold zone 1
+257 ui zone-begin 64 64
+257 ui zone-end 64 64
+257 hold zone 0
+257 ui zone-begin 64 96
+257 ui zone-end 64 96
+257 hold zone 1
+257 ui zone-begin 96 0
+257 ui zone-end 96 0
+257 hold zone 0
+257 ui zone-begin 96 32
+257 ui zone-end 96 32
+257 hold zone 0
+257 ui zone-begin 96 64
+257 ui zone-end 96 64
+257 hold zone 0
+257 ui zone-begin 96 96
+257 ui zone-end 96 96
+257 speed 1
+258 pause
+258 hold gate 2
+258 click 3 0
+258 hold service 3
+258 click 9 32
+258 speed 1
+
+# The city as founded, before any mistake.
+259 pause
+259 hold zone 0
+259 ui zone-point 0 0
+259 readout artifacts/undo/01-founded.txt
+259 draw artifacts/undo/01-founded.tsv
+259 speed 1
+
+# A mistaken Street gesture, in open ground north of the city.
+260 pause
+260 hold street
+260 click 0 160
+260 click 128 160
+260 speed 1
+261 pause
+261 readout artifacts/undo/02-street-laid.txt
+261 draw artifacts/undo/02-street-laid.tsv
+261 ui undo
+261 speed 1
+262 pause
+262 readout artifacts/undo/03-street-undone.txt
+262 draw artifacts/undo/03-street-undone.tsv
+262 speed 1
+
+# A mistaken trade stroke over the housing block at (0, 96). That block holds no Building, so the
+# `zone` rows of the draw list carry its rectangle and show the permission change and its undoing.
+263 pause
+263 ui zone-size blocks
+263 hold zone 1
+263 ui zone-begin 0 96
+263 ui zone-end 0 96
+263 speed 1
+264 pause
+264 hold zone 0
+264 ui zone-point 0 96
+264 readout artifacts/undo/04-zone-painted.txt
+264 draw artifacts/undo/04-zone-painted.tsv
+264 ui undo
+264 speed 1
+265 pause
+265 hold zone 0
+265 ui zone-point 0 96
+265 readout artifacts/undo/05-zone-undone.txt
+265 draw artifacts/undo/05-zone-undone.tsv
+265 speed 1
+
+# Refusal 1: the gesture cut a Street that was already there in two. Both gestures stand in open
+# ground north of the city, and every piece the cut leaves is longer than
+# `[roads] min_segment_length_tiles`, so Core lays the crossing rather than refusing it.
+266 pause
+266 hold street
+266 click 0 160
+266 click 128 160
+266 speed 1
+267 pause
+267 hold street
+267 click 64 144
+267 click 64 180
+267 speed 1
+268 pause
+268 ui undo
+268 speed 1
+269 pause
+269 readout artifacts/undo/06-refused-split.txt
+269 speed 1
+
+# Refusal 2: the stroke painted over ground holding more than one permission.
+270 pause
+270 ui zone-size parcels
+270 hold zone 1
+270 click 4 4
+270 speed 1
+271 pause
+271 ui zone-size blocks
+271 hold zone 0
+271 ui zone-begin 0 0
+271 ui zone-end 0 0
+271 speed 1
+272 pause
+272 ui undo
+272 speed 1
+273 pause
+273 readout artifacts/undo/07-refused-mixed.txt
+273 speed 1
+
+# Refusal 4: a Building has since been raised on a Lot the stroke made.
+274 pause
+274 ui zone-size blocks
+274 hold zone 0
+274 ui zone-begin 64 132
+274 ui zone-end 64 132
+274 speed 1
+275 pause
+275 hold service 3
+275 click 64 134
+275 speed 1
+276 pause
+276 ui undo
+276 speed 1
+277 pause
+277 readout artifacts/undo/08-refused-built.txt
+277 draw artifacts/undo/08-refused-built.tsv
+277 speed 1
+278 quit

@@ -1391,6 +1391,10 @@ public partial class Main : Node3D
         }
         _presentedTick = _world.Tick.Raw;
         ReportPhaseZeroRefusal();
+
+        // Here because the step has returned: what a gesture laid, cut and created is only readable
+        // once its Commands have applied, and the step thread may not write shell state.
+        SettleGestures();
         _alpha = new Ratio((int)(Math.Min(_owed, 0.999_99) * 65_536));
 
         // After collecting the batch: a frame that steps many Ticks may lay many
@@ -1633,6 +1637,16 @@ public partial class Main : Node3D
         }
 
         if (GetViewport().GuiGetFocusOwner() is LineEdit or TextEdit || _helpPanel.Visible) return;
+
+        // Above the modifier filter, which is what drops every other Ctrl chord. It goes out as the
+        // `ui undo` word so that the key and a script share one applier and --record writes it.
+        if (key is { CtrlPressed: true, Keycode: Key.Z, AltPressed: false, MetaPressed: false, ShiftPressed: false, Echo: false })
+        {
+            Ui("undo");
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
         if (key.CtrlPressed || key.AltPressed || key.MetaPressed || key.Echo) return;
         if (_stepThread?.OwnsWorld == true)
         {
@@ -1930,6 +1944,7 @@ public partial class Main : Node3D
             + "click acts   right-drag or two-finger scroll pans   edge of screen pans   "
             + "pinch or -/= zooms   q/e turns   r/f tilts   l lens   o overlay"
             + Legend()
+            + (_undoSaid.Length > 0 ? $"\nUNDO — {_undoSaid}" : string.Empty)
             + (_refused.Length > 0 ? $"\nREFUSED — {_refused}" : string.Empty);
 
         RefreshInformation();

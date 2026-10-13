@@ -97,6 +97,8 @@ public partial class Main
             if (Send(new Command(CommandKind.Zone, at.Item1, at.Item2, ZonePermission())))
             {
                 _refused = string.Empty;
+                NoteZonePainted(CommandKind.Zone, at.Item1, at.Item2);
+                PushZoneStroke();
                 _zoneFeedback = $"{(_world.TryZoneGround(at.Item1, at.Item2, out ZoneGround ground) && ground.Face >= 0 ? "Block" : "Street side")} queued: {ZoneName()}. Existing Buildings stay.";
             }
             return true;
@@ -105,9 +107,14 @@ public partial class Main
         {
             int painted = 0;
             foreach (var parcel in SelectedParcels(at))
-                if (Send(new Command(CommandKind.ZoneParcel,
-                    new Tiles(parcel.East.Raw + parcel.Wide.Raw / 2),
-                    new Tiles(parcel.North.Raw + parcel.Deep.Raw / 2), ZonePermission()))) painted++;
+            {
+                var middle = (East: new Tiles(parcel.East.Raw + parcel.Wide.Raw / 2),
+                    North: new Tiles(parcel.North.Raw + parcel.Deep.Raw / 2));
+                if (!Send(new Command(CommandKind.ZoneParcel, middle.East, middle.North, ZonePermission()))) continue;
+                NoteZonePainted(CommandKind.ZoneParcel, middle.East, middle.North);
+                painted++;
+            }
+            PushZoneStroke();
             _zoneStart = null;
             _zoneFeedback = painted == 0 ? "Choose a parcel beside a Street."
                 : $"{painted} parcels queued: {ZoneName()}. Existing Buildings stay.";
@@ -125,8 +132,11 @@ public partial class Main
                 if (canSkip && previous.CommonUses == permission && previous.AnyUses == permission)
                 { unchanged++; continue; }
                 var tile = streets.IntersectionTile(column, row);
-                if (Send(new Command(CommandKind.Zone, tile.East, tile.North, ZonePermission()))) count++;
+                if (!Send(new Command(CommandKind.Zone, tile.East, tile.North, ZonePermission()))) continue;
+                NoteZonePainted(CommandKind.Zone, tile.East, tile.North);
+                count++;
             }
+        PushZoneStroke();
         _zoneFeedback = count == 0 ? $"{unchanged} blocks already have these permissions; nothing changed."
             : $"{count} blocks queued: {ZoneName()}; {unchanged} unchanged. Existing Buildings stay.";
         return true;
