@@ -46,7 +46,7 @@ Out of scope:
 |---|---|
 | Exports and Money entering from outside | [export-base](export-base.md) slice 2 |
 | Charging for Streets and zoning | Infrastructure construction, wear and renewal |
-| Faster construction gestures and rezoning | Player construction tools |
+| Faster construction gestures and rezoning | [Player construction tools](construction-tools.md), done; rezoning in [0062](0062-the-urban-fabric.md#decisions-still-needed) |
 | Freeform Streets and road-aligned Lots | Freeform local Streets |
 | Notifications | Trajectory notifications and persistent Pins |
 | Integrated execution replacing the Ruleset lowering | [0077](0077-ruleset-source-loading.md) item 3. It gates the first *release*, not this loop |
