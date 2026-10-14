@@ -263,9 +263,32 @@ two 2×2-block districts, a gate on the near side, one bridge Segment. Measured 
 
   - Over-budget keeps counting. The lock is issue #167.
 
+- **Edge cases and equivalence.** Tests on the bridge fixture, in `FailedCommuteClockTests` and
+  `CutOffClockTests`. None exposed a defect.
+
+  | Case | What the test shows |
+  |---|---|
+  | Intermittent failure | Bridge removed and rebuilt on alternate Days through Day 7, past a 2-Day deadline. Each failure restarts the clock, nobody is dismissed, and the last episode reads Recovered, Day 6 to Day 7. |
+  | Unrelated Trips | A failing crosser who completes a commanded Trip on the near side keeps the same clock and is dismissed on time. |
+  | No retry, days off | With `work_days` Monday to Friday and a 5-Day deadline, each crosser fails once per working Day and never on Days 5–6. Dismissal lands on Day 7, the fourth failure, so the clock counts elapsed Ticks. |
+  | Multiple tenants | Each Business lists each failing worker once. Dismissing one worker or one Household's member leaves every other clock unchanged. |
+  | Removal and slot reuse | A Citizen who dies mid-episode leaves its workplace's list, and a Citizen created into the reused slot has no clock and no episode. A destroyed Household takes its members' clocks with it. A Building raised on a demolished cut-off Building's Lot reuses its slot, starts its own clock at its creation and is abandoned a Day after the others. |
+  | Supply and Trip failure | Far dwellings both starved by upkeep and cut off keep `StarvedSince` equal to a run with the bridge intact, as do failing workers' premises. The repair clears the cut-off clock and leaves `StarvedSince` alone. |
+  | Observation cadence | Draining every Tick, observing every 37 Ticks, and saving and reloading mid-episode give one State Hash and the same episodes and dismissal Days. |
+  | Thread count | One and four route workers hash alike every 16 Ticks through dismissals and cut-off abandonment; end-of-run invariants pass. |
+
+  - A cut-off deadline no longer than the dismissal deadline pre-empts dismissal. Abandonment
+    removes far Businesses and evicts far Households before the deadline commute, so nobody is
+    dismissed. The shipped 10 and 14 Days dismiss first.
+  - Input Log replay with a running clock is not covered. The bridge fixture places its people
+    outside the Input Log, and no golden or replay test sets either key. Repeated identical runs,
+    save/reload and thread count are covered above.
+  - Checks on 10/14/2026: `scripts/test.sh` passed 4,660 tests; `scripts/test.sh --all` passed 4,714.
+
 ## Next step
 
-The edge cases in the list below.
+Agree the new saved state and Ruleset keys with plan 0077. Then close the row, or add an Input
+Log replay that runs a clock if the replay gap above matters.
 
 ## Evidence and acceptance
 
