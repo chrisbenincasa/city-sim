@@ -534,6 +534,7 @@ public partial class Main
             return;
         }
         if (ZoningAction(words)) return;
+        if (UndoAction(words)) return;
         if (StreetAction(words)) return;
         if (CityEvidenceAction(words)) return;
         if (BudgetAction(words)) return;
