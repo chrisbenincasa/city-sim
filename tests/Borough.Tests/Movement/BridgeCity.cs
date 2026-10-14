@@ -35,10 +35,10 @@ internal static class BridgeCity
     public static readonly Tiles BridgeEast = new((BridgeColumn * BlockTiles) + (BlockTiles / 2));
 
     /// <summary>23:00, when no commuter is on the road.</summary>
-    public static long LateEvening(int day) => (day * Ticks.PerDay) + (Ticks.PerDay * 18 / 24);
+    public static long LateEvening(int day) => (day * Ticks.PerDay) + Ticks.AtClock(23);
 
     /// <summary>11:00, when every commuter is at work.</summary>
-    public static long LateMorning(int day) => (day * Ticks.PerDay) + (Ticks.PerDay * 6 / 24);
+    public static long LateMorning(int day) => (day * Ticks.PerDay) + Ticks.AtClock(11);
 
     public static Simulation Start(Ruleset rules)
     {
@@ -77,25 +77,32 @@ internal static class BridgeCity
     /// </summary>
     public static string BridgeToml(int? dismissAfterDays = null, int? cutOffDays = null)
     {
-        string toml = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "congested.toml"))
-            .Replace("\n[layers]\n", "gives_up_after_days = 120\n\n[layers]\n", StringComparison.Ordinal)
+        string toml = Replaced(
+                File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "congested.toml")),
+                "\n[layers]\n",
+                "gives_up_after_days = 120\n\n[layers]\n")
             + "\n[[building]]\nname = \"port\"\narrivals_per_day = 1\n";
 
         if (dismissAfterDays is { } days)
         {
-            toml = toml.Replace(
-                "\n[jobs]\n", $"\n[jobs]\ndismissed_after_failed_commute_days = {days}\n", StringComparison.Ordinal);
+            toml = Replaced(toml, "\n[jobs]\n", $"\n[jobs]\ndismissed_after_failed_commute_days = {days}\n");
         }
 
         if (cutOffDays is { } cutOff)
         {
-            toml = toml.Replace(
+            toml = Replaced(
+                toml,
                 "[[building]]\nname = \"dwelling\"\n",
-                $"[[building]]\nname = \"dwelling\"\nabandoned_after_cut_off_days = {cutOff}\ncollapses_after_days = 30\n",
-                StringComparison.Ordinal);
+                $"[[building]]\nname = \"dwelling\"\nabandoned_after_cut_off_days = {cutOff}\ncollapses_after_days = 30\n");
         }
 
         return toml;
+    }
+
+    private static string Replaced(string text, string old, string replacement)
+    {
+        Assert.Contains(old, text, StringComparison.Ordinal);
+        return text.Replace(old, replacement, StringComparison.Ordinal);
     }
 
     public static (long Completed, long NoRoute, long OverBudget) StepTo(Simulation simulation, long tick)
@@ -167,7 +174,7 @@ internal static class BridgeCity
     public static int PremisesOf(World world, int business) =>
         world.Buildings.Rows.Resolve(world.Businesses.Building[business]);
 
-    private static void Issue(Simulation simulation, Command command)
+    public static void Issue(Simulation simulation, Command command)
     {
         int refused = simulation.CommandsRefused;
         int segments = simulation.World.Roads.Segments.Rows.LiveCount;
@@ -226,7 +233,7 @@ internal static class BridgeCity
         return [.. commands];
     }
 
-    private static Command Lay(int column, int row, StreetAxis axis) => new(
+    public static Command Lay(int column, int row, StreetAxis axis) => new(
         CommandKind.Connect,
         new Tiles(column * BlockTiles),
         new Tiles(row * BlockTiles),
