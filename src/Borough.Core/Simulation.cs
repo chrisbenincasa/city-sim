@@ -487,6 +487,8 @@ public sealed class Simulation
         Commit(tick);
         PhaseCompleted?.Invoke(TickPhase.Commit);
 
+        _world.TimeCutOffBuildings(tick);
+
         _world.Advance();
 
         // The save, and it is after Advance rather than at the end of Commit for a reason measured

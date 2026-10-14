@@ -82,6 +82,11 @@ public sealed partial class World
     // terrain's sits (MapLayers._terrainLaidFold), for exactly the same reason.
     private ulong _catchmentLaidFold;
 
+    // The road graph version the cut-off clocks were last judged against, and whether a gate or
+    // Ruleset change needs another judgement. Reset on load, where the clocks are already saved.
+    private uint _judgedRoadVersion;
+    private bool _accessStale;
+
     // The Day's water outflow, one entry per Water Body slot. A scratch buffer rather than a column:
     // it holds a single pass's intermediate and is meaningless between Ticks, so a column would put
     // it in the State Hash and in every save. Grown on demand and never shrunk, which is bounded by
@@ -1344,6 +1349,7 @@ public sealed partial class World
     internal RulesetDegradation Adopt(Ruleset rules, ulong contentHash, Ticks now, WorldKey key)
     {
         Changes?.Invalidate();
+        _accessStale = true;
         ArgumentNullException.ThrowIfNull(rules);
 
         if (rules.Lots.StreetHalfWidthTiles != Rules.Lots.StreetHalfWidthTiles)
@@ -2911,6 +2917,7 @@ public sealed partial class World
         if (edge != MapEdge.None)
         {
             Buildings.Gates(Hinterlands).InsertOrdered(HinterlandTable.SlotOf(edge), slot);
+            _accessStale = true;
         }
     }
 
@@ -2928,6 +2935,7 @@ public sealed partial class World
         if (edge != MapEdge.None)
         {
             Buildings.Gates(Hinterlands).Remove(HinterlandTable.SlotOf(edge), slot);
+            _accessStale = true;
         }
     }
 
@@ -4809,6 +4817,10 @@ public sealed partial class World
         // are arrays over the Day rather than columns over a table, so the block at the top of this
         // method -- which is a list of columns -- cannot reach them.
         Commutes.Rebuild(Citizens, Buildings, Businesses, Rules, Key);
+
+        // A loaded world's cut-off clocks are already saved, so nothing is judged until an edit.
+        _judgedRoadVersion = Roads.Version;
+        _accessStale = false;
     }
     /// <summary>
     /// Gives the Lots that have no frontage the lattice Segment under them, and rebuilds the claim
@@ -5134,6 +5146,7 @@ public sealed partial class World
         // developer who builds into a Pool that never comes gives the Building up, and the duration is
         // how long the bet is left standing.
         Buildings.MarkEmpty(Buildings.Rows.Resolve(building), now);
+        JudgeAccess(Buildings.Rows.Resolve(building), now);
 
         // Beside MarkEmpty because they are the same fact from two ends -- a Building is raised
         // empty (adr/0069: construction houses nobody), so the Tick that starts the empty clock is
@@ -9186,7 +9199,7 @@ public sealed partial class World
     /// need. The Car Park is likewise left attached: the garage still physically stands.
     /// </para>
     /// </remarks>
-    public void AbandonBuilding(Handle<Building> building, Ticks tick)
+    public void AbandonBuilding(Handle<Building> building, Ticks tick, AbandonmentCause cause)
     {
         int slot = Buildings.Rows.Resolve(building);
 
@@ -9195,7 +9208,155 @@ public sealed partial class World
         // After the emptying rather than before it, so that a reader of this column during the walk
         // above cannot see a half-emptied Building calling itself abandoned.
         Buildings.AbandonedSince[slot] = tick;
+        Buildings.AbandonedCause[slot] = (byte)cause;
+        Buildings.CutOffSince[slot] = Ticks.Zero;
         Changes?.Building(slot);
+    }
+
+    /// <summary>
+    /// Re-judges every Building's cut-off clock when this Tick changed the road graph, the gates or
+    /// the Ruleset, and at each Day boundary abandons every Building cut off past its kind's
+    /// deadline (<c>adr/0177</c>).
+    /// </summary>
+    /// <remarks>
+    /// Runs once at the end of the Tick, before a save is taken, so a reload finds nothing left to
+    /// judge. A Building raised later judges itself in <see cref="CreateBuilding"/>. The deadline is
+    /// checked here rather than on a Zone Rule's visit because that visit is a random sample, which
+    /// lagged the deadline by up to four Days on the bridge fixture.
+    /// </remarks>
+    internal void TimeCutOffBuildings(Ticks now)
+    {
+        if (Roads.Version != _judgedRoadVersion || _accessStale)
+        {
+            _judgedRoadVersion = Roads.Version;
+            _accessStale = false;
+
+            for (int slot = 0; slot < Buildings.Rows.SlotCount; slot++)
+            {
+                if (Buildings.Rows.IsLive(slot))
+                {
+                    JudgeAccess(slot, now);
+                }
+            }
+        }
+
+        long day = IntegerMath.FloorDiv((long)now.Raw, Quantities.Ticks.PerDay);
+
+        if ((long)now.Raw != day * Quantities.Ticks.PerDay)
+        {
+            return;
+        }
+
+        for (int slot = 0; slot < Buildings.Rows.SlotCount; slot++)
+        {
+            if (!Buildings.Rows.IsLive(slot) || Buildings.CutOffSince[slot] == Ticks.Zero)
+            {
+                continue;
+            }
+
+            byte kind = Buildings.Kind[slot];
+
+            if (!Rules.Declares(kind)
+                || !Buildings.HasBeenCutOffFor(slot, now, (ulong)Rules.Kind(kind).AbandonedAfterCutOffTicks))
+            {
+                continue;
+            }
+
+            CondemnationTrail.Record(now, Buildings.Lot[slot], kind, ConditionId.None);
+            AbandonBuilding(Buildings.Rows.At(slot), now, AbandonmentCause.CutOff);
+        }
+    }
+
+    /// <summary>Starts or clears one Building's cut-off clock.</summary>
+    private void JudgeAccess(int slot, Ticks now)
+    {
+        byte kind = Buildings.Kind[slot];
+        bool timed = Rules.Declares(kind)
+            && Rules.Kind(kind).AbandonedAfterCutOffTicks > 0
+            && !IsOutsideConnection(kind)
+            && !Buildings.IsAbandoned(slot)
+            && HasOutsideConnection();
+
+        if (!timed || !IsCutOff(slot))
+        {
+            Buildings.CutOffSince[slot] = Ticks.Zero;
+            return;
+        }
+
+        if (Buildings.CutOffSince[slot] == Ticks.Zero)
+        {
+            Buildings.CutOffSince[slot] = new Ticks(now.Raw + 1);
+        }
+    }
+
+    /// <summary>Whether any Outside Connection stands in the world.</summary>
+    public bool HasOutsideConnection()
+    {
+        for (int edge = 0; edge < HinterlandTable.Edges; edge++)
+        {
+            foreach (int _ in Buildings.Gates(Hinterlands).Walk(edge))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Whether no foot or car path joins this Building's Access Point to any Outside Connection's,
+    /// or it has no Access Point at all.
+    /// </summary>
+    public bool IsCutOff(int buildingSlot)
+    {
+        if (!TryNodesOf(AccessPointOf(buildingSlot), out int a, out int b))
+        {
+            return true;
+        }
+
+        RoadNodeTable nodes = Roads.Nodes;
+
+        for (int edge = 0; edge < HinterlandTable.Edges; edge++)
+        {
+            foreach (int gate in Buildings.Gates(Hinterlands).Walk(edge))
+            {
+                if (!TryNodesOf(AccessPointOf(gate), out int ga, out int gb))
+                {
+                    continue;
+                }
+
+                if (Joined(nodes.CarComponent, a, b, ga, gb) || Joined(nodes.FootComponent, a, b, ga, gb))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private bool TryNodesOf(Address address, out int a, out int b)
+    {
+        a = b = Rows.NoSlot;
+
+        if (!address.Exists || !Roads.Segments.Rows.IsLive(address.Segment))
+        {
+            return false;
+        }
+
+        return Roads.Nodes.Rows.TryResolve(Roads.Segments.NodeA[address.Segment], out a)
+            & Roads.Nodes.Rows.TryResolve(Roads.Segments.NodeB[address.Segment], out b);
+    }
+
+    private static bool Joined(Column<int> component, int a, int b, int ga, int gb)
+    {
+        int ca = component[a];
+        int cb = component[b];
+        int cga = component[ga];
+        int cgb = component[gb];
+
+        return (ca != RoadConnectivity.Unlabelled && (ca == cga || ca == cgb))
+            || (cb != RoadConnectivity.Unlabelled && (cb == cga || cb == cgb));
     }
 
     /// <summary>Which of a Bin's two wait lists a given blocking reason queues on.</summary>

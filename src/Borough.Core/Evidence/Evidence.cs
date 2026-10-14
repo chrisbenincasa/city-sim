@@ -533,6 +533,33 @@ public static class Evidence
         return failing.ToArray();
     }
 
+    /// <summary>
+    /// The Building's running cut-off clock, or absent when it is reachable or its kind states no
+    /// <c>abandoned_after_cut_off_days</c>.
+    /// </summary>
+    /// <param name="world">The world to read.</param>
+    /// <param name="building">Which Building.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="world"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">The handle does not resolve.</exception>
+    public static CutOffEvidence? CutOffOf(World world, Handle<Building> building)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+
+        int slot = world.Buildings.Rows.Resolve(building);
+        ulong since = world.Buildings.CutOffSince[slot].Raw;
+
+        if (since == 0)
+        {
+            return null;
+        }
+
+        var first = new Ticks(since - 1);
+        ulong deadline = (ulong)world.Rules.Kind(world.Buildings.Kind[slot]).AbandonedAfterCutOffTicks;
+
+        return new CutOffEvidence(
+            first, new Ticks(first.Raw + deadline), world.VehicleAccessPoint(slot).Exists);
+    }
+
     private static FailingCommuteEvidence? FailingCommuteOf(World world, int slot)
     {
         ulong since = world.Citizens.CommuteFailedSince[slot].Raw;

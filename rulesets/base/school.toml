@@ -26,6 +26,10 @@ level          = 1
 premises       = true
 business       = "teaching"
 placement_cost = 262144
+# PROVISIONAL: a Building cut off from every Outside Connection is abandoned after 14 Days, and
+# its shell collapses 30 Days later (adr/0177). A playtest tests the first.
+abandoned_after_cut_off_days = 14
+collapses_after_days = 30
 bins = [
     { resource = "money", owner = "business" },
 ]

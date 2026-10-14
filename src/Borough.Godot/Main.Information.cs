@@ -1098,10 +1098,11 @@ public partial class Main
         int businesses = _world.BuildingBusinesses.Length(slot);
         int occupants = evidence.Occupants.Length + businesses;
         sections.Add(new("summary", "Current condition", true,
-        [new(_world.Buildings.IsAbandoned(slot) ? "Abandoned" : evidence.IsDeclared ? "Occupied places: " + occupants + " / " + evidence.DeclaredOccupancy : "Kind no longer declared")]));
+        [new(_world.Buildings.IsAbandoned(slot) ? AbandonedSummary(slot) : evidence.IsDeclared ? "Occupied places: " + occupants + " / " + evidence.DeclaredOccupancy : "Kind no longer declared")]));
         sections[0] = new("summary", "Current condition", true,
             [new(SupplySummary(Evidence.SupplyOfBuilding(_world, _selectedBuilding))), sections[0].Rows[0]]);
         if (StaffingSummary(slot) is { } staffing) sections[0].Rows.Insert(1, new(staffing));
+        if (CutOffSummary(_selectedBuilding) is { } cutOff) sections[0].Rows.Insert(1, new(cutOff));
         sections.Add(Attention(evidence, default, false));
         sections.Add(Attention(evidence, default, false, true));
         AddFacilityHealth(sections, slot);

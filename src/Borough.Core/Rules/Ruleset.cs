@@ -692,6 +692,15 @@ public readonly record struct KindDefinition(
     public int AbandonedWhenEmptyAfterTicks { get; init; }
 
     /// <summary>
+    /// How long a Building of this kind may stand cut off from every Outside Connection before the
+    /// city abandons it, in Ticks. Zero means never (<c>adr/0177</c>).
+    /// </summary>
+    /// <remarks>
+    /// Authored in Days as <c>abandoned_after_cut_off_days</c>. Hash-bearing and provisional.
+    /// </remarks>
+    public int AbandonedAfterCutOffTicks { get; init; }
+
+    /// <summary>
     /// Whether a <b>Household</b> may take a tenancy in a Building of this kind.
     /// <b>Whether, never how many.</b>
     /// </summary>

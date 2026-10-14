@@ -67,12 +67,13 @@ public readonly struct SaveHeader : IEquatable<SaveHeader>
     /// new table exists is short by a table and needs a migration; the hash it was written at was never
     /// wrong.
     /// </remarks>
+    // Version 21 adds a Building's cut-off clock and abandonment cause (adr/0177).
     // Version 20 adds a Citizen's most recent ended failed-commute episode (adr/0177).
     // Version 19 adds a Citizen's failed-commute clock (adr/0177).
     // Version 18 adds a Citizen's run of unpaid Days and a Business's owner. Version 17 adds a Citizen's labour remainder, a Business's premises-search start and each
     // spoiling Bin's per-Day waste count. Version 16 saves each Lot's oriented parcel and footprint
     // (adr/0174). Older declaration sets are refused before their body is read.
-    public const int Current = 20;
+    public const int Current = 21;
 
     private const ulong ByteOrderSentinel = 0x0102_0304_0506_0708UL;
 

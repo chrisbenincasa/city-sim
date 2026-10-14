@@ -512,7 +512,7 @@ public sealed class DisasterEngine
                     // AbandonBuilding stamps AbandonedSince, and restamping it would reset the
                     // collapse clock every time the tide came in -- a ruin made immortal by the
                     // thing that ruined it.
-                    _world.AbandonBuilding(buildings.Rows.At(building), tick);
+                    _world.AbandonBuilding(buildings.Rows.At(building), tick, AbandonmentCause.Disaster);
                     floods.Ruined[flood]++;
                     ruined++;
                 }
