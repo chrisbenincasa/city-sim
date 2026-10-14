@@ -94,9 +94,12 @@ public partial class Main
         if (!OnLattice(at))
         {
             _zoneStart = null;
-            if (Send(new Command(CommandKind.Zone, at.Item1, at.Item2, ZonePermission())))
+            var paint = new Command(CommandKind.Zone, at.Item1, at.Item2, ZonePermission());
+            if (Send(paint))
             {
                 _refused = string.Empty;
+                NoteZonePainted(paint);
+                PushZoneStroke();
                 _zoneFeedback = $"{(_world.TryZoneGround(at.Item1, at.Item2, out ZoneGround ground) && ground.Face >= 0 ? "Block" : "Street side")} queued: {ZoneName()}. Existing Buildings stay.";
             }
             return true;
@@ -105,28 +108,31 @@ public partial class Main
         {
             int painted = 0;
             foreach (var parcel in SelectedParcels(at))
-                if (Send(new Command(CommandKind.ZoneParcel,
-                    new Tiles(parcel.East.Raw + parcel.Wide.Raw / 2),
-                    new Tiles(parcel.North.Raw + parcel.Deep.Raw / 2), ZonePermission()))) painted++;
+            {
+                var middle = (East: new Tiles(parcel.East.Raw + parcel.Wide.Raw / 2),
+                    North: new Tiles(parcel.North.Raw + parcel.Deep.Raw / 2));
+                var paint = new Command(CommandKind.ZoneParcel, middle.East, middle.North, ZonePermission());
+                if (!Send(paint)) continue;
+                NoteZonePainted(paint);
+                painted++;
+            }
+            PushZoneStroke();
             _zoneStart = null;
             _zoneFeedback = painted == 0 ? "Choose a parcel beside a Street."
                 : $"{painted} parcels queued: {ZoneName()}. Existing Buildings stay.";
             return true;
         }
-        var bounds = ZoneBounds(at);
+        var sent = WholeBlockCommands(at, out int unchanged);
         _zoneStart = null;
-        int count = 0, unchanged = 0;
-        bool canSkip = _queued.Count == 0;
-        ushort permission = ZonePermission();
-        for (int row = bounds.South; row <= bounds.North; row++)
-            for (int column = bounds.West; column <= bounds.East; column++)
-            {
-                var previous = _world.LandPermissions.Summary(_world.BlockGroundRectangle(column, row));
-                if (canSkip && previous.CommonUses == permission && previous.AnyUses == permission)
-                { unchanged++; continue; }
-                var tile = streets.IntersectionTile(column, row);
-                if (Send(new Command(CommandKind.Zone, tile.East, tile.North, ZonePermission()))) count++;
-            }
+        int count = 0;
+        foreach (var tile in sent)
+        {
+            var paint = new Command(CommandKind.Zone, tile.East, tile.North, ZonePermission());
+            if (!Send(paint)) continue;
+            NoteZonePainted(paint);
+            count++;
+        }
+        PushZoneStroke();
         _zoneFeedback = count == 0 ? $"{unchanged} blocks already have these permissions; nothing changed."
             : $"{count} blocks queued: {ZoneName()}; {unchanged} unchanged. Existing Buildings stay.";
         return true;
@@ -157,8 +163,101 @@ public partial class Main
         if (_zoneStart is null || Aim() is not { } at) return 0;
         if (!OnLattice(at)) return _world.TryZoneGround(at.East, at.North, out _) ? 1 : 0;
         if (_zoneParcels) return System.Linq.Enumerable.Count(SelectedParcels(at));
+        return PreviewBlockCount(at);
+    }
+
+    private (int West, int South, int East, int North) PreviewBounds((Tiles East, Tiles North) at)
+    {
         var bounds = ZoneBounds(at);
-        return (bounds.East - bounds.West + 1) * (bounds.North - bounds.South + 1);
+        int last = _world.Roads.Streets.Blocks - 1;
+        return (Math.Max(0, bounds.West), Math.Max(0, bounds.South),
+            Math.Min(last, bounds.East), Math.Min(last, bounds.North));
+    }
+
+    private int PreviewBlockCount((Tiles East, Tiles North) at)
+    {
+        var bounds = PreviewBounds(at);
+        return Math.Max(0, bounds.East - bounds.West + 1) * Math.Max(0, bounds.North - bounds.South + 1);
+    }
+
+    /// <summary>The Tile of each <c>Zone</c> command a whole-block stroke ending here sends, in send order.</summary>
+    private System.Collections.Generic.List<(Tiles East, Tiles North)> WholeBlockCommands(
+        (Tiles East, Tiles North) at, out int unchanged)
+    {
+        var bounds = ZoneBounds(at);
+        var streets = _world.Roads.Streets;
+        var tiles = new System.Collections.Generic.List<(Tiles East, Tiles North)>();
+        unchanged = 0;
+        bool canSkip = _queued.Count == 0;
+        ushort permission = ZonePermission();
+        for (int row = bounds.South; row <= bounds.North; row++)
+            for (int column = bounds.West; column <= bounds.East; column++)
+            {
+                var previous = _world.LandPermissions.Summary(_world.BlockGroundRectangle(column, row));
+                if (canSkip && previous.CommonUses == permission && previous.AnyUses == permission)
+                { unchanged++; continue; }
+                tiles.Add(streets.IntersectionTile(column, row));
+            }
+        return tiles;
+    }
+
+    private static string LotsToCreate(int lots) => $"{lots} Lot{(lots == 1 ? "" : "s")} to create";
+
+    private string WholeBlockPreviewText((Tiles East, Tiles North) at)
+    {
+        int blocks = PreviewBlockCount(at);
+        return $"{LotsToCreate(ZonePlots(at).Count)} across {blocks} block{(blocks == 1 ? "" : "s")}";
+    }
+
+    private string FreeformPreviewText((Tiles East, Tiles North) at)
+    {
+        if (!_world.TryZoneGround(at.East, at.North, out ZoneGround ground)) return "no Street within reach to zone beside";
+        return $"{LotsToCreate(ZonePlots(at).Count)} on this {(ground.Face >= 0 ? "block" : "Street side")}";
+    }
+
+    private readonly record struct ZonePlotsKey(object? World, object? Roads, uint Version, object? Rules,
+        ulong LotIds, int Lots, ulong PaintIds, int Paint, ushort Zone, bool Queued, bool Blocks, int A, int B, int C, int D);
+
+    private ZonePlotsKey _zonePlotsAt;
+    private readonly System.Collections.Generic.List<Parcel> _zonePlots = [];
+    private int _zoneCarves;
+
+    /// <summary>The Lots the stroke ending here would create, from Core's read-only carve.</summary>
+    /// <remarks>
+    /// Carved again only when the hovered ground, the Streets, the permission, the Lots or the paint
+    /// change. Lot and paint rows are created and freed, never edited. A change that creates a row
+    /// moves its id counter and one that only frees rows lowers the live count.
+    /// </remarks>
+    private System.Collections.Generic.List<Parcel> ZonePlots((Tiles East, Tiles North) at)
+    {
+        ushort zone = ZonePermission();
+        bool blocks = !_zoneParcels && OnLattice(at);
+        (int A, int B, int C, int D) ground = (-1, Rows.NoSlot, 0, -1);
+        if (blocks) ground = PreviewBounds(at);
+        else if (_world.TryZoneGround(at.East, at.North, out ZoneGround g)) ground = (g.Face, g.Segment, (int)g.Side, 0);
+        var key = new ZonePlotsKey(_world, _world.Roads, _world.Roads.Version, _world.Rules,
+            _world.Lots.Rows.NextId, _world.Lots.Rows.LiveCount, _world.PermissionRectangles.Rows.NextId, _world.PermissionRectangles.Rows.LiveCount,
+            zone, blocks && _queued.Count == 0, blocks, ground.A, ground.B, ground.C, ground.D);
+        if (key == _zonePlotsAt) return _zonePlots;
+        _zonePlotsAt = key;
+        _zonePlots.Clear();
+        if (zone == 0 || (!blocks && ground.D < 0)) return _zonePlots;
+        _zoneCarves++;
+        if (blocks) LotSubdivider.PreviewPaint(_world, [.. WholeBlockCommands(at, out _)], zone, _zonePlots);
+        else LotSubdivider.PreviewPaint(_world, [at], zone, _zonePlots);
+        return _zonePlots;
+    }
+
+    private void DrawZonePlots((Tiles East, Tiles North) at, int from)
+    {
+        var plots = ZonePlots(at);
+        Color colour = ZoneColour(ZonePermission()).Lightened(.45f).SrgbToLinear();
+        for (int i = 0; i < plots.Count; i++)
+        {
+            _cursor.Multimesh.SetInstanceTransform(from + i, Plate(plots[i].Geometry, -.35f, .04f, .01f));
+            _cursor.Multimesh.SetInstanceColor(from + i, colour);
+        }
+        _cursor.Multimesh.VisibleInstanceCount = from + plots.Count;
     }
 
     private void ZonePreview((Tiles East, Tiles North) at)
@@ -170,30 +269,26 @@ public partial class Main
         }
         if (_zoneParcels)
         {
-            int selected = 0;
+            int selectedParcelsCount = 0;
             foreach (var parcel in SelectedParcels(at))
             {
-                _cursor.Multimesh.SetInstanceTransform(selected, ParcelTransform(parcel.East.Raw,
+                _cursor.Multimesh.SetInstanceTransform(selectedParcelsCount, ParcelTransform(parcel.East.Raw,
                     parcel.North.Raw, parcel.Wide.Raw, parcel.Deep.Raw));
-                _cursor.Multimesh.SetInstanceColor(selected++, (_zoneErase ? new Color("e7a095")
+                _cursor.Multimesh.SetInstanceColor(selectedParcelsCount++, (_zoneErase ? new Color("e7a095")
                     : ZoneColour(ZonePermission()).Lightened(.22f)).SrgbToLinear());
             }
-            _cursor.Multimesh.VisibleInstanceCount = selected;
+            _cursor.Multimesh.VisibleInstanceCount = selectedParcelsCount;
             return;
         }
-        var bounds = ZoneBounds(at);
-        var streets = _world.Roads.Streets;
-        int count = 0;
-        for (int row = Math.Max(0, bounds.South); row <= Math.Min(streets.Blocks - 1, bounds.North); row++)
-            for (int column = Math.Max(0, bounds.West); column <= Math.Min(streets.Blocks - 1, bounds.East); column++)
-            {
-                if (ZoneInterior(column, row) is not { } interior) continue;
-                interior.Origin += new Vector3(0, .01f, 0);
-                _cursor.Multimesh.SetInstanceTransform(count, interior);
-                _cursor.Multimesh.SetInstanceColor(count++, (_zoneErase ? new Color("e7a095")
-                    : ZoneColour(ZonePermission()).Lightened(.22f)).SrgbToLinear());
-            }
-        _cursor.Multimesh.VisibleInstanceCount = count;
+        int selected = 0;
+        foreach (var parcel in SelectedParcels(at, false))
+        {
+            _cursor.Multimesh.SetInstanceTransform(selected, ParcelTransform(parcel.East.Raw,
+                parcel.North.Raw, parcel.Wide.Raw, parcel.Deep.Raw));
+            _cursor.Multimesh.SetInstanceColor(selected++, (_zoneErase ? new Color("e7a095")
+                : ZoneColour(ZonePermission()).Lightened(.22f)).SrgbToLinear());
+        }
+        DrawZonePlots(at, selected);
     }
 
     private (Tiles East, Tiles North, object? Roads, uint Version, object? Rules) _zoneGroundAt = (new Tiles(-1), default, null, 0, null);
@@ -229,7 +324,7 @@ public partial class Main
             _cursor.Multimesh.SetInstanceTransform(i, run);
             _cursor.Multimesh.SetInstanceColor(i, colour);
         }
-        _cursor.Multimesh.VisibleInstanceCount = _zoneGroundRuns.Count;
+        DrawZonePlots(at, _zoneGroundRuns.Count);
     }
 
     // At the plot layer's height, which it replaces while zoning: car parks, stall lines and roads
@@ -238,8 +333,20 @@ public partial class Main
         new(Basis.FromScale(new Vector3(wide * MetresPerTile, .01f, deep * MetresPerTile)),
             new Vector3((east + wide * .5f) * MetresPerTile, .02f, -(north + deep * .5f) * MetresPerTile));
 
-    private System.Collections.Generic.IEnumerable<Parcel> SelectedParcels((Tiles East, Tiles North) at)
+    private System.Collections.Generic.IEnumerable<Parcel> SelectedParcels(
+        (Tiles East, Tiles North) at, bool clipToPointer = true)
     {
+        if (!clipToPointer)
+        {
+            var blocks = PreviewBounds(at);
+            for (int row = blocks.South; row <= blocks.North; row++)
+                for (int column = blocks.West; column <= blocks.East; column++)
+                {
+                    foreach (Parcel parcel in StandingParcels(column, row)) yield return parcel;
+                }
+            yield break;
+        }
+
         var start = _zoneStart ?? at;
         int west = Math.Min(start.East.Raw, at.East.Raw), east = Math.Max(start.East.Raw, at.East.Raw);
         int south = Math.Min(start.North.Raw, at.North.Raw), north = Math.Max(start.North.Raw, at.North.Raw);
@@ -255,10 +362,36 @@ public partial class Main
                 for (int i = 0; i < count; i++)
                 {
                     var p = buffer[i];
-                    if (p.East.Raw <= east && p.East.Raw + p.Wide.Raw > west
-                        && p.North.Raw <= north && p.North.Raw + p.Deep.Raw > south) yield return p;
+                    if (!clipToPointer || (p.East.Raw <= east && p.East.Raw + p.Wide.Raw > west
+                        && p.North.Raw <= north && p.North.Raw + p.Deep.Raw > south)) yield return p;
                 }
             }
+    }
+
+    private (object? World, object? Roads, uint Version, object? Rules, ulong LotIds, int Lots) _zoneBlocksAt;
+    private readonly System.Collections.Generic.Dictionary<(int Column, int Row), Parcel[]> _zoneBlockLots = [];
+
+    /// <summary>The parcels of the Lots standing on a block, which the plot layer stops drawing while zoning.</summary>
+    private Parcel[] StandingParcels(int column, int row)
+    {
+        var key = ((object?)_world, (object?)_world.Roads, _world.Roads.Version,
+            (object?)_world.Rules, _world.Lots.Rows.NextId, _world.Lots.Rows.LiveCount);
+        if (key != _zoneBlocksAt)
+        {
+            _zoneBlocksAt = key;
+            _zoneBlockLots.Clear();
+        }
+        if (_zoneBlockLots.TryGetValue((column, row), out var standing)) return standing;
+
+        // Preview lists the block's standing Lots first, then its proposed parcels.
+        int capacity = LotSubdivider.PreviewCapacity(_world, column, row);
+        Parcel[] parcels = new Parcel[capacity];
+        LotSubdivider.Preview(_world, column, row, parcels);
+        int realised = capacity - _world.Rules.Lots.ParcelCeiling(
+            BlockGround.At(_world.Roads.Lattice, column, row));
+        standing = parcels[..realised];
+        _zoneBlockLots.Add((column, row), standing);
+        return standing;
     }
 
     private Transform3D? ZoneInterior(int column, int row)

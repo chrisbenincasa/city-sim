@@ -1,7 +1,7 @@
 # Freeform local Streets with road-aligned Lots
 
 State: complete. Slices 1 to 9 are built. The acceptance checks pass on lattice-zoned and
-freeform ground. Wedge use remains open.
+freeform ground. Wedge use belongs to the board row "Building entrances and usable open ground".
 Survey of current code done 09/27/2026 against `main` at `919290a5`.
 
 ## Outcome
@@ -14,7 +14,7 @@ Blocks coordinate Lot layout and the interior; they do not require one long Buil
 a courtyard in every block. Existing Lots and Buildings stay fixed when a new Street closes a
 loop. The new block layout uses only the remaining unallocated ground.
 
-Curves can leave wedge land; its use remains a design decision. Freeform local Streets require
+Curves can leave wedge land; its use belongs to the board row "Building entrances and usable open ground". Freeform local Streets require
 amending [`adr/0014`](../docs/adr/0014-grid-streets-with-freeform-arterials.md), which still snaps
 Streets to the Tile grid.
 
@@ -231,10 +231,6 @@ Decided 10/08/2026.
 | Car Parks | Stay live with no Address, out of every Segment list |
 | Price | Free. Removal displaces nobody and laying charges nothing to refund. Per-Segment upkeep stops with the row |
 | Travellers on the Segment | Out of scope. The lattice bulldoze has the same gap ([#132](https://github.com/chrisbenincasa/city-sim/issues/132)) |
-
-### Remaining design decisions
-
-1. **Wedge use.** Leave open, give to the adjacent Lot as yard, or allow parks.
 
 ## Acceptance checks
 

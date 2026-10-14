@@ -534,6 +534,7 @@ public partial class Main
             return;
         }
         if (ZoningAction(words)) return;
+        if (UndoAction(words)) return;
         if (StreetAction(words)) return;
         if (CityEvidenceAction(words)) return;
         if (BudgetAction(words)) return;
@@ -924,8 +925,18 @@ public partial class Main
         if (_roadHover is not null) _roadHover.Visible = false;
         if (Aim() is not { } at) return "Outside the map";
         if (_verb == Verb.Zone)
+        {
+            if (!OnLattice(at))
+                return $"{FreeformPreviewText(at)} · {ZoneName()} · "
+                    + (_zoneStart is not null ? "release to apply; Escape cancels"
+                        : _zoneFeedback.Length > 0 ? _zoneFeedback : "click a block or Street side");
+            if (!_zoneParcels)
+                return $"{WholeBlockPreviewText(at)} · {ZoneName()} · "
+                    + (_zoneStart is not null ? "release to apply; Escape cancels"
+                        : _zoneFeedback.Length > 0 ? _zoneFeedback : "drag a rectangle of whole blocks");
             return _zoneStart is not null ? $"{ZoneSelectionCount()} {(_zoneParcels ? "parcels" : "blocks")} · {ZoneName()} · release to apply; Escape cancels"
                 : _zoneFeedback.Length > 0 ? _zoneFeedback : $"{ZoneName()} · {(_zoneParcels ? "click a parcel or drag an area" : "drag a rectangle of whole blocks")}";
+        }
         if (_verb == Verb.Connect) return StreetSynopsis(at);
         var picked = PickInformation();
         if (_world.Roads.Segments.Rows.TryResolve(picked.Road, out int road))
@@ -1357,6 +1368,8 @@ public partial class Main
                 Blocks = _zoneParcels ? 0 : ZoneSelectionCount(),
                 Parcels = _zoneParcels ? ZoneSelectionCount() : 0,
                 Unit = _zoneParcels ? "parcels" : "blocks",
+                Lots = _verb == Verb.Zone && Aim() is { } aim && !(_zoneParcels && OnLattice(aim)) ? ZonePlots(aim).Count : 0,
+                Carves = _zoneCarves,
                 Erasing = _zoneErase,
                 Feedback = _zoneFeedback
             },

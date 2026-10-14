@@ -1,0 +1,64 @@
+# Freeform Lot preview from an empty base city.
+# Run on a display so screenshots and draw rows are available.
+# mkdir -p artifacts/freeform-preview
+# godot --path src/Borough.Godot -- --empty --seed 0x135283C --citizens 2000 \
+#   --ruleset rulesets/base/ruleset.toml --drive scripts/ui/freeform-preview.drive
+# The readout's "N Lots to create" on the triangle and on the Street side equals the rise in
+# "M Lots stand" after each commit. Erasing previews zero. "Lot preview carved N times" rises
+# only when the hovered ground, the Lots or the paint change, never per frame. Between Ticks 257
+# and 260 the clock runs, so the window's own pointer can move the aim and add carves.
+
+256 pause
+256 ui size 1600 1000
+256 ui theme dark
+256 ui tools off
+256 ui layers off
+256 focus 260 40 600
+256 tilt 50
+256 ui street-snap off
+256 ui street-length off
+256 ui street-angle off
+256 hold street
+256 click 210 10
+256 click 290 10
+256 click 290 10
+256 click 210 70
+256 click 210 70
+256 click 210 10
+256 click 320 10
+256 click 400 70
+256 speed 1
+
+257 pause
+257 hold zone 0
+257 ui zone-begin 225 25
+257 ui zone-point 225 25
+257 shoot artifacts/freeform-preview/01-corner.png
+257 draw artifacts/freeform-preview/01-corner.tsv
+257 speed 1
+
+260 pause
+260 ui zone-point 226 26
+260 readout artifacts/freeform-preview/02-corner-later.txt
+260 ui zone-end 226 26
+260 speed 1
+
+261 pause
+261 focus 360 40 500
+261 hold zone 0
+261 ui zone-begin 370 30
+261 ui zone-point 370 30
+261 shoot artifacts/freeform-preview/04-side.png
+261 draw artifacts/freeform-preview/04-side.tsv
+261 ui zone-end 370 30
+261 speed 1
+
+262 pause
+262 ui zone-point 370 30
+262 readout artifacts/freeform-preview/05-side-created.txt
+262 hold erase
+262 ui zone-begin 225 25
+262 ui zone-point 225 25
+262 shoot artifacts/freeform-preview/06-erase.png
+262 ui zone-cancel
+262 quit
