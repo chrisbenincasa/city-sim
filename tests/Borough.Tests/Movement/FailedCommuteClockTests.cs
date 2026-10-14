@@ -1,5 +1,6 @@
 using Borough.Core;
 using Borough.Core.Entities;
+using Borough.Core.Movement;
 using Borough.Core.Persistence;
 using Borough.Tests.Persistence;
 using Borough.Core.Quantities;
@@ -89,6 +90,43 @@ public sealed class FailedCommuteClockTests
             Assert.Equal(Ticks.Zero, world.Citizens.CommuteFailedSince[citizen]);
             Assert.True(Crosses(world, citizen), $"Citizen {citizen} lost the job without an outbound failure.");
         }
+    }
+
+    [Fact]
+    public void A_failed_trip_for_another_purpose_starts_nothing()
+    {
+        Simulation simulation = Start(BridgeRules(DeadlineDays));
+        World world = simulation.World;
+
+        StepTo(simulation, LateEvening(1));
+        int citizen = world.Citizens.Rows.Resolve(Crossers(world)[0]);
+
+        world.Citizens.Activity[citizen] = (byte)CitizenActivity.Travelling;
+        world.RecordTripFate(citizen, TripFate.NoRouteFound);
+
+        Assert.Equal(Ticks.Zero, world.Citizens.CommuteFailedSince[citizen]);
+
+        world.Citizens.Activity[citizen] = (byte)CitizenActivity.TravellingToWork;
+        world.RecordTripFate(citizen, TripFate.NoRouteFound);
+
+        Assert.NotEqual(Ticks.Zero, world.Citizens.CommuteFailedSince[citizen]);
+    }
+
+    [Fact]
+    public void Employment_clears_a_running_clock()
+    {
+        (Simulation simulation, List<Handle<Citizen>> crossers) = Severed(DeadlineDays);
+        World world = simulation.World;
+
+        StepTo(simulation, 3 * Ticks.PerDay);
+        Handle<Citizen> crosser = crossers[0];
+        int citizen = world.Citizens.Rows.Resolve(crosser);
+
+        Assert.NotEqual(Ticks.Zero, world.Citizens.CommuteFailedSince[citizen]);
+
+        world.Employ(crosser, world.Citizens.Workplace[citizen], world.Citizens.PlannedCommute[citizen]);
+
+        Assert.Equal(Ticks.Zero, world.Citizens.CommuteFailedSince[citizen]);
     }
 
     [Fact]
