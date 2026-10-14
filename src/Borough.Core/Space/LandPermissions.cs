@@ -183,6 +183,11 @@ public sealed class LandPermissions
     public PermissionRefusal CanPaintUses<T>(T area, ushort uses, int recordLimit) where T : ITileSet =>
         Paint(area, new GroundPermissions(uses, 0), recordLimit, 0xFFFFUL, apply: false);
 
+    /// <summary>Whether a table holding <paramref name="slots"/> allocated slots would refuse this paint.</summary>
+    /// <param name="records">How many records stay live after the paint.</param>
+    public PermissionRefusal CanPaintUses<T>(T area, ushort uses, int recordLimit, int slots, out int records) where T : ITileSet =>
+        Paint(area, new GroundPermissions(uses, 0), recordLimit, 0xFFFFUL, out records, apply: false, slotCount: slots);
+
     public PermissionRefusal PaintUses(LandRectangle area, ushort uses, int recordLimit) =>
         PaintUses(new WholeRectangle(area), uses, recordLimit);
 
@@ -235,6 +240,26 @@ public sealed class LandPermissions
         var tiles = new OrientedTiles(site);
         if (tiles.IsRectangle(out LandRectangle rectangle)) { return Summary(rectangle); }
         if (!site.IsValid) { return default; }
+        return TileSummary(tiles, default(NoTiles), 0);
+    }
+
+    /// <summary>What <see cref="ParcelSummary"/> would report after <c>PaintUses(painted, uses)</c>. Paints nothing.</summary>
+    /// <remarks>
+    /// <see cref="LandPermissionSummary.Band"/> can differ from the painted summary's when the site
+    /// mixes bands, because it is the first band seen and Tiles are visited in a different order.
+    /// </remarks>
+    public LandPermissionSummary SummaryAfterPaint<T>(OrientedRectangle site, T painted, ushort uses) where T : ITileSet
+    {
+        LandRectangle near = painted.Bounds;
+        if (!site.IsValid || !near.IsValid) { return ParcelSummary(site); }
+        LandRectangle box = site.Bounds;
+        if (box.X >= near.X + near.Width || near.X >= box.X + box.Width
+            || box.Y >= near.Y + near.Height || near.Y >= box.Y + box.Height) { return ParcelSummary(site); }
+        return TileSummary(new OrientedTiles(site), painted, uses);
+    }
+
+    private LandPermissionSummary TileSummary<T>(OrientedTiles tiles, T painted, ushort uses) where T : ITileSet
+    {
         int covered = 0, total = 0;
         ushort common = ushort.MaxValue, any = 0;
         GroundPermissions first = default;
@@ -247,6 +272,7 @@ public sealed class LandPermissions
                 if (!tiles.Contains(x, y)) { continue; }
                 total++;
                 GroundPermissions permission = At(x, y);
+                if (painted.Contains(x, y)) { permission = permission with { Uses = uses }; }
                 if (permission.Packed == 0) { continue; }
                 covered++;
                 common &= permission.Uses; any |= permission.Uses;
@@ -266,11 +292,16 @@ public sealed class LandPermissions
     }
 
     private PermissionRefusal Paint<T>(T selection, GroundPermissions permission, int limit, ulong mask, bool apply = true)
+        where T : ITileSet => Paint(selection, permission, limit, mask, out _, apply);
+
+    private PermissionRefusal Paint<T>(T selection, GroundPermissions permission, int limit, ulong mask, out int records,
+        bool apply = true, int slotCount = -1)
         where T : ITileSet
     {
+        records = _table.Rows.LiveCount;
         LandRectangle area = selection.Bounds;
         if (!area.IsValid) { return PermissionRefusal.InvalidBounds; }
-        if (limit < 8 || _table.Rows.SlotCount > limit) { return PermissionRefusal.RecordLimit; }
+        if (limit < 8 || (slotCount < 0 ? _table.Rows.SlotCount : slotCount) > limit) { return PermissionRefusal.RecordLimit; }
         int firstX = PageAxis(area.X), firstY = PageAxis(area.Y);
         int across = PageAxis(area.X + area.Width - 1) - firstX + 1;
         int down = PageAxis(area.Y + area.Height - 1) - firstY + 1;
@@ -292,6 +323,7 @@ public sealed class LandPermissions
 
         // A later page's compaction may pay for an earlier page's growth.
         if (finalCount > limit) { return PermissionRefusal.RecordLimit; }
+        records = finalCount;
         if (!apply) { return PermissionRefusal.None; }
         if (stagedCount == 0 && finalCount == _table.Rows.LiveCount) { return PermissionRefusal.None; }
         var staged = new Rectangle[stagedCount];
@@ -497,6 +529,13 @@ public sealed class LandPermissions
     private readonly record struct WholeRectangle(LandRectangle Bounds) : ITileSet
     {
         public bool Contains(int east, int north) => true;
+    }
+
+    private readonly record struct NoTiles : ITileSet
+    {
+        public LandRectangle Bounds => default;
+
+        public bool Contains(int east, int north) => false;
     }
 }
 

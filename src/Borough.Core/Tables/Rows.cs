@@ -115,7 +115,7 @@ public abstract class Rows
     /// recomputing this as <em>one past the largest live id</em> would reissue the ids of rows freed
     /// since, and the hash folds a handle as its target's id.
     /// </remarks>
-    internal ulong NextId => _nextId;
+    public ulong NextId => _nextId;
 
     /// <summary>Every column, in declaration order — which is the order the hash folds them in.</summary>
     public ReadOnlySpan<Column> Columns => _columns;
