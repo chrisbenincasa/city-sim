@@ -41,6 +41,7 @@ Status: accepted, 10/13/2026.
 
 - `CONTEXT.md`'s Failure Pressure and Commute Budget entries said a Building declines when its
   Trips fail. They now name the worker's commute clock and the premises' cut-off clock.
-- Counting *exceeded commute budget* is provisional. `plans/decline-recovery.md` measures how often
-  it dismisses workers in a congested city that has no broken connection.
+- Counting *exceeded commute budget* stays. In the base package's growing founding city it
+  dismisses nobody at the shipped parking rate; under scarce parking its dismissals follow a
+  parking lock (issue #167). `plans/decline-recovery.md` records the measurement.
 - Both clocks are saved state, so they move the State Hash.

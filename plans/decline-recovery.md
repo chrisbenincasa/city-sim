@@ -61,9 +61,9 @@ Decided in a design session on 10/13/2026.
   the clock, so intermittent congestion cannot reach the deadline. Only a commute that fails every
   working day for the whole deadline costs the job, and each dismissal relieves the road.
   The budget test prices free-flow only, so congestion alone never fails it (probe below).
-  Distance and a full parking shed are its only causes. Counting it is provisional until a
-  measurement shows how often a full parking shed dismisses workers in a growing city. The acceptance list below
-  carries that measurement.
+  Distance and a full parking shed are its only causes. It keeps counting: at the shipped parking
+  rate it never fires in the growing founding city, and under scarce parking the failures come from
+  a parking lock (issue #167) that removing the count would hide rather than fix (measured below).
 
 - **Commute failure adds no premises pressure.** The employer feels it only as missing labour,
   and a labour shortage does not start `StarvedSince`. So one failed commute is never counted
@@ -238,9 +238,35 @@ two 2×2-block districts, a gate on the near side, one bridge Segment. Measured 
     so the previous panel stays open. Every fixture dwelling carries an unrelated upkeep shortfall
     ("Waiting for repairs") from `congested.toml`, which crowds the attention section.
 
+- **Parking measurement.** `ParkingDismissalProbe` replays the base package's founding city for 120
+  Days with no broken connection, sweeping `[capacity] floor_tiles_per_parking_space`. There is no
+  calendar, so a 30-Day window stands in for the month the acceptance item names.
+
+  | Floor Tiles per space | Spaces at Day 120 | Car parks full at peak | Dismissed in 120 Days | Per 1,000 workers per 30 Days, Days 91–120 |
+  |---|---|---|---|---|
+  | 6 (shipped) | 3,039 | 8 of 126 | 0 | 0 |
+  | 12 | 1,489 | 91 of 126 | 16 | 8 |
+  | 24 | 712 | every park, from Day 20 | 1,757 | 603 |
+  | 48 | 322 | every park, from Day 5 | 2,503 | 944 |
+
+  - At the shipped rate the city grows to about 2,270 Citizens and 900 workers, holds at most 44%
+    of its spaces, and no commute exceeds the budget. Over-budget dismissal never fires.
+  - At 12, about two thirds of the car parks fill. Dismissals stay rare and employment holds.
+  - At 24 every space is held from Day 20, and at 48 from Day 5, to Day 120. The city keeps
+    building car parks until it has 126 around Day 52, and each one fills as it opens. Completed
+    Trips fall from about 6,000 a Day at the shipped rate to about 2,500 at 24 and 1,000 at 48.
+    Dismissed workers are re-hired and fail again, so the worker count holds near 950 at 24 and
+    declines from about 890 to 730 at 48.
+  - The failure is a parking lock rather than a dismissal rule. `TripEngine.Start` fails a car Trip
+    whose destination shed is full before the car moves, so the driver keeps the space it holds.
+    Once every space is held, a driver can travel only when its own space lies in the destination's
+    shed (`World.TryChooseParking`). This is read from the code; no test isolates it. Issue #167.
+
+  - Over-budget keeps counting. The lock is issue #167.
+
 ## Next step
 
-The parking measurement, then the edge cases in the list below.
+The edge cases in the list below.
 
 ## Evidence and acceptance
 
