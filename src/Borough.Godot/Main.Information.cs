@@ -1363,6 +1363,8 @@ public partial class Main
                 Blocks = _zoneParcels ? 0 : ZoneSelectionCount(),
                 Parcels = _zoneParcels ? ZoneSelectionCount() : 0,
                 Unit = _zoneParcels ? "parcels" : "blocks",
+                Proposed = _verb == Verb.Zone && !_zoneParcels && Aim() is { } aimed && OnLattice(aimed)
+                    ? PreviewProposedCount(aimed) : 0,
                 Erasing = _zoneErase,
                 Feedback = _zoneFeedback
             },
