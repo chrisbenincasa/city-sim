@@ -6,7 +6,8 @@
 # Six cases, all in open ground, each one a defect gate review round 1 found.
 #
 # A. An undo asked for while the gesture is still queued. It waits for the gesture to land and then
-#    reverses that gesture, instead of reaching past it to the one before.
+#    reverses that gesture, instead of reaching past it to the one before. Street 1 runs at north
+#    160 and Street 2 at north 192; the hover at each point says which of them stands.
 # B. Two Street gestures of one batch that cross. Neither can be reversed, because removing either
 #    leaves the other in halves, so both refuse.
 # C. The same thing at founding scale: two horizontals and three verticals on one Tick. Every undo
@@ -36,12 +37,20 @@
 258 click 128 192
 258 ui undo
 258 speed 1
+# The hover at each Street names which one stands, so the readouts tell newest-first from
+# oldest-first even in a headless run, where a draw list carries counts and no geometry.
 259 pause
-259 readout artifacts/undo/20-waited.txt
+259 ui street-point 64 160
+259 readout artifacts/undo/20-waited-at-first.txt
+259 ui street-point 64 192
+259 readout artifacts/undo/20-waited-at-second.txt
 259 draw artifacts/undo/20-waited.tsv
 259 speed 1
 260 pause
-260 readout artifacts/undo/21-waited-done.txt
+260 ui street-point 64 160
+260 readout artifacts/undo/21-done-at-first.txt
+260 ui street-point 64 192
+260 readout artifacts/undo/21-done-at-second.txt
 260 draw artifacts/undo/21-waited-done.tsv
 260 speed 1
 
