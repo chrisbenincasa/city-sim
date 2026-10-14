@@ -54,25 +54,25 @@ public sealed class FreeformZoneTests
         Assert.All(inside, lot => Assert.Equal(LotTable.Housing, world.Lots.Zone[lot]));
     }
 
-    public static TheoryData<string> Corners => ["right", "sharp", "open"];
+    public static TheoryData<string, int> Corners => new() { { "right", 10 }, { "sharp", 13 }, { "open", 8 } };
 
     [Theory]
     [MemberData(nameof(Corners))]
-    public void Corner_plots_stop_at_the_adjacent_street_and_every_lot_is_wholly_painted(string corner)
+    public void Corner_plots_stop_at_the_adjacent_street_and_every_lot_is_wholly_painted(string corner, int expected)
     {
         (Command[] streets, Command zone) = corner switch
         {
             "right" => (Triangle, Zone(110, 110)),
             "sharp" => ([Street(100, 100, 200, 100), Street(200, 100, 100, 160), Street(100, 160, 100, 100)], Zone(110, 110)),
-            _ => ([Street(300, 300, 428, 300), Street(300, 300, 410, 366)], Zone(400, 312)),
+            "open" => ([Street(300, 300, 428, 300), Street(300, 300, 410, 366)], Zone(400, 312)),
+            _ => throw new ArgumentOutOfRangeException(nameof(corner)),
         };
         (World world, Simulation simulation) = Empty(streets);
         simulation.Step(new TickInput([zone], 0));
 
         int half = world.Rules.Lots.StreetHalfWidthTiles;
         int[] lots = Enumerable.Range(0, world.Lots.Rows.SlotCount).Where(world.Lots.Rows.IsLive).ToArray();
-        Assert.NotEmpty(lots);
-        if (corner == "right") { Assert.Equal(10, lots.Length); }
+        Assert.Equal(expected, lots.Length);
         foreach (int lot in lots)
         {
             Assert.Equal(LotTable.Housing, world.LotPermissions(lot).CommonUses);
