@@ -2,6 +2,8 @@ using Borough.Core;
 using Borough.Core.Entities;
 using Borough.Core.Persistence;
 using Borough.Core.Quantities;
+using Borough.Core.Rules;
+using Borough.Core.Space;
 using Borough.Formats;
 using Borough.Tests.Persistence;
 
@@ -79,6 +81,7 @@ public sealed class CutOffClockTests
                 Assert.True(world.Buildings.IsAbandoned(building), $"Building {building} still stands in use.");
                 Assert.Equal((byte)AbandonmentCause.CutOff, world.Buildings.AbandonedCause[building]);
                 Assert.Equal(Ticks.Zero, world.Buildings.CutOffSince[building]);
+                Assert.Equal(1, TrailEntriesFor(world, building));
                 far++;
             }
             else
@@ -102,6 +105,68 @@ public sealed class CutOffClockTests
         {
             Assert.Equal(Ticks.Zero, world.Buildings.CutOffSince[building]);
             Assert.NotEqual((byte)AbandonmentCause.CutOff, world.Buildings.AbandonedCause[building]);
+        }
+    }
+
+    [Fact]
+    public void Adopting_a_Ruleset_with_the_key_times_a_dwelling_already_cut_off()
+    {
+        (Simulation simulation, _) = Severed(cutOffDays: null);
+        World world = simulation.World;
+
+        StepTo(simulation, 2 * Ticks.PerDay);
+        world.Adopt(BridgeRules(cutOffDays: DeadlineDays), contentHash: 1, world.Tick, world.Key);
+        long adoptedAt = (long)world.Tick.Raw;
+        simulation.Step(default);
+
+        foreach (int building in Dwellings(world))
+        {
+            Assert.Equal(IsFar(world, building) ? (ulong)adoptedAt + 1 : 0UL, world.Buildings.CutOffSince[building].Raw);
+        }
+
+        StepTo(simulation, (2 + DeadlineDays + 2) * Ticks.PerDay);
+
+        foreach (int building in Dwellings(world))
+        {
+            Assert.Equal(IsFar(world, building), world.Buildings.IsAbandoned(building));
+        }
+    }
+
+    [Fact]
+    public void Adopting_a_Ruleset_without_the_key_clears_every_running_clock()
+    {
+        (Simulation simulation, _) = Severed(DeadlineDays);
+        World world = simulation.World;
+
+        StepTo(simulation, 2 * Ticks.PerDay);
+        world.Adopt(BridgeRules(), contentHash: 1, world.Tick, world.Key);
+        StepTo(simulation, (2 + DeadlineDays + 2) * Ticks.PerDay);
+
+        foreach (int building in Dwellings(world))
+        {
+            Assert.Equal(Ticks.Zero, world.Buildings.CutOffSince[building]);
+            Assert.False(world.Buildings.IsAbandoned(building), $"Building {building} was abandoned with the key gone.");
+        }
+    }
+
+    [Fact]
+    public void An_unrelated_road_edit_keeps_a_running_clock_where_it_started()
+    {
+        (Simulation simulation, long removedAt) = Severed(DeadlineDays);
+        World world = simulation.World;
+
+        StepTo(simulation, LateMorning(2));
+        uint version = world.Roads.Version;
+        Issue(simulation, Lay(0, DistrictBlocks, StreetAxis.North));
+
+        Assert.NotEqual(version, world.Roads.Version);
+
+        foreach (int building in Dwellings(world))
+        {
+            if (IsFar(world, building))
+            {
+                Assert.Equal((ulong)removedAt + 1, world.Buildings.CutOffSince[building].Raw);
+            }
         }
     }
 
@@ -192,6 +257,24 @@ public sealed class CutOffClockTests
         RemoveBridge(simulation);
 
         return (simulation, removedAt);
+    }
+
+    private static int TrailEntriesFor(World world, int building)
+    {
+        CondemnationTrailTable trail = world.CondemnationTrail;
+        int entries = 0;
+
+        for (int index = 0; index < trail.Count; index++)
+        {
+            int slot = trail.EntrySlot(index);
+
+            if (trail.Lot[slot] == world.Buildings.Lot[building] && trail.Condition[slot] == ConditionId.None)
+            {
+                entries++;
+            }
+        }
+
+        return entries;
     }
 
     private static List<int> Dwellings(World world)
