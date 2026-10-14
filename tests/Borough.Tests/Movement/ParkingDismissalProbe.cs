@@ -62,13 +62,14 @@ public sealed class ParkingDismissalProbe(ITestOutputHelper output)
         Assert.True(world.Rules.Jobs.DismissesFailedCommuters, "the base package no longer dismisses.");
 
         long completed = 0, noRoute = 0, overBudget = 0;
+        int countedFrom = 0;
         long dismissedTotal = 0, workerDays = 0;
         var dismissedByDay = new long[Days];
         var workersByDay = new long[Days];
 
         _output.WriteLine($"floor_tiles_per_parking_space = {floorTilesPerSpace}");
         _output.WriteLine(
-            "day\tcitizens\tworkers\tclocks\tdismissed\tover budget\tno route\tcompleted\tspaces\theld\tfull parks");
+            "day\tcitizens\tworkers\tclocks\tdismissed\tcounted days\tover budget\tno route\tcompleted\tspaces\theld\tfull parks");
 
         for (int day = 0; day < Days; day++)
         {
@@ -122,8 +123,9 @@ public sealed class ParkingDismissalProbe(ITestOutputHelper output)
             if ((day + 1) % ReportEvery == 0 || dismissed > 0)
             {
                 _output.WriteLine(
-                    $"{day + 1}\t{citizens}\t{workers}\t{clocks}\t{dismissed}\t{overBudget}\t{noRoute}\t{completed}\t{spaces}\t{held}\t{full}/{parks}");
+                    $"{day + 1}\t{citizens}\t{workers}\t{clocks}\t{dismissed}\t{day + 1 - countedFrom}\t{overBudget}\t{noRoute}\t{completed}\t{spaces}\t{held}\t{full}/{parks}");
                 completed = noRoute = overBudget = 0;
+                countedFrom = day + 1;
             }
         }
 
