@@ -4,9 +4,9 @@
 #   --drive scripts/ui/undo.drive
 #
 # It founds the city scripts/ui/founding.drive founds, then makes two mistakes and undoes them: a
-# Street gesture in open ground, and a trade stroke over a housing block. Then it shows three of
-# the refusals -- a gesture that split a Street that was already there, a stroke over ground
-# holding more than one permission, and a stroke with a Building since raised on a Lot it made.
+# Street gesture in open ground, and a trade stroke over a housing block. Then it shows three
+# refusals -- a gesture that split a Street that was already there, a stroke over ground holding
+# more than one permission, and a service placement, which no Command reverses.
 #
 # Read the Segment count off the `road` rows of each draw list, the permission off its `zone`
 # rows, and the Building count off the readout. BOROUGH_LOG=1 writes the Input Log at quit, which
@@ -182,7 +182,9 @@
 273 readout artifacts/undo/07-refused-mixed.txt
 273 speed 1
 
-# Refusal 4: a Building has since been raised on a Lot the stroke made.
+# A service placement is a barrier: it stands in front of the stroke that made the Lot it was
+# raised on, so the undo refuses the placement rather than reaching the stroke beneath it. The
+# raised-Building refusal behind it now only answers for a Building the city grew on its own.
 274 pause
 274 ui zone-size blocks
 274 hold zone 0
@@ -197,7 +199,7 @@
 276 ui undo
 276 speed 1
 277 pause
-277 readout artifacts/undo/08-refused-built.txt
-277 draw artifacts/undo/08-refused-built.tsv
+277 readout artifacts/undo/08-refused-placement.txt
+277 draw artifacts/undo/08-refused-placement.tsv
 277 speed 1
 278 quit

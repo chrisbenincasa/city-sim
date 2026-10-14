@@ -394,6 +394,7 @@ public partial class Main
         if (refusal == Refusal.None)
         {
             _queued.Add(command);
+            NoteBarrier(command);
 
             return true;
         }

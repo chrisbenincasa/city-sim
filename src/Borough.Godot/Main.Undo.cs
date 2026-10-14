@@ -74,6 +74,13 @@ public partial class Main
         /// <summary>Whether laying cleared Buildings.</summary>
         public bool Cleared { get; init; }
 
+        /// <summary>
+        /// Why this act cannot be reversed at all, for a demolition or a placement; empty for a
+        /// gesture the undo may reverse. The entry stands in the way so that undoing a gesture
+        /// older than the act is impossible while the act stands.
+        /// </summary>
+        public string Barrier { get; init; } = string.Empty;
+
         /// <summary>The highest Building id standing when the gesture was made.</summary>
         public ulong BuiltBefore { get; init; }
     }
@@ -107,7 +114,10 @@ public partial class Main
     private readonly List<Gesture> _gestures = [];
     private readonly List<Settling> _settling = [];
     private readonly List<QueuedPaint> _queuedPaint = [];
+    private readonly List<QueuedPaint> _overlapping = [];
     private bool _vaguePaint;
+    private bool _undoing;
+    private bool _undoWanted;
     private Settling? _painting;
     private object? _undoWorld;
     private string _undoSaid = string.Empty;
@@ -119,6 +129,49 @@ public partial class Main
         Undo();
 
         return true;
+    }
+
+    /// <summary>
+    /// Notes an act no Command reverses -- a demolition, a Street removal, a service or a gate --
+    /// as an entry the undo refuses.
+    /// </summary>
+    /// <remarks>
+    /// Called from <see cref="Send"/>, which every Command goes through, so no path misses one. A
+    /// run of sends of the same kind is one barrier, which is what a Shift-drag over several
+    /// Streets is. The undo's own Commands are exempt, because reversing a gesture is not an act to
+    /// stand in the way of the gesture beneath it.
+    /// </remarks>
+    private void NoteBarrier(Command command)
+    {
+        if (_undoing) { return; }
+
+        string barrier = command.Kind switch
+        {
+            CommandKind.Demolish => "that act cleared what stood there, and no Command puts it back.",
+            CommandKind.Service or CommandKind.Gate =>
+                "that act placed a Building, and its price has already left the city, so demolish "
+                    + "corrects it instead.",
+            _ => string.Empty,
+        };
+
+        if (barrier.Length == 0) { return; }
+
+        Forget();
+        PushZoneStroke();
+
+        if (_settling.Count > 0 && _settling[^1].Entry.Barrier == barrier
+            && !_settling[^1].Submitted)
+        {
+            return;
+        }
+
+        _settling.Add(new Settling
+        {
+            Entry = new Gesture { Barrier = barrier },
+            World = _world,
+            StreetsBefore = Highest(_world.Roads.Segments.Rows),
+            LotsBefore = Highest(_world.Lots.Rows),
+        });
     }
 
     // ---- recording --------------------------------------------------------------------------------
@@ -281,11 +334,88 @@ public partial class Main
             pending.Entry.Unknown = Unclaimed(settling, pending.StreetsBefore);
         }
 
+        SettleBatchSplits(settling);
         SettleLots(settling);
         foreach (Settling pending in settling)
         {
             Push(pending.Entry);
         }
+
+        // Last, because the undo reads the stack these pushes just finished.
+        if (_undoWanted && !Unsettled())
+        {
+            _undoWanted = false;
+            Undo();
+        }
+    }
+
+    /// <summary>
+    /// Marks every pair of Street gestures of one batch whose Streets meet, both ways.
+    /// </summary>
+    /// <remarks>
+    /// A gesture's Near snapshot is taken before any Command of its batch applies, so it cannot see
+    /// what a batch-mate is about to lay and the split test alone would miss the cut. Two gestures
+    /// that meet are therefore both refused: whichever is undone first, the Street it crossed would
+    /// stay in halves, which is the refusal #157 asks for.
+    /// </remarks>
+    private void SettleBatchSplits(List<Settling> settling)
+    {
+        for (int one = 0; one < settling.Count; one++)
+        {
+            if (!settling[one].Entry.Laying) { continue; }
+
+            for (int other = one + 1; other < settling.Count; other++)
+            {
+                if (!settling[other].Entry.Laying || !Meet(settling[one], settling[other]))
+                {
+                    continue;
+                }
+
+                settling[one].Entry.Split = true;
+                settling[other].Entry.Split = true;
+            }
+        }
+    }
+
+    /// <summary>Whether a Street either gesture laid ends on the other gesture's arc.</summary>
+    /// <remarks>A crossing or a tee puts a junction on both arcs, and a Segment ends at a junction,
+    /// so the end points answer for the meeting.</remarks>
+    private bool Meet(Settling one, Settling other)
+    {
+        RoadSegmentTable segments = _world.Roads.Segments;
+
+        foreach (LaidStreet street in one.Entry.Streets)
+        {
+            int slot = SegmentOf(street.Id);
+
+            if (slot != Rows.NoSlot && Ends(other.Streets, segments.Centerline[slot])) { return true; }
+        }
+
+        foreach (LaidStreet street in other.Entry.Streets)
+        {
+            int slot = SegmentOf(street.Id);
+
+            if (slot != Rows.NoSlot && Ends(one.Streets, segments.Centerline[slot])) { return true; }
+        }
+
+        return false;
+    }
+
+    /// <summary>Whether either end of a Segment lies on one of the arcs a gesture named.</summary>
+    private static bool Ends(Command[] streets, StreetArc line)
+    {
+        foreach (Command street in streets)
+        {
+            if (!StreetArc.TryCreate(street.East.Raw, street.North.Raw, street.EndEast.Raw,
+                    street.EndNorth.Raw, street.Sagitta.Raw, out StreetArc arc))
+            {
+                continue;
+            }
+
+            if (Along(arc, line.A) || Along(arc, line.B)) { return true; }
+        }
+
+        return false;
     }
 
     /// <summary>Gives each gesture the Lots it created.</summary>
@@ -353,7 +483,8 @@ public partial class Main
 
     private void Push(Gesture entry)
     {
-        if (!entry.Unknown && (entry.Laying ? entry.Streets.Count == 0 : entry.Grounds.Count == 0))
+        if (!entry.Unknown && entry.Barrier.Length == 0
+            && (entry.Laying ? entry.Streets.Count == 0 : entry.Grounds.Count == 0))
         {
             return;
         }
@@ -374,8 +505,12 @@ public partial class Main
         _settling.Clear();
         _queuedPaint.Clear();
         _vaguePaint = false;
+        _undoWanted = false;
         _painting = null;
     }
+
+    /// <summary>Whether a gesture is queued, held over a batch or waiting to settle.</summary>
+    private bool Unsettled() => _settling.Count > 0 || _painting is not null;
 
     // ---- undoing ----------------------------------------------------------------------------------
 
@@ -383,11 +518,24 @@ public partial class Main
     /// Reverses the last gesture with the opposite Commands, or says why the reversal would not be
     /// exact and keeps it.
     /// </summary>
+    /// <remarks>
+    /// A gesture whose Commands have not applied yet is not on the stack, and the newest entry
+    /// there is then older than the player's last act. So an undo asked for while anything is
+    /// unsettled waits for the settlement instead of reversing the gesture underneath it.
+    /// </remarks>
     private void Undo()
     {
         Forget();
         _refused = string.Empty;
         _undoSaid = string.Empty;
+
+        if (Unsettled())
+        {
+            _undoWanted = true;
+            _undoSaid = "waiting for the last gesture to land";
+
+            return;
+        }
 
         if (_gestures.Count == 0)
         {
@@ -415,10 +563,19 @@ public partial class Main
             return;
         }
 
+        bool sent = true;
+        _undoing = true;
+
         foreach (Command command in opposite)
         {
-            Send(command);
+            sent &= Send(command);
         }
+
+        _undoing = false;
+
+        // Kept, because a reversal that went out in part is not a reversal. Send has already said
+        // why, and the entry stays so that the undo does not reach the gesture beneath it.
+        if (!sent) { return; }
 
         // The repaint joins the batch, so a stroke noted after it reads the permission it restores
         // rather than the one standing in the city.
@@ -437,6 +594,12 @@ public partial class Main
     /// <summary>Why this gesture cannot be reversed exactly, or null when it can.</summary>
     private string? Inexact(Gesture entry)
     {
+        if (entry.Barrier.Length > 0)
+        {
+            return entry.Barrier
+                + " It is kept here so that undoing does not step over it to an earlier gesture.";
+        }
+
         if (entry.Unknown)
         {
             return "that gesture covered more ground than the shell remembers Tile by Tile, so "
@@ -713,18 +876,46 @@ public partial class Main
 
         if (vague) { return; }
 
+        Overlapping(bounds);
+
         for (int up = bounds.Y; up < bounds.Y + bounds.Height; up++)
         {
             for (int along = bounds.X; along < bounds.X + bounds.Width; along++, bit++)
             {
                 if ((set[bit >> 6] & (1UL << (bit & 63))) == 0) { continue; }
 
-                ushort here = Queued(along, up, ref vague) ?? _world.LandPermissions.At(along, up).Uses;
+                ushort? queued = _overlapping.Count == 0 ? null : Queued(along, up, ref vague);
+                ushort here = queued ?? _world.LandPermissions.At(along, up).Uses;
 
                 if (vague) { return; }
 
                 if (!seen) { (before, seen) = (here, true); }
                 else if (here != before) { mixed = true; return; }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Collects the queued paint of the batch whose bounds reach this ground, so the Tile walk
+    /// consults a short list rather than every Command of the batch.
+    /// </summary>
+    /// <remarks>
+    /// The walk would otherwise cost one test per Tile per earlier Command, and a whole-block
+    /// stroke over hundreds of blocks is one batch. Those grounds are disjoint, so the list is
+    /// usually empty and the walk reads the city alone.
+    /// </remarks>
+    private void Overlapping(LandRectangle bounds)
+    {
+        _overlapping.Clear();
+
+        foreach (QueuedPaint paint in _queuedPaint)
+        {
+            LandRectangle box = paint.Bounds;
+
+            if (box.X < bounds.X + bounds.Width && bounds.X < box.X + box.Width
+                && box.Y < bounds.Y + bounds.Height && bounds.Y < box.Y + box.Height)
+            {
+                _overlapping.Add(paint);
             }
         }
     }
@@ -736,7 +927,7 @@ public partial class Main
     {
         ushort? uses = null;
 
-        foreach (QueuedPaint paint in _queuedPaint)
+        foreach (QueuedPaint paint in _overlapping)
         {
             if (!Covers(paint.Bounds, paint.Set, east, north)) { continue; }
 

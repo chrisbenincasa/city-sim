@@ -1384,6 +1384,11 @@ public partial class Main : Node3D
         }
         if (stepped > 0)
             _batchTicks = Math.Clamp((int)(16 / Math.Max(1, stepMilliseconds / stepped)), 1, 4);
+        // Before the boundary callbacks and after the step: what a gesture laid, cut and created is
+        // only readable once its Commands have applied, the step thread may not write shell state,
+        // and an undo deferred to the boundary must see the gestures that have just landed rather
+        // than the history as it stood before the step.
+        SettleGestures();
         while (_atBoundary.TryDequeue(out Action? action))
         {
             action();
@@ -1391,10 +1396,6 @@ public partial class Main : Node3D
         }
         _presentedTick = _world.Tick.Raw;
         ReportPhaseZeroRefusal();
-
-        // Here because the step has returned: what a gesture laid, cut and created is only readable
-        // once its Commands have applied, and the step thread may not write shell state.
-        SettleGestures();
         _alpha = new Ratio((int)(Math.Min(_owed, 0.999_99) * 65_536));
 
         // After collecting the batch: a frame that steps many Ticks may lay many
@@ -1940,7 +1941,7 @@ public partial class Main : Node3D
             + $"travelling {moving:N0}{Weather(under)}{ShoppingCaption()}{HealthCaption()}\n"
             + $"speed {Pace(_rung)}   "
             + $"mode {Holding()}   "
-            + "[ ] speed, space pause, w write log, g roads, c cells, tab tune\n"
+            + "[ ] speed, space pause, w write log, g roads, c cells, tab tune, ctrl-z undo\n"
             + "click acts   right-drag or two-finger scroll pans   edge of screen pans   "
             + "pinch or -/= zooms   q/e turns   r/f tilts   l lens   o overlay"
             + Legend()

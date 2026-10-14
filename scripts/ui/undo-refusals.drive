@@ -14,6 +14,10 @@
 # 4. A stroke whose ground merges with its neighbour when the Street between them goes.
 # 5. A stroke whose ground keeps its bounding box but changes Tiles: two Streets 12 Tiles apart,
 #    and the side the stroke painted gives way to the other Street's side of the same size.
+#
+#    In 4 and 5 the removal that reshapes the ground is itself a barrier, so that is the refusal
+#    the readout carries and the ground comparison behind it is what keeps the neighbour's
+#    permission when a removal is not the newest act. Both cases show the permissions standing.
 # 6. A stroke over ground too wide to remember Tile by Tile, beside a long diagonal Street. The
 #    stroke stands, so it keeps an entry the undo refuses rather than one the undo steps over to
 #    reach the Street laid before it.
