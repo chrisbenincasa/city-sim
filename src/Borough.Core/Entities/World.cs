@@ -8263,6 +8263,7 @@ public sealed partial class World
         Commutes.Remove(Citizens, slot);
 
         Citizens.Workplace[slot] = workplace;
+        Citizens.CommuteFailedSince[slot] = Ticks.Zero;
         Citizens.EarnedWage[slot] = 0;
         Citizens.WageRemainder[slot] = 0;
         Citizens.LabourRemainder[slot] = 0;
@@ -8387,6 +8388,7 @@ public sealed partial class World
         // reading and not a fallback: NoRouteFound and ExceededCommuteBudget are both resolved
         // inside TripEngine.Start, before anybody has moved.
         bool arrived = fate == Movement.TripFate.Completed;
+        bool outbound = (CitizenActivity)Citizens.Activity[citizenSlot] == CitizenActivity.TravellingToWork;
 
         Citizens.Activity[citizenSlot] = (byte)((CitizenActivity)Citizens.Activity[citizenSlot]
             switch
@@ -8413,6 +8415,50 @@ public sealed partial class World
 
         Citizens.LastTripEndedDay[citizenSlot] =
             day >= ushort.MaxValue ? ushort.MaxValue : (ushort)day;
+
+        if (outbound)
+        {
+            TimeOutboundCommute(citizenSlot, arrived);
+        }
+    }
+
+    /// <summary>
+    /// Starts, clears or expires the Citizen's failed-commute clock
+    /// (<see cref="CitizenTable.CommuteFailedSince"/>).
+    /// </summary>
+    /// <remarks>
+    /// ⚠ The dismissal can run while <c>CommuteEngine</c> walks the departure roster, and it removes
+    /// this Citizen from it. That is safe because a walk reads the next link before it yields a
+    /// Citizen, and every Citizen whose Trip resolves here has already been yielded.
+    /// </remarks>
+    private void TimeOutboundCommute(int citizenSlot, bool arrived)
+    {
+        JobRuleset jobs = Rules.Jobs;
+
+        if (!jobs.DismissesFailedCommuters)
+        {
+            return;
+        }
+
+        if (arrived)
+        {
+            Citizens.CommuteFailedSince[citizenSlot] = Ticks.Zero;
+            return;
+        }
+
+        ulong now = Tick.Raw + 1;
+        ulong since = Citizens.CommuteFailedSince[citizenSlot].Raw;
+
+        if (since == 0)
+        {
+            Citizens.CommuteFailedSince[citizenSlot] = new Ticks(now);
+            return;
+        }
+
+        if (now - since >= jobs.FailedCommuteDeadline.Raw)
+        {
+            Dismiss(Citizens.Rows.At(citizenSlot));
+        }
     }
 
     /// <summary>
@@ -8438,6 +8484,7 @@ public sealed partial class World
         // -- unroster, then rewrite -- and it is written the same way round so the two read alike.
         Commutes.Remove(Citizens, slot);
         Citizens.Workplace[slot] = default;
+        Citizens.CommuteFailedSince[slot] = Ticks.Zero;
         Citizens.EarnedWage[slot] = 0;
         Citizens.WageRemainder[slot] = 0;
         Citizens.LabourRemainder[slot] = 0;

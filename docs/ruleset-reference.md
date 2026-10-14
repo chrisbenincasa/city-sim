@@ -27,7 +27,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-53 sections, 381 keys.
+53 sections, 382 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
@@ -65,7 +65,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[housing_construction]`](#housing_construction) — 12 keys
 - [`[immigration]`](#immigration) — 4 keys
 - [`[income_tax]`](#income_tax) — 4 keys
-- [`[jobs]`](#jobs) — 14 keys
+- [`[jobs]`](#jobs) — 15 keys
 - [`[land_permissions]`](#land_permissions) — 1 key
 - [`[layers]`](#layers) — 20 keys
 - [`[lots]`](#lots) — 16 keys
@@ -1282,6 +1282,10 @@ How far ahead of their Shift a Citizen may aim to arrive, in whole in-world minu
 **`candidates`** · *whole number*
 
 How many workplaces one Citizen looks at on one occasion. A person who sees three places with a vacancy and takes the first one near enough to walk to is satisficing, not optimising.
+
+**`dismissed_after_failed_commute_days`** · *whole number*
+
+How many Days a Citizen's outbound commutes may keep failing before the job is lost. The clock starts at the first failed commute, counts days off, and clears on the next completed one. Omit it and a failed commute never costs the job.
 
 **`experience_per_day`** · *whole number*
 

@@ -154,9 +154,27 @@ two 2×2-block districts, a gate on the near side, one bridge Segment. Measured 
   on removal and regain it on repair. Nothing is abandoned today.
 - No commute exceeded the budget in any run.
 
-## First implementation step
+## Built
 
-The commuting Citizen's failure clock and dismissal, tested on the probe's fixture.
+- **The commuting Citizen's failure clock.** `CitizenTable.CommuteFailedSince` saves the first
+  failed outbound commute's Tick + 1. `World.RecordTripFate` starts it on a failed outbound commute,
+  clears it on a completed one, and dismisses through `World.Dismiss` once a failure lands at or
+  past `[jobs] dismissed_after_failed_commute_days`. `Dismiss` and `Employ` clear it. The base
+  package states 10 Days. Tests: `FailedCommuteClockTests`.
+  - The dismissal lands on the first failed departure at or past the deadline. A worker who is
+    off on the deadline Day loses the job at the next working Day's failure.
+- **Probe with the 10-Day deadline.** Unrepaired, all 271 crossers lose the job on Day 13, ten Days
+  after their first failure on Day 3. 148 find a job on their own side that Day and 123 stay
+  jobless. Repaired on Day 12, nobody is dismissed.
+- **Re-hiring can fail the budget.** After the dismissals, 5 same-side commutes exceeded the
+  Commute Budget, though the job search had accepted them. Two clocks started and cleared the next
+  Day. Congestion cannot cause this, so a full parking shed is the likely cause. The parking
+  measurement in the acceptance list should confirm it.
+
+## Next step
+
+The readout: each Citizen's most recent ended episode (start, end, outcome) and the Household,
+workplace and service panels in the table above. The cut-off clock follows.
 
 ## Evidence and acceptance
 

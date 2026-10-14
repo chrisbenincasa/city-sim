@@ -791,6 +791,10 @@ public static class RulesetKeyNotes
             "The longest working day. Staff share a start hour and so arrive together; they leave "
             + "spread over this band, which makes it the evening peak's whole width. Equal bounds "
             + "are a control rather than a mistake.",
+        ["[jobs] dismissed_after_failed_commute_days"] =
+            "How many Days a Citizen's outbound commutes may keep failing before the job is lost. "
+            + "The clock starts at the first failed commute, counts days off, and clears on the next "
+            + "completed one. Omit it and a failed commute never costs the job.",
         ["[jobs] arrive_early_max_minutes"] =
             "How far ahead of their Shift a Citizen may aim to arrive, in whole in-world minutes. "
             + "Start hours are on the hour, so without this the whole city departs on a handful of "

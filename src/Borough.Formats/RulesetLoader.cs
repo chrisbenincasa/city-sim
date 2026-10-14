@@ -8853,6 +8853,7 @@ public static class RulesetLoader
             (int tier2Labour, int tier3Labour) =
                 ReadTierPercent("labour_tier_percent", "labour_per_day");
             int labourPremiumPercent = ReadExperiencePremiumPercent("labour_experience_premium_percent");
+            int failedCommuteDays = ReadFailedCommuteDays();
 
             RefuseShiftShorterThanTheBudget(shiftMin);
 
@@ -8860,7 +8861,33 @@ public static class RulesetLoader
                 interval, revisit, candidates, shiftMin, shiftMax, early,
                 tier2Wage, tier3Wage, experiencePerDay, tier2Experience,
                 unschooledExperiencePercent, experiencePremiumPercent,
-                labourPerDay, tier2Labour, tier3Labour, labourPremiumPercent);
+                labourPerDay, tier2Labour, tier3Labour, labourPremiumPercent,
+                failedCommuteDays);
+        }
+
+        /// <summary>
+        /// How many Days of failed outbound commutes cost a Citizen the job —
+        /// <c>dismissed_after_failed_commute_days</c>, optional. Absent turns the clock off.
+        /// </summary>
+        private int ReadFailedCommuteDays()
+        {
+            const string key = "dismissed_after_failed_commute_days";
+
+            if (!TryInteger(_jobsTable!, key, out long days, required: false))
+            {
+                return 0;
+            }
+
+            if (days < 1 || days > ushort.MaxValue)
+            {
+                Refuse(LineOfJob(key), null,
+                    $"{key} is {days}. It is how many Days a Citizen's outbound commutes may keep "
+                    + $"failing before the job is lost, so it is 1 to {ushort.MaxValue}. Omit the key "
+                    + "for a city where a failed commute never costs the job.");
+                return 0;
+            }
+
+            return (int)days;
         }
 
         // ---- households -------------------------------------------------------------------------

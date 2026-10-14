@@ -91,6 +91,7 @@ public sealed class CitizenTable
         // per-Tick columns for that reason and never interleaved among them.
         LastTripFate = _rows.Saved<byte>("last_trip_fate", Touch.Cold);
         LastTripEndedDay = _rows.Saved<ushort>("last_trip_ended_day", Touch.Cold);
+        CommuteFailedSince = _rows.Saved<Ticks>("commute_failed_since", Touch.Cold);
 
         // Severable, for Workplace's reason and with one difference worth stating. A Car Park is on
         // somebody else's Building, so demolition frees it out from under this handle -- and a car
@@ -459,6 +460,17 @@ public sealed class CitizenTable
     /// </para>
     /// </remarks>
     public Column<ushort> LastTripEndedDay { get; }
+
+    /// <summary>
+    /// The Tick of the first outbound commute in the current failing run, plus one. Zero means no
+    /// run is failing.
+    /// </summary>
+    /// <remarks>
+    /// The next completed outbound commute clears it, and so do dismissal and a job change. Other
+    /// Trip Purposes and a failed homeward commute leave it alone. It is written only where
+    /// <c>[jobs] dismissed_after_failed_commute_days</c> is stated.
+    /// </remarks>
+    public Column<Ticks> CommuteFailedSince { get; }
 
     /// <summary>
     /// The Car Park this Citizen's car is parked in, or an unresolving handle if it is parked in none.
