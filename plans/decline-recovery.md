@@ -216,8 +216,8 @@ two 2×2-block districts, a gate on the near side, one bridge Segment. Measured 
   run with both deadlines, loaded into the shell with far dwelling 33 selected. Day 6 reads "Cut off
   since Day 3 · no road reaches an Outside Connection" and "Abandoned in 12 Days unless a road
   reconnects it". Day 19 reads "Abandoned on Day 18 · cut off from every Outside Connection", with
-  no Households and no workers. The abandoned far district draws exactly as an occupied one, so
-  the map alone does not show the loss; only the panel does.
+  no Households and no workers. The abandoned far district draws in the derelict gray, which is
+  easy to miss beside the occupied district at city zoom.
 
 ## Next step
 
