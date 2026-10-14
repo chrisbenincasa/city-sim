@@ -1,6 +1,7 @@
 using Borough.Core;
 using Borough.Core.Entities;
 using Borough.Core.Evidence;
+using Borough.Core.Input;
 using Borough.Core.Movement;
 using Borough.Core.Persistence;
 using Borough.Tests.Persistence;
@@ -342,6 +343,396 @@ public sealed class FailedCommuteClockTests
         }
     }
 
+    [Fact]
+    public void An_intermittent_failure_restarts_the_clock_and_never_reaches_the_deadline()
+    {
+        (Simulation simulation, List<Handle<Citizen>> crossers) = Severed(DeadlineDays);
+        World world = simulation.World;
+
+        for (int failedDay = 2; failedDay <= 6; failedDay += 2)
+        {
+            StepTo(simulation, LateMorning(failedDay));
+
+            foreach (int citizen in Live(world, crossers))
+            {
+                long since = (long)world.Citizens.CommuteFailedSince[citizen].Raw - 1;
+
+                Assert.InRange(since, failedDay * Ticks.PerDay, LateMorning(failedDay));
+            }
+
+            StepTo(simulation, LateEvening(failedDay));
+            RebuildBridge(simulation);
+            StepTo(simulation, LateEvening(failedDay + 1));
+
+            if (failedDay < 6)
+            {
+                RemoveBridge(simulation);
+            }
+        }
+
+        foreach (int citizen in Live(world, crossers))
+        {
+            CommuteEpisodeEvidence episode = Assert.NotNull(
+                Core.Evidence.Evidence.OfCitizen(world, world.Citizens.Rows.At(citizen)).LastCommuteEpisode);
+
+            Assert.True(Crosses(world, citizen), $"Citizen {citizen} was dismissed by failures a commute interrupted.");
+            Assert.Equal(Ticks.Zero, world.Citizens.CommuteFailedSince[citizen]);
+            Assert.Equal(CommuteEpisodeOutcome.Recovered, episode.Outcome);
+            Assert.Equal(6, episode.StartDay);
+            Assert.Equal(7, episode.EndDay);
+        }
+    }
+
+    [Fact]
+    public void A_completed_trip_for_another_purpose_leaves_the_clock_running()
+    {
+        (Simulation simulation, List<Handle<Citizen>> crossers) = Severed(DeadlineDays);
+        World world = simulation.World;
+
+        StepTo(simulation, LateMorning(2));
+
+        Dictionary<Handle<Citizen>, Ticks> before = [];
+
+        foreach (int citizen in Live(world, crossers))
+        {
+            Assert.Equal(CitizenActivity.AtHome, (CitizenActivity)world.Citizens.Activity[citizen]);
+            before[world.Citizens.Rows.At(citizen)] = world.Citizens.CommuteFailedSince[citizen];
+        }
+
+        int refused = simulation.CommandsRefused;
+
+        simulation.Step(new TickInput(
+        [
+            NearTrip(0, 0, 1), NearTrip(1, 0, -1), NearTrip(0, 1, 1), NearTrip(1, 1, -1),
+        ], rulesetHash: 0));
+
+        Assert.True(simulation.CommandsRefused - refused < 4, "every commanded Trip was refused.");
+
+        StepTo(simulation, LateEvening(2));
+
+        List<int> travelled = [];
+
+        foreach (int citizen in Live(world, crossers))
+        {
+            if ((TripFate)world.Citizens.LastTripFate[citizen] == TripFate.Completed)
+            {
+                travelled.Add(citizen);
+                Assert.Equal(before[world.Citizens.Rows.At(citizen)], world.Citizens.CommuteFailedSince[citizen]);
+            }
+        }
+
+        Assert.NotEmpty(travelled);
+
+        StepTo(simulation, (2 + DeadlineDays + 2) * Ticks.PerDay);
+
+        foreach (int citizen in travelled)
+        {
+            CommuteEpisodeEvidence episode = Assert.NotNull(
+                Core.Evidence.Evidence.OfCitizen(world, world.Citizens.Rows.At(citizen)).LastCommuteEpisode);
+
+            Assert.Equal(CommuteEpisodeOutcome.Dismissed, episode.Outcome);
+            Assert.Equal(2, episode.StartDay);
+        }
+    }
+
+    [Fact]
+    public void The_clock_counts_days_off_and_nobody_retries_within_a_day()
+    {
+        const int deadline = 5;
+        const int mondayToFriday = 0b001_1111;
+
+        string toml = BridgeToml(deadline).Replace(
+            "[[business]]\nname = \"shop\"\n",
+            $"[[business]]\nname = \"shop\"\nwork_days = {mondayToFriday}\n",
+            StringComparison.Ordinal);
+
+        (Simulation simulation, List<Handle<Citizen>> crossers) = Severed(deadline, Load(toml));
+        World world = simulation.World;
+
+        for (int day = 2; day <= 6; day++)
+        {
+            (_, long noRoute, _) = StepTo(simulation, (day + 1) * Ticks.PerDay);
+            bool working = day <= 4;
+
+            Assert.Equal(working ? crossers.Count : 0, noRoute);
+
+            foreach (int citizen in Live(world, crossers))
+            {
+                long since = (long)world.Citizens.CommuteFailedSince[citizen].Raw - 1;
+
+                Assert.True(Crosses(world, citizen), $"Citizen {citizen} was dismissed on Day {day}.");
+                Assert.InRange(since, 2 * Ticks.PerDay, (3 * Ticks.PerDay) - 1);
+            }
+        }
+
+        StepTo(simulation, 8 * Ticks.PerDay);
+
+        foreach (int citizen in Live(world, crossers))
+        {
+            CommuteEpisodeEvidence episode = Assert.NotNull(
+                Core.Evidence.Evidence.OfCitizen(world, world.Citizens.Rows.At(citizen)).LastCommuteEpisode);
+
+            Assert.Equal(CommuteEpisodeOutcome.Dismissed, episode.Outcome);
+            Assert.Equal(2, episode.StartDay);
+            Assert.Equal(7, episode.EndDay);
+        }
+    }
+
+    [Fact]
+    public void Tenants_of_one_dwelling_and_workers_of_one_business_keep_their_own_clocks()
+    {
+        (Simulation simulation, List<Handle<Citizen>> crossers) = Severed(DeadlineDays);
+        World world = simulation.World;
+
+        StepTo(simulation, LateMorning(2));
+
+        Handle<Business> shared = default;
+        List<int> sharedDwelling = [];
+
+        for (int business = 0; business < world.Businesses.Rows.SlotCount; business++)
+        {
+            if (!world.Businesses.Rows.IsLive(business))
+            {
+                continue;
+            }
+
+            Handle<Business> handle = world.Businesses.Rows.At(business);
+            ReadOnlySpan<Handle<Citizen>> failing = Core.Evidence.Evidence.FailingCommutersOf(world, handle).Span;
+
+            Assert.Equal(failing.Length, failing.ToArray().Distinct().Count());
+
+            if (shared.IsNone && failing.Length >= 2)
+            {
+                shared = handle;
+            }
+        }
+
+        foreach (int citizen in Live(world, crossers))
+        {
+            int home = HomeOf(world, citizen);
+            List<int> neighbours = [.. Live(world, crossers).Where(other => HomeOf(world, other) == home
+                && world.Citizens.HouseholdOf[other] != world.Citizens.HouseholdOf[citizen])];
+
+            if (neighbours.Count > 0)
+            {
+                sharedDwelling = [citizen, .. neighbours];
+                break;
+            }
+        }
+
+        Assert.False(shared.IsNone, "no Business has two failing workers.");
+        Assert.NotEmpty(sharedDwelling);
+
+        Handle<Citizen>[] workers = Core.Evidence.Evidence.FailingCommutersOf(world, shared).ToArray();
+        Dictionary<Handle<Citizen>, Ticks> clocks = [];
+
+        foreach (int citizen in Live(world, crossers))
+        {
+            clocks[world.Citizens.Rows.At(citizen)] = world.Citizens.CommuteFailedSince[citizen];
+        }
+
+        world.Dismiss(workers[0]);
+        world.Dismiss(world.Citizens.Rows.At(sharedDwelling[0]));
+
+        Assert.Equal(workers[1..], Core.Evidence.Evidence.FailingCommutersOf(world, shared).ToArray());
+
+        foreach (int citizen in Live(world, crossers))
+        {
+            Handle<Citizen> handle = world.Citizens.Rows.At(citizen);
+
+            if (handle != workers[0] && citizen != sharedDwelling[0])
+            {
+                Assert.Equal(clocks[handle], world.Citizens.CommuteFailedSince[citizen]);
+            }
+        }
+    }
+
+    [Fact]
+    public void A_citizen_who_dies_mid_episode_leaves_a_clear_slot_for_the_next()
+    {
+        (Simulation simulation, List<Handle<Citizen>> crossers) = Severed(DeadlineDays);
+        World world = simulation.World;
+
+        StepTo(simulation, LateEvening(2));
+        RebuildBridge(simulation);
+        StepTo(simulation, LateEvening(3));
+        RemoveBridge(simulation);
+        StepTo(simulation, LateMorning(4));
+
+        int dying = Live(world, crossers).First();
+        Handle<Citizen> dead = world.Citizens.Rows.At(dying);
+        Handle<Business> workplace = world.Citizens.Workplace[dying];
+        Handle<Household> household = world.Citizens.HouseholdOf[dying];
+
+        Assert.NotEqual(Ticks.Zero, world.Citizens.CommuteFailedSince[dying]);
+        Assert.NotNull(Core.Evidence.Evidence.OfCitizen(world, dead).LastCommuteEpisode);
+        Assert.Contains(dead, Core.Evidence.Evidence.FailingCommutersOf(world, workplace).ToArray());
+
+        world.DieCitizen(dead);
+
+        Assert.DoesNotContain(dead, Core.Evidence.Evidence.FailingCommutersOf(world, workplace).ToArray());
+
+        Handle<Citizen> born = world.CreateCitizen(household);
+        CitizenEvidence fresh = Core.Evidence.Evidence.OfCitizen(world, born);
+
+        Assert.Equal(dying, world.Citizens.Rows.Resolve(born));
+        Assert.Equal(Ticks.Zero, world.Citizens.CommuteFailedSince[dying]);
+        Assert.Equal(0, world.Citizens.CommuteEpisodeStartDay[dying]);
+        Assert.Equal(0, world.Citizens.CommuteEpisodeEndDay[dying]);
+        Assert.Equal(0, world.Citizens.CommuteEpisodeOutcome[dying]);
+        Assert.Null(fresh.FailingCommute);
+        Assert.Null(fresh.LastCommuteEpisode);
+
+        StepTo(simulation, (4 + DeadlineDays + 2) * Ticks.PerDay);
+
+        Assert.False(world.Citizens.Rows.IsValid(dead));
+    }
+
+    [Fact]
+    public void A_household_removed_mid_episode_takes_every_clock_with_it()
+    {
+        (Simulation simulation, List<Handle<Citizen>> crossers) = Severed(DeadlineDays);
+        World world = simulation.World;
+
+        StepTo(simulation, LateMorning(2));
+
+        int first = Live(world, crossers).First();
+        Handle<Household> household = world.Citizens.HouseholdOf[first];
+        List<Handle<Citizen>> members = [.. Live(world, crossers)
+            .Where(citizen => world.Citizens.HouseholdOf[citizen] == household)
+            .Select(citizen => world.Citizens.Rows.At(citizen))];
+        List<Handle<Business>> workplaces = [.. members.Select(member =>
+            world.Citizens.Workplace[world.Citizens.Rows.Resolve(member)])];
+
+        world.DestroyHousehold(household);
+
+        foreach (Handle<Business> workplace in workplaces)
+        {
+            foreach (Handle<Citizen> member in members)
+            {
+                Assert.DoesNotContain(member, Core.Evidence.Evidence.FailingCommutersOf(world, workplace).ToArray());
+            }
+        }
+
+        StepTo(simulation, (2 + DeadlineDays + 2) * Ticks.PerDay);
+
+        foreach (Handle<Citizen> member in members)
+        {
+            Assert.False(world.Citizens.Rows.IsValid(member));
+        }
+    }
+
+    [Fact]
+    public void Observation_cadence_and_a_reload_mid_episode_change_nothing()
+    {
+        var rules = BridgeRules(DeadlineDays, 2 * DeadlineDays);
+        long middle = LateMorning(3) + 7;
+        long end = (2 + DeadlineDays + 3) * Ticks.PerDay;
+
+        (Simulation everyTick, List<Handle<Citizen>> crossers) = Severed(DeadlineDays, rules);
+        Dictionary<Handle<Citizen>, Handle<Business>> employer = crossers.ToDictionary(
+            crosser => crosser, crosser => everyTick.World.Citizens.Workplace[everyTick.World.Citizens.Rows.Resolve(crosser)]);
+        Dictionary<Handle<Citizen>, long> dismissedAt = [];
+
+        while ((long)everyTick.World.Tick.Raw < end)
+        {
+            StepTo(everyTick, (long)everyTick.World.Tick.Raw + 1);
+
+            foreach (int citizen in Live(everyTick.World, crossers))
+            {
+                Handle<Citizen> handle = everyTick.World.Citizens.Rows.At(citizen);
+
+                if (!dismissedAt.ContainsKey(handle) && everyTick.World.Citizens.Workplace[citizen] != employer[handle])
+                {
+                    dismissedAt[handle] = (long)everyTick.World.Tick.Raw;
+                }
+            }
+        }
+
+        (Simulation strided, _) = Severed(DeadlineDays, rules);
+
+        for (int stepped = 0; (long)strided.World.Tick.Raw < end; stepped++)
+        {
+            strided.Step(default);
+
+            if (stepped % 37 == 0)
+            {
+                strided.World.HashState();
+                strided.Trips.Drain();
+                Core.Evidence.Evidence.OfCitizen(strided.World, crossers[0]);
+            }
+        }
+
+        (Simulation saved, _) = Severed(DeadlineDays, rules);
+
+        StepTo(saved, middle);
+
+        var file = new MemorySave();
+        saved.SaveAtEndOfTick(file);
+        saved.Step(default);
+
+        World reloaded = SaveFile.Read(file, rules, out SaveHeader header);
+        var resumed = new Simulation(reloaded, header.Key) { VerifyDecideWritesNothing = false };
+
+        StepTo(resumed, end);
+
+        Assert.NotEmpty(dismissedAt);
+        Assert.Equal(everyTick.World.HashState(), strided.World.HashState());
+        Assert.Equal(everyTick.World.HashState(), resumed.World.HashState());
+
+        int dismissals = 0;
+
+        foreach (int citizen in Live(everyTick.World, crossers))
+        {
+            Handle<Citizen> handle = everyTick.World.Citizens.Rows.At(citizen);
+            CommuteEpisodeEvidence episode = Assert.NotNull(
+                Core.Evidence.Evidence.OfCitizen(everyTick.World, handle).LastCommuteEpisode);
+
+            Assert.Equal(episode, Core.Evidence.Evidence.OfCitizen(strided.World, handle).LastCommuteEpisode);
+            Assert.Equal(episode, Core.Evidence.Evidence.OfCitizen(resumed.World, handle).LastCommuteEpisode);
+
+            if (episode.Outcome == CommuteEpisodeOutcome.Dismissed)
+            {
+                Assert.Equal(dismissedAt[handle] / Ticks.PerDay, episode.EndDay);
+                dismissals++;
+            }
+        }
+
+        Assert.True(dismissals > 0, "no crosser's last episode is the dismissal.");
+    }
+
+    [Fact]
+    public void Running_clocks_hash_alike_at_every_route_worker_count()
+    {
+        var rules = BridgeRules(DeadlineDays, 2 * DeadlineDays);
+        long end = (2 + (2 * DeadlineDays) + 1) * Ticks.PerDay;
+
+        (Simulation serial, List<Handle<Citizen>> crossers) = Severed(DeadlineDays, rules);
+        (Simulation parallel, _) = Severed(DeadlineDays, rules);
+
+        parallel.RouteWorkerCount = 4;
+
+        while ((long)serial.World.Tick.Raw < end)
+        {
+            long next = (long)serial.World.Tick.Raw + 16;
+
+            StepTo(serial, next);
+            StepTo(parallel, next);
+
+            Assert.Equal(serial.World.HashState(), parallel.World.HashState());
+        }
+
+        World world = serial.World;
+
+        Assert.Contains(Live(world, crossers), citizen => Core.Evidence.Evidence
+            .OfCitizen(world, world.Citizens.Rows.At(citizen)).LastCommuteEpisode?.Outcome == CommuteEpisodeOutcome.Dismissed);
+        Assert.Contains(Enumerable.Range(0, world.Buildings.Rows.SlotCount), building =>
+            world.Buildings.Rows.IsLive(building) && world.Buildings.AbandonedCause[building] == (byte)AbandonmentCause.CutOff);
+
+        serial.CheckEndOfRun();
+        parallel.CheckEndOfRun();
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
@@ -373,6 +764,13 @@ public sealed class FailedCommuteClockTests
 
         return (simulation, crossers);
     }
+
+    /// <summary>A Trip between two blocks on the near side, which the missing bridge does not touch.</summary>
+    private static Command NearTrip(int column, int row, int blocksEast) => new(
+        CommandKind.Trip,
+        new Tiles(column * BlockTiles),
+        new Tiles(row * BlockTiles),
+        new TripPayload((sbyte)blocksEast, 0).Encode());
 
     private static IEnumerable<int> Live(World world, List<Handle<Citizen>> crossers)
     {

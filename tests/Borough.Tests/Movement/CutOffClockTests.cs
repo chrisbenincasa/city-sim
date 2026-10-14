@@ -4,6 +4,7 @@ using Borough.Core.Persistence;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
+using Borough.Core.Tables;
 using Borough.Formats;
 using Borough.Tests.Persistence;
 
@@ -220,6 +221,104 @@ public sealed class CutOffClockTests
         Assert.Equal(world.HashState(), reloaded.HashState());
     }
 
+    [Fact]
+    public void A_building_raised_on_a_demolished_buildings_lot_starts_its_own_clock()
+    {
+        (Simulation simulation, long removedAt) = Severed(DeadlineDays);
+        World world = simulation.World;
+
+        StepTo(simulation, LateMorning(2));
+
+        int demolished = Dwellings(world).First(building => IsFar(world, building));
+        Handle<Lot> lot = world.Buildings.Lot[demolished];
+        byte kind = world.Buildings.Kind[demolished];
+
+        Assert.Equal((ulong)removedAt + 1, world.Buildings.CutOffSince[demolished].Raw);
+
+        world.DestroyBuilding(world.Buildings.Rows.At(demolished), world.Tick);
+
+        Ticks raisedAt = world.Tick;
+        Handle<Building> raised = world.CreateBuilding(lot, kind, raisedAt, world.Key);
+
+        Assert.Equal(demolished, world.Buildings.Rows.Resolve(raised));
+        Assert.Equal(raisedAt.Raw + 1, world.Buildings.CutOffSince[demolished].Raw);
+        Assert.Equal(0, world.Buildings.AbandonedCause[demolished]);
+
+        StepTo(simulation, (4 * Ticks.PerDay) + 1);
+
+        foreach (int building in Dwellings(world).Where(building => IsFar(world, building)))
+        {
+            Assert.Equal(building != demolished, world.Buildings.IsAbandoned(building));
+        }
+
+        StepTo(simulation, (5 * Ticks.PerDay) + 1);
+
+        Assert.True(world.Buildings.IsAbandoned(demolished));
+        Assert.Equal((byte)AbandonmentCause.CutOff, world.Buildings.AbandonedCause[demolished]);
+    }
+
+    [Fact]
+    public void A_starved_building_cut_off_keeps_both_clocks_apart()
+    {
+        var rules = BridgeRules(dismissAfterDays: DeadlineDays, cutOffDays: 2 * DeadlineDays);
+        (Simulation simulation, long removedAt) = Severed(DeadlineDays, rules);
+        World world = simulation.World;
+
+        Simulation control = Start(rules);
+
+        StepTo(simulation, LateEvening(3));
+        StepTo(control, LateEvening(3));
+
+        Dictionary<(Handle<Building>, RuleId), Ticks> starved = StarvedSince(simulation.World);
+        Dictionary<(Handle<Building>, RuleId), Ticks> starvedWithBridge = StarvedSince(control.World);
+
+        int both = 0;
+
+        foreach (int building in Dwellings(world).Where(building => IsFar(world, building)))
+        {
+            Handle<Building> handle = world.Buildings.Rows.At(building);
+
+            Assert.Equal((ulong)removedAt + 1, world.Buildings.CutOffSince[building].Raw);
+            Assert.False(world.Buildings.IsAbandoned(building));
+
+            foreach (((Handle<Building> on, RuleId rule), Ticks since) in starved.Where(entry => entry.Key.Item1 == handle))
+            {
+                Assert.Equal(StarvedIn(starvedWithBridge, on, rule), since);
+                both += since != Ticks.Zero ? 1 : 0;
+            }
+        }
+
+        Assert.True(both > 0, "no far dwelling is both starved and cut off.");
+
+        for (int business = 0; business < world.Businesses.Rows.SlotCount; business++)
+        {
+            if (!world.Businesses.Rows.IsLive(business)
+                || Core.Evidence.Evidence.FailingCommutersOf(world, world.Businesses.Rows.At(business)).Length == 0)
+            {
+                continue;
+            }
+
+            Handle<Building> premises = world.Businesses.Building[business];
+
+            foreach (((Handle<Building> on, RuleId rule), Ticks since) in starved.Where(entry => entry.Key.Item1 == premises))
+            {
+                Assert.Equal(StarvedIn(starvedWithBridge, on, rule), since);
+            }
+        }
+
+        RebuildBridge(simulation);
+        StepTo(simulation, LateMorning(4));
+
+        foreach ((Handle<Building> on, RuleId rule) in starved.Keys)
+        {
+            if (world.Buildings.Rows.TryResolve(on, out int building) && IsFar(world, building))
+            {
+                Assert.Equal(Ticks.Zero, world.Buildings.CutOffSince[building]);
+                Assert.Equal(starved[(on, rule)], StarvedIn(StarvedSince(world), on, rule));
+            }
+        }
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
@@ -257,6 +356,30 @@ public sealed class CutOffClockTests
         RemoveBridge(simulation);
 
         return (simulation, removedAt);
+    }
+
+    private static Dictionary<(Handle<Building>, RuleId), Ticks> StarvedSince(World world)
+    {
+        Dictionary<(Handle<Building>, RuleId), Ticks> starved = [];
+        RuleInstanceTable instances = world.RuleInstances;
+
+        for (int instance = 0; instance < instances.Rows.SlotCount; instance++)
+        {
+            if (instances.Rows.IsLive(instance)
+                && instances.Household[instance].IsNone && instances.Business[instance].IsNone)
+            {
+                starved[(instances.Building[instance], instances.Rule[instance])] = instances.StarvedSince[instance];
+            }
+        }
+
+        return starved;
+    }
+
+    private static Ticks StarvedIn(
+        Dictionary<(Handle<Building>, RuleId), Ticks> starved, Handle<Building> on, RuleId rule)
+    {
+        Assert.True(starved.TryGetValue((on, rule), out Ticks since), $"Building {on} has no instance of rule {rule} to compare.");
+        return since;
     }
 
     private static int TrailEntriesFor(World world, int building)
