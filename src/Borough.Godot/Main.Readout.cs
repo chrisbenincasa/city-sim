@@ -498,6 +498,8 @@ public partial class Main
 
         said.Add((free > 0, repaints) switch
         {
+            (true, true) when held.AnyUses != 0 && held.AnyUses != permission =>
+                $"block ({column}, {row}) — {free} of {faces} faces still to subdivide; its Lots repaint to {ZoneName()}",
             (true, _) => $"block ({column}, {row}) — {free} of {faces} faces still to subdivide",
             (false, true) => $"block ({column}, {row}) — repaints to {ZoneName()}; its Lots keep their shape and Buildings stay",
             (false, false) => $"block ({column}, {row}) — already {ZoneName()}, a click changes nothing",

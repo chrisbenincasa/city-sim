@@ -35,6 +35,13 @@ def proposed(east, north):
     command('ui read ' + str(path))
     return json.loads(path.read_text())['Zoning']['Lots']
 
+def hover(east, north):
+    command(f'ui zone-point {east} {north}')
+    path = out / 'readout.txt'
+    command('readout ' + str(path))
+    text = path.read_text()
+    return text[text.index('\nhover'):]
+
 def plots():
     path = out / 'draw.tsv'
     command('draw ' + str(path))
@@ -61,8 +68,14 @@ command('ui zone-size blocks')
 command('hold zone 0')
 fresh = proposed(4, 4)
 assert fresh > 0, fresh
+said = hover(4, 4)
+assert 'faces still to subdivide' in said and 'repaint' not in said, said
 stroke(4, 4, 4, 4)
 assert proposed(4, 4) == 0, 'Standing Lots counted as new'
+assert 'a click changes nothing' in hover(4, 4)
+command('hold zone 1')
+assert 'repaints to' in hover(4, 4)
+command('hold zone 0')
 
 partly = proposed(34, 34)
 command('ui zone-size parcels')
@@ -70,6 +83,11 @@ stroke(34, 34, 34, 34)
 command('ui zone-size blocks')
 remaining = proposed(34, 34)
 assert 0 < remaining < partly, (partly, remaining)
+said = hover(34, 34)
+assert 'faces still to subdivide' in said and 'repaint' not in said, said
+command('hold zone 1')
+assert 'faces still to subdivide; its Lots repaint to' in hover(34, 34)
+command('hold zone 0')
 
 command('hold erase')
 assert proposed(36, 36) == 0, 'Erase proposes Lots'
