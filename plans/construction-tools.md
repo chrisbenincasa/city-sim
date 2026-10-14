@@ -21,6 +21,8 @@ service and gate placement.
 - A queued Command steps one Tick even while paused (`Main.cs`, `_owed`), so Lots from a paused
   zone stroke exist on the next frame. A drive script that places on the zoning Tick is refused
   "no vacant Lot in this Cell"; place one Tick later, as `founding.drive` does.
+- 10/14/2026, closed: all four slices merged (#153, #160, #169, #161). The 10-gesture target is
+  met by script only. A hand-played founding remains a later check, needing a graphical display.
 
 ## Decisions
 
