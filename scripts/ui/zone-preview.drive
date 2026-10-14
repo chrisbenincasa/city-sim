@@ -1,0 +1,76 @@
+# Whole-block Lot preview from an empty base city.
+# Run on a display so screenshots and draw rows are available.
+# mkdir -p artifacts/zone-preview
+# godot --path src/Borough.Godot -- --empty --seed 0x135283C --citizens 2000 \
+#   --ruleset rulesets/base/ruleset.toml --drive scripts/ui/zone-preview.drive
+# The existing-block hover excludes its Lots, erasure creates none, and the
+# fresh 2x2 stroke's proposed count equals the increase in plot instances.
+
+256 pause
+256 ui size 1600 1000
+256 ui theme dark
+256 ui tools off
+256 ui layers off
+256 focus 64 64 700
+256 tilt 50
+256 hold street
+256 click 0 0
+256 click 128 0
+256 click 0 32
+256 click 128 32
+256 click 0 64
+256 click 128 64
+256 click 0 96
+256 click 128 96
+256 click 0 128
+256 click 128 128
+256 click 0 0
+256 click 0 128
+256 click 32 0
+256 click 32 128
+256 click 64 0
+256 click 64 128
+256 click 96 0
+256 click 96 128
+256 click 128 0
+256 click 128 128
+256 speed 1
+
+257 pause
+257 ui zone-size blocks
+257 hold zone 0
+257 ui zone-begin 4 4
+257 ui zone-point 4 4
+257 shoot artifacts/zone-preview/01-single.png
+257 draw artifacts/zone-preview/01-single.tsv
+257 ui zone-end 4 4
+257 speed 1
+
+258 pause
+258 ui zone-point 4 4
+258 shoot artifacts/zone-preview/02-existing.png
+258 draw artifacts/zone-preview/02-existing.tsv
+258 speed 1
+
+259 pause
+259 hold erase
+259 ui zone-begin 36 36
+259 ui zone-point 68 68
+259 shoot artifacts/zone-preview/03-erase.png
+259 draw artifacts/zone-preview/03-erase.tsv
+259 ui zone-cancel
+259 speed 1
+
+260 pause
+260 hold zone 0
+260 ui zone-begin 36 36
+260 ui zone-point 68 68
+260 shoot artifacts/zone-preview/04-fresh.png
+260 draw artifacts/zone-preview/04-fresh.tsv
+260 ui zone-end 68 68
+260 speed 1
+
+261 pause
+261 shoot artifacts/zone-preview/05-created.png
+261 draw artifacts/zone-preview/05-created.tsv
+261 quit

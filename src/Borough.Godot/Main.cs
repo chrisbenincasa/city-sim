@@ -1384,6 +1384,11 @@ public partial class Main : Node3D
         }
         if (stepped > 0)
             _batchTicks = Math.Clamp((int)(16 / Math.Max(1, stepMilliseconds / stepped)), 1, 4);
+        // Before the boundary callbacks and after the step: what a gesture laid, cut and created is
+        // only readable once its Commands have applied, the step thread may not write shell state,
+        // and an undo deferred to the boundary must see the gestures that have just landed rather
+        // than the history as it stood before the step.
+        SettleGestures();
         while (_atBoundary.TryDequeue(out Action? action))
         {
             action();
@@ -1633,6 +1638,16 @@ public partial class Main : Node3D
         }
 
         if (GetViewport().GuiGetFocusOwner() is LineEdit or TextEdit || _helpPanel.Visible) return;
+
+        // Above the modifier filter, which is what drops every other Ctrl chord. It goes out as the
+        // `ui undo` word so that the key and a script share one applier and --record writes it.
+        if (key is { CtrlPressed: true, Keycode: Key.Z, AltPressed: false, MetaPressed: false, ShiftPressed: false, Echo: false })
+        {
+            Ui("undo");
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
         if (key.CtrlPressed || key.AltPressed || key.MetaPressed || key.Echo) return;
         if (_stepThread?.OwnsWorld == true)
         {
@@ -1926,10 +1941,11 @@ public partial class Main : Node3D
             + $"travelling {moving:N0}{Weather(under)}{ShoppingCaption()}{HealthCaption()}\n"
             + $"speed {Pace(_rung)}   "
             + $"mode {Holding()}   "
-            + "[ ] speed, space pause, w write log, g roads, c cells, tab tune\n"
+            + "[ ] speed, space pause, w write log, g roads, c cells, tab tune, ctrl-z undo\n"
             + "click acts   right-drag or two-finger scroll pans   edge of screen pans   "
             + "pinch or -/= zooms   q/e turns   r/f tilts   l lens   o overlay"
             + Legend()
+            + (_undoSaid.Length > 0 ? $"\nUNDO — {_undoSaid}" : string.Empty)
             + (_refused.Length > 0 ? $"\nREFUSED — {_refused}" : string.Empty);
 
         RefreshInformation();
@@ -2125,20 +2141,18 @@ internal enum Verb : byte
     Look = 0,
 
     /// <summary>
-    /// Subdivide the block under the cursor into Lots admitting one <c>[[zone_rule]]</c>.
+    /// Paint a <c>[[zone_rule]]</c>'s permission on ground, then subdivide its unclaimed frontage into Lots.
     /// </summary>
     /// <remarks>
-    /// ⚠ <b>SUBDIVIDE and not paint, however the verb is named in <c>01 §2</c>.</b>
-    /// <c>LotSubdivider.Face</c> returns zero on frontage <c>World.Frontage</c> has already claimed,
-    /// so this works on virgin faces and can never repaint a block that has Lots.
-    /// <c>PlayerVerbTests.Zoning_ground_that_is_already_subdivided_changes_nothing</c> holds it.
+    /// Repainting changes the permission on existing Lots and leaves their shape and Buildings alone.
+    /// <c>LotSubdivider.Face</c> returns zero on frontage <c>World.Frontage</c> has already claimed.
     /// </remarks>
     Zone = 1,
 
     /// <summary>Lay a freeform Street, or with Shift remove the Street nearest the cursor.</summary>
     Connect = 2,
 
-    /// <summary>Clear abandoned stock, and only that.</summary>
+    /// <summary>Clear a Building, paying the displaced its demolition price.</summary>
     Demolish = 3,
 
     /// <summary>

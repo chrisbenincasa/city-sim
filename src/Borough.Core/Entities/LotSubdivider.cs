@@ -15,9 +15,39 @@ public static class LotSubdivider
         ArgumentNullException.ThrowIfNull(world);
         if (!world.TryZoneGround(east, north, out ZoneGround ground)
             || world.PaintUsePermissions(ground, zone) != PermissionRefusal.None || zone == 0) { return 0; }
+        return Settle(world, null, GatherPainted(world, null, ground.Bounds));
+    }
+
+    /// <summary>The plots a run of <c>Zone</c> commands at these Tiles would create, in creation order. Writes nothing.</summary>
+    /// <remarks>Each Tile paints and carves as <see cref="PaintAt"/> does, after the Tiles before it.</remarks>
+    /// <returns>How many plots were appended to <paramref name="into"/>.</returns>
+    public static int PreviewPaint(World world, ReadOnlySpan<(Tiles East, Tiles North)> at, ushort zone, List<Parcel> into)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(into);
+        if (zone == 0) { return 0; }
+        int before = into.Count;
+        var proposal = new Proposal(zone, into);
+        int slots = world.PermissionRectangles.Rows.SlotCount;
+        foreach ((Tiles east, Tiles north) in at)
+        {
+            if (!world.TryZoneGround(east, north, out ZoneGround ground)) { continue; }
+
+            // One paint of every accepted ground leaves the same records as painting them in turn.
+            // Rows reuse freed slots first, so the slot count only rises to the live count.
+            proposal.Paint(ground);
+            if (world.LandPermissions.CanPaintUses(proposal, zone, world.Rules.PermissionRecordLimit, slots, out int records)
+                != PermissionRefusal.None) { proposal.Unpaint(); continue; }
+            slots = Larger(slots, records);
+            Settle(world, proposal, GatherPainted(world, proposal, ground.Bounds));
+        }
+        return into.Count - before;
+    }
+
+    private static List<Plot> GatherPainted(World world, Proposal? proposal, LandRectangle painted)
+    {
         var plots = new List<Plot>();
         var streets = world.Roads.Streets;
-        LandRectangle painted = ground.Bounds;
         int lastColumn = streets.Lattice.LineAt(painted.X + painted.Width - 1), lastRow = streets.Lattice.LineAt(painted.Y + painted.Height - 1);
         if (lastColumn >= streets.Blocks) { lastColumn = streets.Blocks - 1; }
         if (lastRow >= streets.Blocks) { lastRow = streets.Blocks - 1; }
@@ -25,11 +55,11 @@ public static class LotSubdivider
         {
             for (int column = streets.Lattice.LineAt(painted.X); column <= lastColumn; column++)
             {
-                GatherBlock(world, column, row, plots);
+                GatherBlock(world, proposal, column, row, plots);
             }
         }
-        GatherFreeSides(world, plots);
-        return Settle(world, plots);
+        GatherFreeSides(world, proposal, plots);
+        return plots;
     }
 
     /// <summary>How far a Street side's plots can reach from its centerline, in whole Tiles; zero when none are cut.</summary>
@@ -77,13 +107,13 @@ public static class LotSubdivider
         ground = ground with { Patch = Sides(world, column, row, sides) };
         int ceiling = world.Rules.Lots.ParcelCeiling(ground);
         Span<Parcel> proposed = ceiling <= 128 ? stackalloc Parcel[128] : new Parcel[ceiling];
-        BlockPattern pattern = Pattern(world, column, row, ground.Patch);
+        BlockPattern pattern = Pattern(world, null, column, row, ground.Patch);
         int carved = world.Rules.Lots.Carve(world.Key, pattern, ground, proposed);
         ClaimOrder(world, sides, proposed[..carved]);
         for (int i = 0; i < carved; i++)
         {
             Parcel parcel = proposed[i];
-            if (sides[(int)parcel.Face] == Rows.NoSlot || !Claim(world, ground, BlockPatterns.FormOf(pattern, parcel.Face), ref parcel)) { continue; }
+            if (sides[(int)parcel.Face] == Rows.NoSlot || !Claim(world, null, ground, BlockPatterns.FormOf(pattern, parcel.Face), ref parcel)) { continue; }
             if (count == into.Length) { throw new ArgumentException("Preview buffer is smaller than PreviewCapacity.", nameof(into)); }
             into[count++] = parcel;
         }
@@ -129,9 +159,9 @@ public static class LotSubdivider
 
     // Only world creation draws a trade form. The Zone Rule engine cannot build on one, so a block
     // zoned for trade in play keeps the housing ladder.
-    private static BlockPattern Pattern(World world, int column, int row, ulong patch, bool tradeForm = false)
+    private static BlockPattern Pattern(World world, Proposal? proposal, int column, int row, ulong patch, bool tradeForm = false)
     {
-        LandPermissionSummary permission = world.LandPermissions.Summary(world.BlockGroundRectangle(column, row));
+        LandPermissionSummary permission = Summary(world, proposal, world.BlockGroundRectangle(column, row));
         byte band = permission.MixedIntensity ? (byte)0 : permission.Band;
         return tradeForm
             ? BlockPatterns.TradeForm(
@@ -144,29 +174,29 @@ public static class LotSubdivider
     private static int CarvePainted(World world, int column, int row)
     {
         var plots = new List<Plot>();
-        GatherBlock(world, column, row, plots);
-        GatherFreeSides(world, plots);
-        return Settle(world, plots);
+        GatherBlock(world, null, column, row, plots);
+        GatherFreeSides(world, null, plots);
+        return Settle(world, null, plots);
     }
 
     private static int CarveBlock(World world, int column, int row, bool tradeForm = false, BlockPattern? form = null)
     {
         var plots = new List<Plot>();
-        GatherBlock(world, column, row, plots, tradeForm, form);
-        return Settle(world, plots);
+        GatherBlock(world, null, column, row, plots, tradeForm, form);
+        return Settle(world, null, plots);
     }
 
     // A candidate plot. A lattice plot keeps its block ground; a rotated plot keeps its front address.
     private readonly record struct Plot(ulong SegmentId, StreetSide Side, int Offset, int Order, int Segment,
         BlockPattern Form, Parcel Parcel, BlockGround Ground, Tiles AddressEast, Tiles AddressNorth, bool Rotated);
 
-    private static void GatherBlock(World world, int column, int row, List<Plot> into, bool tradeForm = false, BlockPattern? form = null)
+    private static void GatherBlock(World world, Proposal? proposal, int column, int row, List<Plot> into, bool tradeForm = false, BlockPattern? form = null)
     {
         LandRectangle area = world.BlockGroundRectangle(column, row);
-        if (!area.IsValid || world.LandPermissions.Summary(area).AnyUses == 0) { return; }
+        if (!area.IsValid || Summary(world, proposal, area).AnyUses == 0) { return; }
         Span<int> sides = stackalloc int[4];
         BlockGround ground = BlockGround.At(world.Roads.Streets.Lattice, column, row) with { Patch = Sides(world, column, row, sides) };
-        BlockPattern pattern = form ?? Pattern(world, column, row, ground.Patch, tradeForm);
+        BlockPattern pattern = form ?? Pattern(world, proposal, column, row, ground.Patch, tradeForm);
         int ceiling = world.Rules.Lots.ParcelCeiling(ground);
         Span<Parcel> parcels = ceiling <= 128 ? stackalloc Parcel[128] : new Parcel[ceiling];
         int count = world.Rules.Lots.Carve(world.Key, pattern, ground, parcels);
@@ -182,7 +212,7 @@ public static class LotSubdivider
 
     // New plots claim ground by Segment id, then side, then offset along the Segment, across every
     // carver feeding one pass.
-    private static int Settle(World world, List<Plot> plots)
+    private static int Settle(World world, Proposal? proposal, List<Plot> plots)
     {
         plots.Sort(static (a, b) =>
             a.SegmentId != b.SegmentId ? a.SegmentId.CompareTo(b.SegmentId)
@@ -192,21 +222,22 @@ public static class LotSubdivider
         int created = 0;
         foreach (Plot plot in plots)
         {
-            if (plot.Rotated ? CreateRotated(world, plot) : CreateLattice(world, plot)) { created++; }
+            if (plot.Rotated ? CreateRotated(world, proposal, plot) : CreateLattice(world, proposal, plot)) { created++; }
         }
-        if (created > 0) { world.LotsAdmitting.Invalidate(); }
+        if (created > 0 && proposal is null) { world.LotsAdmitting.Invalidate(); }
         return created;
     }
 
-    private static bool CreateLattice(World world, Plot plot)
+    private static bool CreateLattice(World world, Proposal? proposal, Plot plot)
     {
         Parcel parcel = plot.Parcel;
         BlockGround ground = plot.Ground;
-        if (!Claim(world, ground, plot.Form, ref parcel)) { return false; }
-        LandPermissionSummary permission = world.LandPermissions.Summary(Ground(parcel));
+        if (!Claim(world, proposal, ground, plot.Form, ref parcel)) { return false; }
+        LandPermissionSummary permission = Summary(world, proposal, Ground(parcel));
         // A parcel can be selected/painted before it is zoned; unzoned free ground stays unplatted.
         if (permission.AnyUses == 0) { return false; }
         var address = parcel.Address(ground);
+        if (proposal is not null) { proposal.Add(parcel, address.East, address.North); return true; }
         int slot = world.Lots.Rows.Resolve(world.Lots.Create(address.East, address.North, permission.CommonUses, parcel.Side));
         world.Lots.Front(slot, world.Roads.Segments.Rows.At(plot.Segment), parcel.Offset);
         world.Lots.ParcelEastQ16[slot] = Fixed.FromInt(parcel.East.Raw); world.Lots.ParcelNorthQ16[slot] = Fixed.FromInt(parcel.North.Raw);
@@ -221,13 +252,14 @@ public static class LotSubdivider
         return true;
     }
 
-    private static bool CreateRotated(World world, Plot plot)
+    private static bool CreateRotated(World world, Proposal? proposal, Plot plot)
     {
         var rules = world.Rules.Lots;
         OrientedRectangle ground = plot.Parcel.Geometry;
-        if (!ClaimRotated(world, plot, ref ground)) { return false; }
-        LandPermissionSummary here = world.LandPermissions.ParcelSummary(ground);
+        if (!ClaimRotated(world, proposal, plot, ref ground)) { return false; }
+        LandPermissionSummary here = ParcelSummary(world, proposal, ground);
         if (here.CommonUses == 0) { return false; }
+        if (proposal is not null) { proposal.Add(plot.Parcel with { Geometry = ground }, plot.AddressEast, plot.AddressNorth); return true; }
 
         int slot = world.Lots.Rows.Resolve(world.Lots.Create(plot.AddressEast, plot.AddressNorth, here.CommonUses, plot.Side));
         world.Lots.Front(slot, world.Roads.Segments.Rows.At(plot.Segment), plot.Parcel.Offset);
@@ -246,6 +278,63 @@ public static class LotSubdivider
     }
 
     private static LandRectangle Ground(Parcel p) => new(p.East.Raw, p.North.Raw, p.Wide.Raw, p.Deep.Raw);
+
+    private static LandPermissionSummary Summary(World world, Proposal? proposal, LandRectangle site) =>
+        proposal is null ? world.LandPermissions.Summary(site)
+        : site.IsValid ? world.LandPermissions.SummaryAfterPaint(OrientedRectangle.FromBounds(site), proposal, proposal.Uses)
+        : default;
+
+    private static LandPermissionSummary ParcelSummary(World world, Proposal? proposal, OrientedRectangle site) =>
+        proposal is null ? world.LandPermissions.ParcelSummary(site)
+        : world.LandPermissions.SummaryAfterPaint(site, proposal, proposal.Uses);
+
+    // A previewed run of Zone commands: its paint, read in place of the permission writes, and the
+    // plots it has claimed so far, which later plots must not overlap as they would not overlap Lots.
+    private sealed class Proposal(ushort uses, List<Parcel> into) : ITileSet
+    {
+        private readonly List<ZoneGround> _painted = [];
+
+        public ushort Uses => uses;
+
+        public List<(OrientedRectangle Ground, Tiles East, Tiles North, StreetSide Side)> Plots { get; } = [];
+
+        public LandRectangle Bounds { get; private set; }
+
+        public bool Contains(int east, int north)
+        {
+            foreach (ZoneGround ground in _painted)
+            {
+                LandRectangle b = ground.Bounds;
+                if (east >= b.X && east < b.X + b.Width && north >= b.Y && north < b.Y + b.Height
+                    && ground.Contains(east, north)) { return true; }
+            }
+            return false;
+        }
+
+        private LandRectangle _before;
+
+        public void Unpaint()
+        {
+            _painted.RemoveAt(_painted.Count - 1);
+            Bounds = _before;
+        }
+
+        public void Paint(ZoneGround ground)
+        {
+            _before = Bounds;
+            _painted.Add(ground);
+            LandRectangle b = ground.Bounds, a = Bounds;
+            if (!a.IsValid) { Bounds = b; return; }
+            int west = Smaller(a.X, b.X), south = Smaller(a.Y, b.Y);
+            Bounds = new(west, south, Larger(a.X + a.Width, b.X + b.Width) - west, Larger(a.Y + a.Height, b.Y + b.Height) - south);
+        }
+
+        public void Add(Parcel parcel, Tiles east, Tiles north)
+        {
+            Plots.Add((parcel.Geometry, east, north, parcel.Side));
+            into.Add(parcel);
+        }
+    }
 
     // New plots claim ground by Segment id, then side, then offset along the Segment.
     private static void ClaimOrder(World world, ReadOnlySpan<int> sides, Span<Parcel> parcels)
@@ -273,9 +362,9 @@ public static class LotSubdivider
     // A plot overlapping a standing Lot loses depth from its back edge, one Tile at a time, down to
     // [lots] min_plot_depth_tiles; if it is still not free, it is dropped. Trade forms never shrink,
     // because their footprints are laid out on the whole block rather than on the parcel.
-    private static bool Claim(World world, BlockGround ground, BlockPattern form, ref Parcel parcel)
+    private static bool Claim(World world, Proposal? proposal, BlockGround ground, BlockPattern form, ref Parcel parcel)
     {
-        if (Free(world, parcel, ground)) { return true; }
+        if (Free(world, proposal, parcel, ground)) { return true; }
         int minimum = world.Rules.Lots.MinPlotDepthTiles;
         if (minimum == 0 || (int)form >= BlockPatterns.Count) { return false; }
         bool horizontal = parcel.Face is BlockFace.South or BlockFace.North;
@@ -286,7 +375,7 @@ public static class LotSubdivider
         for (int shallower = depth - 1; shallower >= minimum; shallower--)
         {
             Parcel candidate = Shallower(parcel, shallower);
-            if (Free(world, candidate, ground)) { parcel = candidate; return true; }
+            if (Free(world, proposal, candidate, ground)) { parcel = candidate; return true; }
         }
         return false;
     }
@@ -299,17 +388,24 @@ public static class LotSubdivider
         _ => new(p.Face, p.Side, p.Offset, new Tiles(p.East.Raw + p.Wide.Raw - depth), p.North, new Tiles(depth), p.Deep),
     };
 
-    private static bool Free(World world, Parcel parcel, BlockGround ground)
+    private static bool Free(World world, Proposal? proposal, Parcel parcel, BlockGround ground)
     {
         var address = parcel.Address(ground);
         LandRectangle candidate = Ground(parcel);
         for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
         {
             if (!world.Lots.Rows.IsLive(slot)) { continue; }
-            if (World.Overlaps(candidate, world.Lots.Parcel(slot))
-                || (world.Lots.East[slot] == address.East && world.Lots.North[slot] == address.North && world.Lots.Side[slot] == (byte)parcel.Side)) { return false; }
+            if (Takes(world.Lots.Parcel(slot), world.Lots.East[slot], world.Lots.North[slot], (StreetSide)world.Lots.Side[slot])) { return false; }
+        }
+        if (proposal is null) { return true; }
+        foreach (var plot in proposal.Plots)
+        {
+            if (Takes(plot.Ground, plot.East, plot.North, plot.Side)) { return false; }
         }
         return true;
+
+        bool Takes(OrientedRectangle lot, Tiles east, Tiles north, StreetSide side) =>
+            World.Overlaps(candidate, lot) || (east == address.East && north == address.North && side == parcel.Side);
     }
 
     private static bool OnBlock(World world, int slot, int column, int row, out BlockFace face)
@@ -462,8 +558,8 @@ public static class LotSubdivider
             if (roads.Nodes.North[a] == roads.Nodes.North[b]) { RelotBlock(world, column, row - 1, visited, plots); }
             else { RelotBlock(world, column - 1, row, visited, plots); }
         }
-        GatherFreeSides(world, plots);
-        created += Settle(world, plots);
+        GatherFreeSides(world, null, plots);
+        created += Settle(world, null, plots);
         return (created, freed);
     }
     private static void RelotBlock(World world, int column, int row, Span<byte> visited, List<Plot> plots)
@@ -473,7 +569,7 @@ public static class LotSubdivider
         int at = row * width + column;
         if (visited[at] != 0) { return; }
         visited[at] = 1;
-        GatherBlock(world, column, row, plots);
+        GatherBlock(world, null, column, row, plots);
     }
 
     // A Street the lattice carver owns is straight and is a block edge of the lattice.
@@ -486,7 +582,7 @@ public static class LotSubdivider
         return roads.Streets.Horizontal(column, row) == segment || roads.Streets.Vertical(column, row) == segment;
     }
 
-    private static void GatherFreeSides(World world, List<Plot> plots)
+    private static void GatherFreeSides(World world, Proposal? proposal, List<Plot> plots)
     {
         RoadGraph roads = world.Roads;
         int arcs = roads.Arcs.Count, count = 0;
@@ -503,13 +599,13 @@ public static class LotSubdivider
         Array.Sort(keys, picked, 0, count);
         for (int i = 0; i < count; i++)
         {
-            if (i == 0 || keys[i] != keys[i - 1]) { GatherSide(world, picked[i], plots); }
+            if (i == 0 || keys[i] != keys[i - 1]) { GatherSide(world, proposal, picked[i], plots); }
         }
     }
 
     // A side facing a closed face draws its pattern on that face's anchor. An open roadside draws on
     // its own Segment side. Whole-block forms need a lattice square, so here they carve as Perimeter.
-    private static void GatherSide(World world, int arc, List<Plot> into)
+    private static void GatherSide(World world, Proposal? proposal, int arc, List<Plot> into)
     {
         RoadGraph roads = world.Roads;
         var rules = world.Rules.Lots;
@@ -527,7 +623,7 @@ public static class LotSubdivider
         Span<SidePlot> plots = capacity <= 64 ? stackalloc SidePlot[64] : new SidePlot[capacity];
         int cut = SegmentSide.Cut(line, side, width, BlockPatterns.StripTiles(blockTiles, rules.LotsPerSegment),
             rules.StreetHalfWidthTiles, plots);
-        LandPermissionSummary permission = world.LandPermissions.Summary(Around(plots[..cut]));
+        LandPermissionSummary permission = Summary(world, proposal, Around(plots[..cut]));
         if (permission.AnyUses == 0) { return; }
 
         ulong patch;
@@ -563,7 +659,7 @@ public static class LotSubdivider
         }
     }
 
-    private static bool ClaimRotated(World world, Plot plot, ref OrientedRectangle ground)
+    private static bool ClaimRotated(World world, Proposal? proposal, Plot plot, ref OrientedRectangle ground)
     {
         int minimum = world.Rules.Lots.MinPlotDepthTiles;
         List<int> streets = OtherStreetsNear(world, plot.Segment, world.Roads.Segments.Centerline[plot.Segment], ground.Deep);
@@ -571,7 +667,7 @@ public static class LotSubdivider
         {
             OrientedRectangle candidate = ground with { Deep = depth };
             if (!OnStreet(world, streets, candidate)
-                && FreeRotated(world, plot.AddressEast, plot.AddressNorth, plot.Side, candidate)) { ground = candidate; return true; }
+                && FreeRotated(world, proposal, plot.AddressEast, plot.AddressNorth, plot.Side, candidate)) { ground = candidate; return true; }
             if (minimum == 0) { return false; }
         }
         return false;
@@ -651,15 +747,22 @@ public static class LotSubdivider
 
     private static int Larger(int a, int b) => a > b ? a : b;
 
-    private static bool FreeRotated(World world, Tiles east, Tiles north, StreetSide side, OrientedRectangle ground)
+    private static bool FreeRotated(World world, Proposal? proposal, Tiles east, Tiles north, StreetSide side, OrientedRectangle ground)
     {
         for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
         {
             if (!world.Lots.Rows.IsLive(slot)) { continue; }
-            if (ground.Overlaps(world.Lots.Parcel(slot))
-                || (world.Lots.East[slot] == east && world.Lots.North[slot] == north && world.Lots.Side[slot] == (byte)side)) { return false; }
+            if (Takes(world.Lots.Parcel(slot), world.Lots.East[slot], world.Lots.North[slot], (StreetSide)world.Lots.Side[slot])) { return false; }
+        }
+        if (proposal is null) { return true; }
+        foreach (var plot in proposal.Plots)
+        {
+            if (Takes(plot.Ground, plot.East, plot.North, plot.Side)) { return false; }
         }
         return true;
+
+        bool Takes(OrientedRectangle lot, Tiles lotEast, Tiles lotNorth, StreetSide lotSide) =>
+            ground.Overlaps(lot) || (lotEast == east && lotNorth == north && lotSide == side);
     }
 
     private static LandRectangle Around(ReadOnlySpan<SidePlot> plots)
