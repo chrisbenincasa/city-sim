@@ -113,20 +113,11 @@ public partial class Main
                 : $"{painted} parcels queued: {ZoneName()}. Existing Buildings stay.";
             return true;
         }
-        var bounds = ZoneBounds(at);
+        var sent = WholeBlockCommands(at, out int unchanged);
         _zoneStart = null;
-        int count = 0, unchanged = 0;
-        bool canSkip = _queued.Count == 0;
-        ushort permission = ZonePermission();
-        for (int row = bounds.South; row <= bounds.North; row++)
-            for (int column = bounds.West; column <= bounds.East; column++)
-            {
-                var previous = _world.LandPermissions.Summary(_world.BlockGroundRectangle(column, row));
-                if (canSkip && previous.CommonUses == permission && previous.AnyUses == permission)
-                { unchanged++; continue; }
-                var tile = streets.IntersectionTile(column, row);
-                if (Send(new Command(CommandKind.Zone, tile.East, tile.North, ZonePermission()))) count++;
-            }
+        int count = 0;
+        foreach (var tile in sent)
+            if (Send(new Command(CommandKind.Zone, tile.East, tile.North, ZonePermission()))) count++;
         _zoneFeedback = count == 0 ? $"{unchanged} blocks already have these permissions; nothing changed."
             : $"{count} blocks queued: {ZoneName()}; {unchanged} unchanged. Existing Buildings stay.";
         return true;
@@ -174,10 +165,84 @@ public partial class Main
         return Math.Max(0, bounds.East - bounds.West + 1) * Math.Max(0, bounds.North - bounds.South + 1);
     }
 
+    /// <summary>The Tile of each <c>Zone</c> command a whole-block stroke ending here sends, in send order.</summary>
+    private System.Collections.Generic.List<(Tiles East, Tiles North)> WholeBlockCommands(
+        (Tiles East, Tiles North) at, out int unchanged)
+    {
+        var bounds = ZoneBounds(at);
+        var streets = _world.Roads.Streets;
+        var tiles = new System.Collections.Generic.List<(Tiles East, Tiles North)>();
+        unchanged = 0;
+        bool canSkip = _queued.Count == 0;
+        ushort permission = ZonePermission();
+        for (int row = bounds.South; row <= bounds.North; row++)
+            for (int column = bounds.West; column <= bounds.East; column++)
+            {
+                var previous = _world.LandPermissions.Summary(_world.BlockGroundRectangle(column, row));
+                if (canSkip && previous.CommonUses == permission && previous.AnyUses == permission)
+                { unchanged++; continue; }
+                tiles.Add(streets.IntersectionTile(column, row));
+            }
+        return tiles;
+    }
+
+    private static string LotsToCreate(int lots) => $"{lots} Lot{(lots == 1 ? "" : "s")} to create";
+
     private string WholeBlockPreviewText((Tiles East, Tiles North) at)
     {
         int blocks = PreviewBlockCount(at);
-        return $"{PreviewProposedCount(at)} Lots to create across {blocks} block{(blocks == 1 ? "" : "s")}";
+        return $"{LotsToCreate(ZonePlots(at).Count)} across {blocks} block{(blocks == 1 ? "" : "s")}";
+    }
+
+    private string FreeformPreviewText((Tiles East, Tiles North) at)
+    {
+        if (!_world.TryZoneGround(at.East, at.North, out ZoneGround ground)) return "no Street within reach to zone beside";
+        return $"{LotsToCreate(ZonePlots(at).Count)} on this {(ground.Face >= 0 ? "block" : "Street side")}";
+    }
+
+    private readonly record struct ZonePlotsKey(object? World, object? Roads, uint Version, object? Rules,
+        ulong LotIds, int Lots, ulong PaintIds, int Paint, ushort Zone, bool Queued, bool Blocks, int A, int B, int C, int D);
+
+    private ZonePlotsKey _zonePlotsAt;
+    private readonly System.Collections.Generic.List<Parcel> _zonePlots = [];
+    private int _zoneCarves;
+
+    /// <summary>The Lots the stroke ending here would create, from Core's read-only carve.</summary>
+    /// <remarks>
+    /// Carved again only when the hovered ground, the Streets, the permission, the Lots or the paint
+    /// change. Lot and paint rows are created and freed, never edited. A change that creates a row
+    /// moves its id counter and one that only frees rows lowers the live count.
+    /// </remarks>
+    private System.Collections.Generic.List<Parcel> ZonePlots((Tiles East, Tiles North) at)
+    {
+        ushort zone = ZonePermission();
+        bool blocks = !_zoneParcels && OnLattice(at);
+        (int A, int B, int C, int D) ground = (-1, Rows.NoSlot, 0, -1);
+        if (blocks) ground = PreviewBounds(at);
+        else if (_world.TryZoneGround(at.East, at.North, out ZoneGround g)) ground = (g.Face, g.Segment, (int)g.Side, 0);
+        var key = new ZonePlotsKey(_world, _world.Roads, _world.Roads.Version, _world.Rules,
+            _world.Lots.Rows.NextId, _world.Lots.Rows.LiveCount, _world.PermissionRectangles.Rows.NextId, _world.PermissionRectangles.Rows.LiveCount,
+            zone, blocks && _queued.Count == 0, blocks, ground.A, ground.B, ground.C, ground.D);
+        if (key == _zonePlotsAt) return _zonePlots;
+        _zonePlotsAt = key;
+        _zonePlots.Clear();
+        if (zone == 0 || (!blocks && ground.D < 0)) return _zonePlots;
+        _zoneCarves++;
+        if (blocks) LotSubdivider.PreviewPaint(_world, [.. WholeBlockCommands(at, out _)], zone, _zonePlots);
+        else LotSubdivider.PreviewPaint(_world, [at], zone, _zonePlots);
+        return _zonePlots;
+    }
+
+    private void DrawZonePlots((Tiles East, Tiles North) at, int from)
+    {
+        var plots = ZonePlots(at);
+        Color colour = ZoneColour(ZonePermission()).Lightened(.45f).SrgbToLinear();
+        for (int i = 0; i < plots.Count; i++)
+        {
+            _cursor.Multimesh.SetInstanceTransform(from + i, Plate(plots[i].Geometry, -.35f, .04f, .01f));
+            _cursor.Multimesh.SetInstanceColor(from + i, colour);
+        }
+        _cursor.Multimesh.VisibleInstanceCount = from + plots.Count;
     }
 
     private void ZonePreview((Tiles East, Tiles North) at)
@@ -208,7 +273,7 @@ public partial class Main
             _cursor.Multimesh.SetInstanceColor(selected++, (_zoneErase ? new Color("e7a095")
                 : ZoneColour(ZonePermission()).Lightened(.22f)).SrgbToLinear());
         }
-        _cursor.Multimesh.VisibleInstanceCount = selected;
+        DrawZonePlots(at, selected);
     }
 
     private (Tiles East, Tiles North, object? Roads, uint Version, object? Rules) _zoneGroundAt = (new Tiles(-1), default, null, 0, null);
@@ -244,7 +309,7 @@ public partial class Main
             _cursor.Multimesh.SetInstanceTransform(i, run);
             _cursor.Multimesh.SetInstanceColor(i, colour);
         }
-        _cursor.Multimesh.VisibleInstanceCount = _zoneGroundRuns.Count;
+        DrawZonePlots(at, _zoneGroundRuns.Count);
     }
 
     // At the plot layer's height, which it replaces while zoning: car parks, stall lines and roads
@@ -262,8 +327,7 @@ public partial class Main
             for (int row = blocks.South; row <= blocks.North; row++)
                 for (int column = blocks.West; column <= blocks.East; column++)
                 {
-                    var preview = WholeBlockPreview(column, row);
-                    for (int i = 0; i < preview.Count; i++) yield return preview.Parcels[i];
+                    foreach (Parcel parcel in StandingParcels(column, row)) yield return parcel;
                 }
             yield break;
         }
@@ -289,41 +353,30 @@ public partial class Main
             }
     }
 
-    private (object? World, object? Roads, uint Version, object? Rules, Ticks Tick) _zoneBlocksAt;
-    private readonly System.Collections.Generic.Dictionary<(int Column, int Row),
-        (Parcel[] Parcels, int Count, int Proposed)> _zoneBlockPreviews = [];
+    private (object? World, object? Roads, uint Version, object? Rules, ulong LotIds, int Lots) _zoneBlocksAt;
+    private readonly System.Collections.Generic.Dictionary<(int Column, int Row), Parcel[]> _zoneBlockLots = [];
 
-    private (Parcel[] Parcels, int Count, int Proposed) WholeBlockPreview(int column, int row)
+    /// <summary>The parcels of the Lots standing on a block, which the plot layer stops drawing while zoning.</summary>
+    private Parcel[] StandingParcels(int column, int row)
     {
         var key = ((object?)_world, (object?)_world.Roads, _world.Roads.Version,
-            (object?)_world.Rules, _world.Tick);
+            (object?)_world.Rules, _world.Lots.Rows.NextId, _world.Lots.Rows.LiveCount);
         if (key != _zoneBlocksAt)
         {
             _zoneBlocksAt = key;
-            _zoneBlockPreviews.Clear();
+            _zoneBlockLots.Clear();
         }
-        if (_zoneBlockPreviews.TryGetValue((column, row), out var preview)) return preview;
+        if (_zoneBlockLots.TryGetValue((column, row), out var standing)) return standing;
 
-        // Tick invalidates permission and Lot changes without a Core permission version.
+        // Preview lists the block's standing Lots first, then its proposed parcels.
         int capacity = LotSubdivider.PreviewCapacity(_world, column, row);
         Parcel[] parcels = new Parcel[capacity];
-        int count = LotSubdivider.Preview(_world, column, row, parcels);
+        LotSubdivider.Preview(_world, column, row, parcels);
         int realised = capacity - _world.Rules.Lots.ParcelCeiling(
             BlockGround.At(_world.Roads.Lattice, column, row));
-        preview = (parcels, count, count - realised);
-        _zoneBlockPreviews.Add((column, row), preview);
-        return preview;
-    }
-
-    private int PreviewProposedCount((Tiles East, Tiles North) at)
-    {
-        if (ZonePermission() == 0) return 0;
-        var bounds = PreviewBounds(at);
-        int proposed = 0;
-        for (int row = bounds.South; row <= bounds.North; row++)
-            for (int column = bounds.West; column <= bounds.East; column++)
-                proposed += WholeBlockPreview(column, row).Proposed;
-        return proposed;
+        standing = parcels[..realised];
+        _zoneBlockLots.Add((column, row), standing);
+        return standing;
     }
 
     private Transform3D? ZoneInterior(int column, int row)
