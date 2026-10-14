@@ -1,0 +1,155 @@
+# Undo: the cases that decide whether a reversal is exact (#157).
+#
+# BOROUGH_LOG=1 godot --path src/Borough.Godot -- --empty --seed 0x135283C --citizens 2000 \
+#   --drive scripts/ui/undo-refusals.drive
+#
+# Five cases scripts/ui/undo.drive does not reach.
+#
+# 1. A gesture whose frame collects no batch. The shot holds the queue over a frame, and the entry
+#    still settles on the frame its Commands apply, so the undo removes the Street it laid.
+# 2. Two strokes of one moment over the same ground. The second replaced the first's paint and not
+#    the permission standing in the city, and its undo restores the first's.
+# 3. Two strokes of one moment where the second covers only part of the first's ground. The
+#    permission underneath is a mixture, which one Zone Command cannot restore.
+# 4. A stroke whose ground merges with its neighbour when the Street between them goes.
+# 5. A stroke whose ground keeps its bounding box but changes Tiles: two Streets 12 Tiles apart,
+#    and the side the stroke painted gives way to the other Street's side of the same size.
+#
+#    In 4 and 5 the removal that reshapes the ground is itself a barrier, so that is the refusal
+#    the readout carries and the ground comparison behind it is what keeps the neighbour's
+#    permission when a removal is not the newest act. Both cases show the permissions standing.
+# 6. A stroke over ground too wide to remember Tile by Tile, beside a long diagonal Street. The
+#    stroke stands, so it keeps an entry the undo refuses rather than one the undo steps over to
+#    reach the Street laid before it.
+
+256 pause
+256 ui tools off
+256 ui layers off
+256 focus 32 16 400
+256 tilt 50
+256 ui street-length off
+256 hold street
+256 click 0 0
+256 click 64 0
+256 click 0 32
+256 click 64 32
+256 click 0 0
+256 click 0 32
+256 click 32 0
+256 click 32 32
+256 click 64 0
+256 click 64 32
+256 speed 1
+
+# Case 1: the shot leaves the Street Commands queued, so the gesture settles a frame late.
+257 pause
+257 hold street
+257 click 0 64
+257 click 64 64
+257 shoot artifacts/undo/09-held-over.png
+257 speed 1
+258 pause
+258 readout artifacts/undo/09-held-over.txt
+258 draw artifacts/undo/09-held-over.tsv
+258 ui undo
+258 speed 1
+259 pause
+259 readout artifacts/undo/10-held-over-undone.txt
+259 draw artifacts/undo/10-held-over-undone.tsv
+259 speed 1
+
+# Case 2: housing then trade over the left face, both on Tick 260. The undo puts housing back.
+260 pause
+260 ui zone-size blocks
+260 hold zone 0
+260 click 4 4
+260 hold zone 1
+260 click 4 4
+260 speed 1
+261 pause
+261 draw artifacts/undo/11-same-moment.tsv
+261 ui undo
+261 speed 1
+262 pause
+262 readout artifacts/undo/12-same-moment-undone.txt
+262 draw artifacts/undo/12-same-moment-undone.tsv
+262 speed 1
+
+# Case 3: a parcel of the right face, then the whole face, both on Tick 263.
+263 pause
+263 ui zone-size parcels
+263 hold zone 0
+263 click 36 4
+263 ui zone-size blocks
+263 hold zone 1
+263 click 36 4
+263 speed 1
+264 pause
+264 ui undo
+264 speed 1
+265 pause
+265 readout artifacts/undo/13-refused-part.txt
+265 speed 1
+
+# Case 4: trade on the right face, housing on the left, then the Street between them goes.
+266 pause
+266 hold zone 0
+266 click 4 4
+266 speed 1
+267 pause
+267 hold street
+267 click 32 16 shift
+267 speed 1
+268 pause
+268 ui undo
+268 speed 1
+269 pause
+269 readout artifacts/undo/14-refused-reshaped.txt
+269 draw artifacts/undo/14-refused-reshaped.tsv
+269 speed 1
+
+# Case 5: two Streets 12 Tiles apart, so the two sides between them share a bounding box.
+270 pause
+270 ui street-snap off
+270 hold street
+270 click 0 160
+270 click 0 288
+270 click 12 160
+270 click 12 288
+270 speed 1
+271 pause
+271 hold zone 1
+271 click 4 200
+271 speed 1
+272 pause
+272 draw artifacts/undo/15-side-painted.tsv
+272 hold street
+272 click 0 200 shift
+272 speed 1
+273 pause
+273 ui undo
+273 speed 1
+274 pause
+274 readout artifacts/undo/16-refused-side.txt
+274 draw artifacts/undo/16-refused-side.tsv
+274 speed 1
+
+# Case 6: a Street side 700 Tiles across, whose bounds hold more Tiles than the shell remembers.
+275 pause
+275 hold street
+275 click 0 700
+275 click 700 1400
+275 speed 1
+276 pause
+276 hold zone 1
+276 click 350 1052
+276 speed 1
+277 pause
+277 draw artifacts/undo/17-wide-painted.tsv
+277 ui undo
+277 speed 1
+278 pause
+278 readout artifacts/undo/18-refused-wide.txt
+278 draw artifacts/undo/18-refused-wide.tsv
+278 speed 1
+279 quit

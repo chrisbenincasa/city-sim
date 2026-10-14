@@ -1384,6 +1384,11 @@ public partial class Main : Node3D
         }
         if (stepped > 0)
             _batchTicks = Math.Clamp((int)(16 / Math.Max(1, stepMilliseconds / stepped)), 1, 4);
+        // Before the boundary callbacks and after the step: what a gesture laid, cut and created is
+        // only readable once its Commands have applied, the step thread may not write shell state,
+        // and an undo deferred to the boundary must see the gestures that have just landed rather
+        // than the history as it stood before the step.
+        SettleGestures();
         while (_atBoundary.TryDequeue(out Action? action))
         {
             action();
@@ -1633,6 +1638,16 @@ public partial class Main : Node3D
         }
 
         if (GetViewport().GuiGetFocusOwner() is LineEdit or TextEdit || _helpPanel.Visible) return;
+
+        // Above the modifier filter, which is what drops every other Ctrl chord. It goes out as the
+        // `ui undo` word so that the key and a script share one applier and --record writes it.
+        if (key is { CtrlPressed: true, Keycode: Key.Z, AltPressed: false, MetaPressed: false, ShiftPressed: false, Echo: false })
+        {
+            Ui("undo");
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
         if (key.CtrlPressed || key.AltPressed || key.MetaPressed || key.Echo) return;
         if (_stepThread?.OwnsWorld == true)
         {
@@ -1926,10 +1941,11 @@ public partial class Main : Node3D
             + $"travelling {moving:N0}{Weather(under)}{ShoppingCaption()}{HealthCaption()}\n"
             + $"speed {Pace(_rung)}   "
             + $"mode {Holding()}   "
-            + "[ ] speed, space pause, w write log, g roads, c cells, tab tune\n"
+            + "[ ] speed, space pause, w write log, g roads, c cells, tab tune, ctrl-z undo\n"
             + "click acts   right-drag or two-finger scroll pans   edge of screen pans   "
             + "pinch or -/= zooms   q/e turns   r/f tilts   l lens   o overlay"
             + Legend()
+            + (_undoSaid.Length > 0 ? $"\nUNDO — {_undoSaid}" : string.Empty)
             + (_refused.Length > 0 ? $"\nREFUSED — {_refused}" : string.Empty);
 
         RefreshInformation();

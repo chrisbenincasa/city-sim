@@ -36,6 +36,13 @@ service and gate placement.
 - Undoing a zone stroke restores the permission; Lots it cut stay cut.
 - Undo covers Street gestures and zone strokes. Service and gate placements are corrected with
   Demolish and Shift-click: a placement's price leaves the city, so no reversal is exact.
+- Removing a Street does not join the halves of a Segment an earlier gesture split, so a gesture
+  that split a Street is refused rather than approximated (10/13/2026).
+- Undo never reaches past a construction act it cannot reverse. A Demolish, a Street removal, a
+  service placement and a gate placement each push an entry the undo refuses with a reason, and so
+  does any gesture the shell cannot record exactly (10/13/2026).
+- One Zone Command paints one permission over the whole ground it covers, so a stroke that painted
+  over mixed permissions is refused; the earlier mixture cannot be restored (10/13/2026).
 - Rejected: rewinding to a saved state, because the city keeps running between gestures and a
   rewind discards what Citizens did meanwhile.
 
