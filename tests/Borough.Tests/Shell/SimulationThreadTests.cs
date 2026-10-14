@@ -43,7 +43,7 @@ public sealed class SimulationThreadTests
         Assert.NotEqual(caller, executing);
         Assert.Equal(expected, received[0]);
         Assert.All(received.Skip(1), Assert.Empty);
-        Assert.Equal(new ulong[] { 123, 0, 0, 0 }, hashes);
+        Assert.Equal(new ulong[] { 123, 123, 123, 123 }, hashes);
         Assert.False(worker.OwnsWorld);
         worker.Start(Step, default, 1);
         Complete(worker, 1);

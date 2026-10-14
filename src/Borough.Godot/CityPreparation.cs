@@ -20,7 +20,7 @@ internal sealed class CityPreparation : IDisposable
     private volatile bool _reading;
     private bool _disposed;
 
-    public CityPreparation(int citizens, Ruleset rules, WorldKey key, bool empty, ulong until, int routeWorkers)
+    public CityPreparation(int citizens, Ruleset rules, ulong rulesetHash, WorldKey key, bool empty, ulong until, int routeWorkers)
     {
         _work = Start(() =>
         {
@@ -29,9 +29,9 @@ internal sealed class CityPreparation : IDisposable
             { VerifyDecideWritesNothing = false, RouteWorkerCount = routeWorkers };
             _cancel.Token.ThrowIfCancellationRequested();
             var boot = new Command(empty ? CommandKind.Ground : CommandKind.Populate, default, default);
-            simulation.Step(new TickInput([boot], 0));
+            simulation.Step(new TickInput([boot], rulesetHash));
             Interlocked.Exchange(ref _tick, 1);
-            StepTo(simulation, until);
+            StepTo(simulation, until, rulesetHash);
             return simulation;
         });
     }
@@ -56,7 +56,7 @@ internal sealed class CityPreparation : IDisposable
             SavedTick = saved;
             Interlocked.Exchange(ref _tick, unchecked((long)saved));
             _reading = false;
-            StepTo(simulation, until ?? saved);
+            StepTo(simulation, until ?? saved, city.Header.RulesetInForce);
             city.World.Changes.Invalidate();
             return simulation;
         });
@@ -79,12 +79,12 @@ internal sealed class CityPreparation : IDisposable
         return simulation;
     }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 
-    private void StepTo(Simulation simulation, ulong until)
+    private void StepTo(Simulation simulation, ulong until, ulong rulesetHash)
     {
         while (simulation.World.Tick.Raw < until)
         {
             _cancel.Token.ThrowIfCancellationRequested();
-            simulation.Step(default);
+            simulation.Step(new TickInput([], rulesetHash));
             Interlocked.Exchange(ref _tick, unchecked((long)simulation.World.Tick.Raw));
         }
     }

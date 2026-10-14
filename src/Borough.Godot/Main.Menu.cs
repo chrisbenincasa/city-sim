@@ -279,7 +279,7 @@ public partial class Main
         bool empty = _newEmpty;
         ulong seed = _newSeed;
         int citizens = Arguments().Citizens;
-        PrepareCity(loaded.Ruleset, citizens, seed, empty, (ulong)Ticks.AtClock(8), simulation =>
+        PrepareCity(loaded.Ruleset, loaded.Capture!.ContentHash, citizens, seed, empty, (ulong)Ticks.AtClock(8), simulation =>
         {
             ResetCity(() =>
             {
