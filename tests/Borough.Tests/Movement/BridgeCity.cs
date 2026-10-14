@@ -90,10 +90,10 @@ internal static class BridgeCity
 
         if (cutOffDays is { } cutOff)
         {
-            toml = toml.Replace(
+            toml = Replaced(
+                toml,
                 "[[building]]\nname = \"dwelling\"\n",
-                $"[[building]]\nname = \"dwelling\"\nabandoned_after_cut_off_days = {cutOff}\ncollapses_after_days = 30\n",
-                StringComparison.Ordinal);
+                $"[[building]]\nname = \"dwelling\"\nabandoned_after_cut_off_days = {cutOff}\ncollapses_after_days = 30\n");
         }
 
         return toml;
@@ -174,7 +174,7 @@ internal static class BridgeCity
     public static int PremisesOf(World world, int business) =>
         world.Buildings.Rows.Resolve(world.Businesses.Building[business]);
 
-    private static void Issue(Simulation simulation, Command command)
+    public static void Issue(Simulation simulation, Command command)
     {
         int refused = simulation.CommandsRefused;
         int segments = simulation.World.Roads.Segments.Rows.LiveCount;
@@ -233,7 +233,7 @@ internal static class BridgeCity
         return [.. commands];
     }
 
-    private static Command Lay(int column, int row, StreetAxis axis) => new(
+    public static Command Lay(int column, int row, StreetAxis axis) => new(
         CommandKind.Connect,
         new Tiles(column * BlockTiles),
         new Tiles(row * BlockTiles),
