@@ -199,6 +199,13 @@ public static class RulesetKeyNotes
             + "stock rather than failing stock. It counts Households and not tenants of any kind, "
             + "so a shop sitting in a dwelling does not keep the clock from starting. Absent means "
             + "a Building of this kind stands empty for ever.",
+        ["[[building]] abandoned_after_cut_off_days"] =
+            "How many Days a Building of this kind may stand with no road to any Outside Connection "
+            + "before the city abandons it. A Building is cut off when no foot or car path joins its "
+            + "Access Point to a gate's, or when it has no Access Point. The clock starts at the road "
+            + "edit that cuts it off and clears at the edit that reconnects it, and it never runs in "
+            + "a world with no Outside Connection. Requires collapses_after_days. Absent means a "
+            + "Building of this kind stands cut off for ever.",
         ["[[building]] collapses_after_days"] =
             "How many Days an abandoned Building stands as a shell before it collapses and the Lot "
             + "is clear again. Required of any kind that can be abandoned, because shells with no "

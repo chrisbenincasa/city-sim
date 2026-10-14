@@ -194,9 +194,35 @@ two 2×2-block districts, a gate on the near side, one bridge Segment. Measured 
   - The shell still numbers Days two ways: the HUD clock from 1, the Health panel and the debug
     readout from 0. These panels follow the HUD clock.
 
+- **The cut-off clock.** `BuildingTable.CutOffSince` saves the Tick + 1 of the road edit that cut a
+  Building off from every Outside Connection; `BuildingTable.AbandonedCause` saves why the city
+  abandoned it (`AbandonmentCause`). `World.TimeCutOffBuildings` runs at the end of each Tick. It
+  re-judges every Building when the Tick changed the road graph, the gates or the Ruleset, and at
+  each Day boundary abandons every Building past `[[building]] abandoned_after_cut_off_days`. A
+  Building raised later judges itself in `CreateBuilding`. A load judges nothing, because the
+  clocks are saved. The base package states 14 Days, with `collapses_after_days = 30`, on
+  `dwelling`, `shopfront` and `school`. Tests: `CutOffClockTests`.
+  - The deadline is checked daily rather than on a Zone Rule visit. The visit is a random sample
+    and lagged the deadline by up to four Days on the bridge fixture.
+  - The Building panel shows "Cut off since Day N", the reason (no Access Point, or no road to an
+    Outside Connection) and Days left; afterwards "Abandoned on Day N" with the cause. Every
+    abandonment path now records its cause.
+- **Probe with both shipped deadlines.** Unrepaired, all 32 far-side Buildings are abandoned at the
+  start of Day 17, fourteen Days after the removal. Because every far dwelling is also a shop's
+  premises, 76 crossers re-hired on the far side lose those jobs that Day and jobless crossers rise
+  from 121 to 197. Repaired on Day 5 or Day 12, nothing is abandoned.
+
+- **Driven on the bridge fixture.** Saves at Day 6 and Day 19 on the HUD clock, from the probe's
+  run with both deadlines, loaded into the shell with far dwelling 33 selected. Day 6 reads "Cut off
+  since Day 3 · no road reaches an Outside Connection" and "Abandoned in 12 Days unless a road
+  reconnects it". Day 19 reads "Abandoned on Day 18 · cut off from every Outside Connection", with
+  no Households and no workers. The abandoned far district draws exactly as an occupied one, so
+  the map alone does not show the loss; only the panel does.
+
 ## Next step
 
-The cut-off clock.
+The remaining acceptance items: the no-intervention case, the parking measurement and the edge
+cases in the list below.
 
 ## Evidence and acceptance
 

@@ -855,3 +855,14 @@ Both traces and `world-hash.txt` were regenerated with the commands above. Basel
 hashes and the hash seed are unchanged. No baseline Ruleset states
 `[jobs] dismissed_after_failed_commute_days`, so the columns fold zeroes in every artifact here.
 `FailedCommuteClockTests` covers the recovered and dismissed records and save/reload.
+
+### Cut-off clock (10/13/2026)
+
+`building` gains two saved columns, `cut_off_since` and `abandoned_cause`: the Tick a road edit cut a
+Building off from every Outside Connection, and why the city abandoned it (`adr/0177`). Core save
+format goes to **21**. All three artifacts moved on the new columns. Both traces and
+`world-hash.txt` were regenerated with the commands above. Baseline Ruleset content hashes and the
+hash seed are unchanged. No baseline Ruleset states `[[building]] abandoned_after_cut_off_days`, so
+`cut_off_since` folds zeroes. `abandoned_cause` records the existing cause wherever a session already
+abandoned a Building, so the traces move beyond the column's addition alone. `CutOffClockTests`
+covers the clock, the abandonment and save/reload.

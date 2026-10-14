@@ -154,6 +154,8 @@ public sealed class BuildingTable
         EmittingDay = _rows.Saved<ushort>("emitting_day", Touch.Cold);
         DayEmitted = _rows.Saved<long>("day_emitted", Touch.Cold);
         PriorEmitted = _rows.Saved<long>("prior_emitted", Touch.Cold);
+        CutOffSince = _rows.Saved<Ticks>("cut_off_since", Touch.Cold);
+        AbandonedCause = _rows.Saved<byte>("abandoned_cause", Touch.Cold);
 
         _rows.Seal();
     }
@@ -442,6 +444,19 @@ public sealed class BuildingTable
     /// </remarks>
     public bool HasStoodEmptyFor(int slot, Ticks now, ulong ticks) =>
         EmptySince[slot] != default && now + new Ticks(1) >= EmptySince[slot] + new Ticks(ticks);
+
+    /// <summary>
+    /// The Tick a road edit cut this Building off from every Outside Connection, plus one. Zero means
+    /// it is reachable, or its kind states no <c>abandoned_after_cut_off_days</c>.
+    /// </summary>
+    public Column<Ticks> CutOffSince { get; }
+
+    /// <summary>Why the city abandoned this Building, as an <see cref="AbandonmentCause"/>.</summary>
+    public Column<byte> AbandonedCause { get; }
+
+    /// <summary>Whether this Building has been cut off for at least <paramref name="ticks"/>.</summary>
+    public bool HasBeenCutOffFor(int slot, Ticks now, ulong ticks) =>
+        CutOffSince[slot] != default && now + new Ticks(1) >= CutOffSince[slot] + new Ticks(ticks);
 
     /// <summary>
     /// The Day <see cref="DayEmitted"/> is accumulating for.

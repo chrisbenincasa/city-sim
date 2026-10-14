@@ -54,6 +54,10 @@ premises = true
 rent     = 400
 parked   = true
 business = "mill"
+# PROVISIONAL: a Building cut off from every Outside Connection is abandoned after 14 Days, and
+# its shell collapses 30 Days later (adr/0177). A playtest tests the first.
+abandoned_after_cut_off_days = 14
+collapses_after_days = 30
 
 [[building]]
 id = "shopfront"
@@ -70,6 +74,10 @@ premises = true
 rent     = 400
 parked   = true
 business = "grocer"
+# PROVISIONAL: a Building cut off from every Outside Connection is abandoned after 14 Days, and
+# its shell collapses 30 Days later (adr/0177). A playtest tests the first.
+abandoned_after_cut_off_days = 14
+collapses_after_days = 30
 
 [[zone_rule]]
 id            = "housing"

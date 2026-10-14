@@ -133,4 +133,27 @@ public partial class Main
             + $"the first since Day {ClockDay(earliest):N0}"));
         sections.Add(new("commutes", "Workers who cannot reach work", true, rows));
     }
+
+    private string? CutOffSummary(Handle<Building> building)
+    {
+        if (Evidence.CutOffOf(_world, building) is not { } cutOff) return null;
+        long left = cutOff.AbandonmentDue.Raw <= _world.Tick.Raw ? 0
+            : (long)((cutOff.AbandonmentDue.Raw - _world.Tick.Raw + (ulong)Ticks.PerDay - 1) / (ulong)Ticks.PerDay);
+        string reason = cutOff.HasAccessPoint ? "no road reaches an Outside Connection" : "it has no Access Point";
+        return $"Cut off since Day {ClockDay(cutOff.Since.Raw):N0} · {reason}\n"
+            + (left == 0 ? "Abandoned at the next Day's start" : $"Abandoned in {DayCount(left)} unless a road reconnects it");
+    }
+
+    private string AbandonedSummary(int building)
+    {
+        string day = $"Abandoned on Day {ClockDay(_world.Buildings.AbandonedSince[building].Raw):N0}";
+        return (AbandonmentCause)_world.Buildings.AbandonedCause[building] switch
+        {
+            AbandonmentCause.CutOff => day + " · cut off from every Outside Connection",
+            AbandonmentCause.Condemned => day + " · its premises failed",
+            AbandonmentCause.StoodEmpty => day + " · nobody lived here",
+            AbandonmentCause.Disaster => day + " · a disaster struck",
+            _ => day,
+        };
+    }
 }

@@ -59,7 +59,23 @@ internal static class BridgeCity
     /// <c>congested.toml</c> with a gate kind, optionally dismissing after
     /// <paramref name="dismissAfterDays"/> Days of failed commutes.
     /// </summary>
-    public static Ruleset BridgeRules(int? dismissAfterDays = null)
+    public static Ruleset BridgeRules(int? dismissAfterDays = null, int? cutOffDays = null) =>
+        Load(BridgeToml(dismissAfterDays, cutOffDays));
+
+    public static Ruleset Load(string toml)
+    {
+        RulesetLoadResult result = RulesetLoader.Parse(toml, "bridge.toml");
+
+        Assert.True(result.Ok, result.Describe());
+
+        return result.Ruleset!;
+    }
+
+    /// <summary>
+    /// The text of <see cref="BridgeRules"/>, optionally abandoning a dwelling cut off for
+    /// <paramref name="cutOffDays"/> Days.
+    /// </summary>
+    public static string BridgeToml(int? dismissAfterDays = null, int? cutOffDays = null)
     {
         string toml = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "congested.toml"))
             .Replace("\n[layers]\n", "gives_up_after_days = 120\n\n[layers]\n", StringComparison.Ordinal)
@@ -71,11 +87,15 @@ internal static class BridgeCity
                 "\n[jobs]\n", $"\n[jobs]\ndismissed_after_failed_commute_days = {days}\n", StringComparison.Ordinal);
         }
 
-        RulesetLoadResult result = RulesetLoader.Parse(toml, "bridge.toml");
+        if (cutOffDays is { } cutOff)
+        {
+            toml = toml.Replace(
+                "[[building]]\nname = \"dwelling\"\n",
+                $"[[building]]\nname = \"dwelling\"\nabandoned_after_cut_off_days = {cutOff}\ncollapses_after_days = 30\n",
+                StringComparison.Ordinal);
+        }
 
-        Assert.True(result.Ok, result.Describe());
-
-        return result.Ruleset!;
+        return toml;
     }
 
     public static (long Completed, long NoRoute, long OverBudget) StepTo(Simulation simulation, long tick)

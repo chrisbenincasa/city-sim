@@ -19,8 +19,9 @@ namespace Borough.Tests.Movement;
 public sealed class BridgeCommuteProbe(ITestOutputHelper output)
 {
     private const int RemovedOnDay = 2;
-    private const int Days = 16;
+    private const int Days = 19;
     private const int ShippedDeadlineDays = 10;
+    private const int ShippedCutOffDays = 14;
 
     private readonly ITestOutputHelper _output = output;
 
@@ -81,13 +82,13 @@ public sealed class BridgeCommuteProbe(ITestOutputHelper output)
 
     private void Run(int? rebuiltOnDay, int? dismissAfterDays)
     {
-        Simulation simulation = Start(BridgeRules(dismissAfterDays));
+        Simulation simulation = Start(BridgeRules(dismissAfterDays, dismissAfterDays is null ? null : ShippedCutOffDays));
         World world = simulation.World;
 
         _output.WriteLine(
             $"bridge removed Day {RemovedOnDay} 23:00; "
             + (rebuiltOnDay is { } d ? $"rebuilt Day {d} 23:00; " : "never rebuilt; ")
-            + (dismissAfterDays is { } days ? $"dismissal after {days} Days" : "no dismissal"));
+            + (dismissAfterDays is { } days ? $"dismissal after {days} Days, abandonment after {ShippedCutOffDays} cut off" : "no dismissal or abandonment"));
 
         Assert.False(IsFar(world, Gate(world)), "the gate stands on the far side, so the fixture cuts off the wrong half.");
 
