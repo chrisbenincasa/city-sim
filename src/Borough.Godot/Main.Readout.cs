@@ -455,6 +455,8 @@ public partial class Main
             return;
         }
 
+        said.Add(WholeBlockPreviewText(at));
+
         int column = streets.Lattice.LineAt(at.East.Raw);
         int row = streets.Lattice.LineAt(at.North.Raw);
         int free = 0;
