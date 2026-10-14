@@ -33,7 +33,7 @@ def proposed(east, north):
     command(f'ui zone-point {east} {north}')
     path = out / 'state.json'
     command('ui read ' + str(path))
-    return json.loads(path.read_text())['Zoning']['Proposed']
+    return json.loads(path.read_text())['Zoning']['Lots']
 
 def plots():
     path = out / 'draw.tsv'

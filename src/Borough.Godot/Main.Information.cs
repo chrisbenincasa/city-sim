@@ -925,7 +925,11 @@ public partial class Main
         if (Aim() is not { } at) return "Outside the map";
         if (_verb == Verb.Zone)
         {
-            if (!_zoneParcels && OnLattice(at))
+            if (!OnLattice(at))
+                return $"{FreeformPreviewText(at)} · {ZoneName()} · "
+                    + (_zoneStart is not null ? "release to apply; Escape cancels"
+                        : _zoneFeedback.Length > 0 ? _zoneFeedback : "click a block or Street side");
+            if (!_zoneParcels)
                 return $"{WholeBlockPreviewText(at)} · {ZoneName()} · "
                     + (_zoneStart is not null ? "release to apply; Escape cancels"
                         : _zoneFeedback.Length > 0 ? _zoneFeedback : "drag a rectangle of whole blocks");
@@ -1363,8 +1367,8 @@ public partial class Main
                 Blocks = _zoneParcels ? 0 : ZoneSelectionCount(),
                 Parcels = _zoneParcels ? ZoneSelectionCount() : 0,
                 Unit = _zoneParcels ? "parcels" : "blocks",
-                Proposed = _verb == Verb.Zone && !_zoneParcels && Aim() is { } aimed && OnLattice(aimed)
-                    ? PreviewProposedCount(aimed) : 0,
+                Lots = _verb == Verb.Zone && Aim() is { } aim && !(_zoneParcels && OnLattice(aim)) ? ZonePlots(aim).Count : 0,
+                Carves = _zoneCarves,
                 Erasing = _zoneErase,
                 Feedback = _zoneFeedback
             },

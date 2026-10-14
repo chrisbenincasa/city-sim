@@ -439,6 +439,11 @@ public partial class Main
     private void Virgin(System.Collections.Generic.List<string> said, (Tiles East, Tiles North) at)
     {
         StreetGrid streets = _world.Roads.Streets;
+        if (!OnLattice(at))
+        {
+            said.Add($"{FreeformPreviewText(at)} — Lot preview carved {_zoneCarves} times; {_world.Lots.Rows.LiveCount} Lots stand");
+            return;
+        }
         if (_zoneParcels)
         {
             var parcel = System.Linq.Enumerable.FirstOrDefault(SelectedParcels(at));
@@ -455,7 +460,7 @@ public partial class Main
             return;
         }
 
-        said.Add(WholeBlockPreviewText(at));
+        said.Add($"{WholeBlockPreviewText(at)} — Lot preview carved {_zoneCarves} times; {_world.Lots.Rows.LiveCount} Lots stand");
 
         int column = streets.Lattice.LineAt(at.East.Raw);
         int row = streets.Lattice.LineAt(at.North.Raw);
