@@ -5,6 +5,7 @@ godot --path src/Borough.Godot -- --empty --seed 0x135283C --citizens 2000 \
   --ruleset rulesets/base/ruleset.toml --listen /tmp/zone-preview.sock &
 scripts/ui/check-zone-preview.py /tmp/zone-preview.sock
 """
+import atexit
 import json
 from pathlib import Path
 import socket
@@ -16,6 +17,13 @@ s = socket.socket(socket.AF_UNIX)
 s.settimeout(60)
 s.connect(sys.argv[1])
 f = s.makefile('rwb', buffering=0)
+
+@atexit.register
+def quit_shell():
+    try:
+        f.write(b'quit\n')
+    except OSError:
+        pass
 
 def command(text):
     f.write((text + '\n').encode())
@@ -100,5 +108,4 @@ command('ui zone-end 100 100')
 tick()
 assert plots() - before == expected, (before, plots(), expected)
 
-command('quit')
 print(f'PASS: fresh {fresh}, standing 0, partly zoned {partly} -> {remaining}, erase 0, 2x2 created {expected}.')
