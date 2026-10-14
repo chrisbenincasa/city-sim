@@ -280,11 +280,12 @@ two 2×2-block districts, a gate on the near side, one bridge Segment. Measured 
 
   - A cut-off deadline no longer than the dismissal deadline pre-empts dismissal. Abandonment
     removes far Businesses and evicts far Households before the deadline commute, so nobody is
-    dismissed. The shipped 10 and 14 Days dismiss first.
+    dismissed. The shipped 10 and 14 Days dismiss first, and
+    `BaseFoundingPackageTests` holds that order.
   - Input Log replay with a running clock is not covered. The bridge fixture places its people
     outside the Input Log, and no golden or replay test sets either key. Repeated identical runs,
     save/reload and thread count are covered above.
-  - Checks on 10/14/2026: `scripts/test.sh` passed 4,660 tests; `scripts/test.sh --all` passed 4,714.
+  - Checks on 10/14/2026: `scripts/test.sh` passed 4,667 tests; `scripts/test.sh --all` passed 4,721.
 
 ## Next step
 

@@ -643,6 +643,37 @@ public sealed class BaseFoundingPackageTests
         world.MoneySupply.Issued[MoneySupplyTable.Slot] += new Money(level - was);
     }
 
+    /// <summary>
+    /// A cut-off deadline no longer than the dismissal deadline abandons the far side before
+    /// anyone is dismissed, which would leave the recovery demonstration with no dismissal to show.
+    /// </summary>
+    [Fact]
+    public void Every_cut_off_deadline_outlasts_the_dismissal_deadline()
+    {
+        Ruleset rules = Package().Rules;
+        int timed = 0;
+
+        Assert.True(rules.Jobs.DismissesFailedCommuters, "the base package no longer dismisses.");
+
+        for (int kind = 1; kind <= rules.KindCount; kind++)
+        {
+            ulong cutOff = (ulong)rules.Kind((byte)kind).AbandonedAfterCutOffTicks;
+
+            if (cutOff == 0)
+            {
+                continue;
+            }
+
+            Assert.True(
+                cutOff > rules.Jobs.FailedCommuteDeadline.Raw,
+                $"Building kind {kind} is abandoned at {cutOff} Ticks cut off, no later than the "
+                + $"{rules.Jobs.FailedCommuteDeadline.Raw}-Tick dismissal.");
+            timed++;
+        }
+
+        Assert.True(timed > 0, "no base kind is abandoned when cut off.");
+    }
+
     private static (Ruleset Rules, ulong Hash) Package()
     {
         RulesetSourceResult result = RulesetSource.Load(PackagePath());
