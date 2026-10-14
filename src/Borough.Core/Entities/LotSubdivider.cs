@@ -258,7 +258,7 @@ public static class LotSubdivider
         OrientedRectangle ground = plot.Parcel.Geometry;
         if (!ClaimRotated(world, proposal, plot, ref ground)) { return false; }
         LandPermissionSummary here = ParcelSummary(world, proposal, ground);
-        if (here.AnyUses == 0) { return false; }
+        if (here.CommonUses == 0) { return false; }
         if (proposal is not null) { proposal.Add(plot.Parcel with { Geometry = ground }, plot.AddressEast, plot.AddressNorth); return true; }
 
         int slot = world.Lots.Rows.Resolve(world.Lots.Create(plot.AddressEast, plot.AddressNorth, here.CommonUses, plot.Side));
