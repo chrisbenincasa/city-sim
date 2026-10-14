@@ -157,8 +157,27 @@ public partial class Main
         if (_zoneStart is null || Aim() is not { } at) return 0;
         if (!OnLattice(at)) return _world.TryZoneGround(at.East, at.North, out _) ? 1 : 0;
         if (_zoneParcels) return System.Linq.Enumerable.Count(SelectedParcels(at));
+        return PreviewBlockCount(at);
+    }
+
+    private (int West, int South, int East, int North) PreviewBounds((Tiles East, Tiles North) at)
+    {
         var bounds = ZoneBounds(at);
-        return (bounds.East - bounds.West + 1) * (bounds.North - bounds.South + 1);
+        int last = _world.Roads.Streets.Blocks - 1;
+        return (Math.Max(0, bounds.West), Math.Max(0, bounds.South),
+            Math.Min(last, bounds.East), Math.Min(last, bounds.North));
+    }
+
+    private int PreviewBlockCount((Tiles East, Tiles North) at)
+    {
+        var bounds = PreviewBounds(at);
+        return Math.Max(0, bounds.East - bounds.West + 1) * Math.Max(0, bounds.North - bounds.South + 1);
+    }
+
+    private string WholeBlockPreviewText((Tiles East, Tiles North) at)
+    {
+        int blocks = PreviewBlockCount(at);
+        return $"{PreviewProposedCount(at)} Lots to create across {blocks} block{(blocks == 1 ? "" : "s")}";
     }
 
     private void ZonePreview((Tiles East, Tiles North) at)
@@ -237,6 +256,18 @@ public partial class Main
     private System.Collections.Generic.IEnumerable<Parcel> SelectedParcels(
         (Tiles East, Tiles North) at, bool clipToPointer = true)
     {
+        if (!clipToPointer)
+        {
+            var blocks = PreviewBounds(at);
+            for (int row = blocks.South; row <= blocks.North; row++)
+                for (int column = blocks.West; column <= blocks.East; column++)
+                {
+                    var preview = WholeBlockPreview(column, row);
+                    for (int i = 0; i < preview.Count; i++) yield return preview.Parcels[i];
+                }
+            yield break;
+        }
+
         var start = _zoneStart ?? at;
         int west = Math.Min(start.East.Raw, at.East.Raw), east = Math.Max(start.East.Raw, at.East.Raw);
         int south = Math.Min(start.North.Raw, at.North.Raw), north = Math.Max(start.North.Raw, at.North.Raw);
@@ -258,23 +289,40 @@ public partial class Main
             }
     }
 
+    private (object? World, object? Roads, uint Version, object? Rules, Ticks Tick) _zoneBlocksAt;
+    private readonly System.Collections.Generic.Dictionary<(int Column, int Row),
+        (Parcel[] Parcels, int Count, int Proposed)> _zoneBlockPreviews = [];
+
+    private (Parcel[] Parcels, int Count, int Proposed) WholeBlockPreview(int column, int row)
+    {
+        var key = ((object?)_world, (object?)_world.Roads, _world.Roads.Version,
+            (object?)_world.Rules, _world.Tick);
+        if (key != _zoneBlocksAt)
+        {
+            _zoneBlocksAt = key;
+            _zoneBlockPreviews.Clear();
+        }
+        if (_zoneBlockPreviews.TryGetValue((column, row), out var preview)) return preview;
+
+        // Tick invalidates permission and Lot changes without a Core permission version.
+        int capacity = LotSubdivider.PreviewCapacity(_world, column, row);
+        Parcel[] parcels = new Parcel[capacity];
+        int count = LotSubdivider.Preview(_world, column, row, parcels);
+        int realised = capacity - _world.Rules.Lots.ParcelCeiling(
+            BlockGround.At(_world.Roads.Lattice, column, row));
+        preview = (parcels, count, count - realised);
+        _zoneBlockPreviews.Add((column, row), preview);
+        return preview;
+    }
+
     private int PreviewProposedCount((Tiles East, Tiles North) at)
     {
+        if (ZonePermission() == 0) return 0;
+        var bounds = PreviewBounds(at);
         int proposed = 0;
-        LotTable lots = _world.Lots;
-        foreach (var parcel in SelectedParcels(at, false))
-        {
-            bool realised = false;
-            for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
-            {
-                if (lots.Rows.IsLive(slot) && lots.Parcel(slot).Equals(parcel))
-                {
-                    realised = true;
-                    break;
-                }
-            }
-            if (!realised) proposed++;
-        }
+        for (int row = bounds.South; row <= bounds.North; row++)
+            for (int column = bounds.West; column <= bounds.East; column++)
+                proposed += WholeBlockPreview(column, row).Proposed;
         return proposed;
     }
 
