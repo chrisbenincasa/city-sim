@@ -502,7 +502,59 @@ public static class Evidence
             sustenance,
             taste,
             InFlightTrip(world, citizen),
-            last);
+            last,
+            FailingCommuteOf(world, slot),
+            LastCommuteEpisodeOf(world, slot));
+    }
+
+    /// <summary>
+    /// The workers of <paramref name="business"/> whose outbound commutes are failing, in worker
+    /// list order. Derived from each worker's clock and never saved.
+    /// </summary>
+    /// <param name="world">The world to read.</param>
+    /// <param name="business">Which Business.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="world"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">The handle does not resolve.</exception>
+    public static ReadOnlyMemory<Handle<Citizen>> FailingCommutersOf(World world, Handle<Business> business)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+
+        int slot = world.Businesses.Rows.Resolve(business);
+        List<Handle<Citizen>> failing = [];
+
+        foreach (int worker in world.Workers.Walk(slot))
+        {
+            if (world.Citizens.CommuteFailedSince[worker] != Ticks.Zero)
+            {
+                failing.Add(world.Citizens.Rows.At(worker));
+            }
+        }
+
+        return failing.ToArray();
+    }
+
+    private static FailingCommuteEvidence? FailingCommuteOf(World world, int slot)
+    {
+        ulong since = world.Citizens.CommuteFailedSince[slot].Raw;
+
+        if (since == 0)
+        {
+            return null;
+        }
+
+        var first = new Ticks(since - 1);
+
+        return new FailingCommuteEvidence(first, new Ticks(first.Raw + world.Rules.Jobs.FailedCommuteDeadline.Raw));
+    }
+
+    private static CommuteEpisodeEvidence? LastCommuteEpisodeOf(World world, int slot)
+    {
+        var outcome = (CommuteEpisodeOutcome)world.Citizens.CommuteEpisodeOutcome[slot];
+
+        return outcome == CommuteEpisodeOutcome.None
+            ? null
+            : new CommuteEpisodeEvidence(
+                world.Citizens.CommuteEpisodeStartDay[slot], world.Citizens.CommuteEpisodeEndDay[slot], outcome);
     }
 
     /// <summary>

@@ -845,3 +845,13 @@ Both traces and `world-hash.txt` were regenerated with the commands above. Basel
 hashes and the hash seed are unchanged. No baseline Ruleset states
 `[jobs] dismissed_after_failed_commute_days`, so the column folds zeroes in every artifact here.
 `FailedCommuteClockTests` covers the running clock, the dismissal and save/reload.
+
+### Failed-commute episode record (10/13/2026)
+
+`citizen` gains three saved columns, `commute_episode_start_day`, `commute_episode_end_day` and
+`commute_episode_outcome`, which record a Citizen's most recent ended run of failed outbound
+commutes (`adr/0177`). Core save format goes to **20**. All three artifacts moved on the new columns.
+Both traces and `world-hash.txt` were regenerated with the commands above. Baseline Ruleset content
+hashes and the hash seed are unchanged. No baseline Ruleset states
+`[jobs] dismissed_after_failed_commute_days`, so the columns fold zeroes in every artifact here.
+`FailedCommuteClockTests` covers the recovered and dismissed records and save/reload.

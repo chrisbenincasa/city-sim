@@ -8440,14 +8440,19 @@ public sealed partial class World
             return;
         }
 
-        if (arrived)
-        {
-            Citizens.CommuteFailedSince[citizenSlot] = Ticks.Zero;
-            return;
-        }
-
         ulong now = Tick.Raw + 1;
         ulong since = Citizens.CommuteFailedSince[citizenSlot].Raw;
+
+        if (arrived)
+        {
+            if (since != 0)
+            {
+                EndCommuteEpisode(citizenSlot, since, CommuteEpisodeOutcome.Recovered);
+                Citizens.CommuteFailedSince[citizenSlot] = Ticks.Zero;
+            }
+
+            return;
+        }
 
         if (since == 0)
         {
@@ -8457,8 +8462,23 @@ public sealed partial class World
 
         if (now - since >= jobs.FailedCommuteDeadline.Raw)
         {
+            EndCommuteEpisode(citizenSlot, since, CommuteEpisodeOutcome.Dismissed);
             Dismiss(Citizens.Rows.At(citizenSlot));
         }
+    }
+
+    private void EndCommuteEpisode(int citizenSlot, ulong since, CommuteEpisodeOutcome outcome)
+    {
+        Citizens.CommuteEpisodeStartDay[citizenSlot] = SaturatedDay(since - 1);
+        Citizens.CommuteEpisodeEndDay[citizenSlot] = SaturatedDay(Tick.Raw);
+        Citizens.CommuteEpisodeOutcome[citizenSlot] = (byte)outcome;
+    }
+
+    private static ushort SaturatedDay(ulong tick)
+    {
+        long day = IntegerMath.FloorDiv((long)tick, Quantities.Ticks.PerDay);
+
+        return day >= ushort.MaxValue ? ushort.MaxValue : (ushort)day;
     }
 
     /// <summary>

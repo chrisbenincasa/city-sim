@@ -92,6 +92,9 @@ public sealed class CitizenTable
         LastTripFate = _rows.Saved<byte>("last_trip_fate", Touch.Cold);
         LastTripEndedDay = _rows.Saved<ushort>("last_trip_ended_day", Touch.Cold);
         CommuteFailedSince = _rows.Saved<Ticks>("commute_failed_since", Touch.Cold);
+        CommuteEpisodeStartDay = _rows.Saved<ushort>("commute_episode_start_day", Touch.Cold);
+        CommuteEpisodeEndDay = _rows.Saved<ushort>("commute_episode_end_day", Touch.Cold);
+        CommuteEpisodeOutcome = _rows.Saved<byte>("commute_episode_outcome", Touch.Cold);
 
         // Severable, for Workplace's reason and with one difference worth stating. A Car Park is on
         // somebody else's Building, so demolition frees it out from under this handle -- and a car
@@ -471,6 +474,29 @@ public sealed class CitizenTable
     /// <c>[jobs] dismissed_after_failed_commute_days</c> is stated.
     /// </remarks>
     public Column<Ticks> CommuteFailedSince { get; }
+
+    /// <summary>
+    /// The Day the most recent ended run of failed outbound commutes began. Read only when
+    /// <see cref="CommuteEpisodeOutcome"/> is not <see cref="Entities.CommuteEpisodeOutcome.None"/>.
+    /// </summary>
+    /// <remarks>
+    /// Days rather than Ticks, on <see cref="LastTripEndedDay"/>'s memory argument. It saturates at
+    /// 65,535 like that column.
+    /// </remarks>
+    public Column<ushort> CommuteEpisodeStartDay { get; }
+
+    /// <summary>The Day the most recent ended run of failed outbound commutes ended.</summary>
+    public Column<ushort> CommuteEpisodeEndDay { get; }
+
+    /// <summary>
+    /// How the most recent ended run of failed outbound commutes ended, as a
+    /// <see cref="Entities.CommuteEpisodeOutcome"/>.
+    /// </summary>
+    /// <remarks>
+    /// Only a completed commute and the deadline dismissal write it. A run cut short by a dismissal
+    /// for another cause or a change of job leaves the previous record standing.
+    /// </remarks>
+    public Column<byte> CommuteEpisodeOutcome { get; }
 
     /// <summary>
     /// The Car Park this Citizen's car is parked in, or an unresolving handle if it is parked in none.
