@@ -181,12 +181,22 @@ two 2×2-block districts, a gate on the near side, one bridge Segment. Measured 
     dismissal; afterwards the restored commute or the dismissal with its duration.
   - Business panel: how many workers cannot reach it, since when, each linked to its Household.
   - Building summary: a staffing line under the supply line for any Building that serves a Need.
-  - Not yet driven in the shell.
+  - Driven on 10/13/2026 from city saves of the bridge fixture at a 3-Day deadline: failing on
+    Day 4, repaired on Day 4 and read on Day 6, unrepaired and read on Day 8. The Household panel
+    read "Unable to reach work since Day 3, 1 Day ago · no route to work" and "Dismissal in 2 Days
+    if no commute completes", then "Commute restored on Day 5 after 2 Days of failed commutes" or
+    "Dismissed on Day 6 after 3 Days of failed commutes". Business 45 listed its 4 failing workers,
+    each linked to a Household. The unhired school from `ServiceStaffingTests` read "No staff · 0
+    of 4 posts filled, so it serves nobody" beside "No supply shortfalls reported".
+  - Observation exposed two defects, both fixed. The lines counted Days from 0 while the HUD clock
+    counts from 1. A re-hired Citizen's dismissal read as if the new employer had dismissed them,
+    so it now reads "Lost the previous job".
+  - The shell still numbers Days two ways: the HUD clock from 1, the Health panel and the debug
+    readout from 0. These panels follow the HUD clock.
 
 ## Next step
 
-Drive the readout on the bridge fixture in the shell: trigger, response and consequence, and the
-unstaffed school. Then the cut-off clock.
+The cut-off clock.
 
 ## Evidence and acceptance
 

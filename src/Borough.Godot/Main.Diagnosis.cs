@@ -80,12 +80,17 @@ public partial class Main
             : $"Staff: {workers:N0} of {posts:N0} posts filled";
     }
 
+    /// <summary>A Day as the HUD clock numbers it, counting from 1.</summary>
+    private static long ClockDay(ulong tick) => (long)(tick / (ulong)Ticks.PerDay) + 1;
+
+    private static string DayCount(long days) => days == 1 ? "1 Day" : $"{days:N0} Days";
+
     private string? CommuteReading(CitizenEvidence who)
     {
-        long today = (long)(_world.Tick.Raw / (ulong)Ticks.PerDay);
         if (who.FailingCommute is { } failing)
         {
-            long since = (long)(failing.Since.Raw / (ulong)Ticks.PerDay);
+            long since = ClockDay(failing.Since.Raw);
+            long elapsed = ClockDay(_world.Tick.Raw) - since;
             long left = failing.DismissalDue.Raw <= _world.Tick.Raw ? 0
                 : (long)((failing.DismissalDue.Raw - _world.Tick.Raw + (ulong)Ticks.PerDay - 1) / (ulong)Ticks.PerDay);
             string fate = who.LastTrip?.Fate switch
@@ -94,15 +99,18 @@ public partial class Main
                 TripFate.ExceededCommuteBudget => "the commute exceeds the budget",
                 _ => "the commute failed",
             };
-            return $"Unable to reach work for {today - since:N0} Days, since Day {since:N0} · {fate}\n"
-                + (left == 0 ? "Dismissed at the next failed commute" : $"Dismissal in {left:N0} Days if no commute completes");
+            return $"Unable to reach work since Day {since:N0}"
+                + (elapsed > 0 ? $", {DayCount(elapsed)} ago" : ", today") + $" · {fate}\n"
+                + (left == 0 ? "Dismissed at the next failed commute" : $"Dismissal in {DayCount(left)} if no commute completes");
         }
         if (who.LastCommuteEpisode is { } episode)
         {
-            int days = episode.EndDay - episode.StartDay;
+            long end = episode.EndDay + 1L;
+            string run = DayCount(episode.EndDay - episode.StartDay);
             return episode.Outcome == CommuteEpisodeOutcome.Recovered
-                ? $"Commute restored on Day {episode.EndDay:N0} after {days:N0} Days of failed commutes"
-                : $"Dismissed on Day {episode.EndDay:N0} after {days:N0} Days of failed commutes";
+                ? $"Commute restored on Day {end:N0} after {run} of failed commutes"
+                : who.Workplace.IsNone ? $"Dismissed on Day {end:N0} after {run} of failed commutes"
+                : $"Lost the previous job on Day {end:N0} after {run} of failed commutes";
         }
         return null;
     }
@@ -122,7 +130,7 @@ public partial class Main
             rows.Add(new($"Citizen {_world.Citizens.Rows.IdAt(citizen)} · Household {household} →", $"household {household}"));
         }
         rows.Insert(0, new($"{failing.Length:N0} {(failing.Length == 1 ? "worker cannot" : "workers cannot")} reach this workplace, "
-            + $"the first since Day {earliest / (ulong)Ticks.PerDay:N0}"));
+            + $"the first since Day {ClockDay(earliest):N0}"));
         sections.Add(new("commutes", "Workers who cannot reach work", true, rows));
     }
 }
