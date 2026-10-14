@@ -108,7 +108,7 @@ public sealed class BridgeCommuteProbe(ITestOutputHelper output)
 
         for (int day = 0; day < Days; day++)
         {
-            int lateEvening = (day * Ticks.PerDay) + (Ticks.PerDay * 18 / 24);
+            int lateEvening = (day * Ticks.PerDay) + Ticks.AtClock(23);
             (long Completed, long NoRoute, long OverBudget) before = (0, 0, 0);
 
             if (day == RemovedOnDay)
@@ -370,8 +370,10 @@ public sealed class BridgeCommuteProbe(ITestOutputHelper output)
 
     private static Ruleset Rules()
     {
-        string toml = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "congested.toml"))
-            .Replace("\n[layers]\n", "gives_up_after_days = 120\n\n[layers]\n", StringComparison.Ordinal)
+        string toml = Replaced(
+                File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "congested.toml")),
+                "\n[layers]\n",
+                "gives_up_after_days = 120\n\n[layers]\n")
             + "\n[[building]]\nname = \"port\"\narrivals_per_day = 1\n";
 
         RulesetLoadResult result = RulesetLoader.Parse(toml, "bridge.toml");
@@ -379,6 +381,12 @@ public sealed class BridgeCommuteProbe(ITestOutputHelper output)
         Assert.True(result.Ok, result.Describe());
 
         return result.Ruleset!;
+    }
+
+    private static string Replaced(string text, string old, string replacement)
+    {
+        Assert.Contains(old, text, StringComparison.Ordinal);
+        return text.Replace(old, replacement, StringComparison.Ordinal);
     }
 
     private static Command Lay(int column, int row, StreetAxis axis) => new(
