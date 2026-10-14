@@ -223,10 +223,13 @@ public partial class Main
                 double off = Math.Abs(Math.IEEERemainder(heading - candidate, 2 * Math.PI));
                 int angle = Math.Abs(count * _streetAngleDegrees) % 360;
                 if (tangent is null) angle = Math.Min(angle % 180, 180 - (angle % 180));
+
+                // The end rounds to a Tile, so a guide at the crossing minimum can land just under it.
+                if (fromStreet && angle > 0 && angle <= _world.Rules.Roads.MinCrossingAngleDegrees) continue;
                 if (off < best - 1e-9 || (off < best + 1e-9 && angle < stepped)) (best, snapped, stepped) = (off, candidate, angle);
             }
 
-            if (distance * Math.Sin(best) <= _streetReachTiles)
+            if (best < double.MaxValue && distance * Math.Sin(best) <= _streetReachTiles)
             {
                 (heading, target, degrees) = (snapped, SnapTarget.Angle, stepped);
                 distance *= Math.Cos(best);
