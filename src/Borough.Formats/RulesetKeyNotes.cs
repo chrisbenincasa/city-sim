@@ -199,6 +199,13 @@ public static class RulesetKeyNotes
             + "stock rather than failing stock. It counts Households and not tenants of any kind, "
             + "so a shop sitting in a dwelling does not keep the clock from starting. Absent means "
             + "a Building of this kind stands empty for ever.",
+        ["[[building]] abandoned_after_cut_off_days"] =
+            "How many Days a Building of this kind may stand with no road to any Outside Connection "
+            + "before the city abandons it. A Building is cut off when no foot or car path joins its "
+            + "Access Point to a gate's, or when it has no Access Point. The clock starts at the road "
+            + "edit that cuts it off and clears at the edit that reconnects it, and it never runs in "
+            + "a world with no Outside Connection. Requires collapses_after_days. Absent means a "
+            + "Building of this kind stands cut off for ever.",
         ["[[building]] collapses_after_days"] =
             "How many Days an abandoned Building stands as a shell before it collapses and the Lot "
             + "is clear again. Required of any kind that can be abandoned, because shells with no "
@@ -791,6 +798,10 @@ public static class RulesetKeyNotes
             "The longest working day. Staff share a start hour and so arrive together; they leave "
             + "spread over this band, which makes it the evening peak's whole width. Equal bounds "
             + "are a control rather than a mistake.",
+        ["[jobs] dismissed_after_failed_commute_days"] =
+            "How many Days a Citizen's outbound commutes may keep failing before the job is lost. "
+            + "The clock starts at the first failed commute, counts days off, and clears on the next "
+            + "completed one. Omit it and a failed commute never costs the job.",
         ["[jobs] arrive_early_max_minutes"] =
             "How far ahead of their Shift a Citizen may aim to arrive, in whole in-world minutes. "
             + "Start hours are on the hour, so without this the whole city departs on a handful of "

@@ -65,6 +65,10 @@
       "items": {
         "type": "object",
         "properties": {
+          "abandoned_after_cut_off_days": {
+            "description": "How many Days a Building of this kind may stand with no road to any Outside Connection before the city abandons it. A Building is cut off when no foot or car path joins its Access Point to a gate's, or when it has no Access Point. The clock starts at the road edit that cuts it off and clears at the edit that reconnects it, and it never runs in a world with no Outside Connection. Requires collapses_after_days. Absent means a Building of this kind stands cut off for ever.",
+            "type": "integer"
+          },
           "abandoned_when_empty_after_days": {
             "description": "How many Days a Building of this kind may house nobody before the city gives up on it. This reads occupancy where condemn_after_days reads failure, so it kills surplus stock rather than failing stock. It counts Households and not tenants of any kind, so a shop sitting in a dwelling does not keep the clock from starting. Absent means a Building of this kind stands empty for ever.",
             "type": "integer"
@@ -718,6 +722,10 @@
         },
         "candidates": {
           "description": "How many workplaces one Citizen looks at on one occasion. A person who sees three places with a vacancy and takes the first one near enough to walk to is satisficing, not optimising.",
+          "type": "integer"
+        },
+        "dismissed_after_failed_commute_days": {
+          "description": "How many Days a Citizen's outbound commutes may keep failing before the job is lost. The clock starts at the first failed commute, counts days off, and clears on the next completed one. Omit it and a failed commute never costs the job.",
           "type": "integer"
         },
         "experience_per_day": {

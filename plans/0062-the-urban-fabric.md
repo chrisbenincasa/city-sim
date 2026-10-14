@@ -89,6 +89,10 @@ arrangements and further shell controls remain later candidates, informed by the
 - How the legacy preview, painting, subdivision and road-edit paths adopt realised local layouts.
   Geographic site checks and atomic whole-vacant-Lot assembly are implemented; existing gameplay
   still uses block patterns. Road edits must preserve occupied merged sites and their access.
+- What a repaint to a higher intensity does to vacant Lots. Today a repaint changes only the
+  permission; `RecarveBlock` re-cuts a wholly vacant block upward but has no caller. Re-cutting at
+  paint time and assembling vacant Lots at construction are alternatives; a re-cut discards the
+  fine grain assembly builds from. The base Zone tool has no density band yet.
 - Saved intensity and form permissions versus the saved pattern and storeys already realised;
   floor-area limits, capacity and drawing must agree.
 

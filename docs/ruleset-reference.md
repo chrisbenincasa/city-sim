@@ -27,11 +27,11 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-53 sections, 381 keys.
+53 sections, 383 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
-- [`[[building]]`](#building) — 22 keys
+- [`[[building]]`](#building) — 23 keys
 - [`[[building]] bins`](#building-bins) — 4 keys
 - [`[[building]] bins reserve`](#building-bins-reserve) — 3 keys
 - [`[[business]]`](#business) — 17 keys
@@ -65,7 +65,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[housing_construction]`](#housing_construction) — 12 keys
 - [`[immigration]`](#immigration) — 4 keys
 - [`[income_tax]`](#income_tax) — 4 keys
-- [`[jobs]`](#jobs) — 14 keys
+- [`[jobs]`](#jobs) — 15 keys
 - [`[land_permissions]`](#land_permissions) — 1 key
 - [`[layers]`](#layers) — 20 keys
 - [`[lots]`](#lots) — 16 keys
@@ -136,6 +136,10 @@ The Goods this basket covers and the whole units one actor uses of each per Day,
 ## `[[building]]`
 
 *An array of tables — a file may declare this more than once.*
+
+**`abandoned_after_cut_off_days`** · *whole number*
+
+How many Days a Building of this kind may stand with no road to any Outside Connection before the city abandons it. A Building is cut off when no foot or car path joins its Access Point to a gate's, or when it has no Access Point. The clock starts at the road edit that cuts it off and clears at the edit that reconnects it, and it never runs in a world with no Outside Connection. Requires collapses_after_days. Absent means a Building of this kind stands cut off for ever.
 
 **`abandoned_when_empty_after_days`** · *whole number*
 
@@ -1282,6 +1286,10 @@ How far ahead of their Shift a Citizen may aim to arrive, in whole in-world minu
 **`candidates`** · *whole number*
 
 How many workplaces one Citizen looks at on one occasion. A person who sees three places with a vacancy and takes the first one near enough to walk to is satisficing, not optimising.
+
+**`dismissed_after_failed_commute_days`** · *whole number*
+
+How many Days a Citizen's outbound commutes may keep failing before the job is lost. The clock starts at the first failed commute, counts days off, and clears on the next completed one. Omit it and a failed commute never costs the job.
 
 **`experience_per_day`** · *whole number*
 

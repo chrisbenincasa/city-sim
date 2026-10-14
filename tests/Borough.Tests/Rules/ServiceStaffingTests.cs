@@ -1,4 +1,5 @@
 using System.Globalization;
+using Borough.Core;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
@@ -159,6 +160,40 @@ public sealed class ServiceStaffingTests
 
         Assert.Equal(0, world.DeclaredPlaces(school));
         Assert.True(world.Buildings.Rows.IsLive(school), "the school stopped standing.");
+    }
+
+    /// <summary>
+    /// <b>A school whose trade went bankrupt opens it again, empty.</b>
+    /// </summary>
+    /// <remarks>
+    /// The city places a school and nothing else ever recreates its trade, so without the reopening
+    /// a defunded school teaches nobody for the rest of the world. The new trade starts with an empty
+    /// till, so it hires nobody until the school is funded again.
+    /// </remarks>
+    [Fact]
+    public void A_school_whose_trade_went_bankrupt_opens_it_again_empty()
+    {
+        (World world, int school, int trade) = City(Insolvent);
+
+        Hire(world, trade, Jobs);
+
+        var simulation = new Simulation(world, Key) { VerifyDecideWritesNothing = false };
+        int bankrupted = 0;
+
+        for (int tick = 0; tick < 4 * Ticks.PerDay && bankrupted == 0; tick++)
+        {
+            simulation.Step(default);
+            bankrupted += simulation.LastPayroll.Bankrupted;
+        }
+
+        Assert.Equal(1, bankrupted);
+
+        int reopened = OwnTrade(world, school);
+
+        Assert.NotEqual(Rows.NoSlot, reopened);
+        Assert.Equal(0, world.Workers.Length(reopened));
+        Assert.Equal(0, world.Businesses.DaysInArrears[reopened]);
+        Assert.Equal(0, world.DeclaredPlaces(school));
     }
 
     /// <summary>
@@ -380,6 +415,22 @@ public sealed class ServiceStaffingTests
 
     /// <summary>A school whose kind comes with a teaching trade.</summary>
     private static readonly string Staffed = Fixture("business = \"tuition\"", Posts, JobRate);
+
+    /// <summary>The staffed school with a till, a daily wage and bankruptcy after one unpaid Day.</summary>
+    private static readonly string Insolvent = Staffed
+        .Replace(
+            "serves = \"education\"\n",
+            "serves = \"education\"\nbins = [ { resource = \"money\", owner = \"business\" } ]\n",
+            StringComparison.Ordinal)
+        .Replace(
+            "name = \"tuition\"\n",
+            "name = \"tuition\"\nwage_per_day = 1024\npay_period_days = 1\n"
+            + "goes_bankrupt_after_days_in_arrears = 1\n",
+            StringComparison.Ordinal)
+        .Replace(
+            "[[building]]\nname = \"dwelling\"",
+            "[[resource]]\nname = \"money\"\nfamily = \"money\"\n\n[[building]]\nname = \"dwelling\"",
+            StringComparison.Ordinal);
 
     /// <summary>
     /// The same school with no trade at all, which is every shipped school kind

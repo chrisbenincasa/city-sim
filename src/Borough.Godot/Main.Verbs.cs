@@ -45,6 +45,7 @@ public partial class Main
         }
 
         Command[] raised = [.. _queued];
+        SubmitGestures();
         _world.Changes?.Invalidate();
 
         // 🔴 THE ROAD GRAPH IS LAID ONCE AND A PLAYER CAN CHANGE IT, WHICH IS THE WHOLE DEFECT.
@@ -225,11 +226,19 @@ public partial class Main
         switch (_verb)
         {
             case Verb.Zone when _world.Rules.ZoneRules.Length > 0 || _zoneErase:
-                Send(new Command(
-                    _zoneParcels && OnLattice(at) ? CommandKind.ZoneParcel : CommandKind.Zone,
-                    at.East,
-                    at.North,
-                    ZonePermission()));
+                CommandKind painting = _zoneParcels && OnLattice(at)
+                    ? CommandKind.ZoneParcel : CommandKind.Zone;
+
+                // A queued Command has changed nothing yet, so the note still reads the paint the
+                // ground holds before this one lands.
+                var paint = new Command(painting, at.East, at.North, ZonePermission());
+
+                if (Send(paint))
+                {
+                    NoteZonePainted(paint);
+                    PushZoneStroke();
+                }
+
                 break;
 
             case Verb.Zone:
@@ -241,7 +250,11 @@ public partial class Main
                 break;
 
             case Verb.Connect:
+                // What the click queued is the gesture: a click that only placed a point queues
+                // nothing, and StreetPoint is the one door every lay goes through.
+                int queued = _queued.Count;
                 StreetPoint(at);
+                NoteStreetGesture(queued);
                 break;
 
             case Verb.Demolish:
@@ -381,6 +394,7 @@ public partial class Main
         if (refusal == Refusal.None)
         {
             _queued.Add(command);
+            NoteBarrier(command);
 
             return true;
         }
@@ -642,7 +656,9 @@ public partial class Main
 
         if (!_pressedInverted)
         {
+            int queued = _queued.Count;
             StreetPoint(to);
+            NoteStreetGesture(queued);
 
             return;
         }

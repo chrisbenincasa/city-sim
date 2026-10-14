@@ -30,6 +30,13 @@ public sealed class BaseFoundingPackageTests
     private const int SaveDay = 6;
     private const byte HousingZone = 1;
     private const byte TradeZone = 2;
+    private const int ActionDay = 45;
+    private const int RecoveryDays = 15;
+    private const int ShortageDays = 70;
+    private const int GovernedRebate = 384;
+
+    /// <summary>The Tick the shell opens a new city on, so a driven founding lays the same commands.</summary>
+    private static readonly ulong Opens = (ulong)Ticks.AtClock(8);
 
     [Fact]
     public void The_committed_founding_log_is_the_one_the_package_produces()
@@ -223,32 +230,57 @@ public sealed class BaseFoundingPackageTests
     }
 
     [Fact]
-    public void A_founded_city_saved_mid_run_continues_as_the_uninterrupted_one()
+    public void A_founded_city_saved_mid_run_continues_as_the_uninterrupted_one() =>
+        ResumesAsUninterrupted(Days, SaveDay);
+
+    [Fact]
+    [Trait(Tier.Key, Tier.Instrument)]
+    public void A_founded_city_saved_on_days_30_and_120_continues_as_the_uninterrupted_one() =>
+        ResumesAsUninterrupted(126, 30, 120);
+
+    /// <summary>
+    /// Saves and reloads the founded city on each of <paramref name="saveDays"/>, and matches every
+    /// daily State Hash to <paramref name="lastDay"/> against the run that never stopped.
+    /// </summary>
+    private static void ResumesAsUninterrupted(int lastDay, params int[] saveDays)
     {
         RulesetCapture capture = RulesetCapture.Read(PackagePath()).Capture!;
         Ruleset rules = RulesetSource.Resolve(capture).Ruleset!;
         InputLog log = InputLogCodec.FromText(Committed());
-        List<ulong> uninterrupted = DailyHashes(rules, log);
+        List<ulong> uninterrupted = DailyHashes(rules, log, lastDay);
 
-        Simulation first = Replay.Start(log, rules);
+        Simulation simulation = Replay.Start(log, rules);
         List<ulong> resumed = [];
-        Replay.Trace(first, log, new Ticks((ulong)SaveDay * Ticks.PerDay), hashEvery: Ticks.PerDay, resumed);
+        int day = 0;
 
+        foreach (int saveDay in saveDays)
+        {
+            Replay.Trace(
+                simulation, log, new Ticks((ulong)(saveDay - day) * Ticks.PerDay), hashEvery: Ticks.PerDay, resumed);
+            day = saveDay;
+            simulation = Reloaded(simulation, capture);
+        }
+
+        Replay.Trace(
+            simulation, log, new Ticks((ulong)(lastDay - day) * Ticks.PerDay), hashEvery: Ticks.PerDay, resumed);
+
+        Assert.Equal(uninterrupted, resumed);
+        simulation.World.Invariants.RunEndOfRun(simulation.World);
+    }
+
+    private static Simulation Reloaded(Simulation simulation, RulesetCapture capture)
+    {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".borough-city");
 
         try
         {
-            CitySave.Write(path, first.World, capture, Seed);
+            CitySave.Write(path, simulation.World, capture, Seed);
             SavedCity loaded = CitySave.Read(path);
-            var second = new Simulation(loaded.World, loaded.Header.Key);
+            var reloaded = new Simulation(loaded.World, loaded.Header.Key);
 
-            Assert.Equal(first.World.HashState(), second.World.HashState());
+            Assert.Equal(simulation.World.HashState(), reloaded.World.HashState());
 
-            Replay.Trace(
-                second, log, new Ticks((ulong)(Days - SaveDay) * Ticks.PerDay), hashEvery: Ticks.PerDay, resumed);
-
-            Assert.Equal(uninterrupted, resumed);
-            second.World.Invariants.RunEndOfRun(second.World);
+            return reloaded;
         }
         finally
         {
@@ -256,12 +288,79 @@ public sealed class BaseFoundingPackageTests
         }
     }
 
-    private static List<ulong> DailyHashes(Ruleset rules, InputLog log)
+    /// <summary>
+    /// Growth outruns the treasury and the school loses its teachers. One command cutting the housed
+    /// rebate restores them; the same city without it stays short.
+    /// </summary>
+    /// <remarks>
+    /// The rebate outgrows tax income as the city fills, and the school grant is paid after it, so
+    /// the grant is the first thing a short treasury stops. Nothing in the log stages the shortage.
+    /// </remarks>
+    [Fact]
+    public void Governing_the_rebate_down_restores_the_school_and_the_control_stays_short()
+    {
+        (Ruleset rules, _) = Package();
+        int rebate = PolicyNamed(rules, "housed_rebate");
+        int funding = PolicyNamed(rules, "school_funding");
+        string committed = Committed().TrimEnd('\n') + "\n";
+        string governed = committed
+            + $"{(ulong)ActionDay * Ticks.PerDay} govern {GovernedRebate} 0 {rebate}\n";
+
+        List<SchoolDay> control = SchoolDays(rules, committed, funding);
+        List<SchoolDay> recovered = SchoolDays(rules, governed, funding);
+
+        Assert.Contains(control.Take(ActionDay), day => day.FundingShort);
+        Assert.Equal(control.Take(ActionDay), recovered.Take(ActionDay));
+
+        foreach (SchoolDay day in control.Skip(ActionDay + RecoveryDays))
+        {
+            Assert.True(day.Teachers < day.Jobs, $"the control recovered: {day}");
+        }
+
+        foreach (SchoolDay day in recovered.Skip(ActionDay + RecoveryDays))
+        {
+            Assert.False(day.FundingShort, $"the school grant still went unpaid: {day}");
+            Assert.True(day.Teachers == day.Jobs, $"the school is short of teachers: {day}");
+        }
+    }
+
+    private readonly record struct SchoolDay(int Day, bool FundingShort, int Teachers, int Jobs);
+
+    private static List<SchoolDay> SchoolDays(Ruleset rules, string text, int funding)
+    {
+        InputLog log = InputLogCodec.FromText(text);
+        Simulation simulation = Replay.Start(log, rules);
+        byte teaching = Trade(rules, "teaching");
+        List<SchoolDay> days = [];
+
+        for (int day = 1; day <= ShortageDays; day++)
+        {
+            Replay.Trace(simulation, log, new Ticks(Ticks.PerDay), hashEvery: Ticks.PerDay, []);
+
+            World world = simulation.World;
+            int school = Assert.Single(
+                Enumerable.Range(0, world.Businesses.Rows.SlotCount),
+                slot => world.Businesses.Rows.IsLive(slot) && world.Businesses.Kind[slot] == teaching);
+
+            days.Add(new SchoolDay(
+                day,
+                simulation.Policies.RanShortAtLastFiring(funding),
+                world.Workers.Length(school),
+                world.DeclaredJobs(school)));
+        }
+
+        return days;
+    }
+
+    private static int PolicyNamed(Ruleset rules, string id) =>
+        Array.IndexOf(rules.PolicyKeys, ContentHash.Of(Encoding.UTF8.GetBytes(id)));
+
+    private static List<ulong> DailyHashes(Ruleset rules, InputLog log, int days = Days)
     {
         Simulation simulation = Replay.Start(log, rules);
         List<ulong> hashes = [];
 
-        Replay.Trace(simulation, log, new Ticks((ulong)Days * Ticks.PerDay), hashEvery: Ticks.PerDay, hashes);
+        Replay.Trace(simulation, log, new Ticks((ulong)days * Ticks.PerDay), hashEvery: Ticks.PerDay, hashes);
 
         return hashes;
     }
@@ -271,25 +370,28 @@ public sealed class BaseFoundingPackageTests
     /// then a gate on the first vacant edge Lot and a school on the first vacant inner one.
     /// </summary>
     /// <remarks>
-    /// Zoning follows the Streets by a Tick because the subdivider carves against standing faces.
-    /// The gate and school follow the zoning by a Tick, before the housing rule's first pass.
+    /// The Streets are laid at <see cref="Opens"/>, each a straight run across the whole grid, as
+    /// <c>scripts/ui/founding.drive</c> lays them with the Street tool. Each block is zoned at its
+    /// south-west corner, the Tile the zone tool sends for a lattice block. Zoning follows the Streets by a
+    /// Tick because the subdivider carves against standing faces. The gate and school follow the
+    /// zoning by a Tick, before the housing rule's first pass.
     /// </remarks>
     private static InputLog Founding(Ruleset rules, ulong hash)
     {
         InputLogBuilder builder = Opening(hash);
         Simulation scout = Replay.Start(builder.Build(), rules);
 
-        Replay.Trace(scout, builder.Build(), new Ticks(3), hashEvery: 1, []);
+        Replay.Trace(scout, builder.Build(), new Ticks(Opens + 2), hashEvery: 1, []);
 
         World world = scout.World;
         int gate = FirstVacant(world, onEdge: true, avoid: -1);
         int school = FirstVacant(world, onEdge: false, avoid: gate);
 
         builder.Append(
-            new Ticks(3),
+            new Ticks(Opens + 2),
             Command.Gate(world.Lots.East[gate], world.Lots.North[gate], KindArriving(rules)));
         builder.Append(
-            new Ticks(3),
+            new Ticks(Opens + 2),
             Command.Service(world.Lots.East[school], world.Lots.North[school], KindServing(rules, Need.Education)));
 
         return builder.Build();
@@ -302,20 +404,16 @@ public sealed class BaseFoundingPackageTests
 
         builder.Append(Ticks.Zero, new Command(CommandKind.Ground, default, default));
 
+        int span = Blocks * block;
+
         for (int row = 0; row <= Blocks; row++)
         {
-            for (int column = 0; column < Blocks; column++)
-            {
-                builder.Append(new Ticks(1), Lay(block, column, row, StreetAxis.East));
-            }
+            builder.Append(new Ticks(Opens), Straight(0, row * block, span, row * block));
         }
 
         for (int column = 0; column <= Blocks; column++)
         {
-            for (int row = 0; row < Blocks; row++)
-            {
-                builder.Append(new Ticks(1), Lay(block, column, row, StreetAxis.North));
-            }
+            builder.Append(new Ticks(Opens), Straight(column * block, 0, column * block, span));
         }
 
         for (int column = 0; column < Blocks; column++)
@@ -323,11 +421,11 @@ public sealed class BaseFoundingPackageTests
             for (int row = 0; row < Blocks; row++)
             {
                 builder.Append(
-                    new Ticks(2),
+                    new Ticks(Opens + 1),
                     new Command(
                         CommandKind.Zone,
-                        new Tiles((column * block) + (block / 2)),
-                        new Tiles((row * block) + (block / 2)),
+                        new Tiles(column * block),
+                        new Tiles(row * block),
                         zone: IsTrade(column, row) ? TradeZone : HousingZone));
             }
         }
@@ -338,11 +436,8 @@ public sealed class BaseFoundingPackageTests
     private static bool IsTrade(int column, int row) =>
         (column, row) is (1, 1) or (2, 2) or (3, 0);
 
-    private static Command Lay(int block, int column, int row, StreetAxis axis) => new(
-        CommandKind.Connect,
-        new Tiles(column * block),
-        new Tiles(row * block),
-        new ConnectPayload(axis, ConnectAction.Lay, RoadKind.Street).Encode());
+    private static Command Straight(int east, int north, int endEast, int endNorth) => Command.Street(
+        new Tiles(east), new Tiles(north), new Tiles(endEast), new Tiles(endNorth), new SubTiles(0));
 
     private static int FirstVacant(World world, bool onEdge, int avoid)
     {

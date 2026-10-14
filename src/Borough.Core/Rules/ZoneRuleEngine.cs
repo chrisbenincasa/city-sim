@@ -1005,7 +1005,7 @@ public sealed class ZoneRuleEngine
             // ⚠ The city no longer removes anything. What clears an abandoned Building is adr/0091's
             // Demolish verb or its Govern clearance programme, and until one of those ships the stock
             // has no sink -- which is milestone 17's named risk arriving, deliberately, here.
-            _world.AbandonBuilding(_world.Buildings.Rows.At(building), tick);
+            _world.AbandonBuilding(_world.Buildings.Rows.At(building), tick, AbandonmentCause.Condemned);
             _tickDemolished++;
 
             // Abandonment ends every tenancy in the Building, through EmptyPremises' own walk of the
@@ -1041,7 +1041,7 @@ public sealed class ZoneRuleEngine
                     kind,
                     ConditionId.None);
 
-                _world.AbandonBuilding(_world.Buildings.Rows.At(building), tick);
+                _world.AbandonBuilding(_world.Buildings.Rows.At(building), tick, AbandonmentCause.StoodEmpty);
                 _tickDemolished++;
 
                 return;

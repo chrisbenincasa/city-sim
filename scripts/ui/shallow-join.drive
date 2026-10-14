@@ -1,0 +1,19 @@
+# A Street that meets another at 31° is laid with snapping on (#154).
+#
+# godot --path src/Borough.Godot -- --empty --citizens 1000 --drive scripts/ui/shallow-join.drive
+#
+# The angle guide must not pull the second Street onto the 30° crossing minimum, where the end's
+# rounding to a Tile can leave it just under and the core refuses it. The second Street waits a
+# Tick so the guide measures from the first one.
+
+256 hold street
+256 click 300 300
+256 click 428 300
+
+258 click 300 300
+258 click 410 366
+
+260 pause
+260 readout artifacts/shallow-join/laid.txt
+260 draw artifacts/shallow-join/laid.tsv
+260 quit

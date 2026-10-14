@@ -1,0 +1,43 @@
+tick 90752
+ruleset.toml   Tick 90,752   Day 44   Wednesday   12:30
+Citizens 1,687   Buildings 125   vacant Lots 3   travelling 0
+At work 833   Shopping 1 Households   Goods being carried 0
+speed paused   mode look   [ ] speed, space pause, w write log, g roads, c cells, tab tune
+click acts   right-drag or two-finger scroll pans   edge of screen pans   pinch or -/= zooms   q/e turns   r/f tilts   l lens   o overlay
+hover —
+School · 0 Households · 1 Business · No supply shortfalls reported
+debug —
+Tile (10, 28)    Cell (0, 0)
+Terraced house — 4 of 5 occupied, 12 Tiles off
+    mill
+Lot 7, future uses 0x0001 across the whole site
+ground: rock
+pollution 0    land value -9,498    sealing 504
+District 1
+inspector —
+School
+SELECTED BUILDING · 2
+Current condition
+No supply shortfalls reported
+Occupied places: 1 / 7
+What needs attention
+No supply shortfalls reported.
+Activities
+No other activities reported.
+Teaching capacity
+Places: 0 a Day, on a floor built for 40
+Attended today: 32
+Staff: 0 of 5 posts filled
+Households · 0
+No Households live here.
+Businesses · 1
+teaching · Business 1 →
+Workers · 0
+No workers.
+Stocks
+No stocks reported.
+ui theme=dark debug=False visible=True scroll=0
+inspector (1170, 104), (406, 711) min=(125, 130)
+body (1190, 218), (358, 2760) min=(50, 602)
+scroll (1190, 218), (366, 581) min=(58, 0)
+hover (40, 915), (1025, 49) debug (24, 264), (840, 36) console (24, 839), (1057, 137)

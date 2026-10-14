@@ -534,9 +534,11 @@ public partial class Main
             return;
         }
         if (ZoningAction(words)) return;
+        if (UndoAction(words)) return;
         if (StreetAction(words)) return;
         if (CityEvidenceAction(words)) return;
         if (BudgetAction(words)) return;
+        if (GovernAction(words)) return;
         if (HinterlandAction(words)) return;
         switch (words[0])
         {
@@ -849,7 +851,7 @@ public partial class Main
                 GetWindow().Mode = Window.ModeEnum.Windowed;
                 GetWindow().Size = new Vector2I(w, h);
                 break;
-            default: _refused = "ui: use health, close, back, theme light|dark, debug on|off, tools on|off, layers on|off, building ID, road ID, frontage ID, household ID, section KEY on|off, point EAST NORTH, scroll PIXELS, read PATH, press X Y, or size WIDTH HEIGHT (minimum 1280 × 800)."; break;
+            default: _refused = "ui: use health, close, back, govern POLICY AMOUNT, theme light|dark, debug on|off, tools on|off, layers on|off, building ID, road ID, frontage ID, household ID, section KEY on|off, point EAST NORTH, scroll PIXELS, read PATH, press X Y, or size WIDTH HEIGHT (minimum 1280 × 800)."; break;
         }
         LayoutInformation();
     }
@@ -923,8 +925,18 @@ public partial class Main
         if (_roadHover is not null) _roadHover.Visible = false;
         if (Aim() is not { } at) return "Outside the map";
         if (_verb == Verb.Zone)
+        {
+            if (!OnLattice(at))
+                return $"{FreeformPreviewText(at)} · {ZoneName()} · "
+                    + (_zoneStart is not null ? "release to apply; Escape cancels"
+                        : _zoneFeedback.Length > 0 ? _zoneFeedback : "click a block or Street side");
+            if (!_zoneParcels)
+                return $"{WholeBlockPreviewText(at)} · {ZoneName()} · "
+                    + (_zoneStart is not null ? "release to apply; Escape cancels"
+                        : _zoneFeedback.Length > 0 ? _zoneFeedback : "drag a rectangle of whole blocks");
             return _zoneStart is not null ? $"{ZoneSelectionCount()} {(_zoneParcels ? "parcels" : "blocks")} · {ZoneName()} · release to apply; Escape cancels"
                 : _zoneFeedback.Length > 0 ? _zoneFeedback : $"{ZoneName()} · {(_zoneParcels ? "click a parcel or drag an area" : "drag a rectangle of whole blocks")}";
+        }
         if (_verb == Verb.Connect) return StreetSynopsis(at);
         var picked = PickInformation();
         if (_world.Roads.Segments.Rows.TryResolve(picked.Road, out int road))
@@ -1086,9 +1098,11 @@ public partial class Main
         int businesses = _world.BuildingBusinesses.Length(slot);
         int occupants = evidence.Occupants.Length + businesses;
         sections.Add(new("summary", "Current condition", true,
-        [new(_world.Buildings.IsAbandoned(slot) ? "Abandoned" : evidence.IsDeclared ? "Occupied places: " + occupants + " / " + evidence.DeclaredOccupancy : "Kind no longer declared")]));
+        [new(_world.Buildings.IsAbandoned(slot) ? AbandonedSummary(slot) : evidence.IsDeclared ? "Occupied places: " + occupants + " / " + evidence.DeclaredOccupancy : "Kind no longer declared")]));
         sections[0] = new("summary", "Current condition", true,
             [new(SupplySummary(Evidence.SupplyOfBuilding(_world, _selectedBuilding))), sections[0].Rows[0]]);
+        if (StaffingSummary(slot) is { } staffing) sections[0].Rows.Insert(1, new(staffing));
+        if (CutOffSummary(_selectedBuilding) is { } cutOff) sections[0].Rows.Insert(1, new(cutOff));
         sections.Add(Attention(evidence, default, false));
         sections.Add(Attention(evidence, default, false, true));
         AddFacilityHealth(sections, slot);
@@ -1250,6 +1264,7 @@ public partial class Main
             citizens.Add(new($"Citizen {_world.Citizens.Rows.IdAt(member)}\n{trip}"));
             citizens.Add(new(work + (who.Workplace.IsNone ? "" : " →"), who.Workplace.IsNone
                 ? null : $"business {RowId(_world.Businesses.Rows, who.Workplace)}"));
+            if (CommuteReading(who) is { } commute) citizens.Add(new(commute));
         }
         if (citizens.Count == 0) citizens.Add(new("No Citizens in this Household."));
         sections.Add(new("citizens", "Citizens", true, citizens));
@@ -1356,6 +1371,8 @@ public partial class Main
                 Blocks = _zoneParcels ? 0 : ZoneSelectionCount(),
                 Parcels = _zoneParcels ? ZoneSelectionCount() : 0,
                 Unit = _zoneParcels ? "parcels" : "blocks",
+                Lots = _verb == Verb.Zone && Aim() is { } aim && !(_zoneParcels && OnLattice(aim)) ? ZonePlots(aim).Count : 0,
+                Carves = _zoneCarves,
                 Erasing = _zoneErase,
                 Feedback = _zoneFeedback
             },

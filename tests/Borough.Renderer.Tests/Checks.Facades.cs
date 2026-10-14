@@ -33,7 +33,7 @@ public partial class Checks
         Require(!FacadeAppearance.HasShopfront(world, sample), "work premises without commercial Goods storage do not invent a shopfront");
         Require(world.HashState() == hash, "reading facade appearance changes no State Hash");
         var building = world.Buildings.Rows.At(sample);
-        world.AbandonBuilding(building, new Ticks(1));
+        world.AbandonBuilding(building, new Ticks(1), AbandonmentCause.Condemned);
         Require(FacadeAppearance.Occupancy(world, sample) == 0, "abandoned facade has no occupied openings");
 
         // The shader decodes this contract independently of paint or debug wash.

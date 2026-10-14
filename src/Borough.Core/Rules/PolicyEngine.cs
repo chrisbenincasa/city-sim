@@ -167,6 +167,8 @@ public sealed class PolicyEngine
     private MoneyFlow _toTreasuryFlow;
     private MoneyFlow _fromTreasuryFlow;
 
+    private bool[] _shortAtLastFiring = [];
+
     /// <param name="world">The tables this sweeps, and the Ruleset it sweeps under. Not copied.</param>
     /// <param name="key">The world seed, as the scan start's first coordinate.</param>
     public PolicyEngine(World world, WorldKey key)
@@ -209,6 +211,11 @@ public sealed class PolicyEngine
     {
         PolicyDefinition[] policies = _world.Rules.Policies;
 
+        if (_shortAtLastFiring.Length != policies.Length)
+        {
+            _shortAtLastFiring = new bool[policies.Length];
+        }
+
         for (int policy = 0; policy < policies.Length; policy++)
         {
             PolicyDefinition definition = policies[policy];
@@ -239,6 +246,7 @@ public sealed class PolicyEngine
             }
 
             _tickTriggers++;
+            _shortAtLastFiring[policy] = false;
 
             SweepMembers(policy, definition, tick);
         }
@@ -321,11 +329,20 @@ public sealed class PolicyEngine
                 if (payerDry)
                 {
                     _tickExhausted++;
+                    _shortAtLastFiring[policy] = true;
                     return;
                 }
             }
         }
     }
+
+    /// <summary>Whether the treasury ran dry during <paramref name="policy"/>'s most recent sweep.</summary>
+    /// <remarks>
+    /// Engine memory rather than world state, so a reloaded world reads false until the Policy next
+    /// fires. Nothing in the simulation reads it.
+    /// </remarks>
+    public bool RanShortAtLastFiring(int policy) =>
+        policy >= 0 && policy < _shortAtLastFiring.Length && _shortAtLastFiring[policy];
 
     /// <summary>Whether this Policy applies to the member in <paramref name="slot"/>.</summary>
     /// <remarks>

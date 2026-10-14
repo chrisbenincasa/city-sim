@@ -1,7 +1,7 @@
 # Freeform local Streets with road-aligned Lots
 
 State: complete. Slices 1 to 9 are built. The acceptance checks pass on lattice-zoned and
-freeform ground. Wedge use remains open.
+freeform ground. Wedge use belongs to the board row "Building entrances and usable open ground".
 Survey of current code done 09/27/2026 against `main` at `919290a5`.
 
 ## Outcome
@@ -14,7 +14,7 @@ Blocks coordinate Lot layout and the interior; they do not require one long Buil
 a courtyard in every block. Existing Lots and Buildings stay fixed when a new Street closes a
 loop. The new block layout uses only the remaining unallocated ground.
 
-Curves can leave wedge land; its use remains a design decision. Freeform local Streets require
+Curves can leave wedge land; its use belongs to the board row "Building entrances and usable open ground". Freeform local Streets require
 amending [`adr/0014`](../docs/adr/0014-grid-streets-with-freeform-arterials.md), which still snaps
 Streets to the Tile grid.
 
@@ -232,10 +232,6 @@ Decided 10/08/2026.
 | Price | Free. Removal displaces nobody and laying charges nothing to refund. Per-Segment upkeep stops with the row |
 | Travellers on the Segment | Out of scope. The lattice bulldoze has the same gap ([#132](https://github.com/chrisbenincasa/city-sim/issues/132)) |
 
-### Remaining design decisions
-
-1. **Wedge use.** Leave open, give to the adjacent Lot as yard, or allow parks.
-
 ## Acceptance checks
 
 - A loop with a dead-end spur produces a coordinated block interior and roadside Lots outside
@@ -321,8 +317,9 @@ Lot's own Tiles. Parcel mode in the shell stays on the lattice. The demonstratio
 U that a later Street closes. Zoning made 66 Lots and `people` raised 61 Buildings. After the
 closure, zoning the new face painted its interior and added Lots.
 `FreeformStreetsAcceptanceTests` replays that layout without `people`.
-A carver defect remains. At an acute corner the last plot on a side can cross the adjacent Street,
-and that Lot is only partly painted and never builds.
+A plot that would reach another Street's ground is dropped (#124). A turned plot is created only
+when its whole ground is painted, so a Street-side Zone near a second Street leaves no partly
+painted Lot that never builds (#152).
 Slice 8 is built. X cycles straight, simple curve, continuous and grid. U lays a parallel Street
 and I flips its side. Ctrl held lays a curve or continuous Street straight. The batch modes need no
 Core or Input Log change. The driven run on `--empty` ground at 1,000 Citizens laid a 3 × 3 grid,

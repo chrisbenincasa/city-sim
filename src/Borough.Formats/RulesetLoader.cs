@@ -3172,6 +3172,29 @@ public static class RulesetLoader
                     emptyAfterTicks = InTicks(empties);
                 }
 
+                // adr/0177: a Building no road joins to an Outside Connection. Absent means a kind
+                // stands cut off for ever, which is what every Ruleset before this key meant.
+                int cutOffAfterTicks = 0;
+
+                bool statesCutOff = TryInteger(
+                    table, "abandoned_after_cut_off_days", out long cutOffDays, required: false, name);
+
+                if (statesCutOff && (cutOffDays <= 0 || cutOffDays > ushort.MaxValue))
+                {
+                    Refuse(
+                        LineOf((SyntaxNodeBase?)Find(table, "abandoned_after_cut_off_days") ?? table),
+                        name,
+                        $"abandoned_after_cut_off_days is {cutOffDays}. It is how many Days a Building "
+                        + "of this kind may stand with no road to an Outside Connection before the city "
+                        + "abandons it, so it must be between 1 and 65,535. Omit it for a kind that "
+                        + "stands cut off for ever.");
+                    statesCutOff = false;
+                }
+                else if (statesCutOff)
+                {
+                    cutOffAfterTicks = InTicks(cutOffDays);
+                }
+
                 int collapsesAfterDays = 0;
 
                 bool statesCollapse =
@@ -3181,13 +3204,14 @@ public static class RulesetLoader
                 // abandon a Building and either of them leaves a shell, so the sink is owed if
                 // EITHER is stated; it is refused only when NEITHER is, because then nothing can
                 // abandon anything and the duration would never be read.
-                bool canBeAbandoned = condemnAfterTicks > 0 || emptyAfterTicks > 0;
+                bool canBeAbandoned = condemnAfterTicks > 0 || emptyAfterTicks > 0 || cutOffAfterTicks > 0;
 
                 if (canBeAbandoned && !statesCollapse)
                 {
                     Refuse(
                         LineOf((SyntaxNodeBase?)Find(table, "condemn_after_days")
                             ?? (SyntaxNodeBase?)Find(table, "abandoned_when_empty_after_days")
+                            ?? (SyntaxNodeBase?)Find(table, "abandoned_after_cut_off_days")
                             ?? table),
                         name,
                         $"'{name}' can abandon a Building and states no collapses_after_days. A kind "
@@ -3199,8 +3223,9 @@ public static class RulesetLoader
                 if (!canBeAbandoned && statesCollapse)
                 {
                     Refuse(LineOf((SyntaxNodeBase?)Find(table, "collapses_after_days") ?? table), name,
-                        $"'{name}' states collapses_after_days and neither condemn_after_days nor "
-                        + "abandoned_when_empty_after_days, so nothing can ever abandon a Building of "
+                        $"'{name}' states collapses_after_days and none of condemn_after_days, "
+                        + "abandoned_when_empty_after_days and abandoned_after_cut_off_days, so nothing "
+                        + "can ever abandon a Building of "
                         + "this kind and the duration would never be read. Omit it, or state a "
                         + "threshold that makes it mean something.");
                 }
@@ -3479,6 +3504,7 @@ public static class RulesetLoader
                     ShedsOccupantAfterTicks = shedsAfterTicks,
                     CollapsesAfterDays = collapsesAfterDays,
                     AbandonedWhenEmptyAfterTicks = emptyAfterTicks,
+                    AbandonedAfterCutOffTicks = cutOffAfterTicks,
                     Houses = houses,
                     Premises = premises,
                     Parked = parked,
@@ -8853,6 +8879,7 @@ public static class RulesetLoader
             (int tier2Labour, int tier3Labour) =
                 ReadTierPercent("labour_tier_percent", "labour_per_day");
             int labourPremiumPercent = ReadExperiencePremiumPercent("labour_experience_premium_percent");
+            int failedCommuteDays = ReadFailedCommuteDays();
 
             RefuseShiftShorterThanTheBudget(shiftMin);
 
@@ -8860,7 +8887,33 @@ public static class RulesetLoader
                 interval, revisit, candidates, shiftMin, shiftMax, early,
                 tier2Wage, tier3Wage, experiencePerDay, tier2Experience,
                 unschooledExperiencePercent, experiencePremiumPercent,
-                labourPerDay, tier2Labour, tier3Labour, labourPremiumPercent);
+                labourPerDay, tier2Labour, tier3Labour, labourPremiumPercent,
+                failedCommuteDays);
+        }
+
+        /// <summary>
+        /// How many Days of failed outbound commutes cost a Citizen the job —
+        /// <c>dismissed_after_failed_commute_days</c>, optional. Absent turns the clock off.
+        /// </summary>
+        private int ReadFailedCommuteDays()
+        {
+            const string key = "dismissed_after_failed_commute_days";
+
+            if (!TryInteger(_jobsTable!, key, out long days, required: false))
+            {
+                return 0;
+            }
+
+            if (days < 1 || days > ushort.MaxValue)
+            {
+                Refuse(LineOfJob(key), null,
+                    $"{key} is {days}. It is how many Days a Citizen's outbound commutes may keep "
+                    + $"failing before the job is lost, so it is 1 to {ushort.MaxValue}. Omit the key "
+                    + "for a city where a failed commute never costs the job.");
+                return 0;
+            }
+
+            return (int)days;
         }
 
         // ---- households -------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 # First playable founding loop
 
-Board row: First playable founding loop.
+Status: built. All six slices are merged or in review, and every acceptance check below is met.
 Builds on: [0073 arrivals](0073-the-city-attracts-people.md), [0070 city spending](0070-the-city-spends.md),
 [labour-bound production](private-production-and-labour.md) (PR #105), [0075 viability](0075-base-game-ruleset-viability.md).
 
@@ -46,7 +46,7 @@ Out of scope:
 |---|---|
 | Exports and Money entering from outside | [export-base](export-base.md) slice 2 |
 | Charging for Streets and zoning | Infrastructure construction, wear and renewal |
-| Faster construction gestures and rezoning | Player construction tools |
+| Faster construction gestures and rezoning | [Player construction tools](construction-tools.md), done; rezoning in [0062](0062-the-urban-fabric.md#decisions-still-needed) |
 | Freeform Streets and road-aligned Lots | Freeform local Streets |
 | Notifications | Trajectory notifications and persistent Pins |
 | Integrated execution replacing the Ruleset lowering | [0077](0077-ruleset-source-loading.md) item 3. It gates the first *release*, not this loop |
@@ -59,7 +59,7 @@ Out of scope:
 | D1 | Where do sundries come from? | (a) The labour chain from `milled.toml`: mill → flour → shop bakes → Households buy. (b) Priced imports only | (a), with a priced import at the gate edge as the expensive fallback. Imports alone drain Money every purchase and make the city a pass-through |
 | D2 | Where does a zone-raised Business get its opening Money? | (a) The treasury pays a Ruleset-declared opening grant, refused when the treasury is short. (b) A founder Household capitalises it, as `Found` does. (c) New Money is minted at opening | (a). It conserves Money and gives the treasury a growth cost the player feels. (b) needs zoning and founding to be reconciled. (c) adds a Money door outside export-base |
 | D3 | How does Business surplus return to circulation? | (a) `[business_tax]` to the treasury. (b) A dividend to an owner Household. (c) Leave it and accept accumulation | (a). It exists, it is daily, and it closes the loop through school funding and wages. Check in the long run whether tills stay bounded. Revisit with private capital |
-| D4 | Which shortage does the acceptance run show? | (a) Treasury squeeze. Growth raises school funding past tax income, teachers go unpaid, and the school closes places. The fix is Tax or Fund. (b) Supply break. A cut Street starves shops. The fix is relaying the Street. (c) School places. Growth fills the school. The fix is placing a second one | (a). Growth causes it, so the player did not stage it, and it uses the levers base already has. (b) is a player-caused break. (c) needs a school-place episode record that does not exist |
+| D4 | Which shortage does the acceptance run show? | (a) Treasury squeeze. Growth raises school funding past tax income, teachers go unpaid, and the school closes places. The fix is Tax or Fund. (b) Supply break. A cut Street starves shops. The fix is relaying the Street. (c) School places. Growth fills the school. The fix is placing a second one | (a), restated 10/12/2026: growth raises the treasury's outflows, not school funding. School funding is fixed by floor area. The housed rebate grows with the city, and the school grant is paid after it, so a short treasury stops the grant first. The fix is `govern` on the rebate, because `fund` accepts only subsidy Policies. (b) is a player-caused break. (c) needs a school-place episode record that does not exist |
 | D5 | Road upkeep in base? | On / off | On. The code exists. It gives the treasury a cost that scales with the network |
 
 D1 to D3 fix the Money circuit that slices 2–4 build. D4 fixes the shortage that slice 5 demonstrates.
@@ -91,13 +91,13 @@ Each slice is one PR. [Execution](#execution) gives the order and which slices r
 4. **Continued operation.** Tune provisional numbers until the 120-Day run meets the operation
    checks below, and confirm the result holds to Day 200. Record the run's command, seed and
    measurements in this plan. Built; [slice 4 record](#slice-4-record).
-5. **Shortage and recovery (D4).** A headless test pairs an intervention run with a control.
-   If D4 needs an elapsed episode that does not exist, coordinate it with row 30 (decline and recovery),
-   which owns failure-duration semantics.
-6. **Driven demonstration.** From the shell's "New empty city", drive the founding commands, then the
-   shortage, the player's action and the recovery. Record what observation exposed. Run this after
-   freeform slice 5 lands, or plan to re-record. Freeform replaces the Street command and the Lot layer
-   that `founding.borough` and the drive script use.
+5. **Shortage and recovery (D4).** Built; [slice 5 record](#slice-5-record). A headless test pairs
+   an intervention run with a control. It samples the school each Day and defines no episode,
+   because row 30 (decline and recovery) owns failure-duration semantics.
+6. **Driven demonstration.** Built; [slice 6 record](#slice-6-record). `scripts/ui/founding.drive`
+   founds the city from "New empty city" with the shell's tools, then shows the shortage, the
+   player's action and the recovery. Its Input Log is `founding.borough`, which is re-recorded with
+   `street` commands for it.
 
 ## City income record (slice 3b)
 
@@ -219,6 +219,129 @@ Founding log, seed `0x135283C`, committed base, 400 Days. Command:
   full list of working shops hears of a new one only after its own shops fail, so late entrants
   sell little. This likely feeds the remaining unpaid wages and is not addressed here.
 
+## Slice 5 record
+
+Growth empties the treasury by Day 35, and the school has no teachers by Day 45. Governing the
+housed rebate from 640 to 384 on Day 45 restores all 5 teachers within 15 Days. Without the
+command the school stays short through Day 400.
+
+### Engine changes
+
+| Change | Test |
+|---|---|
+| A service trade that goes bankrupt reopens at once in its Building, with an empty till. Before, nothing recreated it, and a founded mill or grocer could take the school's unit | `A_school_whose_trade_went_bankrupt_opens_it_again_empty` |
+| The Policy engine reports which Policies the treasury ran short on at their last firing. This is engine memory, not saved state, so a reloaded world reads false until each Policy next fires | `A_rebate_the_treasury_cannot_cover_is_named_as_short` |
+| The city evidence panel lists each Policy the treasury could not pay in full, and whom it pays | Driven on the Day 50 control save: both `housed_rebate` and `school_funding` are listed |
+
+### Base content
+
+Changes from slice 4's base:
+
+- The housed rebate is one application per housed Household of 640, up from 384. `govern` sets
+  that amount directly.
+- `school_funding` is order 5, after the rebate. It pays 1,280 per declared job, a quarter above the
+  wage, which covers the 5% levy on the school's till. At 1,024 the school was in arrears on 14 of
+  120 Days with a full treasury.
+
+### Measurements
+
+Re-measured in slice 6 on the re-recorded log, which founds the same grid with `street` commands
+from Tick 256. Founding log, seed `0x135283C`, committed base, 400 Days. Control:
+`spikes/FoundingProbe/tuning/tune.sh control 400 ""`. Governed: the same log with
+`92160 govern 384 0 2` appended (Day 45, Policy 2 is `housed_rebate`).
+
+| Day | 5 | 15 | 25 | 30 | 35 | 40 | 45 |
+|---|---|---|---|---|---|---|---|
+| Treasury | 3,052,853 | 2,065,607 | 917,265 | 417,433 | 0 | 0 | 0 |
+| Teachers (of 5) | 3 | 5 | 5 | 5 | 5 | 4 | 0 |
+
+| Measure, governed city | Result |
+|---|---|
+| Teachers back to 5 | Day 54 |
+| Employed, Days 30–120 | 715–969 |
+| Households, Days 30–120 | 616–810 |
+| Businesses, Days 30–120 | 242–361 |
+| Business tills, Days 60–400 | 2.0M–3.0M, no trend |
+| Treasury, Days 60–400 | 0.4M–2.0M, no trend |
+| Money supply, Days 60–400 | 5.2M–6.5M |
+| Unpaid share of wages after Day 60 | 9.1% |
+| Bankruptcies | 124 |
+
+In the control, the school is short of teachers on every Day from 46 to 400.
+
+### Findings
+
+- Household balances in the governed city drift down, from 2.9M on Day 100 to 2.0M on Day 400,
+  while the tills and the treasury hold. The money supply stays inside slice 4's band.
+- The governed school still drops below 5 teachers on 54 Days after Day 46, as workers quit and
+  are replaced. The acceptance test checks Days 61–70 only.
+- The evidence panel names the short Policy but not what outgrew tax income. The budget panel's
+  flows carry that.
+- The panel said `housed_rebate` "did not pay all households". Slice 6 makes it say "housed
+  households" for a Policy whose apply count scales by the `housed` Readout.
+
+## Slice 6 record
+
+`scripts/ui/founding.drive` plays the whole loop from "New empty city" with the shell's own tools.
+The session's Input Log is `founding.borough` with `92160 govern 384 0 2` appended, byte for byte,
+so the driven city is the city `BaseFoundingPackageTests` measures headless.
+
+```sh
+godot --path src/Borough.Godot -- --empty --seed 0x135283C --citizens 2000 \
+  --drive scripts/ui/founding.drive
+```
+
+The run takes about 65 minutes, because rung 8 plays a Day in 64 s.
+
+### Changes
+
+| Change | Check |
+|---|---|
+| `founding.borough` lays the grid as ten straight `street` runs at Tick 256, zones each block at its south-west corner at 257, and places the gate and school at 258. The shell can no longer send `connect`, and Tick 256 is 08:00, where "New empty city" opens | The driven session's log equals it. `The_committed_founding_log_is_the_one_the_package_produces` |
+| The shell takes `--seed N`, decimal or `0x` hex | The driven log's header carries `0x135283C` |
+| `ui govern POLICY AMOUNT` opens the Government panel, types the amount and presses Set | `06-governed`: "housed_rebate set to 384 on Tick 92,161." |
+| A Policy scaled by the `housed` Readout names "housed households" in the Government panel and the city evidence panel | `05-school-short` |
+| Save, reload and continue at Days 30 and 120 matches the uninterrupted run to Day 126 | `A_founded_city_saved_on_days_30_and_120_continues_as_the_uninterrupted_one`, an instrument (6 m 50 s in Debug) |
+
+The slice 5 numbers above are re-measured on the re-recorded log. The story holds, and the
+teachers return on Day 54 instead of Day 60.
+
+### Stages
+
+Photographs and captions are in [evidence/founding-loop](evidence/founding-loop/).
+
+| Photograph | Tick | What it shows |
+|---|---|---|
+| `01-streets` | 257 | Ten Streets make a 4×4 grid of 128 m blocks |
+| `02-zoned` | 259 | Sixteen zoned blocks, the gate and the school. Treasury 3,932,160 |
+| `03-grown` | Day 12 | 591 Citizens in 104 Buildings. The school has 5 of 5 teachers |
+| `04-treasury-dry` | Day 35 | Treasury 0. Policy payouts are 378,240 a Day |
+| `05-school-short` | Day 44 | 0 of 5 teachers. The evidence panel names `housed_rebate` and `school_funding` as short |
+| `06-governed` | 92,161 | The Government panel after the cut to 384 |
+| `07-teachers-back` | Day 54 | 5 of 5 teachers |
+| `08-recovered` | Day 60 | 5 of 5 teachers, 40 pupils, treasury 473,197, no short Policies |
+
+Teachers by Day, read from the school inspector: 5 through Day 37, 4 from Day 38, 0 on Days 45–46,
+then 2, 3, 3, 4 and 5 on Days 48, 50, 52, 53 and 54. They match the headless probe on every Day.
+
+### Findings
+
+- The day boundary is 05:00, before sunrise, so a photograph at a Day's first Tick is black. The
+  script photographs at 12:30. The govern stays at Tick 92,160 to match the log, so its photograph
+  is dark behind the panel.
+- The tool palette drew over the city evidence panel when it first opened and under it later in
+  the same run. Filed as #145.
+- The HUD counts Days from 1. It reads "Day 13 · 12:30" where the readout and this plan say Day 12.
+- The school inspector reads "No supply shortfalls reported" with 0 of 5 teachers, and nothing on it
+  links the empty posts to the unpaid grant. Row 30's service cause summaries own this case.
+- "Occupied places: 1 / 7" counts the school building's units, beside "Places: 40 a Day" for pupils.
+- A founded grocer opened in a vacant unit of the school's building between Days 50 and 54. The
+  school's own trade stayed open throughout.
+- The budget panel shows Policy payouts as one row, so it cannot show that the rebate is the outflow
+  that grew.
+- The zone tool's `click` paints nothing in a driven run, and Zone Rules count from 0. The drive
+  skill now says how to zone and govern from a script.
+
 ## Execution
 
 ```text
@@ -233,8 +356,8 @@ Founding log, seed `0x135283C`, committed base, 400 Days. Command:
 | 2 | Medium | #105 | Serial chain | Base needs a work zone so Zone Rules raise mills |
 | 3b | Small | 2, 3a | Serial chain | — |
 | 4 | Large | 3b | Serial chain, fan-out for tuning | Business tax may not bound tills. That would need a new mechanism |
-| 5 | Medium | 4 | Serial chain | Unchecked whether a bankrupt school's teaching Business reopens after funding returns |
-| 6 | Small–medium | 5, freeform slice 5 | Serial chain | Freeform re-records the log and the drive script |
+| 5 | Medium | 4 | Serial chain | Resolved: a bankrupt school did not reopen, and slice 5 makes it |
+| 6 | Small–medium | 5, freeform slice 5 | Serial chain | Built. The log is re-recorded with `street` |
 
 Rules for parallel sessions:
 
@@ -267,7 +390,8 @@ How to run each slice:
 - **Recovery.** One player command restores the shortage's metric within a stated number of Days.
   The control run without that command does not recover.
 - **Persistence.** Double replay matches. Save, reload and continue matches the uninterrupted run at
-  Day 30 and Day 120.
+  Day 30 and Day 120. Built in slice 6 as an instrument, because the 126-Day run exceeds the
+  assertion budget.
 - **Shell.** A driven run shows founding, the shortage, the action and the recovery.
 
 ## Coordination

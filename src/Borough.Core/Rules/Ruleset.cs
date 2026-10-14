@@ -692,6 +692,15 @@ public readonly record struct KindDefinition(
     public int AbandonedWhenEmptyAfterTicks { get; init; }
 
     /// <summary>
+    /// How long a Building of this kind may stand cut off from every Outside Connection before the
+    /// city abandons it, in Ticks. Zero means never (<c>adr/0177</c>).
+    /// </summary>
+    /// <remarks>
+    /// Authored in Days as <c>abandoned_after_cut_off_days</c>. Hash-bearing and provisional.
+    /// </remarks>
+    public int AbandonedAfterCutOffTicks { get; init; }
+
+    /// <summary>
     /// Whether a <b>Household</b> may take a tenancy in a Building of this kind.
     /// <b>Whether, never how many.</b>
     /// </summary>
@@ -4025,10 +4034,21 @@ public readonly record struct JobRuleset(
     long LabourPerDay = 0,
     int LabourTier2Percent = 0,
     int LabourTier3Percent = 0,
-    int LabourExperiencePremiumPercent = 0)
+    int LabourExperiencePremiumPercent = 0,
+    int DismissedAfterFailedCommuteDays = 0)
 {
     /// <summary>A Ruleset whose city assigns nobody to work.</summary>
     public static JobRuleset None => default;
+
+    /// <summary>
+    /// Whether a run of failed outbound commutes costs the job, at
+    /// <see cref="FailedCommuteDeadline"/>.
+    /// </summary>
+    public bool DismissesFailedCommuters => DismissedAfterFailedCommuteDays > 0;
+
+    /// <summary>Elapsed time from a Citizen's first failed outbound commute to the dismissal.</summary>
+    public Ticks FailedCommuteDeadline =>
+        new((ulong)DismissedAfterFailedCommuteDays * Ticks.PerDay);
 
     public bool GradesLabour => LabourTier2Percent > 0 || LabourTier3Percent > 0;
 

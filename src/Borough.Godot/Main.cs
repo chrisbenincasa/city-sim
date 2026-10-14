@@ -1078,7 +1078,7 @@ public partial class Main : Node3D
 
     public override void _Ready()
     {
-        (_rulesetPath, int citizens, ulong? startAt, bool govern, _empty, string? drive,
+        (_rulesetPath, int citizens, ulong seed, ulong? startAt, bool govern, _empty, string? drive,
             ulong quitAt, string? listen, string? record, string? load) = Arguments();
 
         if (!ThreadArguments() || !Driven(drive, quitAt) || !Loadable(load))
@@ -1143,7 +1143,7 @@ public partial class Main : Node3D
         _capture = loaded.Capture!;
         _names = loaded.Names;
         _citizens = citizens;
-        _seed = 0;
+        _seed = seed;
 
         PrepareCity(loaded.Ruleset, citizens, _seed, _empty, startAt ?? (ulong)Ticks.AtClock(8), simulation =>
         {
@@ -1384,6 +1384,11 @@ public partial class Main : Node3D
         }
         if (stepped > 0)
             _batchTicks = Math.Clamp((int)(16 / Math.Max(1, stepMilliseconds / stepped)), 1, 4);
+        // Before the boundary callbacks and after the step: what a gesture laid, cut and created is
+        // only readable once its Commands have applied, the step thread may not write shell state,
+        // and an undo deferred to the boundary must see the gestures that have just landed rather
+        // than the history as it stood before the step.
+        SettleGestures();
         while (_atBoundary.TryDequeue(out Action? action))
         {
             action();
@@ -1633,6 +1638,16 @@ public partial class Main : Node3D
         }
 
         if (GetViewport().GuiGetFocusOwner() is LineEdit or TextEdit || _helpPanel.Visible) return;
+
+        // Above the modifier filter, which is what drops every other Ctrl chord. It goes out as the
+        // `ui undo` word so that the key and a script share one applier and --record writes it.
+        if (key is { CtrlPressed: true, Keycode: Key.Z, AltPressed: false, MetaPressed: false, ShiftPressed: false, Echo: false })
+        {
+            Ui("undo");
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
         if (key.CtrlPressed || key.AltPressed || key.MetaPressed || key.Echo) return;
         if (_stepThread?.OwnsWorld == true)
         {
@@ -1662,11 +1677,12 @@ public partial class Main : Node3D
     /// project's (<c>adr/0002</c>), and a bad one is reported rather than defaulted, because a
     /// silently-substituted world is a picture of somewhere else.
     /// </remarks>
-    private static (string Ruleset, int Citizens, ulong? StartAt, bool Govern, bool Empty,
+    private static (string Ruleset, int Citizens, ulong Seed, ulong? StartAt, bool Govern, bool Empty,
         string? Drive, ulong QuitAt, string? Listen, string? Record, string? Load) Arguments()
     {
         string ruleset = "rulesets/base/ruleset.toml";
         int citizens = 1_000;
+        ulong seed = 0;
 
         // 🔴 THE SHELL OPENS AT 08:00 AND THE SIMULATION'S DAY STILL BEGINS AT 05:00, AND KEEPING
         // THOSE TWO APART IS THE WHOLE OF THIS DEFAULT.
@@ -1741,12 +1757,22 @@ public partial class Main : Node3D
             {
                 load = given[at + 1];
             }
+            else if (given[at] == "--seed" && Seed(given[at + 1]) is { } chosen)
+            {
+                seed = chosen;
+            }
         }
 
-        return (ruleset, citizens, startAt, govern, empty, drive, quitAt, listen, record, load);
+        return (ruleset, citizens, seed, startAt, govern, empty, drive, quitAt, listen, record, load);
     }
 
-    private static readonly string[] SettledBySave = ["--ruleset", "--citizens", "--empty"];
+    /// <summary>A seed written in decimal or as <c>0x</c> hexadecimal, as an Input Log header writes it.</summary>
+    private static ulong? Seed(string text) =>
+        text.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
+            ? ulong.TryParse(text.AsSpan(2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out ulong hex) ? hex : null
+            : ulong.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out ulong plain) ? plain : null;
+
+    private static readonly string[] SettledBySave = ["--ruleset", "--citizens", "--seed", "--empty"];
 
     /// <summary>Refuses a saved city named with options the save already settles.</summary>
     private static bool Loadable(string? load)
@@ -1915,10 +1941,11 @@ public partial class Main : Node3D
             + $"travelling {moving:N0}{Weather(under)}{ShoppingCaption()}{HealthCaption()}\n"
             + $"speed {Pace(_rung)}   "
             + $"mode {Holding()}   "
-            + "[ ] speed, space pause, w write log, g roads, c cells, tab tune\n"
+            + "[ ] speed, space pause, w write log, g roads, c cells, tab tune, ctrl-z undo\n"
             + "click acts   right-drag or two-finger scroll pans   edge of screen pans   "
             + "pinch or -/= zooms   q/e turns   r/f tilts   l lens   o overlay"
             + Legend()
+            + (_undoSaid.Length > 0 ? $"\nUNDO — {_undoSaid}" : string.Empty)
             + (_refused.Length > 0 ? $"\nREFUSED — {_refused}" : string.Empty);
 
         RefreshInformation();
@@ -2114,20 +2141,18 @@ internal enum Verb : byte
     Look = 0,
 
     /// <summary>
-    /// Subdivide the block under the cursor into Lots admitting one <c>[[zone_rule]]</c>.
+    /// Paint a <c>[[zone_rule]]</c>'s permission on ground, then subdivide its unclaimed frontage into Lots.
     /// </summary>
     /// <remarks>
-    /// ⚠ <b>SUBDIVIDE and not paint, however the verb is named in <c>01 §2</c>.</b>
-    /// <c>LotSubdivider.Face</c> returns zero on frontage <c>World.Frontage</c> has already claimed,
-    /// so this works on virgin faces and can never repaint a block that has Lots.
-    /// <c>PlayerVerbTests.Zoning_ground_that_is_already_subdivided_changes_nothing</c> holds it.
+    /// Repainting changes the permission on existing Lots and leaves their shape and Buildings alone.
+    /// <c>LotSubdivider.Face</c> returns zero on frontage <c>World.Frontage</c> has already claimed.
     /// </remarks>
     Zone = 1,
 
     /// <summary>Lay a freeform Street, or with Shift remove the Street nearest the cursor.</summary>
     Connect = 2,
 
-    /// <summary>Clear abandoned stock, and only that.</summary>
+    /// <summary>Clear a Building, paying the displaced its demolition price.</summary>
     Demolish = 3,
 
     /// <summary>
