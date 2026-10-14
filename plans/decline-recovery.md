@@ -219,10 +219,28 @@ two 2×2-block districts, a gate on the near side, one bridge Segment. Measured 
   no Households and no workers. The abandoned far district draws in the derelict gray, which is
   easy to miss beside the occupied district at city zoom.
 
+- **Driven demonstration, with and without a repair.** Both runs load one bridge-fixture save
+  (both deadlines, HUD Day 2 11:00) and follow Household 1 on the near side, its Citizens' far-side
+  workplace Business 45, and that Business's premises, far dwelling 48. Days are HUD Days.
+  - Aim: with the Street tool held at Tile (80, 0) the hover reads "shift-click removes Street 25",
+    the bridge. The shift-click on Day 3 at 23:00 removes it. The repair's hover reads "clears
+    nothing · click to lay" before its second click.
+  - Day 6, both runs: each Citizen reads "Unable to reach work since Day 4, 2 Days ago · no route
+    to work" and "Dismissal in 8 Days". Business 45 reads "4 workers cannot reach this workplace,
+    the first since Day 4". Building 48 reads "Cut off since Day 3" and "Abandoned in 12 Days".
+  - Repaired at Day 6 11:08: on Day 8 each Citizen reads "Commute restored on Day 7 after 3 Days of
+    failed commutes", and the Business and Building lines are gone. Nothing changes through Day 15.
+  - Not repaired: on Day 8 the countdowns read 6 and 10 Days. On Day 15 Citizen 361 reads "Dismissed
+    on Day 14 after 10 Days of failed commutes" and Citizen 1, re-hired elsewhere, reads "Lost the
+    previous job on Day 14". On Day 19 Building 48 reads "Abandoned on Day 18 · cut off from every
+    Outside Connection", and Business 45 no longer exists.
+  - Observation exposed two gaps. A `ui business` for a removed Business is ignored without a word,
+    so the previous panel stays open. Every fixture dwelling carries an unrelated upkeep shortfall
+    ("Waiting for repairs") from `congested.toml`, which crowds the attention section.
+
 ## Next step
 
-The remaining acceptance items: the no-intervention case, the parking measurement and the edge
-cases in the list below.
+The parking measurement, then the edge cases in the list below.
 
 ## Evidence and acceptance
 
