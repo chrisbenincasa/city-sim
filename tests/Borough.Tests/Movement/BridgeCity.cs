@@ -35,10 +35,10 @@ internal static class BridgeCity
     public static readonly Tiles BridgeEast = new((BridgeColumn * BlockTiles) + (BlockTiles / 2));
 
     /// <summary>23:00, when no commuter is on the road.</summary>
-    public static long LateEvening(int day) => (day * Ticks.PerDay) + (Ticks.PerDay * 18 / 24);
+    public static long LateEvening(int day) => (day * Ticks.PerDay) + Ticks.AtClock(23);
 
     /// <summary>11:00, when every commuter is at work.</summary>
-    public static long LateMorning(int day) => (day * Ticks.PerDay) + (Ticks.PerDay * 6 / 24);
+    public static long LateMorning(int day) => (day * Ticks.PerDay) + Ticks.AtClock(11);
 
     public static Simulation Start(Ruleset rules)
     {
@@ -77,14 +77,15 @@ internal static class BridgeCity
     /// </summary>
     public static string BridgeToml(int? dismissAfterDays = null, int? cutOffDays = null)
     {
-        string toml = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "congested.toml"))
-            .Replace("\n[layers]\n", "gives_up_after_days = 120\n\n[layers]\n", StringComparison.Ordinal)
+        string toml = Replaced(
+                File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "congested.toml")),
+                "\n[layers]\n",
+                "gives_up_after_days = 120\n\n[layers]\n")
             + "\n[[building]]\nname = \"port\"\narrivals_per_day = 1\n";
 
         if (dismissAfterDays is { } days)
         {
-            toml = toml.Replace(
-                "\n[jobs]\n", $"\n[jobs]\ndismissed_after_failed_commute_days = {days}\n", StringComparison.Ordinal);
+            toml = Replaced(toml, "\n[jobs]\n", $"\n[jobs]\ndismissed_after_failed_commute_days = {days}\n");
         }
 
         if (cutOffDays is { } cutOff)
@@ -96,6 +97,12 @@ internal static class BridgeCity
         }
 
         return toml;
+    }
+
+    private static string Replaced(string text, string old, string replacement)
+    {
+        Assert.Contains(old, text, StringComparison.Ordinal);
+        return text.Replace(old, replacement, StringComparison.Ordinal);
     }
 
     public static (long Completed, long NoRoute, long OverBudget) StepTo(Simulation simulation, long tick)
