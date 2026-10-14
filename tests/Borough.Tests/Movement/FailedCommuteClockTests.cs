@@ -270,6 +270,46 @@ public sealed class FailedCommuteClockTests
     }
 
     [Fact]
+    public void A_run_cut_short_by_another_dismissal_or_a_new_job_leaves_the_last_record()
+    {
+        (Simulation simulation, List<Handle<Citizen>> crossers) = Severed(DeadlineDays);
+        World world = simulation.World;
+
+        StepTo(simulation, LateEvening(2));
+        RebuildBridge(simulation);
+        StepTo(simulation, LateEvening(3));
+        RemoveBridge(simulation);
+        StepTo(simulation, 5 * Ticks.PerDay);
+
+        List<Handle<Citizen>> running = [];
+
+        foreach (int citizen in Live(world, crossers))
+        {
+            if (world.Citizens.CommuteFailedSince[citizen] != Ticks.Zero)
+            {
+                running.Add(world.Citizens.Rows.At(citizen));
+            }
+        }
+
+        Assert.True(running.Count >= 2, $"only {running.Count} crossers have a second run under way.");
+
+        Handle<Citizen> dismissed = running[0];
+        Handle<Citizen> rehired = running[1];
+        int rehiredSlot = world.Citizens.Rows.Resolve(rehired);
+        CommuteEpisodeEvidence? before = Core.Evidence.Evidence.OfCitizen(world, dismissed).LastCommuteEpisode;
+        CommuteEpisodeEvidence? beforeRehired = Core.Evidence.Evidence.OfCitizen(world, rehired).LastCommuteEpisode;
+
+        Assert.Equal(CommuteEpisodeOutcome.Recovered, Assert.NotNull(before).Outcome);
+        Assert.Equal(CommuteEpisodeOutcome.Recovered, Assert.NotNull(beforeRehired).Outcome);
+
+        world.Dismiss(dismissed);
+        world.Employ(rehired, world.Citizens.Workplace[rehiredSlot], world.Citizens.PlannedCommute[rehiredSlot]);
+
+        Assert.Equal(before, Core.Evidence.Evidence.OfCitizen(world, dismissed).LastCommuteEpisode);
+        Assert.Equal(beforeRehired, Core.Evidence.Evidence.OfCitizen(world, rehired).LastCommuteEpisode);
+    }
+
+    [Fact]
     public void A_recorded_episode_survives_save_and_reload()
     {
         var rules = BridgeRules(DeadlineDays);
@@ -288,11 +328,17 @@ public sealed class FailedCommuteClockTests
 
         Assert.Equal(world.HashState(), reloaded.HashState());
 
-        foreach (int citizen in Live(world, crossers))
+        foreach (Handle<Citizen> crosser in crossers)
         {
-            Assert.Equal(
-                Core.Evidence.Evidence.OfCitizen(world, world.Citizens.Rows.At(citizen)).LastCommuteEpisode,
-                Core.Evidence.Evidence.OfCitizen(reloaded, world.Citizens.Rows.At(citizen)).LastCommuteEpisode);
+            if (!world.Citizens.Rows.TryResolve(crosser, out _))
+            {
+                continue;
+            }
+
+            CommuteEpisodeEvidence saved = Assert.NotNull(
+                Core.Evidence.Evidence.OfCitizen(world, crosser).LastCommuteEpisode);
+
+            Assert.Equal(saved, Core.Evidence.Evidence.OfCitizen(reloaded, crosser).LastCommuteEpisode);
         }
     }
 
