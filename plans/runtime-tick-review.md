@@ -126,6 +126,8 @@ wrong. #28 covers a related but distinct mid-Tick Ruleset failure.
 
 - **Category** Latent implementation defect, fix-ready. **Priority** low today; blocking for hot
   reload in the shell. **Confidence** confirmed.
+- **Status** Fixed in [#174](https://github.com/chrisbenincasa/city-sim/issues/174). Every shell Tick
+  now carries the hash its Input Log records.
 - **Supersedes** this document's earlier version, which covered only `SimulationThread` and framed
   the per-Tick Ruleset contract as an open user decision. Both were wrong: the contract is settled in
   source (`Simulation.cs:492-503` — *"a Tick has exactly one Ruleset"*, *"`TickInput.RulesetHash` is

@@ -32,16 +32,15 @@ public partial class Main
     /// </summary>
     /// <remarks>
     /// ⚠ <b>The queue is CLEARED here and not after the step</b>, because a command that threw would
-    /// otherwise be re-sent on the next frame for ever. ⚠ <b>The Ruleset hash is zero, which is what
-    /// <c>Step(default)</c> already passed</b> — a non-zero one is a reload instruction
-    /// (<c>Simulation</c> compares it against what is in force), and the tuner owns reloads by its
-    /// own path.
+    /// otherwise be re-sent on the next frame for ever. ⚠ <b>Every Tick names the Ruleset the Input
+    /// Log records</b>, because <c>Simulation</c> reads a different hash as a reload. The tuner
+    /// replaces the whole Simulation, so a session's hash never changes under it.
     /// </remarks>
     private TickInput Ordered()
     {
         if (_queued.Count == 0)
         {
-            return default;
+            return new TickInput([], _log.InForce);
         }
 
         Command[] raised = [.. _queued];
@@ -71,7 +70,7 @@ public partial class Main
 
         _queued.Clear();
 
-        return new TickInput(raised, 0);
+        return new TickInput(raised, _log.InForce);
     }
 
     /// <summary>
