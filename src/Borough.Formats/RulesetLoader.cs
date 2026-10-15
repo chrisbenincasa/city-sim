@@ -226,6 +226,7 @@ public static class RulesetLoader
         // Satisfaction -- so the thing consumed decides, not the Rule consuming it.
         private readonly List<Need> _resourceNeeds = [];
         private readonly List<ShelfLife> _shelfLives = [];
+        private readonly List<ServiceReach> _reaches = [];
         private int _labourLine;
         private readonly Dictionary<string, byte> _kinds = new(StringComparer.Ordinal);
 
@@ -539,6 +540,7 @@ public static class RulesetLoader
                 Care = care,
                 ResourceNeeds = [.. _resourceNeeds],
                 ResourceShelfLives = [.. _shelfLives],
+                ResourceReaches = [.. _reaches],
                 Founding = founding,
                 ResourceKeys = Keys(_resources),
                 KindKeys = Keys(_kinds),
@@ -572,6 +574,7 @@ public static class RulesetLoader
                         _families.Add(ReadFamily(table));
                         _resourceNeeds.Add(ReadNeed(table));
                         _shelfLives.Add(ReadShelfLife(table, _families[^1]));
+                        _reaches.Add(ReadReach(table, _families[^1]));
                         RefuseLabourThatKeeps(table);
                         RefuseStorage(table);
                         break;
@@ -1426,6 +1429,34 @@ public static class RulesetLoader
             return definitions;
         }
 
+        /// <summary>
+        /// Refusal — a <c>pool</c> term needs a market that delivers its Resource, and only Goods and
+        /// services have one.
+        /// </summary>
+        private void RefusePoolTermsWithoutDelivery(
+            TableSyntaxBase table, string? name, List<Term> terms, int first, int end)
+        {
+            for (int i = first; i < end; i++)
+            {
+                if (terms[i].Bin.Scope != Scope.Pool)
+                {
+                    continue;
+                }
+
+                ResourceFamily family = _families[terms[i].Bin.Resource.Raw - 1];
+
+                if (family is ResourceFamily.Good or ResourceFamily.Service or ResourceFamily.None)
+                {
+                    continue;
+                }
+
+                Refuse(LineOf(table), name,
+                    $"this Rule has a pool term for '{NameOfResource(terms[i].Bin.Resource)}', which "
+                    + $"is a {FamilyName(family)}. A District Pool trades goods and services only, so "
+                    + "the term would find no market and move nothing.");
+            }
+        }
+
         private void RefuseUnsupportedPoolTerms(
             TableSyntaxBase table, string? name,
             List<Term> inputs, int inputFirst, int inputEnd,
@@ -1448,6 +1479,9 @@ public static class RulesetLoader
             {
                 return;
             }
+
+            RefusePoolTermsWithoutDelivery(table, name, inputs, inputFirst, inputEnd);
+            RefusePoolTermsWithoutDelivery(table, name, outputs, outputFirst, outputEnd);
 
             if (_districtsTable is null)
             {
@@ -2464,13 +2498,17 @@ public static class RulesetLoader
                 case "labour":
                     return ResourceFamily.Labour;
 
+                case "service":
+                    return ResourceFamily.Service;
+
                 default:
                     Refuse(LineOf(table), family,
                         $"'{family}' is not a Resource family. The families are good (moves as a "
                         + "Shipment, on the Road Graph, in the traffic), utility (flows along the "
                         + "District adjacency graph), money (conserved, and does not move at all) and "
                         + "labour (worker-time a Business's present staff deposit and its Rules "
-                        + "spend). The family decides transport and whether the Bin has a ceiling, so there "
+                        + "spend) and service (a Professional Service a firm buys from a provider "
+                        + "in reach). The family decides transport and whether the Bin has a ceiling, so there "
                         + "is no default.");
                     return ResourceFamily.None;
             }
@@ -2521,6 +2559,41 @@ public static class RulesetLoader
             long ticks = IntegerMath.FloorDiv((long)minutes * Ticks.PerDay, 24L * 60);
 
             return new ShelfLife((ulong)(ticks < 1 ? 1 : ticks), cycles);
+        }
+
+        /// <summary>
+        /// A Professional Service's reach: <c>reach_minutes</c> of free-flow travel, or
+        /// <c>remote = true</c> for a service delivered at any distance.
+        /// </summary>
+        private ServiceReach ReadReach(TableSyntaxBase table, ResourceFamily family)
+        {
+            const int MinutesPerDay = 60 * 24;
+            bool statesMinutes = Find(table, "reach_minutes") is not null;
+            bool statesRemote = TryBoolean(table, "remote", out bool remote);
+
+            if (family != ResourceFamily.Service)
+            {
+                if (statesMinutes || statesRemote)
+                {
+                    Refuse(LineOf(table), null,
+                        "reach_minutes and remote describe a Professional Service. Only a Resource "
+                        + "with family = \"service\" has a reach.");
+                }
+
+                return default;
+            }
+
+            if (statesMinutes == statesRemote || (statesRemote && !remote))
+            {
+                Refuse(LineOf(table), null,
+                    "a service states its reach once: reach_minutes for a provider the buyer must "
+                    + "travel to, or remote = true for one that reaches any distance.");
+                return default;
+            }
+
+            return statesRemote
+                ? ServiceReach.Unlimited
+                : new ServiceReach(CivicInt(table, "reach_minutes", 1, MinutesPerDay));
         }
 
         /// <summary>
@@ -2740,6 +2813,13 @@ public static class RulesetLoader
                 return false;
             }
 
+            if (_families[resource.Raw - 1] == ResourceFamily.Service)
+            {
+                Refuse(LineOf(entry), rule,
+                    "fills names a service. A service is never stocked, so it has no Bin to fill.");
+                return false;
+            }
+
             fills = new BinRef(scope, resource);
             return true;
         }
@@ -2796,13 +2876,37 @@ public static class RulesetLoader
                 }
 
                 if (!GlobalNamesAConservedResource(inline, rule, scope, resource)
-                    || !LabourIsSpentLocally(inline, rule, key, scope, resource))
+                    || !LabourIsSpentLocally(inline, rule, key, scope, resource)
+                    || !ServiceIsBoughtFromAProvider(inline, rule, key, scope, resource))
                 {
                     continue;
                 }
 
                 into.Add(new Term(new BinRef(scope, resource), (int)amount));
             }
+        }
+
+        /// <summary>
+        /// Refusal — a service is never stocked, so a term naming it is a <c>pool</c> input.
+        /// </summary>
+        private bool ServiceIsBoughtFromAProvider(
+            InlineTableSyntax inline, string? rule, string key, Scope scope, ResourceId resource)
+        {
+            if (_families[resource.Raw - 1] != ResourceFamily.Service)
+            {
+                return true;
+            }
+
+            if (key != "inputs" || scope != Scope.Pool)
+            {
+                Refuse(LineOf(inline), rule,
+                    "this Rule names a service outside a pool input. A service is never stocked, so "
+                    + "no Bin holds it; a firm buys it from its provider with "
+                    + "{ scope = \"pool\", resource = ..., amount = ... } in inputs.");
+                return false;
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -4838,6 +4942,14 @@ public static class RulesetLoader
 
                 if (!TryResource(inline, kind, LineOf(inline), out ResourceId resource))
                 {
+                    continue;
+                }
+
+                if (_families[resource.Raw - 1] == ResourceFamily.Service)
+                {
+                    Refuse(LineOf(inline), kind,
+                        $"'{NameOfResource(resource)}' is a service, and a service is never stocked. "
+                        + "A firm buys it from its provider through a pool input, so no Bin holds it.");
                     continue;
                 }
 
@@ -6905,13 +7017,13 @@ public static class RulesetLoader
                 // a price rather than a thing with one, so both would be a number the market never
                 // reads -- and a key the loader silently drops is a key a designer tunes and then
                 // wonders about, which is `bins`' capacity refusal one table over.
-                if (_families[resource.Raw - 1] != ResourceFamily.Good)
+                if (_families[resource.Raw - 1] is not (ResourceFamily.Good or ResourceFamily.Service))
                 {
                     Refuse(LineOf(inline), null,
-                        $"'{NameOfResource(resource)}' is not a good, so it has no import price. A "
-                        + "Hinterland prices what crosses the map's edge as cargo: a utility is not "
-                        + "stocked and money is what a price is denominated IN rather than a thing "
-                        + "that has one.");
+                        $"'{NameOfResource(resource)}' is not a good or a service, so it has no import "
+                        + "price. A Hinterland prices cargo and Professional Services: a utility is "
+                        + "not stocked and money is what a price is denominated IN rather than a "
+                        + "thing that has one.");
 
                     continue;
                 }
@@ -6956,6 +7068,7 @@ public static class RulesetLoader
             ResourceFamily.Utility => "utility",
             ResourceFamily.Money => "money",
             ResourceFamily.Labour => "labour",
+            ResourceFamily.Service => "service",
             _ => "good",
         };
 

@@ -788,10 +788,12 @@ public sealed class DistrictWatershedTests
             // milled.toml's grocers buy flour through a District Pool for the same reason.
             // granted.toml IS shopping.toml with opening grants and a treasury, so it inherits the
             // table for that file's reason.
+            // serviced.toml IS imported.toml with a Professional Service added, so it inherits the
+            // table for that file's reason.
             bool expected = file is "twinned.toml" or "provisioned.toml" or "oversupplied.toml"
                 or "waged.toml" or "pictured.toml" or "shopping.toml" or "insolvent.toml" or "stress-shopping.toml" or "profile-services.toml"
                 or "schooling.toml" or "taxing.toml" or "traded.toml" or "imported.toml" or "milled.toml"
-                or "granted.toml";
+                or "granted.toml" or "serviced.toml";
 
             Assert.Equal(expected, states);
         }

@@ -27,7 +27,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-53 sections, 383 keys.
+53 sections, 385 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
@@ -48,7 +48,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[[recipe]] inputs`](#recipe-inputs) — 3 keys
 - [`[[recipe]] outputs`](#recipe-outputs) — 3 keys
 - [`[[reserve]]`](#reserve) — 4 keys
-- [`[[resource]]`](#resource) — 7 keys
+- [`[[resource]]`](#resource) — 9 keys
 - [`[[rule]]`](#rule) — 14 keys
 - [`[[rule]] apply`](#rule-apply) — 4 keys
 - [`[[rule]] inputs`](#rule-inputs) — 3 keys
@@ -401,7 +401,7 @@ The display text for this declaration. It reaches the shell's names and nothing 
 
 **`prices`** · *array of inline tables*
 
-What this Hinterland will sell each Good for, one entry per Good. These are the only authored anchor under every price in the design: a District's Pool may charge up to the cheapest declared Hinterland price and no more.
+What this Hinterland will sell each Good or service for, one entry each. These are the only authored anchor under every price in the design: a District's Pool may charge up to the cheapest declared Hinterland price and no more.
 
 **`rent`** · *whole number*
 
@@ -419,7 +419,7 @@ The import price, which becomes the ceiling on what that Good can cost inside th
 
 **`resource`** · *quoted string*
 
-Which Good is being priced, naming a [[resource]]. Only a good may be — a utility is not stocked, and money is what a price is denominated in rather than a thing that has one.
+Which Good or service is being priced, naming a [[resource]]. A utility is not stocked, and money is what a price is denominated in rather than a thing that has one, so neither may be.
 
 ---
 
@@ -753,7 +753,7 @@ What this reserve is called. A Bin's reserve profile names it by this.
 
 **`family`** · *quoted string*
 
-Which of the four kinds of thing this is: a good moves as a Shipment on the Road Graph and shows up in the traffic, a utility flows along the District adjacency graph, money is conserved and does not move at all, and labour is worker-time a Business's present staff deposit and its own Rules spend as a local input. The family decides transport and whether a Bin holding it has a ceiling, so there is no default. A labour Resource must declare a shelf life, and its Bin is owned by the business and states no capacity.
+Which of the five kinds of thing this is: a good moves as a Shipment on the Road Graph and shows up in the traffic, a utility flows along the District adjacency graph, money is conserved and does not move at all, labour is worker-time a Business's present staff deposit and its own Rules spend as a local input, and a service is a Professional Service a firm buys from the provider it keeps, through a pool input, and no Bin ever holds. The family decides transport and whether a Bin holding it has a ceiling, so there is no default. A labour Resource must declare a shelf life, and its Bin is owned by the business and states no capacity.
 
 **`id`** · *quoted string*
 
@@ -770,6 +770,14 @@ What this Resource is called. Every other table refers to it by this name, and t
 **`need`** · *quoted string*
 
 Which Household Need this Resource feeds when it is consumed. Only sustenance and satisfaction may be named: the other two Needs are fed by travelling to a service Building rather than by buying, and are declared with [[building]] serves instead. Absent means the Resource feeds no Need, which is the ordinary case.
+
+**`reach_minutes`** · *whole number*
+
+How far a buyer may stand from a provider of this service, in free-flow travel minutes, from 1 to a day. Only a service has a reach, and it states either this or remote. A Hinterland provider is reached from anywhere, so this binds only once the city has its own providers.
+
+**`remote`** · *true or false*
+
+true for a service delivered at any distance, in place of reach_minutes. Only a service may state it, and false is refused: state reach_minutes instead.
 
 **`shelf_life_cycle_minutes`** · *whole number*
 

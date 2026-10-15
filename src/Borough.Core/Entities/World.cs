@@ -196,6 +196,7 @@ public sealed partial class World
         Units = new UnitTable(PerThousand(citizens, 360), Buildings);
 
         Businesses = new BusinessTable(PerThousand(citizens, 150), Buildings, Bins, Units, Households);
+        ServiceContracts = new ServiceContractTable(8, Businesses);
 
         Citizens = new CitizenTable(citizens, Households, Buildings, Businesses, CarParks);
 
@@ -493,6 +494,9 @@ public sealed partial class World
 
             // Appended: the Units a Building is divided into, and which Business holds each.
             Units.Rows,
+
+            // Appended: which provider each firm keeps for each Professional Service (adr/0178).
+            ServiceContracts.Rows,
         ];
 
         // The same list minus the tables no Tick phase can write, for the Decide guard alone. See
@@ -779,6 +783,9 @@ public sealed partial class World
     /// The Businesses, each occupying a Building and holding its own balance (<c>adr/0113</c>).
     /// </summary>
     public BusinessTable Businesses { get; }
+
+    /// <summary>Which provider each firm buys each Professional Service from (<c>adr/0178</c>).</summary>
+    public ServiceContractTable ServiceContracts { get; }
 
     /// <summary>The Units every Building is divided into, one tenancy each.</summary>
     public UnitTable Units { get; }
@@ -2328,29 +2335,81 @@ public sealed partial class World
     /// An edge with no gate sells nothing, and a Hinterland that prices the Resource at zero does
     /// not sell it. Carriage is free, so every gated edge is equally reachable from every District.
     /// </remarks>
-    public bool TryImportPrice(ResourceId resource, out Money price)
+    public bool TryImportPrice(ResourceId resource, out Money price) =>
+        TryImportFrom(resource, out _, out price);
+
+    /// <summary>
+    /// The Hinterland that sells <paramref name="resource"/> cheapest through a gated edge, and its
+    /// price. Ties go to the Hinterland declared first.
+    /// </summary>
+    public bool TryImportFrom(ResourceId resource, out int hinterland, out Money price)
     {
+        hinterland = -1;
         price = default;
-        bool found = false;
 
-        for (int hinterland = 0; hinterland < Rules.Hinterlands.Length; hinterland++)
+        for (int candidate = 0; candidate < Rules.Hinterlands.Length; candidate++)
         {
-            MapEdge edge = Rules.Hinterlands[hinterland].Edge;
-            Money charged = Rules.ImportPrice(hinterland, resource);
-
-            if (edge == MapEdge.None
-                || charged.Raw <= 0
-                || Hinterlands.GateHead[HinterlandTable.SlotOf(edge)] == 0
-                || (found && charged >= price))
+            if (Supplies(candidate, resource)
+                && (hinterland < 0 || Rules.ImportPrice(candidate, resource) < price))
             {
-                continue;
+                hinterland = candidate;
+                price = Rules.ImportPrice(candidate, resource);
             }
-
-            price = charged;
-            found = true;
         }
 
-        return found;
+        return hinterland >= 0;
+    }
+
+    /// <summary>
+    /// Whether this Hinterland sells <paramref name="resource"/> now: it prices it, and a gate stands
+    /// on its edge.
+    /// </summary>
+    public bool Supplies(int hinterland, ResourceId resource)
+    {
+        if ((uint)hinterland >= (uint)Rules.Hinterlands.Length)
+        {
+            return false;
+        }
+
+        MapEdge edge = Rules.Hinterlands[hinterland].Edge;
+
+        return edge != MapEdge.None
+            && Rules.ImportPrice(hinterland, resource).Raw > 0
+            && Hinterlands.GateHead[HinterlandTable.SlotOf(edge)] != 0;
+    }
+
+    /// <summary>This firm's contract for <paramref name="service"/>, or <see cref="Rows.NoSlot"/>.</summary>
+    public int FindContract(int businessSlot, ResourceId service)
+    {
+        foreach (int contract in BusinessContracts.Walk(businessSlot))
+        {
+            if (ServiceContracts.Service[contract] == service)
+            {
+                return contract;
+            }
+        }
+
+        return Rows.NoSlot;
+    }
+
+    /// <summary>
+    /// Makes <paramref name="hinterland"/> this firm's provider of <paramref name="service"/>,
+    /// replacing any provider it had.
+    /// </summary>
+    internal void Contract(int businessSlot, ResourceId service, int hinterland, Ticks tick)
+    {
+        int contract = FindContract(businessSlot, service);
+
+        if (contract == Rows.NoSlot)
+        {
+            contract = ServiceContracts.Rows.Resolve(ServiceContracts.Rows.Allocate());
+            ServiceContracts.Buyer[contract] = Businesses.Rows.At(businessSlot);
+            ServiceContracts.Service[contract] = service;
+            BusinessContracts.InsertOrdered(businessSlot, contract);
+        }
+
+        ServiceContracts.Hinterland[contract] = hinterland;
+        ServiceContracts.Since[contract] = tick;
     }
 
     /// <summary>
@@ -4079,6 +4138,14 @@ public sealed partial class World
             owned = next;
         }
 
+        int contract = BusinessContracts.PopFront(slot);
+
+        while (contract != Rows.NoSlot)
+        {
+            ServiceContracts.Rows.Free(ServiceContracts.Rows.At(contract));
+            contract = BusinessContracts.PopFront(slot);
+        }
+
         Businesses.Rows.Free(business);
     }
 
@@ -4509,6 +4576,9 @@ public sealed partial class World
         Buildings.OccupantTail.Span.Clear();
         Businesses.WorkerHead.Span.Clear();
         Businesses.WorkerTail.Span.Clear();
+        Businesses.ContractHead.Span.Clear();
+        Businesses.ContractTail.Span.Clear();
+        ServiceContracts.BuyerNext.Span.Clear();
         Buildings.BusinessHead.Span.Clear();
         Buildings.BusinessTail.Span.Clear();
         Businesses.BuildingNext.Span.Clear();
@@ -4667,6 +4737,16 @@ public sealed partial class World
                 && Buildings.Rows.TryResolve(Businesses.Building[slot], out int premisesSlot))
             {
                 businesses.InsertOrdered(premisesSlot, slot);
+            }
+        }
+
+        IndexList contracts = BusinessContracts;
+        for (int slot = 0; slot < ServiceContracts.Rows.SlotCount; slot++)
+        {
+            if (ServiceContracts.Rows.IsLive(slot)
+                && Businesses.Rows.TryResolve(ServiceContracts.Buyer[slot], out int buyerSlot))
+            {
+                contracts.InsertOrdered(buyerSlot, slot);
             }
         }
 
@@ -4886,6 +4966,10 @@ public sealed partial class World
     /// <inheritdoc cref="Occupants"/>
     public IndexList BuildingBusinesses =>
         new(Buildings.BusinessHead, Buildings.BusinessTail, Businesses.BuildingNext);
+
+    /// <summary>Each firm's service contracts, one per service it has bought.</summary>
+    public IndexList BusinessContracts =>
+        new(Businesses.ContractHead, Businesses.ContractTail, ServiceContracts.BuyerNext);
 
     /// <summary>The Bins on each Building.</summary>
     /// <inheritdoc cref="Occupants"/>
@@ -6294,7 +6378,7 @@ public sealed partial class World
             {
                 var resource = new ResourceId((ushort)raw);
 
-                if (Rules.Family(resource) == ResourceFamily.Good
+                if (Rules.IsTraded(resource)
                     && FindDistrictPoolBin(slot, resource) == Rows.NoSlot)
                 {
                     CreateDistrictPoolBin(district, resource);

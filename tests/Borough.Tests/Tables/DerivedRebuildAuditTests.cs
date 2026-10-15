@@ -149,6 +149,7 @@ public sealed class DerivedRebuildAuditTests
             Run(Attracted(512)),
             Run(PaintedGround()),
             Run(Borough.Tests.Rules.ExpiryTests.Spoiling()),
+            Run(Borough.Tests.Rules.ServiceImportTests.Contracted()),
         ];
 
         string[] all = audits[0].Derived;
@@ -276,7 +277,10 @@ public sealed class DerivedRebuildAuditTests
         //
         // 56 -> 54: block.zone and block.band went with the block table. A block is a face of the
         // Street graph, and its zoning is read from the permission paint (adr/0174).
-        Assert.Equal(54, all.Length);
+        //
+        // 54 -> 57: business.contract_head, business.contract_tail and service_contract.buyer_next,
+        // each firm's list of service contracts (adr/0178). The serviced world exercises all three.
+        Assert.Equal(57, all.Length);
         Assert.Single(ScratchColumns(Stepped(0)));
     }
 

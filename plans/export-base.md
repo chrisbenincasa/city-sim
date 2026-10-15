@@ -20,7 +20,7 @@ for jobs and jobs attract people.
   export path exists.
 - `ZoneRuleEngine.MarketFor` returns a market only for a kind holding a Business-owned, non-money
   Good Bin. A kind that sells no Good can never be raised.
-- Rules produce whether or not anyone is at work. Labour-bound production is designed, not built.
+- Production is labour-bound (PR #105): a Rule with a labour input makes nothing when nobody is at work.
 - `PlacementEngine.Compare` scores a dwelling on rent and centrality only. No jobs term exists.
 - Only an unhoused Household departs (`PlacementEngine`, give-up bound). A housed Household with no
   work never leaves.
@@ -42,6 +42,7 @@ for jobs and jobs attract people.
 | 8 | Reachable jobs, as `log(1 + jobs)`, enter arrival placement on both the city and Hinterland sides | Wages, once posted wages (`adr/0026`) exist |
 | 9 | A jobless spell past a Ruleset duration makes a housed Household rerun the same comparison against the Hinterland. Life Stage sets reluctance | Departure when it cannot pay (Household financial resilience row) |
 | 10 | Seeds differ through land. Hinterlands stay authored per Ruleset | Generator deals Hinterlands to edges (world-creation row) |
+| 11 | A firm keeps its service provider under a saved contract and chooses again only when the provider cannot supply it (`adr/0178`, 10/15/2026). A District Pool was rejected because it cannot say "within reach of this firm" | Local providers and their capacity, offices slice |
 
 Consequences of these decisions:
 
@@ -60,8 +61,10 @@ Consequences of these decisions:
   first long run with exports.
 - **Who staffs a service firm.** Keep the single `requires_tier` minimum. A tier mix waits on
   `adr/0026`.
-- **Service purchase mechanism.** Either the pool purchase (`adr/0167`) with a reach filter, or a
-  saved contract between buyer and provider. Decide in slice 1 by tracing `RuleEngine.Buy`.
+- **Office capacity.** A service is never stocked, so an office sells capacity per Day rather than
+  stock. Decide the unit and how a contract holds a share of it in slice 3.
+- **Reach test.** Slice 3 checks reach when a firm chooses a local provider. It must read a refreshed
+  travel-time field (`Movement/TravelTimeMatrix` has no production consumer yet), never route.
 - **Reachable-jobs cost.** Counting jobs per sampled dwelling must read a refreshed accessibility
   field, never route inside the choice (`02 §5.8`). Measure the arrival pass before and after.
 - **Gate load.** Goods exports teleport, as imports do, until the Freight and Outside trade row
@@ -71,14 +74,22 @@ Consequences of these decisions:
 
 Ordered by dependency. Each slice is one PR with its own acceptance.
 
-1. **Professional Service family, imported.** Add the Professional Service Resource family to the Ruleset reader and schema.
-   Firms declare service inputs. A Hinterland sells each service at an authored price. Reach per
-   service kind. No local producer yet. Needs no labour work.
+1. **Professional Service family, imported. Built 10/15/2026 on `export-base-1`.**
+   - `family = "service"` with `reach_minutes` or `remote = true`. A service has no Bin and is bought
+     only through a `pool` input.
+   - Hinterland `prices` accept services. A firm keeps the Hinterland it chose while that edge has a
+     gate, and stalls on its District market when no gated Hinterland prices the service.
+   - `ServiceContractTable` saves the firm's provider. Save format version 22; goldens re-recorded
+     for the new table only.
+   - A `pool` term on a utility or labour Resource is refused at load (issue #177).
+   - Fixture `rulesets/serviced.toml`; tests `ServiceImportTests`, `ServiceRulesetLoadTests`.
+   - Reach is read and stored but binds nothing until local providers exist.
 2. **Exports with the budget guard.** A Hinterland buys surplus Goods and services at its price, up
    to a recovering daily budget. Firms sell locally first. Money enters at a new door that moves
    `Issued`.
-3. **Offices make services.** Waits on the first slice of labour-bound production, so an unstaffed
-   office makes nothing. Unserved service demand raises offices through `MarketFor`.
+3. **Offices make services.** Labour-bound production is built (PR #105), so an unstaffed office makes
+   nothing. Add a provider handle and capacity to the contract and the reach test. Unserved service
+   demand raises offices through `MarketFor`, which today needs a Business-owned Good Bin.
 4. **Jobs attract arrivals.** Add the reachable-jobs term to `PlacementEngine.Compare` and to the
    Hinterland row. Record the change to plan 0073's "no Hinterland wage" line.
 5. **Jobless departure.** Read `NoVacancySince`; past the Ruleset duration, rerun the comparison
