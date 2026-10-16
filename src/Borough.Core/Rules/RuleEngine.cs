@@ -897,8 +897,8 @@ public sealed class RuleEngine
         if (trader.IsNone)
         {
             throw new InvalidOperationException(
-                $"rule {rule.Raw} buys a service and no Business runs it. A service is bought by a "
-                + "firm; give the Rule a local term whose Bin is owner = \"business\".");
+                $"rule {rule.Raw} buys a service and no Business runs it. "
+                + "RulesetLoader.RefuseServiceBoughtWithoutAFirm refuses this at load.");
         }
 
         int business = _world.Businesses.Rows.Resolve(trader);

@@ -237,6 +237,50 @@ public sealed class ServiceImportTests
         sim.CheckEndOfRun();
     }
 
+    private static void SetShopBalances(World world, long target)
+    {
+        world.TryMoneyResource(out ResourceId money);
+
+        for (int business = 0; business < world.Businesses.Rows.SlotCount; business++)
+        {
+            if (!world.Businesses.Rows.IsLive(business) || !HoldsGoods(world, business, money))
+            {
+                continue;
+            }
+
+            int balance = world.Bins.Rows.Resolve(world.Businesses.Balance[business]);
+            long change = target - world.Bins.LevelAt(balance);
+
+            if (change > 0)
+            {
+                world.Deposit(world.Bins.Rows.At(balance), change, world.Tick);
+            }
+            else if (change < 0)
+            {
+                world.Withdraw(world.Bins.Rows.At(balance), -change, world.Tick);
+            }
+
+            world.MoneySupply.Issued[MoneySupplyTable.Slot] += new Money(change);
+        }
+    }
+
+    [Fact]
+    public void A_firm_that_cannot_pay_for_its_services_does_not_buy_them()
+    {
+        var (world, sim) = Start();
+        long batch = 8 * 100 + 90 + 30;
+
+        SetShopBalances(world, batch - 1);
+
+        Assert.Equal((0, 0), NextImport(world, sim, Ticks.PerDay));
+        sim.CheckEndOfRun();
+
+        SetShopBalances(world, batch);
+
+        Assert.True(NextImport(world, sim).Stocked > 0, "a firm holding a whole batch did not buy");
+        sim.CheckEndOfRun();
+    }
+
     [Fact]
     public void A_firm_keeps_its_provider_after_a_cheaper_one_opens()
     {

@@ -3095,6 +3095,7 @@ public static class RulesetLoader
                 // been read.
                 ApplyTenancies(rules, inputs, outputs, allBins, binFirst, i);
                 RefuseUnstaffedProduction(rules, inputs, outputs, i);
+                RefuseServiceBoughtWithoutAFirm(rules, inputs, i);
 
                 // The kind's Rules are not declared on the kind: a Rule already names the kind it
                 // runs on, and a second list would be the same fact twice with nothing keeping the
@@ -4763,6 +4764,42 @@ public static class RulesetLoader
             }
 
             return (int)revisit;
+        }
+
+        /// <summary>
+        /// Refusal — a service is bought by a firm, because its contract names a Business.
+        /// </summary>
+        private void RefuseServiceBoughtWithoutAFirm(RuleDefinition[] rules, Term[] inputs, int kindIndex)
+        {
+            for (int r = 0; r < rules.Length; r++)
+            {
+                RuleDefinition rule = rules[r];
+
+                if (rule.Kind != kindIndex + 1 || rule.Tenancy == BinTenancy.Business)
+                {
+                    continue;
+                }
+
+                for (int t = 0; t < rule.InputCount; t++)
+                {
+                    ResourceId resource = inputs[rule.InputFirst + t].Bin.Resource;
+
+                    if (_families[resource.Raw - 1] != ResourceFamily.Service)
+                    {
+                        continue;
+                    }
+
+                    string? name = TryString(_ruleTables[r], "name", out string? found, required: false)
+                        ? found
+                        : null;
+
+                    Refuse(LineOf(_ruleTables[r]), name,
+                        $"this Rule buys the service '{NameOfResource(resource)}', and no Business runs "
+                        + "it. A service is bought by a firm, and a Rule belongs to the Business when "
+                        + "its local terms address Bins with owner = \"business\".");
+                    break;
+                }
+            }
         }
 
         /// <summary>

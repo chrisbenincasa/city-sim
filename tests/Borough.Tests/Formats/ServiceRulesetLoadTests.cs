@@ -14,6 +14,8 @@ public sealed class ServiceRulesetLoadTests
 
     private const string ServiceInput = """{ scope = "pool", resource = "accounting", amount = 1 },""";
 
+    private const string Restock = """inputs  = [ { scope = "pool", resource = "sundries", amount = 4 } ]""";
+
     private static string Text() =>
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "serviced.toml"));
 
@@ -58,6 +60,29 @@ public sealed class ServiceRulesetLoadTests
         Assert.Contains(from, text);
 
         RulesetLoadResult loaded = Parse(text.Replace(from, to));
+
+        Assert.False(loaded.Ok);
+        Assert.Contains(named, loaded.Describe());
+    }
+
+    [Fact]
+    public void A_household_buying_a_service_is_refused()
+    {
+        RulesetLoadResult loaded = Parse(Text().Replace(
+            Restock,
+            Restock.Replace(" ]", ", { scope = \"pool\", resource = \"accounting\", amount = 1 } ]")));
+
+        Assert.False(loaded.Ok);
+        Assert.Contains("no Business runs it", loaded.Describe());
+    }
+
+    [Theory]
+    [InlineData("money", "is a money")]
+    [InlineData("labour", "spends labour from outside its own premises")]
+    public void A_pool_term_on_money_or_labour_is_refused(string resource, string named)
+    {
+        RulesetLoadResult loaded = Parse(Text().Replace(
+            Restock, Restock.Replace("\"sundries\"", $"\"{resource}\"")));
 
         Assert.False(loaded.Ok);
         Assert.Contains(named, loaded.Describe());
