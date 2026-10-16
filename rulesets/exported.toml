@@ -1,0 +1,277 @@
+# milled.toml with export budgets on both Hinterlands.
+#
+# A mill or grocer whose output Bin is full sells the batch it cannot store to the Hinterland that
+# pays most and still has budget today. East pays 1600 for flour and north 1400, so east buys until
+# its 16000 runs out and north buys after that, up to 64000. Both budgets reset at each Day boundary.
+# It adds a gate kind, `port`, and uses one lattice, because the populator refuses a gate beside two.
+# Grocers that buy flour do not export it, because exporting a restock only passes Goods through the
+# city. ExportTests asserts these behaviours.
+#
+# This is a fixture, not a balanced city.
+
+[[resource]]
+name = "sundries"
+family = "good"
+need = "sustenance"
+
+[[resource]]
+name = "repairs"
+family = "good"
+
+[[resource]]
+name = "flour"
+family = "good"
+
+[[resource]]
+name = "money"
+family = "money"
+
+[[resource]]
+name = "labour"
+family = "labour"
+shelf_life_cycles = 4
+shelf_life_cycle_minutes = 15
+
+[[business]]
+name = "mill"
+work_days = 31
+wage_per_day = 256
+pay_period_days = 7
+goes_bankrupt_after_days_in_arrears = 28
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+[[business]]
+name = "grocer"
+work_days = 124
+open_days = 127
+opens_hour = 7
+closes_hour = 21
+wage_per_day    = 4096
+pay_period_days = 7
+goes_bankrupt_after_days_in_arrears = 28
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+[[building]]
+name = "dwelling"
+bins = [
+    { resource = "sundries", capacity = 128, owner = "occupant" },
+    { resource = "repairs",  capacity = 4 },
+    { resource = "flour",    capacity = 256, owner = "business" },
+    { resource = "money",    owner = "business" },
+    { resource = "labour",   owner = "business" },
+]
+houses   = true
+premises = true
+parked = true
+business = "mill"
+
+[[building]]
+name = "shopfront"
+bins = [
+    { resource = "sundries", capacity = 1024, owner = "business" },
+    { resource = "flour",    capacity = 64, owner = "business" },
+    { resource = "repairs",  capacity = 4 },
+    { resource = "money",    owner = "business" },
+    { resource = "labour",   owner = "business" },
+]
+houses   = true
+premises = true
+business = "grocer"
+
+# An Outside Connection: it houses and employs nobody and declares no Bins. A Hinterland trades only
+# through an edge with a gate standing on it.
+[[building]]
+name = "port"
+arrivals_per_day = 12
+
+[[rule]]
+name    = "restock"
+kind    = "dwelling"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = [ { scope = "pool", resource = "sundries", amount = 4 } ]
+outputs = [ { scope = "local", resource = "sundries", amount = 4 } ]
+
+[[rule]]
+name    = "consume"
+kind    = "dwelling"
+rate    = 256
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "sundries", amount = 4 } ]
+outputs = []
+
+[[rule]]
+name    = "upkeep"
+kind    = "dwelling"
+rate    = 16
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "repairs", amount = 4 } ]
+outputs = []
+
+[[rule]]
+name    = "mill"
+kind    = "dwelling"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = [ { scope = "local", resource = "labour", amount = 1 } ]
+outputs = [ { scope = "local", resource = "flour", amount = 4 } ]
+
+[[rule]]
+name    = "bake"
+kind    = "shopfront"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = [
+    { scope = "local", resource = "labour", amount = 1 },
+    { scope = "local", resource = "flour",  amount = 1 },
+]
+outputs = [ { scope = "local", resource = "sundries", amount = 16 } ]
+
+[[rule]]
+name    = "buy_flour"
+kind    = "shopfront"
+rate    = 8
+apply   = { min = 1, max = 1 }
+inputs  = [
+    { scope = "local", resource = "labour", amount = 1 },
+    { scope = "pool",  resource = "flour",  amount = 8 },
+]
+outputs = [ { scope = "local", resource = "flour", amount = 8 } ]
+
+[[rule]]
+name    = "grind"
+kind    = "shopfront"
+rate    = 64
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "labour", amount = 8 } ]
+outputs = [ { scope = "local", resource = "flour", amount = 1 } ]
+
+[[zone_rule]]
+name          = "housing"
+kind          = "dwelling"
+zone          = 0
+interval      = 32
+revisit_ticks = 2048
+
+[[zone_rule]]
+name          = "trade"
+kind          = "shopfront"
+zone          = 1
+interval      = 32
+revisit_ticks = 2048
+build_threshold_days = 3
+cooldown_days        = 7
+
+[placement]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+gives_up_after_days = 14
+
+[layers]
+noise_range_metres            = 300
+noise_intensity_percent       = 400
+desirability_pollution_percent = 100
+desirability_noise_percent     = 100
+pollution_period      = 64
+pollution_offset      = 0
+land_value_period     = 256
+land_value_offset     = 16
+kernel_metres         = 1024
+pollution_decay_ticks = 2048
+land_value_tau        = 8
+
+[roads]
+block_tiles                    = 32
+arterial_count                 = 0
+arterial_junction_tiles        = 512
+foot_crossing_every            = 4
+foot_paths_per_thousand_blocks = 40
+street_speed_kph               = 50
+arterial_speed_kph             = 90
+walk_speed_kph                 = 5
+street_capacity_per_hour       = 3600
+arterial_capacity_per_hour     = 12000
+foot_path_capacity_per_hour    = 1000
+
+[lots]
+lots_per_segment = 5
+setback_tiles = 2
+
+[capacity]
+floor_tiles_per_occupant      = 25
+floor_tiles_per_job           = 12
+floor_tiles_per_parking_space = 12
+
+[parking]
+radius_metres = 400
+shed_keeps = 24
+
+[trips]
+crossing_seconds = 30
+commute_fast_minutes = 20
+commute_moderate_minutes = 40
+commute_budget_minutes = 50
+
+[jobs]
+labour_per_day = 1024
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+shift_hours_min = 6
+shift_hours_max = 10
+arrive_early_max_minutes = 15
+
+[households]
+car_ownership_percent = 0
+opening_balance_min = 12800
+opening_balance_max = 25600
+
+[districts]
+prominence_percent = 50
+revisit_ticks = 2048
+hysteresis_percent = 50
+migrate_cells = 16
+
+[[hinterland]]
+edge = "north"
+emigrant_balance_min = 0
+emigrant_balance_max = 0
+export_budget = 64000
+prices = [
+  { resource = "sundries", price = 100 },
+  { resource = "repairs",  price = 250 },
+  { resource = "flour",    price = 1400 },
+]
+
+[[hinterland]]
+edge = "east"
+emigrant_balance_min = 0
+emigrant_balance_max = 0
+export_budget = 16000
+prices = [
+  { resource = "sundries", price = 120 },
+  { resource = "repairs",  price = 200 },
+  { resource = "flour",    price = 1600 },
+]
+
+[market]
+decay_percent = 50
+move_cap_percent = 10
+[needs]
+sustenance_degrade = 4
+sustenance_recover = 4
+satisfaction_degrade = 4
+satisfaction_recover = 4
+floor = -100
+
+[shopping]
+interval = 64
+low_days = 1
+target_days = 3
+severe_need = -16
+known_shops = 3
+search_candidates = 32
+retry_ticks = 128

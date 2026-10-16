@@ -790,10 +790,12 @@ public sealed class DistrictWatershedTests
             // table for that file's reason.
             // serviced.toml IS imported.toml with a Professional Service added, so it inherits the
             // table for that file's reason.
+            // exported.toml IS milled.toml with export budgets and a gate, so it inherits the table
+            // for that file's reason.
             bool expected = file is "twinned.toml" or "provisioned.toml" or "oversupplied.toml"
                 or "waged.toml" or "pictured.toml" or "shopping.toml" or "insolvent.toml" or "stress-shopping.toml" or "profile-services.toml"
                 or "schooling.toml" or "taxing.toml" or "traded.toml" or "imported.toml" or "milled.toml"
-                or "granted.toml" or "serviced.toml";
+                or "granted.toml" or "serviced.toml" or "exported.toml";
 
             Assert.Equal(expected, states);
         }

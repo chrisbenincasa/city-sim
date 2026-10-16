@@ -14,10 +14,10 @@ for jobs and jobs attract people.
 
 ## Current behaviour (checked 10/02/2026 at `8224b394`)
 
-- Money enters only through `World.Endow`/`EndowTreasury`: the founding treasury, founding
-  Households and arrival purses. Nothing pays the city for anything it sells.
-- `World.TryImportPrice`/`PayOutside` import a Good at the cheapest gated Hinterland edge. No
-  export path exists.
+- Money enters through `World.Endow`/`EndowTreasury` (the founding treasury, founding Households and
+  arrival purses) and, since slice 2, through `World.PayForExport`.
+- `World.TryImportPrice`/`PayOutside` import a Good at the cheapest gated Hinterland edge.
+  `World.TryExportTo` sells one to the highest-paying gated edge with budget left.
 - `ZoneRuleEngine.MarketFor` returns a market only for a kind holding a Business-owned, non-money
   Good Bin. A kind that sells no Good can never be raised.
 - Production is labour-bound (PR #105): a Rule with a labour input makes nothing when nobody is at work.
@@ -43,6 +43,8 @@ for jobs and jobs attract people.
 | 9 | A jobless spell past a Ruleset duration makes a housed Household rerun the same comparison against the Hinterland. Life Stage sets reluctance | Departure when it cannot pay (Household financial resilience row) |
 | 10 | Seeds differ through land. Hinterlands stay authored per Ruleset | Generator deals Hinterlands to edges (world-creation row) |
 | 11 | A firm keeps its service provider under a saved contract and chooses again only when the provider cannot supply it (`adr/0178`, 10/15/2026). A District Pool was rejected because it cannot say "within reach of this firm" | Local providers and their capacity, offices slice |
+| 12 | Surplus is output a firm cannot store. A Rule with its inputs and workers present, blocked only by a full output Bin of a Good it makes, sells that batch to the Hinterland. The Bin stays full, so local buyers lose nothing (10/16/2026). A waiting period before exporting was considered and not built | A waiting period, if a long run shows local buyers going without |
+| 13 | Service exports wait for slice 3, because nothing in the city makes a service before then | Selling unused office capacity, slice 3 |
 
 Consequences of these decisions:
 
@@ -84,9 +86,17 @@ Ordered by dependency. Each slice is one PR with its own acceptance.
    - A `pool` term on a utility or labour Resource is refused at load (issue #177).
    - Fixture `rulesets/serviced.toml`; tests `ServiceImportTests`, `ServiceRulesetLoadTests`.
    - Reach is read and stored but binds nothing until local providers exist.
-2. **Exports with the budget guard.** A Hinterland buys surplus Goods and services at its price, up
-   to a recovering daily budget. Firms sell locally first. Money enters at a new door that moves
-   `Issued`.
+2. **Exports with the budget guard. Built 10/16/2026 on `export-base-2`.**
+   - `[[hinterland]] export_budget`: Money per Day, reset at each Day boundary. Absent buys nothing.
+   - A Hinterland buys at its `prices` figure. The buyer is the highest payer with a gate and budget
+     for the whole batch, with ties to the one declared first.
+   - Only a Good the firm makes is exported, and one output per firing. A Rule that buys the same Good
+     through a pool term is restocking and does not export.
+   - `World.PayForExport` pays the firm's balance, moves `Issued` and records revenue with no cost of
+     goods. A new gate and each Day boundary wake firms asleep on a full Bin.
+   - `HinterlandTable.ExportedToday`/`ExportedYesterday` are saved. Save format version 23; goldens
+     re-recorded for the new columns only.
+   - Goods only (Decision 13). Fixture `rulesets/exported.toml`; tests `ExportTests`.
 3. **Offices make services.** Labour-bound production is built (PR #105), so an unstaffed office makes
    nothing. Add a provider handle and capacity to the contract and the reach test. Unserved service
    demand raises offices through `MarketFor`, which today needs a Business-owned Good Bin.

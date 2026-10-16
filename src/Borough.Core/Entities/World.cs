@@ -2421,6 +2421,87 @@ public sealed partial class World
     internal void PayOutside(Money amount) => MoneySupply.Issued[MoneySupplyTable.Slot] -= amount;
 
     /// <summary>
+    /// The Hinterland that pays most for <paramref name="resource"/> through a gated edge and can
+    /// still pay today for <paramref name="quantity"/> units, its price and the budget it has left.
+    /// Ties go to the Hinterland declared first.
+    /// </summary>
+    public bool TryExportTo(
+        ResourceId resource, long quantity, out int hinterland, out Money price, out Money left)
+    {
+        hinterland = -1;
+        price = default;
+        left = default;
+
+        for (int candidate = 0; candidate < Rules.Hinterlands.Length; candidate++)
+        {
+            Money budget = ExportBudgetLeft(candidate);
+            Money offered = Rules.ImportPrice(candidate, resource);
+
+            if (Supplies(candidate, resource)
+                && budget.Raw >= quantity * offered.Raw
+                && (hinterland < 0 || offered > price))
+            {
+                hinterland = candidate;
+                price = offered;
+                left = budget;
+            }
+        }
+
+        return hinterland >= 0;
+    }
+
+    /// <summary>What <paramref name="hinterland"/> may still pay for exports today.</summary>
+    public Money ExportBudgetLeft(int hinterland)
+    {
+        HinterlandDefinition definition = Rules.Hinterlands[hinterland];
+
+        return definition.ExportBudget - Hinterlands.ExportedToday[HinterlandTable.SlotOf(definition.Edge)];
+    }
+
+    /// <summary>
+    /// Pays a firm for Goods <paramref name="hinterland"/> bought from it, issuing the Money into the
+    /// city.
+    /// </summary>
+    /// <remarks>
+    /// The Goods never entered a city Bin, so the sale carries no cost of goods.
+    /// </remarks>
+    internal void PayForExport(int businessSlot, int hinterland, Money amount, Ticks tick)
+    {
+        Deposit(Businesses.Balance[businessSlot], amount.Raw, tick);
+        MoneySupply.Issued[MoneySupplyTable.Slot] += amount;
+        Hinterlands.ExportedToday[HinterlandTable.SlotOf(Rules.Hinterlands[hinterland].Edge)] += amount;
+        BusinessAccounts.Serve(this, businessSlot, amount.Raw, tick);
+    }
+
+    /// <summary>
+    /// Wakes every firm asleep on a full Bin of a Good, because a Hinterland may now buy its surplus.
+    /// </summary>
+    private void WakeExporters(Ticks tick)
+    {
+        bool buys = false;
+
+        foreach (HinterlandDefinition hinterland in Rules.Hinterlands)
+        {
+            buys |= hinterland.ExportBudget.Raw > 0;
+        }
+
+        if (!buys)
+        {
+            return;
+        }
+
+        for (int bin = 0; bin < Bins.Rows.SlotCount; bin++)
+        {
+            if (Bins.Rows.IsLive(bin)
+                && Bins.OwnerKind[bin] == BinOwnerKind.Business
+                && Rules.Family(Bins.Resource[bin]) == ResourceFamily.Good)
+            {
+                WakeAll(SpaceWaiters, bin, tick);
+            }
+        }
+    }
+
+    /// <summary>
     /// Wakes every buyer blocked on a District market, because a new gate may now supply it.
     /// </summary>
     private void WakeMarkets(Ticks tick)
@@ -3025,8 +3106,13 @@ public sealed partial class World
     {
         int day = DayOf(now);
 
-        Hinterlands.RollDay(day);
+        bool rolled = Hinterlands.RollDay(day);
         PopulationLedger.RollDay(day);
+
+        if (rolled)
+        {
+            WakeExporters(now);
+        }
     }
 
     /// <summary>
@@ -5167,6 +5253,7 @@ public sealed partial class World
         if (IsOutsideConnection(kind))
         {
             WakeMarkets(now);
+            WakeExporters(now);
         }
 
         // CONTEXT.md -> Building: "a Building has a footprint (the set of Tiles it covers)" and

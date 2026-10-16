@@ -89,6 +89,27 @@ public sealed class ServiceRulesetLoadTests
     }
 
     [Fact]
+    public void A_hinterland_buys_nothing_without_an_export_budget()
+    {
+        RulesetLoadResult loaded = Parse(Text());
+
+        Assert.True(loaded.Ok, loaded.Describe());
+        Assert.All(loaded.Ruleset!.Hinterlands, h => Assert.Equal(0, h.ExportBudget.Raw));
+    }
+
+    [Theory]
+    [InlineData("-1")]
+    [InlineData("2147483648")]
+    public void An_export_budget_out_of_range_is_refused(string budget)
+    {
+        RulesetLoadResult loaded = Parse(Text().Replace(
+            "edge = \"north\"\n", $"edge = \"north\"\nexport_budget = {budget}\n"));
+
+        Assert.False(loaded.Ok);
+        Assert.Contains("export_budget", loaded.Describe());
+    }
+
+    [Fact]
     public void A_pool_term_on_a_utility_is_refused()
     {
         string text = Text().Replace(Accounting, "name = \"accounting\"\nfamily = \"utility\"")

@@ -246,6 +246,11 @@ public sealed class RuleEngine
     private int[] _retainedHinterland = new int[4];
     private int _retainedCount;
 
+    // One export per firing, which a Check chose and Fire pays. The payment is per application.
+    private int _exportHinterland;
+    private int _exportBusiness;
+    private long _exportPayment;
+
     // 02 §4's counters. The first three are the Tick in flight; CloseTick folds them into the second
     // three, which are the interval a Census reading drains.
     private int _tickDue;
@@ -578,6 +583,7 @@ public sealed class RuleEngine
         _tradeCount = 0;
         _retainedCount = 0;
         _accruedCount = 0;
+        _exportHinterland = -1;
 
         foreach (Term term in _world.Rules.Inputs(rule))
         {
@@ -677,7 +683,14 @@ public sealed class RuleEngine
 
                 if (affordable < floor)
                 {
-                    return RuleVerdict.Stopped(instance, rule, _touchedBlame[i], Blocking.Space);
+                    affordable = Export(instance, rule, bin, delta, floor);
+
+                    if (affordable < floor)
+                    {
+                        return RuleVerdict.Stopped(instance, rule, _touchedBlame[i], Blocking.Space);
+                    }
+
+                    _touchedDelta[i] = 0;
                 }
             }
             else
@@ -703,6 +716,64 @@ public sealed class RuleEngine
         }
 
         return RuleVerdict.Fire(instance, rule, applications);
+    }
+
+    /// <summary>
+    /// Sells a firing's output to a Hinterland when the firm has no room to store it, and returns how
+    /// many applications the Hinterland's budget covers.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Only a Good the firm makes is exported. A Rule that buys the same Good through a pool term is
+    /// restocking, and exporting what it bought would spend the budget on Goods that only pass
+    /// through the city.
+    /// </para>
+    /// <para>
+    /// The output never reaches the Bin, so the Bin stays full and local buyers lose nothing. One
+    /// output per firing is exported, because two would draw on one budget twice.
+    /// </para>
+    /// </remarks>
+    /// <returns>Zero when nothing may be exported.</returns>
+    private long Export(int instance, RuleId rule, int bin, long perApplication, long floor)
+    {
+        ResourceId resource = _world.Bins.Resource[bin];
+        Handle<Business> firm = _world.RuleInstances.Business[instance];
+
+        if (_exportHinterland >= 0
+            || firm.IsNone
+            || _world.Bins.OwnerKind[bin] != BinOwnerKind.Business
+            || _world.Rules.Family(resource) != ResourceFamily.Good
+            || Restocks(rule, resource)
+            || !_world.TryExportTo(
+                resource, floor * perApplication, out int hinterland, out Money price, out Money left))
+        {
+            return 0;
+        }
+
+        long payment = perApplication * price.Raw;
+        long applications = IntegerMath.FloorDiv(left.Raw, payment);
+
+        if (applications > 0)
+        {
+            _exportHinterland = hinterland;
+            _exportBusiness = _world.Businesses.Rows.Resolve(firm);
+            _exportPayment = payment;
+        }
+
+        return applications;
+    }
+
+    private bool Restocks(RuleId rule, ResourceId resource)
+    {
+        foreach (Term term in _world.Rules.Inputs(rule))
+        {
+            if (term.Bin.Scope == Scope.Pool && term.Bin.Resource == resource)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private bool IsLabour(int bin) =>
@@ -1105,6 +1176,15 @@ public sealed class RuleEngine
             }
 
             BusinessAccounts.Stock(_world, _tradeLanding[i], paid);
+        }
+
+        if (verdict.Applications > 0 && _exportHinterland >= 0)
+        {
+            _world.PayForExport(
+                _exportBusiness,
+                _exportHinterland,
+                new Money(_exportPayment * verdict.Applications),
+                tick);
         }
 
         if (verdict.Applications > 0)

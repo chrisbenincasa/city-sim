@@ -1861,6 +1861,15 @@ public readonly record struct HinterlandDefinition(
     public Money Rent { get; init; }
 
     /// <summary>
+    /// The most this Hinterland pays the city for exports in one Day. Zero buys nothing.
+    /// </summary>
+    /// <remarks>
+    /// It buys at its <c>prices</c>, the figure it also sells at, and only Goods a city firm made and
+    /// had no room to store. The budget resets at each Day boundary.
+    /// </remarks>
+    public Money ExportBudget { get; init; }
+
+    /// <summary>
     /// How far from a centre life out here is, in the Tiles the map is measured in.
     /// </summary>
     /// <remarks>

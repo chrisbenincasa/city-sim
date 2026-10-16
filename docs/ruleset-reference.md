@@ -27,7 +27,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-53 sections, 385 keys.
+53 sections, 386 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
@@ -36,7 +36,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[[building]] bins reserve`](#building-bins-reserve) — 3 keys
 - [`[[business]]`](#business) — 17 keys
 - [`[[hinterland.population]]`](#hinterlandpopulation) — 5 keys
-- [`[[hinterland]]`](#hinterland) — 8 keys
+- [`[[hinterland]]`](#hinterland) — 9 keys
 - [`[[hinterland]] prices`](#hinterland-prices) — 2 keys
 - [`[[housing_form]]`](#housing_form) — 11 keys
 - [`[[lattice]]`](#lattice) — 4 keys
@@ -390,6 +390,10 @@ The most. Stated as a band rather than one figure, because a single figure gives
 **`emigrant_balance_min`** · *whole number*
 
 The least money a Household arriving from this Hinterland brings with it.
+
+**`export_budget`** · *whole number*
+
+The most this Hinterland pays the city for exports in one Day, from 0 to 2147483647. It buys at its prices, the figure it also sells at, and only Goods a city firm made and had no room to store. When several Hinterlands price a Good, the highest payer with budget left buys it. Absent or zero buys nothing.
 
 **`id`** · *quoted string*
 
