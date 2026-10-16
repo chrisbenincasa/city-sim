@@ -55,9 +55,11 @@ Consequences of these decisions:
 
 ## Open
 
-- **Profit build-up.** Business tills receive export income with no investment sink until private
-  capital is designed. The budget guard bounds inflow, not accumulation. Check boundedness in the
-  first long run with exports.
+- **Profit build-up.** A till pays its surplus above a reserve to its owner Household (`adr/0176`).
+  That Household's savings then buy Lots and pay construction, which sends the land price to the
+  treasury and the construction charge outside the city
+  ([land ownership and rent](money-circulation.md#land-ownership-and-rent-decided-10162026)). The
+  budget guard bounds inflow, not accumulation. Check boundedness in the first long run with exports.
 - **Who staffs a service firm.** Keep the single `requires_tier` minimum. A tier mix waits on
   `adr/0026`.
 - **Service purchase mechanism.** Either the pool purchase (`adr/0167`) with a reach filter, or a

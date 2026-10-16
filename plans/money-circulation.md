@@ -53,7 +53,7 @@ The founding loop's base city, run with `quits_after_days_unpaid` and the M2 con
 |---|---|---|
 | Owner draw | Built and in base (`adr/0176`) | — |
 | Housed-only rebate | Built and in base (`housed` Readout) | Replace with rent once its recipient is decided |
-| Rent collection | Design | Decide the recipient. Coordinate with the land ownership row |
+| Rent collection | Design | Recipient and amount decided (L1–L7). Decide unpaid rent, owner succession and Lot assembly |
 | Premises upkeep | Scoping | Decide whether upkeep is Money only or consumes repairs |
 | Utility billing | Scoping | Waits on the Power, Water and Sewage delivery row |
 
@@ -76,10 +76,28 @@ The founding loop's base city, run with `quits_after_days_unpaid` and the M2 con
 - A draw to the treasury was rejected. The treasury already piles up money when levies run, and
   Households would get money back only through the rebate.
 
-### Open
+### Land ownership and rent (decided 10/16/2026)
 
-- **Rent recipient.** The treasury makes rent a tax and enlarges the treasury's surplus. An owning
-  Household makes rent a second income channel. No landlord entity exists yet.
+| # | Question | Decided | Rejected |
+|---|---|---|---|
+| L1 | Who owns land? | A Household, the Landowner | The city owning all land, which makes rent a tax. A landlord Business, which would be a Business without premises (`adr/0142`) |
+| L2 | What does a Landowner hold? | The Lot, vacant or built, and the Building on it | The Building only, which leaves vacant land unowned and land banking with no actor |
+| L3 | Who holds a newly carved Lot? | The city, until a Household buys it to build. The price is the `World.DemolitionPrice` formula, so the city sells and buys back at one price | A free draw to a random Household. Nobody until built |
+| L4 | Who decides to build? | The Zone Rule triggers, unchanged. The engine then finds a buyer. With no buyer the Lot stays vacant, with "No capital" as its reason | Households investing on a pro-forma. Deferred with `adr/0163` tier 3 |
+| L5 | Which Household buys? | Equally likely among Households that can pay and keep a reserve. The reserve is a Ruleset key in Days of spending | The richest, which concentrates ownership. The future resident first |
+| L6 | Who receives construction Money? | Outside the city, as an import, from a Ruleset charge per floor Tile. Buying a Materials Good replaces it later | The treasury. Local builder Businesses, which belong to the construction phase row. No charge, which leaves Lots nearly free |
+| L7 | How much is rent? | Daily, per tenancy: the kind's rent per floor Tile × the tenancy's floor area × (1 + land value at the Lot), floored at zero. A resident Landowner pays none. Placement and `HousingUtility` read the same figure, so `[[building]] rent` becomes a per-floor-Tile rate in every Ruleset | One rent per kind, which charges small and large Units alike. Market rent |
+| L8 | What if a tenant cannot pay? | It pays what it can. An arrears clock runs from the first short Day and resets on full payment. Past a Ruleset duration in Days, a Household is evicted to the Unplaced Pool (`adr/0054`) and a Business becomes unpremised and emigrates (`adr/0142`) | Eviction on the first short Day. Unpaid rent as debt, which grows without bound |
+| L9 | What happens to a Lot when its Landowner goes? | On departure the Landowner sells at the L3 price and takes the money out of the city. Households housed on the Lot get first refusal, chosen as in L5; then any Household as in L5. With no buyer the Lot passes to the city unpaid. On dissolution the Lot passes to the city with the estate (`World.Dissolve`). The city collects a held Lot's rent and sells it, first refusal included, when a buyer appears | Always reverting to the city, which makes rent drift toward a tax. A free redraw, which undoes L3 |
+| L10 | What if assembly or a Street needs owned Lots? | Assembly merges only Lots the city holds or one Landowner holds; another Household's Lot blocks it. A Street or the player's `Demolish` is compulsory purchase: the treasury pays the Landowner the L3 price, and tenants are evicted through the L8 paths with no payment | Assembly buying out every owner, which removes holdouts. Paying tenants, as `World.PayDisplaced` does today, which leaves the Landowner unpaid |
+| L11 | What if a Zone Rule wants to build on a vacant Lot a Household owns? | The Landowner builds if it can pay the construction charge and keep its reserve. Otherwise it sells at the L3 price to a buyer chosen as in L5, who builds | Holding when it cannot pay, which idles land for poverty rather than choice. A Landowner pro-forma, deferred with L4 |
+| L12 | How does the player break a holdout? | A player action buys a vacant owned Lot by compulsory purchase at the L3 price. The city then holds it, so assembly can proceed. It extends `Demolish`'s compulsory purchase (`adr/0091`) to vacant Lots | The city taking a Lot automatically when no buyer exists. The city never builds (L4), so the Lot would stay vacant |
+| L13 | Does a Landowner pay a holding cost? | Not yet. Run the base city to Day 400 under L1–L12 and check that Landowner and treasury balances stay bounded, and whether base can drop its levies and housed rebate | A land tax Policy now; the treasury is already where taxes pile up. Spending that rises with wealth, which belongs to the Household financial resilience row |
+| L14 | Who owns Lots that world creation builds? | The city. They sell through the L9 step, tenants first, as buyers appear | A free endowment to residents, which creates land wealth without a purchase. A sale at creation, which opening balances cannot fund |
+
+- Land value rests at or below zero (`adr/0122`–`0127`), so L7 can only discount rent today.
+
+### Open
 - **Rent and the rebate.** Rent may let base drop its levies and rebate. With owner draw and no
   levies, income tax still piles up in the treasury and employment collapses
   ([slice 4 record](first-playable-founding-loop.md#findings)).
