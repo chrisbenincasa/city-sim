@@ -253,6 +253,8 @@ public sealed class FactorioTests(ITestOutputHelper output)
 
         Scan(Borough.Tests.Rules.ExpiryTests.Spoiling(), reached, []);
 
+        Scan(Borough.Tests.Rules.ServiceImportTests.Contracted(), reached, []);
+
         List<string> unreachable = [.. every.Where(name => !reached.Contains(name))];
 
         _output.WriteLine($"{reached.Count} of {every.Count} columns corrupted and observed");

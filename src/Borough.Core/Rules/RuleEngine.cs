@@ -240,6 +240,12 @@ public sealed class RuleEngine
     private long[] _tradePayment = new long[4];
     private int _tradeCount;
 
+    // Contracts a Check chose and Fire records, for adr/0037's reason: Phase 2 writes nothing.
+    private int[] _retainedBusiness = new int[4];
+    private ResourceId[] _retainedService = new ResourceId[4];
+    private int[] _retainedHinterland = new int[4];
+    private int _retainedCount;
+
     // 02 §4's counters. The first three are the Tick in flight; CloseTick folds them into the second
     // three, which are the interval a Census reading drains.
     private int _tickDue;
@@ -570,6 +576,7 @@ public sealed class RuleEngine
         _touchedCount = 0;
         _boughtCount = 0;
         _tradeCount = 0;
+        _retainedCount = 0;
         _accruedCount = 0;
 
         foreach (Term term in _world.Rules.Inputs(rule))
@@ -589,7 +596,9 @@ public sealed class RuleEngine
                 // A purchase is one term and three deltas, so it cannot go through Touch(Bin(...)).
                 // It also fails BEFORE the affordability walk when no seller can cover a batch, which
                 // is a district-wide shortage rather than one Bin being short.
-                int unsupplied = Buy(instance, rule, term, floor);
+                int unsupplied = _world.Rules.Family(term.Bin.Resource) == ResourceFamily.Service
+                    ? Retain(instance, rule, term)
+                    : Buy(instance, rule, term, floor);
 
                 if (unsupplied == Marketless)
                 {
@@ -856,6 +865,100 @@ public sealed class RuleEngine
     }
 
     /// <summary>
+    /// Resolves one <c>pool</c> input for a Professional Service into a payment to the firm's provider,
+    /// or names the market row the firm waits on when no provider will supply it (<c>adr/0178</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The firm keeps the provider its contract names while that provider still supplies the service.
+    /// Only when it cannot does the firm pick again, from the cheapest gated Hinterland. A service is
+    /// never stocked, so no Bin on either side moves: the firm pays and the Money leaves the city.
+    /// </para>
+    /// <para>
+    /// Reach is not checked here. Every provider in this build is a Hinterland, and an import ignores
+    /// the buyer's location exactly as a Good's does.
+    /// </para>
+    /// <para>
+    /// The firm waits on its District's market row for the service, so a new gate wakes it through
+    /// <see cref="World.WakeMarkets"/> as it wakes a buyer of Goods.
+    /// </para>
+    /// </remarks>
+    private int Retain(int instance, RuleId rule, in Term term)
+    {
+        int market = Bin(_world, instance, term.Bin, rule);
+
+        if (market == Rows.NoSlot)
+        {
+            return Marketless;
+        }
+
+        Handle<Business> trader = _world.RuleInstances.Business[instance];
+
+        if (trader.IsNone)
+        {
+            throw new InvalidOperationException(
+                $"rule {rule.Raw} buys a service and no Business runs it. "
+                + "RulesetLoader.RefuseServiceBoughtWithoutAFirm refuses this at load.");
+        }
+
+        int business = _world.Businesses.Rows.Resolve(trader);
+        ResourceId service = term.Bin.Resource;
+        int contract = _world.FindContract(business, service);
+        int provider = contract == Rows.NoSlot ? -1 : _world.ServiceContracts.Hinterland[contract];
+
+        if (!_world.Supplies(provider, service) && !_world.TryImportFrom(service, out provider, out _))
+        {
+            return market;
+        }
+
+        if (!_world.TryMoneyResource(out ResourceId money))
+        {
+            throw new InvalidOperationException(
+                "a pool term reached the RuleEngine without a money Resource. RulesetLoader refuses "
+                + "pool terms when the Ruleset declares no Resource whose family is money.");
+        }
+
+        int purse = _world.FindLocalBin(instance, money);
+
+        if (purse == Rows.NoSlot)
+        {
+            throw new InvalidOperationException(
+                $"rule {rule.Raw} buys a service and its Business holds no balance to pay from.");
+        }
+
+        long payment = term.Amount * _world.Rules.ImportPrice(provider, service).Raw;
+
+        Touch(purse, -payment);
+
+        Grow(ref _tradeSeller, _tradeCount + 1);
+        Grow(ref _tradeStock, _tradeCount + 1);
+        Grow(ref _tradeLanding, _tradeCount + 1);
+        Grow(ref _tradeAmount, _tradeCount + 1);
+        Grow(ref _tradePayment, _tradeCount + 1);
+
+        _tradeSeller[_tradeCount] = Rows.NoSlot;
+        _tradeStock[_tradeCount] = Rows.NoSlot;
+        _tradeLanding[_tradeCount] = Rows.NoSlot;
+        _tradeAmount[_tradeCount] = term.Amount;
+        _tradePayment[_tradeCount] = payment;
+        _tradeCount++;
+
+        if (contract == Rows.NoSlot || _world.ServiceContracts.Hinterland[contract] != provider)
+        {
+            Grow(ref _retainedBusiness, _retainedCount + 1);
+            Grow(ref _retainedService, _retainedCount + 1);
+            Grow(ref _retainedHinterland, _retainedCount + 1);
+
+            _retainedBusiness[_retainedCount] = business;
+            _retainedService[_retainedCount] = service;
+            _retainedHinterland[_retainedCount] = provider;
+            _retainedCount++;
+        }
+
+        return Rows.NoSlot;
+    }
+
+    /// <summary>
     /// The city seller that will fill a batch, or no seller when none holds one.
     /// </summary>
     private Space.Offer Seller(int instance, int row, long batch)
@@ -1002,6 +1105,14 @@ public sealed class RuleEngine
             }
 
             BusinessAccounts.Stock(_world, _tradeLanding[i], paid);
+        }
+
+        if (verdict.Applications > 0)
+        {
+            for (int i = 0; i < _retainedCount; i++)
+            {
+                _world.Contract(_retainedBusiness[i], _retainedService[i], _retainedHinterland[i], tick);
+            }
         }
 
         for (int i = 0; i < _touchedCount; i++)

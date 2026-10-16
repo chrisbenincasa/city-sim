@@ -128,6 +128,8 @@ public sealed class BusinessTable
         // Derived, because it is rebuilt from CitizenTable.Workplace and folds into no hash.
         WorkerHead = _rows.Derived<int>("worker_head");
         WorkerTail = _rows.Derived<int>("worker_tail");
+        ContractHead = _rows.Derived<int>("contract_head");
+        ContractTail = _rows.Derived<int>("contract_tail");
 
         _rows.Seal();
     }
@@ -341,6 +343,12 @@ public sealed class BusinessTable
 
     /// <summary>The last Citizen this Business employs, so an append needs no walk.</summary>
     public Column<int> WorkerTail { get; }
+
+    /// <summary>The head of this firm's service contracts, threaded by <c>World.BusinessContracts</c>.</summary>
+    public Column<int> ContractHead { get; }
+
+    /// <summary>The tail of this firm's service contracts.</summary>
+    public Column<int> ContractTail { get; }
 
     /// <summary>Whether this Business is in the unpremised pool.</summary>
     public bool IsUnpremised(int slot) => PoolSlot[slot] != 0;
