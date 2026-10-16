@@ -59,8 +59,11 @@ Consequences of these decisions:
 ## Open
 
 - **Profit build-up.** Business tills receive export income with no investment sink until private
-  capital is designed. The budget guard bounds inflow, not accumulation. Check boundedness in the
-  first long run with exports.
+  capital is designed. The budget guard bounds inflow, not accumulation. Measured 10/16/2026 on
+  `rulesets/exported.toml`, seed 0, 120 Days: both Hinterlands spend their whole budget every Day
+  (about 77,000 a Day), and firm balances grow in a straight line from 3.6M on Day 10 to 10.5M on
+  Day 120. Household balances grow too, more slowly. `MoneyIsConserved` holds. Money in the city is
+  unbounded while exports run, so this slice cannot ship to a base Ruleset until a sink is decided.
 - **Who staffs a service firm.** Keep the single `requires_tier` minimum. A tier mix waits on
   `adr/0026`.
 - **Office capacity.** A service is never stocked, so an office sells capacity per Day rather than
