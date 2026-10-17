@@ -601,6 +601,11 @@ public static class RulesetKeyNotes
         ["[[hinterland]] emigrant_balance_max"] =
             "The most. Stated as a band rather than one figure, because a single figure gives every "
             + "arrival the same means.",
+        ["[[hinterland]] export_budget"] =
+            "The most this Hinterland pays the city for exports in one Day, from 0 to 2147483647. "
+            + "It buys at its prices, the figure it also sells at, and only Goods a city firm made "
+            + "and had no room to store. When several Hinterlands price a Good, the highest payer "
+            + "with budget left buys it. Absent or zero buys nothing.",
         ["[[hinterland]] rent"] =
             "What a home costs per Day out here, in the money a [[building]] rent is in. It is what "
             + "a prospective Household compares against the cost of living in the city, and what a "

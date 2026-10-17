@@ -486,6 +486,10 @@
             "description": "The least money a Household arriving from this Hinterland brings with it.",
             "type": "integer"
           },
+          "export_budget": {
+            "description": "The most this Hinterland pays the city for exports in one Day, from 0 to 2147483647. It buys at its prices, the figure it also sells at, and only Goods a city firm made and had no room to store. When several Hinterlands price a Good, the highest payer with budget left buys it. Absent or zero buys nothing.",
+            "type": "integer"
+          },
           "id": {
             "description": "Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.",
             "type": "string"

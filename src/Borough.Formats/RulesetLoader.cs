@@ -6898,6 +6898,7 @@ public static class RulesetLoader
                 {
                     Rent = rent,
                     CentralityTiles = centrality,
+                    ExportBudget = ReadExportBudget(table),
                 };
 
                 int first = stock.Count;
@@ -7322,6 +7323,26 @@ public static class RulesetLoader
 
                     return false;
             }
+        }
+
+        /// <summary>A Hinterland's <c>export_budget</c>, absent meaning it buys nothing.</summary>
+        private Money ReadExportBudget(TableSyntaxBase table)
+        {
+            if (!TryInteger(table, "export_budget", out long budget, required: false))
+            {
+                return Money.Zero;
+            }
+
+            if (budget < 0 || budget > int.MaxValue)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, "export_budget") ?? table), null,
+                    $"export_budget is {budget}. It is the Money this Hinterland pays for exports in "
+                    + $"one Day, from 0 to {int.MaxValue}. Omit it or state zero for a Hinterland "
+                    + "that buys nothing.");
+                return Money.Zero;
+            }
+
+            return new Money(budget);
         }
 
         /// <summary>The <c>emigrant_balance_min</c>/<c>max</c> band.</summary>
