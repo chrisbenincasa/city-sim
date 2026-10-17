@@ -1205,4 +1205,11 @@ public enum Invariant
 
     /// <summary>Every expiry row ages a live Bin of a spoiling Resource, is indexed from it, and its buckets sum to its level.</summary>
     AgesMatchTheirBins = 67,
+
+    /// <summary>No office's clients take more units of a service in a Day than it made that Day.</summary>
+    /// <remarks>
+    /// Checked at the sale (<c>World.SellService</c>), where it is <c>O(1)</c>. The other field is
+    /// the overdraft — how far past the Day's capacity the row went.
+    /// </remarks>
+    AnOfficeSellsNoMoreThanItMade = 68,
 }

@@ -959,4 +959,14 @@ public enum PurposeTag : ulong
     /// Business's id at the payday.
     /// </summary>
     BusinessOwner = 67,
+
+    /// <summary>
+    /// Which of two equally close offices a firm takes as its provider of a service. Drawn on the
+    /// buying Rule Instance's id with the service in the high half, and the Tick, like
+    /// <see cref="SellerChoice"/>, because the walk to the provider is the discriminator and a remote
+    /// service has no walk at all — every provider of one is equally near, so the draw decides every
+    /// time. The service is a coordinate because a firm buying two of them in one firing would
+    /// otherwise take the same ordinal for both.
+    /// </summary>
+    ProviderChoice = 68,
 }
