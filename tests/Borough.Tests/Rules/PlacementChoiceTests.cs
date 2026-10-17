@@ -27,10 +27,10 @@ namespace Borough.Tests.Rules;
 /// ⚠ <b>Nothing here measures rent, and since <c>money-circulation</c> L7 that is a gap rather than
 /// a finding.</b> Rent was per kind when this class was written, and a term identical across every
 /// candidate cancels in a softmax, so there was nothing for a drawn city to weigh. Rent is a
-/// per-tenancy figure now, the kind's rate over the floor a tenancy holds times the land value at
-/// its Lot, so two dwellings of one kind on different ground score differently.
-/// <c>TenancyRentTests</c> reads that preference on a hand-built pair; a city drawn at this scale
-/// does not yet.
+/// per-tenancy figure now, the kind's rate over the floor a tenancy holds times one plus the land
+/// value at its Lot, so two dwellings of one kind on different ground score differently.
+/// <c>TenancyRentTests</c> reads that preference on a hand-built pair and holds the figure to a
+/// save and a resumed run there; a city drawn at this scale does not weigh it yet.
 /// </para>
 /// </remarks>
 public sealed class PlacementChoiceTests

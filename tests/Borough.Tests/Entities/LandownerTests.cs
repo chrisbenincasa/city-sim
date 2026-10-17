@@ -170,6 +170,35 @@ public sealed class LandownerTests
         Assert.False(world.Households.Rows.IsValid(household));
         Assert.True(world.Lots.IsCityHeld(slot));
         Assert.True(Named(world, lot).IsNone);
+        Assert.False(
+            world.Lots.Landowner[slot].IsNone,
+            "the handle itself was cleared, so the Lot reads as city-held through a write rather "
+            + "than through the severance.");
+    }
+
+    /// <summary>A Landowner removed by a scenario leaves its Lot city-held too.</summary>
+    /// <remarks>
+    /// <c>World.DestroyHousehold</c> is the third door out of the table, beside dissolution and
+    /// departure, and it reaches <c>RetireHousehold</c> the same way. A fixture bulldozing a row is
+    /// not a death and not an emigration, so the severance is what the Lot reads either way.
+    /// </remarks>
+    [Fact]
+    public void A_removed_landowners_lot_reads_as_city_held()
+    {
+        World world = Founded(out Handle<Lot> lot, out Handle<Household> household);
+        int slot = world.Lots.Rows.Resolve(lot);
+
+        world.Lots.Landowner[slot] = household;
+
+        world.DestroyHousehold(household);
+
+        Assert.False(world.Households.Rows.IsValid(household));
+        Assert.True(world.Lots.IsCityHeld(slot));
+        Assert.True(Named(world, lot).IsNone);
+        Assert.False(
+            world.Lots.Landowner[slot].IsNone,
+            "the handle itself was cleared, so the Lot reads as city-held through a write rather "
+            + "than through the severance.");
     }
 
     /// <summary>
@@ -222,5 +251,39 @@ public sealed class LandownerTests
         Assert.NotEqual(Rows.NoSlot, reloaded);
         Assert.Equal(owner, loaded.Households.Rows.IdAt(reloaded));
         Assert.Equal(loaded.Households.Rows.At(reloaded), Named(loaded, loaded.Lots.Rows.At(slot)));
+    }
+
+    /// <summary>A severed Landowner comes back severed, so the reloaded Lot still reads city-held.</summary>
+    /// <remarks>
+    /// <b>The staleness is saved state rather than a write.</b> What the file carries is the stale
+    /// handle and the freed Household row's generation, and the two disagreeing is the whole mechanism
+    /// — so a load that cleared the column, or one that restored the row at its old generation, would
+    /// hand back a Lot owned by somebody who died.
+    /// </remarks>
+    [Fact]
+    public void A_severed_landowner_comes_back_from_a_save_city_held()
+    {
+        World world = Founded(out Handle<Lot> lot, out Handle<Household> household);
+        int slot = world.Lots.Rows.Resolve(lot);
+
+        world.Lots.Landowner[slot] = household;
+
+        world.Dissolve(household, world.Tick);
+
+        ulong hash = world.HashState();
+
+        var file = new MemorySave();
+        SaveFile.Write(world, InForce, file);
+
+        World loaded = SaveFile.Read(file, TestRulesets.MoneyOnly, out _);
+
+        Assert.Equal(hash, loaded.HashState());
+        Assert.True(loaded.Lots.IsCityHeld(slot));
+        Assert.Equal(Rows.NoSlot, loaded.Lots.LandownerOn(slot));
+        Assert.True(Named(loaded, loaded.Lots.Rows.At(slot)).IsNone);
+        Assert.False(
+            loaded.Lots.Landowner[slot].IsNone,
+            "the save dropped the stale handle, so the reloaded Lot reads as city-held for a "
+            + "different reason than the saved one did.");
     }
 }

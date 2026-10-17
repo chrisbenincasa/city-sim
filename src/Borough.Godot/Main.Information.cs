@@ -1141,11 +1141,17 @@ public partial class Main
         if (!_world.Lots.Rows.IsValid(lot)) return;
 
         Handle<Household> landowner = Evidence.OfLot(_world, lot).Landowner;
+
+        if (landowner.IsNone)
+        {
+            sections.Add(new("land", "Land", false, [new InformationRow("Landowner: the city")]));
+            return;
+        }
+
         ulong id = RowId(_world.Households.Rows, landowner);
 
-        sections.Add(new("land", "Land", false, [landowner.IsNone
-            ? new InformationRow("Landowner: the city")
-            : new InformationRow($"Landowner: Household {id} →", $"household {id}")]));
+        sections.Add(new("land", "Land", false,
+            [new InformationRow($"Landowner: Household {id} →", $"household {id}")]));
     }
 
     private InformationSection Attention(BuildingEvidence evidence, Handle<Household> household, bool onlyHousehold, bool routine = false, Handle<Business> business = default)
