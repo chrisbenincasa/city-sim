@@ -213,9 +213,9 @@ What the treasury pays to place a Building of this kind by hand. Absent or zero 
 
 Whether a BUSINESS may take a tenancy in a Building of this kind. houses' other half, over the same single ceiling, and it governs both ways a trade arrives: the one this kind comes with and one premised out of the unpremised pool. A kind declaring business and not this is refused, because the trade would have nowhere to sit. A kind declaring both is mixed use — the flats above the shop, competing for the same tenancies. Absent means no Business may take premises here.
 
-**`rent`** · *whole number*
+**`rent_per_floor_tile`** · *whole number*
 
-The daily rent a Building of this kind asks. Nothing charges it: placement skips a dwelling whose rent exceeds a seeking Household's money, reconsideration moves out a housed Household that falls below it, and the choice model weighs it. A recurring charge needs a [[rule]] or [[policy]]. Zero or absent means the dwelling is free.
+What one floor Tile of a Building of this kind costs a tenant per Day. A tenancy pays this for the floor it occupies, times one plus the land value at its Lot, so two dwellings of one kind rent for different amounts on different ground. A Business occupies its Unit's floor and a Household an equal share of the Building's. Nothing charges it: placement skips a dwelling a seeking Household cannot pay for, reconsideration moves out a housed Household that falls below it, and the choice model weighs what is left. Zero or absent means the kind is free to occupy.
 
 **`serves`** · *quoted string*
 
@@ -405,7 +405,7 @@ What this Hinterland will sell each Good for, one entry per Good. These are the 
 
 **`rent`** · *whole number*
 
-What a home costs per Day out here, in the money a [[building]] rent is in. It is what a prospective Household compares against the cost of living in the city, and what a Household waiting for somewhere to live compares against every home it is shown. Required beside a choice model and refused without one.
+What a home costs per Day out here, as a whole tenancy and not a rate per Tile. It is what a prospective Household compares against the cost of living in the city, and what a Household waiting for somewhere to live compares against every home it is shown. Required beside a choice model and refused without one.
 
 ---
 
