@@ -1039,12 +1039,22 @@ public static class RulesetKeyNotes
             "Maximum independent random inset in Tiles for block-based footprints and explicit Perimeter parcels. Explicit Detached houses use centred house dimensions instead. Reserved Street ground is always excluded.",
 
         ["[lots] demolition_price_per_tile"] =
-            "What the treasury pays to demolish an occupied Building, per Tile of Lot footprint on "
-            + "ground of zero land value. The price is multiplied by one plus the land value at the "
+            "The land price per Tile of Lot footprint on ground of zero land value, also used to "
+            + "price occupied demolition. The price is multiplied by one plus the land value at the "
             + "Lot, so polluted or noisy ground is cheaper to clear and shoreline dearer, and land "
             + "value of minus one or below clears free. The price is shared equally among the evicted "
             + "Households and displaced Businesses. A Building nobody occupies demolishes free. "
             + "Absent or zero means occupied demolition is free. Requires a money Resource.",
+
+        ["[lots] construction_charge_per_floor_tile"] =
+            "Money a Household pays outside the city per floor Tile before a Zone Rule builds. "
+            + "Either this key or buyer_reserve_per_member enables land sales, even at zero. "
+            + "Absent means no construction charge. If both keys are absent, Zone Rules build without a buyer. Requires a money Resource.",
+
+        ["[lots] buyer_reserve_per_member"] =
+            "Money per Household member a buyer must keep after paying for land and construction. "
+            + "Only its own balance counts, never a Business's till. Either this key or "
+            + "construction_charge_per_floor_tile enables land sales, even at zero. Absent means no reserve. Requires a money Resource.",
 
         ["[lots] storeys_per_rung"] =
             "Step between density rungs. Block-based forms use it in their plot-ratio target; explicit Perimeter parcels add it per rung to house_storeys. Detached houses keep house_storeys.",

@@ -15,17 +15,6 @@ using Borough.Core.Tables;
 /// between them would be the assembler deciding which the player cares about. That is the host's
 /// judgement and <c>adr/0002</c> gives it the host.
 /// </para>
-/// <para>
-/// ⚠ <b><c>02 §9</c> names four reasons and this enum declares two, deliberately.</b> That section
-/// asks for <em>no frontage, no household in the queue that would accept it, conditions below
-/// tolerance, or no capital</em> — and the last two have <b>no mechanism anywhere in the build</b>:
-/// <c>MapLayers.Desirability</c> throws by design (<c>02 §2.4</c>, <c>adr/0034</c>) and there is no
-/// capital, price or bid concept at all. <b>Declaring flags for them would be worse than omitting
-/// them</b>, because a flag that can never be set reads as <em>checked and not the reason</em> rather
-/// than as <em>not measured</em> — session F's ***a placeholder whose value sits inside the range of
-/// legitimate answers cannot announce itself***, on a bit instead of a number. They arrive with
-/// milestone <b>17</b>, which owns decline and desirability alike, and adding a flag then is additive.
-/// </para>
 /// </remarks>
 [System.Flags]
 public enum VacancyReason
@@ -64,6 +53,9 @@ public enum VacancyReason
 
     /// <summary>No declared Zone Rule passes the full site's use, intensity and form permissions.</summary>
     NotZoned = 4,
+
+    /// <summary>No Household can finance construction here while keeping its reserve.</summary>
+    NoCapital = 8,
 }
 
 /// <summary>
@@ -87,12 +79,8 @@ public readonly record struct CondemnationEvidence(Ticks Tick, byte Kind, Condit
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b><c>02 §9</c> calls this "the hardest and the most valuable"</b> — <em>"why is nothing building
-/// here?" is the question every city-builder player asks and no city builder answers</em> — and it is
-/// worth being exact about how much of it this answers. Of the four reasons that section names,
-/// <b>two are computable</b> (frontage, an empty queue), <b>one is recorded</b> where the Lot was
-/// vacated by demolition (<see cref="Condemnation"/>, task 2), and <b>two are named holes</b> with no
-/// mechanism behind them. This reports what the build has and manufactures none of the rest.
+/// Vacancy flags describe current frontage, zoning, seekers and construction finance. A surviving
+/// condemnation records why a previous Building was cleared.
 /// </para>
 /// <para>
 /// <b>Cold and allocating</b>, on <c>Instruments.Series</c>'s precedent — see

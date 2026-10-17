@@ -616,6 +616,11 @@ public static class Evidence
             {
                 reason |= VacancyReason.NotZoned;
             }
+
+            if (NoConstructionCapital(world, slot))
+            {
+                reason |= VacancyReason.NoCapital;
+            }
         }
 
         int building = world.Lots.BuildingOn(slot);
@@ -711,6 +716,35 @@ public static class Evidence
             WaitingLevel = hasBin ? world.Bins.LevelAt(blocking) : 0,
             WaitingCapacity = hasBin ? world.Bins.Capacity[blocking] : 0,
         };
+    }
+
+    private static bool NoConstructionCapital(World world, int lot)
+    {
+        if (!world.Rules.Lots.LandSales) { return false; }
+        if (world.Rules.HousingConstruction is null)
+        { return !world.CanFinanceConstruction(lot, world.Lots.FloorTiles(lot)); }
+        bool measured = false;
+        foreach (ZoneRuleDefinition definition in world.Rules.ZoneRules)
+        {
+            if (!definition.ReadsDemand && world.Rules.Declares(definition.Kind) && world.Rules.Kind(definition.Kind).Houses)
+            {
+                Space.LocalLayoutProposal? proposal = HousingConstruction.Select(world, world.Key, world.Lots.Rows.At(lot), definition.Kind);
+                if (proposal is null) { continue; }
+                measured = true;
+                Space.LocalLot door = proposal.Sources[0];
+                int source = world.Lots.Rows.Resolve(door.Handle);
+                Money land = world.LandPrice(new Tiles(door.East), new Tiles(door.North),
+                    (long)proposal.Building.Footprint.Width * proposal.Building.Footprint.Height);
+                if (world.ConstructionBuyer(source, world.Lots.LandownerOn(source), land,
+                    world.ConstructionCharge(proposal.FloorTiles), world.Tick, draw: false) != Rows.NoSlot) { return false; }
+            }
+            else if (world.ConstructionPermission(lot, definition.Admits) == Space.PermissionRefusal.None)
+            {
+                measured = true;
+                if (world.CanFinanceConstruction(lot, world.Lots.FloorTiles(lot))) { return false; }
+            }
+        }
+        return measured;
     }
 
     private static bool AdmittedByAnyRule(World world, int lotSlot) =>
