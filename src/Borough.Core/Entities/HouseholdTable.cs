@@ -37,6 +37,12 @@ public sealed class HouseholdTable
     /// allocator depends on nothing, so the caller creates it, passes it to <see cref="LotTable"/>
     /// and passes it back here — and both tables still seal at the end of their own constructor,
     /// which is what <c>Rows.Seal</c> asks for.
+    /// <para>
+    /// ⚠ <b>The two tables must share one allocator.</b> A <see cref="LotTable"/> built on an
+    /// allocator no <see cref="HouseholdTable"/> adopts has nowhere for a
+    /// <see cref="LotTable.Landowner"/> to point, so a fixture that writes one there gets a handle
+    /// that cannot resolve and a Lot that silently reads as city-held.
+    /// </para>
     /// </remarks>
     /// <param name="capacity">Initial slot count. 360 Households per 1,000 Citizens, per S4 task 2.</param>
     public static Rows<Household> NewRows(int capacity) =>

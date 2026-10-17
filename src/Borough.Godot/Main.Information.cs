@@ -1133,6 +1133,8 @@ public partial class Main
     /// <remarks>
     /// Read through <see cref="Evidence.OfLot"/> rather than off the column, so the shell and a
     /// headless dump answer from one place. A Landowner who died or left reads as the city there.
+    /// <b>Closed</b>, because nothing buys land yet and an open card would say "the city" on every
+    /// Building in the city while costing the first screen a row.
     /// </remarks>
     private void AddLandholding(List<InformationSection> sections, Handle<Lot> lot)
     {
@@ -1141,7 +1143,7 @@ public partial class Main
         Handle<Household> landowner = Evidence.OfLot(_world, lot).Landowner;
         ulong id = RowId(_world.Households.Rows, landowner);
 
-        sections.Add(new("land", "Land", true, [landowner.IsNone
+        sections.Add(new("land", "Land", false, [landowner.IsNone
             ? new InformationRow("Landowner: the city")
             : new InformationRow($"Landowner: Household {id} →", $"household {id}")]));
     }
