@@ -1102,6 +1102,18 @@ public static class RulesetKeyNotes
             + "a band reaching down to destitute, and those are different cities. Omitting both "
             + "endows nobody.",
 
+        // ---- [rent] ---------------------------------------------------------------------------
+        ["[rent] evicts_after_days"] =
+            "How many Days a tenant may owe rent before the tenancy ends — a Household to the "
+            + "Unplaced Pool, a Business to the Unpremised Pool. Stating this key is also what "
+            + "turns the daily charge on, and then each Day every tenancy pays its kind's "
+            + "rent_per_floor_tile over its floor to the Lot's Landowner, or to the treasury while "
+            + "the city holds the Lot. A resident Landowner pays none for its own tenancy. A tenant "
+            + "short of the rent pays what it holds and owes the rest, later income settles the "
+            + "debt first, and this deadline is what bounds the debt. It is refused below the "
+            + "longest pay_period_days, because a tenant paid weekly is short between paydays. "
+            + "Omitting the whole [rent] table charges nobody.",
+
         // ---- [treasury] -----------------------------------------------------------------------
         ["[treasury] opening_balance"] =
             "What the treasury holds at world creation, so that the city can spend before any levy "

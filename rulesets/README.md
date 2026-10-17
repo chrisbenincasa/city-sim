@@ -100,6 +100,7 @@ historical implementation claims; use current code and tests to establish behavi
 | [attracted-declining.toml](attracted-declining.toml) | Arrivals with fast housing decline and rebuilding, sustaining opportunities to reconsider the city in a longer run. |
 | [attracted-outside-cheaper.toml](attracted-outside-cheaper.toml) | Cheaper Outside rents; a comparison/reload partner for `attracted.toml`. Compare continuations from the same saved city. |
 | [priced-out.toml](priced-out.toml) | Rent affordability reassessment moving Households back into the Unplaced Pool. |
+| [renting.toml](renting.toml) | Rent collected each Day, arrears carried as debt, and eviction at `[rent] evicts_after_days`. Nobody earns, so the deadline is reached. |
 | [choosy.toml](choosy.toml) | Individual centrality preferences across Life Stages; declining housing gives Households reasons to search. |
 | [chosen.toml](chosen.toml) | Probabilistic housing choice: similar Households need not choose the same candidate. |
 | [restless.toml](restless.toml) | Supply shortages causing Households to move without a rent or tenancy-expiry trigger. |

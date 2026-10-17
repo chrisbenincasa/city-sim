@@ -82,6 +82,8 @@ internal static class EvidenceDump
         output.WriteLine();
         Finances(output, world);
         output.WriteLine();
+        Arrears(output, world);
+        output.WriteLine();
         Journeys(output, world);
 
         return 0;
@@ -202,6 +204,108 @@ internal static class EvidenceDump
                 "  Bin from the moment it is fitted, so this is a Citizen whose Household does not");
             output.WriteLine(
                 "  resolve — CitizenIsInExactlyOneHousehold is the invariant that says so.");
+        }
+    }
+
+    /// <summary>
+    /// Who is behind on the rent, and since when — the arrears clock <c>[rent]</c> arms.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The first question is whether the city charges rent at all</b>, which is
+    /// <see cref="Finances"/>'s opening move and the same distinction: <c>Evidence.RentOf</c> answers
+    /// null where the Ruleset states no <c>[rent]</c>, and a table of zeroes over such a city would
+    /// read as <em>everybody has paid</em> rather than <em>nobody is charged</em>.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Read through <c>Evidence.RentOf</c> rather than off the columns</b>, so this and the
+    /// shell's inspector take one path — <see cref="Journeys"/>'s own clause and its reason.
+    /// </para>
+    /// </remarks>
+    private static void Arrears(TextWriter output, World world)
+    {
+        output.WriteLine("## Rent arrears, by tenancy");
+        output.WriteLine();
+
+        if (!world.Rules.Rent.Collects)
+        {
+            output.WriteLine(
+                "  This Ruleset states no [rent], so no tenancy is charged and nobody can be behind.");
+            output.WriteLine(
+                "  Every [[building]] still states a rent_per_floor_tile -- placement compares it when");
+            output.WriteLine(
+                "  a Household chooses a home -- so a rent exists here and nothing collects it.");
+            output.WriteLine("  rulesets/renting.toml is the file that makes it apply.");
+
+            return;
+        }
+
+        int homes = 0;
+        int premises = 0;
+        int behindHomes = 0;
+        int behindPremises = 0;
+        long owed = 0;
+        int earliest = int.MaxValue;
+
+        for (int slot = 0; slot < world.Households.Rows.SlotCount; slot++)
+        {
+            if (!world.Households.Rows.IsLive(slot)
+                || !world.Buildings.Rows.IsValid(world.Households.Dwelling[slot])
+                || Evidence.RentOf(world, world.Households.Rows.At(slot)) is not RentEvidence rent)
+            {
+                continue;
+            }
+
+            homes++;
+
+            if (!rent.Behind)
+            {
+                continue;
+            }
+
+            behindHomes++;
+            owed += rent.Debt.Raw;
+            earliest = int.Min(earliest, rent.SinceDay);
+        }
+
+        for (int slot = 0; slot < world.Businesses.Rows.SlotCount; slot++)
+        {
+            if (!world.Businesses.Rows.IsLive(slot)
+                || !world.Buildings.Rows.IsValid(world.Businesses.Building[slot])
+                || Evidence.RentOf(world, world.Businesses.Rows.At(slot)) is not RentEvidence rent)
+            {
+                continue;
+            }
+
+            premises++;
+
+            if (!rent.Behind)
+            {
+                continue;
+            }
+
+            behindPremises++;
+            owed += rent.Debt.Raw;
+            earliest = int.Min(earliest, rent.SinceDay);
+        }
+
+        output.WriteLine($"  tenancies charged         {homes + premises,10}");
+        output.WriteLine($"    Households housed       {homes,10}");
+        output.WriteLine($"    Businesses premised     {premises,10}");
+        output.WriteLine();
+        output.WriteLine($"  behind on rent            {behindHomes + behindPremises,10}");
+        output.WriteLine($"  total owed                {owed,10}");
+        output.WriteLine($"  evicted after Days        {world.Rules.Rent.EvictsAfterDays,10}");
+
+        if (behindHomes + behindPremises > 0)
+        {
+            output.WriteLine();
+            output.WriteLine(
+                $"  The longest-running shortfall has been behind on rent since Day {earliest}. Past");
+            output.WriteLine(
+                "  the deadline above a Household goes to the Unplaced Pool and a Business to the");
+            output.WriteLine(
+                "  Unpremised Pool, and the debt ends with the tenancy -- which is what bounds it.");
         }
     }
 

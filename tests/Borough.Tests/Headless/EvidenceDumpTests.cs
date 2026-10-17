@@ -368,6 +368,76 @@ public sealed class EvidenceDumpTests
         Assert.True(Count(endowed, "  highest balance") > 0, "taxed.toml endowed nobody.");
     }
 
+    /// <summary>
+    /// <b>The arrears panel reads zero on a Ruleset that charges no rent and counts tenancies on one
+    /// that does.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>Absence is printed rather than refused</b>, on the no-condition panel's decision above. A
+    /// Ruleset stating no <c>[rent]</c> still prices every tenancy, because placement compares the
+    /// figure when a Household chooses a home — so the panel names the file that collects it instead
+    /// of leaving a reader to wonder whether the mechanism is broken or absent.
+    /// </remarks>
+    [Fact]
+    public void The_arrears_panel_names_the_deadline_where_rent_is_collected()
+    {
+        string silent = Dump("diagnosed.toml");
+        string collectingPath = Renting();
+        string collecting;
+
+        try
+        {
+            collecting = DumpAt(collectingPath);
+        }
+        finally
+        {
+            File.Delete(collectingPath);
+        }
+
+        Assert.Contains("## Rent arrears, by tenancy", silent, Ordinal);
+        Assert.Contains("states no [rent]", silent, Ordinal);
+        Assert.Contains("rulesets/renting.toml is the file that makes it apply.", silent, Ordinal);
+
+        Assert.DoesNotContain("states no [rent]", collecting, Ordinal);
+        Assert.Equal(7, Count(collecting, "  evicted after Days"));
+        Assert.True(
+            Count(collecting, "  tenancies charged") > 0, "renting.toml charged no tenancy.");
+
+        // Nobody earns in this file, so the opening band drains and the clock runs.
+        Assert.True(Count(collecting, "  behind on rent") > 0, "nobody fell behind.");
+        Assert.True(Count(collecting, "  total owed") > 0, "nothing was owed.");
+        Assert.Contains("has been behind on rent since Day ", collecting, Ordinal);
+    }
+
+    /// <summary>renting.toml with decline added, written where the runner can load it.</summary>
+    /// <remarks>
+    /// <b>A fixture rather than an edit to the shipped file</b>, on <see cref="Endowed"/>'s reasoning.
+    /// <c>--evidence</c> refuses a Ruleset whose kinds never condemn, because an empty condemnation
+    /// trail is uninterpretable — and <c>renting.toml</c> declares no decline on purpose, so that the
+    /// arrears clock is the only thing emptying a dwelling in it.
+    /// </remarks>
+    private static string Renting()
+    {
+        const string Anchor = "name = \"dwelling\"";
+
+        string text = File.ReadAllText(Ruleset("renting.toml"));
+
+        Assert.Contains(Anchor, text, Ordinal);
+        Assert.DoesNotContain("condemn_after_days", text, Ordinal);
+
+        string path = Path.Combine(
+            Path.GetTempPath(), $"borough-evidence-renting-{Guid.NewGuid():N}.toml");
+
+        File.WriteAllText(
+            path,
+            text.Replace(
+                Anchor,
+                Anchor + "\ncondemn_after_days = 1\ncollapses_after_days = 1",
+                Ordinal));
+
+        return path;
+    }
+
     /// <summary>The trailing number on a panel line.</summary>
     private static int Count(string report, string label) => int.Parse(
         Line(report, label).Split(' ', StringSplitOptions.RemoveEmptyEntries)[^1],

@@ -1294,9 +1294,23 @@ public partial class Main
         }
         if (citizens.Count == 0) citizens.Add(new("No Citizens in this Household."));
         sections.Add(new("citizens", "Citizens", true, citizens));
-        sections.Add(new("finances", "Finances", false,
-            [new(balance is { } money ? $"Household balance: {money.Raw:N0} money units" : "No Household balance reported.")]));
+        var finances = new List<InformationRow>
+        {
+            new(balance is { } money ? $"Household balance: {money.Raw:N0} money units" : "No Household balance reported."),
+        };
+        if (Evidence.RentOf(_world, _selectedHousehold) is { } rent) finances.Add(new(RentSummary(rent)));
+        sections.Add(new("finances", "Finances", false, finances));
     }
+
+    /// <summary>What a tenancy pays for its premises, and since when it has been behind.</summary>
+    /// <remarks>
+    /// <b>The Core returns the Day and this spells the sentence</b> (<c>adr/0002</c>). Nothing is
+    /// shown at all where the Ruleset charges no rent — <see cref="Evidence.RentOf(World, Handle{Household})"/>
+    /// answers null there, which is not the same as a rent of zero.
+    /// </remarks>
+    private static string RentSummary(RentEvidence rent) => rent.Behind
+        ? $"Rent: {rent.Daily.Raw:N0} a Day · behind on rent since Day {rent.SinceDay:N0}, owing {rent.Debt.Raw:N0}"
+        : $"Rent: {rent.Daily.Raw:N0} a Day · nothing owed";
     private static IEnumerable<Node> InformationDescendants(Node root, bool includeInternal = false)
     {
         foreach (Node child in root.GetChildren(includeInternal))

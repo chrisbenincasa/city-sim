@@ -1,5 +1,6 @@
 namespace Borough.Core.Entities;
 
+using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Tables;
 
@@ -70,6 +71,13 @@ public sealed class HouseholdTable
         BinHead = _rows.SavedHandle("bin_head", bins.Rows);
         BinTail = _rows.SavedHandle("bin_tail", bins.Rows);
         Balance = _rows.DerivedHandle("balance", bins.Rows, reference: Reference.Required);
+
+        // Saved, because nothing else records that a tenant is behind on its rent, and a reload that
+        // forgot would restart every arrears clock in the city. ⚠ A debt is NOT negative money
+        // (adr/0003), which is why this is its own column rather than a balance allowed below zero:
+        // the Bin is a stock and the claim against it is not.
+        RentDebt = _rows.Saved<Money>("rent_debt", Touch.Cold);
+        RentDebtSinceDay = _rows.Saved<int>("rent_debt_since_day", Touch.Cold);
 
         // adr/0103's four Needs, and the set is now complete. The first two are BOUGHT -- a Rule
         // firing is the occasion -- and the last two are ATTENDED, where a Household's Trip to a
@@ -389,6 +397,39 @@ public sealed class HouseholdTable
     /// implementation.
     /// </remarks>
     public HandleColumn<Bin> BinTail { get; }
+
+    /// <summary>
+    /// Rent this Household owes its Landowner and has not paid — <c>plans/money-circulation.md</c> L16.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A tenant short of its rent pays what it holds and owes the rest</b>, and later income pays
+    /// the owed part before the Day's own charge. <see cref="RentDebtSinceDay"/> carries when the run
+    /// began, and the two are read as a pair: ***this is the one that says whether the Household is
+    /// behind***, because Day 0 is a legitimate Day and zero here is not.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Bounded by <c>[rent] evicts_after_days</c> and by nothing else</b> (<c>adr/0006</c>).
+    /// Past the deadline the tenancy ends — <see cref="World.Unplace"/> — and the debt goes with it,
+    /// so the most a Household can owe is the deadline's worth of rent. A Ruleset stating no
+    /// <c>[rent]</c> leaves this zero for the life of the city.
+    /// </para>
+    /// </remarks>
+    public Column<Money> RentDebt { get; }
+
+    /// <summary>
+    /// The Day this Household's rent shortfall began, where <see cref="RentDebt"/> is positive.
+    /// </summary>
+    /// <remarks>
+    /// <b>An absolute Day and not a countdown</b>, on <see cref="NextStageDay"/>'s reasoning: the
+    /// sweep compares it against today, so nothing has to be decremented on every Household every
+    /// Day. ⚠ <b>Meaningless while <see cref="RentDebt"/> is zero</b>, and cleared to zero with it
+    /// whenever the debt clears — the pair never disagrees about whether the clock runs.
+    /// </remarks>
+    public Column<int> RentDebtSinceDay { get; }
+
+    /// <summary>Whether this Household owes rent it could not pay.</summary>
+    public bool IsBehindOnRent(int slot) => RentDebt[slot].Raw > 0;
 
     /// <summary>Whether this Household is in the Unplaced Pool.</summary>
     public bool IsUnplaced(int slot) => PoolSlot[slot] != 0;

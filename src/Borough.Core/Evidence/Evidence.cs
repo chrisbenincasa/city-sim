@@ -637,6 +637,58 @@ public static class Evidence
     }
 
     /// <summary>
+    /// What a housed Household pays for its home and what it owes, or <see langword="null"/> where
+    /// the city charges no rent.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Read here rather than off the columns, so the shell and a headless dump answer from one
+    /// place</b> — <see cref="OfLot"/>'s Landowner clause and the same reason. The daily figure is
+    /// <c>World.ResidentRent</c>, which is the charge and not the price, so a resident Landowner
+    /// reads zero.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Null where the Ruleset states no <c>[rent]</c>, and zero where it states one and this
+    /// tenant owes nothing.</b> Those are different answers and <see cref="RentEvidence"/> carries
+    /// why.
+    /// </para>
+    /// </remarks>
+    /// <param name="world">The world to read.</param>
+    /// <param name="household">Which Household.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="world"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">The handle does not resolve.</exception>
+    public static RentEvidence? RentOf(World world, Handle<Household> household)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+
+        int slot = world.Households.Rows.Resolve(household);
+
+        return world.Rules.Rent.Collects
+            ? new RentEvidence(
+                world.ResidentRent(slot),
+                world.Households.RentDebt[slot],
+                world.Households.RentDebtSinceDay[slot])
+            : null;
+    }
+
+    /// <inheritdoc cref="RentOf(World, Handle{Household})"/>
+    /// <param name="world">The world to read.</param>
+    /// <param name="business">Which Business.</param>
+    public static RentEvidence? RentOf(World world, Handle<Business> business)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+
+        int slot = world.Businesses.Rows.Resolve(business);
+
+        return world.Rules.Rent.Collects
+            ? new RentEvidence(
+                world.BusinessRent(slot),
+                world.Businesses.RentDebt[slot],
+                world.Businesses.RentDebtSinceDay[slot])
+            : null;
+    }
+
+    /// <summary>
     /// One Rule Instance's state, with <c>02 §9</c>'s <em>last ran and whether it succeeded</em>
     /// derived from it.
     /// </summary>

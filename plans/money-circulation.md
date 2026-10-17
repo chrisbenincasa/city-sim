@@ -205,6 +205,11 @@ which is why it is recorded here.
 - Acceptance: a fixture where a tenant falls behind and is evicted at the deadline, a tenant
   whose wage rises in time is not, and a tenant paid every 7 Days is never in arrears at payday.
   `MoneyIsConserved` holds.
+- Built 10/17/2026: `RentEngine` sweeps each Day boundary behind payroll and the subsidies, one
+  optional key `[rent] evicts_after_days` turns it on and bounds the debt, `RentDebt` and
+  `RentDebtSinceDay` are saved on both tenant tables, eviction writes the debt off where the tenancy
+  ends, and `rulesets/renting.toml` demonstrates the clock. Save format 23 and the goldens
+  re-recorded.
 
 ### 5. Sale on departure and city-held Lots
 

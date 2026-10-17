@@ -1040,6 +1040,19 @@ public sealed class RuleEngine
             }
         }
 
+        // L16: a Rule's sale credits the seller's till (Touch, above), and rent arrears are settled
+        // where income lands rather than at the next Day boundary. AFTER the loop, because the
+        // deposit the payment arrives in happens there. Settled against the seller rows rather than
+        // the touched Bins, because a Bin cannot be resolved back to a Business -- BinTable.Owner
+        // names a Building. Returns zero where the Ruleset states no [rent].
+        for (int i = 0; i < _tradeCount; i++)
+        {
+            if (_tradeSeller[i] != Rows.NoSlot)
+            {
+                _world.Arrears.SettleBusiness(_tradeSeller[i], tick);
+            }
+        }
+
         // The part of a per-Day quantity that did not reach a whole unit, banked HERE and nowhere
         // else, so a Rule that was checked and then blocked accrues nothing. Check holds these
         // because Phase 2 writes nothing (adr/0037) and because the rung that fires is not always
