@@ -808,9 +808,9 @@ public sealed class PlacementEngine
                 continue;
             }
 
-            // What the dwelling this Lot would carry costs: the ground's floor share at the kind's
-            // rate, adjusted by the land value here. A prospect weighing empty land is shown the
-            // same price a resident of that dwelling would pay.
+            // An estimate from the ground's own carve geometry, priced at the kind's rate and the
+            // land value here. The housing form a Zone Rule raises on the Lot can measure
+            // differently, so the dwelling that arrives may charge more or less than this.
             Money rent = _world.TenancyRent(kind, lot, _world.HouseholdFloorOnLot(lot));
 
             if (rent.Raw > 0 && prospect.Purse.Raw < rent.Raw)

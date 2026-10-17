@@ -41,6 +41,13 @@ public sealed partial class World
     /// </remarks>
     public Money TenancyRent(byte kind, int lotSlot, int floorTiles)
     {
+        // A derelict Building keeps its tenants after a reload that dropped its kind, and
+        // reconsideration still prices what they live in. An undeclared kind has no rate.
+        if (!Rules.Declares(kind))
+        {
+            return Money.Zero;
+        }
+
         long rate = Rules.Kind(kind).RentPerFloorTile.Raw;
 
         if (rate <= 0 || floorTiles <= 0 || lotSlot < 0 || !Lots.Rows.IsLive(lotSlot))
@@ -94,9 +101,17 @@ public sealed partial class World
     /// <paramref name="lotSlot"/> — the Lot's floor over the tenancies that floor divides into.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>Somebody weighing vacant land has no Building to measure</b>, so this measures the ground.
     /// It takes the ordinary equal division and not a trade form's geometry, which is what
     /// <c>HousingKindFor</c> admits anyway.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>An estimate, not the price the dwelling will charge.</b> It divides the Lot's carve
+    /// geometry, which is the footprint and storeys the subdivider sealed. A <c>[[housing_form]]</c>
+    /// raised here can measure differently, and then the standing Building's floor is what
+    /// <see cref="HouseholdFloorOf"/> reads.
+    /// </para>
     /// </remarks>
     public int HouseholdFloorOnLot(int lotSlot)
     {

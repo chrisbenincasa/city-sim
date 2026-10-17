@@ -38,8 +38,8 @@ isolates housing; it is not a balanced economy or a first-playable founding loop
 
 [Export and play instructions](../examples/UrbanNeighbourhood/README.md) use an ordinary city save
 with its embedded Ruleset. Six Citizens begin at Tick 512: two resident Households, two arriving
-Households. Existing homes cost 50 per Day, Outside 25, and the new kind zero; all seekers carry
-100. These prices isolate preference from affordability, with no claim to economic balance.
+Households. Existing homes cost 160 per Day, Outside 25, and the new kind zero; all seekers carry
+256. These prices isolate preference from affordability, with no claim to economic balance.
 
 City Evidence lists seeking Households in pages of six, read at the panel's stated snapshot Tick.
 Following a link opens that individual even without a Building on the map. Its live inspector

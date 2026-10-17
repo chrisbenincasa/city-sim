@@ -1,7 +1,7 @@
 borough-log 1
 seed 0x000000000135283C
 citizens 2000
-ruleset 0xF0C5905FCA5744C7
+ruleset 0xB53985D6F3B9B02E
 --
 0 ground 0 0 0
 256 street 0 0 128 0 0

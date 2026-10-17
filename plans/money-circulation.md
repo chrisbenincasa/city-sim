@@ -177,6 +177,16 @@ Slices 1 and 3 can run in parallel. After slice 1, slices 2 and 6 can too.
 **Built 2026-10-17.** `World.TenancyRent` is the one function, `HouseholdRent` and `BusinessRent`
 name the two tenancies, and every Ruleset states `rent_per_floor_tile`.
 
+**Base's rate is 23 and not the 25 its capacity rate implies, and the reason is measured.** Rate
+24 and rate 25 leave the school one teacher short of its five jobs for three Days around Day 66 of
+`BaseFoundingPackageTests.Governing_the_rebate_down_restores_the_school_and_the_control_stays_short`,
+which is the demonstration slice 7 adopts. Measured on the committed `rulesets/base/founding.borough`
+at seed 20,260,924 and 2,000 Citizens, replaying 70 Days twice with the Day-45 `govern` command:
+every rate from 16 to 23 and from 26 to 32 keeps 5 of 5 teachers from Day 61 on, and the control
+stays short at all of them. A base tenancy holds about 17 Tiles, so 23 prices a home at about 390
+a Day on ground worth nothing against the flat 400 the file used to state. Nothing in the lane
+guards the threshold itself; this record is the guard.
+
 ### 4. Rent collection and arrears
 
 - Each Day, each tenancy pays the slice 3 figure to its Lot's Landowner, or to the treasury while
@@ -188,6 +198,9 @@ name the two tenancies, and every Ruleset states `rent_per_floor_tile`.
   `World.Unpremise`.
 - Evidence and the inspector show "Behind on rent since Day N".
 - An evicted Landowner keeps its Lots and their rent in the Unplaced Pool.
+- `examples/UrbanNeighbourhood` endows its two resident Households 100 against the 160 a Day its
+  homes now charge, so charging rent puts the showcase city in arrears on Day 1. Raise that
+  endowment with this slice, as slice 3 raised the arrival band to 256.
 - Acceptance: a fixture where a tenant falls behind and is evicted at the deadline, a tenant
   whose wage rises in time is not, and a tenant paid every 7 Days is never in arrears at payday.
   `MoneyIsConserved` holds.
