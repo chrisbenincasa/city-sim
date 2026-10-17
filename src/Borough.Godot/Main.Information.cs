@@ -1105,6 +1105,7 @@ public partial class Main
         if (CutOffSummary(_selectedBuilding) is { } cutOff) sections[0].Rows.Insert(1, new(cutOff));
         sections.Add(Attention(evidence, default, false));
         sections.Add(Attention(evidence, default, false, true));
+        AddLandholding(sections, evidence.Lot);
         AddFacilityHealth(sections, slot);
         AddFacilitySchooling(sections, slot);
         AddGateOutside(sections, slot);
@@ -1126,6 +1127,25 @@ public partial class Main
         if (workers.Count == 0) workers.Add(new("No workers."));
         sections.Add(new("workers", $"Workers · {evidence.Workers.Length}", false, workers));
         sections.Add(Stocks(evidence, default, false));
+    }
+
+    /// <summary>Who holds the ground under a Building — the Lot's Landowner, or the city.</summary>
+    /// <remarks>
+    /// Read through <see cref="Evidence.OfLot"/> rather than off the column, so the shell and a
+    /// headless dump answer from one place. A Landowner who died or left reads as the city there.
+    /// <b>Closed</b>, because nothing buys land yet and an open card would say "the city" on every
+    /// Building in the city while costing the first screen a row.
+    /// </remarks>
+    private void AddLandholding(List<InformationSection> sections, Handle<Lot> lot)
+    {
+        if (!_world.Lots.Rows.IsValid(lot)) return;
+
+        Handle<Household> landowner = Evidence.OfLot(_world, lot).Landowner;
+        ulong id = RowId(_world.Households.Rows, landowner);
+
+        sections.Add(new("land", "Land", false, [landowner.IsNone
+            ? new InformationRow("Landowner: the city")
+            : new InformationRow($"Landowner: Household {id} →", $"household {id}")]));
     }
 
     private InformationSection Attention(BuildingEvidence evidence, Handle<Household> household, bool onlyHousehold, bool routine = false, Handle<Business> business = default)

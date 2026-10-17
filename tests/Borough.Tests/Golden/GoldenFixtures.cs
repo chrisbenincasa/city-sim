@@ -621,6 +621,18 @@ internal static class GoldenFixtures
             }
         }
 
+        // TWO LOTS ARE OWNED AND FOUR ARE HELD BY THE CITY, which is the Landowner column covered as
+        // a VALUE rather than as a declaration -- the fold takes the Landowner's monotonic id, so a
+        // fixture of empty handles would move this hash the day the column landed and never again
+        // however land changed hands. That is the failure README.md keeps recording.
+        //
+        // ⚠ THE SECOND ONE IS HELD BY HOUSEHOLD 5, WHICH IS RETIRED BELOW. So the baseline carries
+        // the severed case as well as the live one: the handle is saved and restored stale, and the
+        // Lot reads as city-held because its Landowner died (land and rent L9). A built Lot and a
+        // vacant one, because L2 gives a Landowner the Lot either way.
+        world.Lots.Landowner[world.Lots.Rows.Resolve(lots[1])] = households[0];
+        world.Lots.Landowner[world.Lots.Rows.Resolve(lots[4])] = households[5];
+
         // The Businesses are created BEFORE the Citizens because since adr/0141 a Citizen is
         // employed by a trade rather than by premises, so they have to exist to be employed into.
         // Everything the block below them says about why there are two and why their kinds differ

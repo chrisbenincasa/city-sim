@@ -21,6 +21,13 @@ using Borough.Core.Tables;
 /// Street edits, and the handle is <see cref="Reference.Severable"/> because a bulldozed Street
 /// leaves the Lot standing with no Address (<c>adr/0079</c>).
 /// </para>
+/// <para>
+/// <b>Land ownership makes the relations a cycle</b> — a Lot names its <see cref="Landowner"/>, a
+/// Household names the dwelling it lives in, and a Building names the Lot it stands on — so the
+/// three tables cannot each name the next one's table at construction. The row allocator is the part
+/// with no dependencies, so this table takes <c>Rows&lt;Household&gt;</c> rather than
+/// <see cref="HouseholdTable"/> and every table still seals at the end of its own constructor.
+/// </para>
 /// </remarks>
 [Table]
 public sealed class LotTable
@@ -60,9 +67,15 @@ public sealed class LotTable
 
     /// <param name="capacity">Initial slot count. ~225 Lots per 1,000 Citizens, per S4 task 2.</param>
     /// <param name="segments">The table this one's <see cref="FrontageSegment"/> handles address.</param>
-    public LotTable(int capacity, RoadSegmentTable segments)
+    /// <param name="households">
+    /// The rows this one's <see cref="Landowner"/> handles address. The allocator rather than the
+    /// table, because <see cref="HouseholdTable"/> is built after this one — see
+    /// <see cref="HouseholdTable.NewRows"/>.
+    /// </param>
+    public LotTable(int capacity, RoadSegmentTable segments, Rows<Household> households)
     {
         ArgumentNullException.ThrowIfNull(segments);
+        ArgumentNullException.ThrowIfNull(households);
 
         _rows = new Rows<Lot>("lot", capacity, Buffering.OneCopy);
 
@@ -90,6 +103,17 @@ public sealed class LotTable
         FootprintDeep = _rows.Saved<Tiles>("footprint_deep");
         Storeys = _rows.Saved<byte>("storeys");
         Pattern = _rows.Saved<byte>("block_pattern", Touch.Cold);
+
+        // Severable, on BusinessTable.Owner's precedent and for its reason: a Landowner that departs
+        // or dissolves leaves the Lot with nobody holding it, and `the holder stopped existing` is a
+        // fact worth reading off a dangling handle rather than a state worth writing. Clearing it in
+        // Dissolve would be a write to a saved column, so a death would move the State Hash for a
+        // reason that has nothing to do with the Lot.
+        //
+        // Cold: ownership is read when land changes hands or a panel asks, never on a Tick.
+        Landowner = _rows.SavedHandle(
+            "landowner", households, Touch.Cold, Reference.Severable);
+
         PodiumStoreys = _rows.Derived<byte>("podium_storeys", Touch.Cold);
 
         _rows.Seal();
@@ -327,6 +351,27 @@ public sealed class LotTable
 
     /// <summary>How far along <see cref="FrontageSegment"/> this Lot sits, from its A endpoint.</summary>
     public Column<Tiles> FrontageOffset { get; }
+
+    /// <summary>
+    /// The Household holding this Lot and the Building on it — its Landowner (<c>L1</c>, <c>L2</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>Unset means the city holds the Lot</b>, which is where a newly carved Lot and every Lot
+    /// world creation builds start (<c>L3</c>, <c>L14</c>). A severed handle means the same thing: the
+    /// Landowner died or left, so the Lot passed to the city (<c>L9</c> dissolution). Read it through
+    /// <see cref="LandownerOn"/> or <see cref="IsCityHeld"/>, which resolve the handle; a bare
+    /// <c>Resolve</c> throws on the first dissolution.
+    /// </remarks>
+    public HandleColumn<Household> Landowner { get; }
+
+    /// <summary>
+    /// The slot of the Household holding this Lot, or <see cref="Rows.NoSlot"/> when the city holds it.
+    /// </summary>
+    public int LandownerOn(int slot) =>
+        Landowner.Target.TryResolve(Landowner[slot], out int household) ? household : Tables.Rows.NoSlot;
+
+    /// <summary>Whether the city holds this Lot, rather than a Household.</summary>
+    public bool IsCityHeld(int slot) => LandownerOn(slot) == Tables.Rows.NoSlot;
 
     /// <summary>Whether nothing stands here — <c>02 §2.2</c>'s other state.</summary>
     public bool IsVacant(int slot) => BuildingSlot[slot] == 0;

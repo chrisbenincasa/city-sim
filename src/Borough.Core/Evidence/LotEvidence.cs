@@ -110,7 +110,8 @@ public readonly struct LotEvidence
         Address address,
         VacancyReason reason,
         CondemnationEvidence? condemnation,
-        Handle<Building> building)
+        Handle<Building> building,
+        Handle<Household> landowner)
     {
         Lot = lot;
         Zone = permissions.CommonUses;
@@ -121,6 +122,7 @@ public readonly struct LotEvidence
         Reason = reason;
         Condemnation = condemnation;
         Building = building;
+        Landowner = landowner;
     }
 
     /// <summary>Which Lot this is about.</summary>
@@ -159,4 +161,15 @@ public readonly struct LotEvidence
 
     /// <summary>What stands here, or the unset handle when <see cref="IsVacant"/>.</summary>
     public Handle<Building> Building { get; }
+
+    /// <summary>
+    /// The Household holding this Lot, or the unset handle when the city holds it.
+    /// </summary>
+    /// <remarks>
+    /// <b>A Landowner who died or left reads as the city</b>, which is what
+    /// <c>LotTable.Landowner</c> means by a severed handle: the Lot passed to the city with the
+    /// estate. The handle here is resolved, so an unset one is the whole of <em>nobody owns this but
+    /// the city</em> and a reader needs no second check.
+    /// </remarks>
+    public Handle<Household> Landowner { get; }
 }
