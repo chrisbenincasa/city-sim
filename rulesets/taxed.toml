@@ -349,8 +349,8 @@ transfer = { from = "global", to = "local", resource = "money", amount = 1 }
 #
 #   allowance_per_day = 50        ABOUT ONE DAY OF THIS FILE'S OWN RENT. rent_per_floor_tile = 2
 #                                 over a tenancy of about 28 Tiles is some 56 a Day, the only per-Day
-#                                 money figure the Ruleset states, so the allowance is the earnings
-#                                 that cover the roof. Taste, not derivation.
+#                                 money figure the Ruleset states, so the allowance is anchored to a
+#                                 Day of rent -- just under it, not over. Taste, not derivation.
 #
 #   upper_threshold_per_day = 200 Four allowances. Chosen to sit ABOVE the 100 the rebate pays and
 #                                 BELOW the 1000 top of the opening band, so both bands are reachable

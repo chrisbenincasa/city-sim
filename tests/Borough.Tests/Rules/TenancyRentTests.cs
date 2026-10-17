@@ -3,11 +3,13 @@ using Borough.Core.Arithmetic;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Input;
+using Borough.Core.Persistence;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
 using Borough.Core.Tables;
 using Borough.Formats;
+using Borough.Tests.Persistence;
 
 namespace Borough.Tests.Rules;
 
@@ -120,6 +122,30 @@ public sealed class TenancyRentTests
         }
     }
 
+    /// <summary>The land value the pricing point reads for a Building — the Cell its Lot sits in.</summary>
+    private static int LandValueAt(World world, int building)
+    {
+        int lot = world.Lots.Rows.Resolve(world.Buildings.Lot[building]);
+
+        return world.Layers.LandValue(
+            CellGrid.ToCells(world.Lots.East[lot]), CellGrid.ToCells(world.Lots.North[lot]));
+    }
+
+    /// <summary>The pair with a seeker endowed for either dwelling, which is what a run needs.</summary>
+    private static (World World, Simulation Simulation, int Cheap, int Dear) Seeking(
+        int reconsiderTicks = 0)
+    {
+        (World world, Simulation simulation, int cheap, int dear) =
+            Pair(seeking: Tenancies, reconsiderTicks);
+
+        for (int i = 0; i < Tenancies; i++)
+        {
+            world.Endow(world.UnplacedPool.At(i), new Money(4 * Share * Rate));
+        }
+
+        return (world, simulation, cheap, dear);
+    }
+
     private static int Housed(World world, int building) => world.Occupants.Length(building);
 
     /// <summary>
@@ -150,12 +176,7 @@ public sealed class TenancyRentTests
     [Fact]
     public void Placement_prefers_the_cheaper_ground_when_centrality_is_equal()
     {
-        (World world, Simulation simulation, int cheap, int dear) = Pair(seeking: Tenancies);
-
-        for (int i = 0; i < Tenancies; i++)
-        {
-            world.Endow(world.UnplacedPool.At(i), new Money(4 * Share * Rate));
-        }
+        (World world, Simulation simulation, int cheap, int dear) = Seeking();
 
         for (int tick = 0; tick < 64; tick++)
         {
@@ -167,6 +188,68 @@ public sealed class TenancyRentTests
         Assert.Equal(0, Housed(world, dear));
 
         simulation.CheckEndOfRun();
+    }
+
+    /// <summary>
+    /// A city whose housing choices turn on the ground under each Lot is saved mid-flight and runs on
+    /// identically.
+    /// </summary>
+    /// <remarks>
+    /// <b>Rent is read by decisions now, not only by a panel.</b> Placement scores it, the
+    /// affordability filter gates on it and reassessment prices a resident out with it — and all three
+    /// move with the land value at the Lot, which is saved state in <c>LayerCellTable</c>. A load that
+    /// dropped the land value, or rebuilt it from somewhere else, would reprice every tenancy and the
+    /// two runs would part company over who lives where. <c>PlacementChoiceTests</c> draws a city at
+    /// scale and weighs no rent, so this is where the saved figure is held to the decisions.
+    /// </remarks>
+    [Fact]
+    public void A_city_pricing_rent_off_the_ground_reloads_and_runs_on_identically()
+    {
+        const int SavedAt = 16, RanOn = 48;
+
+        (World control, Simulation controlRun, _, _) = Seeking(reconsiderTicks: 8);
+        (World subject, Simulation subjectRun, int cheap, int dear) = Seeking(reconsiderTicks: 8);
+
+        for (int tick = 0; tick < SavedAt; tick++)
+        {
+            controlRun.Step(TickInput.Empty);
+            subjectRun.Step(TickInput.Empty);
+        }
+
+        Assert.Equal(control.HashState(), subject.HashState());
+
+        var file = new MemorySave();
+
+        subjectRun.SaveAtEndOfTick(file);
+        subjectRun.Step(TickInput.Empty);
+        controlRun.Step(TickInput.Empty);
+
+        World reloaded = SaveFile.Read(file, subject.Rules, out SaveHeader header);
+        var resumed = new Simulation(reloaded, header.Key);
+
+        Assert.Equal(control.HashState(), reloaded.HashState());
+
+        for (int tick = 0; tick < RanOn; tick++)
+        {
+            controlRun.Step(TickInput.Empty);
+            resumed.Step(TickInput.Empty);
+
+            Assert.Equal(
+                (object)$"tick {SavedAt + 1 + tick}: {control.HashState():X16}",
+                $"tick {SavedAt + 1 + tick}: {reloaded.HashState():X16}");
+        }
+
+        // The figure the whole run turned on, read on the far side of the save. The land value under
+        // the dear Lot drifts as the engine re-targets it, so what is asserted is that both runs read
+        // one rent and that the dearer ground is still the dearer rent.
+        Assert.Equal(control.HouseholdRent(dear).Raw, reloaded.HouseholdRent(dear).Raw);
+        Assert.True(
+            reloaded.HouseholdRent(dear).Raw > reloaded.HouseholdRent(cheap).Raw,
+            "the land value under the dear Lot drifted away over the run, so the two rents no longer "
+            + "differ and nothing here turns on the ground.");
+
+        controlRun.CheckEndOfRun();
+        resumed.CheckEndOfRun();
     }
 
     /// <summary>
@@ -238,12 +321,14 @@ public sealed class TenancyRentTests
     }
 
     /// <summary>
-    /// A Business pays for the floor of the Unit it holds, which is the other tenancy the one figure
-    /// serves.
+    /// A Business pays for the floor of the Unit it holds, on the ground its premises stand on —
+    /// which is the other tenancy the one figure serves.
     /// </summary>
     /// <remarks>
     /// <c>chosen.toml</c> rather than a hand-built trade, because what is being read is a premised
-    /// Business in a world that raised one for itself.
+    /// Business in a world that raised one for itself. A city straight out of creation has driven no
+    /// land value, which the first assertion states rather than assumes; the last Business found is
+    /// then moved onto dearer ground so the Business tenancy exercises the land value term too.
     /// </remarks>
     [Fact]
     public void A_business_pays_for_the_floor_of_its_unit()
@@ -257,7 +342,7 @@ public sealed class TenancyRentTests
 
         SyntheticCity.PopulateInto(world, Key, Ticks.Zero);
 
-        int found = 0;
+        int found = 0, premised = Rows.NoSlot;
 
         for (int slot = 0; slot < world.Businesses.Rows.SlotCount; slot++)
         {
@@ -269,11 +354,11 @@ public sealed class TenancyRentTests
             int building = world.Buildings.Rows.Resolve(world.Businesses.Building[slot]);
             long rate = world.Rules.Kind(world.Buildings.Kind[building]).RentPerFloorTile.Raw;
 
+            Assert.True(rate > 0, "chosen.toml's premises state no rate, so this asserts nothing.");
+            Assert.Equal(0, LandValueAt(world, building));
             Assert.Equal(rate * world.UnitFloorOf(slot), world.BusinessRent(slot).Raw);
-            Assert.Equal(
-                world.TenancyRent(building, world.UnitFloorOf(slot)).Raw,
-                world.BusinessRent(slot).Raw);
 
+            premised = slot;
             found++;
 
             if (found == 8)
@@ -283,6 +368,15 @@ public sealed class TenancyRentTests
         }
 
         Assert.True(found > 0, "chosen.toml's populated city premised no Business.");
+
+        int premises = world.Buildings.Rows.Resolve(world.Businesses.Building[premised]);
+        long premisedRate = world.Rules.Kind(world.Buildings.Kind[premises]).RentPerFloorTile.Raw;
+
+        Raise(world, premises);
+
+        // One whole unit of land value doubles a Business's rent as it doubles a Household's.
+        Assert.Equal(
+            2 * premisedRate * world.UnitFloorOf(premised), world.BusinessRent(premised).Raw);
     }
 
     /// <summary>A dwelling whose kind the Ruleset in force dropped is free, not a throw.</summary>

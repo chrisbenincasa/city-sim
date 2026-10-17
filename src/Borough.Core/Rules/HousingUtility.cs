@@ -50,10 +50,10 @@ public static class HousingUtility
     /// </para>
     /// <para>
     /// <b>Rent discriminates between candidates.</b> It is a per-tenancy figure from
-    /// <c>World.TenancyRent</c> — floor times the kind's rate times the land value at the Lot — so two
-    /// dwellings of one kind on different ground are worth different amounts here. It was a per-kind
-    /// price until <c>plans/money-circulation.md</c> L7, and a per-kind price cancels across every
-    /// candidate of that kind.
+    /// <c>World.TenancyRent</c> — floor times the kind's rate times one plus the land value at the
+    /// Lot — so two dwellings of one kind on different ground are worth different amounts here. It was
+    /// a per-kind price until <c>plans/money-circulation.md</c> L7, and a per-kind price cancels
+    /// across every candidate of that kind.
     /// </para>
     /// </remarks>
     /// <param name="placement">The choice model's units. Both scales must be stated.</param>
