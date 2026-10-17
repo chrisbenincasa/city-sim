@@ -113,15 +113,30 @@ public sealed class LandSaleTests(Xunit.Abstractions.ITestOutputHelper output)
     public void Unzoned_and_unfronted_vacant_lots_do_not_report_no_capital()
     {
         var (world, lots) = City();
+        world.Unplace(Household(world, lots[0], 0));
         int unzoned = world.Lots.Rows.Resolve(lots[1]);
         world.PaintPermissions(world.LotGround(unzoned), default);
         var reason = Core.Evidence.Evidence.OfLot(world, lots[1]).Reason;
         Assert.True(reason.HasFlag(VacancyReason.NotZoned));
         Assert.False(reason.HasFlag(VacancyReason.NoCapital));
         var unfronted = world.Lots.Create(new Tiles(1000), new Tiles(1000), LotTable.Housing);
+        int row = world.Lots.Rows.Resolve(unfronted);
+        Assert.Equal(PermissionRefusal.None, world.PaintPermissions(world.LotGround(row), new(LotTable.Housing, 0)));
+        Assert.Equal(PermissionRefusal.None, world.ConstructionPermission(row, LotTable.Housing));
         reason = Core.Evidence.Evidence.OfLot(world, unfronted).Reason;
+        Assert.False(reason.HasFlag(VacancyReason.NotZoned));
         Assert.True(reason.HasFlag(VacancyReason.NoFrontage));
         Assert.False(reason.HasFlag(VacancyReason.NoCapital));
+    }
+
+    [Fact]
+    public void An_empty_seeker_pool_does_not_report_no_capital_for_legacy_housing()
+    {
+        var (world, lots) = City();
+        var seeker = Household(world, lots[0], 0);
+        Assert.False(Core.Evidence.Evidence.OfLot(world, lots[1]).Reason.HasFlag(VacancyReason.NoCapital));
+        world.Unplace(seeker);
+        Assert.True(Core.Evidence.Evidence.OfLot(world, lots[1]).Reason.HasFlag(VacancyReason.NoCapital));
     }
 
     [Fact]
@@ -171,6 +186,47 @@ public sealed class LandSaleTests(Xunit.Abstractions.ITestOutputHelper output)
         new ZoneRuleEngine(world, Key).Sweep(Ticks.Zero);
         Assert.Empty(CapitalIndex(world));
         Assert.Equal(before, world.HashState());
+    }
+
+    [Fact]
+    public void Refused_capital_does_not_claim_demand_or_start_the_construction_cooldown()
+    {
+        string text = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "shopping.toml"));
+        var parsed = RulesetLoader.Parse(text.Replace("[lots]", "[lots]\nconstruction_charge_per_floor_tile = 1000000", StringComparison.Ordinal), "capital-demand.toml");
+        Assert.True(parsed.Ok, parsed.Describe());
+        var world = new World(400, parsed.Ruleset!, Key);
+        SyntheticCity.PopulateInto(world, Key, Ticks.Zero);
+        var simulation = new Simulation(world, Key);
+        for (int tick = 0; tick < 2048; tick++) { simulation.Step(default); }
+        var zoning = simulation.Zoning;
+        var definition = world.Rules.ZoneRules[1];
+        const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+        var marketFor = typeof(ZoneRuleEngine).GetMethod("MarketFor", flags)!;
+        int lot = Enumerable.Range(0, world.Lots.Rows.SlotCount).First(row => world.Lots.Rows.IsLive(row)
+            && world.Lots.IsVacant(row) && (int)marketFor.Invoke(zoning, [definition.Kind, row])! >= 0);
+        world.PaintUsePermissions(world.LotGround(lot), definition.Admits);
+        Assert.Equal(PermissionRefusal.None, world.ConstructionPermission(lot, definition.Admits));
+        int market = (int)marketFor.Invoke(zoning, [definition.Kind, lot])!;
+        var demand = (long[])typeof(ZoneRuleEngine).GetField("_demand", flags)!.GetValue(zoning)!;
+        var claimed = (long[])typeof(ZoneRuleEngine).GetField("_claimed", flags)!.GetValue(zoning)!;
+        long threshold = (long)definition.BuildThresholdDays * Ticks.PerDay;
+        demand[market] = threshold;
+        claimed[market] = 0;
+        world.DistrictPools.LastRaised[market] = Ticks.Zero;
+        var create = typeof(ZoneRuleEngine).GetMethod("Create", flags)!;
+        var at = new Ticks(4 * Ticks.PerDay);
+        Assert.False(world.CanFinanceConstruction(lot, world.Lots.FloorTiles(lot)));
+        create.Invoke(zoning, [definition, lot, at]);
+        Assert.True(world.Lots.IsVacant(lot));
+        Assert.Equal(0, claimed[market]);
+        Assert.Equal(Ticks.Zero, world.DistrictPools.LastRaised[market]);
+        int buyer = Enumerable.Range(0, world.Households.Rows.SlotCount).First(world.Households.Rows.IsLive);
+        world.Endow(world.Households.Rows.At(buyer), world.LandPrice(lot) + world.ConstructionCharge(world.Lots.FloorTiles(lot)));
+        create.Invoke(zoning, [definition, lot, at]);
+        Assert.False(world.Lots.IsVacant(lot));
+        Assert.Equal(threshold, claimed[market]);
+        Assert.Equal(at, world.DistrictPools.LastRaised[market]);
+        Conserved(world);
     }
 
     [Fact]
@@ -308,7 +364,7 @@ public sealed class LandSaleTests(Xunit.Abstractions.ITestOutputHelper output)
     }
 
     [Fact]
-    public void Purchasing_then_save_reload_and_replay_choose_the_same_owner()
+    public void A_buyer_draw_matches_after_loading_the_pre_purchase_state()
     {
         var (world, lots) = City();
         Household(world, lots[0], 100_000);
@@ -320,6 +376,70 @@ public sealed class LandSaleTests(Xunit.Abstractions.ITestOutputHelper output)
         Assert.True(world.FinanceConstruction(lot, world.Lots.FloorTiles(lot), world.Tick));
         Assert.True(loaded.FinanceConstruction(lot, loaded.Lots.FloorTiles(lot), loaded.Tick));
         Assert.Equal(world.HashState(), loaded.HashState());
+    }
+
+    [Fact]
+    public void A_saved_purchase_keeps_its_owner_and_reconstruction_does_not_buy_land_again()
+    {
+        var (world, lots) = City();
+        Household(world, lots[0], 100_000);
+        Household(world, lots[0], 100_000);
+        int lot = world.Lots.Rows.Resolve(lots[1]);
+        long charge = world.ConstructionCharge(world.Lots.FloorTiles(lot)).Raw;
+        Assert.True(world.LandPrice(lot).Raw > 0);
+        Assert.True(world.FinanceConstruction(lot, world.Lots.FloorTiles(lot), world.Tick));
+        var originalBuilding = world.CreateBuilding(lots[1], 1, world.Tick, Key);
+        var owner = world.Lots.Landowner[lot];
+        long treasury = world.TreasuryBalance()!.Value.Raw;
+        long savings = Balance(world, owner);
+        var file = new MemorySave();
+        SaveFile.Write(world, 17, file);
+        World loaded = SaveFile.Read(file, world.Rules, out _);
+        Assert.Equal(owner, loaded.Lots.Landowner[lot]);
+        Assert.Equal(world.HashState(), loaded.HashState());
+        world.DestroyBuilding(originalBuilding, world.Tick);
+        loaded.DestroyBuilding(originalBuilding, loaded.Tick);
+        long issued = world.MoneySupply.Issued[MoneySupplyTable.Slot].Raw;
+        foreach (World city in new[] { world, loaded })
+        {
+            Assert.True(city.FinanceConstruction(lot, city.Lots.FloorTiles(lot), city.Tick));
+            city.CreateBuilding(lots[1], 1, city.Tick, Key);
+            Assert.Equal(owner, city.Lots.Landowner[lot]);
+            Assert.Equal(treasury, city.TreasuryBalance()!.Value.Raw);
+            Assert.Equal(savings - charge, Balance(city, owner));
+            Assert.Equal(issued - charge, city.MoneySupply.Issued[MoneySupplyTable.Slot].Raw);
+            Conserved(city);
+        }
+        Assert.Equal(world.HashState(), loaded.HashState());
+    }
+
+    [Fact]
+    public void Input_log_replay_agrees_with_land_sales_and_reaches_a_buyer_draw()
+    {
+        string text = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "declining.toml"));
+        text = text.Replace("[lots]", "[lots]\ndemolition_price_per_tile = 3\nconstruction_charge_per_floor_tile = 2\nbuyer_reserve_per_member = 10", StringComparison.Ordinal)
+            + "\n[households]\ncar_ownership_percent = 0\nopening_balance_min = 100000\nopening_balance_max = 100000\n";
+        var parsed = RulesetLoader.Parse(text, "land-sale-replay.toml");
+        Assert.True(parsed.Ok, parsed.Describe());
+        const int ticks = 8192, cadence = 256;
+        var builder = new InputLogBuilder(62002, new WorldConfiguration(100), ContentHash.Of(System.Text.Encoding.UTF8.GetBytes(text)));
+        builder.Append(Ticks.Zero, new Command(CommandKind.Populate, default, default));
+        var encoded = new StringWriter();
+        InputLogCodec.Write(encoded, builder.Build());
+        InputLog log = InputLogCodec.Read(new StringReader(encoded.ToString()));
+        ulong[] first = Replay.Run(log, new Ticks(ticks), cadence, parsed.Ruleset!);
+        Simulation simulation = Replay.Start(log, parsed.Ruleset!);
+        var second = new List<ulong>();
+        Replay.Trace(simulation, log, new Ticks(ticks), cadence, second);
+        Assert.Equal(first, second);
+        int owned = 0;
+        for (int row = 0; row < simulation.World.Lots.Rows.SlotCount; row++)
+        {
+            if (simulation.World.Lots.Rows.IsLive(row) && !simulation.World.Lots.IsCityHeld(row)) { owned++; }
+        }
+        Assert.True(owned > 0, "The replay must purchase land, not merely repeat a city with sales enabled.");
+        Assert.True(simulation.World.TreasuryBalance()!.Value.Raw > 0);
+        Conserved(simulation.World);
     }
 
     [Fact]

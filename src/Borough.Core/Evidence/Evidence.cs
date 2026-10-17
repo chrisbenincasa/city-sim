@@ -737,10 +737,11 @@ public static class Evidence
 
     private static bool NoConstructionCapital(World world, int lot, int? capitalBuyer)
     {
-        if (!world.Rules.Lots.LandSales) { return false; }
+        if (!world.Rules.Lots.LandSales || world.HasStreets && !world.Lots.HasFrontage(lot)) { return false; }
         bool measured = false;
         foreach (ZoneRuleDefinition definition in world.Rules.ZoneRules)
         {
+            if (!definition.ReadsDemand && world.UnplacedPool.Count == 0) { continue; }
             if (!definition.ReadsDemand && world.Rules.HousingConstruction is not null
                 && world.Rules.Declares(definition.Kind) && world.Rules.Kind(definition.Kind).Houses)
             {

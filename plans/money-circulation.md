@@ -201,6 +201,9 @@ Slices 1 and 3 can run in parallel. After slice 1, slices 2 and 6 can too.
 | Combined single-purchase finance work | 1.636 ms | Preflight plus draw/index/payment; Building creation is excluded |
 | Poor-city batch evidence over all 10,080 Lots | 11.218 ms | One capital pass; Household balances were emptied before timing |
 
+- PR review kept finance before `Demanded` because `Demanded` claims demand or joblessness and
+  starts the cooldown; the preflight path and its recorded measurement remain unchanged.
+
 - The isolated purchase cost `100` land plus `100` construction. A prior unpaired capture at
   load average `18.67/17.27/17.81`, while another worktree's full suite was active, observed a
   `22.047 ms` worst sweep. It cannot show the added cost by itself; the paired capture above
