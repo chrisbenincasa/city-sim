@@ -284,4 +284,85 @@ public sealed class TenancyRentTests
 
         Assert.True(found > 0, "chosen.toml's populated city premised no Business.");
     }
+
+    /// <summary>A dwelling whose kind the Ruleset in force dropped is free, not a throw.</summary>
+    /// <remarks>
+    /// <b>A reload that deletes a housing paragraph leaves the Buildings standing and derelict</b>
+    /// (<c>adr/0015</c>, <see cref="RulesetMigrationTests"/>), with their kind set to zero — and
+    /// reconsideration still prices every housed Household it samples. Rent is read on a kind, so the
+    /// one pricing point refuses an undeclared one rather than letting the sweep throw.
+    /// </remarks>
+    [Fact]
+    public void A_dwelling_whose_kind_the_ruleset_dropped_is_free()
+    {
+        const string housed = """
+            [[resource]]
+            name = "money"
+            family = "money"
+
+            [[building]]
+            name = "dwelling"
+            houses = true
+            rent_per_floor_tile = 10
+
+            [capacity]
+            floor_tiles_per_occupant = 4
+
+            [placement]
+            interval = 1
+            revisit_ticks = 1
+            candidates = 3
+            reconsider_ticks = 1
+            gives_up_after_days = 20
+            """;
+
+        const string noKinds = """
+            [[resource]]
+            name = "money"
+            family = "money"
+
+            [capacity]
+            floor_tiles_per_occupant = 4
+
+            [placement]
+            interval = 1
+            revisit_ticks = 1
+            candidates = 3
+            reconsider_ticks = 1
+            gives_up_after_days = 20
+            """;
+
+        var world = new World(1_000, Load(housed), Key);
+        var simulation = new Simulation(world, Key);
+
+        Handle<Lot> lot = world.Lots.Create(
+            Tiles.Zero, Tiles.Zero, zone: 0, wide: new Tiles(Share * Tenancies), deep: new Tiles(1));
+        int building = world.Buildings.Rows.Resolve(world.CreateBuilding(lot, 1, Ticks.Zero, Key));
+        Handle<Household> resident = world.CreateHousehold(world.Buildings.Rows.At(building), lifeStage: 0);
+
+        Assert.Equal(Share * Rate, world.HouseholdRent(building).Raw);
+
+        world.Adopt(Load(noKinds), 0x2222_2222_2222_2222UL, Ticks.Zero, Key);
+
+        Assert.Equal(0, world.Buildings.Kind[building]);
+        Assert.Equal(0, world.HouseholdRent(building).Raw);
+        Assert.Equal(0, world.TenancyRent(building, Share).Raw);
+
+        // Reconsideration samples the housed Household and prices its home every Tick.
+        for (int tick = 0; tick < 8; tick++)
+        {
+            simulation.Step(TickInput.Empty);
+        }
+
+        Assert.True(world.Households.Rows.IsValid(resident));
+    }
+
+    private static Ruleset Load(string toml)
+    {
+        RulesetLoadResult result = RulesetLoader.Parse(toml, "test.toml");
+
+        Assert.True(result.Ok, result.Describe());
+
+        return result.Ruleset!;
+    }
 }

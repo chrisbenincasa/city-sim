@@ -51,10 +51,9 @@ bins = [
 ]
 houses   = true
 premises = true
-# A rate per floor Tile (money-circulation L7). A tenancy here holds about 17 Tiles, so a home costs
-# about 390 a Day on ground worth nothing, and less than that wherever land value is negative.
-# ⚠ NOT 24 OR 25. Both leave the school one teacher short for three Days around Day 66 of the
-# demonstration in plans/first-playable-founding-loop.md; every rate from 16 to 23 holds it.
+# A rate per floor Tile (money-circulation L7), charged on the floor a tenancy holds. A home here
+# costs about 390 a Day on ground worth nothing. ⚠ NOT 24 OR 25; money-circulation's slice 3
+# record says what both do to the founding school demonstration.
 rent_per_floor_tile = 23
 parked   = true
 business = "mill"
