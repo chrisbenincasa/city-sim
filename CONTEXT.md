@@ -114,7 +114,7 @@ The Household that owns a Lot, vacant or built, and with it the Building the Lot
 What a tenant pays its Landowner each Day for the floor it occupies, priced by the Building's kind and the land value where it stands. The same figure is what a Household compares when it chooses a home.
 
 **Compulsory purchase**
-The city taking a Lot from its Landowner at the land price, whether the owner agrees or not. A Street, the player's `Demolish` and the player's purchase of a vacant Lot are each one.
+The city taking a Lot from its Landowner at the Lot's price (the land price, plus the cost of building again for a built Lot), whether the owner agrees or not. A Street, the player's `Demolish` and the player's purchase of a vacant Lot are each one.
 *Avoid*: Eminent domain, expropriation
 
 **Frontage**
