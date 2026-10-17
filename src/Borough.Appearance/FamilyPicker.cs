@@ -59,6 +59,10 @@ public static class FamilyPicker
             : new FamilyPick(fallback, FamilyChoice.Fallback);
     }
 
+    /// <summary>Which of <see cref="FamilyBodyBuilder.HouseSeeds"/> draws a Building's house body is built from.</summary>
+    public static int House(WorldKey world, ulong building) =>
+        (int)(Randomness.Draw(world, building, Ticks.Zero, PurposeTag.AppearanceHouse) % FamilyBodyBuilder.HouseSeeds);
+
     /// <summary>
     /// Chooses a body's paint scheme by a weighted draw on the Building's own id, so each house in an
     /// attached run is painted on its own.

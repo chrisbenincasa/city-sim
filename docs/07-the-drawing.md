@@ -77,8 +77,9 @@ no roof and the city holds no eaves, so `PlotDepthMetres`, `RoofRiseLow` and `Ea
 **inventions** and each carries a remark saying so. ***A drawing that cannot tell you which of its
 marks are load-bearing is a drawing that will be read as evidence by somebody debugging.***
 
-⚠ **It draws on no `purpose_tag` and must not.** The simulation's random stream is for decisions, and
-a shape nobody in the city can perceive is not one.
+⚠ **It never draws on a Tick.** The simulation's random stream is for decisions, and a shape nobody in
+the city can perceive is not one. Appearance draws use their own shell-only `purpose_tag` values
+(`AppearanceFamily`, `AppearancePaint`, `AppearanceHouse`) at `Ticks.Zero`, so they move no State Hash.
 
 ### 1.4 Variety by instancing, never by unique assets
 
@@ -97,7 +98,7 @@ buildings is not*. See §3.
 
 ## 2. What is settled about the look
 
-Decided by the player on 2026-08-31 and 09-01, and recorded rather than argued.
+Decided by the player on 2026-08-31, 09-01 and 10-17, and recorded rather than argued.
 
 | | |
 |---|---|
@@ -106,6 +107,45 @@ Decided by the player on 2026-08-31 and 09-01, and recorded rather than argued.
 | **Vibrant and colourful, not garish** | And the grade does more of that work than the palette does |
 | **Light follows the clock** | A lit city at night is wanted, and the windows are lit from **occupancy** |
 | **Not diagrammatic** | *This needs to look "city like", not just shallow, drab nothingness* — pillar 1.1 |
+| **Variation, never repetition** | *Uniformity would be the death of the game, visually* — §2.1 |
+
+### 2.1 Variation is the look
+
+Uniformity is the failure this drawing most has to avoid. One good design repeated along a street
+reads as dull, and repeated across a city it reads as dead. §1.4 says how variety stays cheap; this
+section says variety is required.
+
+**Principles**
+
+- Every form is a procedural base and never a finished building. A family declares ranges, and each
+  Building draws its own values from them.
+- Variation is the default. A repeated design needs a stated reason, such as an estate built in one era.
+- Vary at every scale.
+
+| Scale | What varies | Example |
+|---|---|---|
+| City | Which families appear, by Ruleset, pattern and era | Terraces in one district, villas in another |
+| Street | Which form each Lot draws among the eligible families | A terrace, a front-gabled row and a villa on one block face |
+| Building | Proportions, materials and the set of details | Roof pitch, module width, roof tile, wall material, window spacing |
+| House within a Building | Paint, door side, bay windows, door canopy | Each house in a terrace painted on its own |
+
+- More detail is better by default. Lintels, glazing bars, string courses, door canopies, gutters,
+  downpipes, dormers and front boundaries all belong on a house. Cut a detail only when it costs
+  legibility at the default camera or measured frame time.
+- Variation stays inside a kind's identity. A house varies as a house, and a school still reads as
+  a school.
+- Coherence comes from a shared material palette and module. Families in one district draw from the
+  same palette, so the variety reads as one town.
+- Variation is deterministic. A Building's draws are seeded by its monotonic id and its facts, so it
+  looks the same in every session and replay. They never draw on a Tick (§1.3).
+
+**Judging a design**
+
+- Judge a street of random draws and never a single render. A sample shows at least ten Buildings at
+  real Lot sizes from the Ruleset in force.
+- Look for the repeat at the default camera. Two identical neighbours mean the ranges are too narrow.
+- Every visual choice goes to the player as rendered options first. An agent proposes forms, ranges,
+  materials and details with samples, and does not choose among them alone.
 
 ---
 

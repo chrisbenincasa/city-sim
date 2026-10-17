@@ -959,4 +959,10 @@ public enum PurposeTag : ulong
     /// Business's id at the payday.
     /// </summary>
     BusinessOwner = 67,
+
+    /// <summary>
+    /// Which proportions, materials and paints a house body is built with. Drawn by the shell on the
+    /// Building's id, never by a Tick, so it moves no State Hash.
+    /// </summary>
+    AppearanceHouse = 68,
 }

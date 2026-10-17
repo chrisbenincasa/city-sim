@@ -72,6 +72,14 @@ public sealed class ShellMesh
     internal void Polygon(ReadOnlySpan<Vector3> corners, ReadOnlySpan<Vector2> uvs, Vector3 normal) =>
         Polygon(corners, uvs, default, normal);
 
+    /// <summary>Appends a planar polygon whose every corner takes <paramref name="color"/>.</summary>
+    internal void Polygon(ReadOnlySpan<Vector3> corners, ReadOnlySpan<Vector2> uvs, Vector3 normal, Vector4 color)
+    {
+        int at = VertexCount;
+        Polygon(corners, uvs, default, normal);
+        _colors.AsSpan(at, corners.Length).Fill(color);
+    }
+
     /// <summary>Appends a planar polygon with both UV channels, fanned from its first corner.</summary>
     internal void Polygon(ReadOnlySpan<Vector3> corners, ReadOnlySpan<Vector2> uvs, ReadOnlySpan<Vector2> uv2s, Vector3 normal)
     {
