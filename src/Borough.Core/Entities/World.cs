@@ -159,7 +159,13 @@ public sealed partial class World
         // composition order: _tables below is what the State Hash walks.
         Roads = new RoadGraph(rules.Roads, key);
 
-        Lots = new LotTable(PerThousand(citizens, 225), Roads.Segments);
+        // The Household rows, ahead of the Lots because a Lot holds a saved handle to its Landowner
+        // (L1) -- while a Household holds one to a dwelling that stands on a Lot. The relations are a
+        // cycle, so the allocator is created here and HouseholdTable takes it below, in its place in
+        // the order.
+        Rows<Household> householdRows = HouseholdTable.NewRows(PerThousand(citizens, 360));
+
+        Lots = new LotTable(PerThousand(citizens, 225), Roads.Segments, householdRows);
 
         PermissionRectangles = new Space.LandPermissionTable();
         LandPermissions = new Space.LandPermissions(PermissionRectangles);
@@ -174,7 +180,7 @@ public sealed partial class World
         Bins = new BinTable(PerThousand(citizens, 450), Buildings);
         Expiries = new ExpiryTable(Bins);
 
-        Households = new HouseholdTable(PerThousand(citizens, 360), Buildings, Bins);
+        Households = new HouseholdTable(householdRows, Buildings, Bins);
         Layers = new MapLayers(rules.Layers);
 
         // One Car Park per Building, so this is the Building ratio and not a fourth guessed one --

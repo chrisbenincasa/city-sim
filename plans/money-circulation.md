@@ -136,6 +136,9 @@ Slices 1 and 3 can run in parallel. After slice 1, slices 2 and 6 can too.
 - Evidence names a Lot's Landowner, and the shell inspector shows it.
 - Acceptance: a dissolved Landowner's Lots read as city-held. Save/reload and replay hold. Goldens
   are re-recorded once, because the saved column moves the State Hash.
+- Built 10/17/2026: `LotTable.Landowner`, saved and severable, with `LandownerTests`, save format 22
+  and the goldens re-recorded. `LotTable` takes `Rows<Household>` from `HouseholdTable.NewRows`,
+  because a Lot naming its Landowner makes the three tables' relations a cycle.
 
 ### 2. Land sale and construction charge
 
