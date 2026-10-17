@@ -56,6 +56,7 @@ public sealed class RulesetSourceTests
 
         Assert.Equal(ContentHash.Of(Encoding.UTF8.GetBytes("dwelling")), result.Ruleset!.KindKeys[0]);
         Assert.Equal("Terraced house", result.Names.Kind(1));
+        Assert.Equal("dwelling", result.Names.KindId(1));
         Assert.Equal("Sundries", result.Names.Resource(new ResourceId(2)));
         Assert.Equal("Terraced house", result.Declarations.Single(d => d.Id == "dwelling").Label);
     }
