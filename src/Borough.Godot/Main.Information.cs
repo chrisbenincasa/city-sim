@@ -1133,8 +1133,7 @@ public partial class Main
     /// <remarks>
     /// Read through <see cref="Evidence.OfLot"/> rather than off the column, so the shell and a
     /// headless dump answer from one place. A Landowner who died or left reads as the city there.
-    /// <b>Closed</b>, because nothing buys land yet and an open card would say "the city" on every
-    /// Building in the city while costing the first screen a row.
+    /// The card starts closed to keep landholding details off the first screen.
     /// </remarks>
     private void AddLandholding(List<InformationSection> sections, Handle<Lot> lot)
     {

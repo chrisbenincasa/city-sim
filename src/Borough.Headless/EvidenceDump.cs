@@ -601,20 +601,7 @@ internal static class EvidenceDump
             + "apart is a Rule that has never run, because a Building has no creation Tick.");
     }
 
-    /// <summary>
-    /// Why the vacant Lots are vacant, counted.
-    /// </summary>
-    /// <remarks>
-    /// ⚠ <b>Every flag here reads zero on every world this runner can build, and the panel is kept
-    /// because that is worth printing.</b> Measured 2026-08-17: <b>0 of 150</b> vacant Lots on the
-    /// golden fixture lack frontage, and <b>every</b> vacant Lot is admitted by a Zone Rule — because
-    /// <c>RoadGenerator</c> lays the lattice the subdivider carves the Lots out of, and
-    /// <c>SyntheticCity</c> paints bit 0 on every Lot while the shipped <c>[[zone_rule]]</c> admits
-    /// bit 0. The flags need a city somebody <b>zoned</b> and <b>roaded</b>, and no runner mode issues
-    /// any Command but <c>Populate</c>. So the instrument is exercised, the world cannot feed it, and
-    /// the panel says which of those two it is. ***A row of noughts under a heading that explains them
-    /// is a measurement; the same row with no heading is a defect.***
-    /// </remarks>
+    /// <summary>Counts vacancy reasons using one shared Household capital pass.</summary>
     private static void Vacancy(TextWriter output, World world)
     {
         int vacant = 0;
@@ -624,16 +611,11 @@ internal static class EvidenceDump
         int noCapital = 0;
         int unexplained = 0;
 
-        for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
+        foreach (LotEvidence evidence in Evidence.OfLots(world))
         {
-            if (!world.Lots.Rows.IsLive(slot) || !world.Lots.IsVacant(slot))
-            {
-                continue;
-            }
-
+            if (!evidence.IsVacant) { continue; }
             vacant++;
-
-            VacancyReason reason = Evidence.OfLot(world, world.Lots.Rows.At(slot)).Reason;
+            VacancyReason reason = evidence.Reason;
 
             if (reason.HasFlag(VacancyReason.NoFrontage))
             {

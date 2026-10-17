@@ -13,6 +13,8 @@ public sealed partial class World
     private int _landCapitalCount;
     private bool _landSaleSweep;
     private bool _landCapitalReady;
+    private int _maximumCapitalHousehold = Rows.NoSlot;
+    private bool _maximumCapitalReady;
 
     private readonly record struct LandCapital(long Available, int Household) : IComparable<LandCapital>
     {
@@ -23,9 +25,34 @@ public sealed partial class World
         }
     }
 
-    // The sorted scratch lasts one Zone Rule sweep. Purchases update both parties in place.
-    internal void BeginLandSaleSweep() { _landSaleSweep = true; _landCapitalReady = false; }
-    internal void EndLandSaleSweep() { _landSaleSweep = false; _landCapitalReady = false; }
+    // Capital scratch lasts one Zone Rule sweep. Only a buyer draw needs the sorted index.
+    internal void BeginLandSaleSweep()
+    { _landSaleSweep = true; _landCapitalReady = false; _maximumCapitalReady = false; }
+    internal void EndLandSaleSweep()
+    { _landSaleSweep = false; _landCapitalReady = false; _maximumCapitalReady = false; }
+
+    internal int MaximumCapitalHousehold()
+    {
+        if (_landSaleSweep && _maximumCapitalReady) { return _maximumCapitalHousehold; }
+        int richest = Rows.NoSlot;
+        if (_landSaleSweep && _landCapitalReady)
+        {
+            if (_landCapitalCount > 0) { richest = _landCapital[_landCapitalCount - 1].Household; }
+        }
+        else
+        {
+            long maximum = long.MinValue;
+            for (int row = 0; row < Households.Rows.SlotCount; row++)
+            {
+                if (!Households.Rows.IsLive(row) || !Bins.Rows.IsValid(Households.Balance[row])) { continue; }
+                long available = AvailableCapital(row);
+                if (available > maximum) { maximum = available; richest = row; }
+            }
+        }
+        _maximumCapitalHousehold = richest;
+        _maximumCapitalReady = _landSaleSweep;
+        return richest;
+    }
 
     private void IndexLandCapital()
     {
@@ -46,8 +73,10 @@ public sealed partial class World
 
     private void RefreshLandCapital(int household, long previous)
     {
+        _maximumCapitalReady = false;
         if (!_landSaleSweep || !_landCapitalReady) { return; }
         int before = Array.BinarySearch(_landCapital, 0, _landCapitalCount, new LandCapital(previous, household));
+        if (before < 0) { _landCapitalReady = false; return; }
         var updated = new LandCapital(AvailableCapital(household), household);
         int after = Array.BinarySearch(_landCapital, 0, _landCapitalCount, updated);
         if (after >= 0) { return; }
@@ -104,24 +133,20 @@ public sealed partial class World
         return true;
     }
 
-    internal int ConstructionBuyer(int lot, int seller, Money land, Money charge, Ticks tick, bool draw)
+    internal int ConstructionBuyer(int lot, int seller, Money land, Money charge, Ticks tick, bool draw, int? capitalBuyer = null)
     {
         if (seller != Rows.NoSlot && CanKeepReserve(seller, charge.Raw)) { return seller; }
         long cost = land.Raw + charge.Raw;
-        if (!draw && !_landSaleSweep)
+        if (!draw)
         {
-            for (int row = 0; row < Households.Rows.SlotCount; row++)
-            {
-                if (Households.Rows.IsLive(row) && row != seller && CanKeepReserve(row, cost)) { return row; }
-            }
-            return Rows.NoSlot;
+            int richest = capitalBuyer ?? MaximumCapitalHousehold();
+            return richest != Rows.NoSlot && CanKeepReserve(richest, cost) ? richest : Rows.NoSlot;
         }
         if (!_landSaleSweep || !_landCapitalReady) { IndexLandCapital(); }
         int first = Array.BinarySearch(_landCapital, 0, _landCapitalCount, new LandCapital(cost, -1));
         first = ~first;
         int count = _landCapitalCount - first;
         if (count == 0) { return Rows.NoSlot; }
-        if (!draw) { return _landCapital[first].Household; }
         // An owner who cannot afford the charge cannot appear in the more expensive sale suffix.
         ulong pick = Randomness.Draw(Key, Lots.Rows.IdAt(lot), tick, PurposeTag.LandBuyer) % (ulong)(uint)count;
         return _landCapital[first + (int)pick].Household;

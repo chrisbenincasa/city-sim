@@ -591,7 +591,24 @@ public static class Evidence
     /// <param name="lot">Which Lot.</param>
     /// <exception cref="ArgumentNullException"><paramref name="world"/> is null.</exception>
     /// <exception cref="InvalidOperationException">The handle does not resolve.</exception>
-    public static LotEvidence OfLot(World world, Handle<Lot> lot)
+    public static LotEvidence OfLot(World world, Handle<Lot> lot) => OfLot(world, lot, null);
+
+    /// <summary>Reads every live Lot with one shared Household capital pass.</summary>
+    public static LotEvidence[] OfLots(World world)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        int richest = world.Rules.Lots.LandSales ? world.MaximumCapitalHousehold() : Rows.NoSlot;
+        var evidence = new LotEvidence[world.Lots.Rows.LiveCount];
+        int count = 0;
+        for (int lot = 0; lot < world.Lots.Rows.SlotCount; lot++)
+        {
+            if (world.Lots.Rows.IsLive(lot))
+            { evidence[count++] = OfLot(world, world.Lots.Rows.At(lot), richest); }
+        }
+        return evidence;
+    }
+
+    private static LotEvidence OfLot(World world, Handle<Lot> lot, int? capitalBuyer)
     {
         ArgumentNullException.ThrowIfNull(world);
 
@@ -617,7 +634,7 @@ public static class Evidence
                 reason |= VacancyReason.NotZoned;
             }
 
-            if (NoConstructionCapital(world, slot))
+            if (NoConstructionCapital(world, slot, capitalBuyer))
             {
                 reason |= VacancyReason.NoCapital;
             }
@@ -718,16 +735,16 @@ public static class Evidence
         };
     }
 
-    private static bool NoConstructionCapital(World world, int lot)
+    private static bool NoConstructionCapital(World world, int lot, int? capitalBuyer)
     {
         if (!world.Rules.Lots.LandSales) { return false; }
-        if (world.Rules.HousingConstruction is null)
-        { return !world.CanFinanceConstruction(lot, world.Lots.FloorTiles(lot)); }
         bool measured = false;
         foreach (ZoneRuleDefinition definition in world.Rules.ZoneRules)
         {
-            if (!definition.ReadsDemand && world.Rules.Declares(definition.Kind) && world.Rules.Kind(definition.Kind).Houses)
+            if (!definition.ReadsDemand && world.Rules.HousingConstruction is not null
+                && world.Rules.Declares(definition.Kind) && world.Rules.Kind(definition.Kind).Houses)
             {
+                if ((definition.Admits & LotTable.Housing) == 0) { continue; }
                 Space.LocalLayoutProposal? proposal = HousingConstruction.Select(world, world.Key, world.Lots.Rows.At(lot), definition.Kind);
                 if (proposal is null) { continue; }
                 measured = true;
@@ -736,12 +753,14 @@ public static class Evidence
                 Money land = world.LandPrice(new Tiles(door.East), new Tiles(door.North),
                     (long)proposal.Building.Footprint.Width * proposal.Building.Footprint.Height);
                 if (world.ConstructionBuyer(source, world.Lots.LandownerOn(source), land,
-                    world.ConstructionCharge(proposal.FloorTiles), world.Tick, draw: false) != Rows.NoSlot) { return false; }
+                    world.ConstructionCharge(proposal.FloorTiles), world.Tick, draw: false, capitalBuyer) != Rows.NoSlot) { return false; }
             }
             else if (world.ConstructionPermission(lot, definition.Admits) == Space.PermissionRefusal.None)
             {
                 measured = true;
-                if (world.CanFinanceConstruction(lot, world.Lots.FloorTiles(lot))) { return false; }
+                if (world.ConstructionBuyer(lot, world.Lots.LandownerOn(lot), world.LandPrice(lot),
+                    world.ConstructionCharge(world.Lots.FloorTiles(lot)), world.Tick, draw: false, capitalBuyer) != Rows.NoSlot)
+                { return false; }
             }
         }
         return measured;

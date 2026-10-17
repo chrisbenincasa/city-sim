@@ -110,6 +110,106 @@ public sealed class LandSaleTests(Xunit.Abstractions.ITestOutputHelper output)
     }
 
     [Fact]
+    public void Unzoned_and_unfronted_vacant_lots_do_not_report_no_capital()
+    {
+        var (world, lots) = City();
+        int unzoned = world.Lots.Rows.Resolve(lots[1]);
+        world.PaintPermissions(world.LotGround(unzoned), default);
+        var reason = Core.Evidence.Evidence.OfLot(world, lots[1]).Reason;
+        Assert.True(reason.HasFlag(VacancyReason.NotZoned));
+        Assert.False(reason.HasFlag(VacancyReason.NoCapital));
+        var unfronted = world.Lots.Create(new Tiles(1000), new Tiles(1000), LotTable.Housing);
+        reason = Core.Evidence.Evidence.OfLot(world, unfronted).Reason;
+        Assert.True(reason.HasFlag(VacancyReason.NoFrontage));
+        Assert.False(reason.HasFlag(VacancyReason.NoCapital));
+    }
+
+    [Fact]
+    public void Batch_lot_evidence_matches_individual_reads_and_refreshes_after_income()
+    {
+        var (world, lots) = City();
+        var owner = Household(world, lots[0], 0);
+        world.Lots.Landowner[world.Lots.Rows.Resolve(lots[1])] = owner;
+        ulong before = world.HashState();
+        foreach (var evidence in Core.Evidence.Evidence.OfLots(world))
+        {
+            Assert.Equal(Core.Evidence.Evidence.OfLot(world, evidence.Lot), evidence);
+        }
+        Assert.Equal(before, world.HashState());
+        world.Endow(owner, new Money(100_000));
+        foreach (var evidence in Core.Evidence.Evidence.OfLots(world))
+        {
+            Assert.Equal(Core.Evidence.Evidence.OfLot(world, evidence.Lot), evidence);
+            Assert.False(evidence.Reason.HasFlag(VacancyReason.NoCapital));
+        }
+    }
+
+    private static Array CapitalIndex(World world) => (Array)typeof(World)
+        .GetField("_landCapital", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+        .GetValue(world)!;
+
+    [Fact]
+    public void Finance_preflight_and_demand_trigger_without_purchases_do_not_build_the_sorted_index()
+    {
+        var (world, lots) = City(extra: """
+            [[zone_rule]]
+            name = "trade"
+            kind = "dwelling"
+            zone = 0
+            interval = 1
+            revisit_ticks = 1
+            build_threshold_days = 2
+            cooldown_days = 2
+            """);
+        Household(world, lots[0], 100_000);
+        int lot = world.Lots.Rows.Resolve(lots[1]);
+        ulong before = world.HashState();
+        world.BeginLandSaleSweep();
+        Assert.True(world.CanFinanceConstruction(lot, world.Lots.FloorTiles(lot)));
+        Assert.Empty(CapitalIndex(world));
+        world.EndLandSaleSweep();
+        new ZoneRuleEngine(world, Key).Sweep(Ticks.Zero);
+        Assert.Empty(CapitalIndex(world));
+        Assert.Equal(before, world.HashState());
+    }
+
+    [Fact]
+    public void Owner_payment_refreshes_the_maximum_without_building_an_index()
+    {
+        var (world, lots) = City();
+        int first = world.Lots.Rows.Resolve(lots[1]);
+        long charge = world.ConstructionCharge(world.Lots.FloorTiles(first)).Raw;
+        var owner = Household(world, lots[0], charge + 20);
+        var buyer = Household(world, lots[0], charge + 10);
+        world.Lots.Landowner[first] = owner;
+        world.BeginLandSaleSweep();
+        Assert.Equal(world.Households.Rows.Resolve(owner), world.MaximumCapitalHousehold());
+        Assert.True(world.FinanceConstruction(first, world.Lots.FloorTiles(first), world.Tick));
+        Assert.Empty(CapitalIndex(world));
+        Assert.Equal(world.Households.Rows.Resolve(buyer), world.MaximumCapitalHousehold());
+        world.EndLandSaleSweep();
+        Conserved(world);
+    }
+
+    [Fact]
+    public void A_stale_index_entry_invalidates_and_rebuilds_instead_of_faulting()
+    {
+        var (world, lots) = City();
+        var buyer = Household(world, lots[0], 100_000);
+        int lot = world.Lots.Rows.Resolve(lots[1]);
+        int household = world.Households.Rows.Resolve(buyer);
+        world.BeginLandSaleSweep();
+        Assert.Equal(household, world.ConstructionBuyer(lot, Rows.NoSlot, new Money(100), new Money(100), world.Tick, draw: true));
+        world.Endow(buyer, new Money(1));
+        world.PayConstruction(household, Rows.NoSlot, new Money(100), new Money(100), world.Tick);
+        Assert.True(world.CanFinanceConstruction(lot, world.Lots.FloorTiles(lot)));
+        Assert.True(world.FinanceConstruction(lot, world.Lots.FloorTiles(lot), world.Tick));
+        world.EndLandSaleSweep();
+        Assert.Equal(buyer, world.Lots.Landowner[lot]);
+        Conserved(world);
+    }
+
+    [Fact]
     public void Land_price_ignores_displacement_and_built_lot_price_includes_all_floor_tiles()
     {
         var (world, lots) = City();
@@ -333,6 +433,8 @@ public sealed class LandSaleTests(Xunit.Abstractions.ITestOutputHelper output)
         var proposal = HousingConstruction.Select(world, world.Key, lots[1], 1);
         Assert.NotNull(proposal);
         Assert.True(Core.Evidence.Evidence.OfLot(world, lots[1]).Reason.HasFlag(VacancyReason.NoCapital));
+        foreach (var evidence in Core.Evidence.Evidence.OfLots(world))
+        { Assert.Equal(Core.Evidence.Evidence.OfLot(world, evidence.Lot), evidence); }
         var footprint = proposal.Building.Footprint;
         var door = proposal.Sources[0];
         Money land = world.LandPrice(new Tiles(door.East), new Tiles(door.North), (long)footprint.Width * footprint.Height);
@@ -362,12 +464,15 @@ public sealed class LandSaleTests(Xunit.Abstractions.ITestOutputHelper output)
         long land = world.LandPrice(first).Raw;
         var buyer = Household(world, lots[0], land + charge + 10);
         world.BeginLandSaleSweep();
+        Assert.True(world.CanFinanceConstruction(first, world.Lots.FloorTiles(first)));
         Assert.True(world.FinanceConstruction(first, world.Lots.FloorTiles(first), world.Tick));
+        Assert.False(world.CanFinanceConstruction(second, world.Lots.FloorTiles(second)));
         Assert.False(world.FinanceConstruction(second, world.Lots.FloorTiles(second), world.Tick));
         world.EndLandSaleSweep();
         Assert.Equal(10, Balance(world, buyer));
         world.Endow(buyer, new Money(100_000));
         world.BeginLandSaleSweep();
+        Assert.True(world.CanFinanceConstruction(second, world.Lots.FloorTiles(second)));
         Assert.True(world.FinanceConstruction(second, world.Lots.FloorTiles(second), world.Tick));
         world.EndLandSaleSweep();
         Conserved(world);
@@ -431,15 +536,69 @@ public sealed class LandSaleTests(Xunit.Abstractions.ITestOutputHelper output)
     public void Buyer_search_on_a_large_generated_city()
     {
         string text = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "minimal.toml"));
+        text = text.Replace("revisit_ticks = 2048", "revisit_ticks = 2048\nbuild_threshold_days = 2\ncooldown_days = 2", StringComparison.Ordinal);
         var parsed = RulesetLoader.Parse(text.Replace("[lots]", "[lots]\nconstruction_charge_per_floor_tile = 1", StringComparison.Ordinal), "buyer-instrument.toml");
         Assert.True(parsed.Ok, parsed.Describe());
+        var baselineRules = RulesetLoader.Parse(text, "buyer-baseline.toml");
+        Assert.True(baselineRules.Ok, baselineRules.Describe());
+        var baseline = new World(100_000, baselineRules.Ruleset!, Key);
+        SyntheticCity.PopulateInto(baseline, Key, Ticks.Zero);
         var world = new World(100_000, parsed.Ruleset!, Key);
         SyntheticCity.PopulateInto(world, Key, Ticks.Zero);
+        for (int row = 0; row < baseline.Households.Rows.SlotCount; row++)
+        { if (baseline.Households.Rows.IsLive(row)) { baseline.Endow(baseline.Households.Rows.At(row), new Money(10_000)); } }
+        Assert.Equal(baseline.Citizens.Rows.LiveCount, world.Citizens.Rows.LiveCount);
+        Assert.Equal(baseline.Lots.Rows.LiveCount, world.Lots.Rows.LiveCount);
         for (int row = 0; row < world.Households.Rows.SlotCount; row++)
         { if (world.Households.Rows.IsLive(row)) { world.Endow(world.Households.Rows.At(row), new Money(10_000)); } }
         int lot = 0;
         while (!world.Lots.Rows.IsLive(lot)) { lot++; }
+        var zoning = new ZoneRuleEngine(world, Key);
+        var baselineZoning = new ZoneRuleEngine(baseline, Key);
+        for (int i = 0; i < 32; i++)
+        {
+            baselineZoning.Sweep(new Ticks((ulong)i * 32));
+            zoning.Sweep(new Ticks((ulong)i * 32));
+        }
+        Assert.Empty(CapitalIndex(world));
+        long worstTrigger = 0, worstBaseline = 0, totalEnabled = 0, totalBaseline = 0;
+        var triggerWatch = new Stopwatch();
+        for (int i = 32; i < 64; i++)
+        {
+            long enabledTicks = 0, baselineTicks = 0;
+            for (int turn = 0; turn < 2; turn++)
+            {
+                bool enabled = ((i + turn) & 1) == 0;
+                triggerWatch.Restart();
+                (enabled ? zoning : baselineZoning).Sweep(new Ticks((ulong)i * 32));
+                triggerWatch.Stop();
+                if (enabled) { enabledTicks = triggerWatch.ElapsedTicks; }
+                else { baselineTicks = triggerWatch.ElapsedTicks; }
+            }
+            if (enabledTicks > worstTrigger) { worstTrigger = enabledTicks; }
+            if (baselineTicks > worstBaseline) { worstBaseline = baselineTicks; }
+            totalEnabled += enabledTicks;
+            totalBaseline += baselineTicks;
+            output.WriteLine($"Paired trigger {i - 31}: enabled={TimeSpan.FromSeconds((double)enabledTicks / Stopwatch.Frequency).TotalMilliseconds:F3} ms; absent={TimeSpan.FromSeconds((double)baselineTicks / Stopwatch.Frequency).TotalMilliseconds:F3} ms.");
+        }
+        Assert.Empty(CapitalIndex(world));
+        Assert.Empty(CapitalIndex(baseline));
         for (int i = 0; i < 32; i++) { world.ConstructionBuyer(lot, Rows.NoSlot, new Money(100), new Money(100), world.Tick, draw: true); }
+        var gate = Stopwatch.StartNew();
+        world.BeginLandSaleSweep();
+        for (int i = 0; i < 1000; i++)
+        { Assert.True(world.ConstructionBuyer(lot, Rows.NoSlot, new Money(100), new Money(100), world.Tick, draw: false) != Rows.NoSlot); }
+        world.EndLandSaleSweep();
+        gate.Stop();
+        world.BeginLandSaleSweep();
+        var singleGate = Stopwatch.StartNew();
+        Assert.True(world.ConstructionBuyer(lot, Rows.NoSlot, new Money(100), new Money(100), world.Tick, draw: false) != Rows.NoSlot);
+        singleGate.Stop();
+        var singleDraw = Stopwatch.StartNew();
+        int triggerBuyer = world.ConstructionBuyer(lot, Rows.NoSlot, new Money(100), new Money(100), world.Tick, draw: true);
+        world.PayConstruction(triggerBuyer, Rows.NoSlot, new Money(100), new Money(100), world.Tick);
+        singleDraw.Stop();
+        world.EndLandSaleSweep();
         const int attempts = 1000;
         world.BeginLandSaleSweep();
         var watch = Stopwatch.StartNew();
@@ -456,6 +615,22 @@ public sealed class LandSaleTests(Xunit.Abstractions.ITestOutputHelper output)
         payments.Stop();
         world.EndLandSaleSweep();
         Conserved(world);
+        for (int row = 0; row < world.Households.Rows.SlotCount; row++)
+        {
+            if (!world.Households.Rows.IsLive(row)) { continue; }
+            var balance = world.Households.Balance[row];
+            long amount = world.Bins.LevelAt(world.Bins.Rows.Resolve(balance));
+            world.Withdraw(balance, amount, world.Tick);
+            world.PayOutside(new Money(amount));
+        }
+        var evidenceWatch = Stopwatch.StartNew();
+        var lots = Core.Evidence.Evidence.OfLots(world);
+        evidenceWatch.Stop();
+        Assert.Contains(lots, item => item.Reason.HasFlag(VacancyReason.NoCapital));
+        Conserved(world);
+        output.WriteLine($"Poor-city batch evidence for {lots.Length} Lots={evidenceWatch.Elapsed.TotalMilliseconds:F3} ms; one Household capital pass.");
+        output.WriteLine($"Interleaved no-purchase Zone Rule trigger sweeps, alternating first runner, 32 pairs: enabled worst={TimeSpan.FromSeconds((double)worstTrigger / Stopwatch.Frequency).TotalMilliseconds:F3} ms; keys-absent worst={TimeSpan.FromSeconds((double)worstBaseline / Stopwatch.Frequency).TotalMilliseconds:F3} ms; enabled mean={TimeSpan.FromSeconds((double)totalEnabled / Stopwatch.Frequency / 32).TotalMilliseconds:F3} ms; keys-absent mean={TimeSpan.FromSeconds((double)totalBaseline / Stopwatch.Frequency / 32).TotalMilliseconds:F3} ms; mean paired difference={TimeSpan.FromSeconds((double)(totalEnabled - totalBaseline) / Stopwatch.Frequency / 32).TotalMilliseconds:F3} ms. Neither built a sorted index.");
+        output.WriteLine($"One trigger finance preflight={singleGate.Elapsed.TotalMilliseconds:F3} ms; first draw plus index and payment={singleDraw.Elapsed.TotalMilliseconds:F3} ms; combined single-purchase trigger finance={singleGate.Elapsed.TotalMilliseconds + singleDraw.Elapsed.TotalMilliseconds:F3} ms; one unsorted pass plus 1,000 preflights={gate.Elapsed.TotalMilliseconds:F3} ms.");
         output.WriteLine($"100,000-target generated minimal city; seed 62002; Citizens={world.Citizens.Rows.LiveCount}; Households={world.Households.Rows.LiveCount}; Lots={world.Lots.Rows.LiveCount}; threads=1; attempts={attempts}; index plus search={watch.Elapsed.TotalMilliseconds:F3} ms; index plus paid purchases={payments.Elapsed.TotalMilliseconds:F3} ms; search per attempt={watch.Elapsed.TotalMilliseconds / attempts:F6} ms; paid per attempt={payments.Elapsed.TotalMilliseconds / attempts:F6} ms; concurrent host load is uncontrolled.");
     }
 }
