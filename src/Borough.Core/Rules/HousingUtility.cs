@@ -44,13 +44,22 @@ public static class HousingUtility
     /// the middle, is worth to somebody whose taste is <paramref name="taste"/>.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Scale rent into utility units before applying the stage weight, preserving one rounding
     /// order across every caller.
+    /// </para>
+    /// <para>
+    /// <b>Rent discriminates between candidates.</b> It is a per-tenancy figure from
+    /// <c>World.TenancyRent</c> — floor times the kind's rate times the land value at the Lot — so two
+    /// dwellings of one kind on different ground are worth different amounts here. It was a per-kind
+    /// price until <c>plans/money-circulation.md</c> L7, and a per-kind price cancels across every
+    /// candidate of that kind.
+    /// </para>
     /// </remarks>
     /// <param name="placement">The choice model's units. Both scales must be stated.</param>
     /// <param name="centralityTiles">How far the place is from the nearest centre, in Tiles.</param>
     /// <param name="taste">The looker's weight on the centrality axis, from <see cref="Taste"/>.</param>
-    /// <param name="rent">What the place charges a Day.</param>
+    /// <param name="rent">What this tenancy charges a Day.</param>
     /// <param name="rentWeightPercent">How heavily this Life Stage weighs rent, 100 being neutral.</param>
     public static int Worth(
         in PlacementRuleset placement,
@@ -111,19 +120,20 @@ public static class HousingUtility
         return true;
     }
 
-    internal static bool Affordable(World world, int position, byte kind)
-    {
-        Money rent = world.Rules.Kind(kind).Rent;
-        return rent.Raw <= 0 || world.BalanceOf(world.UnplacedPool.At(position)).Raw >= rent.Raw;
-    }
+    /// <summary>Whether the seeker at <paramref name="position"/> can pay <paramref name="rent"/>.</summary>
+    /// <remarks>
+    /// The caller brings the figure, because rent is a property of the tenancy rather than of the kind
+    /// and a proposed dwelling has no Building to read it off.
+    /// </remarks>
+    internal static bool Affordable(World world, int position, Money rent) =>
+        rent.Raw <= 0 || world.BalanceOf(world.UnplacedPool.At(position)).Raw >= rent.Raw;
 
     // A tie with Outside is not positive evidence for new construction. Existing capacity at a tie
     // still suppresses construction, so a probabilistic placement loss cannot manufacture shortage.
-    internal static bool Suitable(World world, WorldKey key, int position, int lot, byte kind, bool prospective)
+    internal static bool Suitable(World world, WorldKey key, int position, int lot, Money rent, bool prospective)
     {
         int household = world.Households.Rows.Resolve(world.UnplacedPool.At(position));
-        Money rent = world.Rules.Kind(kind).Rent;
-        if (!Affordable(world, position, kind)) { return false; }
+        if (!Affordable(world, position, rent)) { return false; }
         if (!world.Rules.Placement.Chooses) { return true; }
         byte stage = world.Households.LifeStage[household];
         long taste = Taste(world.Rules, key, world.Households.TasteIdentity(household), stage);

@@ -159,11 +159,14 @@ public static class RulesetKeyNotes
             + "exists so that a detached house may carry a driveway where a tower may not — a "
             + "parking minimum is a property of the city, and an exemption from it is a property of "
             + "the kind. Absent means the kind provides none.",
-        ["[[building]] rent"] =
-            "The daily rent a Building of this kind asks. Nothing charges it: placement skips a "
-            + "dwelling whose rent exceeds a seeking Household's money, reconsideration moves out a "
-            + "housed Household that falls below it, and the choice model weighs it. A recurring "
-            + "charge needs a [[rule]] or [[policy]]. Zero or absent means the dwelling is free.",
+        ["[[building]] rent_per_floor_tile"] =
+            "What one floor Tile of a Building of this kind costs a tenant per Day. A tenancy pays "
+            + "this for the floor it occupies, times one plus the land value at its Lot, so two "
+            + "dwellings of one kind rent for different amounts on different ground. A Business "
+            + "occupies its Unit's floor and a Household an equal share of the Building's. Nothing "
+            + "charges it: placement skips a dwelling a seeking Household cannot pay for, "
+            + "reconsideration moves out a housed Household that falls below it, and the choice "
+            + "model weighs what is left. Zero or absent means the kind is free to occupy.",
         ["[[building]] placement_cost"] =
             "What the treasury pays to place a Building of this kind by hand. Absent or zero means "
             + "the placement is free, which is what every kind meant before the key existed. The "
@@ -591,7 +594,7 @@ public static class RulesetKeyNotes
             "The most. Stated as a band rather than one figure, because a single figure gives every "
             + "arrival the same means.",
         ["[[hinterland]] rent"] =
-            "What a home costs per Day out here, in the money a [[building]] rent is in. It is what "
+            "What a home costs per Day out here, as a whole tenancy and not a rate per Tile. It is what "
             + "a prospective Household compares against the cost of living in the city, and what a "
             + "Household waiting for somewhere to live compares against every home it is shown. "
             + "Required beside a choice model and refused without one.",

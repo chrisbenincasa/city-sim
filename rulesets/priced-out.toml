@@ -8,6 +8,9 @@
 # many dwellings a city needs moved when occupancy stopped being a flat 4. The MECHANISM is
 # verified on the merged tree -- `reassessed out` peaks at 6 and the Pool grows 5 -> 81 at 500
 # Citizens over 20,480 Ticks -- and the shares are not.
+# ⚠ CONVERTED AGAIN at money-circulation L7: rent is a RATE per floor Tile now, so the key states 20
+# and a dwelling tenancy of about 28 Tiles pays about 560 a Day. Every rent figure in the paragraphs
+# below is a per-tenancy price.
 #
 # ===========================================================================================
 # WHY IT EXISTS. Row 16b built the reassessment sweep: a housed Household whose balance falls
@@ -60,8 +63,9 @@ bins = [
 ]
 houses   = true
 premises = true
-# EDIT 1 OF 3: rent raised from 50 to 500 so about half the opening band is locked out.
-rent = 500
+# EDIT 1 OF 3: rent raised so about half the opening band is locked out. The rate is per floor
+# Tile, and a dwelling tenancy here holds about 28 of them, so it costs about 560 a Day.
+rent_per_floor_tile = 20
 business = "shop"
 
 [[rule]]
