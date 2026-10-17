@@ -620,6 +620,10 @@ public static class Evidence
 
         int building = world.Lots.BuildingOn(slot);
 
+        // Resolved rather than copied: a severed handle means the Landowner died or left and the Lot
+        // passed to the city, so it reads as the city here rather than as a Household that is gone.
+        int landowner = world.Lots.LandownerOn(slot);
+
         return new LotEvidence(
             lot,
             world.LotPermissions(slot),
@@ -628,7 +632,8 @@ public static class Evidence
             world.Lots.AddressOf(slot),
             reason,
             LastCondemnation(world, lot),
-            building == Rows.NoSlot ? default : world.Buildings.Rows.At(building));
+            building == Rows.NoSlot ? default : world.Buildings.Rows.At(building),
+            landowner == Rows.NoSlot ? default : world.Households.Rows.At(landowner));
     }
 
     /// <summary>

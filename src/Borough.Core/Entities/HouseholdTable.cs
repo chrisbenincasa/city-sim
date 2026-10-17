@@ -27,15 +27,31 @@ public sealed class HouseholdTable
 {
     private readonly Rows<Household> _rows;
 
+    /// <summary>
+    /// The row allocator, created before the table so an earlier table can address it.
+    /// </summary>
+    /// <remarks>
+    /// <b><see cref="LotTable.Landowner"/> is why this is separable.</b> A Lot names the Household
+    /// holding it, a Household names its dwelling and a Building names its Lot, so the three
+    /// relations are a cycle and one of the tables cannot be handed the next one's table. The
+    /// allocator depends on nothing, so the caller creates it, passes it to <see cref="LotTable"/>
+    /// and passes it back here — and both tables still seal at the end of their own constructor,
+    /// which is what <c>Rows.Seal</c> asks for.
+    /// </remarks>
     /// <param name="capacity">Initial slot count. 360 Households per 1,000 Citizens, per S4 task 2.</param>
+    public static Rows<Household> NewRows(int capacity) =>
+        new("household", capacity, Buffering.OneCopy);
+
+    /// <param name="rows">This table's allocator, from <see cref="NewRows"/>.</param>
     /// <param name="buildings">The table this one's dwelling handles address.</param>
     /// <param name="bins">The table this one's balance handles address.</param>
-    public HouseholdTable(int capacity, BuildingTable buildings, BinTable bins)
+    public HouseholdTable(Rows<Household> rows, BuildingTable buildings, BinTable bins)
     {
+        ArgumentNullException.ThrowIfNull(rows);
         ArgumentNullException.ThrowIfNull(buildings);
         ArgumentNullException.ThrowIfNull(bins);
 
-        _rows = new Rows<Household>("household", capacity, Buffering.OneCopy);
+        _rows = rows;
 
         Dwelling = _rows.SavedHandle("dwelling", buildings.Rows);
         LifeStage = _rows.Saved<byte>("life_stage");
