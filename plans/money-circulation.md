@@ -184,8 +184,9 @@ which is the demonstration slice 7 adopts. Measured on the committed `rulesets/b
 at seed 20,260,924 and 2,000 Citizens, replaying 70 Days twice with the Day-45 `govern` command:
 every rate from 16 to 23 and from 26 to 32 keeps 5 of 5 teachers from Day 61 on, and the control
 stays short at all of them. A base tenancy holds about 17 Tiles, so 23 prices a home at about 390
-a Day on ground worth nothing against the flat 400 the file used to state. Nothing in the lane
-guards the threshold itself; this record is the guard.
+a Day on ground worth nothing against the flat 400 the file used to state. That named test is what
+rejected 24 and 25, so the shipped rate is guarded; what nothing guards is the sweep across rates,
+which is why it is recorded here.
 
 ### 4. Rent collection and arrears
 
