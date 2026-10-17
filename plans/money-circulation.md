@@ -194,6 +194,12 @@ which is why it is recorded here.
   the city holds the Lot. A resident Landowner pays none for its own tenancy.
 - A tenant short of its rent pays what it holds, owes the rest and saves the Day the shortfall
   began. Later income pays the debt first. Clearing the debt clears the Day.
+- Rent received is income, so a payment settles every Landowner it passes on the way down the chain.
+- Where a ring of Landowners owes each other, the mutual debt cancels rather than circulating. The
+  smallest debt in the ring comes off every member, which is the end state that carrying one coin
+  round the ring repeatedly reaches, at a cost set by the ring and not by the debt. It takes a coin
+  in the ring to stand in for, so a ring holding nothing cancels nothing. The Day's reading reports
+  the cancelled figure beside the cash, so the rent recorded is what circulation would have moved.
 - The loader refuses an eviction deadline shorter than the longest `pay_period_days`.
 - Past a Ruleset duration in Days, a Household is evicted with `World.Unplace` and a Business with
   `World.Unpremise`.
@@ -208,8 +214,9 @@ which is why it is recorded here.
 - Built 10/17/2026: `RentEngine` sweeps each Day boundary behind payroll and the subsidies, one
   optional key `[rent] evicts_after_days` turns it on and bounds the debt, `RentDebt` and
   `RentDebtSinceDay` are saved on both tenant tables, eviction writes the debt off where the tenancy
-  ends, and `rulesets/renting.toml` demonstrates the clock. Save format 23 and the goldens
-  re-recorded.
+  ends, and `rulesets/renting.toml` demonstrates the clock. `RentAccounts` settles arrears at each
+  income site as money lands, follows the Landowner chain and cancels a ring's mutual debt. Save
+  format 23 and the goldens re-recorded.
 
 ### 5. Sale on departure and city-held Lots
 

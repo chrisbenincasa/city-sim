@@ -14,13 +14,26 @@ namespace Borough.Core.Rules;
 /// overwritten by the next, so nothing here is a collection that grows with elapsed time
 /// (<c>adr/0006</c>).
 /// </remarks>
-/// <param name="Collected">Money that reached a Landowner or the treasury.</param>
+/// <param name="Collected">
+/// Rent discharged, which is money that reached a Landowner or the treasury plus the mutual debt a
+/// ring of Landowners cancelled. ⚠ <b>It can exceed <paramref name="Charged"/></b>, because income
+/// landing between two Day boundaries settles arrears where it lands and this sweep no longer asks
+/// for what it already paid off (<see cref="RentAccounts"/>).
+/// </param>
 /// <param name="Charged">What the Day asked for, this Day's rent plus every standing debt.</param>
+/// <param name="Cancelled">
+/// The share of <paramref name="Collected"/> that moved no money, because a ring of Landowners owed
+/// each other and <c>RentAccounts.Net</c> cancelled the claims against one another. <b>Reported
+/// beside the total rather than hidden in it</b>, on <c>MoneyFlowCounter.Withheld</c>'s reason: the
+/// two arrive by different mechanisms and a reader watching balances needs to know which. So
+/// <paramref name="Collected"/> less this is the cash, and that never exceeds
+/// <paramref name="Charged"/> by more than the arrears income settled first.
+/// </param>
 /// <param name="Tenancies">Tenancies charged something.</param>
 /// <param name="Behind">Tenancies still owing rent when the sweep finished.</param>
 /// <param name="Evicted">Tenancies the deadline ended.</param>
 public readonly record struct RentReading(
-    long Collected, long Charged, int Tenancies, int Behind, int Evicted);
+    long Collected, long Charged, long Cancelled, int Tenancies, int Behind, int Evicted);
 
 /// <summary>
 /// <b>Charges every tenancy its daily rent, carries what it could not pay, and ends the tenancy at
@@ -147,7 +160,16 @@ internal sealed class RentEngine(World world)
             }
         }
 
-        return reading;
+        // LAST, so the drain carries both what income settled since the previous Day and what this
+        // sweep's own chain walks moved. RentAccounts is where a debt is paid off and a ring's
+        // mutual claims cancel, and neither is visible in the figures above.
+        (long collected, long cancelled) = _world.Arrears.Drain();
+
+        return reading with
+        {
+            Collected = RentAccounts.Carry(reading.Collected, collected),
+            Cancelled = cancelled,
+        };
     }
 
     /// <summary>
@@ -244,7 +266,7 @@ internal sealed class RentEngine(World world)
         // read what it owes now rather than what it owed before the payment above. ***Writing these
         // after the walk would both feed the re-entry a stale debt and then overwrite what it
         // paid*** -- the tenant charged twice over for one obligation.
-        debtColumn[slot] = new Money(Carry(standingLeft, freshLeft));
+        debtColumn[slot] = new Money(RentAccounts.Carry(standingLeft, freshLeft));
 
         // A standing debt that survives leaves the clock alone, so the deadline measures the whole
         // run of short Days rather than the time since the last one. Clearing it ends that run,
@@ -277,24 +299,16 @@ internal sealed class RentEngine(World world)
 
         return reading with
         {
-            Collected = reading.Collected + paid,
-            Charged = Carry(reading.Charged, Carry(standing, fresh)),
+            // Saturating like Charged beside it, and for the same reason: the loader accepts a rent
+            // rate up to long's range, so a city whose tenancies pay round a ring can hand the same
+            // money over often enough for the Day's gross to pass the bound. A wrapped total reads
+            // as a NEGATIVE rent collection.
+            Collected = RentAccounts.Carry(reading.Collected, paid),
+            Charged = RentAccounts.Carry(
+                reading.Charged, RentAccounts.Carry(standing, fresh)),
             Tenancies = reading.Tenancies + 1,
             Behind = reading.Behind + (owed > 0 && !evict ? 1 : 0),
             Evicted = reading.Evicted + (evict ? 1 : 0),
         };
     }
-
-    /// <summary>
-    /// Saturating addition of two nonnegative figures, so a debt past long's range stops at the
-    /// bound instead of wrapping negative.
-    /// </summary>
-    /// <remarks>
-    /// <b>Saturation costs nothing here, because the deadline reads the <em>debt</em> and not its
-    /// size.</b> A tenant whose arrears saturate is a tenant who has paid nothing for a run of
-    /// Days, and <see cref="Charge"/> ends that tenancy at the deadline whatever figure the column
-    /// holds — so the bound caps the number without capping the consequence.
-    /// </remarks>
-    private static long Carry(long standing, long fresh) =>
-        standing > long.MaxValue - fresh ? long.MaxValue : standing + fresh;
 }

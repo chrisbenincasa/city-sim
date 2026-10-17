@@ -30,6 +30,14 @@ using Borough.Core.Tables;
 /// otherwise run until the debt ran out. One stamp per slot bounds it; see <see cref="Walk"/>.
 /// </para>
 /// <para>
+/// 🔴 <b>A ring of Landowners is finished by CANCELLING the debt they owe each other, not by
+/// circulating cash round it.</b> Where each of a ring's members owes the next, carrying one coin
+/// round the ring repeatedly discharges one unit of every member's debt per circuit — so a finish
+/// costs debt-over-cash circuits, which is work proportional to the debt rather than to the city.
+/// ***Cancelling the smallest debt in the ring from every member reaches the same end state in one
+/// step***, and <see cref="Net"/> holds the argument and the one condition it turns on.
+/// </para>
+/// <para>
 /// ⚠ <b>Nothing here runs where the Ruleset states no <c>[rent]</c></b>
 /// (<see cref="RentRuleset.Collects"/>). Every entry point tests it first, so a file written before
 /// this mechanism existed pays one bool read per income event and no more.
@@ -48,6 +56,20 @@ internal sealed class RentAccounts(World world)
     /// </remarks>
     private long[] _visited = new long[world.Households.Rows.Capacity];
 
+    /// <summary>Where in <see cref="_order"/> this walk settled each Household.</summary>
+    /// <remarks>
+    /// Read only where <see cref="_visited"/> carries the current mark, which is what makes a stale
+    /// entry unreachable. ***It is how a ring is identified***: the hop that lands on a marked slot
+    /// names the ring's first member, and the ring is <see cref="_order"/> from there on.
+    /// </remarks>
+    private int[] _step = new int[world.Households.Rows.Capacity];
+
+    /// <summary>The Households this walk settled, in the order the payment reached them.</summary>
+    private int[] _order = new int[world.Households.Rows.Capacity];
+
+    /// <summary>How much of <see cref="_order"/> the current walk has filled.</summary>
+    private int _length;
+
     /// <summary>The walk counter, whose current value marks <see cref="_visited"/>.</summary>
     /// <remarks>
     /// <b>Monotonic, so a mark is always greater than every mark already written</b> and no slot can
@@ -56,6 +78,49 @@ internal sealed class RentAccounts(World world)
     /// behaviour across a save, and replay and reload equivalence do not depend on its value.
     /// </remarks>
     private long _walk;
+
+    /// <summary>Rent discharged since the last <see cref="Drain"/>, cash and cancellation together.</summary>
+    private long _collected;
+
+    /// <summary>The part of <see cref="_collected"/> that moved no cash, from <see cref="Net"/>.</summary>
+    private long _cancelled;
+
+    /// <summary>
+    /// Rent this class has discharged since the last call, which <see cref="RentEngine.Sweep"/>
+    /// folds into the Day's reading.
+    /// </summary>
+    /// <remarks>
+    /// <b>Drained rather than totalled</b>, on <c>BusinessTaxEngine.DrainCollected</c>'s terms: a
+    /// running total would be a collection that grows with elapsed time (<c>adr/0006</c>). ⚠ <b>One
+    /// caller only</b>, because a second reader would see each movement through whichever asked
+    /// first and neither would know the other had taken it.
+    /// </remarks>
+    /// <returns>
+    /// <c>Collected</c> is everything discharged; <c>Cancelled</c> is the share of it that cancelled
+    /// against a ring rather than moving, so <c>Collected - Cancelled</c> is cash.
+    /// </returns>
+    internal (long Collected, long Cancelled) Drain()
+    {
+        (long Collected, long Cancelled) drained = (_collected, _cancelled);
+
+        _collected = 0;
+        _cancelled = 0;
+
+        return drained;
+    }
+
+    /// <summary>
+    /// Saturating addition of two nonnegative figures, so a debt or a total past <c>long</c>'s range
+    /// stops at the bound instead of wrapping negative.
+    /// </summary>
+    /// <remarks>
+    /// <b>Saturation costs nothing where it bites, because every consumer reads whether a figure is
+    /// positive and not how large it is.</b> A tenant whose arrears saturate has paid nothing for a
+    /// run of Days, and <see cref="RentEngine"/> ends that tenancy at the deadline whatever the
+    /// column holds — so the bound caps the number without capping the consequence.
+    /// </remarks>
+    internal static long Carry(long left, long right) =>
+        left > long.MaxValue - right ? long.MaxValue : left + right;
 
     /// <summary>
     /// Pays what <paramref name="slot"/> can of its standing rent debt, then settles every Landowner
@@ -177,15 +242,9 @@ internal sealed class RentAccounts(World world)
     /// under its own mark.
     /// </para>
     /// <para>
-    /// ⚠ <b>A CYCLE of Landowners is left partly settled, and this is the known limit.</b> Where two
-    /// Households each hold the Lot the other lives on, one pass moves what cash there is round the
-    /// ring once and can leave a recipient holding money against a debt it still owes. Finishing it
-    /// needs mutual debts NETTED rather than circulated — circulating converges in steps
-    /// proportional to the debt divided by the cash, which is unbounded work — and netting is a
-    /// decision about what a rent debt IS that no plan has taken. ***Unreachable today***:
-    /// <c>LotTable.Landowner</c> is written only by tests and the Golden fixture, so a cycle needs
-    /// the purchase slice 2 adds. <c>RentCycleTests</c> pins the current behaviour so the slice that
-    /// makes it reachable finds it stated rather than surprising.
+    /// ⚠ <b>A hop onto a marked slot is a RING, and it hands off to <see cref="Net"/>.</b> The
+    /// marked slot is the ring's first member and <see cref="_order"/> from there on is the ring, so
+    /// the walk records the route it took rather than only where it has been.
     /// </para>
     /// </remarks>
     private void Walk(int landowner, Ticks tick)
@@ -194,12 +253,120 @@ internal sealed class RentAccounts(World world)
 
         long mark = ++_walk;
 
-        while (landowner != Rows.NoSlot
-            && _world.Households.Rows.IsLive(landowner)
-            && _visited[landowner] != mark)
+        _length = 0;
+
+        while (landowner != Rows.NoSlot && _world.Households.Rows.IsLive(landowner))
         {
+            if (_visited[landowner] == mark)
+            {
+                Net(_step[landowner], tick);
+                return;
+            }
+
             _visited[landowner] = mark;
+            _step[landowner] = _length;
+            _order[_length++] = landowner;
+
             landowner = SettleOneHousehold(landowner, tick);
+        }
+    }
+
+    /// <summary>
+    /// Finishes a ring of Landowners by cancelling the debt they owe each other, then moving what
+    /// cash the one-sided remainder can.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>CANCELLING THE RING'S SMALLEST DEBT FROM EVERY MEMBER REACHES THE SAME END STATE AS
+    /// CIRCULATING CASH ROUND IT WITHOUT BOUND.</b> One coin carried round a ring of
+    /// <em>n</em> members discharges one unit of each member's debt per circuit and comes back to
+    /// where it started, so <em>m</em> circuits discharge <em>m</em> from everybody and leave every
+    /// balance exactly as it was — where <em>m</em> is the smallest debt in the ring, because the
+    /// member owing that much stops passing the coin on once it is clear. ***Circulating to that
+    /// point costs debt-over-cash circuits***, which is work set by the size of the debt and not by
+    /// the city, and a rent rate has no ceiling. The cancellation is one pass.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>It takes ONE UNIT OF CASH somewhere in the ring, and that condition is the whole
+    /// difference between this and forgiving a debt.</b> A ring holding nothing cannot move a coin
+    /// at all, so circulation discharges nothing and neither does this — ***cancelling there would
+    /// write off rent nobody could ever have paid***, which is not what the mutual claims net to.
+    /// Every member owes more than nothing while the cancellation runs (<c>least</c> is positive), so
+    /// whichever member holds the coin can pass it on and the circuits it stands in for are real.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A ring that got here holds the coin by construction</b>, because a hop is taken only
+    /// where a payment was made and a member pays nobody outside the ring — so <c>funded</c> states
+    /// the condition rather than firing. It is kept because it is what makes the cancellation
+    /// legitimate: were money ever to leave a ring mid-walk, cancelling without it would be money
+    /// for nothing. <c>RentChainTests.A_ring_holding_no_money_cancels_nothing</c> pins the behaviour
+    /// from the outside, where the first settlement moves nothing and no ring is ever found.
+    /// </para>
+    /// <para>
+    /// <b>The ring is a path once the cancellation has run</b>, because its smallest debt is now
+    /// zero and that member pays nobody. Two laps settle a path of <em>n</em> in any starting
+    /// position: a lap from the member after the cleared one computes every payment in order, and
+    /// starting anywhere else needs at most one lap more to reach that position. Each payment only
+    /// ever gives the next member more to pay with, so the laps cannot undo each other and a third
+    /// would move nothing.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Money is conserved because the cancellation moves none</b> (<c>adr/0003</c> — a debt is
+    /// not negative money, so there is nothing to move). The figure still reaches
+    /// <see cref="Drain"/>, so the rent the city records is what circulation would have moved.
+    /// </para>
+    /// </remarks>
+    /// <param name="first">Where in <see cref="_order"/> the ring begins.</param>
+    private void Net(int first, Ticks tick)
+    {
+        Column<Money> debts = _world.Households.RentDebt;
+        Column<int> since = _world.Households.RentDebtSinceDay;
+
+        long least = long.MaxValue;
+        bool funded = false;
+
+        for (int at = first; at < _length; at++)
+        {
+            int slot = _order[at];
+
+            least = long.Min(least, debts[slot].Raw);
+
+            funded = funded
+                || (_world.Bins.Rows.TryResolve(_world.Households.Balance[slot], out int purse)
+                    && _world.Bins.LevelAt(purse) > 0);
+        }
+
+        if (least > 0 && funded)
+        {
+            for (int at = first; at < _length; at++)
+            {
+                int slot = _order[at];
+                long left = debts[slot].Raw - least;
+
+                debts[slot] = new Money(left);
+
+                if (left == 0)
+                {
+                    // The clock stops where the debt does, on Settle's reason: a cancelled debt is a
+                    // debt met, and leaving the Day standing would evict a tenant that owes nothing.
+                    since[slot] = 0;
+                }
+
+                _collected = Carry(_collected, least);
+                _cancelled = Carry(_cancelled, least);
+            }
+        }
+
+        int members = _length - first;
+
+        for (int lap = 0; lap < 2 * members; lap++)
+        {
+            int slot = _order[first + (lap % members)];
+
+            if (_world.Households.Rows.IsLive(slot))
+            {
+                SettleOneHousehold(slot, tick);
+            }
         }
     }
 
@@ -263,6 +430,8 @@ internal sealed class RentAccounts(World world)
         _world.Withdraw(_world.Bins.Rows.At(purse), paid, tick);
         _world.Deposit(_world.Bins.Rows.At(payee), paid, tick);
 
+        _collected = Carry(_collected, paid);
+
         long left = debt - paid;
 
         debtColumn[slot] = new Money(left);
@@ -285,9 +454,11 @@ internal sealed class RentAccounts(World world)
 
         if (_visited.Length < slots)
         {
-            // Dropped rather than copied, on SubsidyEngine.Fit's reason: a mark belongs to a walk
-            // that has finished, so losing it costs nothing a later walk can observe.
+            // Dropped rather than copied, on SubsidyEngine.Fit's reason: a mark and a route belong
+            // to a walk that has finished, so losing them costs nothing a later walk can observe.
             _visited = new long[slots];
+            _step = new int[slots];
+            _order = new int[slots];
         }
     }
 }

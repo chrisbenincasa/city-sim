@@ -224,9 +224,14 @@ public sealed class RentPaydayTests
         Assert.True(
             sweep.Collected > 0, $"the sweep collected nothing from {housed} housed Households.");
 
-        Assert.True(sweep.Charged >= sweep.Collected, "more was collected than was charged.");
         Assert.InRange(sweep.Behind, 0, sweep.Tenancies);
         Assert.True(sweep.Tenancies > 0, "the sweep walked no tenancy.");
+
+        // ⚠ Collected is NOT bounded by Charged, and the reason is the mechanism this test is
+        // about: income settles arrears where it lands, so a debt paid off between two boundaries
+        // is discharged but never asked for again. Every Lot here is city-held, so no ring of
+        // Landowners exists and nothing can have cancelled.
+        Assert.Equal(0, sweep.Cancelled);
 
         // Every Lot in a generated city is city-held (L14), so the rent is treasury income. The
         // money Resource is the file's third here, so it is asked for rather than assumed.

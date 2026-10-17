@@ -2,9 +2,11 @@ using Borough.Core;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Input;
+using Borough.Core.Persistence;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Tables;
+using Borough.Tests.Persistence;
 
 namespace Borough.Tests.Rules;
 
@@ -21,9 +23,10 @@ namespace Borough.Tests.Rules;
 /// </para>
 /// <para>
 /// <b>One pass is complete for an acyclic chain</b>, because rent flows one way and the money only
-/// moves downstream. <b>A cycle is the known limit</b>, and
-/// <see cref="A_cycle_of_landowners_terminates_and_conserves_its_money"/> pins what it does rather
-/// than claiming it is finished.
+/// moves downstream. <b>A ring is finished by cancelling the debt its members owe each other</b>,
+/// which reaches the end state of circulating cash round it without bound — see
+/// <see cref="A_ring_whose_debt_dwarfs_its_cash_is_cancelled_in_bounded_work"/> for the figure that
+/// makes the two the same.
 /// </para>
 /// <para>
 /// <b>Reachable only from tests today.</b> <c>LotTable.Landowner</c> is written by nothing in the
@@ -43,13 +46,15 @@ public sealed class RentChainTests
 
     private static readonly ResourceId Cash = new(1);
 
-    private static Ruleset Rules() => new(
+    private static Ruleset Rules() => Rules(Rate);
+
+    private static Ruleset Rules(long rate) => new(
         resources: [ResourceFamily.Money],
         rules: [],
         kinds: [new KindDefinition(0, 0, 0, 0)
         {
             Houses = true,
-            RentPerFloorTile = new Money(Rate),
+            RentPerFloorTile = new Money(rate),
         }],
         inputs: [],
         outputs: [],
@@ -79,6 +84,50 @@ public sealed class RentChainTests
 
     private static long Treasury(World world) =>
         world.Bins.LevelAt(world.FindTreasuryBin(Cash));
+
+    /// <summary>
+    /// 🔴 <b>The property a settled ring has to have: nobody holds money against rent it owes.</b>
+    /// </summary>
+    /// <remarks>
+    /// A tenant left holding cash it owes in rent can spend it, be levied or buy with it before the
+    /// next Day — which is the whole reason a debt is settled where income lands rather than at the
+    /// Day boundary. Each member either owes nothing or holds nothing.
+    /// </remarks>
+    private static void AssertNobodyHoldsPayableRent(World world, params int[] slots)
+    {
+        foreach (int slot in slots)
+        {
+            long debt = world.Households.RentDebt[slot].Raw;
+            long held = Purse(world, slot);
+
+            Assert.True(
+                debt == 0 || held == 0,
+                $"Household {slot} ends the settlement holding {held} against {debt} owed in rent.");
+        }
+    }
+
+    /// <summary>Two Households each holding the ground the other lives on.</summary>
+    private static (int A, int B) Ring(World world, long debt, long endowment)
+    {
+        (Handle<Lot> first, Handle<Household> a) = Resident(world, 0);
+        (Handle<Lot> second, Handle<Household> b) = Resident(world, 128);
+
+        world.Lots.Landowner[world.Lots.Rows.Resolve(first)] = b;
+        world.Lots.Landowner[world.Lots.Rows.Resolve(second)] = a;
+
+        int aSlot = world.Households.Rows.Resolve(a);
+        int bSlot = world.Households.Rows.Resolve(b);
+
+        if (endowment > 0)
+        {
+            world.Endow(a, new Money(endowment));
+        }
+
+        world.Households.RentDebt[aSlot] = new Money(debt);
+        world.Households.RentDebt[bSlot] = new Money(debt);
+
+        return (aSlot, bSlot);
+    }
 
     /// <summary>
     /// 🔴 <b>A payment through a chain of three settles every Landowner it passes, in one Tick.</b>
@@ -186,79 +235,339 @@ public sealed class RentChainTests
     }
 
     /// <summary>
-    /// ⚠ <b>A cycle of Landowners terminates, conserves its money, and is left PARTLY settled.</b>
+    /// 🔴 <b>A ring of Landowners is settled whole, and nobody is left holding money it owes in
+    /// rent.</b>
     /// </summary>
     /// <remarks>
     /// <para>
-    /// A and B each hold the Lot the other lives on, so each owes the other rent and the only cash in
-    /// the city goes round in a ring. ***One pass cannot finish this.*** Each settlement moves
-    /// <c>min(debt, held)</c>, so where the mutual debt exceeds the cash the ring has to be walked
-    /// again — and again — with each circuit moving only as much as the cash. Circulating to a
-    /// finish costs debt-over-cash passes, which is work proportional to the debt and not to the
-    /// city.
+    /// A and B each hold the Lot the other lives on, so each owes the other and the only cash in the
+    /// city goes round in a ring. The reviewer's figures: each owes 100, and only A holds anything —
+    /// 80 of it. ***The 80 is enough to carry both debts*** because every unit either pays comes back
+    /// from the other, so one settlement finishes the ring and the 80 ends where it started.
     /// </para>
     /// <para>
-    /// <b>Finishing it needs the two debts NETTED rather than circulated</b>, and netting is a
-    /// decision about what a rent debt is that no plan has taken. This test records what the walk
-    /// does now, so the slice that makes a cycle reachable — purchase, in slice 2 — finds the limit
-    /// written down. ***What must hold regardless is recorded here too***: the walk terminates, and
-    /// money is conserved to the unit.
+    /// <b>This ring needs no cancellation</b>, which is why it is worth asserting:
+    /// <c>Cancelled</c> stays zero because the cash on hand reached round the ring on its own.
+    /// <see cref="A_ring_whose_debt_dwarfs_its_cash_is_cancelled_in_bounded_work"/> is the case
+    /// cancellation exists for.
     /// </para>
     /// </remarks>
     [Fact]
-    public void A_cycle_of_landowners_terminates_and_conserves_its_money()
+    public void A_ring_of_landowners_is_settled_whole_and_leaves_nobody_holding_payable_rent()
     {
         var world = new World(1_000, Rules(), Key);
         var simulation = new Simulation(world, Key);
 
-        (Handle<Lot> first, Handle<Household> a) = Resident(world, 0);
-        (Handle<Lot> second, Handle<Household> b) = Resident(world, 128);
-
-        // Each holds the ground the other lives on.
-        world.Lots.Landowner[world.Lots.Rows.Resolve(first)] = b;
-        world.Lots.Landowner[world.Lots.Rows.Resolve(second)] = a;
-
-        int aSlot = world.Households.Rows.Resolve(a);
-        int bSlot = world.Households.Rows.Resolve(b);
-
-        // The reviewer's figures: each owes 100 and only A holds anything, 80 of it.
-        world.Endow(a, new Money(80));
-        world.Households.RentDebt[aSlot] = new Money(100);
-        world.Households.RentDebt[bSlot] = new Money(100);
-        world.Households.RentDebtSinceDay[aSlot] = 0;
-        world.Households.RentDebtSinceDay[bSlot] = 0;
+        (int aSlot, int bSlot) = Ring(world, debt: 100, endowment: 80);
 
         long cash = Purse(world, aSlot) + Purse(world, bSlot) + Treasury(world);
 
         // One settlement, driven directly so no Day charge is mixed into the figures.
         world.Arrears.SettleHousehold(aSlot, world.Tick);
 
-        // It terminated, which is the first thing a ring has to do.
-        // A paid 80, B paid 80 back, then A paid its last 20 -- so A is clear and B is not.
-        Assert.Equal(0, world.Households.RentDebt[aSlot].Raw);
-        Assert.Equal(20, world.Households.RentDebt[bSlot].Raw);
-        Assert.Equal(60, Purse(world, aSlot));
-        Assert.Equal(20, Purse(world, bSlot));
-
-        // 🔴 THE LIMIT, stated as an assertion rather than left in a comment: B ends the walk
-        // holding exactly what it still owes, and nothing here pays it.
-        Assert.Equal(world.Households.RentDebt[bSlot].Raw, Purse(world, bSlot));
-
-        // Money is conserved to the unit, which is what makes the residue a bookkeeping limit
-        // rather than a leak (adr/0003 -- a debt is not money).
-        Assert.Equal(cash, Purse(world, aSlot) + Purse(world, bSlot) + Treasury(world));
-
-        // The residue clears on the next settlement, which is the next income or the next Day
-        // sweep. Two passes finish THIS ring; a ring whose debt dwarfs its cash needs more.
-        world.Arrears.SettleHousehold(bSlot, world.Tick);
-
         Assert.Equal(0, world.Households.RentDebt[aSlot].Raw);
         Assert.Equal(0, world.Households.RentDebt[bSlot].Raw);
+        Assert.Equal(0, world.Households.RentDebtSinceDay[aSlot]);
+        Assert.Equal(0, world.Households.RentDebtSinceDay[bSlot]);
+
+        AssertNobodyHoldsPayableRent(world, aSlot, bSlot);
+
+        // The 80 is back with the Household that started with it, because the two obligations were
+        // equal and each unit paid came back from the other side.
         Assert.Equal(80, Purse(world, aSlot));
         Assert.Equal(0, Purse(world, bSlot));
         Assert.Equal(cash, Purse(world, aSlot) + Purse(world, bSlot) + Treasury(world));
 
+        // 200 discharged for two debts of 100, all of it cash: this ring circulated rather than
+        // cancelled.
+        (long collected, long cancelled) = world.Arrears.Drain();
+
+        Assert.Equal(200, collected);
+        Assert.Equal(0, cancelled);
+
         simulation.CheckEndOfRun();
+    }
+
+    /// <summary>
+    /// 🔴 <b>A ring whose debt dwarfs its cash is finished by CANCELLING the mutual debt, in work
+    /// set by the ring and not by the debt.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Each of two Landowners owes the other <c>debt</c> and the ring holds a single unit of cash.
+    /// ***Circulating that one unit would take <c>debt</c> circuits*** — a thousand for the small
+    /// case here and a billion for the large one, on a rent rate the Ruleset puts no ceiling on. The
+    /// cancellation reaches the same end state in one pass.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>The bound is asserted as a figure rather than as termination.</b> Every cash payment in
+    /// this ring moves exactly one unit, so the cash discharged counts the payments: ***four of
+    /// them, whether the debt is a thousand or a billion***. The rest of the obligation is
+    /// cancelled, and the total discharged is the gross figure circulation would have recorded —
+    /// twice the debt, because each side pays the whole of it.
+    /// </para>
+    /// </remarks>
+    [Theory]
+    [InlineData(1_000L)]
+    [InlineData(1_000_000_000L)]
+    public void A_ring_whose_debt_dwarfs_its_cash_is_cancelled_in_bounded_work(long debt)
+    {
+        var world = new World(1_000, Rules(), Key);
+        var simulation = new Simulation(world, Key);
+
+        (int aSlot, int bSlot) = Ring(world, debt, endowment: 1);
+
+        world.Arrears.SettleHousehold(aSlot, world.Tick);
+
+        Assert.Equal(0, world.Households.RentDebt[aSlot].Raw);
+        Assert.Equal(0, world.Households.RentDebt[bSlot].Raw);
+
+        AssertNobodyHoldsPayableRent(world, aSlot, bSlot);
+
+        // The one unit is conserved and back where it started. Nothing was created to clear a debt
+        // of a billion (adr/0003 -- a debt is not negative money).
+        Assert.Equal(1, Purse(world, aSlot));
+        Assert.Equal(0, Purse(world, bSlot));
+        Assert.Equal(0, Treasury(world));
+
+        (long collected, long cancelled) = world.Arrears.Drain();
+
+        Assert.Equal(2 * debt, collected);
+        Assert.Equal(4, collected - cancelled);
+
+        simulation.CheckEndOfRun();
+    }
+
+    /// <summary>
+    /// A ring of three cancels its SMALLEST debt and then moves what the one-sided remainder can.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A pays B, B pays C, C pays A, owing 100, 50 and 100, and A holds 10. ***The cancellation is
+    /// bounded by the smallest debt in the ring***, because the member owing only 50 stops passing
+    /// the coin on once it is clear — so every member's debt falls by 50 and no further.
+    /// </para>
+    /// <para>
+    /// <b>What is left is a path, and the cash on hand runs down it until it reaches the cleared
+    /// member.</b> The 10 ends with B, which owes nothing: A and C still owe 40 and 50 and hold
+    /// nothing, which is exactly where circulating the 10 by hand leaves them.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_ring_of_three_cancels_the_smallest_debt_and_moves_the_remainder()
+    {
+        var world = new World(1_000, Rules(), Key);
+        var simulation = new Simulation(world, Key);
+
+        (Handle<Lot> ofA, Handle<Household> a) = Resident(world, 0);
+        (Handle<Lot> ofB, Handle<Household> b) = Resident(world, 128);
+        (Handle<Lot> ofC, Handle<Household> c) = Resident(world, 256);
+
+        world.Lots.Landowner[world.Lots.Rows.Resolve(ofA)] = b;
+        world.Lots.Landowner[world.Lots.Rows.Resolve(ofB)] = c;
+        world.Lots.Landowner[world.Lots.Rows.Resolve(ofC)] = a;
+
+        int aSlot = world.Households.Rows.Resolve(a);
+        int bSlot = world.Households.Rows.Resolve(b);
+        int cSlot = world.Households.Rows.Resolve(c);
+
+        world.Endow(a, new Money(10));
+        world.Households.RentDebt[aSlot] = new Money(100);
+        world.Households.RentDebt[bSlot] = new Money(50);
+        world.Households.RentDebt[cSlot] = new Money(100);
+
+        world.Arrears.SettleHousehold(aSlot, world.Tick);
+
+        Assert.Equal(40, world.Households.RentDebt[aSlot].Raw);
+        Assert.Equal(0, world.Households.RentDebt[bSlot].Raw);
+        Assert.Equal(50, world.Households.RentDebt[cSlot].Raw);
+
+        AssertNobodyHoldsPayableRent(world, aSlot, bSlot, cSlot);
+
+        Assert.Equal(0, Purse(world, aSlot));
+        Assert.Equal(10, Purse(world, bSlot));
+        Assert.Equal(0, Purse(world, cSlot));
+        Assert.Equal(10, Purse(world, aSlot) + Purse(world, bSlot) + Purse(world, cSlot));
+
+        // Gross: A paid 60, B 50 and C 50, of which 120 cancelled and 40 moved as cash.
+        (long collected, long cancelled) = world.Arrears.Drain();
+
+        Assert.Equal(160, collected);
+        Assert.Equal(120, cancelled);
+
+        simulation.CheckEndOfRun();
+    }
+
+    /// <summary>
+    /// ⚠ <b>A ring holding no money at all cancels nothing.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>This is the line between cancelling a debt and forgiving one.</b> The cancellation
+    /// stands in for circuits of a coin, and a ring with no coin cannot make one — so circulation
+    /// discharges nothing here and neither does the cancellation. ***Clearing these two debts would
+    /// be writing off rent that was never paid***, which is not what the mutual claims come to.
+    /// </para>
+    /// <para>
+    /// It never reaches the cancellation to be refused by it: the first settlement moves nothing, so
+    /// no hop is taken and no ring is found. The behaviour is what this pins, not the route to it.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_ring_holding_no_money_cancels_nothing()
+    {
+        var world = new World(1_000, Rules(), Key);
+        var simulation = new Simulation(world, Key);
+
+        (int aSlot, int bSlot) = Ring(world, debt: 100, endowment: 0);
+
+        world.Households.RentDebtSinceDay[aSlot] = 1;
+        world.Households.RentDebtSinceDay[bSlot] = 1;
+
+        world.Arrears.SettleHousehold(aSlot, world.Tick);
+        world.Arrears.SettleHousehold(bSlot, world.Tick);
+
+        Assert.Equal(100, world.Households.RentDebt[aSlot].Raw);
+        Assert.Equal(100, world.Households.RentDebt[bSlot].Raw);
+
+        // The arrears clock is untouched too, so the deadline still runs on both of them.
+        Assert.Equal(1, world.Households.RentDebtSinceDay[aSlot]);
+        Assert.Equal(1, world.Households.RentDebtSinceDay[bSlot]);
+
+        (long collected, long cancelled) = world.Arrears.Drain();
+
+        Assert.Equal(0, collected);
+        Assert.Equal(0, cancelled);
+
+        simulation.CheckEndOfRun();
+    }
+
+    /// <summary>
+    /// ⚠ <b>The Day's gross rent SATURATES rather than wrapping negative, on a rate the loader
+    /// accepts.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A ring hands the same money on at each hop, so the Day's gross is a multiple of the cash in
+    /// it. Three tenancies charged four quintillion each pass one four-quintillion purse round the
+    /// ring, and the twelve quintillion that reports is past <c>long</c>'s range — ***the reading
+    /// used to come back as a large negative rent collection***, on a `rent_per_floor_tile` the
+    /// loader refuses only for being negative.
+    /// </para>
+    /// <para>
+    /// <b>The balances are right either way, which is what makes this a reading defect.</b> Money is
+    /// conserved, every debt clears, and only the counter was wrong — so the assertion is on the
+    /// counter and on the city together.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_rings_gross_rent_saturates_rather_than_wrapping_negative()
+    {
+        // 1e18 a Tile over the four Tiles a tenancy holds here, which is 4e18 a Day each. Three of
+        // them is 1.2e19 and long stops at about 9.22e18.
+        const long Steep = 1_000_000_000_000_000_000L;
+
+        long daily = Share * Steep;
+
+        var world = new World(1_000, Rules(Steep), Key);
+        var simulation = new Simulation(world, Key);
+
+        (Handle<Lot> ofA, Handle<Household> a) = Resident(world, 0);
+        (Handle<Lot> ofB, Handle<Household> b) = Resident(world, 128);
+        (Handle<Lot> ofC, Handle<Household> c) = Resident(world, 256);
+
+        world.Lots.Landowner[world.Lots.Rows.Resolve(ofA)] = b;
+        world.Lots.Landowner[world.Lots.Rows.Resolve(ofB)] = c;
+        world.Lots.Landowner[world.Lots.Rows.Resolve(ofC)] = a;
+
+        int aSlot = world.Households.Rows.Resolve(a);
+        int bSlot = world.Households.Rows.Resolve(b);
+        int cSlot = world.Households.Rows.Resolve(c);
+
+        // One Day's rent for one of them is all the money in the city.
+        world.Endow(a, new Money(daily));
+
+        Assert.Equal(daily, world.ResidentRent(aSlot).Raw);
+
+        simulation.Step(TickInput.Empty);
+
+        // 🔴 THE DEFECT: positive and at the bound, not a negative figure.
+        Assert.Equal(long.MaxValue, simulation.LastRent.Collected);
+        Assert.Equal(long.MaxValue, simulation.LastRent.Charged);
+
+        // The city itself was never wrong. Every tenancy paid, the one purse is back with A, and
+        // nobody is behind or evicted.
+        Assert.Equal(0, world.Households.RentDebt[aSlot].Raw);
+        Assert.Equal(0, world.Households.RentDebt[bSlot].Raw);
+        Assert.Equal(0, world.Households.RentDebt[cSlot].Raw);
+        Assert.Equal(daily, Purse(world, aSlot));
+        Assert.Equal(0, simulation.LastRent.Evicted);
+        Assert.Equal(0, simulation.LastRent.Behind);
+        Assert.Equal(0, Treasury(world));
+
+        simulation.CheckEndOfRun();
+    }
+
+    /// <summary>
+    /// A ring settles the same way across a save and reload, and on either thread count.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The cancellation reads and writes saved state only</b> — the two rent columns and the
+    /// balance Bins — so a reloaded city reaches it with everything it needs. The walk's own route
+    /// and marks are scratch, rebuilt per walk and never saved, and this is the test that would fail
+    /// if the cancellation came to depend on them across a Tick.
+    /// </para>
+    /// <para>
+    /// <b>Thread count cannot reach it</b>, because rent runs on the Tick's own thread and route
+    /// workers only search commutes. The two Simulations run at 1 and 2 workers and the State Hash
+    /// is compared every Tick, on <c>HousingConstructionTests</c>'s idiom.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_ring_settles_the_same_across_a_save_and_either_thread_count()
+    {
+        var world = new World(1_000, Rules(), Key);
+
+        (int aSlot, int bSlot) = Ring(world, debt: 10 * Daily, endowment: 1);
+
+        world.Households.RentDebtSinceDay[aSlot] = 1;
+        world.Households.RentDebtSinceDay[bSlot] = 1;
+
+        var file = new MemorySave();
+
+        SaveFile.Write(world, 62004, file);
+
+        World loaded = SaveFile.Read(file, world.Rules, out _);
+
+        Assert.Equal(world.HashState(), loaded.HashState());
+
+        var a = new Simulation(world, Key) { RouteWorkerCount = 1, VerifyDecideWritesNothing = true };
+        var b = new Simulation(loaded, Key) { RouteWorkerCount = 2, VerifyDecideWritesNothing = true };
+
+        long cancelled = 0;
+
+        // Past the deadline, so the Day sweep charges and cancels through the whole run.
+        for (int tick = 0; tick < (Deadline + 2) * Ticks.PerDay; tick++)
+        {
+            a.Step(TickInput.Empty);
+            b.Step(TickInput.Empty);
+
+            Assert.Equal(world.HashState(), loaded.HashState());
+            Assert.Equal(a.LastRent.Cancelled, b.LastRent.Cancelled);
+
+            cancelled += a.LastRent.Cancelled;
+        }
+
+        // The ring really was cancelled rather than merely agreeing about nothing.
+        Assert.True(cancelled > 0, "no sweep cancelled any mutual debt, so this proved nothing.");
+
+        Assert.Equal(0, world.Households.RentDebt[aSlot].Raw);
+        Assert.Equal(0, loaded.Households.RentDebt[aSlot].Raw);
+        Assert.Equal(0, world.Households.RentDebt[bSlot].Raw);
+
+        a.CheckEndOfRun();
+        b.CheckEndOfRun();
     }
 
     /// <summary>
