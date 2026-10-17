@@ -15,8 +15,8 @@
 #     the allowance expiring at the Day boundary rather than by a shortage, so the fixture is sized not
 #     to run dry on its own.
 #
-# No [[zone_rule]] raises an `office`: a city raises offices in answer to unserved demand, which is a
-# separate slice. A test places one.
+# The `offices` Zone Rule raises an office on a commercial Lot whose District has firms importing
+# `accounting` or stalled for want of it. Tests that need to choose where an office stands remove it.
 #
 # This is a demonstration fixture, not a balance or performance ratifier. All tuning is PROVISIONAL.
 
@@ -198,6 +198,15 @@ revisit_ticks = 2048
 [[zone_rule]]
 name          = "trade"
 kind          = "shopfront"
+zone          = 1
+interval      = 32
+revisit_ticks = 2048
+build_threshold_days = 1
+cooldown_days        = 1
+
+[[zone_rule]]
+name          = "offices"
+kind          = "office"
 zone          = 1
 interval      = 32
 revisit_ticks = 2048
