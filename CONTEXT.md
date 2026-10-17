@@ -106,6 +106,17 @@ A developable parcel with road frontage, carved out of a Zone. A Lot is either v
 
 A Lot saves its parcel and footprint as oriented rectangles. Each has a Q16.16 corner and whole-Tile width and depth; both share one saved Q16.16 unit axis. This axis describes the ground, not the Building's facing. The Lot's `East` and `North` still name its Address point. Current carvers keep the rectangles lattice-aligned.
 
+**Landowner**
+The Household that owns a Lot, vacant or built, and with it the Building the Lot holds. A Building never holds money, so whatever a Lot earns or costs reaches its Landowner. A newly carved Lot has no Landowner; the city holds it until a Household buys it to build.
+*Avoid*: Landlord, property owner, developer
+
+**Rent**
+What a tenant pays its Landowner each Day for the floor it occupies, priced by the Building's kind and the land value where it stands. The same figure is what a Household compares when it chooses a home.
+
+**Compulsory purchase**
+The city taking a Lot from its Landowner at the Lot's price (the land price, plus the cost of building again for a built Lot), whether the owner agrees or not. A Street, the player's `Demolish` and the player's purchase of a vacant Lot are each one.
+*Avoid*: Eminent domain, expropriation
+
 **Frontage**
 The contact between a Lot and a Street it can take access from — the geometric precondition for a Lot existing at all. The subdivider carves zoned land against the Street network, and land it cannot give frontage stays unlotted and undevelopable. **Only Streets grant frontage.** Arterials carry none and have no Access Point, so nothing zones onto one (`adr/0014`) — which is why Arterial corridors need something to be made of.
 
@@ -592,7 +603,7 @@ The commercial or industrial economic actor occupying a Building. Consumes input
 
 ⚠ **A Business is a TENANT and the Building is premises** ([`adr/0141`](docs/adr/0141-a-tenant-owns-what-leaves-with-it-and-the-premises-own-the-capacity.md)). It holds its own inventory, its own balance and its own Rules; **its trade is declared by a `[[business]]` kind, separate from the `[[building]]` kind of the premises**, because the same shopfront hosts a bakery and then a barber. ⚠ **The Workplace is the Business and not the Building**, so a Shift's hours belong to the employer (`adr/0101`).
 
-⚠ **A Business that loses its premises is *unpremised* exactly as a Household is *unhoused*** ([`adr/0142`](docs/adr/0142-an-unpremised-business-emigrates-so-the-sink-is-the-one-households-already-use.md)): it joins a pool, waits under a give-up bound, and if nothing tenants it **it leaves the city and takes its money with it**. ***The money is neither destroyed nor confiscated; it is exported***, through the same door an arriving Household's balance comes in by. 🔴 **What CAPITALISES a Business is unsettled** — nothing funds one, and the number that would is owed a ratifier.
+⚠ **A Business that loses its premises is *unpremised* exactly as a Household is *unhoused*** ([`adr/0142`](docs/adr/0142-an-unpremised-business-emigrates-so-the-sink-is-the-one-households-already-use.md)): it joins a pool, waits under a give-up bound, and if nothing tenants it **it leaves the city and takes its money with it**. ***The money is neither destroyed nor confiscated; it is exported***, through the same door an arriving Household's balance comes in by. A founded Business is funded by its founding Household (`adr/0145`, `adr/0146`), and a Zone Rule's Business by the treasury's `[[business]] opening_grant`.
 
 **Premises**, and **Unpremised** / **Unhoused**
 The **Building an Occupant occupies**, named from the tenant's side. A Building *is* premises; the Household or Business in it is the tenant ([`adr/0141`](docs/adr/0141-a-tenant-owns-what-leaves-with-it-and-the-premises-own-the-capacity.md)). **Unpremised** is a Business with no premises; **unhoused** is a Household with no dwelling. Same state, two actors, and the pair of words exists only because *homeless* means something about a person and these are states of a **tenancy**.
@@ -756,7 +767,7 @@ A Household or a Business. What fills a Building.
 
 ⚠ **It is a concept spanning two lists rather than a type** ([`docs/adr/0113`](docs/adr/0113-a-business-is-an-occupant-with-its-own-balance-and-a-building-never-holds-money.md), built milestone 10 task 4b). A Building carries `OccupantHead` into `HouseholdTable.DwellingNext` and `BusinessHead` into `BusinessTable.BuildingNext` — two homogeneous intrusive lists, not one polymorphic list holding two row types — so every handle stays typed and lint 7 is satisfied without a discriminated union. **Nothing in `Borough.Core` takes *an Occupant* as an argument**, and that is the shape rather than a gap: a reader that wanted to means a reader that has to discriminate, which is the Cohort pressure `adr/0025` warns about arriving through the container.
 
-**The two are Occupants in the same sense and are evicted in different ones.** A Household leaves a demolished Building for the Unplaced Pool with its money intact (`adr/0054`); a Business has no pool, so its row survives holding a **severed** premises handle on `CitizenTable.Workplace`'s precedent — *the premises stopped existing*. ⚠ **Both hold their balance in a Bin and both spell it the same way** (`adr/0114`, task 4c): `adr/0024`'s *"one integer per Household and per Business"* is trivial in the way that sentence claims only if they do, and task 4b shipped a **column** on the Business for a day on the strength of a precedent the same document had already deleted. ***An argument for symmetry does not name which side to move.*** ⚠ **What becomes of a Business with no premises is undesigned** (`adr/0070`) and is filed in [`plans/0002`](plans/0002-open-questions.md) §C. Neither route destroys money, which is what `Invariant.MoneyIsConserved` holds them to.
+**The two are Occupants in the same sense and are evicted in different ones.** A Household leaves a demolished Building for the Unplaced Pool with its money intact (`adr/0054`); a Business has no pool, so its row survives holding a **severed** premises handle on `CitizenTable.Workplace`'s precedent — *the premises stopped existing*. ⚠ **Both hold their balance in a Bin and both spell it the same way** (`adr/0114`, task 4c): `adr/0024`'s *"one integer per Household and per Business"* is trivial in the way that sentence claims only if they do, and task 4b shipped a **column** on the Business for a day on the strength of a precedent the same document had already deleted. ***An argument for symmetry does not name which side to move.*** A Business with no premises emigrates with its balance (`adr/0142`). Neither route destroys money, which is what `Invariant.MoneyIsConserved` holds them to.
 
 ---
 
