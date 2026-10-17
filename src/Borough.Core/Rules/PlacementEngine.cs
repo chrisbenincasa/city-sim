@@ -577,9 +577,11 @@ public sealed class PlacementEngine
 
         // 02 §5.2 step 2b: affordable? A hard filter, not a score. The Household was SHOWN the
         // dwelling, which is a real thing that happens to somebody who cannot afford what they saw.
-        Money kindRent = _world.Rules.Kind(_world.Buildings.Kind[building]).Rent;
+        // The figure is this tenancy's, so one kind can be affordable on cheap ground and not on
+        // dear ground.
+        Money rent = _world.HouseholdRent(building);
 
-        return kindRent.Raw > 0 && purse.Raw < kindRent.Raw ? Rows.NoSlot : building;
+        return rent.Raw > 0 && purse.Raw < rent.Raw ? Rows.NoSlot : building;
     }
 
     /// <summary>
@@ -806,7 +808,10 @@ public sealed class PlacementEngine
                 continue;
             }
 
-            Money rent = _world.Rules.Kind(kind).Rent;
+            // What the dwelling this Lot would carry costs: the ground's floor share at the kind's
+            // rate, adjusted by the land value here. A prospect weighing empty land is shown the
+            // same price a resident of that dwelling would pay.
+            Money rent = _world.TenancyRent(kind, lot, _world.HouseholdFloorOnLot(lot));
 
             if (rent.Raw > 0 && prospect.Purse.Raw < rent.Raw)
             {
@@ -932,7 +937,7 @@ public sealed class PlacementEngine
             _world.Rules.Placement,
             Distance(lot),
             weight,
-            _world.Rules.Kind(_world.Buildings.Kind[building]).Rent,
+            _world.HouseholdRent(building),
             rentWeightPercent);
 
     /// <summary>
@@ -1427,10 +1432,10 @@ public sealed class PlacementEngine
             }
 
             int buildingSlot = _world.Buildings.Rows.Resolve(_world.Households.Dwelling[slot]);
-            Money kindRent = _world.Rules.Kind(_world.Buildings.Kind[buildingSlot]).Rent;
+            Money rent = _world.HouseholdRent(buildingSlot);
 
             Handle<Household> household = _world.Households.Rows.At(slot);
-            bool pricedOut = kindRent.Raw > 0 && _world.BalanceOf(household).Raw < kindRent.Raw;
+            bool pricedOut = rent.Raw > 0 && _world.BalanceOf(household).Raw < rent.Raw;
             bool shortage = !pricedOut && ShortagePromptsMove(household, buildingSlot, tick);
             bool prefers = !pricedOut && !shortage && PrefersSomewhereElse(slot, buildingSlot, tick);
 

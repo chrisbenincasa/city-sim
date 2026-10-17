@@ -18,6 +18,116 @@ public sealed partial class World
             ? Units.Floor[unit]
             : 0;
 
+    /// <summary>
+    /// What a tenancy of <paramref name="floorTiles"/> Tiles in a Building of
+    /// <paramref name="kind"/> on <paramref name="lotSlot"/> pays a Day: the kind's
+    /// <c>rent_per_floor_tile</c> times that floor, times one plus the land value at the Lot.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The one place rent is priced</b> (<c>plans/money-circulation.md</c> L7). Placement, the
+    /// choice model and housing-need matching all come through here, so a dwelling's rent is the same
+    /// number whoever asks.
+    /// </para>
+    /// <para>
+    /// <b>Land value adjusts the rate rather than being it</b>, which is
+    /// <see cref="DemolitionPrice"/>'s arithmetic and its reasoning. Amenity is not built, so inland
+    /// ground sits at or just below zero and land value can only discount rent today. Land value of
+    /// minus one or below prices the tenancy at zero.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Nothing charges this.</b> It is read for a comparison; the daily charge is slice 4.
+    /// </para>
+    /// </remarks>
+    public Money TenancyRent(byte kind, int lotSlot, int floorTiles)
+    {
+        long rate = Rules.Kind(kind).RentPerFloorTile.Raw;
+
+        if (rate <= 0 || floorTiles <= 0 || lotSlot < 0 || !Lots.Rows.IsLive(lotSlot))
+        {
+            return Money.Zero;
+        }
+
+        long factor = (long)Arithmetic.Fixed.One
+            + Layers.LandValue(
+                Space.CellGrid.ToCells(Lots.East[lotSlot]), Space.CellGrid.ToCells(Lots.North[lotSlot]));
+
+        return factor <= 0
+            ? Money.Zero
+            : new Money(Arithmetic.IntegerMath.MulDivFloor(factor * floorTiles, rate, Arithmetic.Fixed.One));
+    }
+
+    /// <summary>
+    /// <inheritdoc cref="TenancyRent(byte, int, int)" path="/summary"/>
+    /// </summary>
+    /// <remarks>
+    /// Zero where the Building's Lot is gone, as <see cref="FloorTilesOf"/> is — a Building with no
+    /// ground under it stands on no land value either.
+    /// </remarks>
+    public Money TenancyRent(int buildingSlot, int floorTiles) =>
+        buildingSlot >= 0
+        && Buildings.Rows.IsLive(buildingSlot)
+        && Lots.Rows.TryResolve(Buildings.Lot[buildingSlot], out int lotSlot)
+            ? TenancyRent(Buildings.Kind[buildingSlot], lotSlot, floorTiles)
+            : Money.Zero;
+
+    /// <summary>
+    /// A Household tenancy's floor in <paramref name="buildingSlot"/>, in Tiles: the Building's floor
+    /// over the tenancy count its kind declares.
+    /// </summary>
+    /// <remarks>
+    /// <b>The declared count rather than the tenants standing there now</b>, so a neighbour moving out
+    /// does not reprice the floor a family lives on — and so a Household and a Business holding the
+    /// same floor in the same Building pay the same, which is what
+    /// <c>ShapeEqualUnits</c> gives a Unit from the same division.
+    /// </remarks>
+    public int HouseholdFloorOf(int buildingSlot) =>
+        buildingSlot >= 0
+        && Buildings.Rows.IsLive(buildingSlot)
+        && TryDeclaredOccupancy(Buildings.Kind[buildingSlot], buildingSlot, out int tenancies)
+        && tenancies > 0
+            ? Arithmetic.IntegerMath.FloorDiv(FloorTilesOf(buildingSlot), tenancies)
+            : 0;
+
+    /// <summary>
+    /// A Household tenancy's floor, in Tiles, in the dwelling a Zone Rule would raise on
+    /// <paramref name="lotSlot"/> — the Lot's floor over the tenancies that floor divides into.
+    /// </summary>
+    /// <remarks>
+    /// <b>Somebody weighing vacant land has no Building to measure</b>, so this measures the ground.
+    /// It takes the ordinary equal division and not a trade form's geometry, which is what
+    /// <c>HousingKindFor</c> admits anyway.
+    /// </remarks>
+    public int HouseholdFloorOnLot(int lotSlot)
+    {
+        if (lotSlot < 0 || !Lots.Rows.IsLive(lotSlot))
+        {
+            return 0;
+        }
+
+        int floor = Lots.FloorTiles(lotSlot);
+        int tenancies = Core.Rules.CapacityRuleset.Holds(floor, Rules.Capacity.FloorTilesPerOccupant);
+
+        return tenancies > 0 ? Arithmetic.IntegerMath.FloorDiv(floor, tenancies) : 0;
+    }
+
+    /// <summary>What a Household tenancy in <paramref name="buildingSlot"/> pays a Day.</summary>
+    /// <remarks>
+    /// <b>The same figure for a resident and for somebody only considering the dwelling</b>, because
+    /// the share divides by the declared count and not by who is in it. What placement compares is
+    /// therefore what the tenancy costs after the move.
+    /// </remarks>
+    public Money HouseholdRent(int buildingSlot) =>
+        TenancyRent(buildingSlot, HouseholdFloorOf(buildingSlot));
+
+    /// <summary>What the Business in <paramref name="businessSlot"/> pays a Day for its Unit.</summary>
+    public Money BusinessRent(int businessSlot) =>
+        businessSlot >= 0
+        && Businesses.Rows.IsLive(businessSlot)
+        && Buildings.Rows.TryResolve(Businesses.Building[businessSlot], out int buildingSlot)
+            ? TenancyRent(buildingSlot, UnitFloorOf(businessSlot))
+            : Money.Zero;
+
     private int VacantUnit(int buildingSlot)
     {
         foreach (int unit in BuildingUnits.Walk(buildingSlot))

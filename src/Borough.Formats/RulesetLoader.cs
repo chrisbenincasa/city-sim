@@ -3353,27 +3353,41 @@ public static class RulesetLoader
                     + "city rather than of a building (plans/0053). Write `parked = true` for a "
                     + "kind that carries parking at all, and omit the whole [capacity] key for a "
                     + "city with no parking.");
-                // 02 §5.2 step 2b's hard filter: what a Household pays per Day to live here.
-                // Optional, and absent means the dwelling is free -- which is what every kind
-                // before this key existed already meant. Zero is allowed and means the same thing.
+                // L7: what one floor Tile of this kind costs a tenant per Day. A tenancy's rent is
+                // this times the floor it occupies times one plus the land value at its Lot, so the
+                // rate is per-Tile and the price is per-tenancy.
+                // Optional, and absent means the kind is free to occupy -- which is what every kind
+                // before the key existed already meant. Zero is allowed and means the same thing.
                 // Negative is refused on parking's reasoning: a rent you are paid to live in is not
                 // a sentence anybody meant to write.
-                Money rent = Money.Zero;
+                Money rentPerFloorTile = Money.Zero;
 
-                if (TryInteger(table, "rent", out long costs, required: false, name))
+                if (TryInteger(table, "rent_per_floor_tile", out long costs, required: false, name))
                 {
                     if (costs < 0)
                     {
-                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "rent") ?? table), name,
-                            $"rent is {costs}. It is what a Household pays per Day to live in a "
-                            + "Building of this kind, so it cannot be negative; omit it or state "
-                            + "zero for a free dwelling.");
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "rent_per_floor_tile") ?? table), name,
+                            $"rent_per_floor_tile is {costs}. It is what one floor Tile of this kind "
+                            + "costs a tenant per Day, so it cannot be negative; omit it or state "
+                            + "zero for a kind that is free to occupy.");
                     }
                     else
                     {
-                        rent = new Money(costs);
+                        rentPerFloorTile = new Money(costs);
                     }
                 }
+
+                // `rent` priced a whole tenancy, so a file keeping the old name would have its
+                // per-tenancy figure read as a per-Tile rate -- a dwelling costing its floor area
+                // times what the author meant it to cost. Refused by name for that reason.
+                RefuseRetired(table, "rent", name,
+                    "rent is stated on a [[building]] kind. Rent is a RATE now -- "
+                    + "rent_per_floor_tile, what one floor Tile costs a tenant per Day -- and a "
+                    + "tenancy pays it for the floor it occupies, adjusted by the land value at its "
+                    + "Lot (plans/money-circulation.md L7). Divide the old per-tenancy figure by the "
+                    + "floor a tenancy holds -- a little over [capacity] floor_tiles_per_occupant, "
+                    + "because a Building's floor is shared over the tenancies it declares -- and "
+                    + "state the result as rent_per_floor_tile.");
 
                 // plans/0070 row 32: what the treasury pays to place a Building of this kind by
                 // hand. Optional, and absent is FREE -- which is what every kind meant before the
@@ -3509,7 +3523,7 @@ public static class RulesetLoader
                     Premises = premises,
                     Parked = parked,
                     Business = business,
-                    Rent = rent,
+                    RentPerFloorTile = rentPerFloorTile,
                     PlacementCost = placementCost,
                     ArrivalsPerDay = arrivalsPerDay,
                     Serves = serves,

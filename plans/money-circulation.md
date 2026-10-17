@@ -174,6 +174,9 @@ Slices 1 and 3 can run in parallel. After slice 1, slices 2 and 6 can too.
 - Acceptance: two dwellings of one kind on different land value rent for different amounts, and
   placement prefers the cheaper one when centrality is equal. Goldens are re-recorded.
 
+**Built 2026-10-17.** `World.TenancyRent` is the one function, `HouseholdRent` and `BusinessRent`
+name the two tenancies, and every Ruleset states `rent_per_floor_tile`.
+
 ### 4. Rent collection and arrears
 
 - Each Day, each tenancy pays the slice 3 figure to its Lot's Landowner, or to the treasury while
