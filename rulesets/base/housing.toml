@@ -51,7 +51,11 @@ bins = [
 ]
 houses   = true
 premises = true
-rent     = 400
+# A rate per floor Tile (money-circulation L7). A tenancy here holds about 17 Tiles, so a home costs
+# about 390 a Day on ground worth nothing, and less than that wherever land value is negative.
+# ⚠ NOT 24 OR 25. Both leave the school one teacher short for three Days around Day 66 of the
+# demonstration in plans/first-playable-founding-loop.md; every rate from 16 to 23 holds it.
+rent_per_floor_tile = 23
 parked   = true
 business = "mill"
 # PROVISIONAL: a Building cut off from every Outside Connection is abandoned after 14 Days, and
@@ -71,7 +75,8 @@ bins = [
 ]
 houses   = true
 premises = true
-rent     = 400
+# The dwelling's rate -- a flat over the shop rents like a house.
+rent_per_floor_tile = 23
 parked   = true
 business = "grocer"
 # PROVISIONAL: a Building cut off from every Outside Connection is abandoned after 14 Days, and
