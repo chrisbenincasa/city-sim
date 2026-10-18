@@ -49,8 +49,9 @@ public sealed class LocalServiceTests(ITestOutputHelper output)
         if (!raising)
         {
             int start = text.IndexOf("[[zone_rule]]\nname          = \"offices\"", StringComparison.Ordinal);
+            Assert.True(start >= 0, "offices.toml has no `offices` Zone Rule to remove");
             int end = text.IndexOf("[placement]", start, StringComparison.Ordinal);
-            Assert.True(start >= 0 && end > start, "offices.toml has no `offices` Zone Rule to remove");
+            Assert.True(end > start, "offices.toml has no [placement] after the `offices` Zone Rule");
             text = text.Remove(start, end - start);
         }
 
