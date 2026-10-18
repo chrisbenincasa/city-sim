@@ -804,9 +804,16 @@ Two consequences of the logit form that matter:
 
 **The same comparison runs in reverse for a Household with no work.** Once an adult has been jobless for a Ruleset duration, the Household compares its current home, with the jobs it can now reach, against the Hinterland, and Life Stage sets how reluctant it is to go. People arrive and leave for the same reasons, so a city that loses its employers loses population, families last. Departure because a Household can no longer pay its way joins later.
 
-**Hard constraints are filters, soft trade-offs are utility.** "Can I afford this at all" and "is any job reachable" should eliminate candidates *before* scoring, not appear as large negative coefficients. Faster, numerically safer, and far more legible — we can tell the player "37 Households left because no job was reachable," which a probability shift cannot.
+**Hard constraints are filters, soft trade-offs are utility.** Affordability filters candidates before scoring.
 
-> **Alternative worth evaluating: multiplicative utility.** SILO aggregates utility components as a *product* rather than a sum, so that **zero on any single component yields zero total**. That expresses "no amount of cheapness compensates for zero reachable jobs" structurally rather than via a filter or a steep penalty, and makes constraints feel like constraints. Possibly a better fit for our needs model than additive scoring. Open.
+- Reachable jobs add `log(1 + qualified vacancies)` to arrival utility. Zero jobs are a soft
+  disadvantage, so cheap or central housing can still draw arrivals.
+- Each vacant post counts once if any adult qualifies.
+- Reach uses Foot travel time within the authored Commute Budget. This first scope understates
+  drivers' reach.
+- `[placement] jobs_rent` expresses the shared weight as daily-rent Money per logarithmic unit.
+  Each Hinterland authors `reachable_jobs` on the same qualified-post basis. Both default to zero.
+- Resident moves and departures do not yet read this term.
 
 ### 5.5 Commercial and industrial growth
 
@@ -917,7 +924,7 @@ Recorded explicitly, because each deviation is a decision someone will later que
 | Author coefficients directly; never estimate them | No ground truth exists. This deletes the single largest cost of every model in this literature — the calibration apparatus — and the correctness criterion is legibility and feel, not matching a census. |
 | Treat `μ` and `N` as design dials | Both are fixed by convention in the literature for identification reasons that do not apply to us. They control herding and market friction respectively. |
 | Small `N` on purpose | Bounded rationality produces sticky, path-dependent, interesting cities. Large `N` produces efficient, smooth, boring ones. |
-| Hard filters (or multiplicative utility) for hard constraints | Legibility. "No job in reach → excluded" beats a large negative coefficient the player cannot see. |
+| Hard filters for hard constraints; additive jobs utility | Affordability excludes a candidate. Zero reachable vacancies remain a soft disadvantage, so other housing benefits can still attract arrivals. |
 | Keep the tâtonnement, discard the hedonic model | Mechanisms transfer; statistical summaries of a real market do not. |
 | One seeded run, no Monte Carlo averaging | We are not forecasting. Variance is content, not error. But this makes **per-agent seeded RNG streams** a hard requirement so that iteration order and parallelism cannot change outcomes — see §8. |
 | Sub-annual cadence | UrbanSim's annual step is an artifact of census and travel-survey data cadence. Players need feedback in seconds. |

@@ -1879,6 +1879,9 @@ public readonly record struct HinterlandDefinition(
     /// </remarks>
     public Money ExportBudget { get; init; }
 
+    /// <summary>Qualified open posts reachable from an Outside home; absent means zero.</summary>
+    public int ReachableJobs { get; init; }
+
     /// <summary>
     /// How far from a centre life out here is, in the Tiles the map is measured in.
     /// </summary>
@@ -2090,6 +2093,9 @@ public readonly record struct PlacementRuleset(
     /// How much daily rent is worth one utility unit; zero when no choice model is stated.
     /// </summary>
     public int RentPerUnit { get; init; }
+
+    /// <summary>Daily rent equivalent of ln(1 + reachable vacancies); zero disables the term.</summary>
+    public int JobsRent { get; init; }
 
     /// <summary>
     /// The daily rent a Household will pay to avoid moving; zero means moving costs it nothing.

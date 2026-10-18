@@ -186,8 +186,9 @@ Ordered by dependency. Each slice is one PR with its own acceptance.
    first: what counts as unused (left at the Day boundary, or per firing), and whether a service
    shares a Hinterland's Goods `export_budget`. Blocked in practice on the profit build-up, because
    it is a second inflow with no sink.
-4. **Jobs attract arrivals.** Add the reachable-jobs term to `PlacementEngine.Compare` and to the
-   Hinterland row. Record the change to plan 0073's "no Hinterland wage" line.
+4. **Jobs attract arrivals. Built 10/18/2026 on `export-base-4`.** Arrival choice reads qualified
+   reachable vacancies on city and Hinterland alternatives. Plan 0073 keeps its no-wage boundary;
+   the new count is not income. See the evidence and rollout limit below.
 5. **Jobless departure.** Read `NoVacancySince`; past the Ruleset duration, rerun the comparison
    with Life Stage reluctance. Coordinate failure semantics with the decline-and-recovery row.
 
@@ -201,3 +202,55 @@ Ordered by dependency. Each slice is one PR with its own acceptance.
 - A fixture that loses its employers loses Households over the stated duration, families last.
 - A driven demonstration shows an office district forming and the treasury's balance of payments
   turning positive.
+
+
+## Slice 4 evidence and limits
+
+- Arrival `Compare` adds `ln(1 + qualified open posts)` for standing housing, buildable housing
+  Lots and the Hinterland. Highest adult Skill Tier determines eligibility; a post counts once,
+  regardless of the number of qualifying adults. Residents and departures keep their existing score.
+- `[placement] jobs_rent` is the shared daily-rent equivalent of one logarithmic unit. Zero disables
+  the term. `[[hinterland]] reachable_jobs` defaults to zero and describes qualified vacant posts.
+  Life Stage-specific jobs weights remain deferred. Existing Rulesets do not change behavior.
+- City reach is exact Foot travel time within `[trips] commute_budget_minutes`, including the
+  existing same-Segment crossing rule. This scope understates drivers' reach. Zero jobs remain a
+  soft disadvantage. Wages are not added; plan 0073's wage boundary remains in force.
+- `JobAccessibility` owns a reusable `WalkScratch`, snapshots doors, vacancies, eligibility and
+  Rules, and rebuilds on changed inputs. `World.RebuildDerived` discards its snapshots after load.
+  The rebuild audit corrupts counts before rebuilding with matching snapshots. Save/reload
+  continues with equal State Hashes across route-worker counts 1 and 8. An enabled-jobs Input Log
+  replay also matches every Tick across those settings and passes end-of-run invariants.
+- `rulesets/jobs-attract.toml` copies the shipped `attracted.toml` demonstration with provisional
+  `jobs_rent = 240` and `reachable_jobs = 8`. At seed 7 and 1,000 Citizens, one Day admitted
+  **256 Households with employers versus 238 without employers**. No arrivals were commanded.
+  Removing employers also removes their output; this is a behavior demonstration, not an estimate
+  of a city's response elasticity.
+- Release work counts on `zeus`, Intel Core i5-10400, seed 7, route workers 1, first full Day,
+  decide-write guard disabled, concurrent sessions active. `JobsAttractTests.Accessibility_work_per_Day`
+  runs the authored fixture at 1,000 Citizens and the larger synthetic city at 10,000 Citizens.
+  Counts are deterministic work, not quiet-machine timing claims.
+
+Reproduce the work counts with the focused instrument.
+
+```sh
+scripts/test.sh --filter 'FullyQualifiedName~JobsAttractTests.Accessibility_work_per_Day' -- --logger 'console;verbosity=detailed'
+```
+
+| Citizens | Live Lots at Day end | Live Businesses | Floods per Day | Settled nodes per Day |
+|---|---|---|---|---|
+| 1,000 | 136 | 100 | 8,704 | 16,864,384 |
+| 10,000 | 1,032 | 864 | 66,048 | 144,919,488 |
+
+- Each changed snapshot floods every Lot, bounded by the Commute Budget, then reads Businesses in
+  the existing spatial Building index. Aggregation still scales with Lots times nearby employers.
+  Cache hits scan input snapshots but do no routing. This is not a scalable default for base
+  Rulesets. Before broad rollout, prepare accessibility only for sampled origin Lots before choice,
+  bounding origins by the authored candidate budget times arrival occasions; preserve exact costs
+  and vacancy invalidation. Do not lower refresh fidelity silently. Existing Rulesets stay disabled.
+- No saved field or save-format version changes. Existing goldens need no re-recording because the
+  optional term is off in their Rulesets. Generated schema and key reference include the new keys.
+
+- Validation on 10/18/2026 passed `dotnet build`, the 4,875-test simulation lane, the final
+  60-test jobs-and-Corpus filter, both Day-work instruments, TOML lint and `git diff --check`.
+  The full lane preceded the last test-only additions; the final filter covers those assertions.
+  Independent loop review approved with no critical or major findings.

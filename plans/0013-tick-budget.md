@@ -1237,3 +1237,18 @@ and was nearly shipped as an argument.
 it does not price the individual consumers above or represent a balanced mature economy.
 The profiler excludes setup and reporting from Tick timings and reports the Decide guard setting.
 [`0067`](0067-aged-city-performance.md) owns the aged captures, population controls and Layers attribution.
+
+## Arrival job-access work, 10/18/2026
+
+- `JobsAttractTests.Accessibility_work_per_Day` measures deterministic work in Release on `zeus`,
+  Intel Core i5-10400, seed 7, route workers 1, first full Day with the Decide guard disabled.
+  Concurrent sessions make this unsuitable for timing claims.
+- `jobs-attract.toml` at 1,000 Citizens performs 8,704 bounded walking floods and settles
+  16,864,384 nodes. At 10,000 Citizens it performs 66,048 floods and settles 144,919,488 nodes.
+  The worlds finish with 136 and 1,032 live Lots, respectively.
+- Every changed snapshot currently rebuilds every Lot. Each flood is bounded by the authored
+  Commute Budget, but aggregation scales with Lots times nearby employers. Keep this optional
+  term off in base Rulesets pending a sampled-origin preparation pass; do not weaken the exact
+  reach threshold or silently reuse stale vacancies to reduce work.
+- [Export-base slice 4](export-base.md#slice-4-evidence-and-limits) owns the fixture, arrival evidence
+  and proposed bound. These counts do not establish a quiet-machine Tick budget.

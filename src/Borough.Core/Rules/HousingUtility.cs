@@ -81,6 +81,11 @@ public static class HousingUtility
         return Saturate(centrality - weighed);
     }
 
+    /// <summary>The shared additive jobs term, denominated by the existing rent scale.</summary>
+    public static int JobsWorth(in PlacementRuleset placement, long jobs) => placement.JobsRent == 0
+        ? 0 : Saturate(IntegerMath.FloorDiv(
+            (long)Transcendental.Log1PCount(jobs) * placement.JobsRent, placement.RentPerUnit));
+
     /// <summary>
     /// A utility sum held inside what Q16.16 represents.
     /// </summary>

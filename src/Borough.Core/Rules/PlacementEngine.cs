@@ -712,6 +712,10 @@ public sealed class PlacementEngine
             return ProspectOutcome.NoSample;
         }
 
+        _world.JobAccess.Refresh(_world);
+        byte tier = prospect.Composition.AdultsTier3 > 0 ? (byte)3
+            : prospect.Composition.AdultsTier2 > 0 ? (byte)2
+            : prospect.Composition.AdultsTier1 > 0 ? (byte)1 : (byte)0;
         int candidates = placement.Candidates;
 
         Retain((candidates * 2) + 1);
@@ -724,6 +728,7 @@ public sealed class PlacementEngine
         _candidateUtilities[0] = HousingUtility.Saturate(
             (long)HousingUtility.Worth(
                 placement, home.CentralityTiles, weight, home.Rent, rentWeight)
+            + HousingUtility.JobsWorth(placement, home.ReachableJobs)
             + placement.StayingPut);
 
         int found = 1;
@@ -750,7 +755,9 @@ public sealed class PlacementEngine
                 }
 
                 _candidateBuildings[found] = building;
-                _candidateUtilities[found] = Utility(lot, building, weight, rentWeight);
+                _candidateUtilities[found] = HousingUtility.Saturate(
+                    (long)Utility(lot, building, weight, rentWeight)
+                    + HousingUtility.JobsWorth(placement, _world.JobAccess.Count(lot, tier)));
                 found++;
             }
         }
@@ -819,8 +826,13 @@ public sealed class PlacementEngine
             }
 
             _candidateBuildings[found] = ~lot;
-            _candidateUtilities[found] = HousingUtility.Worth(
-                _world.Rules.Placement, Distance(lot), weight, rent, rentWeight);
+            byte tier = prospect.Composition.AdultsTier3 > 0 ? (byte)3
+                : prospect.Composition.AdultsTier2 > 0 ? (byte)2
+                : prospect.Composition.AdultsTier1 > 0 ? (byte)1 : (byte)0;
+            _candidateUtilities[found] = HousingUtility.Saturate(
+                (long)HousingUtility.Worth(
+                    _world.Rules.Placement, Distance(lot), weight, rent, rentWeight)
+                + HousingUtility.JobsWorth(_world.Rules.Placement, _world.JobAccess.Count(lot, tier)));
             found++;
             added++;
         }

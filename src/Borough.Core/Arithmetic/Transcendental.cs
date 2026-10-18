@@ -355,6 +355,20 @@ public static class Transcendental
         return y < 0 ? -angle : angle;
     }
 
+    /// <summary>Natural log of one plus a whole count, without narrowing the count to Q16.16.</summary>
+    public static int Log1PCount(long count)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(count);
+        long value = checked(count + 1);
+        int exponent = Fixed.FractionalBits;
+        while (value > int.MaxValue)
+        {
+            value = IntegerMath.ShiftRight(value, 1);
+            exponent++;
+        }
+        return Log((int)value) + (exponent * Ln2);
+    }
+
     /// <summary>Natural logarithm of a positive Q16.16 value, in Q16.16.</summary>
     public static int Log(int x) => Fixed.Mul(Log2(x), Ln2);
 
