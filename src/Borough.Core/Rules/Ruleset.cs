@@ -283,7 +283,7 @@ public enum ResourceFamily : byte
     /// </summary>
     /// <remarks>
     /// It is never stocked, so no Bin holds it. A firm buys it through a <c>pool</c> input from the
-    /// provider it keeps under contract (<c>adr/0178</c>), and the buyer must stand within the
+    /// provider it keeps under contract (<c>adr/0179</c>), and the buyer must stand within the
     /// service's reach of that provider.
     /// </remarks>
     Service = 5,
@@ -843,31 +843,37 @@ public readonly record struct KindDefinition(
 
 
     /// <summary>
-    /// The daily rent a Building of this kind asks, which placement and the choice model read and
-    /// nothing charges. <see cref="Money.Zero"/> means the dwelling is free.
+    /// What one floor Tile of a Building of this kind costs a tenant per Day —
+    /// <c>rent_per_floor_tile</c>. <see cref="Money.Zero"/> means the kind is free to occupy.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b><c>02 §5.2</c> step 2b's hard filter — <em>affordable?</em> — arriving as a property of the
-    /// kind.</b> <c>PlacementEngine.TryHouse</c> skips a dwelling whose rent exceeds the seeker's
-    /// balance, so a Household with no money is excluded from every dwelling that charges one.
+    /// <b>A rate and not a price</b> (<c>plans/money-circulation.md</c> L7). A tenancy's rent is this
+    /// times the floor it occupies, times one plus the land value at its Lot, which
+    /// <c>World.TenancyRent</c> computes and every reader goes through. So one kind charges a large
+    /// Unit more than a small one and central ground more than peripheral, from one authored number.
     /// </para>
     /// <para>
-    /// <b>A filter and not a score.</b> Rent does not trade off against commute or centrality; a
-    /// dwelling the Household cannot afford is not considered at all, exactly as a full dwelling is
-    /// not. The soft trade-off is <c>02 §5.4</c>'s choice model, which is a different mechanism.
+    /// <b>A Business occupies its Unit's floor; a Household occupies an equal share of the Building's,
+    /// over the tenancy count the kind declares.</b> Both tenancies of the same floor on the same
+    /// ground pay the same.
     /// </para>
     /// <para>
-    /// <b>It is NOT deducted at placement.</b> Placement is the moment a Household chooses; the
-    /// recurring charge belongs to a Rule, which is a separate mechanism. This key gates entry and
-    /// nothing else.
+    /// <b>It is both a filter and a score, and the two are different questions.</b>
+    /// <c>PlacementEngine</c> skips a dwelling whose rent exceeds the seeker's balance — <c>02 §5.2</c>
+    /// step 2b's <em>affordable?</em> — and <see cref="HousingUtility.Worth"/> weighs what is left
+    /// against centrality, which is <c>02 §5.4</c>'s soft trade-off.
+    /// </para>
+    /// <para>
+    /// <b>Nothing charges it.</b> Placement is the moment a Household chooses; the recurring charge is
+    /// slice 4's mechanism and no money moves for rent today.
     /// </para>
     /// <para>
     /// 🔴 <b>PROVISIONAL wherever it is authored</b> — <c>plans/0045</c> standing order 4 suspends
     /// <c>adr/0052</c>.
     /// </para>
     /// </remarks>
-    public Money Rent { get; init; }
+    public Money RentPerFloorTile { get; init; }
 
     /// <summary>
     /// What the treasury pays to place a Building of this kind by hand — <c>placement_cost</c>.
@@ -1179,14 +1185,13 @@ public readonly record struct BusinessKindDefinition
     public int QuitsAfterDaysUnpaid { get; init; }
 
     /// <summary>
-    /// How many pay periods of wages a founded Business keeps in its till before paying the rest to
-    /// its owner.
+    /// How many pay periods of wages a Business keeps in its till before paying the rest to its owner.
     /// </summary>
     /// <remarks>
     /// <para>
     /// The draw runs on a payday that paid every worker in full. The reserve is this many pay periods
-    /// of the Day's graded wage bill, and the owner is the Household that founded the Business. A
-    /// Business a Zone Rule instantiated has no owner and pays no draw.
+    /// of the Day's graded wage bill. The owner is the Household that founded the Business, or, for a
+    /// Business with none, a housed Household drawn on its first payday with a surplus (<c>adr/0176</c>).
     /// </para>
     /// <para>
     /// <b>Zero means never</b>, reached by omitting the key.
@@ -1841,9 +1846,14 @@ public readonly record struct HinterlandDefinition(
     MapEdge Edge, Money EmigrantBalanceMin, Money EmigrantBalanceMax)
 {
     /// <summary>
-    /// What a home costs per Day out here, in the money a <c>[[building]] rent</c> is in.
+    /// What a home costs per Day out here, as a whole tenancy rather than a rate per floor Tile.
     /// </summary>
     /// <remarks>
+    /// <para>
+    /// ⚠ <b>Not <see cref="KindDefinition.RentPerFloorTile"/>'s unit.</b> The Outside has no floor
+    /// area and no land value to read, so what it quotes is the figure a Household compares —
+    /// <c>World.TenancyRent</c>'s output and not its rate.
+    /// </para>
     /// <para>
     /// <b>adr/0023's whole argument, made concrete.</b> That decision rejected a hand-authored
     /// <c>V_outside</c> because it has no referent — <i>"neither a designer nor a playtester nor a
@@ -3161,6 +3171,15 @@ public readonly record struct LotRuleset(
     /// value — <c>demolition_price_per_tile</c>. Zero means occupied demolition is free.
     /// </summary>
     public Money DemolitionPricePerTile { get; init; }
+
+    /// <summary>A Zone Rule's builder pays this Money outside the city per floor Tile. Null means no charge.</summary>
+    public Money? ConstructionChargePerFloorTile { get; init; }
+
+    /// <summary>A buyer keeps this Money per Household member in its own balance.</summary>
+    public Money? BuyerReservePerMember { get; init; }
+
+    /// <summary>Either authored key enables paid construction, including an explicit zero.</summary>
+    public bool LandSales => ConstructionChargePerFloorTile.HasValue || BuyerReservePerMember.HasValue;
 
     /// <summary>
     /// The shallowest a new plot may shrink to when it overlaps claimed ground, in Tiles —

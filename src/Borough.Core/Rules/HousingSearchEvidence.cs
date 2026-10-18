@@ -48,13 +48,13 @@ public static class HousingSearchEvidence
             if (!world.Buildings.Rows.IsLive(row) || world.Buildings.IsAbandoned(row)
                 || !world.HasRoomForHousehold(row)) { continue; }
             vacancy = true;
-            byte kind = world.Buildings.Kind[row];
-            if (!HousingUtility.Affordable(world, position, kind)) { continue; }
+            Money rent = world.HouseholdRent(row);
+            if (!HousingUtility.Affordable(world, position, rent)) { continue; }
             affordable = true;
             if (!compares) { return HousingSearchReason.Suitable; }
             int lot = world.Lots.Rows.Resolve(world.Buildings.Lot[row]);
             int worth = HousingUtility.Worth(world.Rules.Placement, HousingUtility.Distance(world, lot),
-                taste, world.Rules.Kind(kind).Rent, rentWeight);
+                taste, rent, rentWeight);
             if (worth > best) { best = worth; }
         }
         if (!vacancy) { return HousingSearchReason.Capacity; }

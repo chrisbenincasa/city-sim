@@ -8,7 +8,7 @@ using Borough.Core.Tables;
 public readonly struct ServiceContract;
 
 /// <summary>
-/// Which provider each firm buys each Professional Service from (<c>adr/0178</c>).
+/// Which provider each firm buys each Professional Service from (<c>adr/0179</c>).
 /// </summary>
 /// <remarks>
 /// <para>

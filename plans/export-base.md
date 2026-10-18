@@ -42,7 +42,7 @@ for jobs and jobs attract people.
 | 8 | Reachable jobs, as `log(1 + jobs)`, enter arrival placement on both the city and Hinterland sides | Wages, once posted wages (`adr/0026`) exist |
 | 9 | A jobless spell past a Ruleset duration makes a housed Household rerun the same comparison against the Hinterland. Life Stage sets reluctance | Departure when it cannot pay (Household financial resilience row) |
 | 10 | Seeds differ through land. Hinterlands stay authored per Ruleset | Generator deals Hinterlands to edges (world-creation row) |
-| 11 | A firm keeps its service provider under a saved contract and chooses again only when the provider cannot supply it (`adr/0178`, 10/15/2026). A District Pool was rejected because it cannot say "within reach of this firm" | Local providers and their capacity, offices slice |
+| 11 | A firm keeps its service provider under a saved contract and chooses again only when the provider cannot supply it (`adr/0179`, 10/15/2026). A District Pool was rejected because it cannot say "within reach of this firm" | Local providers and their capacity, offices slice |
 
 Consequences of these decisions:
 
@@ -56,9 +56,11 @@ Consequences of these decisions:
 
 ## Open
 
-- **Profit build-up.** Business tills receive export income with no investment sink until private
-  capital is designed. The budget guard bounds inflow, not accumulation. Check boundedness in the
-  first long run with exports.
+- **Profit build-up.** A till pays its surplus above a reserve to its owner Household (`adr/0176`).
+  That Household's savings then buy Lots and pay construction, which sends the land price to the
+  treasury and the construction charge outside the city
+  ([land ownership and rent](money-circulation.md#land-ownership-and-rent-decided-10162026)). The
+  budget guard bounds inflow, not accumulation. Check boundedness in the first long run with exports.
 - **Who staffs a service firm.** Keep the single `requires_tier` minimum. A tier mix waits on
   `adr/0026`.
 - **Office capacity.** A service is never stocked, so an office sells capacity per Day rather than

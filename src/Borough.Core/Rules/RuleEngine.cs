@@ -866,7 +866,7 @@ public sealed class RuleEngine
 
     /// <summary>
     /// Resolves one <c>pool</c> input for a Professional Service into a payment to the firm's provider,
-    /// or names the market row the firm waits on when no provider will supply it (<c>adr/0178</c>).
+    /// or names the market row the firm waits on when no provider will supply it (<c>adr/0179</c>).
     /// </summary>
     /// <remarks>
     /// <para>

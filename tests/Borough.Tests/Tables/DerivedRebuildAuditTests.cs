@@ -279,7 +279,7 @@ public sealed class DerivedRebuildAuditTests
         // Street graph, and its zoning is read from the permission paint (adr/0174).
         //
         // 54 -> 57: business.contract_head, business.contract_tail and service_contract.buyer_next,
-        // each firm's list of service contracts (adr/0178). The serviced world exercises all three.
+        // each firm's list of service contracts (adr/0179). The serviced world exercises all three.
         Assert.Equal(57, all.Length);
         Assert.Single(ScratchColumns(Stepped(0)));
     }
