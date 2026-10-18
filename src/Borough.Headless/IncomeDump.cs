@@ -189,6 +189,21 @@ internal static class IncomeDump
 
         output.WriteLine("What the Ruleset levies");
         output.WriteLine();
+
+        // Said outright rather than left to be inferred from three zeroes, on Profits' precedent:
+        // this report admits a file that levies no income tax when it collects rent instead, and a
+        // band of nothing would otherwise read as a schedule that failed to load.
+        if (!schedule.Levies)
+        {
+            output.WriteLine(
+                "  No [income_tax] takes anything here, so the withheld column is zero throughout");
+            output.WriteLine(
+                "  and the bands below are the file's own nothing rather than a schedule gone");
+            output.WriteLine(
+                "  missing. The income in this budget arrives by another lever.");
+            output.WriteLine();
+        }
+
         output.WriteLine(F(
             $"  allowance          {schedule.AllowancePerDay:N0} a Day, taxed at nothing"));
         output.WriteLine(F(
@@ -206,6 +221,7 @@ internal static class IncomeDump
             "  wage is taxed as seven Days and not as one enormous one.");
 
         Profits(output, rules);
+        Rents(output, rules, names);
 
         foreach ((byte kind, BusinessKindDefinition trade) in Trades(rules))
         {
@@ -273,6 +289,42 @@ internal static class IncomeDump
             "  what was assessed. There is no allowance key: a lower rate of 0 is how one is spelt.");
     }
 
+    /// <summary>
+    /// The rent each kind charges and the arrears deadline, printed for the <c>rent in</c> column's
+    /// sake.
+    /// </summary>
+    /// <remarks>
+    /// <b>The schedule block's own argument, one income along.</b> A column of rent says nothing
+    /// about whether the mechanism works; the same column beside a rate per floor Tile and a tenancy's
+    /// floor can be checked by hand against one dwelling. ⚠ <b>Only the share on city-held Lots
+    /// reaches the column</b> — the rate here prices every tenancy, however its ground is held.
+    /// </remarks>
+    private static void Rents(TextWriter output, Ruleset rules, RulesetNames names)
+    {
+        if (!rules.Rent.Collects)
+        {
+            return;
+        }
+
+        output.WriteLine();
+        output.WriteLine(F(
+            $"  Rent is charged every Day and a tenancy ends after {rules.Rent.EvictsAfterDays:N0} Days in arrears."));
+
+        for (int kind = 1; kind <= rules.KindCount; kind++)
+        {
+            long rate = rules.Kind((byte)kind).RentPerFloorTile.Raw;
+
+            if (rate <= 0)
+            {
+                continue;
+            }
+
+            string named = names.Kind((byte)kind) ?? kind.ToString(CultureInfo.InvariantCulture);
+
+            output.WriteLine(F($"  A \"{named}\" charges {rate:N0} a floor Tile a Day."));
+        }
+    }
+
     /// <summary>Every declared trade that actually posts a wage, in declaration order.</summary>
     /// <remarks>
     /// <b>Both halves of the test, because either alone admits a trade that pays nobody.</b>
@@ -294,12 +346,12 @@ internal static class IncomeDump
     }
 
     /// <summary>
-    /// The budget: income in four columns, expenditure in three, and the two levels they moved.
+    /// The budget, with income in five columns, expenditure in five, and the two levels they moved.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Eleven columns and no twelfth that adds any of them up.</b> The treasury column is already the
-    /// running consequence of the five flows, so a net column would be its first difference and
+    /// <b>Twelve columns and no thirteenth that adds any of them up.</b> The treasury column is
+    /// already the running consequence of the flows, so a net column would be its first difference and
     /// would carry nothing the table does not have — while costing the reader the one distinction
     /// the table exists to make. <b>The households column is the counterparty</b>: a budget that
     /// showed only the treasury could not tell a city taxing a growing population from one taxing a
@@ -334,6 +386,8 @@ internal static class IncomeDump
             census.Series(Metric.Of(MoneyFlowCounter.Placement, Aggregate.Sum), window);
         Series kept =
             census.Series(Metric.Of(MoneyFlowCounter.Upkeep, Aggregate.Sum), window);
+        Series rented =
+            census.Series(Metric.Of(MoneyFlowCounter.Rent, Aggregate.Sum), window);
 
         ReadOnlySpan<CensusSample> levels = treasury.Samples.Span;
         var columns = new Columns(
@@ -342,6 +396,7 @@ internal static class IncomeDump
             profits.Samples.Span,
             levied.Samples.Span,
             ruled.Samples.Span,
+            rented.Samples.Span,
             spent.Samples.Span,
             drawn.Samples.Span,
             granted.Samples.Span,
@@ -352,8 +407,8 @@ internal static class IncomeDump
         output.WriteLine();
 
         string header = Row(
-            "tick", "withheld", "profit tax", "policy in", "rule in", "policy out", "rule out",
-            "subsidy out", "placement out", "upkeep out", "treasury", "households");
+            "tick", "withheld", "profit tax", "policy in", "rule in", "rent in", "policy out",
+            "rule out", "subsidy out", "placement out", "upkeep out", "treasury", "households");
         output.WriteLine(header);
         output.WriteLine(new string('-', header.Length));
 
@@ -386,6 +441,7 @@ internal static class IncomeDump
         long profit = Total(columns.Profits);
         long moved = Total(columns.Levied);
         long paidIn = Total(columns.Ruled);
+        long rentIn = Total(columns.Rented);
         long out_ = Total(columns.Spent);
         long drawnOut = Total(columns.Drawn);
         long grantedOut = Total(columns.Granted);
@@ -394,24 +450,24 @@ internal static class IncomeDump
 
         output.WriteLine();
         output.WriteLine(F(
-            $"  Into the treasury: {income:N0} withheld from wages, {profit:N0} in profit tax, {moved:N0} by a Policy, {paidIn:N0} by a Bin Rule."));
+            $"  Into the treasury: {income:N0} withheld from wages, {profit:N0} in profit tax, {moved:N0} by a Policy, {paidIn:N0} by a Bin Rule, {rentIn:N0} in rent on city Lots."));
         output.WriteLine(F(
             $"  Out of it: {out_:N0} by a Policy, {drawnOut:N0} by a Bin Rule, {grantedOut:N0} in subsidy, {placedOut:N0} on placements, {keptOut:N0} on road Upkeep."));
         Catalogued(output, catalogue);
         output.WriteLine(
-            "  The nine are printed apart and never netted. A net cannot say whether a city taxed");
+            "  The ten are printed apart and never netted. A net cannot say whether a city taxed");
         output.WriteLine(
             "  nothing and paid nothing or taxed heavily and paid it all back; and within the");
         output.WriteLine(
-            "  income, a withholding, a profit tax, a levy and a rates bill are the same arrival");
+            "  income, a withholding, a profit tax, a levy, a rates bill and a rent are the same");
         output.WriteLine(
-            "  through four levers -- a rate in [income_tax], a rate in [business_tax], an amount in");
+            "  arrival through five levers -- a rate in [income_tax], a rate in [business_tax], an");
         output.WriteLine(
-            "  a [[policy]], and an output term in a [[rule]]. The two taxes also fall on different");
+            "  amount in a [[policy]], an output term in a [[rule]], and a [[building]] kind's");
         output.WriteLine(
-            "  payers: one leaves a wage on its way to a purse, the other leaves a till that was");
+            "  rent_per_floor_tile. The two taxes also fall on different payers: one leaves a wage");
         output.WriteLine(
-            "  already holding it.");
+            "  on its way to a purse, the other leaves a till that was already holding it.");
         output.WriteLine();
         output.WriteLine(
             "  ⚠ `policy in` is every Policy that pays INTO the treasury, a plain transfer and a");
@@ -440,7 +496,16 @@ internal static class IncomeDump
             "  balance fell by them, and columns because nothing else would name them.");
         output.WriteLine();
         output.WriteLine(
-            "  The treasury column is these nine columns' running total, and nothing else reaches");
+            "  ⚠ `rent in` is only the rent that REACHED THE TREASURY, which is the rent charged on");
+        output.WriteLine(
+            "  a Lot the city owns. Rent a private Landowner received never crossed this edge, and");
+        output.WriteLine(
+            "  a debt two Landowners cancelled against each other moved no Money at all -- so the");
+        output.WriteLine(
+            "  arrears panel's collected figure is the larger number and is not this column.");
+        output.WriteLine();
+        output.WriteLine(
+            "  The treasury column is these ten columns' running total, and nothing else reaches");
         output.WriteLine(
             "  it: every unit of the balance is explained by the flows printed beside it.");
     }
@@ -449,7 +514,7 @@ internal static class IncomeDump
     /// Every column of the budget but the tick and the treasury, which the caller already holds.
     /// </summary>
     /// <remarks>
-    /// <b>A carrier so that a row writer takes three arguments rather than ten.</b> A <c>ref
+    /// <b>A carrier so that a row writer takes three arguments rather than eleven.</b> A <c>ref
     /// struct</c> because every member is a <see cref="ReadOnlySpan{T}"/> over the census's own
     /// storage — nothing is copied, and nothing outlives the reading it was taken from.
     /// </remarks>
@@ -459,6 +524,7 @@ internal static class IncomeDump
         ReadOnlySpan<CensusSample> profits,
         ReadOnlySpan<CensusSample> levied,
         ReadOnlySpan<CensusSample> ruled,
+        ReadOnlySpan<CensusSample> rented,
         ReadOnlySpan<CensusSample> spent,
         ReadOnlySpan<CensusSample> drawn,
         ReadOnlySpan<CensusSample> granted,
@@ -475,6 +541,16 @@ internal static class IncomeDump
         public ReadOnlySpan<CensusSample> Levied { get; } = levied;
 
         public ReadOnlySpan<CensusSample> Ruled { get; } = ruled;
+
+        /// <summary>
+        /// What tenants of treasury-owned Lots actually paid the city — the fifth income path.
+        /// </summary>
+        /// <remarks>
+        /// ⚠ <b>Narrower than <c>Simulation.LastRent.Collected</c> and must stay so.</b> That
+        /// reading also counts rent a private Landowner received and debt a ring cancelled, and
+        /// neither crossed the treasury's edge, so either one here would break the identity.
+        /// </remarks>
+        public ReadOnlySpan<CensusSample> Rented { get; } = rented;
 
         public ReadOnlySpan<CensusSample> Spent { get; } = spent;
 
@@ -544,6 +620,7 @@ internal static class IncomeDump
             Cell(columns.Profits, i),
             Cell(columns.Levied, i),
             Cell(columns.Ruled, i),
+            Cell(columns.Rented, i),
             Cell(columns.Spent, i),
             Cell(columns.Drawn, i),
             Cell(columns.Granted, i),
@@ -570,18 +647,26 @@ internal static class IncomeDump
     }
 
     /// <summary>
-    /// Refuses a Ruleset that levies no income tax, and says which one does.
+    /// Refuses a Ruleset whose income half would be a table of zeroes, and says which one fills it.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b><c>MoneyDump.Refuse</c>'s polarity, and it is the harder of the two refusals to skip.</b>
     /// A file stating no <c>[income_tax]</c> withholds nothing, so the withheld column would be a
     /// column of zeroes — and ***a zero flow reads as a broken mechanism rather than as a file that
     /// levies no tax***. That is the one reading a budget must not be able to print, because the
     /// mechanism it would be blamed on is exactly the one this picture exists to show working.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A file that collects rent passes on the rent column instead</b>, which is the refusal's
+    /// own reason applied to a second income path rather than an exception to it. The income half of
+    /// such a file is not empty, and <c>rulesets/renting.toml</c> — whose entire demonstration is the
+    /// rent reaching the treasury — would otherwise be refused the one report that shows it.
+    /// </para>
     /// </remarks>
     private static int? Refuse(Ruleset rules, TextWriter output)
     {
-        if (rules.IncomeTax.Levies)
+        if (rules.IncomeTax.Levies || rules.Rent.Collects)
         {
             return null;
         }
@@ -600,8 +685,8 @@ internal static class IncomeDump
 
     private static string Row(
         string label, string a, string b, string c, string d, string e, string f, string g,
-        string h, string i, string j, string k) =>
-        F($"{label,-10}  {a,11}  {b,11}  {c,11}  {d,11}  {e,11}  {f,11}  {g,11}  {h,13}  {i,11}  {j,14}  {k,14}");
+        string h, string i, string j, string k, string l) =>
+        F($"{label,-10}  {a,11}  {b,11}  {c,11}  {d,11}  {e,11}  {f,11}  {g,11}  {h,11}  {i,13}  {j,11}  {k,14}  {l,14}");
 
     private static string Count(long value) => F($"{value:N0}");
 

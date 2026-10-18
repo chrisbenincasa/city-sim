@@ -79,6 +79,42 @@ public sealed class RentCollectionTests
     };
 
     /// <summary>
+    /// Two kinds — kind 1 is a plain dwelling, kind 2 instantiates a shop — so one Lot can carry a
+    /// Business tenant and another cannot.
+    /// </summary>
+    private static Ruleset Mixed() => new(
+        resources: [ResourceFamily.Money],
+        rules: [],
+        kinds:
+        [
+            new KindDefinition(0, 0, 0, 0)
+            {
+                Houses = true,
+                RentPerFloorTile = new Money(Rate),
+            },
+            new KindDefinition(0, 0, 0, 0)
+            {
+                Houses = true,
+                Premises = true,
+                Business = 1,
+                RentPerFloorTile = new Money(Rate),
+            },
+        ],
+        inputs: [],
+        outputs: [],
+        emissions: [],
+        bins: [],
+        kindRules: [],
+        zoneRules: [])
+    {
+        Placement = new PlacementRuleset(0, 0, 0, 20, 0),
+        Capacity = new CapacityRuleset(Share, 0, 0),
+        Rent = new RentRuleset(Deadline),
+        BusinessKinds =
+            [new BusinessKindDefinition { ShiftStartEarliestHour = 8, ShiftStartLatestHour = 8 }],
+    };
+
+    /// <summary>
     /// A dwelling of <see cref="Tenancies"/> tenancies on city-held ground, with one Household in it
     /// holding <paramref name="endowment"/>.
     /// </summary>
@@ -342,6 +378,147 @@ public sealed class RentCollectionTests
         Assert.Equal(collected + (2 * Daily), Purse(world, landlord));
         Assert.Equal(0, Treasury(world));
         Assert.False(world.Households.IsBehindOnRent(tenant));
+
+        simulation.CheckEndOfRun();
+    }
+
+    /// <summary>
+    /// 🔴 <b>A Landowner whose tenant sits in a LATER slot is not evicted on the deadline Day its
+    /// tenant's rent clears.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// ***This is the defect eviction-inside-the-charge-pass had, and slot order was the whole of
+    /// it.*** A Landowner's rent arrives when its tenant is charged, and a tenant can sit anywhere in
+    /// the table — so a creditor charged first was judged against a debt the rest of the Day was
+    /// about to settle. <c>World.Unplace</c> then wrote the debt off, and the rent the tenant paid
+    /// moments later landed in an unplaced Landowner's purse instead of reaching the treasury.
+    /// </para>
+    /// <para>
+    /// The figures: both are three Days behind since Day 0, so Day 3 is the deadline Day for each.
+    /// The tenant is endowed 160 before the sweep — 120 owed and the Day's own 40 — which is exactly
+    /// what the Landowner owes. ***Every unit of it has to reach the treasury***, because the
+    /// Landowner lives on ground the city holds.
+    /// </para>
+    /// <para>
+    /// <see cref="World.Endow"/> rather than an engine, deliberately: it is the Outside's door and
+    /// settles nothing, so the Day-3 sweep meets both debts intact and the ordering is what decides.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_landowner_cleared_by_a_later_slots_tenant_is_not_evicted()
+    {
+        var world = new World(1_000, Rules(), Key);
+        var simulation = new Simulation(world, Key);
+
+        // Landowner first, so the charge pass reaches the creditor before the tenant that pays it.
+        Handle<Household> owner = world.CreateHousehold(
+            Raise(world, Ground(world, Tiles.Zero)), lifeStage: 0);
+
+        Handle<Lot> rented = Ground(world, new Tiles(128));
+        Handle<Household> tenant = world.CreateHousehold(Raise(world, rented), lifeStage: 0);
+
+        world.Lots.Landowner[world.Lots.Rows.Resolve(rented)] = owner;
+
+        int ownerSlot = world.Households.Rows.Resolve(owner);
+        int tenantSlot = world.Households.Rows.Resolve(tenant);
+
+        Assert.True(
+            ownerSlot < tenantSlot, "the creditor must be charged first for this to prove anything.");
+
+        // Days 0, 1 and 2 charge both and neither can pay, so Day 3 is the deadline Day for each.
+        RunToDay(world, simulation, Deadline);
+
+        Assert.Equal(Deadline * Daily, world.Households.RentDebt[ownerSlot].Raw);
+        Assert.Equal(0, world.Households.RentDebtSinceDay[ownerSlot]);
+        Assert.Equal(Deadline * Daily, world.Households.RentDebt[tenantSlot].Raw);
+
+        world.Endow(tenant, new Money((Deadline + 1) * Daily));
+
+        RunToDay(world, simulation, Deadline + 1);
+
+        // 🔴 NOBODY IS EVICTED, and the money reached the city rather than stopping in a purse the
+        // eviction had already written clean.
+        Assert.False(world.Households.IsUnplaced(ownerSlot));
+        Assert.False(world.Households.IsUnplaced(tenantSlot));
+        Assert.Equal(0, world.UnplacedPool.Count);
+        Assert.Equal((Deadline + 1) * Daily, Treasury(world));
+
+        Assert.Equal(0, world.Households.RentDebt[ownerSlot].Raw);
+        Assert.Equal(0, world.Households.RentDebt[tenantSlot].Raw);
+        Assert.Equal(0, Purse(world, ownerSlot));
+        Assert.Equal(0, Purse(world, tenantSlot));
+
+        // The reading agrees with the city. Behind is counted after the chain has run, so a Day that
+        // cleared every debt reports nobody behind.
+        Assert.Equal(0, simulation.LastRent.Evicted);
+        Assert.Equal(0, simulation.LastRent.Behind);
+
+        simulation.CheckEndOfRun();
+    }
+
+    /// <summary>
+    /// 🔴 <b>The same ordering, with a BUSINESS tenant — the charge pass that pays the Landowner runs
+    /// after every Household has been charged.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A stronger case than a Household tenant and not a second copy of it.</b> The sweep charges
+    /// the Household table in full before it reaches the first Business, so a Landowner cleared by a
+    /// shop's rent is cleared after every Household verdict would have been taken — there is no slot
+    /// order that puts the payer first.
+    /// </para>
+    /// <para>
+    /// The shop is the only tenant on the Landowner's Lot, so <see cref="Mixed"/> gives that Lot a
+    /// kind naming a trade and the Landowner's own dwelling a kind that does not. Its till is funded
+    /// through <c>MoneySupply.Issued</c> beside the deposit, which is what keeps
+    /// <c>Invariant.MoneyIsConserved</c> true of money that arrived from outside the city.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_landowner_cleared_by_a_business_tenant_is_not_evicted()
+    {
+        var world = new World(1_000, Mixed(), Key);
+        var simulation = new Simulation(world, Key);
+
+        Handle<Household> owner = world.CreateHousehold(
+            world.CreateBuilding(Ground(world, Tiles.Zero), 1, Ticks.Zero, Key), lifeStage: 0);
+
+        Handle<Lot> rented = Ground(world, new Tiles(128));
+        Handle<Building> shopfront = world.CreateBuilding(rented, 2, Ticks.Zero, Key);
+
+        world.Lots.Landowner[world.Lots.Rows.Resolve(rented)] = owner;
+
+        int ownerSlot = world.Households.Rows.Resolve(owner);
+        int shop = Trader(world, world.Buildings.Rows.Resolve(shopfront));
+
+        Assert.Equal(Daily, world.BusinessRent(shop).Raw);
+        Assert.Equal(Daily, world.ResidentRent(ownerSlot).Raw);
+
+        RunToDay(world, simulation, Deadline);
+
+        Assert.Equal(Deadline * Daily, world.Households.RentDebt[ownerSlot].Raw);
+        Assert.Equal(Deadline * Daily, world.Businesses.RentDebt[shop].Raw);
+
+        long funding = (Deadline + 1) * Daily;
+
+        world.Deposit(world.Businesses.Balance[shop], funding, world.Tick);
+        world.MoneySupply.Issued[MoneySupplyTable.Slot] += new Money(funding);
+
+        RunToDay(world, simulation, Deadline + 1);
+
+        Assert.False(world.Households.IsUnplaced(ownerSlot));
+        Assert.False(world.Businesses.IsUnpremised(shop));
+        Assert.Equal(0, world.UnplacedPool.Count);
+        Assert.Equal(0, world.UnpremisedPool.Count);
+
+        Assert.Equal(funding, Treasury(world));
+        Assert.Equal(0, world.Households.RentDebt[ownerSlot].Raw);
+        Assert.Equal(0, world.Businesses.RentDebt[shop].Raw);
+        Assert.Equal(0, Purse(world, ownerSlot));
+
+        Assert.Equal(0, simulation.LastRent.Evicted);
+        Assert.Equal(0, simulation.LastRent.Behind);
 
         simulation.CheckEndOfRun();
     }

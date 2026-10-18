@@ -79,6 +79,60 @@ public sealed class RentSettlementTests
                 subject, MidDay, ApplyCount.Band(1, 1), Scope.Global, Scope.Local, Cash, pays)],
     };
 
+    /// <summary>Ticks between firings of the Bin Rule in <see cref="Granting"/>.</summary>
+    /// <remarks>
+    /// <b>Short enough that the first firing lands well inside Day 0.</b>
+    /// <c>World.ArmingStagger</c> arms the first one at <c>1 + (draw % rate)</c>, so a rate of 64
+    /// puts it somewhere in Ticks 1 to 64 — after the Day-0 rent charge and a long way before the
+    /// mid-Day Tick the assertions are taken at.
+    /// </remarks>
+    private const uint Firing = 64;
+
+    /// <summary>
+    /// A Bin Rule that moves <see cref="Daily"/> money out of the treasury and into its OWNER's
+    /// balance. <paramref name="owner"/> says whose Rule it is.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>A balanced <c>global</c>-to-<c>local</c> transfer and no Pool trade anywhere in it</b>,
+    /// which is the whole point of these two cases: the income hook used to settle only a trade
+    /// seller, so money arriving by a Rule's own output term stayed spendable until the next Day.
+    /// </remarks>
+    private static Ruleset Granting(BinTenancy owner) => new(
+        resources: [ResourceFamily.Money],
+        rules:
+        [
+            new RuleDefinition(
+                1, Firing, ApplyCount.Band(1, 1), RuleId.None, false, default, ConditionId.None,
+                0, 1, 0, 1, 0, 0)
+            {
+                Tenancy = owner,
+            },
+        ],
+        kinds:
+        [
+            new KindDefinition(0, 0, 0, 1)
+            {
+                Houses = true,
+                Premises = owner == BinTenancy.Business,
+                Business = (byte)(owner == BinTenancy.Business ? 1 : 0),
+                RentPerFloorTile = new Money(Rate),
+            },
+        ],
+        inputs: [new Term(new BinRef(Scope.Global, Cash), Daily)],
+        outputs: [new Term(new BinRef(Scope.Local, Cash), Daily)],
+        emissions: [],
+        bins: [],
+        kindRules: [new RuleId(1)],
+        zoneRules: [])
+    {
+        Placement = new PlacementRuleset(0, 0, 0, 20, 0),
+        Capacity = new CapacityRuleset(Share, 0, 0),
+        Rent = new RentRuleset(Deadline),
+        BusinessKinds = owner == BinTenancy.Business
+            ? [new BusinessKindDefinition { ShiftStartEarliestHour = 8, ShiftStartLatestHour = 8 }]
+            : [],
+    };
+
     private static Handle<Lot> Ground(World world, Tiles east) => world.Lots.Create(
         east, Tiles.Zero, zone: 0, wide: new Tiles(Share * Tenancies), deep: new Tiles(1));
 
@@ -318,9 +372,9 @@ public sealed class RentSettlementTests
     /// exception for the one income that happens to be rent.
     /// </summary>
     /// <remarks>
-    /// <b>The chain is bounded at one hop</b> (<c>RentAccounts.PassRentOn</c>), so this asserts the
-    /// hop rather than a cascade: the tenant pays its Landowner, and the Landowner's own arrears are
-    /// settled out of that payment within the same Tick.
+    /// <b>One hop of the chain</b>, which is all this world has: the tenant pays its Landowner, and
+    /// the Landowner's own arrears are settled out of that payment within the same Tick.
+    /// <see cref="RentChainTests"/> walks the longer chains and the rings.
     /// </remarks>
     [Fact]
     public void A_landowner_that_owes_rent_settles_out_of_the_rent_it_receives()
@@ -364,6 +418,118 @@ public sealed class RentSettlementTests
         // hands the same money straight on to the city for the Lot it lives on. Four boundaries
         // passed, so the city collected four Days of the one tenancy it is Landowner of.
         Assert.Equal((Deadline + 1) * Daily, Treasury(world));
+
+        simulation.CheckEndOfRun();
+    }
+
+    /// <summary>
+    /// 🔴 <b>A Household's BIN RULE income pays its rent debt where it lands, with no trade in
+    /// sight.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// ***The income hook used to settle only a trade seller's credit.*** A Rule moving money
+    /// <c>global</c> → <c>local</c> credits a purse without any Pool trade, so that arrival reached
+    /// no repayment and stayed spendable until the next Day boundary — which is the hole L16 names.
+    /// </para>
+    /// <para>
+    /// <b>The treasury is the meter.</b> It is endowed with exactly two firings' worth and the
+    /// Landowner lives on its own Lot, so it is charged nothing and the rent it receives stays out of
+    /// the treasury. An empty treasury therefore means both Rules fired, and every unit that left it
+    /// is accounted for by a purse below.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_households_rule_income_pays_its_rent_debt_where_it_lands()
+    {
+        var world = new World(1_000, Granting(BinTenancy.Occupant), Key);
+        var simulation = new Simulation(world, Key);
+
+        // Both Households run the Rule, so two firings empty the treasury and nothing fires again.
+        world.EndowTreasury(new Money(2 * Daily));
+
+        Handle<Lot> rented = Ground(world, Tiles.Zero);
+        Handle<Lot> owned = Ground(world, new Tiles(128));
+
+        Handle<Household> tenant = world.CreateHousehold(Raise(world, rented), lifeStage: 0);
+        Handle<Household> landlord = world.CreateHousehold(Raise(world, owned), lifeStage: 0);
+
+        world.Lots.Landowner[world.Lots.Rows.Resolve(rented)] = landlord;
+        world.Lots.Landowner[world.Lots.Rows.Resolve(owned)] = landlord;
+
+        int tenantSlot = world.Households.Rows.Resolve(tenant);
+        int landlordSlot = world.Households.Rows.Resolve(landlord);
+
+        // Half a Day: Day 0's charge has run, Day 1's boundary is five hundred Ticks away, and both
+        // firings are behind us.
+        RunPast(world, simulation, Ticks.PerDay / 2);
+
+        Assert.NotEqual(0UL, world.Tick.Raw % (ulong)Ticks.PerDay);
+        Assert.Equal(0, Treasury(world));
+
+        // 🔴 REPAID WHERE IT LANDED, mid-Day, and the clock stopped with the debt.
+        Assert.Equal(0, Level(world, world.Households.Balance[tenantSlot]));
+        Assert.Equal(0, world.Households.RentDebt[tenantSlot].Raw);
+        Assert.Equal(0, world.Households.RentDebtSinceDay[tenantSlot]);
+        Assert.False(world.Households.IsBehindOnRent(tenantSlot));
+
+        // The creditor holds the tenant's rent and its own grant: a resident Landowner is charged
+        // nothing, so nothing took the second firing off it.
+        Assert.Equal(2 * Daily, Level(world, world.Households.Balance[landlordSlot]));
+
+        simulation.CheckEndOfRun();
+    }
+
+    /// <summary>
+    /// 🔴 <b>A Business's Bin Rule income pays its rent debt where it lands — the same hole, on the
+    /// other tenancy side.</b>
+    /// </summary>
+    /// <remarks>
+    /// One Building, whose kind names a trade: the Landowner lives in it and the shop tenants it, so
+    /// the shop's rent is owed to the Household beside it and the treasury stays out of the figures
+    /// entirely. ***A till credited mid-Day has the rest of the Day to buy stock with the money***,
+    /// which is why the assertion is taken off a boundary.
+    /// </remarks>
+    [Fact]
+    public void A_businesss_rule_income_pays_its_rent_debt_where_it_lands()
+    {
+        var world = new World(1_000, Granting(BinTenancy.Business), Key);
+        var simulation = new Simulation(world, Key);
+
+        // One shop, so one firing empties the treasury.
+        world.EndowTreasury(new Money(Daily));
+
+        Handle<Lot> owned = Ground(world, Tiles.Zero);
+        Handle<Building> premises = Raise(world, owned);
+        Handle<Household> landlord = world.CreateHousehold(premises, lifeStage: 0);
+
+        world.Lots.Landowner[world.Lots.Rows.Resolve(owned)] = landlord;
+
+        int landlordSlot = world.Households.Rows.Resolve(landlord);
+        int shop = Rows.NoSlot;
+
+        foreach (int business in world.BuildingBusinesses.Walk(world.Buildings.Rows.Resolve(premises)))
+        {
+            shop = business;
+            break;
+        }
+
+        Assert.NotEqual(Rows.NoSlot, shop);
+        Assert.Equal(Daily, world.BusinessRent(shop).Raw);
+
+        RunPast(world, simulation, Ticks.PerDay / 2);
+
+        Assert.NotEqual(0UL, world.Tick.Raw % (ulong)Ticks.PerDay);
+        Assert.Equal(0, Treasury(world));
+
+        Assert.Equal(0, Level(world, world.Businesses.Balance[shop]));
+        Assert.Equal(0, world.Businesses.RentDebt[shop].Raw);
+        Assert.Equal(0, world.Businesses.RentDebtSinceDay[shop]);
+        Assert.False(world.Businesses.IsBehindOnRent(shop));
+
+        // The Landowner is a resident of its own Lot and is charged nothing, so the shop's rent is
+        // the only thing in its purse.
+        Assert.Equal(Daily, Level(world, world.Households.Balance[landlordSlot]));
 
         simulation.CheckEndOfRun();
     }

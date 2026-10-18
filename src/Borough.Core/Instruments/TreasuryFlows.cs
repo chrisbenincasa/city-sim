@@ -8,12 +8,13 @@ using Borough.Core.Rules;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Eleven magnitudes and no twelfth that nets any of them.</b> <c>MoneyFlowCounter.FromTreasury</c>
-/// carries the argument and <c>Borough.Headless.IncomeDump</c> prints it: a net cannot say whether a
-/// city taxed nothing and paid nothing or taxed heavily and paid it all back. Within the income the
-/// same argument holds one level down — a withholding, a profit tax, a <c>[[policy]]</c> and a
-/// <c>[[rule]]</c> are one arrival through four levers, and a city that swapped one for another
-/// would show a flat total under a changed file.
+/// <b>Twelve magnitudes and no thirteenth that nets any of them.</b>
+/// <c>MoneyFlowCounter.FromTreasury</c> carries the argument and
+/// <c>Borough.Headless.IncomeDump</c> prints it, because a net cannot say whether a city taxed
+/// nothing and paid nothing or taxed heavily and paid it all back. Within the income the same
+/// argument holds one level down — a withholding, a profit tax, a <c>[[policy]]</c>, a
+/// <c>[[rule]]</c> and a rent are one arrival through five levers, and a city that swapped one for
+/// another would show a flat total under a changed file.
 /// </para>
 /// <para>
 /// <b>The same figures a Census carries, in a different shape of carrier.</b> A Census keeps a
@@ -39,6 +40,14 @@ using Borough.Core.Rules;
 /// alike, which it folds into one accumulator (<c>plans/0072</c> F28).
 /// </param>
 /// <param name="RuleIn">What a Bin Rule naming <c>scope = "global"</c> paid in off a premises.</param>
+/// <param name="Rent">
+/// Rent the city collected as the Landowner of the Lots it holds (<c>L9</c>, <c>L14</c>) — the Day's
+/// charge and a mid-Day arrears repayment alike, which arrive by two routes and are one income.
+/// ⚠ <b>Rent paid to a PRIVATE Landowner is not here and must not be</b>: it moves between two
+/// members and the treasury never sees it. A ring's cancelled debt is not here either, because it
+/// moves no money at all. <c>Simulation.LastRent.Collected</c> includes both and cannot stand in for
+/// this.
+/// </param>
 /// <param name="PolicyOut">What <c>PolicyEngine</c> moved out of the treasury.</param>
 /// <param name="RuleOut">What a Bin Rule naming <c>scope = "global"</c> drew out.</param>
 /// <param name="Subsidy">What the subsidy sweeps apportioned out against their ceilings.</param>
@@ -65,6 +74,7 @@ public readonly record struct TreasuryFlows(
     long ProfitTax,
     long PolicyIn,
     long RuleIn,
+    long Rent,
     long PolicyOut,
     long RuleOut,
     long Subsidy,
@@ -74,7 +84,7 @@ public readonly record struct TreasuryFlows(
     long Grant)
 {
     /// <summary>Everything that arrived, through all four levers.</summary>
-    public long Income => Withheld + ProfitTax + PolicyIn + RuleIn;
+    public long Income => Withheld + ProfitTax + PolicyIn + RuleIn + Rent;
 
     /// <summary>Everything that left, through all seven paths.</summary>
     public long Expenditure =>
@@ -88,6 +98,7 @@ public readonly record struct TreasuryFlows(
         ProfitTax + other.ProfitTax,
         PolicyIn + other.PolicyIn,
         RuleIn + other.RuleIn,
+        Rent + other.Rent,
         PolicyOut + other.PolicyOut,
         RuleOut + other.RuleOut,
         Subsidy + other.Subsidy,

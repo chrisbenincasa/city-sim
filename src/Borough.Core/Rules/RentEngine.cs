@@ -118,18 +118,8 @@ internal sealed class RentEngine(World world)
                 _world.Households.Dwelling[slot],
                 treasury,
                 today,
-                deadline,
                 tick,
-                reading,
-                out bool evict);
-
-            if (evict)
-            {
-                // LAST for this row, on Bankrupt's rule: Unplace rewrites the dwelling handle and
-                // the occupant list, and nothing below may read either. It leaves the row live, so
-                // the walk is safe to continue.
-                _world.Unplace(_world.Households.Rows.At(slot));
-            }
+                reading);
         }
 
         for (int slot = 0; slot < _world.Businesses.Rows.SlotCount; slot++)
@@ -149,16 +139,11 @@ internal sealed class RentEngine(World world)
                 _world.Businesses.Building[slot],
                 treasury,
                 today,
-                deadline,
                 tick,
-                reading,
-                out bool evict);
-
-            if (evict)
-            {
-                _world.Unpremise(_world.Businesses.Rows.At(slot), tick);
-            }
+                reading);
         }
+
+        reading = Deadline(today, deadline, tick, reading);
 
         // LAST, so the drain carries both what income settled since the previous Day and what this
         // sweep's own chain walks moved. RentAccounts is where a debt is paid off and a ring's
@@ -173,8 +158,118 @@ internal sealed class RentEngine(World world)
     }
 
     /// <summary>
-    /// Charges one tenancy this Day's rent and whatever it already owed, and says whether the
-    /// deadline has run out on it.
+    /// Ends the tenancies whose deadline has run out, once every tenancy in the sweep has been
+    /// charged and paid.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>A SECOND PASS, and the separation is the correctness.</b> A Landowner's rent arrives
+    /// when its tenant is charged, and a tenant can sit in any slot — so deciding one row's eviction
+    /// while rows after it have not yet paid evicts a Landowner that the rest of the Day was about to
+    /// clear. ***<see cref="World.Unplace"/> then writes the debt off***, so the money the tenant
+    /// pays moments later can no longer reach the creditor it was owed to, and in a city of city-held
+    /// Lots it never reaches the treasury either.
+    /// </para>
+    /// <para>
+    /// <b>It reads the saved columns again rather than carrying a verdict forward</b>, for the same
+    /// reason: whatever the charge pass computed for this row may have been overtaken by a payment,
+    /// a chain walk or a ring cancellation that ran after it. <b><see cref="RentReading.Behind"/> is
+    /// counted here too</b>, so the figure is what the city owes when the sweep finishes rather than
+    /// a tally of rows that were behind at the moment they were charged.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Households before Businesses, and each in slot order</b>, which is the charge pass's own
+    /// order. Nothing here moves money, so the order cannot change what is collected; it fixes which
+    /// tenancy a shared Building loses first and that has to be stable for replay.
+    /// </para>
+    /// </remarks>
+    private RentReading Deadline(long today, int deadline, Ticks tick, RentReading reading)
+    {
+        for (int slot = 0; slot < _world.Households.Rows.SlotCount; slot++)
+        {
+            if (!_world.Households.Rows.IsLive(slot)
+                || !_world.Buildings.Rows.IsValid(_world.Households.Dwelling[slot]))
+            {
+                continue;
+            }
+
+            if (!Overdue(
+                _world.Households.RentDebt,
+                _world.Households.RentDebtSinceDay,
+                slot,
+                today,
+                deadline,
+                ref reading))
+            {
+                continue;
+            }
+
+            // LAST for this row, on Bankrupt's rule: Unplace rewrites the dwelling handle and the
+            // occupant list, and nothing below may read either.
+            _world.Unplace(_world.Households.Rows.At(slot));
+        }
+
+        for (int slot = 0; slot < _world.Businesses.Rows.SlotCount; slot++)
+        {
+            if (!_world.Businesses.Rows.IsLive(slot)
+                || !_world.Buildings.Rows.IsValid(_world.Businesses.Building[slot]))
+            {
+                continue;
+            }
+
+            if (!Overdue(
+                _world.Businesses.RentDebt,
+                _world.Businesses.RentDebtSinceDay,
+                slot,
+                today,
+                deadline,
+                ref reading))
+            {
+                continue;
+            }
+
+            _world.Unpremise(_world.Businesses.Rows.At(slot), tick);
+        }
+
+        return reading;
+    }
+
+    /// <summary>
+    /// Whether one tenancy's arrears have outlived the deadline, counting it as behind or evicted
+    /// either way.
+    /// </summary>
+    /// <remarks>
+    /// <b>The clock is the authority on when the run of short Days began.</b> A fresh shortfall set
+    /// it to today in the charge pass, and the loader floors the deadline at one Day, so a tenancy
+    /// that only went short today cannot reach it today.
+    /// </remarks>
+    private static bool Overdue(
+        Column<Money> debtColumn,
+        Column<int> sinceColumn,
+        int slot,
+        long today,
+        int deadline,
+        ref RentReading reading)
+    {
+        if (debtColumn[slot].Raw <= 0)
+        {
+            return false;
+        }
+
+        bool evict = today - sinceColumn[slot] >= deadline;
+
+        reading = reading with
+        {
+            Behind = reading.Behind + (evict ? 0 : 1),
+            Evicted = reading.Evicted + (evict ? 1 : 0),
+        };
+
+        return evict;
+    }
+
+    /// <summary>
+    /// Charges one tenancy this Day's rent and whatever it already owed, and settles the chain the
+    /// payment travels.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -208,13 +303,9 @@ internal sealed class RentEngine(World world)
         Handle<Building> premises,
         int treasury,
         long today,
-        int deadline,
         Ticks tick,
-        RentReading reading,
-        out bool evict)
+        RentReading reading)
     {
-        evict = false;
-
         long standing = debtColumn[slot].Raw;
         long fresh = rent.Raw;
 
@@ -259,6 +350,13 @@ internal sealed class RentEngine(World world)
             // across: both writes drain their Bins' wait lists.
             _world.Withdraw(_world.Bins.Rows.At(purse), paid, tick);
             _world.Deposit(_world.Bins.Rows.At(payee), paid, tick);
+
+            // L9: the city collects a held Lot's rent, and that is treasury income the budget owes a
+            // line. TryPayee names no Landowner in exactly the city-held case.
+            if (landowner == Rows.NoSlot)
+            {
+                _world.Arrears.CollectForTreasury(paid, tick);
+            }
         }
 
         // 🔴 PUBLISHED BEFORE THE CHAIN IS FOLLOWED, and the order is the correctness.
@@ -287,16 +385,9 @@ internal sealed class RentEngine(World world)
             _world.Arrears.SettleHousehold(landowner, tick);
         }
 
-        // ⚠ READ BACK, because the walk above may have settled this tenancy on the way round a ring.
-        // Eviction answers what is owed when every settlement this Tick has run -- judging it on the
-        // figures from before the walk would end a tenancy that had since paid in full.
-        long owed = debtColumn[slot].Raw;
-
-        // The clock is the authority on when the run of short Days began. A fresh shortfall set it to
-        // today a few lines up, and the loader floors the deadline at one Day, so a tenancy that only
-        // went short today cannot reach it today.
-        evict = owed > 0 && today - sinceColumn[slot] >= deadline;
-
+        // ⚠ NOTHING HERE DECIDES AN EVICTION, and nothing counts what is still owed. Deadline runs
+        // once every tenancy has been charged and paid, because a Landowner in an earlier slot can
+        // be cleared by a tenant in a later one.
         return reading with
         {
             // Saturating like Charged beside it, and for the same reason: the loader accepts a rent
@@ -307,8 +398,6 @@ internal sealed class RentEngine(World world)
             Charged = RentAccounts.Carry(
                 reading.Charged, RentAccounts.Carry(standing, fresh)),
             Tenancies = reading.Tenancies + 1,
-            Behind = reading.Behind + (owed > 0 && !evict ? 1 : 0),
-            Evicted = reading.Evicted + (evict ? 1 : 0),
         };
     }
 }

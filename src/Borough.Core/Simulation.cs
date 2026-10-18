@@ -345,6 +345,7 @@ public sealed class Simulation
             _profitTax.DrainCollected().Sum,
             policies.ToTreasury.Sum,
             rules.ToTreasury.Sum,
+            _world.Arrears.DrainTreasury().Sum,
             policies.FromTreasury.Sum,
             rules.FromTreasury.Sum,
             _subsidies.DrainPaid().Sum,

@@ -13,9 +13,21 @@
 # Day's own charge, and past `evicts_after_days` the tenancy ends and the Household goes to the
 # Unplaced Pool. `[placement] gives_up_after_days` is the Pool's sink, so the evicted leave.
 #
-# WHAT TO WATCH. `--evidence` prints the arrears panel: how many tenancies are charged, how many are
-# behind, what is owed and the Day the longest-running shortfall began. The Pool grows as the
-# deadline comes round, and the treasury rises by what was collected.
+# WHAT TO WATCH, and these two commands are exactly the ones:
+#
+#   dotnet run --project src/Borough.Headless -- --evidence --ruleset rulesets/renting.toml \
+#     --citizens 1000 --ticks 4096
+#   dotnet run --project src/Borough.Headless -- --income --ruleset rulesets/renting.toml \
+#     --citizens 1000 --ticks 4096
+#
+# `--evidence` prints the arrears panel: how many tenancies are charged, how many are behind, what
+# is owed and the Day the longest-running shortfall began. The Pool grows as the deadline comes
+# round. Its condemnation trail says it condemns nothing, which is true and deliberate -- the
+# arrears clock is the only thing emptying a dwelling here.
+#
+# `--income` prints the budget, where the same rent arrives as the `rent in` column and the treasury
+# column is that column's running total. `--money` refuses this file, because it charts the Policy
+# circuit and there is no `[[policy]]` here.
 #
 # ===================================================================================================
 # NOBODY EARNS HERE, AND THAT IS DELIBERATE. There is no wage and no selling Rule, so a Household

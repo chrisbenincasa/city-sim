@@ -85,6 +85,36 @@ internal sealed class RentAccounts(World world)
     /// <summary>The part of <see cref="_collected"/> that moved no cash, from <see cref="Net"/>.</summary>
     private long _cancelled;
 
+    /// <summary>Rent cash that reached the TREASURY since the last <see cref="DrainTreasury"/>.</summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>Treasury rent is treasury income and has to appear as its own line in the budget.</b>
+    /// Every Lot in a generated city is the city's (<c>L14</c>), so on the only shipped rent fixture
+    /// ***all of the rent is treasury income*** — and until this was counted the treasury rose by
+    /// money no flow explained, which is the hole <c>TreasuryFlowsExplainTheBalanceTests</c> exists
+    /// to keep shut.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Cash to the treasury only.</b> Rent paid to a private Landowner moves between two
+    /// members and is not the city's income, and a cancelled ring debt moves nothing at all — neither
+    /// belongs here. <see cref="RentReading.Collected"/> is the figure that includes both, and it
+    /// cannot stand in for this one.
+    /// </para>
+    /// </remarks>
+    private MoneyFlow _treasuryFlow;
+
+    /// <summary>This Tick's running total for <see cref="_treasuryFlow"/>.</summary>
+    /// <remarks>
+    /// <b>Folded per Tick and not per payment</b>, on <c>Simulation</c>'s placement-flow rule: a
+    /// peak is what a Tick moved, not what one tenancy paid. ⚠ <b>Folded lazily, because this class
+    /// has no Tick of its own</b> — it runs wherever income lands rather than as a sweep, so the
+    /// fold happens when a payment arrives on a later Tick and again at the drain.
+    /// </remarks>
+    private long _tickToTreasury;
+
+    /// <summary>The Tick <see cref="_tickToTreasury"/> belongs to.</summary>
+    private Ticks _folded;
+
     /// <summary>
     /// Rent this class has discharged since the last call, which <see cref="RentEngine.Sweep"/>
     /// folds into the Day's reading.
@@ -107,6 +137,50 @@ internal sealed class RentAccounts(World world)
         _cancelled = 0;
 
         return drained;
+    }
+
+    /// <summary>
+    /// Rent cash the treasury has taken since the last call, for the treasury-flow accounting.
+    /// </summary>
+    /// <remarks>
+    /// <b>A second drain beside <see cref="Drain"/>, with a different caller and a different
+    /// cadence</b>, which is why they are not one call. <see cref="Drain"/> feeds the Day's
+    /// <see cref="RentReading"/> and a Day boundary takes it; this feeds
+    /// <c>Simulation.DrainTreasuryFlows</c>, which a host reads on whatever interval it likes.
+    /// Each has exactly one caller, on <c>BusinessTaxEngine.DrainCollected</c>'s rule.
+    /// </remarks>
+    internal MoneyFlow DrainTreasury()
+    {
+        Fold();
+
+        MoneyFlow flow = _treasuryFlow;
+
+        _treasuryFlow = default;
+
+        return flow;
+    }
+
+    /// <summary>Records rent cash arriving in the treasury on <paramref name="tick"/>.</summary>
+    private void Collect(long paid, Ticks tick)
+    {
+        if (tick != _folded)
+        {
+            Fold();
+            _folded = tick;
+        }
+
+        _tickToTreasury += paid;
+    }
+
+    /// <summary>Folds the pending Tick into the flow. A Tick that collected nothing folds nothing.</summary>
+    private void Fold()
+    {
+        if (_tickToTreasury > 0)
+        {
+            _treasuryFlow = _treasuryFlow.Fold(_tickToTreasury);
+        }
+
+        _tickToTreasury = 0;
     }
 
     /// <summary>
@@ -203,6 +277,17 @@ internal sealed class RentAccounts(World world)
         landowner = holder;
         return true;
     }
+
+    /// <summary>
+    /// Records rent cash the Day sweep paid into the treasury, which
+    /// <see cref="RentEngine.Charge"/> collects on its own behalf.
+    /// </summary>
+    /// <remarks>
+    /// <b>One accumulator for both payment sites</b>, because a host reading the budget wants the
+    /// city's rent income and not an accident of which of the two moved it — the Day's charge and a
+    /// mid-Day arrears repayment are the same income arriving by two routes.
+    /// </remarks>
+    internal void CollectForTreasury(long paid, Ticks tick) => Collect(paid, tick);
 
     /// <summary>The money Bin the city holds rent in, or <c>Rows.NoSlot</c> where it holds none.</summary>
     internal int TreasuryBin() =>
@@ -431,6 +516,13 @@ internal sealed class RentAccounts(World world)
         _world.Deposit(_world.Bins.Rows.At(payee), paid, tick);
 
         _collected = Carry(_collected, paid);
+
+        // The city is the landlord of every Lot it holds (L9), so this repayment is treasury income
+        // and the budget has to show it. TryPayee names no Landowner in exactly that case.
+        if (landowner == Rows.NoSlot)
+        {
+            Collect(paid, tick);
+        }
 
         long left = debt - paid;
 

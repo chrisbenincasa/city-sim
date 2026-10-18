@@ -188,6 +188,13 @@ public sealed class RentChainTests
 
         Assert.Equal(Daily, Treasury(world));
 
+        // 🔴 THE READING AGREES WITH THE CITY. Behind used to be tallied where each row was charged,
+        // so this chain ended with every debt at zero and reported two tenancies behind — the two
+        // the payment had not reached yet at the moment they were asked.
+        Assert.Equal(3, simulation.LastRent.Tenancies);
+        Assert.Equal(0, simulation.LastRent.Behind);
+        Assert.Equal(0, simulation.LastRent.Evicted);
+
         simulation.CheckEndOfRun();
     }
 

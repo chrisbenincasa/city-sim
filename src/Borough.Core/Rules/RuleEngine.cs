@@ -1040,11 +1040,6 @@ public sealed class RuleEngine
             }
         }
 
-        // L16: a Rule's sale credits the seller's till (Touch, above), and rent arrears are settled
-        // where income lands rather than at the next Day boundary. AFTER the loop, because the
-        // deposit the payment arrives in happens there. Settled against the seller rows rather than
-        // the touched Bins, because a Bin cannot be resolved back to a Business -- BinTable.Owner
-        // names a Building. Returns zero where the Ruleset states no [rent].
         for (int i = 0; i < _tradeCount; i++)
         {
             if (_tradeSeller[i] != Rows.NoSlot)
@@ -1052,6 +1047,8 @@ public sealed class RuleEngine
                 _world.Arrears.SettleBusiness(_tradeSeller[i], tick);
             }
         }
+
+        SettleRent(instance, tick);
 
         // The part of a per-Day quantity that did not reach a whole unit, banked HERE and nowhere
         // else, so a Rule that was checked and then blocked accrues nothing. Check holds these
@@ -1091,6 +1088,70 @@ public sealed class RuleEngine
 
         _world.Wheel.Arm(instance, tick, definition.Rate);
     }
+
+    /// <summary>
+    /// Settles the running tenant's rent arrears where this Rule's own output credited its money
+    /// balance (<c>plans/money-circulation.md</c> L16).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>ANY credit to the balance, not only a sale.</b> A Bin Rule can state <c>global</c> money
+    /// in and <c>local</c> money out — an ordinary balanced transfer with no Pool trade anywhere in
+    /// it — and that is income to whoever runs the Rule. ***Settling only the trade sellers left that
+    /// money spendable until the next Day boundary***, which is the case L16 exists to rule out.
+    /// </para>
+    /// <para>
+    /// <b>Resolved from the INSTANCE and not from the Bin</b>, because a tenant-owned Bin names no
+    /// owner (<c>adr/0143</c>) while a Rule Instance names its Household and its Business outright.
+    /// The balance handle is then compared against the credited slot, so a Household's Goods Bin or
+    /// another tenant's purse cannot be mistaken for this one.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Money only.</b> A Rule that delivers Food credits a Bin too, and settling there would pay
+    /// rent out of cash the tenant was already holding — a payment on a Tick nothing was earned.
+    /// </para>
+    /// </remarks>
+    private void SettleRent(int instance, Ticks tick)
+    {
+        if (!_world.Rules.Rent.Collects || !_world.TryMoneyResource(out ResourceId money))
+        {
+            return;
+        }
+
+        int household = _world.Households.Rows.TryResolve(
+            _world.RuleInstances.Household[instance], out int housed) ? housed : Rows.NoSlot;
+
+        int business = _world.Businesses.Rows.TryResolve(
+            _world.RuleInstances.Business[instance], out int premised) ? premised : Rows.NoSlot;
+
+        if (household == Rows.NoSlot && business == Rows.NoSlot)
+        {
+            return;
+        }
+
+        for (int i = 0; i < _touchedCount; i++)
+        {
+            int bin = _touchedBin[i];
+
+            if (_touchedDelta[i] <= 0 || _world.Bins.Resource[bin] != money)
+            {
+                continue;
+            }
+
+            if (household != Rows.NoSlot && Purse(_world.Households.Balance[household]) == bin)
+            {
+                _world.Arrears.SettleHousehold(household, tick);
+            }
+            else if (business != Rows.NoSlot && Purse(_world.Businesses.Balance[business]) == bin)
+            {
+                _world.Arrears.SettleBusiness(business, tick);
+            }
+        }
+    }
+
+    /// <summary>The Bin slot behind a balance handle, or <c>Rows.NoSlot</c>.</summary>
+    private int Purse(Handle<Bin> balance) =>
+        _world.Bins.Rows.TryResolve(balance, out int slot) ? slot : Rows.NoSlot;
 
     /// <summary>
     /// Recovers a Household's Need by one met occasion, on <c>04 §6</c> step 6.

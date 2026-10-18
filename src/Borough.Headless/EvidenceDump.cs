@@ -400,6 +400,14 @@ internal static class EvidenceDump
     /// </remarks>
     private static int? Refuse(Ruleset rules, TextWriter output)
     {
+        // 🔴 RENT ARREARS ARE CONTENT TOO. A file that collects rent has a tenancy to explain
+        // whatever it does about decline, so refusing it would hide the one panel it can fill.
+        // Condemns is what keeps the trail section honest about declining nothing.
+        if (rules.Rent.Collects)
+        {
+            return null;
+        }
+
         if (rules.ZoneRules.Length == 0)
         {
             output.WriteLine(
@@ -412,21 +420,9 @@ internal static class EvidenceDump
             return 3;
         }
 
-        for (byte kind = 1; kind <= byte.MaxValue; kind++)
+        if (Condemns(rules))
         {
-            // ⚠ THE PREMISES' THRESHOLD ONLY, and tenancy_ends_after_days deliberately does not
-            // count here. The condemnation trail is a LOT's, and a tenancy that ends leaves the Lot,
-            // the kind and the Building exactly as they were -- so evicted.toml, which ends tenancies
-            // constantly, still produces an empty trail and is still the wrong file for --evidence.
-            if (rules.Declares(kind) && rules.Kind(kind).CondemnAfterTicks > 0)
-            {
-                return null;
-            }
-
-            if (kind == byte.MaxValue)
-            {
-                break;
-            }
+            return null;
         }
 
         output.WriteLine(
@@ -439,6 +435,31 @@ internal static class EvidenceDump
         output.WriteLine("  --evidence --ruleset rulesets/diagnosed.toml --ticks 2048");
 
         return 3;
+    }
+
+    /// <summary>Whether any kind this Ruleset declares can ever be condemned.</summary>
+    /// <remarks>
+    /// ⚠ <b>The premises' threshold only, and <c>tenancy_ends_after_days</c> deliberately does not
+    /// count.</b> The condemnation trail is a <em>Lot's</em>, and a tenancy that ends leaves the Lot,
+    /// the kind and the Building exactly as they were — so <c>evicted.toml</c>, which ends tenancies
+    /// constantly, condemns nothing.
+    /// </remarks>
+    private static bool Condemns(Ruleset rules)
+    {
+        for (byte kind = 1; kind <= byte.MaxValue; kind++)
+        {
+            if (rules.Declares(kind) && rules.Kind(kind).CondemnAfterTicks > 0)
+            {
+                return true;
+            }
+
+            if (kind == byte.MaxValue)
+            {
+                break;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -457,6 +478,25 @@ internal static class EvidenceDump
         long aggregated = trail.Condemnations[CondemnationTrailTable.AggregateSlot];
 
         output.WriteLine("## The condemnation trail — what the world freed and this kept");
+
+        // ⚠ SAID, not left as an empty table, which is Arrears' rule where a file states no [rent].
+        // The mode now runs over a file that collects rent and declines nothing, and an empty trail
+        // reads as a broken accumulator rather than as a Ruleset that condemns nothing.
+        if (!Condemns(world.Rules))
+        {
+            output.WriteLine();
+            output.WriteLine(
+                "  No [[building]] in this Ruleset sets condemn_after_days, so no Building here can");
+            output.WriteLine(
+                "  ever be condemned however badly it is supplied -- decline is a duration and absent");
+            output.WriteLine(
+                "  means never. The trail is empty because nothing can enter it, and the arrears panel");
+            output.WriteLine(
+                "  below is what this file does empty a dwelling by.");
+
+            return;
+        }
+
         output.WriteLine(
             $"{total} Buildings condemned. {trail.Count} of {CondemnationTrailTable.Retained} are "
             + $"retained in full; {aggregated} have been folded into the aggregate, which keeps the "

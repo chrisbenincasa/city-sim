@@ -382,17 +382,11 @@ public sealed class EvidenceDumpTests
     public void The_arrears_panel_names_the_deadline_where_rent_is_collected()
     {
         string silent = Dump("diagnosed.toml");
-        string collectingPath = Renting();
-        string collecting;
 
-        try
-        {
-            collecting = DumpAt(collectingPath);
-        }
-        finally
-        {
-            File.Delete(collectingPath);
-        }
+        // 🔴 THE SHIPPED FILE, UNMODIFIED, which is the point of this test as much as the panel is.
+        // renting.toml's own header advertises this mode, and the mode used to refuse the file for
+        // declaring no decline -- so the instructions were false and a patched copy could not show it.
+        string collecting = Dump("renting.toml");
 
         Assert.Contains("## Rent arrears, by tenancy", silent, Ordinal);
         Assert.Contains("states no [rent]", silent, Ordinal);
@@ -407,35 +401,16 @@ public sealed class EvidenceDumpTests
         Assert.True(Count(collecting, "  behind on rent") > 0, "nobody fell behind.");
         Assert.True(Count(collecting, "  total owed") > 0, "nothing was owed.");
         Assert.Contains("has been behind on rent since Day ", collecting, Ordinal);
-    }
 
-    /// <summary>renting.toml with decline added, written where the runner can load it.</summary>
-    /// <remarks>
-    /// <b>A fixture rather than an edit to the shipped file</b>, on <see cref="Endowed"/>'s reasoning.
-    /// <c>--evidence</c> refuses a Ruleset whose kinds never condemn, because an empty condemnation
-    /// trail is uninterpretable — and <c>renting.toml</c> declares no decline on purpose, so that the
-    /// arrears clock is the only thing emptying a dwelling in it.
-    /// </remarks>
-    private static string Renting()
-    {
-        const string Anchor = "name = \"dwelling\"";
+        // The trail says it condemns nothing rather than printing an empty table, which is this
+        // panel's own rule for absence one section along.
+        Assert.Contains("## The condemnation trail", collecting, Ordinal);
+        Assert.Contains("no Building here can", collecting, Ordinal);
+        Assert.DoesNotContain("Buildings condemned.", collecting, Ordinal);
 
-        string text = File.ReadAllText(Ruleset("renting.toml"));
-
-        Assert.Contains(Anchor, text, Ordinal);
-        Assert.DoesNotContain("condemn_after_days", text, Ordinal);
-
-        string path = Path.Combine(
-            Path.GetTempPath(), $"borough-evidence-renting-{Guid.NewGuid():N}.toml");
-
-        File.WriteAllText(
-            path,
-            text.Replace(
-                Anchor,
-                Anchor + "\ncondemn_after_days = 1\ncollapses_after_days = 1",
-                Ordinal));
-
-        return path;
+        // And the file does not quietly acquire decline to get itself admitted.
+        Assert.DoesNotContain(
+            "condemn_after_days", File.ReadAllText(Ruleset("renting.toml")), Ordinal);
     }
 
     /// <summary>The trailing number on a panel line.</summary>

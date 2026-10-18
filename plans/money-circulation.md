@@ -211,12 +211,20 @@ which is why it is recorded here.
 - Acceptance: a fixture where a tenant falls behind and is evicted at the deadline, a tenant
   whose wage rises in time is not, and a tenant paid every 7 Days is never in arrears at payday.
   `MoneyIsConserved` holds.
+- Rent reaching the treasury is treasury income and gets a flow counter of its own, so the budget's
+  balance stays explained by the columns beside it. Private rent and cancelled debt are not income.
 - Built 10/17/2026: `RentEngine` sweeps each Day boundary behind payroll and the subsidies, one
   optional key `[rent] evicts_after_days` turns it on and bounds the debt, `RentDebt` and
   `RentDebtSinceDay` are saved on both tenant tables, eviction writes the debt off where the tenancy
   ends, and `rulesets/renting.toml` demonstrates the clock. `RentAccounts` settles arrears at each
   income site as money lands, follows the Landowner chain and cancels a ring's mutual debt. Save
   format 23 and the goldens re-recorded.
+- The sweep charges and settles every tenancy on both tables before it tests any deadline, because a
+  Landowner in an earlier slot can be cleared by a tenant in a later one. `Behind` is counted in
+  that second pass, so it reports what the city owes when the Day finishes.
+- `MoneyFlowCounter.Rent` carries the treasury's share through `TreasuryFlows`, the Census, the
+  shell budget's `rent · in` row and `--income`'s `rent in` column. `--income` and `--evidence` both
+  run on `rulesets/renting.toml` unmodified, which is what the file's header advertises.
 
 ### 5. Sale on departure and city-held Lots
 
