@@ -368,6 +368,51 @@ public sealed class EvidenceDumpTests
         Assert.True(Count(endowed, "  highest balance") > 0, "taxed.toml endowed nobody.");
     }
 
+    /// <summary>
+    /// <b>The arrears panel reads zero on a Ruleset that charges no rent and counts tenancies on one
+    /// that does.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>Absence is printed rather than refused</b>, on the no-condition panel's decision above. A
+    /// Ruleset stating no <c>[rent]</c> still prices every tenancy, because placement compares the
+    /// figure when a Household chooses a home — so the panel names the file that collects it instead
+    /// of leaving a reader to wonder whether the mechanism is broken or absent.
+    /// </remarks>
+    [Fact]
+    public void The_arrears_panel_names_the_deadline_where_rent_is_collected()
+    {
+        string silent = Dump("diagnosed.toml");
+
+        // 🔴 THE SHIPPED FILE, UNMODIFIED, which is the point of this test as much as the panel is.
+        // renting.toml's own header advertises this mode, and the mode used to refuse the file for
+        // declaring no decline -- so the instructions were false and a patched copy could not show it.
+        string collecting = Dump("renting.toml");
+
+        Assert.Contains("## Rent arrears, by tenancy", silent, Ordinal);
+        Assert.Contains("states no [rent]", silent, Ordinal);
+        Assert.Contains("rulesets/renting.toml is the file that makes it apply.", silent, Ordinal);
+
+        Assert.DoesNotContain("states no [rent]", collecting, Ordinal);
+        Assert.Equal(7, Count(collecting, "  evicted after Days"));
+        Assert.True(
+            Count(collecting, "  tenancies charged") > 0, "renting.toml charged no tenancy.");
+
+        // Nobody earns in this file, so the opening band drains and the clock runs.
+        Assert.True(Count(collecting, "  behind on rent") > 0, "nobody fell behind.");
+        Assert.True(Count(collecting, "  total owed") > 0, "nothing was owed.");
+        Assert.Contains("has been behind on rent since Day ", collecting, Ordinal);
+
+        // The trail says it condemns nothing rather than printing an empty table, which is this
+        // panel's own rule for absence one section along.
+        Assert.Contains("## The condemnation trail", collecting, Ordinal);
+        Assert.Contains("no Building here can", collecting, Ordinal);
+        Assert.DoesNotContain("Buildings condemned.", collecting, Ordinal);
+
+        // And the file does not quietly acquire decline to get itself admitted.
+        Assert.DoesNotContain(
+            "condemn_after_days", File.ReadAllText(Ruleset("renting.toml")), Ordinal);
+    }
+
     /// <summary>The trailing number on a panel line.</summary>
     private static int Count(string report, string label) => int.Parse(
         Line(report, label).Split(' ', StringSplitOptions.RemoveEmptyEntries)[^1],

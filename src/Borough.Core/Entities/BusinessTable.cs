@@ -1,5 +1,6 @@
 namespace Borough.Core.Entities;
 
+using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Tables;
 
@@ -119,6 +120,13 @@ public sealed class BusinessTable
         DayRevenue = _rows.Saved<long>("day_revenue", Touch.Cold);
         DayExpense = _rows.Saved<long>("day_expense", Touch.Cold);
 
+        // HouseholdTable.RentDebt's pair, one table across and for its reasons: rent a tenant could
+        // not pay, and the Day the run of short Days began. A debt is not negative money (adr/0003),
+        // and DaysInArrears above is a DIFFERENT clock -- that one counts Days this trade failed to
+        // pay its STAFF.
+        RentDebt = _rows.Saved<Money>("rent_debt", Touch.Cold);
+        RentDebtSinceDay = _rows.Saved<int>("rent_debt_since_day", Touch.Cold);
+
         Balance = _rows.DerivedHandle("balance", bins.Rows, reference: Reference.Required);
         BuildingNext = _rows.Derived<int>("building_next");
         PoolSlot = _rows.Derived<int>("pool_slot");
@@ -209,6 +217,29 @@ public sealed class BusinessTable
     /// pays wages in full writes zero.
     /// </remarks>
     public Column<ushort> DaysInArrears { get; }
+
+    /// <summary>
+    /// Rent this Business owes its Landowner and has not paid.
+    /// </summary>
+    /// <remarks>
+    /// <b><see cref="HouseholdTable.RentDebt"/>'s twin, one table across</b>, and that column carries
+    /// the reasoning. ⚠ <b>It is not <see cref="DaysInArrears"/>.</b> That clock counts Days this
+    /// trade could not pay its <em>staff</em> and ends in bankruptcy; this is rent it could not pay
+    /// its <em>landlord</em> and ends in the Unpremised Pool. The two run independently and a trade
+    /// can be in one and not the other.
+    /// </remarks>
+    public Column<Money> RentDebt { get; }
+
+    /// <summary>
+    /// The Day this Business's rent shortfall began, where <see cref="RentDebt"/> is positive.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="HouseholdTable.RentDebtSinceDay"/>'s twin, cleared to zero with the debt.
+    /// </remarks>
+    public Column<int> RentDebtSinceDay { get; }
+
+    /// <summary>Whether this Business owes rent it could not pay.</summary>
+    public bool IsBehindOnRent(int slot) => RentDebt[slot].Raw > 0;
 
     /// <summary>
     /// The Tick this Business's last search for premises began, plus one. Zero means it was never
