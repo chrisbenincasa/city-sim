@@ -27,7 +27,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-54 sections, 384 keys.
+54 sections, 386 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
@@ -68,7 +68,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[jobs]`](#jobs) — 15 keys
 - [`[land_permissions]`](#land_permissions) — 1 key
 - [`[layers]`](#layers) — 20 keys
-- [`[lots]`](#lots) — 16 keys
+- [`[lots]`](#lots) — 18 keys
 - [`[lots] trade_form_weights`](#lots-trade_form_weights) — 7 keys
 - [`[market]`](#market) — 2 keys
 - [`[needs]`](#needs) — 9 keys
@@ -1436,9 +1436,17 @@ How many Ticks between recomputations of the woodland field.
 
 ## `[lots]`
 
+**`buyer_reserve_per_member`** · *whole number*
+
+Money per Household member a buyer must keep after paying for land and construction. Only its own balance counts, never a Business's till. Either this key or construction_charge_per_floor_tile enables land sales, even at zero. Absent means no reserve. Requires a money Resource.
+
+**`construction_charge_per_floor_tile`** · *whole number*
+
+Money a Household pays outside the city per floor Tile before a Zone Rule builds. Either this key or buyer_reserve_per_member enables land sales, even at zero. Absent means no construction charge. If both keys are absent, Zone Rules build without a buyer. Requires a money Resource.
+
 **`demolition_price_per_tile`** · *whole number*
 
-What the treasury pays to demolish an occupied Building, per Tile of Lot footprint on ground of zero land value. The price is multiplied by one plus the land value at the Lot, so polluted or noisy ground is cheaper to clear and shoreline dearer, and land value of minus one or below clears free. The price is shared equally among the evicted Households and displaced Businesses. A Building nobody occupies demolishes free. Absent or zero means occupied demolition is free. Requires a money Resource.
+The land price per Tile of Lot footprint on ground of zero land value, also used to price occupied demolition. The price is multiplied by one plus the land value at the Lot, so polluted or noisy ground is cheaper to clear and shoreline dearer, and land value of minus one or below clears free. The price is shared equally among the evicted Households and displaced Businesses. A Building nobody occupies demolishes free. Absent or zero means occupied demolition is free. Requires a money Resource.
 
 **`house_depth_tiles`** · *whole number*
 

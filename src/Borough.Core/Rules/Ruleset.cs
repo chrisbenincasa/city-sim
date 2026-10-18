@@ -3147,6 +3147,15 @@ public readonly record struct LotRuleset(
     /// </summary>
     public Money DemolitionPricePerTile { get; init; }
 
+    /// <summary>A Zone Rule's builder pays this Money outside the city per floor Tile. Null means no charge.</summary>
+    public Money? ConstructionChargePerFloorTile { get; init; }
+
+    /// <summary>A buyer keeps this Money per Household member in its own balance.</summary>
+    public Money? BuyerReservePerMember { get; init; }
+
+    /// <summary>Either authored key enables paid construction, including an explicit zero.</summary>
+    public bool LandSales => ConstructionChargePerFloorTile.HasValue || BuyerReservePerMember.HasValue;
+
     /// <summary>
     /// The shallowest a new plot may shrink to when it overlaps claimed ground, in Tiles —
     /// <c>min_plot_depth_tiles</c>. Zero means an overlapping plot is dropped.

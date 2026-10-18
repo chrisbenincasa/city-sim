@@ -95,6 +95,8 @@ the durable half of the document.
 | ⚠️ **One whole engine Tick per due Rule, *in situ*** | **~552 ns** | — | [`0011`](0011-rule-engine-bins-and-rules.md) **finding 42** |
 | ⚠️ **One Rule evaluation, *in situ*** | **~329 ns** | — | as above |
 | One **Zone Rule trigger**, 16-Lot sample | **488 → 740 ns** | **no — but the variable is the working set, not the Zone**: 1.56× over a 1,000× Zone against a control that moved 989× | [`0014`](0014-zone-rules-and-the-sweep-family.md) task 9 |
+| Land-sale finance, first-purchase trigger at 100,000 Citizens | 1.636 ms for preflight plus index/draw/payment | It includes one unsorted pass and one sort over 36,000 Households; busy host, not a 1M measurement | [money-circulation](money-circulation.md#buyer-search-measurement-10172026), slice 2 |
+| Zone Rules with finance enabled, worst no-purchase trigger at 100,000 Citizens | 2.793 ms enabled versus 0.421 ms keys-absent, worst of 32 interleaved pairs; mean paired difference 1.179 ms | It measures the Zone Rule sweep, not a whole Tick; busy host, not a 1M measurement | Same owner; repeat at 1M on a quiet host before slice 7's budget claim |
 | **Pollution diffusion**, one Cell dirty | **31.6 µs** | — | `MapLayerBenchmarks` |
 | **Pollution diffusion**, whole map | **1.01 ms** | — | as above |
 | One **State Hash** at 1M | **32.47 ms** | — | [S0a](../docs/spike-results.md) |

@@ -2239,26 +2239,9 @@ public sealed partial class World
     /// </remarks>
     public Money DemolitionPrice(int buildingSlot)
     {
-        long rate = Rules.Lots.DemolitionPricePerTile.Raw;
-
-        if (rate == 0
-            || Displaced(buildingSlot) == 0
-            || !Lots.Rows.TryResolve(Buildings.Lot[buildingSlot], out int lot))
-        {
-            return Money.Zero;
-        }
-
-        long factor = (long)Fixed.One
-            + Layers.LandValue(CellGrid.ToCells(Lots.East[lot]), CellGrid.ToCells(Lots.North[lot]));
-
-        if (factor <= 0)
-        {
-            return Money.Zero;
-        }
-
-        long tiles = (long)Lots.FootprintWide[lot].Raw * Lots.FootprintDeep[lot].Raw;
-
-        return new Money(IntegerMath.MulDivFloor(factor * tiles, rate, Fixed.One));
+        return Rules.Lots.DemolitionPricePerTile.Raw == 0 || Displaced(buildingSlot) == 0
+            || !Lots.Rows.TryResolve(Buildings.Lot[buildingSlot], out int lot)
+            ? Money.Zero : LandPrice(lot);
     }
 
     /// <summary>
