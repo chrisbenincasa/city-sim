@@ -781,9 +781,10 @@ public static class SyntheticCity
                 + "with two centres AND a door needs the extent to stop being all-or-nothing.");
         }
 
-        int extentTiles = boundary ? CellGrid.WorldTiles : PavedTiles(world);
+        int townTiles = PavedTiles(world);
+        int extentTiles = boundary ? CellGrid.WorldTiles : townTiles;
 
-        RoadGenerator.LayInto(world.Roads, key, lattices, extentTiles, world.Layers);
+        RoadGenerator.LayInto(world.Roads, key, lattices, extentTiles, world.Layers, townTiles);
 
         // 🔴 THE POPULATION AND NOT A BUILDING COUNT (plans/0053), which is the same correction
         // RaiseDwellings took and for the same reason. Occupancy divides the ground now, so a Lot

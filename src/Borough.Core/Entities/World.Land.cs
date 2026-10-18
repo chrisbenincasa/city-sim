@@ -14,7 +14,7 @@ public sealed partial class World
     public LandRectangle BlockGroundRectangle(int column, int row)
     {
         if (column < 0 || row < 0 || column >= Roads.Streets.Blocks || row >= Roads.Streets.Blocks) { return default; }
-        BlockGround g = BlockGround.At(Roads.Lattice, column, row);
+        BlockGround g = Roads.Streets.Block(column, row);
         return new(g.East, g.North, g.Wide, g.Deep);
     }
 

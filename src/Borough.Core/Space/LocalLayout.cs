@@ -219,7 +219,7 @@ public static class LocalLayout
 
     private static bool Fronts(World world, LocalLot source, bool horizontal, int column, int row)
     {
-        BlockGround block = BlockGround.At(world.Roads.Lattice, column, row);
+        BlockGround block = world.Roads.Streets.Block(column, row);
         int gap = world.Rules.Lots.StreetHalfWidthTiles;
         LandRectangle p = source.Parcel;
         if (p.X < block.East + gap || p.Y < block.North + gap

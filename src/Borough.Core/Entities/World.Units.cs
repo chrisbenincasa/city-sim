@@ -306,7 +306,7 @@ public sealed partial class World
 
         Space.Parcel parcel = new(face, (Space.StreetSide)Lots.Side[lotSlot], Quantities.Tiles.Zero, Lots.Parcel(lotSlot));
 
-        return (parcel, Space.BlockGround.At(Roads.Streets.Lattice, column, row));
+        return (parcel, Roads.Streets.Block(column, row));
     }
 
     private int SalesYardStalls(int buildingSlot)

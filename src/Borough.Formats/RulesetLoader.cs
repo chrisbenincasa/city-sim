@@ -8132,6 +8132,16 @@ public static class RulesetLoader
                 "min_curve_radius_tiles", minimum: 1, maximum: CellGrid.WorldTiles,
                 "It is the tightest curve a Street may be laid on, so it is at least 1 Tile. "
                 + "Absent means half of block_tiles.");
+            int core = OptionalRoadNumber(
+                "dense_core_percent", minimum: 0, maximum: 100,
+                "It is a share of the town's radius, so it is between 0 and 100. Absent means 0.");
+            int merged = OptionalRoadNumber(
+                "merged_block_percent", minimum: 0, maximum: 100,
+                "It is a share of square groups, so it is between 0 and 100. Absent means 0, which "
+                + "keeps every grid line.");
+            int wooded = OptionalRoadNumber(
+                "woodland_merge_percent", minimum: 0, maximum: 100,
+                "It is a share of square groups, so it is between 0 and 100. Absent means 0.");
 
             return new RoadRuleset(
                 block, spread, arterials, junctions, crossings, paths,
@@ -8142,6 +8152,9 @@ public static class RulesetLoader
                 MinSegmentLengthTiles = shortest,
                 MinCrossingAngleDegrees = angle == 0 ? 30 : angle,
                 MinCurveRadiusTiles = radius == 0 ? (block > 1 ? block / 2 : 1) : radius,
+                DenseCorePercent = core,
+                MergedBlockPercent = merged,
+                WoodlandMergePercent = wooded,
             };
         }
 

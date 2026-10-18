@@ -962,4 +962,7 @@ public enum PurposeTag : ulong
 
     /// <summary>The draw picks an eligible Household to buy a Lot before construction.</summary>
     LandBuyer = 68,
+
+    /// <summary>Whether the generator leaves out the middle Streets of a 2×2 group of lattice squares.</summary>
+    RoadMergedBlock = 72,
 }
