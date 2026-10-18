@@ -1420,6 +1420,12 @@ public static class RulesetLoader
                 RefuseUnsupportedPoolTerms(table, name, allInputs, inputFirst, allInputs.Count,
                     allOutputs, outputFirst, allOutputs.Count,
                     definitions[i].HasFills && definitions[i].Fills.Scope == Scope.Pool);
+
+                RefuseServiceBoughtAndMade(
+                    table, name, allInputs, inputFirst, allInputs.Count,
+                    allOutputs, outputFirst, allOutputs.Count);
+
+                RefuseServiceBoughtTwice(table, name, allInputs, inputFirst, allInputs.Count);
             }
 
             inputs = [.. allInputs];
@@ -1454,6 +1460,89 @@ public static class RulesetLoader
                     $"this Rule has a pool term for '{NameOfResource(terms[i].Bin.Resource)}', which "
                     + $"is a {FamilyName(family)}. A District Pool trades goods and services only, so "
                     + "the term would find no market and move nothing.");
+            }
+        }
+
+        /// <summary>
+        /// Refusal — one Rule cannot be both the provider of a service and a client for it.
+        /// </summary>
+        /// <remarks>
+        /// A firm never contracts with itself (<c>adr/0179</c>), so such a Rule would pay a market
+        /// for units it was about to make and the allowance it drew on could never be its own. The
+        /// two halves are legitimate in two Rules on one Business — an office that subcontracts —
+        /// and this refuses only the pair that cannot settle.
+        /// </remarks>
+        private void RefuseServiceBoughtAndMade(
+            TableSyntaxBase table, string? name,
+            List<Term> inputs, int inputFirst, int inputEnd,
+            List<Term> outputs, int outputFirst, int outputEnd)
+        {
+            for (int i = inputFirst; i < inputEnd; i++)
+            {
+                ResourceId resource = inputs[i].Bin.Resource;
+
+                if (_families[resource.Raw - 1] != ResourceFamily.Service)
+                {
+                    continue;
+                }
+
+                for (int o = outputFirst; o < outputEnd; o++)
+                {
+                    if (outputs[o].Bin.Resource != resource)
+                    {
+                        continue;
+                    }
+
+                    Refuse(LineOf(table), name,
+                        $"this Rule both buys and makes the service '{NameOfResource(resource)}'. A "
+                        + "firm is never its own provider, so the purchase would have to find "
+                        + "another office while this one was making the same units. Split the two "
+                        + "into separate Rules, or drop one of them.");
+
+                    break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Refusal — one Rule cannot buy the same service twice.
+        /// </summary>
+        /// <remarks>
+        /// 🔴 <b>A capacity leak, not a duplicate declaration.</b> Each term asks the provider's
+        /// allowance for a whole batch independently and each one spends it, so two terms naming one
+        /// service sell a Day's capacity twice over. The Goods path is safe from the same shape
+        /// because repeated draws on one Bin are netted before the affordability walk; an allowance
+        /// has no netting, and a clean fix would be the netting rather than this refusal. Until then
+        /// the pair is refused where it is cheap to see. One Rule wanting twice as much asks for
+        /// twice the <c>amount</c>.
+        /// </remarks>
+        private void RefuseServiceBoughtTwice(
+            TableSyntaxBase table, string? name, List<Term> inputs, int first, int end)
+        {
+            for (int i = first; i < end; i++)
+            {
+                ResourceId resource = inputs[i].Bin.Resource;
+
+                if (_families[resource.Raw - 1] != ResourceFamily.Service)
+                {
+                    continue;
+                }
+
+                for (int j = first; j < i; j++)
+                {
+                    if (inputs[j].Bin.Resource != resource)
+                    {
+                        continue;
+                    }
+
+                    Refuse(LineOf(table), name,
+                        $"this Rule buys the service '{NameOfResource(resource)}' twice. Each term "
+                        + "would ask its provider for a whole batch and spend the Day's allowance "
+                        + "again, so the office would sell more than it made. State one term with "
+                        + "the amount you want.");
+
+                    break;
+                }
             }
         }
 
@@ -2887,8 +2976,14 @@ public static class RulesetLoader
         }
 
         /// <summary>
-        /// Refusal — a service is never stocked, so a term naming it is a <c>pool</c> input.
+        /// Refusal — a service is never stocked, so a firm buys one with a <c>pool</c> input and a
+        /// provider makes one with a <c>local</c> output.
         /// </summary>
+        /// <remarks>
+        /// The two scopes are the two sides of <c>adr/0179</c>'s contract and neither is a Bin. A
+        /// pool input names the provider the firm pays; a local output adds to the office's allowance
+        /// for the Day. Any other spelling would need a Bin to hold a service, and none does.
+        /// </remarks>
         private bool ServiceIsBoughtFromAProvider(
             InlineTableSyntax inline, string? rule, string key, Scope scope, ResourceId resource)
         {
@@ -2897,16 +2992,32 @@ public static class RulesetLoader
                 return true;
             }
 
-            if (key != "inputs" || scope != Scope.Pool)
+            if (key == "outputs")
             {
+                if (scope == Scope.Local)
+                {
+                    return true;
+                }
+
                 Refuse(LineOf(inline), rule,
-                    "this Rule names a service outside a pool input. A service is never stocked, so "
-                    + "no Bin holds it; a firm buys it from its provider with "
-                    + "{ scope = \"pool\", resource = ..., amount = ... } in inputs.");
+                    $"this Rule makes the service '{NameOfResource(resource)}' into a scope that "
+                    + "cannot hold one. A provider's output is local: it adds to the office's own "
+                    + "allowance for the Day, which its clients buy with a pool input under a "
+                    + "contract. Nothing deposits a service into a market or into the treasury.");
                 return false;
             }
 
-            return true;
+            if (key == "inputs" && scope == Scope.Pool)
+            {
+                return true;
+            }
+
+            Refuse(LineOf(inline), rule,
+                "this Rule names a service outside a pool input. A service is never stocked, so "
+                + "no Bin holds it; a firm buys it from its provider with "
+                + "{ scope = \"pool\", resource = ..., amount = ... } in inputs.");
+
+            return false;
         }
 
         /// <summary>
@@ -3096,6 +3207,7 @@ public static class RulesetLoader
                 ApplyTenancies(rules, inputs, outputs, allBins, binFirst, i);
                 RefuseUnstaffedProduction(rules, inputs, outputs, i);
                 RefuseServiceBoughtWithoutAFirm(rules, inputs, i);
+                RefuseServiceMadeWithoutAStaffedFirm(rules, inputs, outputs, i);
 
                 // The kind's Rules are not declared on the kind: a Rule already names the kind it
                 // runs on, and a second list would be the same fact twice with nothing keeping the
@@ -4817,6 +4929,86 @@ public static class RulesetLoader
         }
 
         /// <summary>
+        /// Refusal — a Professional Service is made by a firm, and by the staff it has at work.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A provider's capacity is a Day's units rather than a stock (<c>adr/0179</c>), and what
+        /// produces them is time at a desk. So a Rule making a service belongs to a Business, like
+        /// the contract its clients hold, and spends labour, like any other production — an office
+        /// with nobody at work makes nothing, which is the whole of its capacity model.
+        /// </para>
+        /// <para>
+        /// The labour half overlaps <see cref="RefuseUnstaffedProduction"/> and says so separately
+        /// because the consequence is different: an unstaffed Good Rule fills no Bin, where an
+        /// unstaffed office would be a provider every firm in reach could contract with for nothing.
+        /// </para>
+        /// </remarks>
+        private void RefuseServiceMadeWithoutAStaffedFirm(
+            RuleDefinition[] rules, Term[] inputs, Term[] outputs, int kindIndex)
+        {
+            for (int r = 0; r < rules.Length; r++)
+            {
+                RuleDefinition rule = rules[r];
+
+                if (rule.Kind != kindIndex + 1)
+                {
+                    continue;
+                }
+
+                ResourceId made = default;
+
+                for (int t = 0; t < rule.OutputCount; t++)
+                {
+                    ResourceId resource = outputs[rule.OutputFirst + t].Bin.Resource;
+
+                    if (_families[resource.Raw - 1] == ResourceFamily.Service)
+                    {
+                        made = resource;
+                        break;
+                    }
+                }
+
+                if (made.Raw == 0)
+                {
+                    continue;
+                }
+
+                bool spendsLabour = false;
+
+                for (int t = 0; t < rule.InputCount; t++)
+                {
+                    spendsLabour |= _families[inputs[rule.InputFirst + t].Bin.Resource.Raw - 1]
+                        == ResourceFamily.Labour;
+                }
+
+                string? name = TryString(_ruleTables[r], "name", out string? found, required: false)
+                    ? found
+                    : null;
+
+                if (rule.Tenancy != BinTenancy.Business)
+                {
+                    Refuse(LineOf(_ruleTables[r]), name,
+                        $"this Rule makes the service '{NameOfResource(made)}', and no Business runs "
+                        + "it. A service is sold under a contract naming the provider's firm, and a "
+                        + "Rule belongs to the Business when its local terms address Bins with "
+                        + "owner = \"business\".");
+                    continue;
+                }
+
+                if (!spendsLabour)
+                {
+                    Refuse(LineOf(_ruleTables[r]), name,
+                        $"this Rule makes the service '{NameOfResource(made)}' and spends no labour, "
+                        + "so the office would supply the whole city with nobody at work. A "
+                        + "provider's capacity is what its staff get through in a Day: state a "
+                        + "labour input, give the kind a labour Bin with owner = \"business\" and "
+                        + "set [jobs] labour_per_day.");
+                }
+            }
+        }
+
+        /// <summary>
         /// Refuses a Business's Rule that makes a Good without spending labour.
         /// </summary>
         /// <remarks>
@@ -4928,6 +5120,14 @@ public static class RulesetLoader
                                 : rule.Fills;
 
                     if (addressed.Scope != Scope.Local)
+                    {
+                        continue;
+                    }
+
+                    // A service a Rule makes names no Bin -- the units go into the provider's
+                    // allowance for the Day -- so it has no owner and cannot vote on whose Rule
+                    // this is. The labour such a Rule spends does, and the kind declares that Bin.
+                    if (_families[addressed.Resource.Raw - 1] == ResourceFamily.Service)
                     {
                         continue;
                     }

@@ -116,8 +116,9 @@ public static class RulesetKeyNotes
             + "Graph and shows up in the traffic, a utility flows along the District adjacency "
             + "graph, money is conserved and does not move at all, labour is worker-time a "
             + "Business's present staff deposit and its own Rules spend as a local input, and a "
-            + "service is a Professional Service a firm buys from the provider it keeps, through a "
-            + "pool input, and no Bin ever holds. The "
+            + "service is a Professional Service a provider's Rule makes as a local output and a "
+            + "client firm buys from the provider it keeps, through a pool input -- no Bin ever "
+            + "holds one. The "
             + "family decides transport and whether a Bin holding it has a ceiling, so there is no "
             + "default. A labour Resource must declare a shelf life, and its Bin is owned by the "
             + "business and states no capacity.",
@@ -410,7 +411,8 @@ public static class RulesetKeyNotes
             "How much of it one application deposits.",
         ["[[rule]] outputs scope"] =
             "Where the term deposits: local, pool, global, or map. The map scope is write-only, so a "
-            + "Rule may emit to a Layer and can never read or wait on one.",
+            + "Rule may emit to a Layer and can never read or wait on one. A service output is local "
+            + "and adds to the provider's allowance for the Day rather than to a Bin.",
         ["[[rule]] outputs layer"] =
             "Which Map Layer a map-scoped term emits into. A Layer cell has no capacity, so such a "
             + "term never fails.",

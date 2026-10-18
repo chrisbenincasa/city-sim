@@ -253,9 +253,11 @@ public sealed class BusinessTable
     /// What this Business has recognised as expense on <see cref="TradingDay"/>.
     /// </summary>
     /// <remarks>
-    /// <b>Two things reach it</b> (<c>plans/0072</c> D15): the cost of stock as it is <em>sold</em>,
-    /// drawn off the Bin that held it — see <see cref="Rules.BinTable.CostAt"/> — and the gross wage
-    /// bill as it is <em>earned</em>, which is every Day rather than every payday.
+    /// <b>Three things reach it</b> (<c>plans/0072</c> D15): the cost of stock as it is <em>sold</em>,
+    /// drawn off the Bin that held it — see <see cref="Rules.BinTable.CostAt"/> — the gross wage
+    /// bill as it is <em>earned</em>, which is every Day rather than every payday, and a Professional
+    /// Service bought from a city office, which is consumed in the firing that bought it and has no
+    /// Bin to defer the cost on.
     /// </remarks>
     public Column<long> DayExpense { get; }
 

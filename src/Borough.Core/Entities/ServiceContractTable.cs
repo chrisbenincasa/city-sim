@@ -16,9 +16,11 @@ public readonly struct ServiceContract;
 /// cannot. That is the difference from a Good, whose seller is drawn afresh on every purchase.
 /// </para>
 /// <para>
-/// The provider is a Hinterland, by its index in <see cref="Ruleset.Hinterlands"/>. A contract whose
-/// index no longer names a supplying Hinterland is re-matched on the next purchase, so a hot reload
-/// that drops or reorders Hinterlands needs no repair pass.
+/// The provider is either a city office or a Hinterland. <see cref="Provider"/> names the office;
+/// when it names none, <see cref="Hinterland"/> gives the index in <see cref="Ruleset.Hinterlands"/>.
+/// A contract whose provider no longer supplies — a freed office, an office out of units, an index
+/// that no longer names a gated Hinterland — is re-matched on the next purchase, so neither a
+/// demolition nor a hot reload that drops or reorders Hinterlands needs a repair pass.
 /// </para>
 /// </remarks>
 [Table]
@@ -36,6 +38,12 @@ public sealed class ServiceContractTable
 
         Buyer = _rows.SavedHandle("buyer", businesses.Rows);
         Service = _rows.Saved<ResourceId>("service", Touch.Cold);
+
+        // Severable, because an office can be demolished under its clients. The stale handle is the
+        // fact the client re-matches on, exactly as Businesses.Building reads as premises gone.
+        Provider = _rows.SavedHandle(
+            "provider", businesses.Rows, Touch.Cold, Reference.Severable);
+
         Hinterland = _rows.Saved<int>("hinterland", Touch.Cold);
         Since = _rows.Saved<Ticks>("since", Touch.Cold);
         BuyerNext = _rows.Derived<int>("buyer_next");
@@ -52,7 +60,13 @@ public sealed class ServiceContractTable
     /// <summary>The service bought.</summary>
     public Column<ResourceId> Service { get; }
 
-    /// <summary>The providing Hinterland's index in <see cref="Ruleset.Hinterlands"/>.</summary>
+    /// <summary>The providing office, or none when a Hinterland provides.</summary>
+    public HandleColumn<Business> Provider { get; }
+
+    /// <summary>
+    /// The providing Hinterland's index in <see cref="Ruleset.Hinterlands"/>, or <c>-1</c> when
+    /// <see cref="Provider"/> names an office.
+    /// </summary>
     public Column<int> Hinterland { get; }
 
     /// <summary>The Tick this provider was chosen.</summary>

@@ -16,6 +16,15 @@ public sealed class ServiceRulesetLoadTests
 
     private const string Restock = """inputs  = [ { scope = "pool", resource = "sundries", amount = 4 } ]""";
 
+    // Both output lists, up to but not including the closing bracket, so a case appends a term.
+    private const string ShopOutputs = """outputs = [ { scope = "local", resource = "sundries", amount = 8 }""";
+
+    private const string HouseOutputs = """outputs = [ { scope = "local", resource = "sundries", amount = 4 }""";
+
+    private const string RatesOutputs = """outputs = [ { scope = "global", resource = "money", amount = 16384 }""";
+
+    private const string MakesAccounting = """, { scope = "local", resource = "accounting", amount = 1 }""";
+
     private static string Text() =>
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "serviced.toml"));
 
@@ -52,7 +61,8 @@ public sealed class ServiceRulesetLoadTests
     [InlineData("reach_minutes = 30\n", "reach_minutes = 0\n", "reach_minutes")]
     [InlineData("name = \"repairs\"\nfamily = \"good\"\n", "name = \"repairs\"\nfamily = \"good\"\nreach_minutes = 30\n", "Professional Service")]
     [InlineData(ServiceInput, "{ scope = \"local\", resource = \"accounting\", amount = 1 },", "pool input")]
-    [InlineData("outputs = [ { scope = \"local\", resource = \"sundries\", amount = 8 } ]\n\n[[rule]]\nname    = \"rates\"", "outputs = [ { scope = \"local\", resource = \"sundries\", amount = 8 }, { scope = \"pool\", resource = \"accounting\", amount = 1 } ]\n\n[[rule]]\nname    = \"rates\"", "pool input")]
+    [InlineData(ServiceInput, ServiceInput + "\n    " + ServiceInput, "twice")]
+    [InlineData(ShopOutputs, ShopOutputs + ", { scope = \"pool\", resource = \"accounting\", amount = 1 }", "cannot hold one")]
     [InlineData("{ resource = \"repairs\",  capacity = 4 },\n    { resource = \"money\",    owner = \"business\" },", "{ resource = \"repairs\",  capacity = 4 },\n    { resource = \"accounting\", capacity = 4 },\n    { resource = \"money\",    owner = \"business\" },", "never stocked")]
     public void A_service_declaration_that_cannot_work_is_refused(string from, string to, string named)
     {
@@ -63,6 +73,47 @@ public sealed class ServiceRulesetLoadTests
 
         Assert.False(loaded.Ok);
         Assert.Contains(named, loaded.Describe());
+    }
+
+    /// <summary>
+    /// A provider is a firm with staff, and never its own client. Each refusal here is a Ruleset that
+    /// would otherwise load an office nobody could run, or one that could contract with itself.
+    /// </summary>
+    [Theory]
+    [InlineData(HouseOutputs, "makes the service")]
+    [InlineData(HouseOutputs, "no Business runs")]
+    [InlineData(RatesOutputs, "spends no labour")]
+    [InlineData(ShopOutputs, "both buys and makes")]
+    public void A_provider_that_could_not_run_is_refused(string outputs, string named)
+    {
+        string text = Text();
+        Assert.Contains(outputs, text);
+
+        RulesetLoadResult loaded = Parse(text.Replace(outputs, outputs + MakesAccounting));
+
+        Assert.False(loaded.Ok);
+        Assert.Contains(named, loaded.Describe());
+    }
+
+    [Fact]
+    public void An_office_loads_as_a_provider_of_both_its_services()
+    {
+        RulesetLoadResult loaded = RulesetLoader.Parse(
+            File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "offices.toml")),
+            "offices.toml");
+
+        Assert.True(loaded.Ok, loaded.Describe());
+        Ruleset rules = loaded.Ruleset!;
+        var accounting = new ResourceId(3);
+        var insurance = new ResourceId(4);
+        Assert.Equal(ResourceFamily.Service, rules.Family(accounting));
+        Assert.Equal(new ServiceReach(30), rules.ReachOf(accounting));
+        Assert.True(rules.ReachOf(insurance).IsUnlimited);
+
+        // The Pool price an office charges is the import ceiling, which is the lowest price any
+        // declared Hinterland names. Every edge prices both services, or that floor would be zero.
+        Assert.Equal(90, rules.ImportCeiling(accounting).Raw);
+        Assert.Equal(30, rules.ImportCeiling(insurance).Raw);
     }
 
     [Fact]
