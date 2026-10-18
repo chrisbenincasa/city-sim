@@ -2413,7 +2413,10 @@ public sealed partial class World
     /// <param name="providerSlot">
     /// The providing office, or <see cref="Rows.NoSlot"/> when <paramref name="hinterland"/> provides.
     /// </param>
-    /// <param name="hinterland">The providing Hinterland's index, read only for a local None.</param>
+    /// <param name="hinterland">
+    /// The providing Hinterland's index, read only when <paramref name="providerSlot"/> is
+    /// <see cref="Rows.NoSlot"/>.
+    /// </param>
     /// <param name="tick">The Tick the provider was chosen on.</param>
     internal void Contract(
         int businessSlot, ResourceId service, int providerSlot, int hinterland, Ticks tick)

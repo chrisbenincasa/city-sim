@@ -662,14 +662,16 @@ public sealed class LocalServiceTests
             (int first, int second) = TwoOffices(world, sim);
 
             // Every provider of a remote service reports the same distance, so `Office` finds a tie
-            // between the two and `PurposeTag.ProviderChoice` is what resolves it.
+            // between the two and `PurposeTag.ProviderChoice` is what resolves it. A tie broken by
+            // slot or id order would hand every shop the same office.
             Assert.True(
                 StepUntil(
                     world,
                     sim,
-                    w => Shops(w).Exists(s => Provider(w, s, Insurance) != Rows.NoSlot),
+                    w => Shops(w).Exists(s => Provider(w, s, Insurance) == first)
+                        && Shops(w).Exists(s => Provider(w, s, Insurance) == second),
                     2 * Ticks.PerDay),
-                "a shop never bought the remote service from either office");
+                "the draw never gave the remote service to both offices");
 
             List<int> chosen = Shops(world)
                 .ConvertAll(s => Provider(world, s, Insurance))
