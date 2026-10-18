@@ -173,8 +173,7 @@ public sealed class LandDepartureTests(Xunit.Abstractions.ITestOutputHelper outp
         Assert.Equal(before, world.HashState());
     }
 
-    [Fact]
-    public void A_tenants_standing_debt_is_paid_to_whoever_holds_the_lot_after_a_sale()
+    private static (World World, int Lot, Handle<Household> Buyer, Handle<Household> Debtor) Arrears()
     {
         var rules = new Ruleset(
             resources: [ResourceFamily.Money], rules: [],
@@ -195,10 +194,16 @@ public sealed class LandDepartureTests(Xunit.Abstractions.ITestOutputHelper outp
         var debtor = world.CreateHousehold(building, lifeStage: 0);
         world.Endow(buyer, new Money(100_000));
         while (world.Tick.Raw <= (ulong)Ticks.PerDay) { simulation.Step(TickInput.Empty); }
+        Assert.True(world.Households.RentDebt[world.Households.Rows.Resolve(debtor)].Raw > 0);
+        return (world, world.Lots.Rows.Resolve(lot), buyer, debtor);
+    }
+
+    [Fact]
+    public void A_tenants_standing_debt_is_paid_to_whoever_holds_the_lot_after_a_sale()
+    {
+        var (world, row, buyer, debtor) = Arrears();
         int debtorSlot = world.Households.Rows.Resolve(debtor);
         long debt = world.Households.RentDebt[debtorSlot].Raw;
-        Assert.True(debt > 0);
-        int row = world.Lots.Rows.Resolve(lot);
 
         Assert.True(world.SellLot(row, Rows.NoSlot, world.Tick));
         Assert.Equal(buyer, world.Lots.Landowner[row]);
@@ -209,6 +214,41 @@ public sealed class LandDepartureTests(Xunit.Abstractions.ITestOutputHelper outp
         Assert.Equal(0, world.Households.RentDebt[debtorSlot].Raw);
         Assert.Equal(before + debt, Balance(world, buyer));
         Conserved(world);
+    }
+
+    [Fact]
+    public void A_tenant_that_buys_its_own_lot_has_its_standing_debt_written_off()
+    {
+        var (world, row, neighbour, debtor) = Arrears();
+        int slot = world.Households.Rows.Resolve(debtor);
+        var purse = world.Households.Balance[world.Households.Rows.Resolve(neighbour)];
+        long savings = world.Bins.LevelAt(world.Bins.Rows.Resolve(purse));
+        world.Withdraw(purse, savings, world.Tick);
+        world.PayOutside(new Money(savings));
+        world.Endow(debtor, new Money(1_000_000));
+        long treasury = world.TreasuryBalance()!.Value.Raw;
+        long price = world.LotPrice(row).Raw;
+
+        Assert.True(world.SellLot(row, Rows.NoSlot, world.Tick));
+        Assert.Equal(debtor, world.Lots.Landowner[row]);
+        world.Arrears.SettleHousehold(slot, world.Tick);
+
+        Assert.Equal(0, world.Households.RentDebt[slot].Raw);
+        Assert.Equal(0, world.Households.RentDebtSinceDay[slot]);
+        Assert.Equal(1_000_000 - price, Balance(world, debtor));
+        Assert.Equal(treasury + price, world.TreasuryBalance()!.Value.Raw);
+        Conserved(world);
+    }
+
+    [Fact]
+    public void A_range_refusal_names_the_key_its_message_describes()
+    {
+        string text = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "minimal.toml"));
+        var result = RulesetLoader.Parse(text.Replace("[lots]",
+            "[lots]\nconstruction_charge_per_floor_tile = -1\ncity_sale_interval_days = 0", StringComparison.Ordinal), "two-ranges.toml");
+        Assert.False(result.Ok);
+        Assert.Contains("construction_charge_per_floor_tile must be between", result.Describe(), StringComparison.Ordinal);
+        Assert.DoesNotContain("city_sale_interval_days = 0", result.Describe(), StringComparison.Ordinal);
     }
 
     [Theory]

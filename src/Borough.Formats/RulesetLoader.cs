@@ -8417,7 +8417,7 @@ public static class RulesetLoader
                         + "the treasury pays the displaced per Tile of Lot footprint on neutral ground, "
                         + $"so it is at least 0 and at most {int.MaxValue}. Absent or zero means "
                         + "clearing an occupied Building costs nothing."
-                    : saleIntervalRange
+                    : key == "city_sale_interval_days"
                     ? $"city_sale_interval_days = {saleInterval} is out of range. It is how many Days "
                         + $"pass between the city's offers of its built Lots, so it is at least 1 and at most {ushort.MaxValue}."
                     : $"{key} must be between 0 and {int.MaxValue} Money.");
