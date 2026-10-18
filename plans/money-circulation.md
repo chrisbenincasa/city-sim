@@ -314,7 +314,7 @@ which is why it is recorded here.
   before anyone can afford them, so neither shows a later sale.
 - Land income to the treasury has no budget flow counter. Slice 2's construction sales already
   had this gap, and city sales widen it. `TreasuryFlowsExplainTheBalanceTests` cannot see it,
-  because its Ruleset states no sale key.
+  because its Ruleset states no sale key. Tracked in #196.
 
 #### Departure and city-sale measurement (10/18/2026)
 
