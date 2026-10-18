@@ -159,7 +159,13 @@ public sealed partial class World
         // composition order: _tables below is what the State Hash walks.
         Roads = new RoadGraph(rules.Roads, key);
 
-        Lots = new LotTable(PerThousand(citizens, 225), Roads.Segments);
+        // The Household rows, ahead of the Lots because a Lot holds a saved handle to its Landowner
+        // (L1) -- while a Household holds one to a dwelling that stands on a Lot. The relations are a
+        // cycle, so the allocator is created here and HouseholdTable takes it below, in its place in
+        // the order.
+        Rows<Household> householdRows = HouseholdTable.NewRows(PerThousand(citizens, 360));
+
+        Lots = new LotTable(PerThousand(citizens, 225), Roads.Segments, householdRows);
 
         PermissionRectangles = new Space.LandPermissionTable();
         LandPermissions = new Space.LandPermissions(PermissionRectangles);
@@ -174,7 +180,7 @@ public sealed partial class World
         Bins = new BinTable(PerThousand(citizens, 450), Buildings);
         Expiries = new ExpiryTable(Bins);
 
-        Households = new HouseholdTable(PerThousand(citizens, 360), Buildings, Bins);
+        Households = new HouseholdTable(householdRows, Buildings, Bins);
         Layers = new MapLayers(rules.Layers);
 
         // One Car Park per Building, so this is the Building ratio and not a fourth guessed one --
@@ -495,7 +501,7 @@ public sealed partial class World
             // Appended: the Units a Building is divided into, and which Business holds each.
             Units.Rows,
 
-            // Appended: which provider each firm keeps for each Professional Service (adr/0178).
+            // Appended: which provider each firm keeps for each Professional Service (adr/0179).
             ServiceContracts.Rows,
         ];
 
@@ -784,7 +790,7 @@ public sealed partial class World
     /// </summary>
     public BusinessTable Businesses { get; }
 
-    /// <summary>Which provider each firm buys each Professional Service from (<c>adr/0178</c>).</summary>
+    /// <summary>Which provider each firm buys each Professional Service from (<c>adr/0179</c>).</summary>
     public ServiceContractTable ServiceContracts { get; }
 
     /// <summary>The Units every Building is divided into, one tenancy each.</summary>
@@ -2222,26 +2228,9 @@ public sealed partial class World
     /// </remarks>
     public Money DemolitionPrice(int buildingSlot)
     {
-        long rate = Rules.Lots.DemolitionPricePerTile.Raw;
-
-        if (rate == 0
-            || Displaced(buildingSlot) == 0
-            || !Lots.Rows.TryResolve(Buildings.Lot[buildingSlot], out int lot))
-        {
-            return Money.Zero;
-        }
-
-        long factor = (long)Fixed.One
-            + Layers.LandValue(CellGrid.ToCells(Lots.East[lot]), CellGrid.ToCells(Lots.North[lot]));
-
-        if (factor <= 0)
-        {
-            return Money.Zero;
-        }
-
-        long tiles = (long)Lots.FootprintWide[lot].Raw * Lots.FootprintDeep[lot].Raw;
-
-        return new Money(IntegerMath.MulDivFloor(factor * tiles, rate, Fixed.One));
+        return Rules.Lots.DemolitionPricePerTile.Raw == 0 || Displaced(buildingSlot) == 0
+            || !Lots.Rows.TryResolve(Buildings.Lot[buildingSlot], out int lot)
+            ? Money.Zero : LandPrice(lot);
     }
 
     /// <summary>

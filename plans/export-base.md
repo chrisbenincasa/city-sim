@@ -42,7 +42,7 @@ for jobs and jobs attract people.
 | 8 | Reachable jobs, as `log(1 + jobs)`, enter arrival placement on both the city and Hinterland sides | Wages, once posted wages (`adr/0026`) exist |
 | 9 | A jobless spell past a Ruleset duration makes a housed Household rerun the same comparison against the Hinterland. Life Stage sets reluctance | Departure when it cannot pay (Household financial resilience row) |
 | 10 | Seeds differ through land. Hinterlands stay authored per Ruleset | Generator deals Hinterlands to edges (world-creation row) |
-| 11 | A firm keeps its service provider under a saved contract and chooses again only when the provider cannot supply it (`adr/0178`, 10/15/2026). A District Pool was rejected because it cannot say "within reach of this firm" | Local providers and their capacity, offices slice |
+| 11 | A firm keeps its service provider under a saved contract and chooses again only when the provider cannot supply it (`adr/0179`, 10/15/2026). A District Pool was rejected because it cannot say "within reach of this firm" | Local providers and their capacity, offices slice |
 | 12 | Surplus is output a firm cannot store. A Rule with its inputs and workers present, blocked only by a full output Bin of a Good it makes, sells that batch to the Hinterland. The Bin stays full, so local buyers lose nothing (10/16/2026). A waiting period before exporting was considered and not built | A waiting period, if a long run shows local buyers going without |
 | 13 | Service exports wait for slice 3, because nothing in the city makes a service before then | Selling unused office capacity, slice 3 |
 
@@ -58,12 +58,16 @@ Consequences of these decisions:
 
 ## Open
 
-- **Profit build-up.** Business tills receive export income with no investment sink until private
-  capital is designed. The budget guard bounds inflow, not accumulation. Measured 10/16/2026 on
-  `rulesets/exported.toml`, seed 0, 120 Days: both Hinterlands spend their whole budget every Day
-  (about 77,000 a Day), and firm balances grow in a straight line from 3.6M on Day 10 to 10.5M on
-  Day 120. Household balances grow too, more slowly. `MoneyIsConserved` holds. Money in the city is
-  unbounded while exports run, so this slice cannot ship to a base Ruleset until a sink is decided.
+- **Profit build-up.** A till pays its surplus above a reserve to its owner Household (`adr/0176`).
+  That Household's savings then buy Lots and pay construction, which sends the land price to the
+  treasury and the construction charge outside the city
+  ([land ownership and rent](money-circulation.md#land-ownership-and-rent-decided-10162026)). The
+  budget guard bounds inflow, not accumulation. Check boundedness in the first long run with exports.
+  Measured 10/16/2026 on `rulesets/exported.toml`, seed 0, 120 Days, before owner payouts and land
+  purchase reached this branch: both Hinterlands spent their whole budget every Day (about 77,000 a
+  Day), and firm balances grew in a straight line from 3.6M on Day 10 to 10.5M on Day 120.
+  `MoneyIsConserved` held. Re-measure with owner payouts and land purchase in force before this
+  slice ships to a base Ruleset.
 - **Who staffs a service firm.** Keep the single `requires_tier` minimum. A tier mix waits on
   `adr/0026`.
 - **Office capacity.** A service is never stocked, so an office sells capacity per Day rather than

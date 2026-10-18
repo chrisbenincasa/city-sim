@@ -13,7 +13,7 @@ namespace Borough.Tests.Rules;
 
 /// <summary>
 /// <c>rulesets/serviced.toml</c>: a shop's restock buys accounting from a Hinterland under a contract
-/// (<c>adr/0178</c>). North sells accounting at 90 and insurance at 30, east at 110 and 40; sundries
+/// (<c>adr/0179</c>). North sells accounting at 90 and insurance at 30, east at 110 and 40; sundries
 /// cost 100 north and 120 east.
 /// </summary>
 public sealed class ServiceImportTests

@@ -601,38 +601,21 @@ internal static class EvidenceDump
             + "apart is a Rule that has never run, because a Building has no creation Tick.");
     }
 
-    /// <summary>
-    /// Why the vacant Lots are vacant, counted.
-    /// </summary>
-    /// <remarks>
-    /// ⚠ <b>Every flag here reads zero on every world this runner can build, and the panel is kept
-    /// because that is worth printing.</b> Measured 2026-08-17: <b>0 of 150</b> vacant Lots on the
-    /// golden fixture lack frontage, and <b>every</b> vacant Lot is admitted by a Zone Rule — because
-    /// <c>RoadGenerator</c> lays the lattice the subdivider carves the Lots out of, and
-    /// <c>SyntheticCity</c> paints bit 0 on every Lot while the shipped <c>[[zone_rule]]</c> admits
-    /// bit 0. The flags need a city somebody <b>zoned</b> and <b>roaded</b>, and no runner mode issues
-    /// any Command but <c>Populate</c>. So the instrument is exercised, the world cannot feed it, and
-    /// the panel says which of those two it is. ***A row of noughts under a heading that explains them
-    /// is a measurement; the same row with no heading is a defect.***
-    /// </remarks>
+    /// <summary>Counts vacancy reasons using one shared Household capital pass.</summary>
     private static void Vacancy(TextWriter output, World world)
     {
         int vacant = 0;
         int noFrontage = 0;
         int nobodySeeking = 0;
         int notZoned = 0;
+        int noCapital = 0;
         int unexplained = 0;
 
-        for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
+        foreach (LotEvidence evidence in Evidence.OfLots(world))
         {
-            if (!world.Lots.Rows.IsLive(slot) || !world.Lots.IsVacant(slot))
-            {
-                continue;
-            }
-
+            if (!evidence.IsVacant) { continue; }
             vacant++;
-
-            VacancyReason reason = Evidence.OfLot(world, world.Lots.Rows.At(slot)).Reason;
+            VacancyReason reason = evidence.Reason;
 
             if (reason.HasFlag(VacancyReason.NoFrontage))
             {
@@ -649,6 +632,11 @@ internal static class EvidenceDump
                 notZoned++;
             }
 
+            if (reason.HasFlag(VacancyReason.NoCapital))
+            {
+                noCapital++;
+            }
+
             if (reason == VacancyReason.None)
             {
                 unexplained++;
@@ -659,20 +647,11 @@ internal static class EvidenceDump
         output.WriteLine($"  no frontage           {noFrontage,6}");
         output.WriteLine($"  nobody seeking        {nobodySeeking,6}");
         output.WriteLine($"  not zoned             {notZoned,6}");
+        output.WriteLine($"  No capital            {noCapital,6}");
         output.WriteLine($"  the build cannot say  {unexplained,6}");
         output.WriteLine();
-        output.WriteLine(
-            "⚠ THE FIRST THREE ARE ZERO ON EVERY WORLD THIS RUNNER CAN BUILD, and that is the world "
-            + "rather than the instrument. RoadGenerator lays the lattice the Lots are carved out of, "
-            + "so a generated Lot always has frontage; SyntheticCity paints bit 0 on every Lot and "
-            + "the shipped [[zone_rule]] admits bit 0, so every Lot is zoned. Those two flags need a "
-            + "city somebody ZONED and ROADED, and no runner mode issues any Command but Populate — "
-            + "CommandKind.Zone and Connect have no production call site anywhere in the project.");
-        output.WriteLine(
-            "  `the build cannot say` is an honest answer and not a hole: a Zone Rule SAMPLES rather "
-            + "than sweeps (adr/0059), so `not yet looked at` is the ordinary state of most vacant "
-            + "Lots. 02 §9 names two more reasons — conditions below tolerance, and no capital — and "
-            + "neither has a mechanism anywhere in the build. They arrive with milestone 17.");
+        output.WriteLine("Vacancy reasons can overlap. No capital compares Household savings with land, construction and the reserve.");
+        output.WriteLine("The build cannot say when none applies. A Zone Rule samples Lots, so a buildable Lot may not have been selected yet.");
     }
 
     private static void Row(

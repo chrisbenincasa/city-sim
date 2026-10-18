@@ -246,6 +246,13 @@ public sealed class ZoneRuleEngine
     /// <param name="tick">The Tick being run, which is both the trigger test and the sample's key.</param>
     public void Sweep(Ticks tick)
     {
+        _world.BeginLandSaleSweep();
+        try { SweepRules(tick); }
+        finally { _world.EndLandSaleSweep(); }
+    }
+
+    private void SweepRules(Ticks tick)
+    {
         ReadOnlySpan<ZoneRuleDefinition> rules = _world.Rules.ZoneRules;
 
         // Lazily, and at most once a Tick however many Rules read it -- the pass walks every Rule
@@ -817,17 +824,11 @@ public sealed class ZoneRuleEngine
             return;
         }
 
-        if (definition.ReadsDemand)
-        {
-            if (!Demanded(definition, lot, tick))
-            {
-                return;
-            }
-        }
-        else if (_world.UnplacedPool.Count == 0)
-        {
-            return;
-        }
+        if (!definition.ReadsDemand && _world.UnplacedPool.Count == 0) { return; }
+        if (!_world.CanFinanceConstruction(lot, _world.Lots.FloorTiles(lot))) { return; }
+        if (definition.ReadsDemand && !Demanded(definition, lot, tick)) { return; }
+
+        if (!_world.FinanceConstruction(lot, _world.Lots.FloorTiles(lot), tick)) { return; }
 
         Handle<Building> raised = _world.CreateBuilding(_world.Lots.Rows.At(lot), definition.Kind, tick, _key, zoned: true);
 

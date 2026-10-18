@@ -3,6 +3,10 @@
 # affordable but worse than Outside; the permitted new terrace offers a lower rent.
 # Provisional timing: 256 Ticks of repeated failed searches, 64-Tick freshness. High choice
 # sensitivity makes this controlled contrast reliable; it is not proposed game balance.
+# Rent is a rate per floor Tile (money-circulation L7). A tenancy in the existing homes holds 160
+# Tiles, so the smallest rate the money can express charges 160 a Day where this file used to state
+# 50 -- and an arrival carries 256 rather than 100 so the existing homes stay affordable, which is
+# what the contrast above needs them to be.
 [[resource]]
 name = "sundries"
 family = "good"
@@ -76,7 +80,7 @@ revisit_ticks = 1
 [[building]]
 name = "existing homes"
 houses = true
-rent = 50
+rent_per_floor_tile = 1
 bins = [{ resource = "sundries", capacity = 48 }]
 [[building]]
 name = "arrival gate"
@@ -94,5 +98,5 @@ moving_costs_rent = 0
 edge = "west"
 rent = 25
 centrality_tiles = 0
-emigrant_balance_min = 100
-emigrant_balance_max = 100
+emigrant_balance_min = 256
+emigrant_balance_max = 256

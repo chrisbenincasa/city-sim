@@ -170,11 +170,14 @@ public static class RulesetKeyNotes
             + "exists so that a detached house may carry a driveway where a tower may not — a "
             + "parking minimum is a property of the city, and an exemption from it is a property of "
             + "the kind. Absent means the kind provides none.",
-        ["[[building]] rent"] =
-            "The daily rent a Building of this kind asks. Nothing charges it: placement skips a "
-            + "dwelling whose rent exceeds a seeking Household's money, reconsideration moves out a "
-            + "housed Household that falls below it, and the choice model weighs it. A recurring "
-            + "charge needs a [[rule]] or [[policy]]. Zero or absent means the dwelling is free.",
+        ["[[building]] rent_per_floor_tile"] =
+            "What one floor Tile of a Building of this kind costs a tenant per Day. A tenancy pays "
+            + "this for the floor it occupies, times one plus the land value at its Lot, so two "
+            + "dwellings of one kind rent for different amounts on different ground. A Business "
+            + "occupies its Unit's floor and a Household an equal share of the Building's. Nothing "
+            + "charges it: placement skips a dwelling a seeking Household cannot pay for, "
+            + "reconsideration moves out a housed Household that falls below it, and the choice "
+            + "model weighs what is left. Zero or absent means the kind is free to occupy.",
         ["[[building]] placement_cost"] =
             "What the treasury pays to place a Building of this kind by hand. Absent or zero means "
             + "the placement is free, which is what every kind meant before the key existed. The "
@@ -607,7 +610,7 @@ public static class RulesetKeyNotes
             + "and had no room to store. When several Hinterlands price a Good, the highest payer "
             + "with budget left buys it. Absent or zero buys nothing.",
         ["[[hinterland]] rent"] =
-            "What a home costs per Day out here, in the money a [[building]] rent is in. It is what "
+            "What a home costs per Day out here, as a whole tenancy and not a rate per Tile. It is what "
             + "a prospective Household compares against the cost of living in the city, and what a "
             + "Household waiting for somewhere to live compares against every home it is shown. "
             + "Required beside a choice model and refused without one.",
@@ -1052,12 +1055,22 @@ public static class RulesetKeyNotes
             "Maximum independent random inset in Tiles for block-based footprints and explicit Perimeter parcels. Explicit Detached houses use centred house dimensions instead. Reserved Street ground is always excluded.",
 
         ["[lots] demolition_price_per_tile"] =
-            "What the treasury pays to demolish an occupied Building, per Tile of Lot footprint on "
-            + "ground of zero land value. The price is multiplied by one plus the land value at the "
+            "The land price per Tile of Lot footprint on ground of zero land value, also used to "
+            + "price occupied demolition. The price is multiplied by one plus the land value at the "
             + "Lot, so polluted or noisy ground is cheaper to clear and shoreline dearer, and land "
             + "value of minus one or below clears free. The price is shared equally among the evicted "
             + "Households and displaced Businesses. A Building nobody occupies demolishes free. "
             + "Absent or zero means occupied demolition is free. Requires a money Resource.",
+
+        ["[lots] construction_charge_per_floor_tile"] =
+            "Money a Household pays outside the city per floor Tile before a Zone Rule builds. "
+            + "Either this key or buyer_reserve_per_member enables land sales, even at zero. "
+            + "Absent means no construction charge. If both keys are absent, Zone Rules build without a buyer. Requires a money Resource.",
+
+        ["[lots] buyer_reserve_per_member"] =
+            "Money per Household member a buyer must keep after paying for land and construction. "
+            + "Only its own balance counts, never a Business's till. Either this key or "
+            + "construction_charge_per_floor_tile enables land sales, even at zero. Absent means no reserve. Requires a money Resource.",
 
         ["[lots] storeys_per_rung"] =
             "Step between density rungs. Block-based forms use it in their plot-ratio target; explicit Perimeter parcels add it per rung to house_storeys. Detached houses keep house_storeys.",

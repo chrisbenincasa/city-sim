@@ -183,7 +183,7 @@ public sealed class HousingConstructionTests(Xunit.Abstractions.ITestOutputHelpe
         world.CreateHousehold(world.Buildings.Rows.At(west), 0);
         world.CreateHousehold(world.Buildings.Rows.At(east), 0);
         int first = (int)(Randomness.Draw(Key, 0, world.Tick, PurposeTag.HousingConstructionSeekers) % 2);
-        world.Endow(world.UnplacedPool.At(first), new Money(100));
+        world.Endow(world.UnplacedPool.At(first), new Money(320));
         var proposal = LocalLayoutTests.Evaluate(world, [lots[1]], BlockPattern.BackToBack);
         Assert.Equal(2, Vacancy(world));
         Assert.Equal(HousingNeedRefusal.NoNeed, HousingNeedAssessment.Evaluate(world, Key, proposal).Refusal);
@@ -196,14 +196,14 @@ public sealed class HousingConstructionTests(Xunit.Abstractions.ITestOutputHelpe
         var shape = LocalLayoutTests.Evaluate(world, [lots[1]], BlockPattern.BackToBack);
         Assert.True(LocalLayout.Evaluate(world, [lots[1]], shape.Building with { Kind = 2 }, out var costly).Accepted);
         Assert.Equal(HousingNeedRefusal.NoNeed, HousingNeedAssessment.Evaluate(world, Key, costly!).Refusal);
-        for (int i = 0; i < 2; i++) { world.Endow(world.UnplacedPool.At(i), new Money(100)); }
+        for (int i = 0; i < 2; i++) { world.Endow(world.UnplacedPool.At(i), new Money(320)); }
         Assert.True(HousingNeedAssessment.Evaluate(world, Key, costly!).Accepted);
     }
 
     [Theory]
-    [InlineData(25, false)]
-    [InlineData(50, false)]
-    [InlineData(75, true)]
+    [InlineData(80, false)]
+    [InlineData(160, false)]
+    [InlineData(240, true)]
     public void Actual_households_compare_the_prospective_site_with_their_saved_Outside(int outsideRent, bool supported)
     {
         string choice = """
@@ -214,21 +214,21 @@ public sealed class HousingConstructionTests(Xunit.Abstractions.ITestOutputHelpe
             gives_up_after_days = 2
             mu_percent = 100
             centrality_tiles_per_unit = 2048
-            rent_per_unit = 120
-            moving_costs_rent = 720
+            rent_per_unit = 384
+            moving_costs_rent = 2304
             [[hinterland]]
             edge = "west"
             rent = OUTSIDE
             centrality_tiles = 0
-            emigrant_balance_min = 100
-            emigrant_balance_max = 100
+            emigrant_balance_min = 320
+            emigrant_balance_max = 320
             """;
         var (world, lots) = City(2, settings: Settings + MoneyKinds + "\n" + choice.Replace("OUTSIDE", outsideRent.ToString(System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal));
         for (int i = 0; i < 2; i++)
         {
             var household = world.UnplacedPool.At(i);
             int row = world.Households.Rows.Resolve(household);
-            world.Endow(household, new Money(100));
+            world.Endow(household, new Money(320));
             world.Households.Arrived[row] = 1;
             world.Households.ArrivalEdge[row] = (byte)MapEdge.West;
         }
@@ -414,7 +414,7 @@ public sealed class HousingConstructionTests(Xunit.Abstractions.ITestOutputHelpe
         if (unaffordable)
         {
             for (int i = 0; i < world.UnplacedPool.Count; i++)
-            { world.Withdraw(world.Households.Balance[world.Households.Rows.Resolve(world.UnplacedPool.At(i))], 100, world.Tick); }
+            { world.Withdraw(world.Households.Balance[world.Households.Rows.Resolve(world.UnplacedPool.At(i))], 320, world.Tick); }
         }
         else
         {
@@ -431,7 +431,7 @@ public sealed class HousingConstructionTests(Xunit.Abstractions.ITestOutputHelpe
         if (unaffordable)
         {
             AtTick(world, 8);
-            for (int i = 0; i < world.UnplacedPool.Count; i++) { world.Endow(world.UnplacedPool.At(i), new Money(100)); }
+            for (int i = 0; i < world.UnplacedPool.Count; i++) { world.Endow(world.UnplacedPool.At(i), new Money(320)); }
             ObserveAll(world);
             Assert.Equal(8UL, world.UnplacedPool.MismatchSince[0]);
             Assert.Null(HousingConstruction.Select(world, Key, lots[1], 1));
@@ -458,7 +458,7 @@ public sealed class HousingConstructionTests(Xunit.Abstractions.ITestOutputHelpe
     [Fact]
     public void Small_preference_gap_and_Outside_tie_never_accumulate_evidence()
     {
-        foreach (int outside in new[] { 45, 50, 75 })
+        foreach (int outside in new[] { 144, 160, 240 })
         {
             var (world, lots) = MismatchCity(outside: outside);
             Mature(world);
@@ -543,7 +543,7 @@ public sealed class HousingConstructionTests(Xunit.Abstractions.ITestOutputHelpe
     private static void Mature(World world)
     { ObserveAll(world); AtTick(world, 4); ObserveAll(world); AtTick(world, 8); ObserveAll(world); }
 
-    private static (World World, Handle<Lot>[] Lots) MismatchCity(bool zoneRules = false, int outside = 25)
+    private static (World World, Handle<Lot>[] Lots) MismatchCity(bool zoneRules = false, int outside = 80)
     {
         string choice = $"""
 
@@ -554,14 +554,14 @@ public sealed class HousingConstructionTests(Xunit.Abstractions.ITestOutputHelpe
             gives_up_after_days = 2
             mu_percent = 10000
             centrality_tiles_per_unit = 2048
-            rent_per_unit = 120
+            rent_per_unit = 384
             moving_costs_rent = 0
             [[hinterland]]
             edge = "west"
             rent = {outside}
             centrality_tiles = 0
-            emigrant_balance_min = 100
-            emigrant_balance_max = 100
+            emigrant_balance_min = 320
+            emigrant_balance_max = 320
             """;
         string settings = Settings.Replace("preference_persistence_ticks = 1024", "preference_persistence_ticks = 8", StringComparison.Ordinal)
             .Replace("preference_freshness_ticks = 2048", "preference_freshness_ticks = 4", StringComparison.Ordinal)
@@ -573,7 +573,7 @@ public sealed class HousingConstructionTests(Xunit.Abstractions.ITestOutputHelpe
         {
             var household = world.UnplacedPool.At(i);
             int row = world.Households.Rows.Resolve(household);
-            world.Endow(household, new Money(100));
+            world.Endow(household, new Money(320));
             world.Households.Arrived[row] = 1;
             world.Households.ArrivalEdge[row] = (byte)MapEdge.West;
         }
@@ -588,7 +588,7 @@ public sealed class HousingConstructionTests(Xunit.Abstractions.ITestOutputHelpe
         [[building]]
         name = "expensive"
         houses = true
-        rent = 50
+        rent_per_floor_tile = 1
         bins = [{ resource = "sundries", capacity = 48 }]
         """;
 

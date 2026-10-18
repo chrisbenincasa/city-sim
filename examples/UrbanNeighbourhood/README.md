@@ -2,8 +2,9 @@
 
 This small saved city makes the urban-fabric housing decision visible. It has six Citizens:
 two existing residents and two arriving Households of two people each. Two vacancies charge
-50 money units per Day, compared with their Outside option's 25. Both arriving Households
-carry 100, so these vacancies are affordable; they simply prefer their Outside option.
+160 money units per Day, a rate of 1 per floor Tile over a 160-Tile tenancy, compared with
+their Outside option's 25. Both arriving Households carry 256, so these vacancies are
+affordable; they simply prefer their Outside option.
 A new terrace charges zero in this deliberately isolated housing fixture.
 
 From the repository root:

@@ -959,4 +959,7 @@ public enum PurposeTag : ulong
     /// Business's id at the payday.
     /// </summary>
     BusinessOwner = 67,
+
+    /// <summary>The draw picks an eligible Household to buy a Lot before construction.</summary>
+    LandBuyer = 68,
 }

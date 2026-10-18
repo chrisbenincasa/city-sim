@@ -17,9 +17,22 @@ internal static class LocalLayoutCommit
         building = default;
         LocalLayoutCheck check = LocalLayout.Revalidate(world, proposal);
         if (!check.Accepted) { return check; }
+        LocalLayoutCheck ownership = world.AssemblyOwner(proposal, out int owner);
+        if (!ownership.Accepted) { return ownership; }
         if (!Prepare(world, proposal)) { return new(LocalLayoutRefusal.Storage); }
 
         LocalLot door = proposal.Sources[0];
+        int buyer = Rows.NoSlot;
+        if (zoned && world.Rules.Lots.LandSales)
+        {
+            Money land = world.LandPrice(new Tiles(door.East), new Tiles(door.North),
+                (long)proposal.Building.Footprint.Width * proposal.Building.Footprint.Height);
+            Money charge = world.ConstructionCharge(proposal.FloorTiles);
+            buyer = world.ConstructionBuyer(world.Lots.Rows.Resolve(door.Handle), owner, land, charge, world.Tick, draw: true);
+            if (buyer == Rows.NoSlot) { return new(LocalLayoutRefusal.NoCapital); }
+            world.PayConstruction(buyer, owner, land, charge, world.Tick);
+        }
+
         // The merged Lot keeps the door's Address, so read its saved frontage before the sources go.
         // Every source fronts the same Segment -- LocalLayout refuses IncompatibleFrontage otherwise.
         int doorRow = world.Lots.Rows.Resolve(door.Handle);
@@ -30,6 +43,11 @@ internal static class LocalLayoutCommit
         Handle<Lot> lot = world.Lots.Create(new Tiles(door.East), new Tiles(door.North), LotTable.Housing,
             (StreetSide)door.Side);
         int row = world.Lots.Rows.Resolve(lot);
+        if (world.Rules.Lots.LandSales)
+        {
+            int landowner = buyer == Rows.NoSlot ? owner : buyer;
+            world.Lots.Landowner[row] = landowner == Rows.NoSlot ? default : world.Households.Rows.At(landowner);
+        }
         world.Lots.Front(row, fronts, offset);
         LandRectangle site = proposal.Site;
         LandRectangle footprint = proposal.Building.Footprint;
