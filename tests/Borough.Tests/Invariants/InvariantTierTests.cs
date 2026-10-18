@@ -153,6 +153,34 @@ public sealed class InvariantTierTests
         Assert.Equal(Invariant.HouseholdIsNotAlreadyInThisBuilding, failure.Violation.Invariant);
     }
 
+    /// <summary>
+    /// <b>An office selling more of a service than it made that Day is caught at the sale.</b>
+    /// </summary>
+    /// <remarks>
+    /// The sale is bounded where it is decided — <c>RuleEngine.Retain</c> caps the applications at
+    /// what the allowance has left — so what this catches is a second route to the same row inside
+    /// one firing. Two <c>pool</c> terms naming one service would be exactly that, and the loader
+    /// refuses the pair; the check is what notices the next one.
+    /// </remarks>
+    [Fact]
+    public void Selling_more_of_a_service_than_an_office_made_is_caught_at_the_write_site()
+    {
+        World world = Built();
+        int allowance = world.ServiceAllowances.Rows.Resolve(
+            world.ServiceAllowances.Rows.Allocate());
+
+        world.ServiceAllowances.MadeToday[allowance] = 1;
+
+        InvariantViolationException failure = Assert.Throws<InvariantViolationException>(
+            () => world.SellService(allowance, 2));
+
+        Assert.Equal(Invariant.AnOfficeSellsNoMoreThanItMade, failure.Violation.Invariant);
+        Assert.Equal(allowance, failure.Violation.Slot);
+
+        // The other field is the overdraft: two units sold against one made.
+        Assert.Equal(1, failure.Violation.Other);
+    }
+
     // ---- The staggered tier ----
 
     /// <summary>

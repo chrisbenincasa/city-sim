@@ -112,10 +112,13 @@ public static class RulesetKeyNotes
             "What this Resource is called. Every other table refers to it by this name, and the "
             + "engine never sees the string.",
         ["[[resource]] family"] =
-            "Which of the four kinds of thing this is: a good moves as a Shipment on the Road "
+            "Which of the five kinds of thing this is: a good moves as a Shipment on the Road "
             + "Graph and shows up in the traffic, a utility flows along the District adjacency "
-            + "graph, money is conserved and does not move at all, and labour is worker-time a "
-            + "Business's present staff deposit and its own Rules spend as a local input. The "
+            + "graph, money is conserved and does not move at all, labour is worker-time a "
+            + "Business's present staff deposit and its own Rules spend as a local input, and a "
+            + "service is a Professional Service a provider's Rule makes as a local output and a "
+            + "client firm buys from the provider it keeps, through a pool input -- no Bin ever "
+            + "holds one. The "
             + "family decides transport and whether a Bin holding it has a ceiling, so there is no "
             + "default. A labour Resource must declare a shelf life, and its Bin is owned by the "
             + "business and states no capacity.",
@@ -134,6 +137,15 @@ public static class RulesetKeyNotes
             + "ages on its own boundary within the cycle, offset from other Bins so a city's stock "
             + "does not all age on one Tick. Stock deposited just before its Bin's boundary ages a "
             + "full cycle at once.",
+
+        ["[[resource]] reach_minutes"] =
+            "How far a buyer may stand from a provider of this service, in free-flow travel "
+            + "minutes, from 1 to a day. Only a service has a reach, and it states either this or "
+            + "remote. A Hinterland provider is reached from anywhere, so this binds only once the "
+            + "city has its own providers.",
+        ["[[resource]] remote"] =
+            "true for a service delivered at any distance, in place of reach_minutes. Only a service "
+            + "may state it, and false is refused: state reach_minutes instead.",
 
         // ---- [[building]] ---------------------------------------------------------------------
         ["[[building]] name"] =
@@ -399,7 +411,8 @@ public static class RulesetKeyNotes
             "How much of it one application deposits.",
         ["[[rule]] outputs scope"] =
             "Where the term deposits: local, pool, global, or map. The map scope is write-only, so a "
-            + "Rule may emit to a Layer and can never read or wait on one.",
+            + "Rule may emit to a Layer and can never read or wait on one. A service output is local "
+            + "and adds to the provider's allowance for the Day rather than to a Bin.",
         ["[[rule]] outputs layer"] =
             "Which Map Layer a map-scoped term emits into. A Layer cell has no capacity, so such a "
             + "term never fails.",
@@ -593,6 +606,12 @@ public static class RulesetKeyNotes
         ["[[hinterland]] emigrant_balance_max"] =
             "The most. Stated as a band rather than one figure, because a single figure gives every "
             + "arrival the same means.",
+        ["[[hinterland]] export_budget"] =
+            "The most this Hinterland pays the city for exports in one Day, from 0 to 2147483647. "
+            + "It buys at its prices, the figure it also sells at, and only Goods a city firm made "
+            + "and had no room to store. When several Hinterlands price a Good, the highest payer "
+            + "with budget left for at least one minimum batch buys it, as many batches as that "
+            + "budget covers. Absent or zero buys nothing.",
         ["[[hinterland]] rent"] =
             "What a home costs per Day out here, as a whole tenancy and not a rate per Tile. It is what "
             + "a prospective Household compares against the cost of living in the city, and what a "
@@ -604,13 +623,13 @@ public static class RulesetKeyNotes
             + "Household weighing one against the other is measuring both from the same place. "
             + "Required beside a choice model and refused without one.",
         ["[[hinterland]] prices"] =
-            "What this Hinterland will sell each Good for, one entry per Good. These are the only "
+            "What this Hinterland will sell each Good or service for, one entry each. These are the only "
             + "authored anchor under every price in the design: a District's Pool may charge up to "
             + "the cheapest declared Hinterland price and no more.",
         ["[[hinterland]] prices resource"] =
-            "Which Good is being priced, naming a [[resource]]. Only a good may be — a utility is "
-            + "not stocked, and money is what a price is denominated in rather than a thing that has "
-            + "one.",
+            "Which Good or service is being priced, naming a [[resource]]. A utility is not "
+            + "stocked, and money is what a price is denominated in rather than a thing that has "
+            + "one, so neither may be.",
         // ---- [[hinterland.population]] --------------------------------------------------------
         ["[[hinterland.population]] stage"] =
             "Which Life Stage every Household of this composition is in, naming a [[life_stage]]. "

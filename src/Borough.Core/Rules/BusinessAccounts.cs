@@ -146,6 +146,32 @@ public static class BusinessAccounts
     }
 
     /// <summary>
+    /// A service was bought for <paramref name="payment"/> and used: an expense on the Day.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>The buyer's half of <see cref="Serve"/>, and it must exist or the pair manufactures
+    /// profit.</b> The provider books the revenue, so a client that booked nothing would leave
+    /// <see cref="BusinessTable.ProfitOn"/> reading a city-wide gain on a transfer between two firms,
+    /// and <c>BusinessTaxEngine</c> taxes that figure.
+    /// </para>
+    /// <para>
+    /// <b>On the Day, where <see cref="Stock"/> defers</b> (<c>plans/0072</c> D15). A Good sits in a
+    /// Bin and becomes an expense a share at a time as it is sold; a service is consumed in the
+    /// firing that bought it and no Bin can carry its cost forward.
+    /// </para>
+    /// </remarks>
+    public static void Consume(World world, int business, long payment, Ticks tick)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+
+        if (business >= 0 && world.Businesses.Rows.IsLive(business))
+        {
+            world.Businesses.Expend(business, DayOf(tick), payment);
+        }
+    }
+
+    /// <summary>
     /// One Day's gross wage bill, expensed on the Day it was earned.
     /// </summary>
     /// <remarks>

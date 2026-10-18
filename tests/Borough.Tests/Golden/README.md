@@ -921,3 +921,30 @@ eviction and save/reload.
 **Behavior did not move.** `--census` over both committed sessions is byte-identical before and after
 once the trace is removed — **20,661 bytes** and **20,564 bytes**, measured against a worktree at
 `ddb6e8ee`. `RentEngine.Sweep` returns on the first line for a Ruleset that states no `[rent]`.
+
+### Service contracts (10/18/2026)
+
+A new saved `service_contract` table records each kept contract under which a firm imports a
+Professional Service (`adr/0179`). Core save format goes to **24**. All three artifacts moved on the
+new table's declaration. Both traces and `world-hash.txt` were regenerated with the commands above.
+Baseline Ruleset content hashes and the hash seed are unchanged. No baseline Ruleset declares a
+Service, so the table holds no rows in any artifact here. `ServiceImportTests` covers the
+contract's lifecycle and save/reload.
+
+### Hinterland export spending (10/18/2026)
+
+`hinterland` gains two saved columns, `exported_today` and `exported_yesterday`: what each Hinterland
+has paid the city for exports in the current and the previous Day. Core save format goes to **25**.
+All three artifacts moved on the new columns. Both traces and `world-hash.txt` were regenerated with
+the commands above. Baseline Ruleset content hashes and the hash seed are unchanged. No baseline
+Ruleset states `export_budget`, so the columns fold zeroes. `ExportTests` covers the budget, the
+hand-off between Hinterlands and save/reload.
+
+### Office service allowances (10/18/2026)
+
+A new saved `service_allowance` table records what each office may still sell of each Professional
+Service today, and `service_contract` gains the providing office (`adr/0179`). Core save format goes
+to **26**. All three artifacts moved on the new declarations. Both traces and `world-hash.txt` were
+regenerated with the commands above. Baseline Ruleset content hashes and the hash seed are
+unchanged. No baseline Ruleset declares a Service, so neither table holds rows here.
+`LocalServiceTests` covers the allowance, the sale, the provider draw and save/reload.
