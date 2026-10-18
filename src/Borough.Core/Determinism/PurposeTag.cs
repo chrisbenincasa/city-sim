@@ -962,4 +962,10 @@ public enum PurposeTag : ulong
 
     /// <summary>The draw picks an eligible Household to buy a Lot before construction.</summary>
     LandBuyer = 68,
+
+    /// <summary>The draw picks a Household housed on a Lot to buy it when its holder sells.</summary>
+    LotTenantBuyer = 69,
+
+    /// <summary>The draw picks any eligible Household to buy a Lot that no tenant buys.</summary>
+    LotResaleBuyer = 70,
 }

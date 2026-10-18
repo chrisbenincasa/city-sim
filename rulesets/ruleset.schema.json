@@ -981,6 +981,10 @@
           "description": "Money per Household member a buyer must keep after paying for land and construction. Only its own balance counts, never a Business's till. Either this key or construction_charge_per_floor_tile enables land sales, even at zero. Absent means no reserve. Requires a money Resource.",
           "type": "integer"
         },
+        "city_sale_interval_days": {
+          "description": "Days between the city's offers of the built Lots it holds, at their price: the land price plus the construction charge for the floor. Households housed on a Lot are drawn first, then any Household, each keeping buyer_reserve_per_member. The price goes to the treasury. Absent means the city keeps its Lots. Requires construction_charge_per_floor_tile or buyer_reserve_per_member. Between 1 and 65535.",
+          "type": "integer"
+        },
         "construction_charge_per_floor_tile": {
           "description": "Money a Household pays outside the city per floor Tile before a Zone Rule builds. Either this key or buyer_reserve_per_member enables land sales, even at zero. Absent means no construction charge. If both keys are absent, Zone Rules build without a buyer. Requires a money Resource.",
           "type": "integer"

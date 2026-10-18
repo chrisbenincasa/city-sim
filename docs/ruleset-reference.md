@@ -27,7 +27,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-54 sections, 386 keys.
+54 sections, 387 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
@@ -68,7 +68,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[jobs]`](#jobs) — 15 keys
 - [`[land_permissions]`](#land_permissions) — 1 key
 - [`[layers]`](#layers) — 20 keys
-- [`[lots]`](#lots) — 18 keys
+- [`[lots]`](#lots) — 19 keys
 - [`[lots] trade_form_weights`](#lots-trade_form_weights) — 7 keys
 - [`[market]`](#market) — 2 keys
 - [`[needs]`](#needs) — 9 keys
@@ -1439,6 +1439,10 @@ How many Ticks between recomputations of the woodland field.
 **`buyer_reserve_per_member`** · *whole number*
 
 Money per Household member a buyer must keep after paying for land and construction. Only its own balance counts, never a Business's till. Either this key or construction_charge_per_floor_tile enables land sales, even at zero. Absent means no reserve. Requires a money Resource.
+
+**`city_sale_interval_days`** · *whole number*
+
+Days between the city's offers of the built Lots it holds, at their price: the land price plus the construction charge for the floor. Households housed on a Lot are drawn first, then any Household, each keeping buyer_reserve_per_member. The price goes to the treasury. Absent means the city keeps its Lots. Requires construction_charge_per_floor_tile or buyer_reserve_per_member. Between 1 and 65535.
 
 **`construction_charge_per_floor_tile`** · *whole number*
 

@@ -1056,6 +1056,13 @@ public static class RulesetKeyNotes
             + "Only its own balance counts, never a Business's till. Either this key or "
             + "construction_charge_per_floor_tile enables land sales, even at zero. Absent means no reserve. Requires a money Resource.",
 
+        ["[lots] city_sale_interval_days"] =
+            "Days between the city's offers of the built Lots it holds, at their price: the land "
+            + "price plus the construction charge for the floor. Households housed on a Lot are drawn "
+            + "first, then any Household, each keeping buyer_reserve_per_member. The price goes to the "
+            + "treasury. Absent means the city keeps its Lots. Requires construction_charge_per_floor_tile "
+            + "or buyer_reserve_per_member. Between 1 and 65535.",
+
         ["[lots] storeys_per_rung"] =
             "Step between density rungs. Block-based forms use it in their plot-ratio target; explicit Perimeter parcels add it per rung to house_storeys. Detached houses keep house_storeys.",
 

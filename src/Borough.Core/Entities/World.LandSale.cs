@@ -73,7 +73,8 @@ public sealed partial class World
 
     private void RefreshLandCapital(int household, long previous)
     {
-        _maximumCapitalReady = false;
+        // A fall below the maximum leaves it standing, so a run of tenant purchases rescans nothing.
+        if (household == _maximumCapitalHousehold || AvailableCapital(household) > previous) { _maximumCapitalReady = false; }
         if (!_landSaleSweep || !_landCapitalReady) { return; }
         int before = Array.BinarySearch(_landCapital, 0, _landCapitalCount, new LandCapital(previous, household));
         if (before < 0) { _landCapitalReady = false; return; }
@@ -142,14 +143,88 @@ public sealed partial class World
             int richest = capitalBuyer ?? MaximumCapitalHousehold();
             return richest != Rows.NoSlot && CanKeepReserve(richest, cost) ? richest : Rows.NoSlot;
         }
+        // An owner who cannot afford the charge cannot appear in the more expensive sale suffix.
+        return DrawBuyer(lot, Rows.NoSlot, cost, tick, PurposeTag.LandBuyer);
+    }
+
+    private int DrawBuyer(int lot, int excluded, long cost, Ticks tick, PurposeTag purpose)
+    {
         if (!_landSaleSweep || !_landCapitalReady) { IndexLandCapital(); }
         int first = Array.BinarySearch(_landCapital, 0, _landCapitalCount, new LandCapital(cost, -1));
         first = ~first;
         int count = _landCapitalCount - first;
-        if (count == 0) { return Rows.NoSlot; }
-        // An owner who cannot afford the charge cannot appear in the more expensive sale suffix.
-        ulong pick = Randomness.Draw(Key, Lots.Rows.IdAt(lot), tick, PurposeTag.LandBuyer) % (ulong)(uint)count;
-        return _landCapital[first + (int)pick].Household;
+        int skip = excluded == Rows.NoSlot ? -1
+            : Array.BinarySearch(_landCapital, 0, _landCapitalCount, new LandCapital(AvailableCapital(excluded), excluded));
+        if (skip >= first) { count--; } else { skip = -1; }
+        if (count <= 0) { return Rows.NoSlot; }
+        int at = first + (int)(Randomness.Draw(Key, Lots.Rows.IdAt(lot), tick, purpose) % (ulong)(uint)count);
+        return _landCapital[skip >= 0 && at >= skip ? at + 1 : at].Household;
+    }
+
+    /// <summary>A departing Household sells each Lot it holds. A Lot nobody buys passes to the city.</summary>
+    /// <remarks>The proceeds reach the seller's balance, which leaves the city with it.</remarks>
+    internal void SellOnDeparture(int seller, Ticks tick)
+    {
+        if (!Rules.Lots.LandSales) { return; }
+        bool opened = OpenSales();
+        for (int lot = 0; lot < Lots.Rows.SlotCount; lot++)
+        {
+            if (Lots.Rows.IsLive(lot) && Lots.LandownerOn(lot) == seller) { SellLot(lot, seller, tick); }
+        }
+        if (opened) { EndLandSaleSweep(); }
+    }
+
+    /// <summary>On its cadence, the city offers each built Lot it holds for sale.</summary>
+    internal void SellCityLots(Ticks tick)
+    {
+        if (Rules.Lots.CitySaleIntervalDays is not int interval || tick.Raw % (ulong)Ticks.PerDay != 0UL
+            || IntegerMath.FloorDiv((long)tick.Raw, Ticks.PerDay) % interval != 0)
+        { return; }
+        bool opened = OpenSales();
+        for (int lot = 0; lot < Lots.Rows.SlotCount; lot++)
+        {
+            if (Lots.Rows.IsLive(lot) && !Lots.IsVacant(lot) && Lots.IsCityHeld(lot)) { SellLot(lot, Rows.NoSlot, tick); }
+        }
+        if (opened) { EndLandSaleSweep(); }
+    }
+
+    private bool OpenSales()
+    {
+        if (_landSaleSweep) { return false; }
+        BeginLandSaleSweep();
+        return true;
+    }
+
+    /// <summary>Sells a Lot at its price, to a Household housed on it if one can pay, else to any.</summary>
+    internal bool SellLot(int lot, int seller, Ticks tick)
+    {
+        Money price = LotPrice(lot);
+        int richest = MaximumCapitalHousehold();
+        if (richest == Rows.NoSlot || !CanKeepReserve(richest, price.Raw)) { return false; }
+        int buyer = TenantBuyer(lot, seller, price.Raw, tick);
+        if (buyer == Rows.NoSlot) { buyer = DrawBuyer(lot, seller, price.Raw, tick, PurposeTag.LotResaleBuyer); }
+        if (buyer == Rows.NoSlot) { return false; }
+        PayConstruction(buyer, seller, price, Money.Zero, tick);
+        Lots.Landowner[lot] = Households.Rows.At(buyer);
+        return true;
+    }
+
+    private int TenantBuyer(int lot, int seller, long price, Ticks tick)
+    {
+        int building = Lots.BuildingOn(lot);
+        if (building == Rows.NoSlot) { return Rows.NoSlot; }
+        int eligible = 0;
+        foreach (int tenant in Occupants.Walk(building))
+        {
+            if (tenant != seller && CanKeepReserve(tenant, price)) { eligible++; }
+        }
+        if (eligible == 0) { return Rows.NoSlot; }
+        int pick = (int)(Randomness.Draw(Key, Lots.Rows.IdAt(lot), tick, PurposeTag.LotTenantBuyer) % (ulong)(uint)eligible);
+        foreach (int tenant in Occupants.Walk(building))
+        {
+            if (tenant != seller && CanKeepReserve(tenant, price) && pick-- == 0) { return tenant; }
+        }
+        return Rows.NoSlot;
     }
 
     private bool CanKeepReserve(int household, long cost) =>
