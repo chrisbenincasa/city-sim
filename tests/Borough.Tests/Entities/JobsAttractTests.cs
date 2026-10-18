@@ -164,6 +164,8 @@ public sealed class JobsAttractTests(ITestOutputHelper output)
         long with = Admitted(jobs);
         long absent = Admitted(none);
         output.WriteLine($"Day arrivals with jobs {with}, without {absent}; walks {jobs.JobAccess.TotalSearches}, settled {jobs.JobAccess.TotalSettled}.");
+        Assert.Equal(256, with);
+        Assert.Equal(238, absent);
         Assert.True(with > absent, $"jobs {with}, none {absent}");
     }
 
@@ -257,6 +259,20 @@ public sealed class JobsAttractTests(ITestOutputHelper output)
             if (simulation.Placement.Compare(prospect, gate, Ticks.Zero) == ProspectOutcome.Willing) { after++; }
         }
         Assert.True(before > after, $"Outside jobs increase, willingness {before} -> {after}");
+    }
+
+    [Fact]
+    [Trait(Tier.Key, Tier.Instrument)]
+    public void First_Day_State_Hash_trace()
+    {
+        World world = City();
+        var simulation = new Simulation(world, Key) { VerifyDecideWritesNothing = false, RouteWorkerCount = 1 };
+        for (int tick = 0; tick < Ticks.PerDay; tick++)
+        {
+            simulation.Step(default);
+            if (world.Tick.Raw % 32 == 0)
+            { output.WriteLine($"Hash {world.Tick.Raw} {world.HashState():X16}"); }
+        }
     }
 
     [Theory]

@@ -215,20 +215,48 @@ Ordered by dependency. Each slice is one PR with its own acceptance.
 - City reach is exact Foot travel time within `[trips] commute_budget_minutes`, including the
   existing same-Segment crossing rule. This scope understates drivers' reach. Zero jobs remain a
   soft disadvantage. Wages are not added; plan 0073's wage boundary remains in force.
-- `JobAccessibility` owns a reusable `WalkScratch`, snapshots doors, vacancies, eligibility and
-  Rules, and rebuilds on changed inputs. `World.RebuildDerived` discards its snapshots after load.
-  The rebuild audit corrupts counts before rebuilding with matching snapshots. Save/reload
-  continues with equal State Hashes across route-worker counts 1 and 8. An enabled-jobs Input Log
-  replay also matches every Tick across those settings and passes end-of-run invariants.
 - `rulesets/jobs-attract.toml` copies the shipped `attracted.toml` demonstration with provisional
-  `jobs_rent = 240` and `reachable_jobs = 8`. At seed 7 and 1,000 Citizens, one Day admitted
-  **256 Households with employers versus 238 without employers**. No arrivals were commanded.
-  Removing employers also removes their output; this is a behavior demonstration, not an estimate
-  of a city's response elasticity.
-- Release work counts on `zeus`, Intel Core i5-10400, seed 7, route workers 1, first full Day,
-  decide-write guard disabled, concurrent sessions active. `JobsAttractTests.Accessibility_work_per_Day`
-  runs the authored fixture at 1,000 Citizens and the larger synthetic city at 10,000 Citizens.
-  Counts are deterministic work, not quiet-machine timing claims.
+  `jobs_rent = 240` and `reachable_jobs = 8`. At seed 7 and 1,000 Citizens, one Day admits
+  **256 Households with employers versus 238 without employers**. No arrivals are commanded.
+  Removing employers also removes their output; this demonstrates behavior rather than estimating
+  a city's response elasticity.
+
+### Candidate preparation
+
+- The reviewed slice is commit `d8abb8a8`. Its full-field refresh rebuilt every Lot after an input
+  change. The candidate-only preparation follow-up keeps its decisions and numerical order.
+- `Compare` collects the same feasible alternatives and their original sampled Lots first.
+  A separate pass prepares those origins, then adds jobs utility before `Choice.Draw`.
+  Preparation runs in Phase 6 or the requested-arrival command path, never in Phase 2.
+  `VerifyDecideWritesNothing` remains green.
+- The existing sample has two budgets, up to `placement.candidates` standing homes and the same
+  number of buildable Lots. Each comparison therefore prepares at most twice that authored number
+  of origins. Repeated Lots share one flood. Fresh occasions and queued reviews use the same bound.
+- Input snapshots still scan Lots and Businesses on each preparation. Any changed vacancy,
+  eligibility, door, road version or Ruleset invalidates all prepared flags and counts. Only sampled
+  origins are then reconstructed; scoring reads exact current counts without routing or staleness.
+  Aggregation scales with prepared origins times nearby employers, not all Lots times employers.
+- `World.RebuildDerived` forces a full cold reconstruction after load. `Refresh` remains the cold
+  rebuild and test-reference path. The audit corrupts counts while prepared flags still match;
+  rebuild clears those flags and restores the counts. No cache state is saved.
+- Candidate counts match a full-field oracle after vacancy, Ruleset and road changes. Candidate-only
+  choices match full-refresh choices after employer changes. Save/reload and Input Log replay
+  preserve State Hashes across route-worker settings 1 and 8 and pass end-of-run invariants.
+- All 64 first-Day hash samples at 32-Tick intervals match the reviewed slice at seed 7 and
+  1,000 Citizens. Both traces end at Tick 2048 with `0572E38A0DA3034B`. The admission counts remain
+  256 versus 238; the larger city's admissions remain 166.
+
+### Walking work
+
+Release counts on `zeus`, Intel Core i5-10400, seed 7, route workers 1, first full Day,
+Decide-write guard disabled, concurrent sessions active. The authored fixture runs at 1,000
+Citizens and as a larger synthetic city at 10,000 Citizens. These are deterministic work counts,
+not quiet-machine timing claims. Cold save/reload reconstruction is outside these captures.
+
+| Citizens | Live Lots | Live Businesses | Full-field floods | Candidate floods | Full-field nodes | Candidate nodes |
+|---|---|---|---|---|---|---|
+| 1,000 | 136 | 100 | 8,704 | 875 | 16,864,384 | 686,806 |
+| 10,000 | 1,032 | 864 | 66,048 | 330 | 144,919,488 | 408,368 |
 
 Reproduce the work counts with the focused instrument.
 
@@ -236,21 +264,10 @@ Reproduce the work counts with the focused instrument.
 scripts/test.sh --filter 'FullyQualifiedName~JobsAttractTests.Accessibility_work_per_Day' -- --logger 'console;verbosity=detailed'
 ```
 
-| Citizens | Live Lots at Day end | Live Businesses | Floods per Day | Settled nodes per Day |
-|---|---|---|---|---|
-| 1,000 | 136 | 100 | 8,704 | 16,864,384 |
-| 10,000 | 1,032 | 864 | 66,048 | 144,919,488 |
-
-- Each changed snapshot floods every Lot, bounded by the Commute Budget, then reads Businesses in
-  the existing spatial Building index. Aggregation still scales with Lots times nearby employers.
-  Cache hits scan input snapshots but do no routing. This is not a scalable default for base
-  Rulesets. Before broad rollout, prepare accessibility only for sampled origin Lots before choice,
-  bounding origins by the authored candidate budget times arrival occasions; preserve exact costs
-  and vacancy invalidation. Do not lower refresh fidelity silently. Existing Rulesets stay disabled.
-- No saved field or save-format version changes. Existing goldens need no re-recording because the
-  optional term is off in their Rulesets. Generated schema and key reference include the new keys.
-
-- Validation on 10/18/2026 passed `dotnet build`, the 4,875-test simulation lane, the final
-  60-test jobs-and-Corpus filter, both Day-work instruments, TOML lint and `git diff --check`.
-  The full lane preceded the last test-only additions; the final filter covers those assertions.
-  Independent loop review approved with no critical or major findings.
+- No saved field, save-format version or behavior changes arise from candidate preparation.
+  Existing goldens need no re-recording. Base Rulesets retain their disabled jobs term; the new
+  fixture's tuning remains provisional. Generated schema and key reference include the new keys.
+- The reviewed slice passed `dotnet build`, the 4,875-test simulation lane, the final 60-test
+  jobs-and-Corpus filter, TOML lint and `git diff --check`. Independent loop review approved.
+- The candidate-only follow-up passes the original jobs tests, exact admission assertions,
+  full-field oracle checks and the Decide guard. Its final full gate and loop review are pending.

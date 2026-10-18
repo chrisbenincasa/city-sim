@@ -1242,13 +1242,22 @@ The profiler excludes setup and reporting from Tick timings and reports the Deci
 
 - `JobsAttractTests.Accessibility_work_per_Day` measures deterministic work in Release on `zeus`,
   Intel Core i5-10400, seed 7, route workers 1, first full Day with the Decide guard disabled.
-  Concurrent sessions make this unsuitable for timing claims.
-- `jobs-attract.toml` at 1,000 Citizens performs 8,704 bounded walking floods and settles
-  16,864,384 nodes. At 10,000 Citizens it performs 66,048 floods and settles 144,919,488 nodes.
-  The worlds finish with 136 and 1,032 live Lots, respectively.
-- Every changed snapshot currently rebuilds every Lot. Each flood is bounded by the authored
-  Commute Budget, but aggregation scales with Lots times nearby employers. Keep this optional
-  term off in base Rulesets pending a sampled-origin preparation pass; do not weaken the exact
-  reach threshold or silently reuse stale vacancies to reduce work.
-- [Export-base slice 4](export-base.md#slice-4-evidence-and-limits) owns the fixture, arrival evidence
-  and proposed bound. These counts do not establish a quiet-machine Tick budget.
+  Concurrent sessions make this unsuitable for timing claims. Cold load/rebuild work is excluded.
+- The reviewed slice (`d8abb8a8`) refreshed every Lot after an input change. Candidate preparation
+  instead keeps the original sampled alternatives, prepares their Lots before choice, and reuses
+  exact counts only while every input snapshot still matches.
+
+| Citizens | Live Lots | Full-field floods | Candidate floods | Full-field nodes | Candidate nodes |
+|---|---|---|---|---|---|
+| 1,000 | 136 | 8,704 | 875 | 16,864,384 | 686,806 |
+| 10,000 | 1,032 | 66,048 | 330 | 144,919,488 | 408,368 |
+
+- The existing sample has two families, standing homes and buildable Lots. Each comparison prepares
+  at most `2 × placement.candidates` origins, with duplicate Lots sharing a flood. Input validation
+  still scans all Lots and Businesses; aggregation now scales with sampled origins times nearby
+  employers. This measures walking work, not total arrival-pass CPU cost.
+- All 64 first-Day State Hash samples at 32-Tick intervals match before and after at 1,000 Citizens.
+  Admissions stay 256 with employers and 238 without; the larger city still admits 166.
+- [Export-base slice 4](export-base.md#slice-4-evidence-and-limits) owns the exact reproduction
+  command, fixture, cold-rebuild exception, behavior evidence and validation. No quiet-machine
+  Tick-budget claim follows from these counts.
