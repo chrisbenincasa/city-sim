@@ -19,7 +19,8 @@ public sealed class ExportTests
 {
     private const long EastBudget = 16000;
     private const long NorthBudget = 64000;
-    private const long LargestBatch = 4 * 4 * 1600;
+    /// <summary>The mill's minimum batch at east's price, the costliest batch east can be asked to buy.</summary>
+    private const long LargestMinimumBatch = 1 * 4 * 1600;
 
     private static Ruleset Rules()
     {
@@ -119,7 +120,7 @@ public sealed class ExportTests
 
             bool newDay = (int)(world.Tick.Raw / (ulong)Ticks.PerDay) != day;
 
-            if (newDay && eastSpent && Yesterday(world, MapEdge.East) > EastBudget - LargestBatch)
+            if (newDay && eastSpent && Yesterday(world, MapEdge.East) > EastBudget - LargestMinimumBatch)
             {
                 eastRecovered |= StepUntilEast(world, sim);
             }
@@ -127,12 +128,12 @@ public sealed class ExportTests
             if (!newDay && Today(world, MapEdge.North) > north)
             {
                 Assert.True(
-                    EastBudget - Today(world, MapEdge.East) < LargestBatch,
+                    EastBudget - Today(world, MapEdge.East) < LargestMinimumBatch,
                     "north bought while east could still pay for a batch");
                 northBoughtAfterEast = true;
             }
 
-            eastSpent |= EastBudget - Today(world, MapEdge.East) < LargestBatch;
+            eastSpent |= EastBudget - Today(world, MapEdge.East) < LargestMinimumBatch;
         }
 
         Assert.True(eastSpent, "east's budget never ran low");

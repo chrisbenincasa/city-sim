@@ -5,7 +5,7 @@
 # its 16000 runs out and north buys after that, up to 64000. Both budgets reset at each Day boundary.
 # It adds a gate kind, `port`, and uses one lattice, because the populator refuses a gate beside two.
 # Grocers that buy flour do not export it, because exporting a restock only passes Goods through the
-# city. ExportTests asserts these behaviours.
+# city. ExportTests asserts the budgets, the hand-off and the gate; no test reaches the restock guard.
 #
 # This is a fixture, not a balanced city.
 
