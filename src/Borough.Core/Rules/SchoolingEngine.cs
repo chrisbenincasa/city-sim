@@ -456,6 +456,11 @@ internal sealed class SchoolingEngine
         // the ledger as wages, on the Day those were earned.
         BusinessAccounts.Serve(_world, business, tuition, tick);
 
+        // L16: tuition is income to the school, and rent arrears are settled where income lands
+        // rather than at the next Day boundary. After the accounting, on the sale site's order:
+        // revenue is what arrived, and what rent then takes out of it is a separate movement.
+        _world.Arrears.SettleBusiness(business, tick);
+
         _tickTuition += tuition;
 
         return true;

@@ -27,7 +27,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-53 sections, 387 keys.
+54 sections, 389 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
@@ -36,7 +36,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[[building]] bins reserve`](#building-bins-reserve) — 3 keys
 - [`[[business]]`](#business) — 17 keys
 - [`[[hinterland.population]]`](#hinterlandpopulation) — 5 keys
-- [`[[hinterland]]`](#hinterland) — 8 keys
+- [`[[hinterland]]`](#hinterland) — 9 keys
 - [`[[hinterland]] prices`](#hinterland-prices) — 2 keys
 - [`[[housing_form]]`](#housing_form) — 11 keys
 - [`[[lattice]]`](#lattice) — 4 keys
@@ -74,6 +74,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[needs]`](#needs) — 9 keys
 - [`[parking]`](#parking) — 5 keys
 - [`[placement]`](#placement) — 10 keys
+- [`[rent]`](#rent) — 1 key
 - [`[roads]`](#roads) — 16 keys
 - [`[school]`](#school) — 7 keys
 - [`[schooling]`](#schooling) — 5 keys
@@ -390,6 +391,10 @@ The most. Stated as a band rather than one figure, because a single figure gives
 **`emigrant_balance_min`** · *whole number*
 
 The least money a Household arriving from this Hinterland brings with it.
+
+**`export_budget`** · *whole number*
+
+The most this Hinterland pays the city for exports in one Day, from 0 to 2147483647. It buys at its prices, the figure it also sells at, and only Goods a city firm made and had no room to store. When several Hinterlands price a Good, the highest payer with budget left for at least one minimum batch buys it, as many batches as that budget covers. Absent or zero buys nothing.
 
 **`id`** · *quoted string*
 
@@ -753,7 +758,7 @@ What this reserve is called. A Bin's reserve profile names it by this.
 
 **`family`** · *quoted string*
 
-Which of the five kinds of thing this is: a good moves as a Shipment on the Road Graph and shows up in the traffic, a utility flows along the District adjacency graph, money is conserved and does not move at all, labour is worker-time a Business's present staff deposit and its own Rules spend as a local input, and a service is a Professional Service a firm buys from the provider it keeps, through a pool input, and no Bin ever holds. The family decides transport and whether a Bin holding it has a ceiling, so there is no default. A labour Resource must declare a shelf life, and its Bin is owned by the business and states no capacity.
+Which of the five kinds of thing this is: a good moves as a Shipment on the Road Graph and shows up in the traffic, a utility flows along the District adjacency graph, money is conserved and does not move at all, labour is worker-time a Business's present staff deposit and its own Rules spend as a local input, and a service is a Professional Service a provider's Rule makes as a local output and a client firm buys from the provider it keeps, through a pool input -- no Bin ever holds one. The family decides transport and whether a Bin holding it has a ceiling, so there is no default. A labour Resource must declare a shelf life, and its Bin is owned by the business and states no capacity.
 
 **`id`** · *quoted string*
 
@@ -909,7 +914,7 @@ Which Resource this term deposits, naming a [[resource]].
 
 **`scope`** · *quoted string*
 
-Where the term deposits: local, pool, global, or map. The map scope is write-only, so a Rule may emit to a Layer and can never read or wait on one.
+Where the term deposits: local, pool, global, or map. The map scope is write-only, so a Rule may emit to a Layer and can never read or wait on one. A service output is local and adds to the provider's allowance for the Day rather than to a Bin.
 
 ---
 
@@ -1666,6 +1671,14 @@ The difference in daily rent worth one unit of what a Household prefers. It is w
 **`revisit_ticks`** · *whole number*
 
 How long the placement pass takes to look at everybody waiting in the Pool once, in Ticks. The sample per trigger is derived from this, so the fraction of a housing queue cleared per cycle does not shrink as the queue grows.
+
+---
+
+## `[rent]`
+
+**`evicts_after_days`** · *whole number*
+
+How many Days a tenant may owe rent before the tenancy ends — a Household to the Unplaced Pool, a Business to the Unpremised Pool. Stating this key is also what turns the daily charge on, and then each Day every tenancy pays its kind's rent_per_floor_tile over its floor to the Lot's Landowner, or to the treasury while the city holds the Lot. A resident Landowner pays none for its own tenancy. A tenant short of the rent pays what it holds and owes the rest, later income settles the debt first, and this deadline is what bounds the debt. It is refused below the longest pay_period_days, because a tenant paid weekly is short between paydays. Omitting the whole [rent] table charges nobody.
 
 ---
 

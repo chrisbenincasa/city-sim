@@ -116,8 +116,9 @@ public static class RulesetKeyNotes
             + "Graph and shows up in the traffic, a utility flows along the District adjacency "
             + "graph, money is conserved and does not move at all, labour is worker-time a "
             + "Business's present staff deposit and its own Rules spend as a local input, and a "
-            + "service is a Professional Service a firm buys from the provider it keeps, through a "
-            + "pool input, and no Bin ever holds. The "
+            + "service is a Professional Service a provider's Rule makes as a local output and a "
+            + "client firm buys from the provider it keeps, through a pool input -- no Bin ever "
+            + "holds one. The "
             + "family decides transport and whether a Bin holding it has a ceiling, so there is no "
             + "default. A labour Resource must declare a shelf life, and its Bin is owned by the "
             + "business and states no capacity.",
@@ -410,7 +411,8 @@ public static class RulesetKeyNotes
             "How much of it one application deposits.",
         ["[[rule]] outputs scope"] =
             "Where the term deposits: local, pool, global, or map. The map scope is write-only, so a "
-            + "Rule may emit to a Layer and can never read or wait on one.",
+            + "Rule may emit to a Layer and can never read or wait on one. A service output is local "
+            + "and adds to the provider's allowance for the Day rather than to a Bin.",
         ["[[rule]] outputs layer"] =
             "Which Map Layer a map-scoped term emits into. A Layer cell has no capacity, so such a "
             + "term never fails.",
@@ -604,6 +606,12 @@ public static class RulesetKeyNotes
         ["[[hinterland]] emigrant_balance_max"] =
             "The most. Stated as a band rather than one figure, because a single figure gives every "
             + "arrival the same means.",
+        ["[[hinterland]] export_budget"] =
+            "The most this Hinterland pays the city for exports in one Day, from 0 to 2147483647. "
+            + "It buys at its prices, the figure it also sells at, and only Goods a city firm made "
+            + "and had no room to store. When several Hinterlands price a Good, the highest payer "
+            + "with budget left for at least one minimum batch buys it, as many batches as that "
+            + "budget covers. Absent or zero buys nothing.",
         ["[[hinterland]] rent"] =
             "What a home costs per Day out here, as a whole tenancy and not a rate per Tile. It is what "
             + "a prospective Household compares against the cost of living in the city, and what a "
@@ -1122,6 +1130,18 @@ public static class RulesetKeyNotes
             "The most. Both ends or neither — one end alone reads either as a fixed endowment or as "
             + "a band reaching down to destitute, and those are different cities. Omitting both "
             + "endows nobody.",
+
+        // ---- [rent] ---------------------------------------------------------------------------
+        ["[rent] evicts_after_days"] =
+            "How many Days a tenant may owe rent before the tenancy ends — a Household to the "
+            + "Unplaced Pool, a Business to the Unpremised Pool. Stating this key is also what "
+            + "turns the daily charge on, and then each Day every tenancy pays its kind's "
+            + "rent_per_floor_tile over its floor to the Lot's Landowner, or to the treasury while "
+            + "the city holds the Lot. A resident Landowner pays none for its own tenancy. A tenant "
+            + "short of the rent pays what it holds and owes the rest, later income settles the "
+            + "debt first, and this deadline is what bounds the debt. It is refused below the "
+            + "longest pay_period_days, because a tenant paid weekly is short between paydays. "
+            + "Omitting the whole [rent] table charges nobody.",
 
         // ---- [treasury] -----------------------------------------------------------------------
         ["[treasury] opening_balance"] =
