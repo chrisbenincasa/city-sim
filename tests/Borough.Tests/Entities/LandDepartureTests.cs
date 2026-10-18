@@ -173,7 +173,7 @@ public sealed class LandDepartureTests(Xunit.Abstractions.ITestOutputHelper outp
         Assert.Equal(before, world.HashState());
     }
 
-    private static (World World, int Lot, Handle<Household> Buyer, Handle<Household> Debtor) Arrears()
+    private static (World World, Simulation Simulation, int Lot, Handle<Household> Buyer, Handle<Household> Debtor) Arrears()
     {
         var rules = new Ruleset(
             resources: [ResourceFamily.Money], rules: [],
@@ -195,13 +195,13 @@ public sealed class LandDepartureTests(Xunit.Abstractions.ITestOutputHelper outp
         world.Endow(buyer, new Money(100_000));
         while (world.Tick.Raw <= (ulong)Ticks.PerDay) { simulation.Step(TickInput.Empty); }
         Assert.True(world.Households.RentDebt[world.Households.Rows.Resolve(debtor)].Raw > 0);
-        return (world, world.Lots.Rows.Resolve(lot), buyer, debtor);
+        return (world, simulation, world.Lots.Rows.Resolve(lot), buyer, debtor);
     }
 
     [Fact]
     public void A_tenants_standing_debt_is_paid_to_whoever_holds_the_lot_after_a_sale()
     {
-        var (world, row, buyer, debtor) = Arrears();
+        var (world, _, row, buyer, debtor) = Arrears();
         int debtorSlot = world.Households.Rows.Resolve(debtor);
         long debt = world.Households.RentDebt[debtorSlot].Raw;
 
@@ -263,7 +263,7 @@ public sealed class LandDepartureTests(Xunit.Abstractions.ITestOutputHelper outp
     [Fact]
     public void A_tenant_that_buys_its_own_lot_has_its_standing_debt_written_off()
     {
-        var (world, row, neighbour, debtor) = Arrears();
+        var (world, simulation, row, neighbour, debtor) = Arrears();
         int slot = world.Households.Rows.Resolve(debtor);
         var purse = world.Households.Balance[world.Households.Rows.Resolve(neighbour)];
         long savings = world.Bins.LevelAt(world.Bins.Rows.Resolve(purse));
@@ -275,7 +275,9 @@ public sealed class LandDepartureTests(Xunit.Abstractions.ITestOutputHelper outp
 
         Assert.True(world.SellLot(row, Rows.NoSlot, world.Tick));
         Assert.Equal(debtor, world.Lots.Landowner[row]);
-        world.Arrears.SettleHousehold(slot, world.Tick);
+        Assert.True(world.Households.RentDebt[slot].Raw > 0);
+        ulong next = (world.Tick.Raw / (ulong)Ticks.PerDay + 1) * (ulong)Ticks.PerDay;
+        while (world.Tick.Raw <= next) { simulation.Step(TickInput.Empty); }
 
         Assert.Equal(0, world.Households.RentDebt[slot].Raw);
         Assert.Equal(0, world.Households.RentDebtSinceDay[slot]);
