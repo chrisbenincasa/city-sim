@@ -73,8 +73,17 @@ public sealed partial class World
 
     private void RefreshLandCapital(int household, long previous)
     {
-        // A fall below the maximum leaves it standing, so a run of tenant purchases rescans nothing.
-        if (household == _maximumCapitalHousehold || AvailableCapital(household) > previous) { _maximumCapitalReady = false; }
+        // Only the maximum's own fall needs a rescan. A rise elsewhere either takes the maximum or leaves it.
+        long available = AvailableCapital(household);
+        if (_maximumCapitalReady && household == _maximumCapitalHousehold)
+        {
+            if (available < previous) { _maximumCapitalReady = false; }
+        }
+        else if (_maximumCapitalReady
+            && (_maximumCapitalHousehold == Rows.NoSlot || available > AvailableCapital(_maximumCapitalHousehold)))
+        {
+            _maximumCapitalHousehold = household;
+        }
         if (!_landSaleSweep || !_landCapitalReady) { return; }
         int before = Array.BinarySearch(_landCapital, 0, _landCapitalCount, new LandCapital(previous, household));
         if (before < 0) { _landCapitalReady = false; return; }

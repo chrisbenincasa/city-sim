@@ -217,6 +217,50 @@ public sealed class LandDepartureTests(Xunit.Abstractions.ITestOutputHelper outp
     }
 
     [Fact]
+    public void An_evicted_landowner_sells_its_lot_when_its_give_up_bound_expires()
+    {
+        var rules = new Ruleset(
+            resources: [ResourceFamily.Money], rules: [],
+            kinds: [new KindDefinition(0, 0, 0, 0) { Houses = true, RentPerFloorTile = new Money(10) },
+                new KindDefinition(0, 0, 0, 0)],
+            inputs: [], outputs: [], emissions: [], bins: [], kindRules: [], zoneRules: [])
+        {
+            Placement = new PlacementRuleset(32, 32, 4, 2, 0),
+            Capacity = new CapacityRuleset(4, 0, 0),
+            Rent = new RentRuleset(2),
+            Lots = LotRuleset.None with { DemolitionPricePerTile = new Money(1), BuyerReservePerMember = Money.Zero },
+        };
+        var key = WorldKey.FromSeed(5);
+        var world = new World(1_000, rules, key);
+        var simulation = new Simulation(world, key);
+        var home = world.Lots.Create(Tiles.Zero, Tiles.Zero, zone: 0, wide: new Tiles(4), deep: new Tiles(1));
+        var owned = world.Lots.Create(new Tiles(8), Tiles.Zero, zone: 0, wide: new Tiles(4), deep: new Tiles(1));
+        var dwelling = world.CreateBuilding(home, 1, Ticks.Zero, key);
+        world.CreateBuilding(owned, 2, Ticks.Zero, key);
+        var owner = world.CreateHousehold(dwelling, lifeStage: 0);
+        int lot = world.Lots.Rows.Resolve(owned);
+        world.Lots.Landowner[lot] = owner;
+        int slot = world.Households.Rows.Resolve(owner);
+        ulong limit = 20UL * (ulong)Ticks.PerDay;
+
+        while (!world.Households.IsUnplaced(slot) && world.Tick.Raw < limit) { simulation.Step(TickInput.Empty); }
+        Assert.True(world.Households.IsUnplaced(slot), "Unpaid rent evicts the Landowner.");
+        Assert.Equal(owner, world.Lots.Landowner[lot]);
+
+        var buyer = world.CreateHousehold(dwelling, lifeStage: 0);
+        world.Endow(buyer, new Money(1_000_000));
+        long price = world.LotPrice(lot).Raw;
+        long issued = Issued(world);
+        while (world.Households.Rows.TryResolve(owner, out _) && world.Tick.Raw < limit) { simulation.Step(TickInput.Empty); }
+
+        Assert.False(world.Households.Rows.TryResolve(owner, out _), "The give-up bound sends the Landowner away.");
+        Assert.True(price > 0);
+        Assert.Equal(buyer, world.Lots.Landowner[lot]);
+        Assert.Equal(issued - price, Issued(world));
+        Conserved(world);
+    }
+
+    [Fact]
     public void A_tenant_that_buys_its_own_lot_has_its_standing_debt_written_off()
     {
         var (world, row, neighbour, debtor) = Arrears();
