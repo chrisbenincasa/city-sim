@@ -15,7 +15,7 @@ jobs:
     permissions:
       issues: write
       pull-requests: write
-      contents: write
+      contents: read
     steps:
       # A failed review must leave the PR unlabeled, so the old verdict goes before the review runs.
       - id: start
@@ -31,7 +31,8 @@ jobs:
               case "$out" in *"HTTP 404"*) ;; *) echo "::warning::Could not remove 'bot: $label': $out" ;; esac
             fi
           done
-      - uses: the-pr-agent/pr-agent@main
+      # Pinned so a change upstream cannot change the review without a PR here.
+      - uses: the-pr-agent/pr-agent@33d3e267c910d196689b6770c3e36f3ece0bd00f # main, 2026-10-18
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEEPSEEK.KEY: ${{ secrets.CHAT_TOKEN }}
@@ -41,17 +42,36 @@ jobs:
           config.max_model_tokens: "400000"
           config.max_output_tokens: "196608"
           config.patch_extra_lines_after: "20"
-          pr_reviewer.num_max_findings: "10"
+          pr_reviewer.num_max_findings: "4"
           # Publish each finding as an inline comment on the diff line. Findings that cannot be
           # anchored to the diff stay in the review summary instead, so nothing is lost.
           pr_reviewer.inline_key_issues: "true"
           pr_reviewer.require_estimate_effort_to_review: "false"
           pr_reviewer.require_merge_recommendation: "true"
+          # The reviewer sees only the diff and a few lines around it. These instructions keep it to
+          # findings the diff can prove and give it the project conventions it cannot see.
           pr_reviewer.extra_instructions: >-
-            Act as a strict reviewer. Report every correctness bug, edge case and missing test.
-            Simulation code must use integer/Q16.16 math (no float, double or Math.*),
-            must not enumerate Dictionary/HashSet, and must keep replay, save/reload and
-            thread-count determinism.
+            Report only findings you can prove from the diff shown. Quote the line that shows the
+            defect. If the finding depends on code outside the diff (a loader check, a caller,
+            a guard elsewhere), assume that code may already handle it and do not report it.
+            Give each finding a confidence of high, medium or low, and omit low.
+            Fewer findings is better than speculative ones; zero findings is a valid review.
+            Project conventions:
+            Simulation code uses integer and Q16.16 math (no float, double or Math.*), never
+            enumerates Dictionary or HashSet, and keeps replay, save/reload and thread-count
+            determinism.
+            RulesetLoader refuses invalid Ruleset input at load, so a runtime guard is a backstop,
+            not a missing validation.
+            Rules run serially; only route batching is parallel. Do not ask for thread-count tests
+            on Rule code.
+            A test tagged [Trait(Tier.Key, Tier.Instrument)] is a measurement, not an assertion.
+            Do not ask it to assert exact counts.
+            In RuleEngine, Touch records a pending Bin change and Check tests every recorded
+            change before anything moves.
+            A [Theory] with InlineData rows covers each row; read them before calling a case
+            untested.
+            Missing tests: report one only when you can name the behavior in the diff that no
+            test in the diff exercises.
             Merge recommendation: answer changes_required only for a defect that produces wrong
             behavior, breaks determinism, loses or corrupts saved state, or is a security issue.
             Missing tests, stale comments or documentation, naming and performance concerns are
