@@ -198,6 +198,10 @@ public sealed partial class World
         Businesses = new BusinessTable(PerThousand(citizens, 150), Buildings, Bins, Units, Households);
         ServiceContracts = new ServiceContractTable(8, Businesses);
 
+        // One row per office per service it makes, so the hint is small for DistrictTable's reason
+        // rather than for a ratio nobody worked out. It grows.
+        ServiceAllowances = new ServiceAllowanceTable(8, Businesses);
+
         Citizens = new CitizenTable(citizens, Households, Buildings, Businesses, CarParks);
 
         // Sized for a city in trouble rather than a healthy one: the Pool is empty when everybody is
@@ -497,6 +501,11 @@ public sealed partial class World
 
             // Appended: which provider each firm keeps for each Professional Service (adr/0178).
             ServiceContracts.Rows,
+
+            // Appended: what each office has made and sold of a service today. Saved rather than
+            // derived because a Day's production is history -- nothing in the world records which
+            // Ticks an office's Rule fired on, so a reload could not recompute what it had left.
+            ServiceAllowances.Rows,
         ];
 
         // The same list minus the tables no Tick phase can write, for the Decide guard alone. See
@@ -786,6 +795,9 @@ public sealed partial class World
 
     /// <summary>Which provider each firm buys each Professional Service from (<c>adr/0178</c>).</summary>
     public ServiceContractTable ServiceContracts { get; }
+
+    /// <summary>What each office may still sell of each Professional Service today.</summary>
+    public ServiceAllowanceTable ServiceAllowances { get; }
 
     /// <summary>The Units every Building is divided into, one tenancy each.</summary>
     public UnitTable Units { get; }
@@ -2393,10 +2405,21 @@ public sealed partial class World
     }
 
     /// <summary>
-    /// Makes <paramref name="hinterland"/> this firm's provider of <paramref name="service"/>,
-    /// replacing any provider it had.
+    /// Makes an office or a Hinterland this firm's provider of <paramref name="service"/>, replacing
+    /// any provider it had.
     /// </summary>
-    internal void Contract(int businessSlot, ResourceId service, int hinterland, Ticks tick)
+    /// <param name="businessSlot">The buying firm.</param>
+    /// <param name="service">The service bought.</param>
+    /// <param name="providerSlot">
+    /// The providing office, or <see cref="Rows.NoSlot"/> when <paramref name="hinterland"/> provides.
+    /// </param>
+    /// <param name="hinterland">
+    /// The providing Hinterland's index, read only when <paramref name="providerSlot"/> is
+    /// <see cref="Rows.NoSlot"/>.
+    /// </param>
+    /// <param name="tick">The Tick the provider was chosen on.</param>
+    internal void Contract(
+        int businessSlot, ResourceId service, int providerSlot, int hinterland, Ticks tick)
     {
         int contract = FindContract(businessSlot, service);
 
@@ -2408,8 +2431,139 @@ public sealed partial class World
             BusinessContracts.InsertOrdered(businessSlot, contract);
         }
 
-        ServiceContracts.Hinterland[contract] = hinterland;
+        // Exactly one of the two columns names the provider, so the other is cleared rather than
+        // left reading as a second answer -- a contract carrying both would let two readers disagree
+        // about who supplies it.
+        bool local = providerSlot != Rows.NoSlot;
+
+        ServiceContracts.Provider[contract] = local ? Businesses.Rows.At(providerSlot) : default;
+        ServiceContracts.Hinterland[contract] = local ? -1 : hinterland;
         ServiceContracts.Since[contract] = tick;
+    }
+
+    /// <summary>
+    /// This office's allowance row for <paramref name="service"/>, or <see cref="Rows.NoSlot"/>.
+    /// </summary>
+    /// <remarks>
+    /// A scan, because the table holds one row per office per service it makes and nothing else —
+    /// a reverse index would be a derived list over a collection that is already short.
+    /// </remarks>
+    public int FindAllowance(int providerSlot, ResourceId service)
+    {
+        for (int row = 0; row < ServiceAllowances.Rows.SlotCount; row++)
+        {
+            if (ServiceAllowances.Rows.IsLive(row)
+                && ServiceAllowances.Service[row] == service
+                && Businesses.Rows.TryResolve(ServiceAllowances.Provider[row], out int provider)
+                && provider == providerSlot)
+            {
+                return row;
+            }
+        }
+
+        return Rows.NoSlot;
+    }
+
+    /// <summary>
+    /// How many units of its service an office may still sell today, or zero for no row at all.
+    /// </summary>
+    /// <remarks>
+    /// A row whose Day is behind reads as zero: the allowance expired at the boundary, and
+    /// <see cref="MakeService"/> rolls the row when the office next produces.
+    /// </remarks>
+    public long UnitsLeft(int allowance)
+    {
+        if (allowance == Rows.NoSlot || ServiceAllowances.FlowDay[allowance] != DayOf(Tick))
+        {
+            return 0;
+        }
+
+        long left = ServiceAllowances.MadeToday[allowance] - ServiceAllowances.SoldToday[allowance];
+
+        return left > 0 ? left : 0;
+    }
+
+    /// <summary>
+    /// Adds a firing's units to an office's allowance, opening its row if it has none.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Every deposit wakes the firms asleep on that service's market rows: they are waiting on supply
+    /// that has just appeared, and no Bin write will tell them.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>Every deposit, and not only the ones that lift the allowance off zero</b>
+    /// (<c>adr/0171</c>, which <see cref="RingMarket"/> states for Goods in the same terms). A buyer
+    /// that needs a batch of four sleeps through an office climbing from one to sixty-four if a
+    /// non-zero residual counts as "already woken" — the arrival it was waiting for is the one that
+    /// makes its own batch affordable, which is not the first arrival of the Day.
+    /// </para>
+    /// </remarks>
+    internal void MakeService(int providerSlot, ResourceId service, long units, Ticks tick)
+    {
+        int allowance = FindAllowance(providerSlot, service);
+
+        if (allowance == Rows.NoSlot)
+        {
+            allowance = ServiceAllowances.Rows.Resolve(ServiceAllowances.Rows.Allocate());
+            ServiceAllowances.Provider[allowance] = Businesses.Rows.At(providerSlot);
+            ServiceAllowances.Service[allowance] = service;
+        }
+
+        int day = DayOf(tick);
+
+        if (ServiceAllowances.FlowDay[allowance] != day)
+        {
+            ServiceAllowances.FlowDay[allowance] = day;
+            ServiceAllowances.MadeToday[allowance] = 0;
+            ServiceAllowances.SoldToday[allowance] = 0;
+        }
+
+        ServiceAllowances.MadeToday[allowance] += units;
+
+        if (units > 0)
+        {
+            WakeServiceMarkets(service, tick);
+        }
+    }
+
+    /// <summary>Takes units a client bought out of an office's allowance for today.</summary>
+    /// <remarks>
+    /// <para>
+    /// The sale was bounded where it was decided: <c>RuleEngine.Retain</c> caps the applications at
+    /// what the row has left, and Phase 3 re-checks that cap against the units earlier settlers took
+    /// (<c>adr/0049</c>).
+    /// </para>
+    /// <para>
+    /// <b>That the cap held is checked here, at the write, because this is where it can be checked
+    /// for nothing.</b> A Day's capacity spent twice is the failure the cap exists to stop, and two
+    /// terms of one Rule testing the same row independently is how it would happen — the loader
+    /// refuses that pair, and this is what catches the next route to it.
+    /// </para>
+    /// </remarks>
+    internal void SellService(int allowance, long units)
+    {
+        ServiceAllowances.SoldToday[allowance] += units;
+
+        Invariants.Require(
+            ServiceAllowances.SoldToday[allowance] <= ServiceAllowances.MadeToday[allowance],
+            Invariant.AnOfficeSellsNoMoreThanItMade,
+            allowance,
+            ServiceAllowances.SoldToday[allowance] - ServiceAllowances.MadeToday[allowance]);
+    }
+
+    /// <summary>Frees the allowance rows of an office that is closing.</summary>
+    private void CloseAllowances(int providerSlot)
+    {
+        for (int row = 0; row < ServiceAllowances.Rows.SlotCount; row++)
+        {
+            if (ServiceAllowances.Rows.IsLive(row)
+                && Businesses.Rows.TryResolve(ServiceAllowances.Provider[row], out int provider)
+                && provider == providerSlot)
+            {
+                ServiceAllowances.Rows.Free(ServiceAllowances.Rows.At(row));
+            }
+        }
     }
 
     /// <summary>
@@ -2509,6 +2663,33 @@ public sealed partial class World
         for (int row = 0; row < DistrictPools.Rows.SlotCount; row++)
         {
             if (DistrictPools.Rows.IsLive(row) && Bins.Rows.TryResolve(DistrictPools.Bin[row], out int market))
+            {
+                WakeAll(SupplyWaiters, market, tick);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Wakes every firm blocked on a market for one service, because an office has units again.
+    /// </summary>
+    /// <remarks>
+    /// Narrower than <see cref="WakeMarkets"/> on purpose: a new office changes what one service's
+    /// buyers can get and nothing about any other market's. It runs on every deposit to an
+    /// allowance, so it reaches each District's row through <see cref="Markets"/> rather than
+    /// scanning every Pool row.
+    /// </remarks>
+    internal void WakeServiceMarkets(ResourceId service, Ticks tick)
+    {
+        for (int district = 0; district < Districts.Rows.SlotCount; district++)
+        {
+            if (!Districts.Rows.IsLive(district))
+            {
+                continue;
+            }
+
+            int row = Markets.Row(this, district, service);
+
+            if (row != DistrictMarkets.NoRow && Bins.Rows.TryResolve(DistrictPools.Bin[row], out int market))
             {
                 WakeAll(SupplyWaiters, market, tick);
             }
@@ -4231,6 +4412,12 @@ public sealed partial class World
             ServiceContracts.Rows.Free(ServiceContracts.Rows.At(contract));
             contract = BusinessContracts.PopFront(slot);
         }
+
+        // The SELLING side of the same mechanism, and it is the office's sink. A client's contract
+        // naming this firm as its provider is left to go stale -- the handle is Severable and the
+        // stale handle is what the client re-matches on -- but the capacity rows are this firm's own
+        // and nothing would ever free them.
+        CloseAllowances(slot);
 
         Businesses.Rows.Free(business);
     }

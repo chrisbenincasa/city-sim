@@ -182,6 +182,7 @@ internal static class ProfileDump
         var routes = !instrumented ? null : new RouteWork();
         var shoppingRoutes = !instrumented ? null : new RouteWork();
         var civicRoutes = !instrumented ? null : new RouteWork();
+        var providerRoutes = !instrumented ? null : new RouteWork();
         var estimateReuse = workOutput is null ? null : new RouteReuseProbe();
         var shoppingReuse = workOutput is null ? null : new RouteReuseProbe();
         var otherReuse = workOutput is null ? null : new RouteReuseProbe();
@@ -196,7 +197,9 @@ internal static class ProfileDump
         Attach(shoppingRoutes, shoppingReuse);
         Attach(routes, otherReuse);
         Attach(civicRoutes, null);
+        Attach(providerRoutes, null);
         sim.Civic.RouteWork = civicRoutes;
+        sim.Rules.ProviderRouteWork = providerRoutes;
         sim.Shopping.Work = shoppingWork;
         sim.Trips.RouteWork = routes;
         sim.Trips.ShoppingRouteWork = shoppingRoutes;
@@ -221,7 +224,7 @@ internal static class ProfileDump
         double total = 0, worst = 0;
         for (int i = 0; i < count; i++)
         {
-            shoppingWork?.Reset(); routes?.Reset(); shoppingRoutes?.Reset(); civicRoutes?.Reset();
+            shoppingWork?.Reset(); routes?.Reset(); shoppingRoutes?.Reset(); civicRoutes?.Reset(); providerRoutes?.Reset();
             estimateReuse?.Reset(); shoppingReuse?.Reset(); otherReuse?.Reset();
             int before0 = GC.CollectionCount(0), before1 = GC.CollectionCount(1), before2 = GC.CollectionCount(2);
             long before = GC.GetTotalAllocatedBytes(precise: true);
@@ -272,6 +275,7 @@ internal static class ProfileDump
                     shoppingWork,
                     shoppingRoutes,
                     civicRoutes,
+                    providerRoutes,
                     payrollWork = payroll!.Last,
                     payrollTiming = payrollClock?.Last,
                     payrollCalibration = payrollClock?.Calibrate(),
@@ -290,6 +294,7 @@ internal static class ProfileDump
         }
         sim.Civic.EventObserved = null;
         sim.Civic.RouteWork = null;
+        sim.Rules.ProviderRouteWork = null;
         sim.PhaseCompleted = null;
         sim.PayrollStarting = null;
         sim.PayrollMeasuring = null;
