@@ -1970,12 +1970,12 @@ internal sealed class Options
                                 a [[rule]] paid in off a premises, and rent tenants of
                                 city-held Lots paid -- because the five are the
                                 same arrival through different levers, and none is netted
-                                against expenditure. Expenditure is THREE: a [[policy]]
-                                transfer, a [[rule]] drawing on the treasury, and a
-                                tool = "subsidy" apportioned against its own ceiling, which
-                                leaves through none of the other doors. The treasury column is
-                                their running total less the three expenditure columns,
-                                exactly. Profit-tax RELIEF is printed under the table and is
+                                against expenditure. Expenditure is FIVE: a [[policy]]
+                                transfer, a [[rule]] drawing on the treasury, a
+                                tool = "subsidy" apportioned against its own ceiling, the
+                                price of a service Building placed by hand, and road Upkeep.
+                                The treasury column is their running total less the five
+                                expenditure columns, exactly. Profit-tax RELIEF is printed under the table and is
                                 deliberately outside that arithmetic: it moves no money, so it
                                 is revenue forgone rather than spending. Prints the
                                 [income_tax] and [business_tax] bands and the [rent] rate

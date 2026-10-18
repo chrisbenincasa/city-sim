@@ -22,17 +22,17 @@ using Borough.Formats;
 /// so the report has to say which of the two brought the money in.
 /// </para>
 /// <para>
-/// 🔴 <b>Income is printed in four columns and expenditure in three, and none of the seven is netted
+/// 🔴 <b>Income is printed in five columns and expenditure in five, and none of the ten is netted
 /// against another.</b> <c>MoneyFlowCounter.FromTreasury</c>'s own remark carries the argument: a net
 /// is the one figure that cannot say whether a city taxed nothing and paid nothing or taxed heavily
 /// and paid it all back. The split within income is the same argument one level down — money an
 /// employer <em>withheld</em> before a Household ever held it, money a <c>[[policy]]</c>
 /// <em>moved</em> out of a purse that did, money a <c>[[rule]]</c> <em>paid in</em> off a premises,
-/// and a <b>profit tax</b> taken off a trade's own till are one arrival through four levers, and a
-/// city that swapped one for another would show a flat total under a changed file. ⚠ <b>The two
-/// taxes are the pair most easily folded and the pair that must not be</b>: they are levied under
-/// different tables, on different payers, and <c>plans/0072</c>'s whole question is which of the two
-/// a city lives on.
+/// a <b>profit tax</b> taken off a trade's own till and <b>rent</b> paid on a city-held Lot are one
+/// arrival through five levers, and a city that swapped one for another would show a flat total
+/// under a changed file. ⚠ <b>The two taxes are the pair most easily folded and the pair that must
+/// not be</b>: they are levied under different tables, on different payers, and
+/// <c>plans/0072</c>'s whole question is which of the two a city lives on.
 /// </para>
 /// <para>
 /// 🔴 <b>The rule column is why the balance column can be read at all.</b> Before it, a Bin Rule

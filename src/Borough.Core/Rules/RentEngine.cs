@@ -30,7 +30,11 @@ namespace Borough.Core.Rules;
 /// <paramref name="Charged"/> by more than the arrears income settled first.
 /// </param>
 /// <param name="Tenancies">Tenancies charged something.</param>
-/// <param name="Behind">Tenancies still owing rent when the sweep finished.</param>
+/// <param name="Behind">
+/// Tenancies still owing rent when the sweep finished. ⚠ <b>Not bounded by
+/// <paramref name="Tenancies"/>.</b> A tenancy that already owes rent but whose payee has no money
+/// Bin is charged nothing and still counts here, so in a world with that defect this can be larger.
+/// </param>
 /// <param name="Evicted">Tenancies the deadline ended.</param>
 public readonly record struct RentReading(
     long Collected, long Charged, long Cancelled, int Tenancies, int Behind, int Evicted);

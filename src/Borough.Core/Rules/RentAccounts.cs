@@ -145,9 +145,11 @@ internal sealed class RentAccounts(World world)
     /// <remarks>
     /// <b>A second drain beside <see cref="Drain"/>, with a different caller and a different
     /// cadence</b>, which is why they are not one call. <see cref="Drain"/> feeds the Day's
-    /// <see cref="RentReading"/> and a Day boundary takes it; this feeds
-    /// <c>Simulation.DrainTreasuryFlows</c>, which a host reads on whatever interval it likes.
-    /// Each has exactly one caller, on <c>BusinessTaxEngine.DrainCollected</c>'s rule.
+    /// <see cref="RentReading"/> and a Day boundary takes it; this feeds a host's treasury-flow
+    /// reader on whatever interval it likes. <c>Simulation.DrainTreasuryFlows</c> calls this for
+    /// the shell and <c>Census.Observe</c> calls it for headless runs. A run uses only one of them, under the one-drainer rule on
+    /// <see cref="Instruments.TreasuryFlows"/>, because a process using both would see each payment
+    /// only through whichever asked first.
     /// </remarks>
     internal MoneyFlow DrainTreasury()
     {

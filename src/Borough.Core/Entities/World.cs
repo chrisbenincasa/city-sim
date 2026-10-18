@@ -1728,8 +1728,10 @@ public sealed partial class World
     /// <b>Owned here rather than by the Simulation, because its callers are.</b> Six engines credit
     /// a Household or a Business, each holds a <see cref="World"/> and none holds another engine, so
     /// this is the one place all of them can reach — <c>BusinessAccounts</c>' position for the same
-    /// reason. ⚠ <b>Not simulation state.</b> It carries only a walk marker, which is scratch within
-    /// one settlement and is never saved, hashed or read across a Tick.
+    /// reason. ⚠ <b>Not simulation state.</b> It carries a walk marker, which is scratch within one
+    /// settlement, and the interval totals behind <c>LastRent</c> and the treasury's rent flow,
+    /// which run across Ticks until their next drain. None of it is saved or hashed, so a reload
+    /// mid-interval matches a continuous run in State Hash but not in the first readings after it.
     /// </remarks>
     internal RentAccounts Arrears { get; }
 

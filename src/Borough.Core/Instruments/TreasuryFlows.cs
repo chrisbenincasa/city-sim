@@ -83,7 +83,7 @@ public readonly record struct TreasuryFlows(
     long Compensation,
     long Grant)
 {
-    /// <summary>Everything that arrived, through all four levers.</summary>
+    /// <summary>Everything that arrived, through all five levers.</summary>
     public long Income => Withheld + ProfitTax + PolicyIn + RuleIn + Rent;
 
     /// <summary>Everything that left, through all seven paths.</summary>

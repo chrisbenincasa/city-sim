@@ -649,6 +649,48 @@ public sealed class RentCollectionTests
         Assert.True(restored.Households.IsUnplaced(tenant));
     }
 
+    /// <summary>
+    /// A Business's debt and Day survive a save and a reload, so the reloaded city unpremises it on
+    /// the Day the running one does.
+    /// </summary>
+    [Fact]
+    public void A_reload_keeps_a_business_debt_and_the_day_it_began()
+    {
+        (World world, Simulation simulation, _, int resident) = Tenancy(
+            endowment: 100 * Daily, trade: 1);
+
+        int trade = Trader(world, world.Buildings.Rows.Resolve(world.Households.Dwelling[resident]));
+
+        RunToDay(world, simulation, 2);
+
+        Assert.True(world.Businesses.RentDebt[trade].Raw > 0);
+
+        var save = new MemorySave();
+
+        SaveFile.Write(world, 0, save);
+
+        World restored = SaveFile.Read(save, world.Rules, out _);
+        var resumed = new Simulation(restored, Key);
+
+        Assert.Equal(
+            world.Businesses.RentDebt[trade].Raw, restored.Businesses.RentDebt[trade].Raw);
+        Assert.Equal(
+            world.Businesses.RentDebtSinceDay[trade], restored.Businesses.RentDebtSinceDay[trade]);
+        Assert.Equal(world.HashState(), restored.HashState());
+
+        while (world.Tick.Raw < (ulong)(Deadline + 1) * (ulong)Ticks.PerDay)
+        {
+            simulation.Step(TickInput.Empty);
+            resumed.Step(TickInput.Empty);
+        }
+
+        Assert.Equal(world.HashState(), restored.HashState());
+
+        Assert.True(world.Businesses.IsUnpremised(trade));
+        Assert.True(restored.Businesses.IsUnpremised(trade));
+        Assert.Equal(0, restored.Businesses.RentDebt[trade].Raw);
+    }
+
     /// <summary>The one Business standing in a Building.</summary>
     private static int Trader(World world, int premises)
     {
