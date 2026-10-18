@@ -2674,15 +2674,22 @@ public sealed partial class World
     /// </summary>
     /// <remarks>
     /// Narrower than <see cref="WakeMarkets"/> on purpose: a new office changes what one service's
-    /// buyers can get and nothing about any other market's.
+    /// buyers can get and nothing about any other market's. It runs on every deposit to an
+    /// allowance, so it reaches each District's row through <see cref="Markets"/> rather than
+    /// scanning every Pool row.
     /// </remarks>
     internal void WakeServiceMarkets(ResourceId service, Ticks tick)
     {
-        for (int row = 0; row < DistrictPools.Rows.SlotCount; row++)
+        for (int district = 0; district < Districts.Rows.SlotCount; district++)
         {
-            if (DistrictPools.Rows.IsLive(row)
-                && Bins.Rows.TryResolve(DistrictPools.Bin[row], out int market)
-                && Bins.Resource[market] == service)
+            if (!Districts.Rows.IsLive(district))
+            {
+                continue;
+            }
+
+            int row = Markets.Row(this, district, service);
+
+            if (row != DistrictMarkets.NoRow && Bins.Rows.TryResolve(DistrictPools.Bin[row], out int market))
             {
                 WakeAll(SupplyWaiters, market, tick);
             }

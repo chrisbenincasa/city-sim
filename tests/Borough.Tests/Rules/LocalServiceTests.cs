@@ -9,6 +9,7 @@ using Borough.Core.Space;
 using Borough.Core.Tables;
 using Borough.Formats;
 using Borough.Tests.Persistence;
+using Xunit.Abstractions;
 
 namespace Borough.Tests.Rules;
 
@@ -18,7 +19,7 @@ namespace Borough.Tests.Rules;
 /// under <c>adr/0178</c>'s contract. A local sale is a transfer and an import is not, so which
 /// provider a firm holds is visible in the Money supply as well as in the contract.
 /// </summary>
-public sealed class LocalServiceTests
+public sealed class LocalServiceTests(ITestOutputHelper output)
 {
     private const long Capital = 100_000;
     private const byte Shopfront = 2;
@@ -34,9 +35,27 @@ public sealed class LocalServiceTests
     private static string Text() =>
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "offices.toml"));
 
-    private static Ruleset Rules(string? text = null)
+    /// <summary>
+    /// The fixture's Rules, without the <c>offices</c> Zone Rule unless <paramref name="raising"/>.
+    /// </summary>
+    /// <remarks>
+    /// Most tests put an office on a chosen Lot and count who contracts with it, and an office the
+    /// city raised on its own would take clients from it.
+    /// </remarks>
+    private static Ruleset Rules(string? text = null, bool raising = false)
     {
-        RulesetLoadResult loaded = RulesetLoader.Parse(text ?? Text(), "offices.toml");
+        text ??= Text();
+
+        if (!raising)
+        {
+            int start = text.IndexOf("[[zone_rule]]\nname          = \"offices\"", StringComparison.Ordinal);
+            Assert.True(start >= 0, "offices.toml has no `offices` Zone Rule to remove");
+            int end = text.IndexOf("[placement]", start, StringComparison.Ordinal);
+            Assert.True(end > start, "offices.toml has no [placement] after the `offices` Zone Rule");
+            text = text.Remove(start, end - start);
+        }
+
+        RulesetLoadResult loaded = RulesetLoader.Parse(text, "offices.toml");
         Assert.True(loaded.Ok, loaded.Describe());
         return loaded.Ruleset!;
     }
@@ -828,6 +847,105 @@ public sealed class LocalServiceTests
             most <= ceiling,
             $"an office made {most} units inside one Day, over the {ceiling} its Rule can make");
         sim.CheckEndOfRun();
+    }
+
+    [Fact]
+    public void Firms_importing_a_service_raise_an_office_that_staffs_up_and_takes_them_on()
+    {
+        var (world, sim) = Start(Rules(raising: true));
+        Capitalise(world);
+
+        Assert.True(
+            StepUntil(world, sim, w => Shops(w).Exists(s => Hinterland(w, s, Accounting) == North),
+                2 * Ticks.PerDay),
+            "no shop ever imported accounting");
+        Assert.Empty(Businesses(world, OfficeKind));
+
+        Assert.True(
+            StepUntil(world, sim, w => Businesses(w, OfficeKind).Count > 0, 4 * Ticks.PerDay),
+            "a city importing accounting never raised an office");
+
+        int office = Businesses(world, OfficeKind)[0];
+        Capitalise(world);
+
+        Assert.True(Supplying(world, sim, office), "the raised office never made a unit of accounting");
+        Assert.True(
+            StepUntil(world, sim, w => Shops(w).Exists(s => Provider(w, s, Accounting) == office),
+                2 * Ticks.PerDay),
+            "no importer moved to the office the city raised");
+
+        sim.CheckEndOfRun();
+    }
+
+    [Fact]
+    public void Importers_no_office_reaches_raise_one_office_per_district_and_no_more()
+    {
+        var (world, sim) = Start(Rules(Near(), raising: true));
+        Capitalise(world);
+
+        Assert.True(
+            StepUntil(world, sim, w => Businesses(w, OfficeKind).Count > 0, 6 * Ticks.PerDay),
+            "a city importing accounting never raised an office");
+
+        for (int t = 0; t < 6 * Ticks.PerDay; t++)
+        {
+            if (t % Ticks.PerDay == 0)
+            {
+                Capitalise(world);
+            }
+
+            sim.Step(default);
+        }
+
+        Assert.True(
+            Shops(world).Exists(s => Hinterland(world, s, Accounting) >= 0),
+            "no shop is still importing, so nothing tested the bound");
+        Assert.InRange(Businesses(world, OfficeKind).Count, 1, world.Districts.Rows.LiveCount);
+        sim.CheckEndOfRun();
+    }
+
+    /// <summary>
+    /// The provider choice's walk work over two Days of a city that raised its own offices. The counts
+    /// are deterministic. The wall time is whatever the machine gave the run.
+    /// </summary>
+    [Fact]
+    [Trait(Tier.Key, Tier.Instrument)]
+    public void Provider_choice_walk_work_in_a_city_that_raises_its_offices()
+    {
+        var (world, sim) = Start(Rules(raising: true));
+        Capitalise(world);
+
+        Assert.True(
+            StepUntil(world, sim, w => Businesses(w, OfficeKind).Count > 0, 6 * Ticks.PerDay),
+            "a city importing accounting never raised an office");
+        Assert.True(Supplying(world, sim, Businesses(world, OfficeKind)[0]), "the raised office never made a unit");
+
+        var work = new RouteWork();
+        int largest = 0;
+        work.ObserveFinishedSearchWith(settled => largest = settled > largest ? settled : largest);
+        sim.Rules.ProviderRouteWork = work;
+
+        long started = System.Diagnostics.Stopwatch.GetTimestamp();
+
+        for (int t = 0; t < 2 * Ticks.PerDay; t++)
+        {
+            if (t % Ticks.PerDay == 0)
+            {
+                Capitalise(world);
+            }
+
+            sim.Step(default);
+        }
+
+        TimeSpan elapsed = System.Diagnostics.Stopwatch.GetElapsedTime(started);
+        sim.Rules.ProviderRouteWork = null;
+
+        output.WriteLine(
+            $"nodes={world.Roads.Nodes.Rows.LiveCount} offices={Businesses(world, OfficeKind).Count} "
+            + $"shops={Shops(world).Count} ticks={2 * Ticks.PerDay} searches={work.Searches} "
+            + $"settled={work.Settled} largestSearch={largest} stepMs={elapsed.TotalMilliseconds:F0}");
+
+        Assert.True(work.Searches > 0, "no provider choice walked");
     }
 
     [Fact]

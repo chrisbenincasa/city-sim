@@ -276,6 +276,9 @@ public sealed class RuleEngine
     // than world state, so adr/0037's read-only phase is intact.
     private readonly WalkScratch _reachWalk = new();
 
+    /// <summary>Counts the provider choice's reach walks, for the profiler.</summary>
+    public RouteWork? ProviderRouteWork { get => _reachWalk.Work; set => _reachWalk.Work = value; }
+
     // What each allowance row's walk cost this buyer, so that the two passes of Office share one
     // search per candidate. Indexed by allowance row; Impassable means "not a candidate".
     private TravelTime[] _reachCost = new TravelTime[4];
