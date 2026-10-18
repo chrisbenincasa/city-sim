@@ -963,9 +963,19 @@ public enum PurposeTag : ulong
     /// <summary>The draw picks an eligible Household to buy a Lot before construction.</summary>
     LandBuyer = 68,
 
+    /// <summary>
+    /// Which of two equally close offices a firm takes as its provider of a service. Drawn on the
+    /// buying Rule Instance's id with the service in the high half, and the Tick, like
+    /// <see cref="SellerChoice"/>, because the walk to the provider is the discriminator and a remote
+    /// service has no walk at all — every provider of one is equally near, so the draw decides every
+    /// time. The service is a coordinate because a firm buying two of them in one firing would
+    /// otherwise take the same ordinal for both.
+    /// </summary>
+    ProviderChoice = 69,
+
     /// <summary>The draw picks a Household housed on a Lot to buy it when its holder sells.</summary>
-    LotTenantBuyer = 69,
+    LotTenantBuyer = 70,
 
     /// <summary>The draw picks any eligible Household to buy a Lot that no tenant buys.</summary>
-    LotResaleBuyer = 70,
+    LotResaleBuyer = 71,
 }

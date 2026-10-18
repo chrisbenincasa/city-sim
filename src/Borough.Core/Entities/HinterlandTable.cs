@@ -1,5 +1,6 @@
 namespace Borough.Core.Entities;
 
+using Borough.Core.Quantities;
 using Borough.Core.Space;
 using Borough.Core.Tables;
 
@@ -84,6 +85,8 @@ public sealed class HinterlandTable
         ReplenishedYesterday = _rows.Saved<int>("replenished_yesterday", Touch.Cold);
         TurnoverToday = _rows.Saved<int>("turnover_today", Touch.Cold);
         TurnoverYesterday = _rows.Saved<int>("turnover_yesterday", Touch.Cold);
+        ExportedToday = _rows.Saved<Money>("exported_today", Touch.Cold);
+        ExportedYesterday = _rows.Saved<Money>("exported_yesterday", Touch.Cold);
 
         _rows.Seal();
 
@@ -274,14 +277,23 @@ public sealed class HinterlandTable
     /// <inheritdoc cref="OccasionsYesterday"/>
     public Column<int> TurnoverYesterday { get; }
 
+    /// <summary>What this edge's Hinterland has paid for exports today, against its budget.</summary>
+    public Column<Money> ExportedToday { get; }
+
+    /// <inheritdoc cref="OccasionsYesterday"/>
+    public Column<Money> ExportedYesterday { get; }
+
     /// <summary>
     /// Moves every edge's Day counters on, if <paramref name="day"/> is not the Day they count.
     /// </summary>
     /// <remarks>
     /// Roll once before input on each new Day, including Days with no arrivals.
     /// </remarks>
-    public void RollDay(int day)
+    /// <returns>Whether any edge moved to a new Day.</returns>
+    public bool RollDay(int day)
     {
+        bool rolled = false;
+
         for (int slot = 0; slot < Edges; slot++)
         {
             if (FlowDay[slot] == day)
@@ -290,6 +302,7 @@ public sealed class HinterlandTable
             }
 
             FlowDay[slot] = day;
+            rolled = true;
 
             Roll(OccasionsToday, OccasionsYesterday, slot);
             Roll(RequestedToday, RequestedYesterday, slot);
@@ -305,7 +318,12 @@ public sealed class HinterlandTable
             Roll(ConnectionLostToday, ConnectionLostYesterday, slot);
             Roll(ReplenishedToday, ReplenishedYesterday, slot);
             Roll(TurnoverToday, TurnoverYesterday, slot);
+
+            ExportedYesterday[slot] = ExportedToday[slot];
+            ExportedToday[slot] = Money.Zero;
         }
+
+        return rolled;
     }
 
     private static void Roll(Column<int> today, Column<int> yesterday, int slot)

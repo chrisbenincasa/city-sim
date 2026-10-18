@@ -124,6 +124,7 @@ the durable half of the document.
 | 🔴 ⚠️ **The purchase**, whole, at **40,000** Citizens | **1.27 ms a Tick** | **NO — it is ~n^1.2 and the whole point of the row** | [`0044`](0044-the-purchase-and-the-provider-that-answers-it.md) task 4, measured 2026-08-26 |
 | 🔴 ⚠️ **The purchase**, whole, at **20,000** Citizens | **0.585 ms a Tick** | as above | as above |
 | 🔴 ⚠️ **The purchase**, whole, at **10,000** Citizens — ⚠ **an UPPER BOUND**, measured with a spin defect running (see below) | **0.237 ms a Tick** | as above | as above |
+| ⚠️ **The provider choice's reach walks**, `offices.toml`, seed 0, 9 shops and 1 office the city raised, 263,169-node network | **286 walks and 420 settled nodes over 4,096 Ticks; the largest walk settled 4 nodes** | **no — it is the box's best case** | [`export-base`](export-base.md) slice 3b, `LocalServiceTests.Provider_choice_walk_work_in_a_city_that_raises_its_offices`, 10/17/2026. The counts are deterministic. At ~35–40 ns a settled node (row above) the walks cost ~17 µs over two Days. The whole run's Step time was 1,202 ms in Release, one thread, on the i5-10400, at a load average of 8 from other sessions, so that figure is only an upper bound. Every shop stands near the one office, so no candidate inside the box had a long road route. `WalkRouting.Cost` still has no distance cutoff, and that worst case stays unmeasured until a fixture raises several offices across a city |
 
 ### ⚠️ Volume attribution is four times what its own ADR priced, and nobody changed its number
 

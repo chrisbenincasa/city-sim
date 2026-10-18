@@ -1901,7 +1901,7 @@ public static class WorldInvariants
             {
                 var resource = new ResourceId((ushort)raw);
 
-                if (world.Rules.Family(resource) != ResourceFamily.Good)
+                if (!world.Rules.IsTraded(resource))
                 {
                     continue;
                 }

@@ -1208,4 +1208,11 @@ public enum Invariant
 
     /// <summary>Every live Household has a live balance Bin when Money is declared.</summary>
     HouseholdHasALiveBalance = 68,
+
+    /// <summary>No office's clients take more units of a service in a Day than it made that Day.</summary>
+    /// <remarks>
+    /// Checked at the sale (<c>World.SellService</c>), where it is <c>O(1)</c>. The other field is
+    /// the overdraft — how far past the Day's capacity the row went.
+    /// </remarks>
+    AnOfficeSellsNoMoreThanItMade = 69,
 }

@@ -277,6 +277,31 @@ public enum ResourceFamily : byte
     /// which is the only thing that bounds it (<c>plans/private-production-and-labour.md</c>).
     /// </remarks>
     Labour = 4,
+
+    /// <summary>
+    /// A Professional Service: made from labour and delivered without a Vehicle.
+    /// </summary>
+    /// <remarks>
+    /// It is never stocked, so no Bin holds it. A firm buys it through a <c>pool</c> input from the
+    /// provider it keeps under contract (<c>adr/0179</c>), and the buyer must stand within the
+    /// service's reach of that provider.
+    /// </remarks>
+    Service = 5,
+}
+
+/// <summary>
+/// How far a buyer may stand from a Professional Service provider, in free-flow minutes.
+/// </summary>
+/// <remarks>
+/// <c>default</c> is no reach, which every non-service Resource has.
+/// </remarks>
+public readonly record struct ServiceReach(int Minutes)
+{
+    /// <summary>A remotely delivered service, which reaches any distance.</summary>
+    public static ServiceReach Unlimited => new(int.MaxValue);
+
+    /// <summary>Whether this reach covers any distance.</summary>
+    public bool IsUnlimited => Minutes == int.MaxValue;
 }
 
 /// <summary>
@@ -1844,6 +1869,15 @@ public readonly record struct HinterlandDefinition(
     /// </para>
     /// </remarks>
     public Money Rent { get; init; }
+
+    /// <summary>
+    /// The most this Hinterland pays the city for exports in one Day. Zero buys nothing.
+    /// </summary>
+    /// <remarks>
+    /// It buys at its <c>prices</c>, the figure it also sells at, and only Goods a city firm made and
+    /// had no room to store. The budget resets at each Day boundary.
+    /// </remarks>
+    public Money ExportBudget { get; init; }
 
     /// <summary>
     /// How far from a centre life out here is, in the Tiles the map is measured in.
@@ -4869,6 +4903,15 @@ public sealed class Ruleset
             ? ResourceNeeds[resource.Raw - 1]
             : Need.None;
 
+    /// <summary>Each Resource's service reach, indexed by <c>resource - 1</c>.</summary>
+    public ServiceReach[] ResourceReaches { get; init; } = [];
+
+    /// <summary>How far this service reaches, or <c>default</c> when it is not a service.</summary>
+    public ServiceReach ReachOf(ResourceId resource) =>
+        resource.Raw >= 1 && resource.Raw <= ResourceReaches.Length
+            ? ResourceReaches[resource.Raw - 1]
+            : default;
+
     /// <summary>Each Resource's shelf life, indexed by <c>resource - 1</c>. Empty means nothing spoils.</summary>
     public ShelfLife[] ResourceShelfLives { get; init; } = [];
 
@@ -5341,6 +5384,7 @@ public sealed class Ruleset
             Care = Care,
             ResourceNeeds = ResourceNeeds,
             ResourceShelfLives = ResourceShelfLives,
+            ResourceReaches = ResourceReaches,
             LifeStages = LifeStages,
         };
 
@@ -5354,6 +5398,10 @@ public sealed class Ruleset
     /// code rather than parsed.
     /// </remarks>
     public ResourceFamily Family(ResourceId resource) => _resources[resource.Raw - 1];
+
+    /// <summary>Whether every District opens a Pool for this Resource: a Good or a service.</summary>
+    public bool IsTraded(ResourceId resource) =>
+        Family(resource) is ResourceFamily.Good or ResourceFamily.Service;
 
     /// <summary>Whether this Resource is conserved — never created or destroyed inside the city.</summary>
     /// <remarks>

@@ -136,6 +136,8 @@ public sealed class BusinessTable
         // Derived, because it is rebuilt from CitizenTable.Workplace and folds into no hash.
         WorkerHead = _rows.Derived<int>("worker_head");
         WorkerTail = _rows.Derived<int>("worker_tail");
+        ContractHead = _rows.Derived<int>("contract_head");
+        ContractTail = _rows.Derived<int>("contract_tail");
 
         _rows.Seal();
     }
@@ -282,9 +284,11 @@ public sealed class BusinessTable
     /// What this Business has recognised as expense on <see cref="TradingDay"/>.
     /// </summary>
     /// <remarks>
-    /// <b>Two things reach it</b> (<c>plans/0072</c> D15): the cost of stock as it is <em>sold</em>,
-    /// drawn off the Bin that held it — see <see cref="Rules.BinTable.CostAt"/> — and the gross wage
-    /// bill as it is <em>earned</em>, which is every Day rather than every payday.
+    /// <b>Three things reach it</b> (<c>plans/0072</c> D15): the cost of stock as it is <em>sold</em>,
+    /// drawn off the Bin that held it — see <see cref="Rules.BinTable.CostAt"/> — the gross wage
+    /// bill as it is <em>earned</em>, which is every Day rather than every payday, and a Professional
+    /// Service bought from a city office, which is consumed in the firing that bought it and has no
+    /// Bin to defer the cost on.
     /// </remarks>
     public Column<long> DayExpense { get; }
 
@@ -372,6 +376,12 @@ public sealed class BusinessTable
 
     /// <summary>The last Citizen this Business employs, so an append needs no walk.</summary>
     public Column<int> WorkerTail { get; }
+
+    /// <summary>The head of this firm's service contracts, threaded by <c>World.BusinessContracts</c>.</summary>
+    public Column<int> ContractHead { get; }
+
+    /// <summary>The tail of this firm's service contracts.</summary>
+    public Column<int> ContractTail { get; }
 
     /// <summary>Whether this Business is in the unpremised pool.</summary>
     public bool IsUnpremised(int slot) => PoolSlot[slot] != 0;

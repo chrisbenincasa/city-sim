@@ -27,7 +27,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-54 sections, 387 keys.
+54 sections, 390 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
@@ -36,7 +36,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[[building]] bins reserve`](#building-bins-reserve) — 3 keys
 - [`[[business]]`](#business) — 17 keys
 - [`[[hinterland.population]]`](#hinterlandpopulation) — 5 keys
-- [`[[hinterland]]`](#hinterland) — 8 keys
+- [`[[hinterland]]`](#hinterland) — 9 keys
 - [`[[hinterland]] prices`](#hinterland-prices) — 2 keys
 - [`[[housing_form]]`](#housing_form) — 11 keys
 - [`[[lattice]]`](#lattice) — 4 keys
@@ -48,7 +48,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[[recipe]] inputs`](#recipe-inputs) — 3 keys
 - [`[[recipe]] outputs`](#recipe-outputs) — 3 keys
 - [`[[reserve]]`](#reserve) — 4 keys
-- [`[[resource]]`](#resource) — 7 keys
+- [`[[resource]]`](#resource) — 9 keys
 - [`[[rule]]`](#rule) — 14 keys
 - [`[[rule]] apply`](#rule-apply) — 4 keys
 - [`[[rule]] inputs`](#rule-inputs) — 3 keys
@@ -392,6 +392,10 @@ The most. Stated as a band rather than one figure, because a single figure gives
 
 The least money a Household arriving from this Hinterland brings with it.
 
+**`export_budget`** · *whole number*
+
+The most this Hinterland pays the city for exports in one Day, from 0 to 2147483647. It buys at its prices, the figure it also sells at, and only Goods a city firm made and had no room to store. When several Hinterlands price a Good, the highest payer with budget left for at least one minimum batch buys it, as many batches as that budget covers. Absent or zero buys nothing.
+
 **`id`** · *quoted string*
 
 Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.
@@ -402,7 +406,7 @@ The display text for this declaration. It reaches the shell's names and nothing 
 
 **`prices`** · *array of inline tables*
 
-What this Hinterland will sell each Good for, one entry per Good. These are the only authored anchor under every price in the design: a District's Pool may charge up to the cheapest declared Hinterland price and no more.
+What this Hinterland will sell each Good or service for, one entry each. These are the only authored anchor under every price in the design: a District's Pool may charge up to the cheapest declared Hinterland price and no more.
 
 **`rent`** · *whole number*
 
@@ -420,7 +424,7 @@ The import price, which becomes the ceiling on what that Good can cost inside th
 
 **`resource`** · *quoted string*
 
-Which Good is being priced, naming a [[resource]]. Only a good may be — a utility is not stocked, and money is what a price is denominated in rather than a thing that has one.
+Which Good or service is being priced, naming a [[resource]]. A utility is not stocked, and money is what a price is denominated in rather than a thing that has one, so neither may be.
 
 ---
 
@@ -754,7 +758,7 @@ What this reserve is called. A Bin's reserve profile names it by this.
 
 **`family`** · *quoted string*
 
-Which of the four kinds of thing this is: a good moves as a Shipment on the Road Graph and shows up in the traffic, a utility flows along the District adjacency graph, money is conserved and does not move at all, and labour is worker-time a Business's present staff deposit and its own Rules spend as a local input. The family decides transport and whether a Bin holding it has a ceiling, so there is no default. A labour Resource must declare a shelf life, and its Bin is owned by the business and states no capacity.
+Which of the five kinds of thing this is: a good moves as a Shipment on the Road Graph and shows up in the traffic, a utility flows along the District adjacency graph, money is conserved and does not move at all, labour is worker-time a Business's present staff deposit and its own Rules spend as a local input, and a service is a Professional Service a provider's Rule makes as a local output and a client firm buys from the provider it keeps, through a pool input -- no Bin ever holds one. The family decides transport and whether a Bin holding it has a ceiling, so there is no default. A labour Resource must declare a shelf life, and its Bin is owned by the business and states no capacity.
 
 **`id`** · *quoted string*
 
@@ -771,6 +775,14 @@ What this Resource is called. Every other table refers to it by this name, and t
 **`need`** · *quoted string*
 
 Which Household Need this Resource feeds when it is consumed. Only sustenance and satisfaction may be named: the other two Needs are fed by travelling to a service Building rather than by buying, and are declared with [[building]] serves instead. Absent means the Resource feeds no Need, which is the ordinary case.
+
+**`reach_minutes`** · *whole number*
+
+How far a buyer may stand from a provider of this service, in free-flow travel minutes, from 1 to a day. Only a service has a reach, and it states either this or remote. A Hinterland provider is reached from anywhere, so this binds only once the city has its own providers.
+
+**`remote`** · *true or false*
+
+true for a service delivered at any distance, in place of reach_minutes. Only a service may state it, and false is refused: state reach_minutes instead.
 
 **`shelf_life_cycle_minutes`** · *whole number*
 
@@ -902,7 +914,7 @@ Which Resource this term deposits, naming a [[resource]].
 
 **`scope`** · *quoted string*
 
-Where the term deposits: local, pool, global, or map. The map scope is write-only, so a Rule may emit to a Layer and can never read or wait on one.
+Where the term deposits: local, pool, global, or map. The map scope is write-only, so a Rule may emit to a Layer and can never read or wait on one. A service output is local and adds to the provider's allowance for the Day rather than to a Bin.
 
 ---
 
