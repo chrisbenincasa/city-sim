@@ -305,6 +305,7 @@ public static class RulesetLoader
         private TableSyntaxBase? _tripsTable;
         private TableSyntaxBase? _jobsTable;
         private TableSyntaxBase? _householdsTable;
+        private TableSyntaxBase? _rentTable;
         private TableSyntaxBase? _treasuryTable;
         private TableSyntaxBase? _trafficTable;
         private TableSyntaxBase? _parkingTable;
@@ -411,6 +412,11 @@ public static class RulesetLoader
             RefuseBankableLabour(jobs);
             RefuseLabourSpentTooSlowly(rules, inputs);
             HouseholdRuleset households = ReadHouseholds();
+
+            // After ReadBusinessKinds, because the deadline is refused against the longest
+            // pay_period_days in the file (money-circulation L16) and a trade knows nothing about
+            // rent. Neither reader can see that defect alone.
+            RentRuleset rent = ReadRent(businessKinds, placement);
             TreasuryRuleset treasury = ReadTreasury();
             TrafficRuleset traffic = ReadTraffic();
             ParkingRuleset parking = ReadParking();
@@ -517,6 +523,7 @@ public static class RulesetLoader
                 Trips = trips,
                 Jobs = jobs,
                 Households = households,
+                Rent = rent,
                 Treasury = treasury,
                 Traffic = traffic,
                 Policies = policies,
@@ -804,6 +811,21 @@ public static class RulesetLoader
                         _householdsTable = table;
                         break;
 
+                    case "rent":
+                        // Singular and optional, on [households]' reasoning exactly. A city collects
+                        // rent one way, so two tables of numbers for it is ambiguous rather than
+                        // additive.
+                        if (_rentTable is not null)
+                        {
+                            Refuse(LineOf(table), null,
+                                "a second [rent] is declared. A city collects rent one way, so two "
+                                + "tables of numbers for it is ambiguous rather than additive.");
+                            break;
+                        }
+
+                        _rentTable = table;
+                        break;
+
                     case "treasury":
                         // Singular and optional, on [households]' reasoning exactly. There is one
                         // treasury, so two tables of numbers for it is ambiguous rather than additive.
@@ -1050,7 +1072,7 @@ public static class RulesetLoader
                             + "[[recipe]], [[reserve]], [[zone_rule]], "
                             + "[[policy]], [[hinterland]], [[lattice]], [[terrain]], [layers], "
                             + "[placement], [roads], [lots], [trips], [jobs], [households], "
-                            + "[traffic], [parking], [water], [districts], [market], "
+                            + "[rent], [traffic], [parking], [water], [districts], [market], "
                             + "[immigration], [[hinterland.population]], "
                             + "[income_tax], [business_tax] and "
                             + "[founding]. A trade is declared with [[business]] and the founding "
@@ -9455,6 +9477,102 @@ public static class RulesetLoader
 
             return (new Money(min), new Money(max));
         }
+
+        // ---- rent -------------------------------------------------------------------------------
+
+        /// <summary>
+        /// The <c>[rent]</c> table: whether the city charges its tenancies, and how long arrears run.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>The table is optional and its one key is required</b>, which is <c>[households]</c>'
+        /// shape and its reason: omitting the table is a city that charges nobody for a home and the
+        /// file has said so by omission, while stating the table and omitting the deadline would be a
+        /// placeholder sitting inside the range of legitimate answers.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>The deadline below the longest <c>pay_period_days</c> is refused rather than
+        /// clamped</b> (<c>plans/money-circulation.md</c> L16). A tenant paid every seven Days is
+        /// short on six of them, so a shorter deadline evicts every weekly-paid tenant in the city
+        /// between its paydays — which reads as an arrears mechanism and is a payday mechanism.
+        /// </para>
+        /// </remarks>
+        private RentRuleset ReadRent(
+            BusinessKindDefinition[] businessKinds, PlacementRuleset placement)
+        {
+            const string key = "evicts_after_days";
+
+            if (_rentTable is null)
+            {
+                return RentRuleset.None;
+            }
+
+            if (!TryInteger(_rentTable, key, out long days, required: true))
+            {
+                return RentRuleset.None;
+            }
+
+            if (days < 1 || days > ushort.MaxValue)
+            {
+                Refuse(LineOfRent(key), null,
+                    $"{key} is {days}. It is how many Days a tenant may owe rent before the tenancy "
+                    + $"ends, so it is 1 to {ushort.MaxValue}. It is what bounds the debt (adr/0006), "
+                    + "so there is no value meaning never -- omit the whole [rent] table for a city "
+                    + "that charges no rent.");
+
+                return RentRuleset.None;
+            }
+
+            if (!_families.Contains(ResourceFamily.Money))
+            {
+                Refuse(LineOfRent(key), null,
+                    "this file collects rent and names no money. A balance is a Bin and a Bin exists "
+                    + "only for a declared Resource (adr/0114), so there would be nothing to pay with "
+                    + "and nowhere for the rent to land. Add a [[resource]] block with "
+                    + "family = \"money\", or delete [rent].");
+
+                return RentRuleset.None;
+            }
+
+            if (!placement.GivesUp)
+            {
+                Refuse(LineOfRent(key), null,
+                    "this file collects rent and [placement] states no gives_up_after_days -- so a "
+                    + "Household evicted for arrears re-enters the Unplaced Pool and nothing ever "
+                    + "takes it out again except being housed, which it could not afford. Eviction "
+                    + "is a door into the Pool exactly as a gate kind is, and a Pool with a door "
+                    + "and no give-up rule grows without bound, which adr/0006 forbids. State how "
+                    + "long a Household keeps looking, in Days. It bounds the Unpremised Pool an "
+                    + "evicted Business lands in too.");
+
+                return RentRuleset.None;
+            }
+
+            int longest = 0;
+
+            foreach (BusinessKindDefinition trade in businessKinds)
+            {
+                longest = int.Max(longest, trade.PayPeriodDays);
+            }
+
+            if (days < longest)
+            {
+                Refuse(LineOfRent(key), null,
+                    $"{key} is {days} and a trade in this file pays every {longest} Days. Rent is "
+                    + "charged daily and a tenant settles it as money arrives, so a deadline shorter "
+                    + "than the longest pay period evicts a tenant for the Days between its paydays "
+                    + $"rather than for being unable to pay (money-circulation L16). State {longest} "
+                    + "or more.");
+
+                return RentRuleset.None;
+            }
+
+            return new RentRuleset((int)days);
+        }
+
+        /// <summary>Where a <c>[rent]</c> key sits, for a refusal that names a line.</summary>
+        private int LineOfRent(string key) =>
+            LineOf((SyntaxNodeBase?)Find(_rentTable!, key) ?? _rentTable!);
 
         // ---- treasury ---------------------------------------------------------------------------
 

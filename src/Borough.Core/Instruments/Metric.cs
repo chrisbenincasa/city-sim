@@ -816,6 +816,33 @@ public enum MoneyFlowCounter : byte
     /// transfer to Businesses, so the supply does not move.
     /// </summary>
     Grant,
+
+    /// <summary>
+    /// Rent the city collected as the Landowner of the Lots it holds, summed over the interval
+    /// (<c>L9</c>, <c>L14</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Its own member rather than more <see cref="ToTreasury"/></b>, on <see cref="ProfitTax"/>'s
+    /// argument: rent is not a Policy and its lever is a third file again — a
+    /// <c>rent_per_floor_tile</c> on each <c>[[building]]</c> against a rate in <c>[income_tax]</c>
+    /// or <c>[business_tax]</c>. ***And who pays it is a tenancy***, which is neither a worker nor a
+    /// trade's profit.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Treasury rent only.</b> Rent paid to a private Landowner moves between two members and
+    /// never reaches the treasury, and a ring's cancelled mutual debt moves no money at all.
+    /// <c>Simulation.LastRent.Collected</c> is the figure that counts all three and so cannot appear
+    /// in this family.
+    /// </para>
+    /// <para>
+    /// The identity of the family becomes: over any interval, the change in
+    /// <c>MoneyCounter.Treasury</c> equals
+    /// <c>ToTreasury + Withheld + RuleToTreasury + ProfitTax + Rent − FromTreasury
+    /// − RuleFromTreasury − Subsidy − Placement − Upkeep − Compensation − Grant</c>.
+    /// </para>
+    /// </remarks>
+    Rent,
 }
 
 /// <summary>Which family of thing a <see cref="Metric"/> names.</summary>

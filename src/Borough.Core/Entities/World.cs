@@ -530,6 +530,11 @@ public sealed partial class World
                 && !ReferenceEquals(table, Flood.Rows)),
         ];
 
+        // After the tables, because it sizes a scratch array from the Household capacity. On the
+        // World rather than beside the other engines in Simulation, because the engines that credit
+        // a tenancy hold a World and not each other -- BusinessAccounts' position, one door along.
+        Arrears = new RentAccounts(this);
+
         WorldInvariants.RegisterAll(Invariants);
 
         // adr/0114 and adr/0116, and it is here rather than only in Adopt because a world constructed
@@ -1735,6 +1740,21 @@ public sealed partial class World
     public InvariantRegistry Invariants { get; }
 
     /// <summary>
+    /// Where rent arrears are paid off — the door every income site calls when money lands in a
+    /// tenancy's balance (<c>plans/money-circulation.md</c> L16).
+    /// </summary>
+    /// <remarks>
+    /// <b>Owned here rather than by the Simulation, because its callers are.</b> Six engines credit
+    /// a Household or a Business, each holds a <see cref="World"/> and none holds another engine, so
+    /// this is the one place all of them can reach — <c>BusinessAccounts</c>' position for the same
+    /// reason. ⚠ <b>Not simulation state.</b> It carries a walk marker, which is scratch within one
+    /// settlement, and the interval totals behind <c>LastRent</c> and the treasury's rent flow,
+    /// which run across Ticks until their next drain. None of it is saved or hashed, so a reload
+    /// mid-interval matches a continuous run in State Hash but not in the first readings after it.
+    /// </remarks>
+    internal RentAccounts Arrears { get; }
+
+    /// <summary>
     /// The State Hash: every saved column of every table, folded through slice 2's <c>mix</c>.
     /// </summary>
     /// <remarks>
@@ -2892,6 +2912,17 @@ public sealed partial class World
         Occupants.Remove(buildingSlot, slot);
         NobodyLivesHere(buildingSlot);
         Households.Dwelling[slot] = default;
+
+        // 🔴 THE TENANCY ENDS, SO THE RENT DEBT ENDS WITH IT, and this is what bounds the column
+        // (plans/money-circulation.md L16, adr/0006). Eviction at the deadline is the cap on what
+        // can be owed; carrying the arrears into the Pool would leave a Household that may never be
+        // housed again owing a Landowner it no longer has, and would charge the debt to whoever
+        // owns its NEXT home. It is here rather than in RentEngine so that every route out of a
+        // tenancy caps it alike -- rent arrears, demolition and a flood reach the Pool through this
+        // one door. ⚠ No money moves: a debt is not money (adr/0003), so nothing is forgiven that
+        // Invariant.MoneyIsConserved could see.
+        Households.RentDebt[slot] = default;
+        Households.RentDebtSinceDay[slot] = 0;
 
         // The write-site half of the Pool's density claim. The table needs the allocator to hand back
         // exactly the next position, which is true because the free list is LIFO and Leave only ever
@@ -4169,6 +4200,11 @@ public sealed partial class World
 
         VacateUnit(slot);
         Businesses.Building[slot] = default;
+
+        // The tenancy ends, so the rent debt ends with it -- Unplace's own line and its reason, one
+        // table across.
+        Businesses.RentDebt[slot] = default;
+        Businesses.RentDebtSinceDay[slot] = 0;
 
         // The staff are dismissed, founder included, so they return to the job pass. An employer
         // with no premises has no posts, and staff held by one would count as employed while

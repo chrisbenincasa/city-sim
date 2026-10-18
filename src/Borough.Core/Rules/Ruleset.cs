@@ -3902,6 +3902,49 @@ public readonly record struct HouseholdRuleset(
 }
 
 /// <summary>
+/// The <c>[rent]</c> table — <b>whether the city collects rent, and how long arrears may run</b>
+/// (<c>plans/money-circulation.md</c> L8, L16).
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>One key, and stating it is what turns the daily charge on.</b> A table whose absence means
+/// <em>nothing is charged</em> is <c>[jobs]</c>' and <c>[households]</c>' shape, and the one number
+/// in it is the eviction deadline because <em>a charge with no eviction is a debt with no
+/// sink</em>. <c>adr/0130</c>'s rule — a collection with an inflow owes a sink, declared together —
+/// so the deadline cannot be omitted while rent is charged, and a separate <c>collects</c> flag
+/// would be a second way to say what stating the table already says.
+/// </para>
+/// <para>
+/// ⚠ <b>The deadline is what bounds the debt</b>, which is why it is not optional. Unpaid rent
+/// accrues on <see cref="Entities.HouseholdTable.RentDebt"/> and
+/// <see cref="Entities.BusinessTable.RentDebt"/>; past the deadline the tenancy ends and the debt
+/// goes with it. Without the deadline those two columns are <c>adr/0006</c>'s magnitude trending
+/// upward at steady state.
+/// </para>
+/// <para>
+/// <b>The loader refuses a deadline shorter than the longest <c>pay_period_days</c></b> (L16).
+/// A tenant paid every seven Days is short on six of them, so a deadline of one would evict every
+/// weekly-paid Household in the city on its second Day.
+/// </para>
+/// </remarks>
+/// <param name="EvictsAfterDays">
+/// How many Days a tenant may owe rent before the tenancy ends.
+/// </param>
+public readonly record struct RentRuleset(int EvictsAfterDays)
+{
+    /// <summary>A Ruleset whose city charges no rent.</summary>
+    /// <remarks>
+    /// <b>Nothing is charged is the meaning of omission</b>, on <see cref="HouseholdRuleset.None"/>'s
+    /// rule: every Ruleset written before this table existed meant exactly that by saying nothing, so
+    /// omission is behaviour-preserving.
+    /// </remarks>
+    public static RentRuleset None => default;
+
+    /// <summary>Whether the city charges its tenancies rent each Day.</summary>
+    public bool Collects => EvictsAfterDays > 0;
+}
+
+/// <summary>
 /// The <c>[treasury]</c> table — <b>what the city is founded with</b> (<c>plans/0070</c> row 32).
 /// </summary>
 /// <remarks>
@@ -4531,6 +4574,18 @@ public sealed class Ruleset
     /// polarity, for <see cref="Jobs"/>' reason.
     /// </remarks>
     public HouseholdRuleset Households { get; init; } = HouseholdRuleset.None;
+
+    /// <summary>
+    /// <b>Whether tenancies are charged rent, and how long arrears run before eviction</b> — the
+    /// <c>[rent]</c> table (<c>plans/money-circulation.md</c> L8, L16).
+    /// </summary>
+    /// <remarks>
+    /// <see cref="RentRuleset.None"/> when the file states no <c>[rent]</c>, and that is a city where
+    /// nothing is charged for a home — <see cref="Jobs"/>' polarity, for <see cref="Jobs"/>' reason.
+    /// <see cref="KindDefinition.RentPerFloorTile"/> still prices a tenancy for the comparisons
+    /// placement makes; this is what decides whether anybody pays it.
+    /// </remarks>
+    public RentRuleset Rent { get; init; } = RentRuleset.None;
 
     /// <summary>
     /// <b>What the city is founded with</b> — the <c>[treasury]</c> table (<c>plans/0070</c> row 32).
@@ -5296,6 +5351,7 @@ public sealed class Ruleset
             Jobs = Jobs,
             Schooling = Schooling,
             Households = Households,
+            Rent = Rent,
             Treasury = Treasury,
             Traffic = Traffic,
             Parking = Parking,

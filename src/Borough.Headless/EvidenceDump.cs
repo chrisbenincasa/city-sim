@@ -82,6 +82,8 @@ internal static class EvidenceDump
         output.WriteLine();
         Finances(output, world);
         output.WriteLine();
+        Arrears(output, world);
+        output.WriteLine();
         Journeys(output, world);
 
         return 0;
@@ -206,6 +208,108 @@ internal static class EvidenceDump
     }
 
     /// <summary>
+    /// Who is behind on the rent, and since when — the arrears clock <c>[rent]</c> arms.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The first question is whether the city charges rent at all</b>, which is
+    /// <see cref="Finances"/>'s opening move and the same distinction: <c>Evidence.RentOf</c> answers
+    /// null where the Ruleset states no <c>[rent]</c>, and a table of zeroes over such a city would
+    /// read as <em>everybody has paid</em> rather than <em>nobody is charged</em>.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Read through <c>Evidence.RentOf</c> rather than off the columns</b>, so this and the
+    /// shell's inspector take one path — <see cref="Journeys"/>'s own clause and its reason.
+    /// </para>
+    /// </remarks>
+    private static void Arrears(TextWriter output, World world)
+    {
+        output.WriteLine("## Rent arrears, by tenancy");
+        output.WriteLine();
+
+        if (!world.Rules.Rent.Collects)
+        {
+            output.WriteLine(
+                "  This Ruleset states no [rent], so no tenancy is charged and nobody can be behind.");
+            output.WriteLine(
+                "  Every [[building]] still states a rent_per_floor_tile -- placement compares it when");
+            output.WriteLine(
+                "  a Household chooses a home -- so a rent exists here and nothing collects it.");
+            output.WriteLine("  rulesets/renting.toml is the file that makes it apply.");
+
+            return;
+        }
+
+        int homes = 0;
+        int premises = 0;
+        int behindHomes = 0;
+        int behindPremises = 0;
+        long owed = 0;
+        int earliest = int.MaxValue;
+
+        for (int slot = 0; slot < world.Households.Rows.SlotCount; slot++)
+        {
+            if (!world.Households.Rows.IsLive(slot)
+                || !world.Buildings.Rows.IsValid(world.Households.Dwelling[slot])
+                || Evidence.RentOf(world, world.Households.Rows.At(slot)) is not RentEvidence rent)
+            {
+                continue;
+            }
+
+            homes++;
+
+            if (!rent.Behind)
+            {
+                continue;
+            }
+
+            behindHomes++;
+            owed += rent.Debt.Raw;
+            earliest = int.Min(earliest, rent.SinceDay);
+        }
+
+        for (int slot = 0; slot < world.Businesses.Rows.SlotCount; slot++)
+        {
+            if (!world.Businesses.Rows.IsLive(slot)
+                || !world.Buildings.Rows.IsValid(world.Businesses.Building[slot])
+                || Evidence.RentOf(world, world.Businesses.Rows.At(slot)) is not RentEvidence rent)
+            {
+                continue;
+            }
+
+            premises++;
+
+            if (!rent.Behind)
+            {
+                continue;
+            }
+
+            behindPremises++;
+            owed += rent.Debt.Raw;
+            earliest = int.Min(earliest, rent.SinceDay);
+        }
+
+        output.WriteLine($"  tenancies charged         {homes + premises,10}");
+        output.WriteLine($"    Households housed       {homes,10}");
+        output.WriteLine($"    Businesses premised     {premises,10}");
+        output.WriteLine();
+        output.WriteLine($"  behind on rent            {behindHomes + behindPremises,10}");
+        output.WriteLine($"  total owed                {owed,10}");
+        output.WriteLine($"  evicted after Days        {world.Rules.Rent.EvictsAfterDays,10}");
+
+        if (behindHomes + behindPremises > 0)
+        {
+            output.WriteLine();
+            output.WriteLine(
+                $"  The longest-running shortfall has been behind on rent since Day {earliest}. Past");
+            output.WriteLine(
+                "  the deadline above a Household goes to the Unplaced Pool and a Business to the");
+            output.WriteLine(
+                "  Unpremised Pool, and the debt ends with the tenancy -- which is what bounds it.");
+        }
+    }
+
+    /// <summary>
     /// How the city's journeys ended, per Citizen, from the answer the assembler gives.
     /// </summary>
     /// <remarks>
@@ -296,6 +400,14 @@ internal static class EvidenceDump
     /// </remarks>
     private static int? Refuse(Ruleset rules, TextWriter output)
     {
+        // 🔴 RENT ARREARS ARE CONTENT TOO. A file that collects rent has a tenancy to explain
+        // whatever it does about decline, so refusing it would hide the one panel it can fill.
+        // Condemns is what keeps the trail section honest about declining nothing.
+        if (rules.Rent.Collects)
+        {
+            return null;
+        }
+
         if (rules.ZoneRules.Length == 0)
         {
             output.WriteLine(
@@ -308,21 +420,9 @@ internal static class EvidenceDump
             return 3;
         }
 
-        for (byte kind = 1; kind <= byte.MaxValue; kind++)
+        if (Condemns(rules))
         {
-            // ⚠ THE PREMISES' THRESHOLD ONLY, and tenancy_ends_after_days deliberately does not
-            // count here. The condemnation trail is a LOT's, and a tenancy that ends leaves the Lot,
-            // the kind and the Building exactly as they were -- so evicted.toml, which ends tenancies
-            // constantly, still produces an empty trail and is still the wrong file for --evidence.
-            if (rules.Declares(kind) && rules.Kind(kind).CondemnAfterTicks > 0)
-            {
-                return null;
-            }
-
-            if (kind == byte.MaxValue)
-            {
-                break;
-            }
+            return null;
         }
 
         output.WriteLine(
@@ -335,6 +435,31 @@ internal static class EvidenceDump
         output.WriteLine("  --evidence --ruleset rulesets/diagnosed.toml --ticks 2048");
 
         return 3;
+    }
+
+    /// <summary>Whether any kind this Ruleset declares can ever be condemned.</summary>
+    /// <remarks>
+    /// ⚠ <b>The premises' threshold only, and <c>tenancy_ends_after_days</c> deliberately does not
+    /// count.</b> The condemnation trail is a <em>Lot's</em>, and a tenancy that ends leaves the Lot,
+    /// the kind and the Building exactly as they were — so <c>evicted.toml</c>, which ends tenancies
+    /// constantly, condemns nothing.
+    /// </remarks>
+    private static bool Condemns(Ruleset rules)
+    {
+        for (byte kind = 1; kind <= byte.MaxValue; kind++)
+        {
+            if (rules.Declares(kind) && rules.Kind(kind).CondemnAfterTicks > 0)
+            {
+                return true;
+            }
+
+            if (kind == byte.MaxValue)
+            {
+                break;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -353,6 +478,25 @@ internal static class EvidenceDump
         long aggregated = trail.Condemnations[CondemnationTrailTable.AggregateSlot];
 
         output.WriteLine("## The condemnation trail — what the world freed and this kept");
+
+        // ⚠ SAID, not left as an empty table, which is Arrears' rule where a file states no [rent].
+        // The mode now runs over a file that collects rent and declines nothing, and an empty trail
+        // reads as a broken accumulator rather than as a Ruleset that condemns nothing.
+        if (!Condemns(world.Rules))
+        {
+            output.WriteLine();
+            output.WriteLine(
+                "  No [[building]] in this Ruleset sets condemn_after_days, so no Building here can");
+            output.WriteLine(
+                "  ever be condemned however badly it is supplied -- decline is a duration and absent");
+            output.WriteLine(
+                "  means never. The trail is empty because nothing can enter it, and the arrears panel");
+            output.WriteLine(
+                "  below is what this file does empty a dwelling by.");
+
+            return;
+        }
+
         output.WriteLine(
             $"{total} Buildings condemned. {trail.Count} of {CondemnationTrailTable.Retained} are "
             + $"retained in full; {aggregated} have been folded into the aggregate, which keeps the "

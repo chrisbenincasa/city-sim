@@ -27,7 +27,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-53 sections, 388 keys.
+54 sections, 389 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
@@ -74,6 +74,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[needs]`](#needs) — 9 keys
 - [`[parking]`](#parking) — 5 keys
 - [`[placement]`](#placement) — 10 keys
+- [`[rent]`](#rent) — 1 key
 - [`[roads]`](#roads) — 16 keys
 - [`[school]`](#school) — 7 keys
 - [`[schooling]`](#schooling) — 5 keys
@@ -1670,6 +1671,14 @@ The difference in daily rent worth one unit of what a Household prefers. It is w
 **`revisit_ticks`** · *whole number*
 
 How long the placement pass takes to look at everybody waiting in the Pool once, in Ticks. The sample per trigger is derived from this, so the fraction of a housing queue cleared per cycle does not shrink as the queue grows.
+
+---
+
+## `[rent]`
+
+**`evicts_after_days`** · *whole number*
+
+How many Days a tenant may owe rent before the tenancy ends — a Household to the Unplaced Pool, a Business to the Unpremised Pool. Stating this key is also what turns the daily charge on, and then each Day every tenancy pays its kind's rent_per_floor_tile over its floor to the Lot's Landowner, or to the treasury while the city holds the Lot. A resident Landowner pays none for its own tenancy. A tenant short of the rent pays what it holds and owes the rest, later income settles the debt first, and this deadline is what bounds the debt. It is refused below the longest pay_period_days, because a tenant paid weekly is short between paydays. Omitting the whole [rent] table charges nobody.
 
 ---
 

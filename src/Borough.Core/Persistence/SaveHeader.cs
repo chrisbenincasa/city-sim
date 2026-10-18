@@ -70,6 +70,8 @@ public readonly struct SaveHeader : IEquatable<SaveHeader>
     // Version 26 adds each office's daily service allowance and the provider a contract names.
     // Version 25 adds each Hinterland's export spending today and yesterday.
     // Version 24 adds the service contract table (adr/0179).
+    // Version 23 adds a tenant's rent debt and the Day it began, on Households and Businesses
+    // (land and rent L8, L16).
     // Version 22 adds a Lot's Landowner, the Household holding it (land and rent L1, L2).
     // Version 21 adds a Building's cut-off clock and abandonment cause (adr/0177).
     // Version 20 adds a Citizen's most recent ended failed-commute episode (adr/0177).

@@ -38,7 +38,9 @@ public static class UrbanNeighbourhood
             var home = world.CreateBuilding(lot, 2, world.Tick, key);
             var household = world.CreateHousehold(home, 0);
             world.CreateCitizen(household);
-            world.Endow(household, new Money(100));
+            // The arrival band, so a resident and an arrival read alike in the inspector and a
+            // resident covers a Day of the 160 these homes charge.
+            world.Endow(household, new Money(256));
         }
         var gateLot = world.Lots.Create(new Tiles(0), new Tiles(32), 0, StreetSide.Right);
         world.RebuildParcels();
