@@ -3,6 +3,7 @@ namespace Borough.Core.Rules;
 using Borough.Core.Arithmetic;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
+using Borough.Core.Movement;
 using Borough.Core.Quantities;
 using Borough.Core.Space;
 using Borough.Core.Tables;
@@ -238,7 +239,54 @@ public sealed class RuleEngine
     private int[] _tradeLanding = new int[4];
     private long[] _tradeAmount = new long[4];
     private long[] _tradePayment = new long[4];
+
+    // The buying firm, for a purchase whose cost no Bin can carry: a service is used in the firing
+    // that bought it, so Fire expenses it on the Day. Rows.NoSlot for a Good, whose cost lands on
+    // the stock Bin in _tradeLanding and is expensed later, a share at a time.
+    private int[] _tradeBuyer = new int[4];
     private int _tradeCount;
+
+    // Contracts a Check chose and Fire records, for adr/0037's reason: Phase 2 writes nothing. A
+    // provider of Rows.NoSlot means the Hinterland beside it is the one that supplies.
+    private int[] _retainedBusiness = new int[4];
+    private ResourceId[] _retainedService = new ResourceId[4];
+    private int[] _retainedProvider = new int[4];
+    private int[] _retainedHinterland = new int[4];
+    private int _retainedCount;
+
+    // The service units this firing buys from a city office and the allowance row they come out of,
+    // per application. Fire spends them; Check only reads what is left.
+    private int[] _soldAllowance = new int[4];
+    private long[] _soldUnits = new long[4];
+    private int _soldCount;
+
+    // The service units this firing MAKES, per application, and the office making them. No Bin
+    // carries a service, so these are the output terms the affordability walk below cannot see.
+    private ResourceId[] _madeService = new ResourceId[4];
+    private long[] _madeAmount = new long[4];
+    private int _madeBusiness;
+    private int _madeCount;
+
+    // What a provider's remaining allowance allows this firing, which Check clamps its ceiling to.
+    // Read immediately after Retain returns, like Export's return value.
+    private long _retainCeiling;
+
+    // Reusable walk-search state for the reach test. One per engine, never shared across threads:
+    // Phase 2 is a sequential loop over the due Rules (Evaluate), and a search writes scratch rather
+    // than world state, so adr/0037's read-only phase is intact.
+    private readonly WalkScratch _reachWalk = new();
+
+    /// <summary>Counts the provider choice's reach walks, for the profiler.</summary>
+    public RouteWork? ProviderRouteWork { get => _reachWalk.Work; set => _reachWalk.Work = value; }
+
+    // What each allowance row's walk cost this buyer, so that the two passes of Office share one
+    // search per candidate. Indexed by allowance row; Impassable means "not a candidate".
+    private TravelTime[] _reachCost = new TravelTime[4];
+
+    // One export per firing, which a Check chose and Fire pays. The payment is per application.
+    private int _exportHinterland;
+    private int _exportBusiness;
+    private long _exportPayment;
 
     // 02 §4's counters. The first three are the Tick in flight; CloseTick folds them into the second
     // three, which are the interval a Census reading drains.
@@ -570,7 +618,11 @@ public sealed class RuleEngine
         _touchedCount = 0;
         _boughtCount = 0;
         _tradeCount = 0;
+        _retainedCount = 0;
         _accruedCount = 0;
+        _soldCount = 0;
+        _madeCount = 0;
+        _exportHinterland = -1;
 
         foreach (Term term in _world.Rules.Inputs(rule))
         {
@@ -589,7 +641,24 @@ public sealed class RuleEngine
                 // A purchase is one term and three deltas, so it cannot go through Touch(Bin(...)).
                 // It also fails BEFORE the affordability walk when no seller can cover a batch, which
                 // is a district-wide shortage rather than one Bin being short.
-                int unsupplied = Buy(instance, rule, term, floor);
+                int unsupplied;
+
+                if (_world.Rules.Family(term.Bin.Resource) == ResourceFamily.Service)
+                {
+                    unsupplied = Retain(instance, rule, term, floor);
+
+                    // A provider's remaining allowance caps the count the way a Hinterland's budget
+                    // caps an export's, and it comes down HERE rather than through the affordability
+                    // walk because a service moves no Bin that could have carried the bound.
+                    if (_retainCeiling < ceiling)
+                    {
+                        ceiling = _retainCeiling;
+                    }
+                }
+                else
+                {
+                    unsupplied = Buy(instance, rule, term, floor);
+                }
 
                 if (unsupplied == Marketless)
                 {
@@ -624,6 +693,32 @@ public sealed class RuleEngine
                     + $"{term.Bin.Resource.Raw}. The remainder column is consumption progress and a "
                     + "Bin carries one, so production cannot share it. The refusal belongs at load, "
                     + "with a file and a line; it is here because the loader has no such check yet.");
+            }
+
+            if (_world.Rules.Family(term.Bin.Resource) == ResourceFamily.Service)
+            {
+                // No Bin holds a service, so this term bounds nothing: it cannot run out of
+                // headroom and it cannot be exported. What the units go into is the office's
+                // allowance for the Day, which Fire credits. The loader allows a service output
+                // only on a Business Rule that spends labour, and the labour is what bounds it.
+                Handle<Business> maker = _world.RuleInstances.Business[instance];
+
+                if (maker.IsNone)
+                {
+                    throw new InvalidOperationException(
+                        $"rule {rule.Raw} makes a service and no Business runs it. "
+                        + "RulesetLoader.RefuseServiceMadeWithoutAStaffedFirm refuses this at load.");
+                }
+
+                Grow(ref _madeService, _madeCount + 1);
+                Grow(ref _madeAmount, _madeCount + 1);
+
+                _madeService[_madeCount] = term.Bin.Resource;
+                _madeAmount[_madeCount] = term.Amount;
+                _madeBusiness = _world.Businesses.Rows.Resolve(maker);
+                _madeCount++;
+
+                continue;
             }
 
             Touch(Bin(_world, instance, term.Bin, rule), term.Amount, IsTreasuryMoney(term.Bin));
@@ -668,7 +763,14 @@ public sealed class RuleEngine
 
                 if (affordable < floor)
                 {
-                    return RuleVerdict.Stopped(instance, rule, _touchedBlame[i], Blocking.Space);
+                    affordable = Export(instance, rule, bin, delta, floor);
+
+                    if (affordable < floor)
+                    {
+                        return RuleVerdict.Stopped(instance, rule, _touchedBlame[i], Blocking.Space);
+                    }
+
+                    _touchedDelta[i] = 0;
                 }
             }
             else
@@ -694,6 +796,64 @@ public sealed class RuleEngine
         }
 
         return RuleVerdict.Fire(instance, rule, applications);
+    }
+
+    /// <summary>
+    /// Sells a firing's output to a Hinterland when the firm has no room to store it, and returns how
+    /// many applications the Hinterland's budget covers.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Only a Good the firm makes is exported. A Rule that buys the same Good through a pool term is
+    /// restocking, and exporting what it bought would spend the budget on Goods that only pass
+    /// through the city.
+    /// </para>
+    /// <para>
+    /// The output never reaches the Bin, so the Bin stays full and local buyers lose nothing. One
+    /// output per firing is exported, because two would draw on one budget twice.
+    /// </para>
+    /// </remarks>
+    /// <returns>Zero when nothing may be exported.</returns>
+    private long Export(int instance, RuleId rule, int bin, long perApplication, long floor)
+    {
+        ResourceId resource = _world.Bins.Resource[bin];
+        Handle<Business> firm = _world.RuleInstances.Business[instance];
+
+        if (_exportHinterland >= 0
+            || firm.IsNone
+            || _world.Bins.OwnerKind[bin] != BinOwnerKind.Business
+            || _world.Rules.Family(resource) != ResourceFamily.Good
+            || Restocks(rule, resource)
+            || !_world.TryExportTo(
+                resource, floor * perApplication, out int hinterland, out Money price, out Money left))
+        {
+            return 0;
+        }
+
+        long payment = perApplication * price.Raw;
+        long applications = IntegerMath.FloorDiv(left.Raw, payment);
+
+        if (applications > 0)
+        {
+            _exportHinterland = hinterland;
+            _exportBusiness = _world.Businesses.Rows.Resolve(firm);
+            _exportPayment = payment;
+        }
+
+        return applications;
+    }
+
+    private bool Restocks(RuleId rule, ResourceId resource)
+    {
+        foreach (Term term in _world.Rules.Inputs(rule))
+        {
+            if (term.Bin.Scope == Scope.Pool && term.Bin.Resource == resource)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private bool IsLabour(int bin) =>
@@ -844,15 +1004,437 @@ public sealed class RuleEngine
         Grow(ref _tradeLanding, _tradeCount + 1);
         Grow(ref _tradeAmount, _tradeCount + 1);
         Grow(ref _tradePayment, _tradeCount + 1);
+        Grow(ref _tradeBuyer, _tradeCount + 1);
 
         _tradeSeller[_tradeCount] = seller.Business;
         _tradeStock[_tradeCount] = seller.Bin;
         _tradeLanding[_tradeCount] = Landing(instance, rule, term.Bin.Resource);
         _tradeAmount[_tradeCount] = term.Amount;
         _tradePayment[_tradeCount] = payment;
+        _tradeBuyer[_tradeCount] = Rows.NoSlot;
         _tradeCount++;
 
         return Rows.NoSlot;
+    }
+
+    /// <summary>
+    /// Resolves one <c>pool</c> input for a Professional Service into a payment to the firm's provider,
+    /// or names the market row the firm waits on when no provider will supply it (<c>adr/0179</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The firm keeps the provider its contract names while that provider can still serve it</b>,
+    /// and picks again only when it cannot. For a city office that means it still exists, is still in
+    /// reach, and still has units left today; for a Hinterland it means the edge still has a gate and
+    /// still prices the service.
+    /// </para>
+    /// <para>
+    /// <b>A city office beats an import, and that is the one place a standing provider is dropped
+    /// while it can still supply.</b> A firm on a Hinterland contract looks for a local provider on
+    /// every purchase, because the whole point of raising offices is that they displace imports. The
+    /// reverse does not hold: a firm with a local provider does not shop for a nearer one.
+    /// </para>
+    /// <para>
+    /// <b>A local sale is a city transfer and an import is not.</b> The office is paid at the buyer's
+    /// own market row — the price every local seller of a Good charges — out of the buyer's purse into
+    /// the office's balance, so the Money supply does not move. An import pays the Outside at its
+    /// edge's price and <see cref="Fire"/> writes the supply down. Neither moves a Bin of stock: a
+    /// service is never stocked.
+    /// </para>
+    /// <para>
+    /// <b>What is left of the provider's allowance caps the count</b>, and <c>Fire</c> is where the
+    /// units are actually spent (<c>adr/0037</c>). So Phase 3's re-check sees what earlier settlers
+    /// took this Tick, and an office sold out mid-Tick sends its next client to another provider.
+    /// </para>
+    /// <para>
+    /// The firm waits on its District's market row for the service, so a new gate wakes it through
+    /// <see cref="World.WakeMarkets"/> and an office's first units through
+    /// <see cref="World.WakeServiceMarkets"/>, as a seller's deposit wakes a buyer of Goods.
+    /// </para>
+    /// </remarks>
+    private int Retain(int instance, RuleId rule, in Term term, long floor)
+    {
+        _retainCeiling = Unbounded;
+
+        int market = Bin(_world, instance, term.Bin, rule);
+
+        if (market == Rows.NoSlot)
+        {
+            return Marketless;
+        }
+
+        Handle<Business> trader = _world.RuleInstances.Business[instance];
+
+        if (trader.IsNone)
+        {
+            throw new InvalidOperationException(
+                $"rule {rule.Raw} buys a service and no Business runs it. "
+                + "RulesetLoader.RefuseServiceBoughtWithoutAFirm refuses this at load.");
+        }
+
+        int business = _world.Businesses.Rows.Resolve(trader);
+        ResourceId service = term.Bin.Resource;
+        long batch = floor * term.Amount;
+
+        int contract = _world.FindContract(business, service);
+        int office = Rows.NoSlot;
+        int hinterland = -1;
+
+        if (contract != Rows.NoSlot)
+        {
+            if (_world.Businesses.Rows.TryResolve(
+                _world.ServiceContracts.Provider[contract], out int kept))
+            {
+                // Units first: it is an array read where the reach test is a walk search, and a
+                // provider with nothing left today is refused without asking the Road Graph.
+                if (_world.UnitsLeft(_world.FindAllowance(kept, service)) >= batch
+                    && InReach(business, kept, service, out _))
+                {
+                    office = kept;
+                }
+            }
+            else
+            {
+                hinterland = _world.ServiceContracts.Hinterland[contract];
+            }
+        }
+
+        if (office == Rows.NoSlot)
+        {
+            office = Office(instance, business, service, batch);
+        }
+
+        if (office == Rows.NoSlot
+            && !_world.Supplies(hinterland, service)
+            && !_world.TryImportFrom(service, out hinterland, out _))
+        {
+            return market;
+        }
+
+        if (!_world.TryMoneyResource(out ResourceId money))
+        {
+            throw new InvalidOperationException(
+                "a pool term reached the RuleEngine without a money Resource. RulesetLoader refuses "
+                + "pool terms when the Ruleset declares no Resource whose family is money.");
+        }
+
+        int purse = _world.FindLocalBin(instance, money);
+
+        if (purse == Rows.NoSlot)
+        {
+            throw new InvalidOperationException(
+                $"rule {rule.Raw} buys a service and its Business holds no balance to pay from.");
+        }
+
+        long payment;
+
+        if (office == Rows.NoSlot)
+        {
+            payment = term.Amount * _world.Rules.ImportPrice(hinterland, service).Raw;
+            Touch(purse, -payment);
+        }
+        else
+        {
+            int row = MarketRow(_world, instance, service);
+            int allowance = _world.FindAllowance(office, service);
+
+            payment = term.Amount * _world.DistrictPools.Price[row].Raw;
+
+            Touch(purse, -payment);
+            Touch(_world.Bins.Rows.Resolve(_world.Businesses.Balance[office]), payment);
+
+            _retainCeiling = IntegerMath.FloorDiv(_world.UnitsLeft(allowance), term.Amount);
+
+            // The row's own consumption, which the tatonnement reads as its numerator -- recorded
+            // for a city sale and not for an import, exactly as a Good's purchase records the leg
+            // that moved inside the District.
+            Grow(ref _boughtRow, _boughtCount + 1);
+            Grow(ref _boughtAmount, _boughtCount + 1);
+
+            _boughtRow[_boughtCount] = row;
+            _boughtAmount[_boughtCount] = term.Amount;
+            _boughtCount++;
+
+            Grow(ref _soldAllowance, _soldCount + 1);
+            Grow(ref _soldUnits, _soldCount + 1);
+
+            _soldAllowance[_soldCount] = allowance;
+            _soldUnits[_soldCount] = term.Amount;
+            _soldCount++;
+        }
+
+        // Seller NoSlot is Fire's reading of "the Outside sold this", which writes the Money supply
+        // down. A stock Bin of NoSlot beside a real seller is a sale with no Goods behind it, which
+        // is what a service is. The buyer is named so that Fire can expense what it paid: there is
+        // no landing Bin to carry the cost, and the office's revenue is booked.
+        //
+        // ⚠ An IMPORT names no buyer, so the import leg stays unexpensed as it was before offices
+        // existed. The asymmetry that mattered was a city sale with revenue on one side only;
+        // pricing an import into a firm's profit is a separate change, filed in plans/export-base.md.
+        Grow(ref _tradeSeller, _tradeCount + 1);
+        Grow(ref _tradeStock, _tradeCount + 1);
+        Grow(ref _tradeLanding, _tradeCount + 1);
+        Grow(ref _tradeAmount, _tradeCount + 1);
+        Grow(ref _tradePayment, _tradeCount + 1);
+        Grow(ref _tradeBuyer, _tradeCount + 1);
+
+        _tradeSeller[_tradeCount] = office;
+        _tradeStock[_tradeCount] = Rows.NoSlot;
+        _tradeLanding[_tradeCount] = Rows.NoSlot;
+        _tradeAmount[_tradeCount] = term.Amount;
+        _tradePayment[_tradeCount] = payment;
+        _tradeBuyer[_tradeCount] = office == Rows.NoSlot ? Rows.NoSlot : business;
+        _tradeCount++;
+
+        if (Rebound(contract, office, hinterland))
+        {
+            Grow(ref _retainedBusiness, _retainedCount + 1);
+            Grow(ref _retainedService, _retainedCount + 1);
+            Grow(ref _retainedProvider, _retainedCount + 1);
+            Grow(ref _retainedHinterland, _retainedCount + 1);
+
+            _retainedBusiness[_retainedCount] = business;
+            _retainedService[_retainedCount] = service;
+            _retainedProvider[_retainedCount] = office;
+            _retainedHinterland[_retainedCount] = hinterland;
+            _retainedCount++;
+        }
+
+        return Rows.NoSlot;
+    }
+
+    /// <summary>Whether the provider just chosen is not the one the contract already names.</summary>
+    /// <remarks>
+    /// A contract whose <c>Provider</c> no longer resolves names nobody, so any provider is a change
+    /// — which is how a client of a demolished office is re-contracted rather than left pointing at a
+    /// freed row.
+    /// </remarks>
+    private bool Rebound(int contract, int office, int hinterland)
+    {
+        if (contract == Rows.NoSlot)
+        {
+            return true;
+        }
+
+        return _world.Businesses.Rows.TryResolve(
+            _world.ServiceContracts.Provider[contract], out int named)
+            ? named != office
+            : office != Rows.NoSlot || _world.ServiceContracts.Hinterland[contract] != hinterland;
+    }
+
+    /// <summary>
+    /// The city office a firm takes as its provider, or <see cref="Rows.NoSlot"/> when none in reach
+    /// can serve a whole batch today.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The candidates are the allowance rows</b>, which is the set of offices that have actually
+    /// produced something: an office whose Rule has never fired holds no row and is not a provider,
+    /// however close it stands. The buyer itself is excluded — a firm cannot contract with itself.
+    /// </para>
+    /// <para>
+    /// <b>Shortest walk wins and ties go to a draw</b> (<c>02 §8</c> rule 5). The enumeration is slot
+    /// order and nothing is ever chosen <em>by</em> slot order, which is <see cref="Seller"/>'s
+    /// arrangement with a different discriminator in front of it. Ties are the ordinary case for a
+    /// remote service, where every provider reports the same distance.
+    /// </para>
+    /// <para>
+    /// <b>A whole batch, like a seller of Goods</b> (<c>adr/0139</c>): an office with less than
+    /// <c>floor × amount</c> left today cannot serve this firing at all, so the firm looks past it
+    /// rather than being served short. A batch of nothing asks nobody — a derived apply count of
+    /// zero buys nothing, and admitting every office on <c>UnitsLeft >= 0</c> would pay the whole
+    /// fan-out to pick a provider that supplies no units.
+    /// </para>
+    /// <para>
+    /// <b>The first pass keeps each candidate's walk so the second pass needs no search.</b> Choosing
+    /// a winner needs the cheapest cost and how many share it, which one pass cannot know until it
+    /// ends — and re-walking every candidate to find the drawn one again would double the only
+    /// expensive thing this method does.
+    /// </para>
+    /// </remarks>
+    private int Office(int instance, int buyer, ResourceId service, long batch)
+    {
+        if (batch <= 0)
+        {
+            return Rows.NoSlot;
+        }
+
+        int rows = _world.ServiceAllowances.Rows.SlotCount;
+        TravelTime best = TravelTime.Impassable;
+        int tied = 0;
+
+        Grow(ref _reachCost, rows);
+
+        for (int row = 0; row < rows; row++)
+        {
+            _reachCost[row] = Candidate(row, buyer, service, batch, out TravelTime cost)
+                ? cost
+                : TravelTime.Impassable;
+
+            if (_reachCost[row].IsImpassable)
+            {
+                continue;
+            }
+
+            if (tied == 0 || cost < best)
+            {
+                best = cost;
+                tied = 1;
+            }
+            else if (cost == best)
+            {
+                tied++;
+            }
+        }
+
+        if (tied == 0)
+        {
+            return Rows.NoSlot;
+        }
+
+        // The service is a draw coordinate, not just the Rule Instance: a firm buying two services
+        // in one firing would otherwise take the same ordinal for both whenever their tied counts
+        // matched, and the two picks would be perfectly correlated. Shifted into the high half, which
+        // is EmploymentEngine's and PlacementEngine's form -- a small id XORed into the low bits
+        // collides with the instance ids just above it, and Mix cannot undo a collision in its input.
+        ulong entity = Randomness.Mix(
+            _world.RuleInstances.Rows.IdAt(instance) ^ ((ulong)(uint)service.Raw << 32));
+
+        ulong draw = Randomness.Draw(_key, entity, _world.Tick, PurposeTag.ProviderChoice);
+
+        int take = (int)(draw % (ulong)tied);
+
+        for (int row = 0; row < rows; row++)
+        {
+            if (_reachCost[row] == best && take-- == 0)
+            {
+                return _world.Businesses.Rows.Resolve(_world.ServiceAllowances.Provider[row]);
+            }
+        }
+
+        return Rows.NoSlot;
+    }
+
+    /// <summary>Whether one allowance row can serve this buyer, and how far away it is.</summary>
+    /// <remarks>
+    /// Cheapest test first: the units are an array read, the box is two Lot reads, and only what
+    /// survives both is walked.
+    /// </remarks>
+    private bool Candidate(int row, int buyer, ResourceId service, long batch, out TravelTime cost)
+    {
+        cost = TravelTime.Impassable;
+
+        return _world.ServiceAllowances.Rows.IsLive(row)
+            && _world.ServiceAllowances.Service[row] == service
+            && _world.UnitsLeft(row) >= batch
+            && _world.Businesses.Rows.TryResolve(
+                _world.ServiceAllowances.Provider[row], out int provider)
+            && provider != buyer
+            && InReach(buyer, provider, service, out cost);
+    }
+
+    /// <summary>
+    /// Whether a provider is close enough to serve a buyer, and the free-flow walk from the buyer's
+    /// door to the provider's.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>One walk per candidate, which is <see cref="ServiceEngine"/>'s shape and its reason.</b>
+    /// A Household judges a school by walking to it rather than by reading a structure laid over the
+    /// graph, and a firm judges an office the same way: door to door, in the buyer's direction of
+    /// travel, charged the pedestrian crossing. Foot is the mode until a firm's errands are Trips of
+    /// their own.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>It was the all-pairs travel-time matrix, and the matrix is unaffordable here.</b> Its
+    /// order is the Road Graph's <em>occupied</em> partition count, which <c>serviced.toml</c> and
+    /// every fixture sharing its <c>[roads]</c> lattice drive to all 16,384 partitions on the map —
+    /// measured 10/17/2026: one rebuild ran 16,384 one-to-all searches, settled 4,311,760,896 nodes
+    /// and held 1.07 GB of entries. Those counts are deterministic; what it cost in seconds is a
+    /// provisional figure in <c>plans/export-base.md</c> and not a quiet-machine one.
+    /// <c>RoutingPartition.Count</c>'s own remark predicts exactly that and sizes a city at ~1,444
+    /// partitions; the shipped generator does not keep to it. A walk per candidate is bounded by the
+    /// offices inside the box instead, and it is <em>exact</em> where an access-node entry is wrong
+    /// by up to 9.2 minutes at each end.
+    /// </para>
+    /// <para>
+    /// <b>A straight-line box comes first and no walk is ever run outside it</b>, which is the half
+    /// of <c>ServiceEngine.Candidates</c> that makes a walk per candidate affordable. The bound is
+    /// <see cref="EmploymentEngine.Radius"/> over the reach, so it over-supplies candidates and never
+    /// under-supplies them, and an office across the map is rejected by two Lot reads rather than by
+    /// a search that settles the city.
+    /// </para>
+    /// <para>
+    /// <b>A remote service costs nothing to judge and every provider of one is equally near.</b> It
+    /// returns before the box and the search, so a Ruleset whose services are all remote never asks
+    /// the Road Graph anything — and because every candidate then reports the same distance,
+    /// <see cref="Office"/>'s tie-break draw is what chooses between them.
+    /// </para>
+    /// </remarks>
+    private bool InReach(int buyer, int provider, ResourceId service, out TravelTime cost)
+    {
+        ServiceReach reach = _world.Rules.ReachOf(service);
+
+        if (reach.IsUnlimited)
+        {
+            cost = TravelTime.Zero;
+
+            return true;
+        }
+
+        cost = TravelTime.Impassable;
+
+        if (!_world.Buildings.Rows.TryResolve(_world.Businesses.Building[buyer], out int from)
+            || !_world.Buildings.Rows.TryResolve(_world.Businesses.Building[provider], out int to))
+        {
+            return false;
+        }
+
+        TravelTime budget = TravelTime.FromMinutes(reach.Minutes);
+
+        if (!InBox(from, to, budget))
+        {
+            return false;
+        }
+
+        cost = WalkRouting.Cost(
+            _world.Roads,
+            TravelMode.Foot,
+            _world.AccessPoint(from, TravelMode.Foot),
+            _world.AccessPoint(to, TravelMode.Foot),
+            _world.Rules.Trips.CrossingCost,
+            _reachWalk);
+
+        return !cost.IsImpassable && cost <= budget;
+    }
+
+    /// <summary>
+    /// Whether a walk of <paramref name="budget"/> could reach <paramref name="to"/>'s Lot from
+    /// <paramref name="from"/>'s at all, as the crow flies.
+    /// </summary>
+    /// <remarks>
+    /// <c>ServiceEngine.Candidates</c>' box, in Cells, and the rounding argument is on
+    /// <see cref="EmploymentEngine.Radius"/>: no route is shorter than the straight line, so every
+    /// Building a walk within the budget could reach is inside the box. Some Buildings inside it are
+    /// unreachable, and those are the ones the walk then rejects.
+    /// </remarks>
+    private bool InBox(int from, int to, TravelTime budget)
+    {
+        if (!_world.Lots.Rows.TryResolve(_world.Buildings.Lot[from], out int here)
+            || !_world.Lots.Rows.TryResolve(_world.Buildings.Lot[to], out int there))
+        {
+            return false;
+        }
+
+        CellRect box = CellRect.At(
+                CellGrid.ToCellsClamped(_world.Lots.East[here]),
+                CellGrid.ToCellsClamped(_world.Lots.North[here]))
+            .Dilate(EmploymentEngine.Radius(budget, _world.Rules.Roads.WalkSpeed))
+            .Clamp();
+
+        return box.Contains(
+            CellGrid.ToCellsClamped(_world.Lots.East[there]),
+            CellGrid.ToCellsClamped(_world.Lots.North[there]));
     }
 
     /// <summary>
@@ -989,6 +1571,13 @@ public sealed class RuleEngine
             {
                 _world.PayOutside(new Money(paid));
             }
+            else if (_tradeStock[i] == Rows.NoSlot)
+            {
+                // A city provider of a service: revenue with no stock Bin behind it, which is
+                // BusinessAccounts.Serve's own case rather than a delivery of nothing. The money
+                // leg is a transfer between two city Bins, so the supply of record does not move.
+                BusinessAccounts.Serve(_world, _tradeSeller[i], paid, tick);
+            }
             else
             {
                 BusinessAccounts.Deliver(
@@ -1002,6 +1591,43 @@ public sealed class RuleEngine
             }
 
             BusinessAccounts.Stock(_world, _tradeLanding[i], paid);
+            BusinessAccounts.Consume(_world, _tradeBuyer[i], paid, tick);
+        }
+
+        if (verdict.Applications > 0 && _exportHinterland >= 0)
+        {
+            _world.PayForExport(
+                _exportBusiness,
+                _exportHinterland,
+                new Money(_exportPayment * verdict.Applications),
+                tick);
+        }
+
+        if (verdict.Applications > 0)
+        {
+            for (int i = 0; i < _retainedCount; i++)
+            {
+                _world.Contract(
+                    _retainedBusiness[i],
+                    _retainedService[i],
+                    _retainedProvider[i],
+                    _retainedHinterland[i],
+                    tick);
+            }
+
+            // The provider's Day, both ways round: what its clients took out of its allowance, and
+            // what an office's own firing put into it. Here rather than in Check because Phase 2
+            // writes nothing (adr/0037), and scaled by the count Phase 3 settled on.
+            for (int i = 0; i < _soldCount; i++)
+            {
+                _world.SellService(_soldAllowance[i], _soldUnits[i] * verdict.Applications);
+            }
+
+            for (int i = 0; i < _madeCount; i++)
+            {
+                _world.MakeService(
+                    _madeBusiness, _madeService[i], _madeAmount[i] * verdict.Applications, tick);
+            }
         }
 
         for (int i = 0; i < _touchedCount; i++)
@@ -1518,6 +2144,13 @@ public sealed class RuleEngine
 
         foreach (Term term in world.Rules.Outputs(rule))
         {
+            // A service output is not a deposit into anything: the units go into the office's daily
+            // allowance, which is not a Bin, so no Bin can be short of space for it.
+            if (world.Rules.Family(term.Bin.Resource) == ResourceFamily.Service)
+            {
+                continue;
+            }
+
             if (Bin(world, instance, term.Bin, rule) == binSlot)
             {
                 net += term.Amount;
@@ -1621,9 +2254,19 @@ public sealed class RuleEngine
         ReadOnlySpan<Term> inputs,
         ReadOnlySpan<Term> outputs,
         int position)
-        => position < inputs.Length
-            ? Bin(world, instance, inputs[position].Bin, rule)
-            : Bin(world, instance, outputs[position - inputs.Length].Bin, rule);
+    {
+        BinRef addressed = position < inputs.Length
+            ? inputs[position].Bin
+            : outputs[position - inputs.Length].Bin;
+
+        // A service a Rule MAKES names no Bin at all -- the units go into the office's allowance for
+        // the Day -- so there is nothing here to drain or to claim against. A service a Rule BUYS is
+        // a pool term and still resolves to the market row, which is where its buyer sleeps.
+        return addressed.Scope == Scope.Local
+            && world.Rules.Family(addressed.Resource) == ResourceFamily.Service
+                ? Rows.NoSlot
+                : Bin(world, instance, addressed, rule);
+    }
 
     /// <summary>
     /// Adds to <paramref name="claims"/>, per Bin slot, what every armed Rule Instance will draw when
