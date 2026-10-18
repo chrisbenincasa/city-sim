@@ -62,6 +62,23 @@ public sealed class InvariantTierTests
         return world;
     }
 
+    [Fact]
+    public void A_moneyed_household_without_a_balance_is_caught()
+    {
+        World world = Moneyed();
+        world.Households.Balance[0] = default;
+        Assert.Equal(Invariant.HouseholdHasALiveBalance, CaughtAtEnd(world));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void A_household_balance_check_follows_the_money_declaration(bool money)
+    {
+        World world = money ? Moneyed() : Built();
+        WorldInvariants.HouseholdsHaveLiveBalances(world, world.Invariants);
+    }
+
     /// <summary>Nothing the ordinary API builds violates anything. Without this, nothing below means much.</summary>
     [Fact]
     public void A_world_built_through_the_api_violates_nothing()

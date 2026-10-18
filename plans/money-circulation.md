@@ -142,11 +142,13 @@ Slices 1 and 3 can run in parallel. After slice 1, slices 2 and 6 can too.
 
 ### 2. Land sale and construction charge
 
-- `World.DemolitionPrice`'s formula becomes the land price of a Lot, and both demolition and sale
-  read it. It drops the rule that prices a Lot with nobody displaced at zero.
+- `World.LandPrice` shares the demolition footprint formula without its displacement guard.
+  `World.DemolitionPrice` still returns zero when nobody is displaced; slice 6 changes who it pays.
 - A Lot's price follows L18: the land price, plus the construction charge for any Building's floor
   Tiles.
-- New keys: a construction charge per floor Tile, and a buyer reserve in Money per member.
+- New optional `[lots]` keys are `construction_charge_per_floor_tile` and
+  `buyer_reserve_per_member`. Either enables sales, including an explicit zero. Both absent
+  preserve free, city-held construction. Base does not adopt them until slice 7.
 - Before `ZoneRuleEngine` raises a Building on a city-held Lot, it draws a buyer with equal chance
   among Households that can pay both and keep the reserve. The draw is a counter hash with its own
   `PurposeTag`. The buyer pays the land price to the treasury and the construction charge out
@@ -159,6 +161,62 @@ Slices 1 and 3 can run in parallel. After slice 1, slices 2 and 6 can too.
 - Acceptance: a fixture where Households with savings buy and build, a poorer Household is never
   drawn, and a city with no savings leaves zoned Lots vacant with "No capital". `MoneyIsConserved`
   holds, and `Issued` falls by the construction charge.
+
+- Built 10/17/2026 with `LandSaleTests`. Local housing checks capital before retiring source Lots,
+  preserves a common Landowner, and refuses mixed ownership. It prices the selected footprint
+  and floor area; vacancy evidence checks that same plan. Compulsory buyouts remain in slice 6.
+- Headless evidence demonstration used temporary copies of `declining.toml`, seed `17`, `1,000`
+  Citizens and `8,192` Ticks. A charge of `2,147,483,647` left `53` vacant Lots with "No capital";
+  an explicit zero left `42` vacant Lots and no capital refusals. The demonstration exposed a
+  stale evidence footer claiming capital had no mechanism; the footer now describes the flags.
+- Finance preflight reads the maximum available Household capital from one unsorted pass per
+  Zone Rule sweep. Only a real buyer draw builds the sorted scratch array. Binary search finds
+  the affordable suffix, and a counter hash draws uniformly within it. Payments update the sorted
+  entries and invalidate the maximum; a missing entry invalidates the index for rebuilding.
+- Scratch ends with the sweep and is neither saved nor hashed. Paid-construction tests match with
+  one and eight route workers and across a midrun save/reload. Batch Lot evidence shares one
+  maximum-capital pass without retaining a snapshot across queries.
+
+#### Buyer-search measurement (10/17/2026)
+
+- Machine `zeus`, Intel i5-10400, six cores/twelve logical CPUs, `powersave`, .NET 10.0.12,
+  Release, one simulation thread. Load average was `6.80/13.58/16.40` before the paired capture;
+  MSBuild workers were active. Host load was uncontrolled. These are busy-host observations,
+  not quiet-machine timings or a whole-Tick budget claim.
+- `SyntheticCity` generated two copies of `minimal.toml` with a demand-reading Zone Rule at
+  interval `32`, seed `62002`, actual population `100,000`, `36,000` Households and `10,080` Lots.
+  Every Household received `10,000` Money. Only the enabled copy declared the construction key.
+- Command `scripts/test.sh --filter 'FullyQualifiedName~LandSaleTests' -- --logger 'console;verbosity=detailed'`.
+  Each copy warmed up for 32 triggers. The next 32 trigger pairs were interleaved, alternating
+  which copy ran first. Neither sweep bought anything or built a sorted index. The table keeps
+  the one-time pass or sort rather than dividing it across 1,000 attempts.
+
+| Capture | Observed time | Scope |
+|---|---|---|
+| Enabled no-purchase Zone Rule sweep, worst / mean | 2.793 / 1.507 ms | Zone Rule contribution to one trigger Tick, without sorting |
+| Keys-absent sweep, worst / mean | 0.421 / 0.328 ms | Matched generated city and trigger Ticks |
+| Mean paired enabled-minus-absent difference | 1.179 ms | Difference within the 32 interleaved pairs; host load is uncontrolled |
+| First finance preflight in one sweep | 0.472 ms | One unsorted Household pass and one affordability query |
+| Subsequent first draw, index build and payment | 1.164 ms | The full sort remains payable on a purchase Tick |
+| Combined single-purchase finance work | 1.636 ms | Preflight plus draw/index/payment; Building creation is excluded |
+| Poor-city batch evidence over all 10,080 Lots | 11.218 ms | One capital pass; Household balances were emptied before timing |
+
+- PR review kept finance before `Demanded` because `Demanded` claims demand or joblessness and
+  starts the cooldown; the preflight path and its recorded measurement remain unchanged.
+
+- The isolated purchase cost `100` land plus `100` construction. A prior unpaired capture at
+  load average `18.67/17.27/17.81`, while another worktree's full suite was active, observed a
+  `22.047 ms` worst sweep. It cannot show the added cost by itself; the paired capture above
+  supplies the keys-absent baseline. Neither capture establishes quiet-host performance.
+- Logs are `test-B01-fix-paired.log`, `host-B01-fix-paired.log`,
+  `test-B01-fix-instrument-final.log` and `host-B01-fix-instrument.log` under
+  `.orchestra/20261017-land-slices-2-4/`.
+- Neither capture measures the `1,000,000`-Citizen target or an entire `Simulation.Step`. Repeat
+  at that population on a quiet host before slice 7 claims the Tick budget fits. The consumer
+  is recorded in `plans/0013`.
+- The unsorted preflight prevents no-purchase triggers from paying the sort. Successful purchases
+  still move the affected sorted-array range. Local housing evidence still evaluates assembly
+  geometry per Lot; sharing capital removes the Household-times-Lot term, not that geometry cost.
 
 ### 3. One rent figure
 

@@ -8377,24 +8377,34 @@ public static class RulesetLoader
                 demolition = 0;
             }
 
-            if (demolition < 0 || demolition > int.MaxValue)
-            {
-                Refuse(LineOfLot("demolition_price_per_tile"), null,
-                    $"demolition_price_per_tile = {demolition} is out of range. It is what "
-                    + "the treasury pays the displaced per Tile of Lot footprint on neutral ground, "
-                    + $"so it is at least 0 and at most {int.MaxValue}. Absent or zero means "
-                    + "clearing an occupied Building costs nothing.");
+            bool chargesConstruction = TryInteger(_lotsTable, "construction_charge_per_floor_tile", out long construction, required: false);
+            bool reservesCapital = TryInteger(_lotsTable, "buyer_reserve_per_member", out long reserve, required: false);
+            bool demolitionRange = demolition < 0 || demolition > int.MaxValue;
+            bool constructionRange = construction < 0 || construction > int.MaxValue;
+            bool reserveRange = reserve < 0 || reserve > int.MaxValue;
 
+            if (demolitionRange || constructionRange || reserveRange)
+            {
+                string key = demolitionRange ? "demolition_price_per_tile"
+                    : constructionRange ? "construction_charge_per_floor_tile" : "buyer_reserve_per_member";
+                Refuse(LineOfLot(key), null, demolitionRange
+                    ? $"demolition_price_per_tile = {demolition} is out of range. It is what "
+                        + "the treasury pays the displaced per Tile of Lot footprint on neutral ground, "
+                        + $"so it is at least 0 and at most {int.MaxValue}. Absent or zero means "
+                        + "clearing an occupied Building costs nothing."
+                    : $"{key} must be between 0 and {int.MaxValue} Money.");
                 return LotRuleset.None;
             }
 
-            if (demolition > 0 && !_families.Contains(ResourceFamily.Money))
+            if ((demolition > 0 || chargesConstruction || reservesCapital) && !_families.Contains(ResourceFamily.Money))
             {
-                Refuse(LineOfLot("demolition_price_per_tile"), null,
-                    "demolition_price_per_tile is stated and the file names no money, so "
-                    + "the treasury has no Bin to pay the displaced from. Add a [[resource]] block "
-                    + "with family = \"money\", or drop the key.");
-
+                string key = demolition > 0 ? "demolition_price_per_tile"
+                    : chargesConstruction ? "construction_charge_per_floor_tile" : "buyer_reserve_per_member";
+                Refuse(LineOfLot(key), null, demolition > 0
+                    ? "demolition_price_per_tile is stated and the file names no money, so "
+                        + "the treasury has no Bin to pay the displaced from. Add a [[resource]] block "
+                        + "with family = \"money\", or drop the key."
+                    : $"{key} is stated. Land sales require a money Resource for Household balances and the treasury.");
                 return LotRuleset.None;
             }
 
@@ -8419,6 +8429,8 @@ public static class RulesetLoader
                 weights, (int)minPodium, (int)maxPodium)
             {
                 DemolitionPricePerTile = new Money(demolition),
+                ConstructionChargePerFloorTile = chargesConstruction ? new Money(construction) : null,
+                BuyerReservePerMember = reservesCapital ? new Money(reserve) : null,
                 MinPlotDepthTiles = (int)minPlotDepth,
             };
         }
