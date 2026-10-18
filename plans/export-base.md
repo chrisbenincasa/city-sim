@@ -18,8 +18,9 @@ for jobs and jobs attract people.
   arrival purses) and, since slice 2, through `World.PayForExport`.
 - `World.TryImportPrice`/`PayOutside` import a Good at the cheapest gated Hinterland edge.
   `World.TryExportTo` sells one to the highest-paying gated edge with budget left.
-- `ZoneRuleEngine.MarketFor` returns a market only for a kind holding a Business-owned, non-money
-  Good Bin. A kind that sells no Good can never be raised.
+- `ZoneRuleEngine.MarketFor` returns the market row of a kind's first Business-owned Good Bin, or
+  else of the first Professional Service its Rules make (slice 3b). A kind that sells neither can
+  never be raised.
 - Production is labour-bound (PR #105): a Rule with a labour input makes nothing when nobody is at work.
 - `PlacementEngine.Compare` scores a dwelling on rent and centrality only. No jobs term exists.
 - Only an unhoused Household departs (`PlacementEngine`, give-up bound). A housed Household with no
@@ -42,15 +43,17 @@ for jobs and jobs attract people.
 | 8 | Reachable jobs, as `log(1 + jobs)`, enter arrival placement on both the city and Hinterland sides | Wages, once posted wages (`adr/0026`) exist |
 | 9 | A jobless spell past a Ruleset duration makes a housed Household rerun the same comparison against the Hinterland. Life Stage sets reluctance | Departure when it cannot pay (Household financial resilience row) |
 | 10 | Seeds differ through land. Hinterlands stay authored per Ruleset | Generator deals Hinterlands to edges (world-creation row) |
-| 11 | A firm keeps its service provider under a saved contract and chooses again only when the provider cannot supply it (`adr/0178`, 10/15/2026). A District Pool was rejected because it cannot say "within reach of this firm". On a re-match a local office in reach with units left beats an import, whatever the firm held before (10/17/2026) | Selling unused office capacity, slice 3b |
+| 11 | A firm keeps its service provider under a saved contract and chooses again only when the provider cannot supply it (`adr/0178`, 10/15/2026). A District Pool was rejected because it cannot say "within reach of this firm". On a re-match a local office in reach with units left beats an import, whatever the firm held before (10/17/2026) | Selling unused office capacity, slice 3c |
 | 12 | Surplus is output a firm cannot store. A Rule with its inputs and workers present, blocked only by a full output Bin of a Good it makes, sells that batch to the Hinterland. The Bin stays full, so local buyers lose nothing (10/16/2026). A waiting period before exporting was considered and not built | A waiting period, if a long run shows local buyers going without |
-| 13 | Service exports wait for slice 3b, because nothing in the city makes a service before 3a and 3a sells only to city clients | Selling unused office capacity, slice 3b |
+| 13 | Service exports wait for their own slice, 3c. Nothing in the city makes a service before 3a, and 3a sells only to city clients. 3b raises offices and adds no export, because export income still has no sink (10/17/2026) | Selling unused office capacity, slice 3c |
+| 14 | A firm importing a service is unserved demand for an office, counted from the Tick it chose the Hinterland. It stops counting once any office in its District makes the service, whether or not that office reaches it. A stalled firm counts as before. An imported Good still counts for nothing (10/17/2026) | A capacity signal, so a sold-out office can raise a second; Goods imports as demand |
 
 Consequences of these decisions:
 
 - An Office earns by selling services. No per-worker export payment.
-- Unserved service demand raises offices through the existing Zone Rule market trigger, once a
-  service is a Business-owned Bin. Land bids and private capital stay undesigned and are not needed.
+- Unserved service demand raises offices through the existing Zone Rule market trigger, read from
+  the District market row a service buyer already waits on. Land bids and private capital stay
+  undesigned and are not needed.
 - A young city with no offices imports services from the Hinterland and replaces imports as local
   offices open.
 - On-site services (cleaning, security, repair) stay ordinary jobs at the client's Building.
@@ -151,18 +154,34 @@ Ordered by dependency. Each slice is one PR with its own acceptance.
      is `adr/0047:126`'s pre-registered reopening condition met, and the walk is bounded by a box.
    - Save format version 24; goldens re-recorded for the new table, the new column and the version.
    - Fixture `rulesets/offices.toml`; tests `LocalServiceTests`, `ServiceRulesetLoadTests`.
-3b. **Unserved service demand raises offices.** `ZoneRuleEngine.MarketFor` returns a market only for a
-   kind holding a Business-owned, non-money Good Bin, so nothing raises an office today and
-   `offices.toml` declares no Zone Rule for one. Also exports unused office capacity (Decision 13).
-   - Measure the provider choice and route the figure to `plans/0013`. The box bounds the candidate
-     *set*, not the individual walk: `WalkRouting.Cost` has no distance cutoff, so a candidate inside
-     the box whose road route is far longer than its straight line still runs a search to that
-     distance. `ServiceEngine` carries the identical residual, so this is parity rather than a new
-     risk — but 3b is the first time the shape runs with offices raised citywide.
-   - Index `DistrictPools` by Resource before offices scale with the city.
-     `World.WakeServiceMarkets` filters every pool row on each deposit to an allowance, which slice
-     3a made per firing rather than per Day. One row per District, reached directly, replaces a scan
-     whose width is districts × Resources.
+3b. **Unserved service demand raises offices. Built 10/17/2026 on `export-base-3b`.**
+   - `ZoneRuleEngine.MarketFor` reads a kind's first Business-owned *Good* Bin, so a labour Bin no
+     longer hides the rest, and otherwise the first service the kind's Rules make. An office's market
+     is the District row its clients' `pool` terms wait on.
+   - Demand adds, per District row, the Ticks since each firm chose a Hinterland that still supplies
+     the service (Decision 14). It reads the saved `ServiceContractTable.Since` and adds no state.
+   - A District where an office already makes the service adds no import demand. Without that bound,
+     a firm no office reaches kept its clock running: with `reach_minutes = 1` the city raised 22
+     offices in 6 Days across 2 Districts. Units left are not read, because an allowance is empty
+     every morning until staff arrive.
+   - ⚠ Two known gaps. A District that outgrows its office's capacity raises no second office from
+     imports, and its out-of-reach firms stay on imports. An office reads demand only for its first
+     service (`accounting` in `offices.toml`), so demand for `insurance` alone raises nothing.
+   - `World.WakeServiceMarkets` reaches one row per District through `DistrictMarkets.Row` instead of
+     scanning every Pool row. Wake order is now District order, so a world that buys services moves
+     its State Hash. No golden fixture buys one.
+   - `RuleEngine.ProviderRouteWork` counts the reach walks; `--profile-work` reports them as
+     `providerRoutes`. Measured in `plans/0013`: 286 walks and 420 settled nodes over two
+     Days with one office, the largest walk 4 nodes. A candidate in the box with a long road route
+     is still unmeasured, because the fixture raises one office near all its clients.
+   - Without the tests' capital top-up, seed 0 wrote no service contract in 6 Days, and a
+     `--profile` run on the fixture walked nothing. The cause is not established.
+   - `offices.toml` gains the `offices` Zone Rule. `LocalServiceTests` removes it except in the test
+     where the city raises its own office.
+3c. **Service exports.** Sell unused office capacity to Hinterlands (Decision 13). Needs a decision
+   first: what counts as unused (left at the Day boundary, or per firing), and whether a service
+   shares a Hinterland's Goods `export_budget`. Blocked in practice on the profit build-up, because
+   it is a second inflow with no sink.
 4. **Jobs attract arrivals.** Add the reachable-jobs term to `PlacementEngine.Compare` and to the
    Hinterland row. Record the change to plan 0073's "no Hinterland wage" line.
 5. **Jobless departure.** Read `NoVacancySince`; past the Ruleset duration, rerun the comparison
