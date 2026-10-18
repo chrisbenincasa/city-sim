@@ -1223,6 +1223,7 @@ public partial class Main : Node3D
         CreateSalesYardLayers();
         CreatePrecinctLayers();
         CreateMarketHallLayers();
+        CreateGardenLayers();
 
         // OFF by default. It is an instrument rather than scenery -- it answers "how big is a Cell
         // against this Building", and a person who has not asked that question does not want a

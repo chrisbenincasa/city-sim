@@ -1,0 +1,195 @@
+{
+  "panel_metres": 2.0,
+  "modules": [
+    {
+      "module": "shed",
+      "vertices": 46,
+      "faces": 35,
+      "bounds_min": [
+        -1.32,
+        -1.04,
+        0.0
+      ],
+      "bounds_max": [
+        1.32,
+        1.04,
+        2.45
+      ],
+      "materials": [
+        "boards",
+        "door",
+        "felt",
+        "glass",
+        "trim"
+      ],
+      "geometry_sha256": "1ee5ef90ab0b05576e7de757025485665a709f993b8ce85b503d1eefc3850661"
+    },
+    {
+      "module": "greenhouse",
+      "vertices": 62,
+      "faces": 47,
+      "bounds_min": [
+        -1.34,
+        -1.04,
+        0.0
+      ],
+      "bounds_max": [
+        1.34,
+        1.02,
+        2.44
+      ],
+      "materials": [
+        "frame",
+        "glass",
+        "plinth"
+      ],
+      "geometry_sha256": "9616f1bcc302b058327c4bd8cbacae216d1b551752cc116950a5ab135ed86407"
+    },
+    {
+      "module": "veg-bed",
+      "vertices": 40,
+      "faces": 30,
+      "bounds_min": [
+        -1.75,
+        -0.5,
+        0.0
+      ],
+      "bounds_max": [
+        1.75,
+        0.5,
+        0.7
+      ],
+      "materials": [
+        "edging",
+        "leaf",
+        "leaf-dark",
+        "soil"
+      ],
+      "geometry_sha256": "e283a028cc6b6afc090f58f9ed595ed2b041f4504d451cd02110f047ac7d4968"
+    },
+    {
+      "module": "table",
+      "vertices": 72,
+      "faces": 52,
+      "bounds_min": [
+        -1.08,
+        -0.5,
+        0.0
+      ],
+      "bounds_max": [
+        1.08,
+        0.5,
+        0.9
+      ],
+      "materials": [
+        "cream",
+        "steel"
+      ],
+      "geometry_sha256": "f396932b09b89100f9ea0dc5083e9957524f040107acadaf8860d651f9ed2d2d"
+    },
+    {
+      "module": "bench",
+      "vertices": 32,
+      "faces": 24,
+      "bounds_min": [
+        -0.9,
+        -0.25,
+        0.0
+      ],
+      "bounds_max": [
+        0.9,
+        0.26,
+        0.9
+      ],
+      "materials": [
+        "iron",
+        "seat"
+      ],
+      "geometry_sha256": "a179e0bf62073bd0e0f991ad46804d6a6ef8e3733235a82fdd1dbaf813c6e310"
+    },
+    {
+      "module": "play",
+      "vertices": 104,
+      "faces": 78,
+      "bounds_min": [
+        -3.5,
+        -0.96,
+        0.0
+      ],
+      "bounds_max": [
+        3.9,
+        2.2,
+        2.5
+      ],
+      "materials": [
+        "blue",
+        "iron",
+        "red",
+        "yellow"
+      ],
+      "geometry_sha256": "5e40e6c4c5b1634e13538eda6785e9d46a9d1483fb05b850b1a6947a8b2ccf1d"
+    },
+    {
+      "module": "flowerbed",
+      "vertices": 108,
+      "faces": 64,
+      "bounds_min": [
+        -2.4,
+        -2.4,
+        0.0
+      ],
+      "bounds_max": [
+        2.4,
+        2.4,
+        1.0
+      ],
+      "materials": [
+        "bloom",
+        "bloom-white",
+        "leaf",
+        "soil",
+        "trim"
+      ],
+      "geometry_sha256": "9c93dd6b5646af40b015ec7dcb221a52a013070a64a7266c922f94622455de2c"
+    },
+    {
+      "module": "fence-panel",
+      "vertices": 40,
+      "faces": 30,
+      "bounds_min": [
+        -1.05,
+        -0.05,
+        0.0
+      ],
+      "bounds_max": [
+        1.05,
+        0.06,
+        1.65
+      ],
+      "materials": [
+        "boards",
+        "post"
+      ],
+      "geometry_sha256": "4528b14b471e74b30585ac463789de6fac5cc7f1327ff38f2377ce085914c140"
+    },
+    {
+      "module": "railing-panel",
+      "vertices": 96,
+      "faces": 72,
+      "bounds_min": [
+        -1.0,
+        -0.03,
+        0.0
+      ],
+      "bounds_max": [
+        1.0,
+        0.03,
+        1.16
+      ],
+      "materials": [
+        "iron"
+      ],
+      "geometry_sha256": "b2f48057d5e9a08d74d81aadb8a926d2c71f1beacc5da763a95280acfe13d80b"
+    }
+  ]
+}

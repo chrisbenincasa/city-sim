@@ -27,10 +27,12 @@ public partial class Main
             _visualWash = _washing;
             if (changes.Full) PlaceFamilyBodies();
             else RefreshFamilyBodies(changes.Buildings);
+            PlanGardens();
             _drawnBuildings = Massings(Buildings());
             _vacantLots = Fill(_plots, Plots(), _plotIds);
             Fill(_zones, ZonedBlocks());
             FillCarParks();
+            FillGardens();
             _renderedBuildings.Clear();
             var drawn = new HashSet<ulong>();
             for (int i = 0; i < _buildings.Multimesh.VisibleInstanceCount; i++) drawn.Add(_buildings.Multimesh.IdAt(i));
@@ -92,6 +94,7 @@ public partial class Main
             if (_familyBodies) RefreshNeighbourBodies(changedIds, placed);
             if (geometry)
             {
+                PlanGardens();
                 int at = 0;
                 foreach (Massing one in Buildings())
                 {
@@ -99,10 +102,12 @@ public partial class Main
                     if (one.Outhoused) FoliageFootprint(one.Yard, at++);
                 }
                 foreach ((_, var surface) in CarParkSurfaces()) FoliageFootprint(surface, at++);
+                foreach (var garden in _gardenGround) FoliageFootprint(garden, at++);
                 RefreshFoliage(at);
                 _vacantLots = Fill(_plots, Plots(), _plotIds);
                 Fill(_zones, ZonedBlocks());
                 FillCarParks();
+                FillGardens();
             }
             else if (fronts)
             {

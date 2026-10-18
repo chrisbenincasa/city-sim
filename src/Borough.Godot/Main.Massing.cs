@@ -188,7 +188,7 @@ public partial class Main
             float rise = RoofHeight(cap, wanted);
 
             float back = alongA ? -front.Y : -front.X;
-            bool outhoused = ((shape >> 48) & 3u) != 0u;
+            bool outhoused = ((shape >> 48) & 3u) != 0u && !Gardened(lot);
             float shed = 4f + (((shape >> 52) & 0xFu) / 15f * 5f);
             float wide = Mathf.Min(along * 0.45f, 14f);
             float gap = 5f;
@@ -783,6 +783,7 @@ public partial class Main
         _yards.Multimesh.VisibleInstanceCount = yards;
 
         foreach ((_, Transform3D surface) in CarParkSurfaces()) FoliageFootprint(surface, footprints++);
+        foreach (Transform3D garden in _gardenGround) FoliageFootprint(garden, footprints++);
 
         RefreshFoliage(footprints);
         return buildings;
