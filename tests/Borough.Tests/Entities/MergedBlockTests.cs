@@ -1,3 +1,5 @@
+using Borough.Core.Arithmetic;
+using Borough.Appearance;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
@@ -104,6 +106,38 @@ public sealed class MergedBlockTests
         }
 
         Assert.Equal(8, fronted.Count);
+    }
+
+    [Theory]
+    [InlineData(0, 0, true)]
+    [InlineData(1, 0, false)]
+    [InlineData(0, 1, false)]
+    [InlineData(1, 1, false)]
+    [InlineData(2, 2, true)]
+    public void A_Lot_on_an_inner_grid_line_of_a_merged_block_is_not_a_corner(int east, int north, bool corner)
+    {
+        World world = Populated();
+        StreetGrid streets = world.Roads.Streets;
+        (int column, int row) = EmptyPatch(world);
+
+        Assert.True(world.Roads.BulldozeStreet(column, row + 1, StreetAxis.East));
+        Assert.True(world.Roads.BulldozeStreet(column + 1, row + 1, StreetAxis.East));
+        Assert.True(world.Roads.BulldozeStreet(column + 1, row, StreetAxis.North));
+        Assert.True(world.Roads.BulldozeStreet(column + 1, row + 1, StreetAxis.North));
+        world.RebuildDerived();
+
+        // Each index counts squares from the block's south-west; 2 places the parcel's far edge on the block's.
+        BlockGround block = streets.Block(column, row);
+        int wide = 8, deep = 10, square = streets.BlockTiles;
+        int x = east == 2 ? block.East + block.Wide - wide : block.East + (east * square);
+        int y = north == 2 ? block.North + block.Deep - deep : block.North + (north * square);
+        int slot = world.Lots.Rows.Resolve(world.Lots.Create(new Tiles(x), new Tiles(y), LotTable.Housing));
+        world.Lots.ParcelEastQ16[slot] = Fixed.FromInt(x);
+        world.Lots.ParcelNorthQ16[slot] = Fixed.FromInt(y);
+        world.Lots.ParcelWide[slot] = new Tiles(wide);
+        world.Lots.ParcelDeep[slot] = new Tiles(deep);
+
+        Assert.Equal(corner, BuildingFacts.IsCorner(streets, world.Lots, slot));
     }
 
     [Fact]
