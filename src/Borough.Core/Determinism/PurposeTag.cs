@@ -973,6 +973,12 @@ public enum PurposeTag : ulong
     /// </summary>
     ProviderChoice = 69,
 
+    /// <summary>The draw picks a Household housed on a Lot to buy it when its holder sells.</summary>
+    LotTenantBuyer = 70,
+
+    /// <summary>The draw picks any eligible Household to buy a Lot that no tenant buys.</summary>
+    LotResaleBuyer = 71,
+
     /// <summary>Whether the generator leaves out the middle Streets of a 2×2 group of lattice squares.</summary>
     RoadMergedBlock = 72,
 }

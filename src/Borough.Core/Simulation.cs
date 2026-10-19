@@ -2211,6 +2211,9 @@ public sealed class Simulation
         // the sweep returns on the Collects guard before it looks at a row.
         _lastRent = _rent.Sweep(tick);
 
+        // Behind rent, so the Day's rent on a Lot reaches the city before the Lot is sold.
+        _world.SellCityLots(tick);
+
         // Behind the subsidies, so a treasury short of both pays its people before its roads.
         if (tick.Raw % (ulong)Ticks.PerDay == 0)
         {

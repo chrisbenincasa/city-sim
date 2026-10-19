@@ -4041,6 +4041,9 @@ public sealed partial class World
             return;
         }
 
+        // The sale proceeds land in the balance, so they leave the city with it.
+        SellOnDeparture(slot, Tick);
+
         // Before DestroyHousehold, because that frees the Bin -- and reading the level afterwards
         // would read a freed row. The supply is written here rather than inside DestroyHousehold on
         // purpose: destroying a Household is a table operation with several callers, and only THIS
