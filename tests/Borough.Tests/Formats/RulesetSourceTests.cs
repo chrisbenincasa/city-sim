@@ -1,5 +1,8 @@
 using System.Text;
+using Borough.Appearance;
 using Borough.Core.Determinism;
+using Borough.Core.Entities;
+using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Tables;
 using Borough.Formats;
@@ -56,8 +59,25 @@ public sealed class RulesetSourceTests
 
         Assert.Equal(ContentHash.Of(Encoding.UTF8.GetBytes("dwelling")), result.Ruleset!.KindKeys[0]);
         Assert.Equal("Terraced house", result.Names.Kind(1));
+        Assert.Equal("dwelling", result.Names.KindId(1));
         Assert.Equal("Sundries", result.Names.Resource(new ResourceId(2)));
         Assert.Equal("Terraced house", result.Declarations.Single(d => d.Id == "dwelling").Label);
+    }
+
+    [Fact]
+    public void A_source_package_Building_carries_its_kind_id_to_Appearance()
+    {
+        RulesetSourceResult result = Accepted(Base);
+        var world = new World(100, result.Ruleset!);
+        Handle<Lot> lot = world.Lots.Create(new Tiles(0), new Tiles(0), 1, wide: new Tiles(8), deep: new Tiles(10));
+        int slot = world.Lots.Rows.Resolve(lot);
+        world.Lots.FootprintWide[slot] = new Tiles(8);
+        world.Lots.FootprintDeep[slot] = new Tiles(10);
+        world.Lots.Storeys[slot] = 1;
+        Handle<Building> building = world.CreateBuilding(lot, 1, Ticks.Zero, WorldKey.FromSeed(1));
+
+        Assert.True(BuildingFacts.TryOf(world, result.Names, world.Buildings.Rows.Resolve(building), out BuildingFacts facts));
+        Assert.Equal("dwelling", facts.Kind);
     }
 
     [Fact]

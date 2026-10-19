@@ -50,6 +50,7 @@ public sealed class RulesetNames
     private static readonly string[] Nothing = [];
 
     private readonly string[] _kinds;
+    private readonly string[] _kindIds;
     private readonly string[] _businessKinds;
     private readonly string[] _conditions;
     private readonly string[] _resources;
@@ -69,6 +70,7 @@ public sealed class RulesetNames
         IReadOnlyList<string?> zoneRules)
     {
         _kinds = Invert(kinds);
+        _kindIds = _kinds;
         _businessKinds = Invert(businessKinds);
         _conditions = Invert(conditions);
         _resources = Invert(resources);
@@ -87,6 +89,7 @@ public sealed class RulesetNames
 
     private RulesetNames(
         string[] kinds,
+        string[] kindIds,
         string[] businessKinds,
         string[] conditions,
         string[] resources,
@@ -96,6 +99,7 @@ public sealed class RulesetNames
         string?[] zoneRules)
     {
         _kinds = kinds;
+        _kindIds = kindIds;
         _businessKinds = businessKinds;
         _conditions = conditions;
         _resources = resources;
@@ -108,6 +112,7 @@ public sealed class RulesetNames
     private RulesetNames()
     {
         _kinds = Nothing;
+        _kindIds = Nothing;
         _businessKinds = Nothing;
         _conditions = Nothing;
         _resources = Nothing;
@@ -127,6 +132,13 @@ public sealed class RulesetNames
 
     /// <summary>What the file called a Building kind, or null.</summary>
     public string? Kind(byte id) => At(_kinds, id);
+
+    /// <summary>The <c>id</c> a Building kind was declared under, or null.</summary>
+    /// <remarks>
+    /// Equal to <see cref="Kind"/> for a single-file Ruleset. A source package relabels
+    /// <see cref="Kind"/> for display, so a Style Preset, which names kinds by id, reads this one.
+    /// </remarks>
+    public string? KindId(byte id) => At(_kindIds, id);
 
     /// <summary>
     /// What the <c>[[policy]]</c> at this declaration position called itself, or null.
@@ -202,6 +214,7 @@ public sealed class RulesetNames
     internal RulesetNames Relabelled(Func<string, string, string> label) =>
         new(
             RelabelIds(_kinds, "building", label),
+            _kindIds,
             RelabelIds(_businessKinds, "business", label),
             _conditions,
             RelabelIds(_resources, "resource", label),

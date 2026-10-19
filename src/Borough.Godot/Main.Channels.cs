@@ -335,6 +335,10 @@ public partial class Main
         // which is the rung the frame was composed with and not the one the picture was taken at.
         Draw(_alpha);
 
+        // The per-frame upload allowance leaves chunks near a camera that has just jumped unloaded
+        // for many frames, so a picture taken without this one shows roads and no Buildings.
+        FlushInstances(immediate: true);
+
         // 🔴 AND THE PICTURE IS TAKEN NEXT FRAME, because recomposing repairs the CAPTION and cannot
         // repair the FRAME: a Control's new text reaches the renderer when the engine draws, which
         // is after _Process returns. Two ForceDraws do not bring it forward. ***The caption said
