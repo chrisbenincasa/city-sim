@@ -62,6 +62,23 @@ public sealed class InvariantTierTests
         return world;
     }
 
+    [Fact]
+    public void A_moneyed_household_without_a_balance_is_caught()
+    {
+        World world = Moneyed();
+        world.Households.Balance[0] = default;
+        Assert.Equal(Invariant.HouseholdHasALiveBalance, CaughtAtEnd(world));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void A_household_balance_check_follows_the_money_declaration(bool money)
+    {
+        World world = money ? Moneyed() : Built();
+        WorldInvariants.HouseholdsHaveLiveBalances(world, world.Invariants);
+    }
+
     /// <summary>Nothing the ordinary API builds violates anything. Without this, nothing below means much.</summary>
     [Fact]
     public void A_world_built_through_the_api_violates_nothing()
@@ -134,6 +151,34 @@ public sealed class InvariantTierTests
             () => world.CreateHousehold(building, lifeStage: 2));
 
         Assert.Equal(Invariant.HouseholdIsNotAlreadyInThisBuilding, failure.Violation.Invariant);
+    }
+
+    /// <summary>
+    /// <b>An office selling more of a service than it made that Day is caught at the sale.</b>
+    /// </summary>
+    /// <remarks>
+    /// The sale is bounded where it is decided — <c>RuleEngine.Retain</c> caps the applications at
+    /// what the allowance has left — so what this catches is a second route to the same row inside
+    /// one firing. Two <c>pool</c> terms naming one service would be exactly that, and the loader
+    /// refuses the pair; the check is what notices the next one.
+    /// </remarks>
+    [Fact]
+    public void Selling_more_of_a_service_than_an_office_made_is_caught_at_the_write_site()
+    {
+        World world = Built();
+        int allowance = world.ServiceAllowances.Rows.Resolve(
+            world.ServiceAllowances.Rows.Allocate());
+
+        world.ServiceAllowances.MadeToday[allowance] = 1;
+
+        InvariantViolationException failure = Assert.Throws<InvariantViolationException>(
+            () => world.SellService(allowance, 2));
+
+        Assert.Equal(Invariant.AnOfficeSellsNoMoreThanItMade, failure.Violation.Invariant);
+        Assert.Equal(allowance, failure.Violation.Slot);
+
+        // The other field is the overdraft: two units sold against one made.
+        Assert.Equal(1, failure.Violation.Other);
     }
 
     // ---- The staggered tier ----

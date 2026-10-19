@@ -51,9 +51,16 @@ bins = [
 ]
 houses   = true
 premises = true
-rent     = 400
+# A rate per floor Tile (money-circulation L7), charged on the floor a tenancy holds. A home here
+# costs about 390 a Day on ground worth nothing. ⚠ NOT 24 OR 25; money-circulation's slice 3
+# record says what both do to the founding school demonstration.
+rent_per_floor_tile = 23
 parked   = true
 business = "mill"
+# PROVISIONAL: a Building cut off from every Outside Connection is abandoned after 14 Days, and
+# its shell collapses 30 Days later (adr/0177). A playtest tests the first.
+abandoned_after_cut_off_days = 14
+collapses_after_days = 30
 
 [[building]]
 id = "shopfront"
@@ -67,9 +74,14 @@ bins = [
 ]
 houses   = true
 premises = true
-rent     = 400
+# The dwelling's rate -- a flat over the shop rents like a house.
+rent_per_floor_tile = 23
 parked   = true
 business = "grocer"
+# PROVISIONAL: a Building cut off from every Outside Connection is abandoned after 14 Days, and
+# its shell collapses 30 Days later (adr/0177). A playtest tests the first.
+abandoned_after_cut_off_days = 14
+collapses_after_days = 30
 
 [[zone_rule]]
 id            = "housing"

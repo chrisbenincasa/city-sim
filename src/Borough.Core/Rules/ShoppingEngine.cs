@@ -414,6 +414,13 @@ public sealed class ShoppingEngine
         }
 
         BusinessAccounts.Deliver(_world, business, bin, amount, stock, amount * price, tick);
+
+        // L16: a sale is income, and rent arrears are settled where income lands rather than at the
+        // next Day boundary -- this one lands mid-Day, so the Day sweep would be collecting from a
+        // till the trade has had hours to spend. AFTER Deliver, which is accounting and reads the
+        // payment it was handed rather than the till. Returns zero where the Ruleset states no [rent].
+        _world.Arrears.SettleBusiness(business, tick);
+
         _world.DistrictPools.Consumed[market] += amount;
         State.Cargo[row] = amount;
         State.UnservedSince[row] = default;

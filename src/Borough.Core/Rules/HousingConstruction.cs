@@ -71,6 +71,7 @@ public static class HousingConstruction
                         site.Width - 2 * form.Setback, site.Height - 2 * form.Setback);
                     var plan = new LocalBuildingPlan(kind, form.Pattern, footprint, form.Storeys);
                     if (!LocalLayout.Evaluate(world, sources.AsSpan(from, length), plan, out var proposal).Accepted) { continue; }
+                    if (!world.AssemblyOwner(proposal!, out _).Accepted) { continue; }
                     bool duplicate = false;
                     for (int i = 0; i < count; i++)
                     { if (candidates[i]!.Site == site && candidates[i]!.Building == plan) { duplicate = true; break; } }

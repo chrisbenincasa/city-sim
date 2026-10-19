@@ -1,7 +1,10 @@
 # Streets, Lots, movement, placement and the treasury.
 
 [roads]
-block_tiles                    = 32
+block_tiles                    = 16
+dense_core_percent             = 25
+merged_block_percent           = 70
+woodland_merge_percent         = 30
 arterial_count                 = 16
 arterial_junction_tiles        = 512
 foot_crossing_every            = 4
@@ -43,7 +46,10 @@ commute_fast_minutes = 20
 commute_moderate_minutes = 40
 commute_budget_minutes = 50
 
+# PROVISIONAL: ten Days of failed commutes cost the job (adr/0177). A full-parking measurement
+# tests it.
 [jobs]
+dismissed_after_failed_commute_days = 10
 labour_per_day = 16
 interval      = 32
 revisit_ticks = 1024

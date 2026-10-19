@@ -190,10 +190,11 @@ public sealed class TripTableTests
     {
         (RoadGraph graph, TripTable trips, LegTable legs) = Fixture();
 
-        LotTable lots = new(4, graph.Segments);
+        Rows<Household> householdRows = HouseholdTable.NewRows(4);
+        LotTable lots = new(4, graph.Segments, householdRows);
         BuildingTable buildings = new(4, lots);
         BinTable bins = new(4, buildings);
-        HouseholdTable households = new(4, buildings, bins);
+        HouseholdTable households = new(householdRows, buildings, bins);
         BusinessTable businesses = new(4, buildings, bins, new UnitTable(4, buildings), households);
         CarParkTable carParks = new(4, buildings, graph.Segments);
         CitizenTable citizens = new(4, households, buildings, businesses, carParks);

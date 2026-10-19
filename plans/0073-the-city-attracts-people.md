@@ -37,8 +37,10 @@ The implementation includes:
   evidence, shell inspection and a driven demonstration.
 - [0068 D5](0068-the-choice-model.md#decisions), the moving-friction arithmetic refusal.
 
-**Explicit boundaries.** No wage, school-quality, service or job-access term is added to housing
-utility. No Shock system, Intensity Dial, Outside city simulation, Outside treasury, arrival traffic
+**Explicit boundaries.** No wage, school-quality or service term is added to housing utility.
+Export-base slice 4 adds qualified reachable vacancies to arrival choice on both sides, using
+`log(1 + jobs)` and one shared weight. Resident moves and departures retain their existing utility.
+No Shock system, Intensity Dial, Outside city simulation, Outside treasury, arrival traffic
 before admission, physical Departure Trip, new failure source, or Building asset is required.
 Entry remains an event at a gate; placement starts the built move-in Trips. Existing abstract
 Departure is retained and gains an accountable destination. These are limits on what the row may
@@ -203,8 +205,10 @@ utility           = saturate_to_int(centrality_term + rent_term)
 
 Use widened intermediates, `IntegerMath` division/shift helpers and a single rounding order.
 Stage zero retains rent weight 100 and neutral centrality for legacy worlds. The rent weight is
-relative to centrality, not an affordability discount. Do not add wages to the Hinterland schema:
-there is still no corresponding city-side wage term.
+relative to centrality, not an affordability discount. The Hinterland has no wage field because
+city utility has no wage term. Export-base slice 4 adds `reachable_jobs`,
+a count of qualified open posts, not a wage. Its `jobs_rent` weight defaults to zero and its
+Outside count defaults to zero, so existing files keep their behavior.
 
 For a stock prospect, sample up to `placement.candidates` distinct feasible Buildings within at
 most twice that many draws; de-duplicate Buildings because two sampled Lots must not double a

@@ -314,16 +314,63 @@ public sealed class IncomeDumpTests
         Assert.Equal(gross.Profit, Column(report, 2));
         Assert.Equal(gross.Policy, Column(report, 3));
         Assert.Equal(gross.Rule, Column(report, 4));
-        Assert.Equal(gross.Spent, Column(report, 5));
-        Assert.Equal(gross.Drawn, Column(report, 6));
-        Assert.Equal(gross.Granted, Column(report, 7));
-        Assert.Equal(gross.Placed, Column(report, 8));
-        Assert.Equal(gross.Kept, Column(report, 9));
+        Assert.Equal(gross.Rent, Column(report, 5));
+        Assert.Equal(gross.Spent, Column(report, 6));
+        Assert.Equal(gross.Drawn, Column(report, 7));
+        Assert.Equal(gross.Granted, Column(report, 8));
+        Assert.Equal(gross.Placed, Column(report, 9));
+        Assert.Equal(gross.Kept, Column(report, 10));
 
-        long income = gross.Withheld + gross.Profit + gross.Policy + gross.Rule;
+        long income = gross.Withheld + gross.Profit + gross.Policy + gross.Rule + gross.Rent;
         long expenditure = gross.Spent + gross.Drawn + gross.Granted + gross.Placed + gross.Kept;
 
         Assert.Equal(income - expenditure, Rows(report)[^1].Treasury);
+    }
+
+    /// <summary>
+    /// 🔴 <b>The command <c>rulesets/renting.toml</c>'s own header advertises runs, and the rent it
+    /// collects is a column of the budget.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The shipped file unmodified, which is the whole point.</b> That header tells a reader to
+    /// run this mode against this file; before the rent column existed the mode refused it for
+    /// levying no <c>[income_tax]</c>, so the instruction named a command that printed a refusal.
+    /// ***A fixture whose observation instructions do not run is a fixture nobody can check.***
+    /// </para>
+    /// <para>
+    /// <b>The identity is asserted on a file where rent is the ONLY income</b>, so a treasury column
+    /// that matched by luck somewhere else cannot match here: every unit of the balance is in the
+    /// rent column or the budget is wrong.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void Rent_is_an_income_column_on_the_file_whose_header_advertises_this_mode()
+    {
+        string report = Dump("renting.toml");
+
+        Assert.Contains("rent in", report, Ordinal);
+        Assert.Contains("in rent on city Lots", report, Ordinal);
+        Assert.Contains("rent_per_floor_tile", report, Ordinal);
+
+        // The [rent] schedule, so the column can be checked against one dwelling by hand.
+        Assert.Contains("a tenancy ends after 7 Days in arrears", report, Ordinal);
+        Assert.Contains("a floor Tile a Day", report, Ordinal);
+
+        // No income tax here, and the report says so rather than leaving three zeroed bands to read
+        // as a schedule that failed to load.
+        Assert.Contains("No [income_tax] takes anything here", report, Ordinal);
+
+        Gross gross = OverTheRun(report);
+
+        Assert.True(gross.Rent > 0, "the shipped rent fixture collected nothing.");
+        Assert.Equal(0, gross.Withheld);
+        Assert.Equal(0, gross.Profit);
+        Assert.Equal(0, gross.Policy);
+        Assert.Equal(0, gross.Rule);
+
+        Assert.Equal(gross.Rent, Column(report, 5));
+        Assert.Equal(gross.Rent, Rows(report)[^1].Treasury);
     }
 
     /// <summary>
@@ -406,7 +453,7 @@ public sealed class IncomeDumpTests
     public void The_mode_is_named_in_the_usage()
     {
         Assert.Contains("--income", Options.Usage, Ordinal);
-        Assert.Contains("Income is FOUR columns", Options.Usage, Ordinal);
+        Assert.Contains("Income is FIVE columns", Options.Usage, Ordinal);
     }
 
     private const StringComparison Ordinal = StringComparison.Ordinal;
@@ -418,6 +465,7 @@ public sealed class IncomeDumpTests
         long Profit,
         long Policy,
         long Rule,
+        long Rent,
         long Spent,
         long Drawn,
         long Granted,
@@ -448,7 +496,7 @@ public sealed class IncomeDumpTests
             string[] cells = line.Split(
                 "  ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-            if (cells.Length != 12)
+            if (cells.Length != 13)
             {
                 break;
             }
@@ -456,7 +504,8 @@ public sealed class IncomeDumpTests
             rows.Add(new BudgetRow(
                 Number(cells[0]), Number(cells[1]), Number(cells[2]), Number(cells[3]),
                 Number(cells[4]), Number(cells[5]), Number(cells[6]), Number(cells[7]),
-                Number(cells[8]), Number(cells[9]), Number(cells[10]), Number(cells[11])));
+                Number(cells[8]), Number(cells[9]), Number(cells[10]), Number(cells[11]),
+                Number(cells[12])));
         }
 
         Assert.NotEmpty(rows);
@@ -477,11 +526,12 @@ public sealed class IncomeDumpTests
                 2 => row.Profit,
                 3 => row.Policy,
                 4 => row.Rule,
-                5 => row.Spent,
-                6 => row.Drawn,
-                7 => row.Granted,
-                8 => row.Placed,
-                9 => row.Kept,
+                5 => row.Rent,
+                6 => row.Spent,
+                7 => row.Drawn,
+                8 => row.Granted,
+                9 => row.Placed,
+                10 => row.Kept,
                 _ => throw new ArgumentOutOfRangeException(nameof(index), index, "not a flow column."),
             };
         }
@@ -493,7 +543,7 @@ public sealed class IncomeDumpTests
     private static Gross OverTheRun(string report)
     {
         // "  Into the treasury: N withheld from wages, P in profit tax, M by a Policy, R by a Bin
-        //  Rule."
+        //  Rule, T in rent on city Lots."
         string[] into = Line(report, "  Into the treasury:")
             .Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
@@ -510,7 +560,7 @@ public sealed class IncomeDumpTests
             .Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
         return new Gross(
-            Number(into[3]), Number(into[7]), Number(into[11]), Number(into[15]),
+            Number(into[3]), Number(into[7]), Number(into[11]), Number(into[15]), Number(into[20]),
             Number(outOf[3]), Number(outOf[7]), Number(outOf[12]), Number(outOf[15]), Number(outOf[18]),
             Number(claim[3].TrimEnd(',')), Number(claim[6]), Number(forgone[2]));
     }
@@ -529,6 +579,7 @@ public sealed class IncomeDumpTests
         long Profit,
         long Policy,
         long Rule,
+        long Rent,
         long Spent,
         long Drawn,
         long Granted,

@@ -44,6 +44,21 @@ namespace Borough.Tests.Tables;
 /// </remarks>
 public sealed class DerivedRebuildAuditTests
 {
+    [Fact]
+    public void External_job_access_counts_rebuild_even_when_snapshots_match()
+    {
+        World world = Entities.JobsAttractTests.City();
+        world.JobAccess.Refresh(world);
+        int lot = Entities.JobsAttractTests.PositiveLot(world);
+        long expected = world.JobAccess.Count(lot, 3);
+        var field = typeof(JobAccessibility).GetField("_counts",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        ((long[])field.GetValue(world.JobAccess)!).AsSpan().Clear();
+        Assert.Equal(0, world.JobAccess.Count(lot, 3));
+        world.RebuildDerived();
+        Assert.Equal(expected, world.JobAccess.Count(lot, 3));
+    }
+
     private static World PaintedGround()
     {
         var world = new World(0, GoldenFixtures.Rules());
@@ -149,6 +164,7 @@ public sealed class DerivedRebuildAuditTests
             Run(Attracted(512)),
             Run(PaintedGround()),
             Run(Borough.Tests.Rules.ExpiryTests.Spoiling()),
+            Run(Borough.Tests.Rules.ServiceImportTests.Contracted()),
         ];
 
         string[] all = audits[0].Derived;
@@ -276,7 +292,10 @@ public sealed class DerivedRebuildAuditTests
         //
         // 56 -> 54: block.zone and block.band went with the block table. A block is a face of the
         // Street graph, and its zoning is read from the permission paint (adr/0174).
-        Assert.Equal(54, all.Length);
+        //
+        // 54 -> 57: business.contract_head, business.contract_tail and service_contract.buyer_next,
+        // each firm's list of service contracts (adr/0179). The serviced world exercises all three.
+        Assert.Equal(57, all.Length);
         Assert.Single(ScratchColumns(Stepped(0)));
     }
 

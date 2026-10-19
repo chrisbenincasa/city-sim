@@ -43,6 +43,8 @@ public sealed class Simulation
     private readonly PolicyEngine _policies;
     private readonly WageEngine _wages;
     private PayrollReading _lastPayroll;
+    private readonly RentEngine _rent;
+    private RentReading _lastRent;
     private readonly BusinessTaxEngine _profitTax;
     private ProfitTaxReading _lastProfitTax;
     private readonly SubsidyEngine _subsidies;
@@ -125,6 +127,7 @@ public sealed class Simulation
         _zoning = new ZoneRuleEngine(world, key);
         _policies = new PolicyEngine(world, key);
         _wages = new WageEngine(world, key);
+        _rent = new RentEngine(world);
         _profitTax = new BusinessTaxEngine(world);
         _subsidies = new SubsidyEngine(world);
         _lifeStages = new LifeStageEngine(world);
@@ -342,6 +345,7 @@ public sealed class Simulation
             _profitTax.DrainCollected().Sum,
             policies.ToTreasury.Sum,
             rules.ToTreasury.Sum,
+            _world.Arrears.DrainTreasury().Sum,
             policies.FromTreasury.Sum,
             rules.FromTreasury.Sum,
             _subsidies.DrainPaid().Sum,
@@ -358,6 +362,17 @@ public sealed class Simulation
     /// and only then when some trade's payday fell on that Day.
     /// </remarks>
     public PayrollReading LastPayroll => _lastPayroll;
+
+    /// <summary>
+    /// What the most recent Day of rent collected, carried and evicted, or zeroes on a Tick that was
+    /// not a Day's first.
+    /// </summary>
+    /// <remarks>
+    /// <b>The last reading rather than a total</b>, on <see cref="LastPayroll"/>'s terms exactly
+    /// (<c>adr/0006</c>). ⚠ <b>Zero everywhere the Ruleset states no <c>[rent]</c></b>, which is
+    /// every shipped file but <c>renting.toml</c>.
+    /// </remarks>
+    public RentReading LastRent => _lastRent;
 
     /// <summary>
     /// What the most recent profit-tax collection took, or zeroes on a Tick that was not a Day's
@@ -486,6 +501,8 @@ public sealed class Simulation
         PhaseCompleted?.Invoke(TickPhase.Growth);
         Commit(tick);
         PhaseCompleted?.Invoke(TickPhase.Commit);
+
+        _world.TimeCutOffBuildings(tick);
 
         _world.Advance();
 
@@ -2174,6 +2191,28 @@ public sealed class Simulation
         // than reserved in advance -- and reading it BEFORE the Day's charges arrive would ration
         // against a balance the city no longer has.
         _lastSubsidies = _subsidies.Sweep(tick);
+
+        // 🔴 BEHIND THE PAYROLL, THE POLICIES AND THE SUBSIDIES, and the ordering is what makes
+        // money-circulation L16 true rather than a hope. Unpaid rent is owed and settled as money
+        // arrives, and every Day-boundary income in this build lands in one of those three passes --
+        // so a tenant paid every seven Days holds its wage before this line asks for the week's
+        // arrears, and clears them at the payday instead of being evicted between paydays. Ahead of
+        // it instead, the deadline would test whether the Day's rent happened to arrive before it
+        // was charged, and `evicts_after_days` could not be refused below the longest pay period
+        // because no value would be safe.
+        //
+        // AHEAD OF THE UPKEEP for the subsidy line's own reason, one charge along: rent on a
+        // city-held Lot is treasury income (L9), so the Day's rent is in the pot before the city
+        // decides what it can spend on roads. AHEAD OF PLACEMENT so a Household this sweep evicts
+        // reaches the Pool in time to be rehoused on the same Tick, which is the disaster pass's
+        // argument and the same one.
+        //
+        // ⚠ It is silent on every shipped Ruleset but renting.toml: no other file states [rent], so
+        // the sweep returns on the Collects guard before it looks at a row.
+        _lastRent = _rent.Sweep(tick);
+
+        // Behind rent, so the Day's rent on a Lot reaches the city before the Lot is sold.
+        _world.SellCityLots(tick);
 
         // Behind the subsidies, so a treasury short of both pays its people before its roads.
         if (tick.Raw % (ulong)Ticks.PerDay == 0)

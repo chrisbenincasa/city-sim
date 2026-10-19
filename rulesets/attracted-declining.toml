@@ -54,9 +54,10 @@ condemn_after_days = 2
 collapses_after_days = 1
 houses   = true
 premises = true
-# A price to compare a Hinterland's against. Without one V_here is zero for everybody and the four
-# edges are told apart by nothing.
-rent = 400
+# A rate, charged on the floor a tenancy holds, to price against a Hinterland's figure. A typical
+# tenancy here holds about 28 Tiles, so it pays about 450 a Day. Without a rate V_here is zero for
+# everybody and the four edges are told apart by nothing.
+rent_per_floor_tile = 16
 # Whether it parks at all -- the count is floor area over [capacity] floor_tiles_per_parking_space.
 parked = true
 business = "shop"

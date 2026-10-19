@@ -51,10 +51,13 @@ public static class LotSubdivider
         int lastColumn = streets.Lattice.LineAt(painted.X + painted.Width - 1), lastRow = streets.Lattice.LineAt(painted.Y + painted.Height - 1);
         if (lastColumn >= streets.Blocks) { lastColumn = streets.Blocks - 1; }
         if (lastRow >= streets.Blocks) { lastRow = streets.Blocks - 1; }
-        for (int row = streets.Lattice.LineAt(painted.Y); row <= lastRow; row++)
+        int firstColumn = streets.Lattice.LineAt(painted.X), firstRow = streets.Lattice.LineAt(painted.Y);
+        for (int row = firstRow; row <= lastRow; row++)
         {
-            for (int column = streets.Lattice.LineAt(painted.X); column <= lastColumn; column++)
+            for (int column = firstColumn; column <= lastColumn; column++)
             {
+                BlockGround block = streets.Block(column, row);
+                if (column != Larger(block.Column, firstColumn) || row != Larger(block.Row, firstRow)) { continue; }
                 GatherBlock(world, proposal, column, row, plots);
             }
         }
@@ -82,7 +85,8 @@ public static class LotSubdivider
 
     public static int PreviewCapacity(World world, int column, int row)
     {
-        int count = world.Rules.Lots.ParcelCeiling(BlockGround.At(world.Roads.Lattice, column, row));
+        Anchor(world, ref column, ref row);
+        int count = world.Rules.Lots.ParcelCeiling(world.Roads.Streets.Block(column, row));
         for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
             if (OnBlock(world, slot, column, row, out _)) { count++; }
         return count;
@@ -93,7 +97,8 @@ public static class LotSubdivider
     {
         var streets = world.Roads.Streets;
         if (column < 0 || row < 0 || column >= streets.Blocks || row >= streets.Blocks) { return 0; }
-        BlockGround ground = BlockGround.At(streets.Lattice, column, row);
+        Anchor(world, ref column, ref row);
+        BlockGround ground = streets.Block(column, row);
         int count = 0;
         var lots = world.Lots;
         for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
@@ -103,17 +108,13 @@ public static class LotSubdivider
             if (count == into.Length) { throw new ArgumentException("Preview buffer is smaller than PreviewCapacity.", nameof(into)); }
             into[count++] = new(face, (StreetSide)lots.Side[slot], new Tiles(offset), lots.Parcel(slot));
         }
-        Span<int> sides = stackalloc int[4];
-        ground = ground with { Patch = Sides(world, column, row, sides) };
-        int ceiling = world.Rules.Lots.ParcelCeiling(ground);
-        Span<Parcel> proposed = ceiling <= 128 ? stackalloc Parcel[128] : new Parcel[ceiling];
-        BlockPattern pattern = Pattern(world, null, column, row, ground.Patch);
-        int carved = world.Rules.Lots.Carve(world.Key, pattern, ground, proposed);
-        ClaimOrder(world, sides, proposed[..carved]);
-        for (int i = 0; i < carved; i++)
+        var plots = new List<Plot>();
+        Collect(world, null, column, row, plots);
+        plots.Sort(ClaimOrder);
+        foreach (Plot plot in plots)
         {
-            Parcel parcel = proposed[i];
-            if (sides[(int)parcel.Face] == Rows.NoSlot || !Claim(world, null, ground, BlockPatterns.FormOf(pattern, parcel.Face), ref parcel)) { continue; }
+            Parcel parcel = plot.Parcel;
+            if (!Claim(world, null, plot.Ground, plot.Form, ref parcel)) { continue; }
             if (count == into.Length) { throw new ArgumentException("Preview buffer is smaller than PreviewCapacity.", nameof(into)); }
             into[count++] = parcel;
         }
@@ -159,14 +160,16 @@ public static class LotSubdivider
 
     // Only world creation draws a trade form. The Zone Rule engine cannot build on one, so a block
     // zoned for trade in play keeps the housing ladder.
-    private static BlockPattern Pattern(World world, Proposal? proposal, int column, int row, ulong patch, bool tradeForm = false)
+    private static BlockPattern Pattern(World world, Proposal? proposal, BlockGround ground, bool tradeForm = false)
     {
+        int column = ground.Column, row = ground.Row;
+        ulong patch = ground.Patch;
         LandPermissionSummary permission = Summary(world, proposal, world.BlockGroundRectangle(column, row));
         byte band = permission.MixedIntensity ? (byte)0 : permission.Band;
         return tradeForm
             ? BlockPatterns.TradeForm(
                 band, world.Rules.Bands.Length, world.Rules.Lots.TradeFormWeights, world.Key, patch)
-            : BlockPatterns.ForBand(band, world.Rules.Bands.Length, world.Roads.Streets.BlockTiles,
+            : BlockPatterns.ForBand(band, world.Rules.Bands.Length, PatternTiles(world, ground),
                 world.Rules.Lots.LotsPerSegment, world.Key, patch, world.Rules.Lots.PatternSpread);
     }
 
@@ -194,31 +197,127 @@ public static class LotSubdivider
     {
         LandRectangle area = world.BlockGroundRectangle(column, row);
         if (!area.IsValid || Summary(world, proposal, area).AnyUses == 0) { return; }
+        Collect(world, proposal, column, row, into, tradeForm, form);
+    }
+
+    // The carved plots of the block holding a square, before any claim. A merged block's parcel
+    // fronts the lattice Segment under its Address.
+    private static void Collect(World world, Proposal? proposal, int column, int row, List<Plot> into, bool tradeForm = false, BlockPattern? form = null)
+    {
         Span<int> sides = stackalloc int[4];
-        BlockGround ground = BlockGround.At(world.Roads.Streets.Lattice, column, row) with { Patch = Sides(world, column, row, sides) };
-        BlockPattern pattern = form ?? Pattern(world, proposal, column, row, ground.Patch, tradeForm);
+        BlockGround ground = Block(world, column, row, sides, out bool merged);
+        BlockPattern pattern = form ?? Pattern(world, proposal, ground, tradeForm);
         int ceiling = world.Rules.Lots.ParcelCeiling(ground);
         Span<Parcel> parcels = ceiling <= 128 ? stackalloc Parcel[128] : new Parcel[ceiling];
         int count = world.Rules.Lots.Carve(world.Key, pattern, ground, parcels);
         for (int i = 0; i < count; i++)
         {
             Parcel parcel = parcels[i];
-            int segment = sides[(int)parcel.Face];
+            int along = parcel.Offset.Raw;
+            int segment = merged ? FrontOf(world.Roads.Streets, ground, ref parcel, out along) : sides[(int)parcel.Face];
             if (segment == Rows.NoSlot) { continue; }
-            into.Add(new Plot(SegmentId(world, segment), parcel.Side, parcel.Offset.Raw, into.Count, segment,
+            if (!merged) { along += RunLead(world.Roads.Streets, ground, parcel.Face, segment); }
+            into.Add(new Plot(SegmentId(world, segment), parcel.Side, along, into.Count, segment,
                 BlockPatterns.FormOf(pattern, parcel.Face), parcel, ground, default, default, false));
         }
+    }
+
+    // A merged block draws from the ladder of its own size, so it keeps the larger block's forms.
+    private static int PatternTiles(World world, BlockGround ground)
+    {
+        StreetGrid streets = world.Roads.Streets;
+        if (ground.Wide == streets.Lattice.WidthOf(ground.Column) && ground.Deep == streets.Lattice.WidthOf(ground.Row)) { return streets.BlockTiles; }
+        return ground.Wide < ground.Deep ? ground.Wide : ground.Deep;
+    }
+
+    // The block holding a square, keyed by its anchor patch. Only a one-square block fills sides.
+    private static BlockGround Block(World world, int column, int row, Span<int> sides, out bool merged)
+    {
+        StreetGrid streets = world.Roads.Streets;
+        BlockGround ground = streets.Block(column, row);
+        merged = ground.Wide != streets.Lattice.WidthOf(ground.Column) || ground.Deep != streets.Lattice.WidthOf(ground.Row);
+        return ground with { Patch = merged ? MergedPatch(world, ground) : Sides(world, column, row, sides) };
+    }
+
+    // The lowest Segment-side patch round a merged block's perimeter.
+    private static ulong MergedPatch(World world, BlockGround ground)
+    {
+        StreetGrid streets = world.Roads.Streets;
+        int west = ground.Column, south = ground.Row;
+        int east = streets.Lattice.LineAt(ground.East + ground.Wide), north = streets.Lattice.LineAt(ground.North + ground.Deep);
+        ulong patch = ulong.MaxValue;
+        for (int x = west; x < east; x++)
+        {
+            patch = Lowest(patch, streets.Horizontal(x, south), BlockFace.South);
+            patch = Lowest(patch, streets.Horizontal(x, north), BlockFace.North);
+        }
+        for (int y = south; y < north; y++)
+        {
+            patch = Lowest(patch, streets.Vertical(west, y), BlockFace.West);
+            patch = Lowest(patch, streets.Vertical(east, y), BlockFace.East);
+        }
+        return patch;
+
+        ulong Lowest(ulong least, int segment, BlockFace face)
+        {
+            ulong candidate = Patch(world.Roads.Segments.Rows.IdAt(segment), BlockPatterns.SideOf(face) == StreetSide.Left ? (byte)0 : (byte)1);
+            return candidate < least ? candidate : least;
+        }
+    }
+
+    // The lattice Segment under a merged block's parcel, and how far along it the Address sits. An
+    // Address on an inner intersection fronts no Segment, so it steps back one Tile onto the first.
+    // A Street spanning several edges is measured from its own start.
+    private static int FrontOf(StreetGrid streets, BlockGround ground, ref Parcel parcel, out int along)
+    {
+        bool horizontal = parcel.Face is BlockFace.South or BlockFace.North;
+        int start = horizontal ? ground.East : ground.North;
+        int at = start + parcel.Offset.Raw;
+        int line = streets.Lattice.LineAt(at);
+        if (at == streets.Lattice.EdgeOf(line) && at != start)
+        {
+            parcel = parcel with { Offset = new Tiles(parcel.Offset.Raw - 1) };
+            line = streets.Lattice.LineAt(--at);
+        }
+        (int column, int row, StreetAxis axis) = parcel.Face switch
+        {
+            BlockFace.South => (line, ground.Row, StreetAxis.East),
+            BlockFace.North => (line, streets.Lattice.LineAt(ground.North + ground.Deep), StreetAxis.East),
+            BlockFace.West => (ground.Column, line, StreetAxis.North),
+            _ => (streets.Lattice.LineAt(ground.East + ground.Wide), line, StreetAxis.North),
+        };
+        along = at - streets.Lattice.EdgeOf(streets.RunStart(column, row, axis));
+        return streets.SegmentOn(column, row, axis);
+    }
+
+    // How far a one-square block's face starts past the start of the lattice Street along it. A
+    // face fronting anything other than that lattice Segment counts from the block's own corner.
+    private static int RunLead(StreetGrid streets, BlockGround ground, BlockFace face, int segment)
+    {
+        (int column, int row, StreetAxis axis, int start) = face switch
+        {
+            BlockFace.South => (ground.Column, ground.Row, StreetAxis.East, ground.East),
+            BlockFace.North => (ground.Column, ground.Row + 1, StreetAxis.East, ground.East),
+            BlockFace.West => (ground.Column, ground.Row, StreetAxis.North, ground.North),
+            _ => (ground.Column + 1, ground.Row, StreetAxis.North, ground.North),
+        };
+        if (streets.SegmentOn(column, row, axis) != segment) { return 0; }
+        return start - streets.Lattice.EdgeOf(streets.RunStart(column, row, axis));
+    }
+
+    private static void Anchor(World world, ref int column, ref int row)
+    {
+        StreetGrid streets = world.Roads.Streets;
+        if (column < 0 || row < 0 || column >= streets.Blocks || row >= streets.Blocks) { return; }
+        BlockGround block = streets.Block(column, row);
+        (column, row) = (block.Column, block.Row);
     }
 
     // New plots claim ground by Segment id, then side, then offset along the Segment, across every
     // carver feeding one pass.
     private static int Settle(World world, Proposal? proposal, List<Plot> plots)
     {
-        plots.Sort(static (a, b) =>
-            a.SegmentId != b.SegmentId ? a.SegmentId.CompareTo(b.SegmentId)
-            : a.Side != b.Side ? ((byte)a.Side).CompareTo((byte)b.Side)
-            : a.Offset != b.Offset ? a.Offset.CompareTo(b.Offset)
-            : a.Order.CompareTo(b.Order));
+        plots.Sort(ClaimOrder);
         int created = 0;
         foreach (Plot plot in plots)
         {
@@ -227,6 +326,12 @@ public static class LotSubdivider
         if (created > 0 && proposal is null) { world.LotsAdmitting.Invalidate(); }
         return created;
     }
+
+    private static int ClaimOrder(Plot a, Plot b) =>
+        a.SegmentId != b.SegmentId ? a.SegmentId.CompareTo(b.SegmentId)
+        : a.Side != b.Side ? ((byte)a.Side).CompareTo((byte)b.Side)
+        : a.Offset != b.Offset ? a.Offset.CompareTo(b.Offset)
+        : a.Order.CompareTo(b.Order);
 
     private static bool CreateLattice(World world, Proposal? proposal, Plot plot)
     {
@@ -239,13 +344,13 @@ public static class LotSubdivider
         var address = parcel.Address(ground);
         if (proposal is not null) { proposal.Add(parcel, address.East, address.North); return true; }
         int slot = world.Lots.Rows.Resolve(world.Lots.Create(address.East, address.North, permission.CommonUses, parcel.Side));
-        world.Lots.Front(slot, world.Roads.Segments.Rows.At(plot.Segment), parcel.Offset);
+        world.Lots.Front(slot, world.Roads.Segments.Rows.At(plot.Segment), new Tiles(plot.Offset));
         world.Lots.ParcelEastQ16[slot] = Fixed.FromInt(parcel.East.Raw); world.Lots.ParcelNorthQ16[slot] = Fixed.FromInt(parcel.North.Raw);
         world.Lots.ParcelWide[slot] = parcel.Wide; world.Lots.ParcelDeep[slot] = parcel.Deep;
         var foot = world.Rules.Lots.Footprint(world.Key, parcel, ground, plot.Form);
         world.Lots.FootprintEastQ16[slot] = Fixed.FromInt(foot.East.Raw); world.Lots.FootprintNorthQ16[slot] = Fixed.FromInt(foot.North.Raw);
         world.Lots.FootprintWide[slot] = foot.Wide; world.Lots.FootprintDeep[slot] = foot.Deep;
-        world.Lots.Storeys[slot] = world.Rules.Lots.Height(world.Key, parcel, plot.Form, world.Roads.Streets.BlockTiles);
+        world.Lots.Storeys[slot] = world.Rules.Lots.Height(world.Key, parcel, plot.Form, PatternTiles(world, ground));
         world.Lots.PodiumStoreys[slot] = world.Rules.Lots.PodiumOn(world.Key, parcel.East, parcel.North);
         world.Lots.Pattern[slot] = (byte)((byte)plot.Form + 1);
         world.Frontage.Claim(plot.Segment, parcel.Side);
@@ -337,25 +442,6 @@ public static class LotSubdivider
     }
 
     // New plots claim ground by Segment id, then side, then offset along the Segment.
-    private static void ClaimOrder(World world, ReadOnlySpan<int> sides, Span<Parcel> parcels)
-    {
-        for (int i = 1; i < parcels.Length; i++)
-        {
-            for (int j = i; j > 0 && Before(world, sides, parcels[j], parcels[j - 1]); j--)
-            {
-                (parcels[j], parcels[j - 1]) = (parcels[j - 1], parcels[j]);
-            }
-        }
-    }
-
-    private static bool Before(World world, ReadOnlySpan<int> sides, Parcel left, Parcel right)
-    {
-        ulong a = SegmentId(world, sides[(int)left.Face]), b = SegmentId(world, sides[(int)right.Face]);
-        if (a != b) { return a < b; }
-        if (left.Side != right.Side) { return left.Side < right.Side; }
-        return left.Offset.Raw < right.Offset.Raw;
-    }
-
     private static ulong SegmentId(World world, int segment) =>
         segment == Rows.NoSlot ? ulong.MaxValue : world.Roads.Segments.Rows.IdAt(segment);
 
@@ -497,8 +583,9 @@ public static class LotSubdivider
     public static bool PatternOn(World world, int column, int row, out BlockPattern pattern)
     {
         pattern = BlockPattern.Detached;
+        Anchor(world, ref column, ref row);
         bool carved = false;
-        int tiles = world.Roads.Streets.BlockTiles, perSegment = world.Rules.Lots.LotsPerSegment;
+        int tiles = PatternTiles(world, world.Roads.Streets.Block(column, row)), perSegment = world.Rules.Lots.LotsPerSegment;
         for (int lot = 0; lot < world.Lots.Rows.SlotCount; lot++)
         {
             if (!OnBlock(world, lot, column, row, out _)) { continue; }
@@ -515,13 +602,16 @@ public static class LotSubdivider
     {
         LandRectangle area = world.BlockGroundRectangle(column, row);
         if (!area.IsValid || !PatternOn(world, column, row, out BlockPattern old)) { return 0; }
+        Anchor(world, ref column, ref row);
         LandPermissionSummary permission = world.LandPermissions.Summary(area);
         if (permission.MixedPermissions || old == BlockPattern.CarParkCentre) { return 0; }
         Span<int> sides = stackalloc int[4];
-        BlockPattern wanted = BlockPatterns.ForBand(permission.Band, world.Rules.Bands.Length, world.Roads.Streets.BlockTiles,
-            world.Rules.Lots.LotsPerSegment, world.Key, Sides(world, column, row, sides), world.Rules.Lots.PatternSpread);
-        if (BlockPatterns.Rung(wanted, world.Roads.Streets.BlockTiles, world.Rules.Lots.LotsPerSegment)
-            <= BlockPatterns.Rung(old, world.Roads.Streets.BlockTiles, world.Rules.Lots.LotsPerSegment)) { return 0; }
+        BlockGround block = Block(world, column, row, sides, out _);
+        int tiles = PatternTiles(world, block);
+        BlockPattern wanted = BlockPatterns.ForBand(permission.Band, world.Rules.Bands.Length, tiles,
+            world.Rules.Lots.LotsPerSegment, world.Key, block.Patch, world.Rules.Lots.PatternSpread);
+        if (BlockPatterns.Rung(wanted, tiles, world.Rules.Lots.LotsPerSegment)
+            <= BlockPatterns.Rung(old, tiles, world.Rules.Lots.LotsPerSegment)) { return 0; }
         for (int lot = 0; lot < world.Lots.Rows.SlotCount; lot++)
             if (OnBlock(world, lot, column, row, out _) && !world.Lots.IsVacant(lot)) { return 0; }
         for (int lot = 0; lot < world.Lots.Rows.SlotCount; lot++)
@@ -566,6 +656,7 @@ public static class LotSubdivider
     {
         int width = world.Roads.Streets.Blocks;
         if ((uint)column >= (uint)width || (uint)row >= (uint)width) { return; }
+        Anchor(world, ref column, ref row);
         int at = row * width + column;
         if (visited[at] != 0) { return; }
         visited[at] = 1;

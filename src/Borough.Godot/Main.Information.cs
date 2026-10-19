@@ -1098,11 +1098,14 @@ public partial class Main
         int businesses = _world.BuildingBusinesses.Length(slot);
         int occupants = evidence.Occupants.Length + businesses;
         sections.Add(new("summary", "Current condition", true,
-        [new(_world.Buildings.IsAbandoned(slot) ? "Abandoned" : evidence.IsDeclared ? "Occupied places: " + occupants + " / " + evidence.DeclaredOccupancy : "Kind no longer declared")]));
+        [new(_world.Buildings.IsAbandoned(slot) ? AbandonedSummary(slot) : evidence.IsDeclared ? "Occupied places: " + occupants + " / " + evidence.DeclaredOccupancy : "Kind no longer declared")]));
         sections[0] = new("summary", "Current condition", true,
             [new(SupplySummary(Evidence.SupplyOfBuilding(_world, _selectedBuilding))), sections[0].Rows[0]]);
+        if (StaffingSummary(slot) is { } staffing) sections[0].Rows.Insert(1, new(staffing));
+        if (CutOffSummary(_selectedBuilding) is { } cutOff) sections[0].Rows.Insert(1, new(cutOff));
         sections.Add(Attention(evidence, default, false));
         sections.Add(Attention(evidence, default, false, true));
+        AddLandholding(sections, evidence.Lot);
         AddFacilityHealth(sections, slot);
         AddFacilitySchooling(sections, slot);
         AddGateOutside(sections, slot);
@@ -1124,6 +1127,30 @@ public partial class Main
         if (workers.Count == 0) workers.Add(new("No workers."));
         sections.Add(new("workers", $"Workers · {evidence.Workers.Length}", false, workers));
         sections.Add(Stocks(evidence, default, false));
+    }
+
+    /// <summary>Who holds the ground under a Building — the Lot's Landowner, or the city.</summary>
+    /// <remarks>
+    /// Read through <see cref="Evidence.OfLot"/> rather than off the column, so the shell and a
+    /// headless dump answer from one place. A Landowner who died or left reads as the city there.
+    /// The card starts closed to keep landholding details off the first screen.
+    /// </remarks>
+    private void AddLandholding(List<InformationSection> sections, Handle<Lot> lot)
+    {
+        if (!_world.Lots.Rows.IsValid(lot)) return;
+
+        Handle<Household> landowner = Evidence.OfLot(_world, lot).Landowner;
+
+        if (landowner.IsNone)
+        {
+            sections.Add(new("land", "Land", false, [new InformationRow("Landowner: the city")]));
+            return;
+        }
+
+        ulong id = RowId(_world.Households.Rows, landowner);
+
+        sections.Add(new("land", "Land", false,
+            [new InformationRow($"Landowner: Household {id} →", $"household {id}")]));
     }
 
     private InformationSection Attention(BuildingEvidence evidence, Handle<Household> household, bool onlyHousehold, bool routine = false, Handle<Business> business = default)
@@ -1262,12 +1289,27 @@ public partial class Main
             citizens.Add(new($"Citizen {_world.Citizens.Rows.IdAt(member)}\n{trip}"));
             citizens.Add(new(work + (who.Workplace.IsNone ? "" : " →"), who.Workplace.IsNone
                 ? null : $"business {RowId(_world.Businesses.Rows, who.Workplace)}"));
+            if (CommuteReading(who) is { } commute) citizens.Add(new(commute));
         }
         if (citizens.Count == 0) citizens.Add(new("No Citizens in this Household."));
         sections.Add(new("citizens", "Citizens", true, citizens));
-        sections.Add(new("finances", "Finances", false,
-            [new(balance is { } money ? $"Household balance: {money.Raw:N0} money units" : "No Household balance reported.")]));
+        var finances = new List<InformationRow>
+        {
+            new(balance is { } money ? $"Household balance: {money.Raw:N0} money units" : "No Household balance reported."),
+        };
+        if (Evidence.RentOf(_world, _selectedHousehold) is { } rent) finances.Add(new(RentSummary(rent)));
+        sections.Add(new("finances", "Finances", false, finances));
     }
+
+    /// <summary>What a tenancy pays for its premises, and since when it has been behind.</summary>
+    /// <remarks>
+    /// <b>The Core returns the Day and this spells the sentence</b> (<c>adr/0002</c>). Nothing is
+    /// shown at all where the Ruleset charges no rent — <see cref="Evidence.RentOf(World, Handle{Household})"/>
+    /// answers null there, which is not the same as a rent of zero.
+    /// </remarks>
+    private static string RentSummary(RentEvidence rent) => rent.Behind
+        ? $"Rent: {rent.Daily.Raw:N0} a Day · behind on rent since Day {rent.SinceDay:N0}, owing {rent.Debt.Raw:N0}"
+        : $"Rent: {rent.Daily.Raw:N0} a Day · nothing owed";
     private static IEnumerable<Node> InformationDescendants(Node root, bool includeInternal = false)
     {
         foreach (Node child in root.GetChildren(includeInternal))

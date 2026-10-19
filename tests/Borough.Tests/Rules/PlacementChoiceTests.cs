@@ -24,10 +24,13 @@ namespace Borough.Tests.Rules;
 /// only the sharpness, which is the one variable 02 section 5.4 says to reach for.
 /// </para>
 /// <para>
-/// 🔴 <b>Nothing here measures rent, and that is a finding rather than a gap in the tests.</b>
-/// <c>chosen.toml</c>'s header records it: rent is per kind, no shipped world stands two housing
-/// kinds, and a term identical across every candidate cancels in a softmax. The rent scale is read
-/// and has no difference to weigh.
+/// ⚠ <b>Nothing here measures rent, and since <c>money-circulation</c> L7 that is a gap rather than
+/// a finding.</b> Rent was per kind when this class was written, and a term identical across every
+/// candidate cancels in a softmax, so there was nothing for a drawn city to weigh. Rent is a
+/// per-tenancy figure now, the kind's rate over the floor a tenancy holds times one plus the land
+/// value at its Lot, so two dwellings of one kind on different ground score differently.
+/// <c>TenancyRentTests</c> reads that preference on a hand-built pair and holds the figure to a
+/// save and a resumed run there; a city drawn at this scale does not weigh it yet.
 /// </para>
 /// </remarks>
 public sealed class PlacementChoiceTests

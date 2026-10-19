@@ -1,7 +1,7 @@
 # Row 30 — Diagnose decline, intervene and observe recovery
 
-State: **ready**. Designed in a session on 10/13/2026 against `e27fdaf6`; decisions below and in
-`adr/0177`. Owner: `decline-recovery` worktree. Coordinate Ruleset keys and saved state with 0077.
+State: **closed 10/14/2026**. Designed on 10/13/2026 against `e27fdaf6`; decisions below and in
+`adr/0177`. Built in PRs #150, #155, #158, #159, #163, #168 and #170.
 
 ## Outcome and boundary
 
@@ -60,9 +60,10 @@ Decided in a design session on 10/13/2026.
 - **An over-budget commute counts because it is a real mismatch.** One completed commute resets
   the clock, so intermittent congestion cannot reach the deadline. Only a commute that fails every
   working day for the whole deadline costs the job, and each dismissal relieves the road.
-  Open: whether the plan-time budget test reads congested travel times. The probe answers it.
-  Counting it is provisional until a measurement shows how often it dismisses workers in a
-  growing, congested city. The acceptance list below carries that measurement.
+  The budget test prices free-flow only, so congestion alone never fails it (probe below).
+  Distance and a full parking shed are its only causes. It keeps counting: at the shipped parking
+  rate it never fires in the growing founding city, and under scarce parking the failures come from
+  a parking lock (issue #167) that removing the count would hide rather than fix (measured below).
 
 - **Commute failure adds no premises pressure.** The employer feels it only as missing labour,
   and a labour shortage does not start `StarvedSince`. So one failed commute is never counted
@@ -133,10 +134,164 @@ Decided in a design session on 10/13/2026.
   - Remove the bridge outside commute hours. A Traveller on a removed Segment still arrives until
     #132 is fixed.
 
-## First implementation step
+## Probe results
 
-A small headless probe on the fixture. It checks the decided lifecycle against real activity
-transitions, and answers whether the plan-time budget test reads congested travel times.
+`BridgeCommuteProbe` (instrument tier) builds the fixture on `congested.toml` with a gate kind:
+two 2×2-block districts, a gate on the near side, one bridge Segment. Measured on 10/13/2026.
+
+- The budget test prices free-flow only. With 10,000 vehicles on the bridge, a planned car
+  commute across it is unchanged (71,580 raw), while a driver on the bridge pays 39 times free-flow.
+  Arc times are precomputed from free-flow; congestion is charged only in `TripEngine.Enter`.
+- 271 of 1,000 Citizens commute across the bridge. Removing it at 23:00 found no Traveller in
+  flight, so #132 does not touch the fixture.
+- Each crosser fails once per working Day with *no route found* and stays home. No homeward
+  failure follows. Nothing retries within the Day, and the next Day's departure tries again.
+- No current mechanism ends the failure. After 13 Days unrepaired, all 271 crossers still hold
+  the same job, and none moves or finds work on their own side.
+- One completed commute follows the repair. Rebuilt on Day 5 or Day 12, all 271 complete the
+  next Day's commute and city trips return to the baseline 1,070 per Day.
+- The cut-off test works as designed: all 32 far-side Buildings lose the gate's car component
+  on removal and regain it on repair. Nothing is abandoned today.
+- No commute exceeded the budget in any run.
+
+## Built
+
+- **The commuting Citizen's failure clock.** `CitizenTable.CommuteFailedSince` saves the first
+  failed outbound commute's Tick + 1. `World.RecordTripFate` starts it on a failed outbound commute,
+  clears it on a completed one, and dismisses through `World.Dismiss` once a failure lands at or
+  past `[jobs] dismissed_after_failed_commute_days`. `Dismiss` and `Employ` clear it. The base
+  package states 10 Days. Tests: `FailedCommuteClockTests`.
+  - The dismissal lands on the first failed departure at or past the deadline. A worker who is
+    off on the deadline Day loses the job at the next working Day's failure.
+- **Probe with the 10-Day deadline.** Unrepaired, all 271 crossers lose the job on Day 13, ten Days
+  after their first failure on Day 3. 148 find a job on their own side that Day and 123 stay
+  jobless. Repaired on Day 12, nobody is dismissed.
+- **Re-hiring can fail the budget.** After the dismissals, 5 same-side commutes exceeded the
+  Commute Budget, though the job search had accepted them. Two clocks started and cleared the next
+  Day. Congestion cannot cause this, so a full parking shed is the likely cause. The parking
+  measurement in the acceptance list should confirm it.
+
+- **The readout.** Each Citizen saves its most recent ended episode in three columns: start Day,
+  end Day and outcome (`CommuteEpisodeOutcome`: recovered or dismissed). Only a completed commute
+  and the deadline dismissal write it. A run cut short by another dismissal or a job change leaves
+  the previous record. `CitizenEvidence.FailingCommute` gives the running clock's start and the
+  first Tick a failure dismisses; `CitizenEvidence.LastCommuteEpisode` gives the record.
+  `Evidence.FailingCommutersOf` derives a workplace's failing workers from their clocks.
+  - Household panel, per Citizen: days unable to reach work, the Fate, days left before
+    dismissal; afterwards the restored commute or the dismissal with its duration.
+  - Business panel: how many workers cannot reach it, since when, each linked to its Household.
+  - Building summary: a staffing line under the supply line for any Building that serves a Need.
+  - Driven on 10/13/2026 from city saves of the bridge fixture at a 3-Day deadline: failing on
+    Day 4, repaired on Day 4 and read on Day 6, unrepaired and read on Day 8. The Household panel
+    read "Unable to reach work since Day 3, 1 Day ago · no route to work" and "Dismissal in 2 Days
+    if no commute completes", then "Commute restored on Day 5 after 2 Days of failed commutes" or
+    "Dismissed on Day 6 after 3 Days of failed commutes". Business 45 listed its 4 failing workers,
+    each linked to a Household. The unhired school from `ServiceStaffingTests` read "No staff · 0
+    of 4 posts filled, so it serves nobody" beside "No supply shortfalls reported".
+  - Observation exposed two defects, both fixed. The lines counted Days from 0 while the HUD clock
+    counts from 1. A re-hired Citizen's dismissal read as if the new employer had dismissed them,
+    so it now reads "Lost the previous job".
+  - The shell still numbers Days two ways: the HUD clock from 1, the Health panel and the debug
+    readout from 0. These panels follow the HUD clock.
+
+- **The cut-off clock.** `BuildingTable.CutOffSince` saves the Tick + 1 of the road edit that cut a
+  Building off from every Outside Connection; `BuildingTable.AbandonedCause` saves why the city
+  abandoned it (`AbandonmentCause`). `World.TimeCutOffBuildings` runs at the end of each Tick. It
+  re-judges every Building when the Tick changed the road graph, the gates or the Ruleset, and at
+  each Day boundary abandons every Building past `[[building]] abandoned_after_cut_off_days`. A
+  Building raised later judges itself in `CreateBuilding`. A load judges nothing, because the
+  clocks are saved. The base package states 14 Days, with `collapses_after_days = 30`, on
+  `dwelling`, `shopfront` and `school`. Tests: `CutOffClockTests`.
+  - The deadline is checked daily rather than on a Zone Rule visit. The visit is a random sample
+    and lagged the deadline by up to four Days on the bridge fixture.
+  - The Building panel shows "Cut off since Day N", the reason (no Access Point, or no road to an
+    Outside Connection) and Days left; afterwards "Abandoned on Day N" with the cause. Every
+    abandonment path now records its cause.
+- **Probe with both shipped deadlines.** Unrepaired, all 32 far-side Buildings are abandoned at the
+  start of Day 17, fourteen Days after the removal. Because every far dwelling is also a shop's
+  premises, 76 crossers re-hired on the far side lose those jobs that Day and jobless crossers rise
+  from 121 to 197. Repaired on Day 5 or Day 12, nothing is abandoned.
+
+- **Driven on the bridge fixture.** Saves at Day 6 and Day 19 on the HUD clock, from the probe's
+  run with both deadlines, loaded into the shell with far dwelling 33 selected. Day 6 reads "Cut off
+  since Day 3 · no road reaches an Outside Connection" and "Abandoned in 12 Days unless a road
+  reconnects it". Day 19 reads "Abandoned on Day 18 · cut off from every Outside Connection", with
+  no Households and no workers. The abandoned far district draws in the derelict gray, which is
+  easy to miss beside the occupied district at city zoom.
+
+- **Driven demonstration, with and without a repair.** Both runs load one bridge-fixture save
+  (both deadlines, HUD Day 2 11:00) and follow Household 1 on the near side, its Citizens' far-side
+  workplace Business 45, and that Business's premises, far dwelling 48. Days are HUD Days.
+  - Aim: with the Street tool held at Tile (80, 0) the hover reads "shift-click removes Street 25",
+    the bridge. The shift-click on Day 3 at 23:00 removes it. The repair's hover reads "clears
+    nothing · click to lay" before its second click.
+  - Day 6, both runs: each Citizen reads "Unable to reach work since Day 4, 2 Days ago · no route
+    to work" and "Dismissal in 8 Days". Business 45 reads "4 workers cannot reach this workplace,
+    the first since Day 4". Building 48 reads "Cut off since Day 3" and "Abandoned in 12 Days".
+  - Repaired at Day 6 11:08: on Day 8 each Citizen reads "Commute restored on Day 7 after 3 Days of
+    failed commutes", and the Business and Building lines are gone. Nothing changes through Day 15.
+  - Not repaired: on Day 8 the countdowns read 6 and 10 Days. On Day 15 Citizen 361 reads "Dismissed
+    on Day 14 after 10 Days of failed commutes" and Citizen 1, re-hired elsewhere, reads "Lost the
+    previous job on Day 14". On Day 19 Building 48 reads "Abandoned on Day 18 · cut off from every
+    Outside Connection", and Business 45 no longer exists.
+  - Observation exposed two gaps. A `ui business` for a removed Business is ignored without a word,
+    so the previous panel stays open. Every fixture dwelling carries an unrelated upkeep shortfall
+    ("Waiting for repairs") from `congested.toml`, which crowds the attention section.
+
+- **Parking measurement.** `ParkingDismissalProbe` replays the base package's founding city for 120
+  Days with no broken connection, sweeping `[capacity] floor_tiles_per_parking_space`. There is no
+  calendar, so a 30-Day window stands in for the month the acceptance item names.
+
+  | Floor Tiles per space | Spaces at Day 120 | Car parks full at peak | Dismissed in 120 Days | Per 1,000 workers per 30 Days, Days 91–120 |
+  |---|---|---|---|---|
+  | 6 (shipped) | 3,039 | 8 of 126 | 0 | 0 |
+  | 12 | 1,489 | 91 of 126 | 16 | 8 |
+  | 24 | 712 | every park, from Day 20 | 1,757 | 603 |
+  | 48 | 322 | every park, from Day 5 | 2,503 | 944 |
+
+  - At the shipped rate the city grows to about 2,270 Citizens and 900 workers, holds at most 44%
+    of its spaces, and no commute exceeds the budget. Over-budget dismissal never fires.
+  - At 12, about two thirds of the car parks fill. Dismissals stay rare and employment holds.
+  - At 24 every space is held from Day 20, and at 48 from Day 5, to Day 120. The city keeps
+    building car parks until it has 126 around Day 52, and each one fills as it opens. Completed
+    Trips fall from about 6,000 a Day at the shipped rate to about 2,500 at 24 and 1,000 at 48.
+    Dismissed workers are re-hired and fail again, so the worker count holds near 950 at 24 and
+    declines from about 890 to 730 at 48.
+  - The failure is a parking lock rather than a dismissal rule. `TripEngine.Start` fails a car Trip
+    whose destination shed is full before the car moves, so the driver keeps the space it holds.
+    Once every space is held, a driver can travel only when its own space lies in the destination's
+    shed (`World.TryChooseParking`). This is read from the code; no test isolates it. Issue #167.
+
+  - Over-budget keeps counting. The lock is issue #167.
+
+- **Edge cases and equivalence.** Tests on the bridge fixture, in `FailedCommuteClockTests` and
+  `CutOffClockTests`. None exposed a defect.
+
+  | Case | What the test shows |
+  |---|---|
+  | Intermittent failure | Bridge removed and rebuilt on alternate Days through Day 7, past a 2-Day deadline. Each failure restarts the clock, nobody is dismissed, and the last episode reads Recovered, Day 6 to Day 7. |
+  | Unrelated Trips | A failing crosser who completes a commanded Trip on the near side keeps the same clock and is dismissed on time. |
+  | No retry, days off | With `work_days` Monday to Friday and a 5-Day deadline, each crosser fails once per working Day and never on Days 5–6. Dismissal lands on Day 7, the fourth failure, so the clock counts elapsed Ticks. |
+  | Multiple tenants | Each Business lists each failing worker once. Dismissing one worker or one Household's member leaves every other clock unchanged. |
+  | Removal and slot reuse | A Citizen who dies mid-episode leaves its workplace's list, and a Citizen created into the reused slot has no clock and no episode. A destroyed Household takes its members' clocks with it. A Building raised on a demolished cut-off Building's Lot reuses its slot, starts its own clock at its creation and is abandoned a Day after the others. |
+  | Supply and Trip failure | Far dwellings both starved by upkeep and cut off keep `StarvedSince` equal to a run with the bridge intact, as do failing workers' premises. The repair clears the cut-off clock and leaves `StarvedSince` alone. |
+  | Observation cadence | Draining every Tick, observing every 37 Ticks, and saving and reloading mid-episode give one State Hash and the same episodes and dismissal Days. |
+  | Thread count | One and four route workers hash alike every 16 Ticks through dismissals and cut-off abandonment; end-of-run invariants pass. |
+
+  - A cut-off deadline no longer than the dismissal deadline pre-empts dismissal. Abandonment
+    removes far Businesses and evicts far Households before the deadline commute, so nobody is
+    dismissed. The shipped 10 and 14 Days dismiss first, and
+    `BaseFoundingPackageTests` holds that order.
+  - Input Log replay with a running clock is not covered. The bridge fixture places its people
+    outside the Input Log, and no golden or replay test sets either key. Repeated identical runs,
+    save/reload and thread count are covered above.
+  - Checks on 10/14/2026: `scripts/test.sh` passed 4,667 tests; `scripts/test.sh --all` passed 4,721.
+
+## Closure
+
+Closed 10/14/2026 without the Input Log replay case. Both clocks are saved state written by
+sequential Tick code, and repeated runs, save/reload and route worker count already hold them
+equal. Add a replay case if a fixture that places its people through the Input Log appears.
 
 ## Evidence and acceptance
 
@@ -146,9 +301,10 @@ transitions, and answers whether the plan-time budget test reads congested trave
 - Demonstrate a stable baseline, broken connection, sustained failed commute and consequence,
   player reconnection, then successful activity and stopped pressure. Run a matching no-intervention
   case to show that time alone does not produce the claimed recovery.
-- Measure over-budget dismissals in a growing city with congested commutes and no broken
-  connection. Report dismissals per thousand workers per game month at the shipped deadline, and
-  whether the city's employment settles or spirals. This decides whether over-budget keeps counting.
+- Measure over-budget dismissals in a growing city whose parking fills, with no broken
+  connection. Congestion cannot cause one, so a full parking shed is the dynamic cause to test.
+  Report dismissals per thousand workers per game month at the shipped deadline, and whether the
+  city's employment settles or spirals. This decides whether over-budget keeps counting.
 - Cover intermittent failures, unrelated successful Trips, no retry, multiple tenants, subject
   removal/slot reuse and simultaneous supply/Trip failure. A change in observation cadence must
   not change the elapsed failure being measured.
@@ -165,7 +321,17 @@ transitions, and answers whether the plan-time budget test reads congested trave
 
 ## Coordination
 
-0077 owns loader/authoring contracts and coordinates runtime factoring. Agree any new saved state
-and Ruleset keys before changing those surfaces. The first playable owns its founding and shortage
+0077 owns loader/authoring contracts and coordinates runtime factoring. Agreed 10/14/2026 against
+its contracts:
+
+| Surface | Added | Contract met |
+|---|---|---|
+| `[jobs] dismissed_after_failed_commute_days` | Whole Days, 1 to 65,535; absent turns the clock off | Loader refusal, schema, generated key reference, `KeySurface` tests |
+| `[[building]] abandoned_after_cut_off_days` | Whole Days, 1 to 65,535; requires `collapses_after_days`; absent turns the clock off | Same |
+| Citizen columns | `commute_failed_since`, `commute_episode_start_day`, `commute_episode_end_day`, `commute_episode_outcome` | Saved and hashed; save format 19 and 20 |
+| Building columns | `cut_off_since`; `AbandonmentCause.CutOff` | Saved and hashed; save format 21 |
+
+Neither key references another declaration, so the package resolver gains no reference edge. The
+base package ships 10 and 14 Days, and its founding log was re-recorded with them. The first playable owns its founding and shortage
 world; use a separate diagnostic fixture and agree how its evidence will integrate later.
 The design is complete. No blocker is identified for the probe.

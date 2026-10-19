@@ -45,6 +45,20 @@ public readonly record struct TripEvidence(
 /// </param>
 public readonly record struct PastTripEvidence(TripFate Fate, ushort EndedDay);
 
+/// <summary>A run of failed outbound commutes that is still going.</summary>
+/// <param name="Since">The Tick of the first failed outbound commute in the run.</param>
+/// <param name="DismissalDue">
+/// The first Tick at which another failed outbound commute costs the job. A worker who does not
+/// depart on that Day loses the job at the next failed departure after it.
+/// </param>
+public readonly record struct FailingCommuteEvidence(Ticks Since, Ticks DismissalDue);
+
+/// <summary>How the Citizen's most recent ended run of failed outbound commutes went.</summary>
+/// <param name="StartDay">The Day the first failure in the run happened.</param>
+/// <param name="EndDay">The Day the run ended, by a completed commute or by dismissal.</param>
+/// <param name="Outcome">Never <see cref="CommuteEpisodeOutcome.None"/>; that is the absent case.</param>
+public readonly record struct CommuteEpisodeEvidence(ushort StartDay, ushort EndDay, CommuteEpisodeOutcome Outcome);
+
 /// <summary>
 /// <c>02 §9</c>'s Citizen answer: where they live and work, what they are doing, and — where they do
 /// not work — why not.
@@ -99,7 +113,9 @@ public readonly struct CitizenEvidence
         int? sustenance,
         int? centralityTaste,
         TripEvidence? trip,
-        PastTripEvidence? lastTrip)
+        PastTripEvidence? lastTrip,
+        FailingCommuteEvidence? failingCommute,
+        CommuteEpisodeEvidence? lastCommuteEpisode)
     {
         Citizen = citizen;
         Household = household;
@@ -113,6 +129,8 @@ public readonly struct CitizenEvidence
         CentralityTaste = centralityTaste;
         Trip = trip;
         LastTrip = lastTrip;
+        FailingCommute = failingCommute;
+        LastCommuteEpisode = lastCommuteEpisode;
     }
 
     /// <summary>Which Citizen this is about.</summary>
@@ -298,4 +316,13 @@ public readonly struct CitizenEvidence
     /// the journey by design.
     /// </remarks>
     public PastTripEvidence? LastTrip { get; }
+
+    /// <summary>
+    /// The run of failed outbound commutes still going, or absent when the last outbound commute
+    /// completed or the world sets no <c>[jobs] dismissed_after_failed_commute_days</c>.
+    /// </summary>
+    public FailingCommuteEvidence? FailingCommute { get; }
+
+    /// <summary>The most recent run of failed outbound commutes that has ended, or absent.</summary>
+    public CommuteEpisodeEvidence? LastCommuteEpisode { get; }
 }

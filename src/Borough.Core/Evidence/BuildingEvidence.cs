@@ -282,3 +282,14 @@ public readonly struct BuildingEvidence
     /// </remarks>
     public long TenantPressure { get; }
 }
+
+/// <summary>A Building no road joins to an Outside Connection.</summary>
+/// <param name="Since">The Tick of the road edit that cut it off.</param>
+/// <param name="AbandonmentDue">
+/// The deadline. The city abandons it at the first Day boundary at or after this Tick.
+/// </param>
+/// <param name="HasAccessPoint">
+/// False when the Building has no Access Point at all; true when it has one that no road joins to a
+/// gate.
+/// </param>
+public readonly record struct CutOffEvidence(Ticks Since, Ticks AbandonmentDue, bool HasAccessPoint);

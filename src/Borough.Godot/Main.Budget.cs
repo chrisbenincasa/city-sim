@@ -38,7 +38,7 @@ public partial class Main
     private Label _budgetDayHeading = null!, _budgetRunHeading = null!;
     private Label _budgetExplained = null!, _budgetResidual = null!;
 
-    /// <summary>The eight flows by three columns, row-major. Empty on a city with no treasury.</summary>
+    /// <summary>The twelve flows by three columns, row-major. Empty on a city with no treasury.</summary>
     private Label[] _budgetFigures = [];
 
     /// <summary>
@@ -190,7 +190,7 @@ public partial class Main
     /// into the treasury and out of it on the same Tick moves four columns and leaves the balance
     /// where it was, so a signature made of levels would hold a stale table with nothing to say so.
     /// Income and expenditure are each a sum of monotone parts, so one of them moves whenever any of
-    /// the eight does — which makes the pair exact rather than merely wider.
+    /// the twelve does — which makes the pair exact rather than merely wider.
     /// </para>
     /// </remarks>
     private void RefreshBudget()
@@ -235,11 +235,12 @@ public partial class Main
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Eight flow rows and no ninth that adds any of them up.</b> A net cannot say whether a city
-    /// taxed nothing and paid nothing or taxed heavily and paid it all back, and within the income a
-    /// withholding, a profit tax, a <c>[[policy]]</c> and a <c>[[rule]]</c> are one arrival through
-    /// four levers the player turns separately. ⚠ <b>The treasury is not a ninth row</b>: it is the
-    /// running consequence of the eight and it stands above them as a level.
+    /// <b>Twelve flow rows and no thirteenth that adds any of them up.</b> A net cannot say whether a
+    /// city taxed nothing and paid nothing or taxed heavily and paid it all back, and within the
+    /// income a withholding, a profit tax, a <c>[[policy]]</c>, a <c>[[rule]]</c> and a rent are one
+    /// arrival through five levers the player turns separately. ⚠ <b>The treasury is not a
+    /// thirteenth row</b>: it is the running consequence of the twelve and stands above them as a
+    /// level.
     /// </para>
     /// <para>
     /// <b>Three figure columns, and the first is the one that MOVES.</b> A closed Day stands still
@@ -321,10 +322,13 @@ public partial class Main
     /// the treasury and leaves the money supply with it, because construction money buys imported
     /// Materials and no import path exists. It is expenditure all the same — the balance fell by it
     /// — and without the row the residual below would carry it with nothing to name it.
+    /// ⚠ <b><c>rent · in</c> is only the rent the city's own Lots earned</b>, which is less than the
+    /// arrears panel's collected figure. A private Landowner's receipts and debt cancelled around a
+    /// ring never crossed the treasury's edge, so either one here would open the residual.
     /// </remarks>
     private static readonly string[] BudgetRows =
     [
-        "withheld · in", "profit tax · in", "policy · in", "rule · in",
+        "withheld · in", "profit tax · in", "policy · in", "rule · in", "rent · in",
         "policy · out", "rule · out", "subsidy · out", "placement · out", "upkeep · out",
         "compensation · out", "opening grant · out",
     ];
@@ -358,13 +362,14 @@ public partial class Main
         Line(1, today.ProfitTax, day.ProfitTax, running.ProfitTax);
         Line(2, today.PolicyIn, day.PolicyIn, running.PolicyIn);
         Line(3, today.RuleIn, day.RuleIn, running.RuleIn);
-        Line(4, today.PolicyOut, day.PolicyOut, running.PolicyOut);
-        Line(5, today.RuleOut, day.RuleOut, running.RuleOut);
-        Line(6, today.Subsidy, day.Subsidy, running.Subsidy);
-        Line(7, today.Placement, day.Placement, running.Placement);
-        Line(8, today.Upkeep, day.Upkeep, running.Upkeep);
-        Line(9, today.Compensation, day.Compensation, running.Compensation);
-        Line(10, today.Grant, day.Grant, running.Grant);
+        Line(4, today.Rent, day.Rent, running.Rent);
+        Line(5, today.PolicyOut, day.PolicyOut, running.PolicyOut);
+        Line(6, today.RuleOut, day.RuleOut, running.RuleOut);
+        Line(7, today.Subsidy, day.Subsidy, running.Subsidy);
+        Line(8, today.Placement, day.Placement, running.Placement);
+        Line(9, today.Upkeep, day.Upkeep, running.Upkeep);
+        Line(10, today.Compensation, day.Compensation, running.Compensation);
+        Line(11, today.Grant, day.Grant, running.Grant);
 
         long residual = budget.Residual(held);
         long explained = budget.Opening + running.Income - running.Expenditure;

@@ -46,7 +46,7 @@ public sealed class WorldChangesTests
         world.DestroyHousehold(household);
         Assert.Equal(new[] { slot }, world.Changes.Buildings.ToArray());
         world.Changes.Clear();
-        world.AbandonBuilding(building, new Ticks(1));
+        world.AbandonBuilding(building, new Ticks(1), AbandonmentCause.Condemned);
         Assert.Equal(new[] { slot }, world.Changes.Buildings.ToArray());
     }
 

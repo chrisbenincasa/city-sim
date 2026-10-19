@@ -621,6 +621,29 @@ internal static class GoldenFixtures
             }
         }
 
+        // TWO LOTS ARE OWNED AND FOUR ARE HELD BY THE CITY, which is the Landowner column covered as
+        // a VALUE rather than as a declaration -- the fold takes the Landowner's monotonic id, so a
+        // fixture of empty handles would move this hash the day the column landed and never again
+        // however land changed hands. That is the failure README.md keeps recording.
+        //
+        // ⚠ THE SECOND ONE IS HELD BY HOUSEHOLD 5, WHICH IS RETIRED BELOW. So the baseline carries
+        // the severed case as well as the live one: the handle is saved and restored stale, and the
+        // Lot reads as city-held because its Landowner died (land and rent L9). A built Lot and a
+        // vacant one, because L2 gives a Landowner the Lot either way.
+        world.Lots.Landowner[world.Lots.Rows.Resolve(lots[1])] = households[0];
+        world.Lots.Landowner[world.Lots.Rows.Resolve(lots[4])] = households[5];
+
+        // ONE HOUSEHOLD IS BEHIND ON ITS RENT, for the Landowner column's reason one slice along
+        // (land and rent L16). This world runs on Ruleset.Empty, so no sweep charges anybody and a
+        // straight re-record would fold two zeroed columns on every row -- a baseline that moved the
+        // day the columns landed and never again however arrears moved.
+        //
+        // ⚠ THE DAY IS NON-ZERO AND THE DEBT IS NOT A ROUND NUMBER, so a fold that dropped either
+        // column shows up. Household 3 keeps its endowment: a debt is not negative money (adr/0003),
+        // so these two columns and the balance are independent facts about the same row.
+        world.Households.RentDebt[world.Households.Rows.Resolve(households[3])] = new Money(1_427);
+        world.Households.RentDebtSinceDay[world.Households.Rows.Resolve(households[3])] = 9;
+
         // The Businesses are created BEFORE the Citizens because since adr/0141 a Citizen is
         // employed by a trade rather than by premises, so they have to exist to be employed into.
         // Everything the block below them says about why there are two and why their kinds differ
@@ -630,6 +653,11 @@ internal static class GoldenFixtures
             world.CreateBusiness(buildings[2], kind: 1),
             world.CreateBusiness(buildings[2], kind: 2),
         ];
+
+        // And the tenant's other kind, so both arrears columns are folded on both tables. The second
+        // employer stays clear, which is the pair a single value could not give.
+        world.Businesses.RentDebt[world.Businesses.Rows.Resolve(employers[0])] = new Money(613);
+        world.Businesses.RentDebtSinceDay[world.Businesses.Rows.Resolve(employers[0])] = 4;
 
         var citizens = new Handle<Citizen>[20];
         for (int i = 0; i < citizens.Length; i++)

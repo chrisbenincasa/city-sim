@@ -201,6 +201,10 @@ internal static class CensusFamilies
     /// <c>amount</c>, and none of it passes through that counter to begin with. ⚠ <b>A
     /// family with no reader is a family nobody can see</b> — the note below on the Trip Fates is the
     /// worked example, and it is the reason this row was added here on the day the counter was.
+    /// ⚠ <b><c>rent</c> is the fifth income and the only one a private party also receives</b> — only
+    /// the share tenants paid on treasury-owned Lots is here, because <c>Simulation.LastRent</c>
+    /// also carries what private Landowners took and what a ring cancelled, and neither of those
+    /// crossed the treasury's edge.
     /// ⚠ <b>There is no <c>relief</c> row and there must not be one</b>: a relief moves no Money, so
     /// it is revenue forgone rather than a flow, and a row here would put it in an identity about
     /// what crossed the treasury's edge.
@@ -230,6 +234,8 @@ internal static class CensusFamilies
         (MoneyFlowCounter.Compensation, Aggregate.Peak, "compensation peak"),
         (MoneyFlowCounter.Grant, Aggregate.Sum, "opening grant"),
         (MoneyFlowCounter.Grant, Aggregate.Peak, "opening grant peak"),
+        (MoneyFlowCounter.Rent, Aggregate.Sum, "rent"),
+        (MoneyFlowCounter.Rent, Aggregate.Peak, "rent peak"),
     ];
 
     /// <summary>

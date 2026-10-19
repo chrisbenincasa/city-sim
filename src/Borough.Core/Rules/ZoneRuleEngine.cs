@@ -160,6 +160,8 @@ public sealed class ZoneRuleEngine
     /// <summary>What this sweep has already answered per row, so two Lots cannot answer one hunger.</summary>
     private long[] _claimed = [];
 
+    private bool[] _served = [];
+
     /// <summary>Elapsed waiting by Citizens at <see cref="EmploymentState.NoVacancy"/>, per District slot.</summary>
     private long[] _jobless = [];
 
@@ -245,6 +247,13 @@ public sealed class ZoneRuleEngine
     /// </remarks>
     /// <param name="tick">The Tick being run, which is both the trigger test and the sample's key.</param>
     public void Sweep(Ticks tick)
+    {
+        _world.BeginLandSaleSweep();
+        try { SweepRules(tick); }
+        finally { _world.EndLandSaleSweep(); }
+    }
+
+    private void SweepRules(Ticks tick)
     {
         ReadOnlySpan<ZoneRuleDefinition> rules = _world.Rules.ZoneRules;
 
@@ -644,6 +653,13 @@ public sealed class ZoneRuleEngine
     /// the same hours.
     /// </para>
     /// <para>
+    /// <b>A firm importing a Professional Service counts as unserved from the Tick it chose the
+    /// Hinterland</b>, because offices exist to displace imports (<c>04 §1</c>). An imported Good
+    /// counts for nothing. A contract whose Hinterland no longer supplies is skipped, since that firm
+    /// is stalled and the Rule Instance pass already counts it. So is one in a District where an
+    /// office already makes the service (<see cref="MarkServed"/>).
+    /// </para>
+    /// <para>
     /// ⚠ <b>Recomputed whole and stored nowhere.</b> One pass over live Rule Instances, which is the
     /// cost <c>adr/0163</c> owes <c>plans/0013</c> a measured row for. Keeping a running total instead
     /// would be a magnitude that only grows, needing a decay rate nobody could ratify —
@@ -715,6 +731,85 @@ public sealed class ZoneRuleEngine
 
             _demand[row] += (long)(tick.Raw - _world.RuleInstances.StarvedSince[slot].Raw);
         }
+
+        MarkServed(rows);
+
+        ServiceContractTable contracts = _world.ServiceContracts;
+
+        for (int contract = 0; contract < contracts.Rows.SlotCount; contract++)
+        {
+            if (!contracts.Rows.IsLive(contract)
+                || !contracts.Provider[contract].IsNone
+                || !_world.Supplies(contracts.Hinterland[contract], contracts.Service[contract])
+                || !_world.Businesses.Rows.TryResolve(contracts.Buyer[contract], out int buyer)
+                || !TryDistrictOf(_world.Businesses.Building[buyer], out int area))
+            {
+                continue;
+            }
+
+            int row = _world.Markets.Row(_world, area, contracts.Service[contract]);
+
+            if (row != DistrictMarkets.NoRow && !_served[row])
+            {
+                _demand[row] += (long)(tick.Raw - contracts.Since[contract].Raw);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Marks every District market row for a service that a Business standing in that District makes.
+    /// </summary>
+    /// <remarks>
+    /// An importer in a marked row is not demand. Without this, a firm that no office reaches would
+    /// keep its import clock running and raise one office a Day in its District until the Lots ran
+    /// out. Units left are not consulted, because an allowance reads empty every morning until its
+    /// staff arrive.
+    /// </remarks>
+    private void MarkServed(int rows)
+    {
+        if (_served.Length < rows)
+        {
+            _served = new bool[rows];
+        }
+
+        Array.Clear(_served, 0, rows);
+
+        for (int business = 0; business < _world.Businesses.Rows.SlotCount; business++)
+        {
+            if (!_world.Businesses.Rows.IsLive(business)
+                || !_world.Buildings.Rows.TryResolve(_world.Businesses.Building[business], out int premises)
+                || !TryDistrictOf(_world.Businesses.Building[business], out int area))
+            {
+                continue;
+            }
+
+            foreach (RuleId rule in _world.Rules.RulesOf(_world.Buildings.Kind[premises]))
+            {
+                foreach (Term output in _world.Rules.Outputs(rule))
+                {
+                    if (_world.Rules.Family(output.Bin.Resource) != ResourceFamily.Service)
+                    {
+                        continue;
+                    }
+
+                    int row = _world.Markets.Row(_world, area, output.Bin.Resource);
+
+                    if (row != DistrictMarkets.NoRow && row < rows)
+                    {
+                        _served[row] = true;
+                    }
+                }
+            }
+        }
+    }
+
+    private bool TryDistrictOf(Handle<Building> building, out int area)
+    {
+        area = Rows.NoSlot;
+
+        return _world.Buildings.Rows.TryResolve(building, out int premises)
+            && _world.Lots.Rows.TryResolve(_world.Buildings.Lot[premises], out int lot)
+            && _world.Districts.Rows.TryResolve(DistrictOf(lot), out area);
     }
 
     private static bool ReadsJobless(ReadOnlySpan<ZoneRuleDefinition> rules)
@@ -735,13 +830,19 @@ public sealed class ZoneRuleEngine
     /// <see cref="DistrictMarkets.NoRow"/>.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>A kind sells what it stocks AS A BUSINESS, and that needs no new Ruleset key.</b> A
     /// <c>[[building]]</c> declaring <c>{ resource = "sundries", owner = "business" }</c> is a shop;
     /// one declaring the same Bin <c>owner = "occupant"</c> is a larder. ***That is the discriminator
     /// <c>DistrictMarkets</c> already uses to decide who is a seller*** — a Business's own Bin, offered
     /// in its District's row — so the Zone Rule and the market agree by construction rather than by two
-    /// definitions kept in step. ⚠ <b>Money is skipped</b>: a till is a Business-owned Bin and is not
-    /// stock.
+    /// definitions kept in step. ⚠ <b>Only a Good counts</b>: a till and a labour Bin are Business-owned
+    /// and are not stock.
+    /// </para>
+    /// <para>
+    /// <b>A kind with no such Bin sells the first Professional Service its Rules make.</b> A service
+    /// has no Bin, but the loader lets only a Business Rule make one, so the same seller test holds.
+    /// </para>
     /// </remarks>
     private int MarketFor(byte kind, int lot)
     {
@@ -755,12 +856,23 @@ public sealed class ZoneRuleEngine
         foreach (BinDeclaration declaration in _world.Rules.BinsOf(kind))
         {
             if (declaration.Tenancy != BinTenancy.Business
-                || _world.Rules.IsConserved(declaration.Resource))
+                || _world.Rules.Family(declaration.Resource) != ResourceFamily.Good)
             {
                 continue;
             }
 
             return _world.Markets.Row(_world, districtSlot, declaration.Resource);
+        }
+
+        foreach (RuleId rule in _world.Rules.RulesOf(kind))
+        {
+            foreach (Term output in _world.Rules.Outputs(rule))
+            {
+                if (_world.Rules.Family(output.Bin.Resource) == ResourceFamily.Service)
+                {
+                    return _world.Markets.Row(_world, districtSlot, output.Bin.Resource);
+                }
+            }
         }
 
         return DistrictMarkets.NoRow;
@@ -817,17 +929,11 @@ public sealed class ZoneRuleEngine
             return;
         }
 
-        if (definition.ReadsDemand)
-        {
-            if (!Demanded(definition, lot, tick))
-            {
-                return;
-            }
-        }
-        else if (_world.UnplacedPool.Count == 0)
-        {
-            return;
-        }
+        if (!definition.ReadsDemand && _world.UnplacedPool.Count == 0) { return; }
+        if (!_world.CanFinanceConstruction(lot, _world.Lots.FloorTiles(lot))) { return; }
+        if (definition.ReadsDemand && !Demanded(definition, lot, tick)) { return; }
+
+        if (!_world.FinanceConstruction(lot, _world.Lots.FloorTiles(lot), tick)) { return; }
 
         Handle<Building> raised = _world.CreateBuilding(_world.Lots.Rows.At(lot), definition.Kind, tick, _key, zoned: true);
 
@@ -1005,7 +1111,7 @@ public sealed class ZoneRuleEngine
             // ⚠ The city no longer removes anything. What clears an abandoned Building is adr/0091's
             // Demolish verb or its Govern clearance programme, and until one of those ships the stock
             // has no sink -- which is milestone 17's named risk arriving, deliberately, here.
-            _world.AbandonBuilding(_world.Buildings.Rows.At(building), tick);
+            _world.AbandonBuilding(_world.Buildings.Rows.At(building), tick, AbandonmentCause.Condemned);
             _tickDemolished++;
 
             // Abandonment ends every tenancy in the Building, through EmptyPremises' own walk of the
@@ -1041,7 +1147,7 @@ public sealed class ZoneRuleEngine
                     kind,
                     ConditionId.None);
 
-                _world.AbandonBuilding(_world.Buildings.Rows.At(building), tick);
+                _world.AbandonBuilding(_world.Buildings.Rows.At(building), tick, AbandonmentCause.StoodEmpty);
                 _tickDemolished++;
 
                 return;

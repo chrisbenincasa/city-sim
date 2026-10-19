@@ -130,9 +130,16 @@ hiding in the build.
 
 ## What the second term found
 
-**A `[[building]] rent` is per KIND, and no world can stand two housing kinds, so the rent term is
-identical across every candidate — and a term identical across every candidate CANCELS.** Only
-differences matter in a logit. The scale is authored, read, and weighs nothing.
+**A `[[building]] rent` was per KIND, and no world could stand two housing kinds, so the rent term
+was identical across every candidate — and a term identical across every candidate CANCELS.** Only
+differences matter in a logit. The scale was authored, read, and weighed nothing.
+
+⚠ **SUPERSEDED 2026-10-17 by `plans/money-circulation.md` L7, which built the mechanism this section
+said nobody had written.** Rent is a rate per floor Tile charged on the floor a tenancy holds, times
+one plus the land value at its Lot, so two dwellings of ONE kind differ by their ground and the term
+has a difference to weigh. `[[building]] rent` no longer loads; the key is `rent_per_floor_tile`.
+What follows stands as the record of why the key shipped inert, and the populator limit it diagnosed
+is no longer what makes the term cancel.
 
 ⚠ **It was built the other way first and the world refused it.** `chosen.toml` shipped for about an
 hour with `dwelling` at 500 a Day beside `flat` at 120, which is exactly the trade-off `02 §5.4`
