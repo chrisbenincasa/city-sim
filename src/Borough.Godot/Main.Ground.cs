@@ -196,15 +196,14 @@ public partial class Main
     /// row 25.
     /// </remarks>
     private static Transform3D Block(
-        (Tiles East, Tiles North) at, BlockLattice lattice, float height)
+        (Tiles East, Tiles North) at, StreetGrid streets, float height)
     {
-        int column = lattice.LineAt(at.East.Raw);
-        int row = lattice.LineAt(at.North.Raw);
+        BlockGround block = streets.Block(streets.Lattice.LineAt(at.East.Raw), streets.Lattice.LineAt(at.North.Raw));
 
-        float wide = lattice.WidthOf(column) * MetresPerTile;
-        float deep = lattice.WidthOf(row) * MetresPerTile;
-        float west = lattice.EdgeOf(column) * MetresPerTile;
-        float south = lattice.EdgeOf(row) * MetresPerTile;
+        float wide = block.Wide * MetresPerTile;
+        float deep = block.Deep * MetresPerTile;
+        float west = block.East * MetresPerTile;
+        float south = block.North * MetresPerTile;
 
         return new Transform3D(
             Basis.FromScale(new Vector3(wide, height, deep)),
@@ -549,7 +548,7 @@ public partial class Main
                     float z = (north * CellGrid.MetresPerCell) + (((draw >> 12) & 0xFFFu) / 4095f * CellGrid.MetresPerCell);
 
                     if (BuildingExcludesFoliage(new Vector2(x, z))
-                        || (paved.HasPoint(new Vector2(x, z)) && !InAYard(x, z, block, lots)))
+                        || (paved.HasPoint(new Vector2(x, z)) && !InAYard(x, z, lots)))
                     {
                         continue;
                     }
@@ -629,20 +628,23 @@ public partial class Main
     }
 
     /// <summary>Whether a point stands far enough into a block to be behind the Buildings.</summary>
-    private bool InAYard(float east, float north, int block, int lots)
+    private bool InAYard(float east, float north, int lots)
     {
-        if (block <= 0)
+        StreetGrid streets = _world.Roads.Streets;
+        if (streets.BlockTiles <= 0)
         {
             return true;
         }
 
-        float span = block * MetresPerTile;
-        float margin = YardMargin(block, lots);
-        float alongEast = Mathf.PosMod(east, span);
-        float alongNorth = Mathf.PosMod(north, span);
+        BlockGround block = streets.Block(
+            streets.Lattice.LineAt(Mathf.FloorToInt(east / MetresPerTile)),
+            streets.Lattice.LineAt(Mathf.FloorToInt(north / MetresPerTile)));
+        float margin = YardMargin(block.Least, lots);
+        float alongEast = east - (block.East * MetresPerTile);
+        float alongNorth = north - (block.North * MetresPerTile);
 
-        return alongEast > margin && alongEast < span - margin
-            && alongNorth > margin && alongNorth < span - margin;
+        return alongEast > margin && alongEast < (block.Wide * MetresPerTile) - margin
+            && alongNorth > margin && alongNorth < (block.Deep * MetresPerTile) - margin;
     }
 
     /// <summary>Where a Cell's three bytes start in the skin, or <c>-1</c> if it is off the map.</summary>
@@ -722,15 +724,7 @@ public partial class Main
 
         if (_washing == Wash.Rung)
         {
-            _rungOf = new int[BlockPatterns.FormCount];
-
-            for (int i = 0; i < BlockPatterns.FormCount; i++)
-            {
-                _rungOf[i] = BlockPatterns.Rung(
-                    (BlockPattern)i,
-                    _world.Roads.Streets.BlockTiles,
-                    _world.Rules.Lots.LotsPerSegment);
-            }
+            _rungOf.Clear();
         }
 
         _categorical ??= new ShaderMaterial { Shader = GD.Load<Shader>("res://overlay-buildings.gdshader") };
@@ -970,23 +964,34 @@ public partial class Main
     /// </remarks>
     private int RungOf(int lot)
     {
-        if (_rungOf is null)
+        StreetGrid streets = _world.Roads.Streets;
+        LotTable lots = _world.Lots;
+        int tiles = streets.BlockTiles;
+        if (Frontage.BlockOf(streets, lots.East[lot], lots.North[lot], (StreetSide)lots.Side[lot], out int column, out int row))
         {
-            return 0;
+            BlockGround block = streets.Block(column, row);
+            if (block.Wide != streets.Lattice.WidthOf(column) || block.Deep != streets.Lattice.WidthOf(row)) tiles = block.Least;
         }
 
-        int rung = _rungOf[(int)_world.Lots.PatternOf(lot)];
+        if (!_rungOf.TryGetValue(tiles, out int[]? ladder))
+        {
+            ladder = new int[BlockPatterns.FormCount];
+            for (int i = 0; i < BlockPatterns.FormCount; i++)
+                ladder[i] = BlockPatterns.Rung((BlockPattern)i, tiles, _world.Rules.Lots.LotsPerSegment);
+            _rungOf.Add(tiles, ladder);
+        }
+
+        int rung = ladder[(int)lots.PatternOf(lot)];
 
         return rung < 0 ? 0 : rung >= Patterns.Length ? Patterns.Length - 1 : rung;
     }
 
-    /// <summary>Each pattern's position on this world's ladder, built once when a wash is set.</summary>
+    /// <summary>Each pattern's position on the ladder of each block size, built once per wash.</summary>
     /// <remarks>
-    /// ⚠ <b>The ladder is a function of two WORLD-CREATION keys</b> — <c>block_tiles</c> and
-    /// <c>lots_per_segment</c> — so within one world it is a constant and building it per Building
-    /// would be re-running a sort a few hundred times for one answer.
+    /// A one-square block ranks on the ladder of <c>block_tiles</c>. A merged block carves from the
+    /// ladder of its own narrower side, as <c>LotSubdivider</c> does.
     /// </remarks>
-    private int[]? _rungOf;
+    private readonly System.Collections.Generic.Dictionary<int, int[]> _rungOf = [];
 
     /// <summary>How old a Building is, as a share of the run so far.</summary>
     /// <remarks>

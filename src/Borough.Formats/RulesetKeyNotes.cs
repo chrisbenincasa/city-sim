@@ -929,6 +929,20 @@ public static class RulesetKeyNotes
             "The tightest curve a Street may be laid on, as a radius in Tiles. A tighter curve is "
             + "refused. Straight Streets have no radius and always pass. Absent means half of "
             + "block_tiles.",
+        ["[roads] dense_core_percent"] =
+            "How far from the town's middle the generator keeps every grid line, in percent of the "
+            + "town's radius. The town is the ground the starting population needs, so the core "
+            + "grows with the city. Inside it every block is one lattice square. Absent means 0.",
+        ["[roads] merged_block_percent"] =
+            "The share of 2×2 groups of lattice squares beyond dense_core_percent that the generator "
+            + "lays as one block, by leaving out the four Streets inside the group. The share rises "
+            + "from 0 at the core's edge to this value at the town's edge, and holds beyond it. "
+            + "A merged block carves the building patterns of its own size. A group an Arterial "
+            + "crosses never merges. Absent or 0 keeps every grid line.",
+        ["[roads] woodland_merge_percent"] =
+            "The merge chance a fully wooded 2×2 group adds beyond the dense core, in percent. A "
+            + "group half covered adds half. It applies only when merged_block_percent is above 0. "
+            + "Absent means 0.",
         ["[roads] upkeep_per_segment_per_day"] =
             "What the treasury pays each Day for every Road Segment, foot paths and Arterials "
             + "included. Absent or zero means roads cost nothing to keep. A treasury that cannot "

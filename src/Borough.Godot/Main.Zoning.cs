@@ -144,7 +144,9 @@ public partial class Main
         StreetGrid streets = _world.Roads.Streets;
         if (streets.Blocks <= 0) return false;
         int column = streets.Lattice.LineAt(at.East.Raw), row = streets.Lattice.LineAt(at.North.Raw);
-        if (column >= streets.Blocks || row >= streets.Blocks) return false;
+        if (column < 0 || row < 0 || column >= streets.Blocks || row >= streets.Blocks) return false;
+        if (streets.Block(column, row).Wide != streets.Lattice.WidthOf(column)
+            || streets.Block(column, row).Deep != streets.Lattice.WidthOf(row)) return true;
         return streets.Horizontal(column, row) != Rows.NoSlot || streets.Horizontal(column, row + 1) != Rows.NoSlot
             || streets.Vertical(column, row) != Rows.NoSlot || streets.Vertical(column + 1, row) != Rows.NoSlot;
     }
@@ -174,30 +176,39 @@ public partial class Main
             Math.Min(last, bounds.East), Math.Min(last, bounds.North));
     }
 
-    private int PreviewBlockCount((Tiles East, Tiles North) at)
+    private int PreviewBlockCount((Tiles East, Tiles North) at) =>
+        System.Linq.Enumerable.Count(PreviewBlocks(at));
+
+    /// <summary>Each block the stroke ending here touches, once, in row-major order of its first square.</summary>
+    private System.Collections.Generic.IEnumerable<BlockGround> PreviewBlocks((Tiles East, Tiles North) at)
     {
         var bounds = PreviewBounds(at);
-        return Math.Max(0, bounds.East - bounds.West + 1) * Math.Max(0, bounds.North - bounds.South + 1);
+        var streets = _world.Roads.Streets;
+        for (int row = bounds.South; row <= bounds.North; row++)
+            for (int column = bounds.West; column <= bounds.East; column++)
+            {
+                BlockGround block = streets.Block(column, row);
+                if (Math.Max(block.Column, bounds.West) == column && Math.Max(block.Row, bounds.South) == row)
+                    yield return block;
+            }
     }
 
     /// <summary>The Tile of each <c>Zone</c> command a whole-block stroke ending here sends, in send order.</summary>
     private System.Collections.Generic.List<(Tiles East, Tiles North)> WholeBlockCommands(
         (Tiles East, Tiles North) at, out int unchanged)
     {
-        var bounds = ZoneBounds(at);
         var streets = _world.Roads.Streets;
         var tiles = new System.Collections.Generic.List<(Tiles East, Tiles North)>();
         unchanged = 0;
         bool canSkip = _queued.Count == 0;
         ushort permission = ZonePermission();
-        for (int row = bounds.South; row <= bounds.North; row++)
-            for (int column = bounds.West; column <= bounds.East; column++)
-            {
-                var previous = _world.LandPermissions.Summary(_world.BlockGroundRectangle(column, row));
-                if (canSkip && previous.CommonUses == permission && previous.AnyUses == permission)
-                { unchanged++; continue; }
-                tiles.Add(streets.IntersectionTile(column, row));
-            }
+        foreach (BlockGround block in PreviewBlocks(at))
+        {
+            var previous = _world.LandPermissions.Summary(new LandRectangle(block.East, block.North, block.Wide, block.Deep));
+            if (canSkip && previous.CommonUses == permission && previous.AnyUses == permission)
+            { unchanged++; continue; }
+            tiles.Add(streets.IntersectionTile(block.Column, block.Row));
+        }
         return tiles;
     }
 
@@ -338,34 +349,27 @@ public partial class Main
     {
         if (!clipToPointer)
         {
-            var blocks = PreviewBounds(at);
-            for (int row = blocks.South; row <= blocks.North; row++)
-                for (int column = blocks.West; column <= blocks.East; column++)
-                {
-                    foreach (Parcel parcel in StandingParcels(column, row)) yield return parcel;
-                }
+            foreach (BlockGround block in PreviewBlocks(at))
+                foreach (Parcel parcel in StandingParcels(block.Column, block.Row)) yield return parcel;
             yield break;
         }
 
         var start = _zoneStart ?? at;
         int west = Math.Min(start.East.Raw, at.East.Raw), east = Math.Max(start.East.Raw, at.East.Raw);
         int south = Math.Min(start.North.Raw, at.North.Raw), north = Math.Max(start.North.Raw, at.North.Raw);
-        var bounds = ZoneBounds(at);
-        var streets = _world.Roads.Streets;
         Parcel[] buffer = [];
-        for (int row = Math.Max(0, bounds.South); row <= Math.Min(streets.Blocks - 1, bounds.North); row++)
-            for (int column = Math.Max(0, bounds.West); column <= Math.Min(streets.Blocks - 1, bounds.East); column++)
+        foreach (BlockGround block in PreviewBlocks(at))
+        {
+            int capacity = LotSubdivider.PreviewCapacity(_world, block.Column, block.Row);
+            if (buffer.Length < capacity) buffer = new Parcel[capacity];
+            int count = LotSubdivider.Preview(_world, block.Column, block.Row, buffer);
+            for (int i = 0; i < count; i++)
             {
-                int capacity = LotSubdivider.PreviewCapacity(_world, column, row);
-                if (buffer.Length < capacity) buffer = new Parcel[capacity];
-                int count = LotSubdivider.Preview(_world, column, row, buffer);
-                for (int i = 0; i < count; i++)
-                {
-                    var p = buffer[i];
-                    if (!clipToPointer || (p.East.Raw <= east && p.East.Raw + p.Wide.Raw > west
-                        && p.North.Raw <= north && p.North.Raw + p.Deep.Raw > south)) yield return p;
-                }
+                var p = buffer[i];
+                if (p.East.Raw <= east && p.East.Raw + p.Wide.Raw > west
+                    && p.North.Raw <= north && p.North.Raw + p.Deep.Raw > south) yield return p;
             }
+        }
     }
 
     private (object? World, object? Roads, uint Version, object? Rules, ulong LotIds, int Lots) _zoneBlocksAt;
@@ -387,8 +391,7 @@ public partial class Main
         int capacity = LotSubdivider.PreviewCapacity(_world, column, row);
         Parcel[] parcels = new Parcel[capacity];
         LotSubdivider.Preview(_world, column, row, parcels);
-        int realised = capacity - _world.Rules.Lots.ParcelCeiling(
-            BlockGround.At(_world.Roads.Lattice, column, row));
+        int realised = capacity - _world.Rules.Lots.ParcelCeiling(_world.Roads.Streets.Block(column, row));
         standing = parcels[..realised];
         _zoneBlockLots.Add((column, row), standing);
         return standing;
@@ -397,11 +400,13 @@ public partial class Main
     private Transform3D? ZoneInterior(int column, int row)
     {
         var streets = _world.Roads.Streets;
-        var lattice = streets.Lattice;
-        float west = lattice.EdgeOf(column) * MetresPerTile + ZoneStreetInset(streets.Vertical(column, row));
-        float east = lattice.EdgeOf(column + 1) * MetresPerTile - ZoneStreetInset(streets.Vertical(column + 1, row));
-        float south = lattice.EdgeOf(row) * MetresPerTile + ZoneStreetInset(streets.Horizontal(column, row));
-        float north = lattice.EdgeOf(row + 1) * MetresPerTile - ZoneStreetInset(streets.Horizontal(column, row + 1));
+        BlockGround block = streets.Block(column, row);
+        int eastLine = streets.Lattice.LineAt(block.East + block.Wide);
+        int northLine = streets.Lattice.LineAt(block.North + block.Deep);
+        float west = block.East * MetresPerTile + ZoneStreetInset(streets.Vertical(block.Column, block.Row));
+        float east = (block.East + block.Wide) * MetresPerTile - ZoneStreetInset(streets.Vertical(eastLine, block.Row));
+        float south = block.North * MetresPerTile + ZoneStreetInset(streets.Horizontal(block.Column, block.Row));
+        float north = (block.North + block.Deep) * MetresPerTile - ZoneStreetInset(streets.Horizontal(block.Column, northLine));
         if (east <= west || north <= south) return null;
         return new Transform3D(Basis.FromScale(new Vector3(east - west, .01f, north - south)),
             new Vector3((west + east) / 2, .02f, -(south + north) / 2));
