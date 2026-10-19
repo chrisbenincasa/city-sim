@@ -96,16 +96,16 @@ public partial class Main
     /// meshes.
     /// </summary>
     private readonly record struct BodyKey(
-        string Family, int Frontage, int Depth, int Storeys, AttachedSides Attached, int Paint,
+        string Family, int Frontage, int Depth, int Storeys, AttachedSides Attached, int Paint, int House,
         int PodiumStoreys, int ShaftFrontage, int ShaftDepth, bool Ring, FamilyBodyDetail Detail);
 
     /// <summary>Everything a Building's body is placed from, read from the World.</summary>
     private readonly record struct BodyRequest(
         Massing One, AppearanceFamily Family, FamilyBody Body, float Frontage, float Depth, int Storeys,
-        AttachedSides Attached, int Paint, float Turn, BodyNeighbours Neighbours, TowerSite? Site, Vector3 Origin, bool Ring)
+        AttachedSides Attached, int Paint, int House, float Turn, BodyNeighbours Neighbours, TowerSite? Site, Vector3 Origin, bool Ring)
     {
         public BodyKey Key(FamilyBodyDetail detail) => new(Family.Id, Mathf.RoundToInt(Frontage * 100f),
-            Mathf.RoundToInt(Depth * 100f), Storeys, Attached, Paint, Site?.PodiumStoreys ?? 0,
+            Mathf.RoundToInt(Depth * 100f), Storeys, Attached, Paint, House, Site?.PodiumStoreys ?? 0,
             Mathf.RoundToInt((Site?.ShaftFrontage ?? 0f) * 100f),
             Mathf.RoundToInt((Site?.ShaftDepth ?? 0f) * 100f), Ring, detail);
     }
@@ -280,7 +280,8 @@ public partial class Main
         int storeys = site?.Storeys ?? Mathf.Max(1, Mathf.RoundToInt(size.Y / StoreyMetres));
         AttachedSides attached = Attached(slot, origin, turn, frontage, out BodyNeighbours neighbours);
         int paint = FamilyPicker.Paint(family, _world.Key, one.Id);
-        return new BodyRequest(one, family, body, frontage, depth, storeys, attached, paint, turn, neighbours, site, origin, ring);
+        int house = body.House is null ? 0 : FamilyPicker.House(_world.Key, one.Id);
+        return new BodyRequest(one, family, body, frontage, depth, storeys, attached, paint, house, turn, neighbours, site, origin, ring);
     }
 
     private void PlaceBody(BodyRequest request)
@@ -591,6 +592,8 @@ public partial class Main
                 request.Storeys, tower.PodiumStoreys, tower.ShaftFrontage, tower.ShaftDepth, detail),
             { Body.Midrise: not null } => FamilyBodyBuilder.BuildMidrise(request.Body, request.Frontage, request.Depth,
                 request.Storeys, request.Ring, request.Attached, detail),
+            { Body.House: not null } => FamilyBodyBuilder.BuildHouse(request.Body, request.Frontage, request.Depth,
+                request.Storeys, request.House),
             _ => FamilyBodyBuilder.Build(request.Body, request.Frontage, request.Depth, request.Storeys, request.Attached),
         };
         foreach ((string part, ShellMesh source) in built.Parts)
@@ -614,6 +617,18 @@ public partial class Main
             arrays[(int)Mesh.ArrayType.Normal] = normals;
             arrays[(int)Mesh.ArrayType.TexUV] = uvs;
             arrays[(int)Mesh.ArrayType.TexUV2] = uv2s;
+            if (request.Body.House is not null)
+            {
+                var colors = new Color[source.VertexCount];
+                for (int i = 0; i < colors.Length; i++)
+                {
+                    System.Numerics.Vector4 c = source.Colors[i];
+                    colors[i] = new Color(c.X, c.Y, c.Z, c.W);
+                }
+
+                arrays[(int)Mesh.ArrayType.Color] = colors;
+            }
+
             arrays[(int)Mesh.ArrayType.Index] = source.Indices.ToArray();
             var tool = new SurfaceTool();
             tool.CreateFromArrays(arrays);
@@ -666,6 +681,12 @@ public partial class Main
                 continue;
             }
 
+            if (body.House is not null)
+            {
+                HouseSurface(mesh, part, arrays, library, family.Id, reads);
+                continue;
+            }
+
             bool dressed = body.Materials.TryGetValue(part, out string? texture);
             Material material = dressed ? LibraryMaterial(texture!)
                 : library.GetValueOrDefault(part) ?? MissingBodyPart;
@@ -705,6 +726,56 @@ public partial class Main
         var shape = new BodyShape(mesh, wall, roof, body);
         _familyBodyMeshes[key] = shape;
         return shape;
+    }
+
+    /// <summary>
+    /// A house surface. Its part is <c>part@texture</c> for a library texture or a bare part for the
+    /// authored model's own material, and each vertex carries its sRGB paint with 1 in alpha.
+    /// </summary>
+    private void HouseSurface(ArrayMesh mesh, string part, Godot.Collections.Array arrays,
+        Dictionary<string, Material> library, string family, Dictionary<string, Color> reads)
+    {
+        int at = part.IndexOf('@', System.StringComparison.Ordinal);
+        string name = at < 0 ? part : part[..at];
+        Color[] colors = arrays[(int)Mesh.ArrayType.Color].AsColorArray();
+        Material material;
+        Color? first = colors.Length > 0 && colors[0].A > .5f ? colors[0] : null;
+        if (at >= 0)
+        {
+            material = LibraryMaterial(part[(at + 1)..]);
+        }
+        else
+        {
+            material = library.GetValueOrDefault(name) ?? MissingBodyPart;
+            if (first is not null && material is BaseMaterial3D authored)
+            {
+                var tints = new Dictionary<Color, Color>();
+                for (int i = 0; i < colors.Length; i++)
+                {
+                    Color srgb = colors[i];
+                    if (srgb.A < .5f)
+                    {
+                        colors[i] = Colors.White;
+                        continue;
+                    }
+
+                    if (!tints.TryGetValue(srgb, out Color tint))
+                    {
+                        var paint = new Paint((byte)Mathf.RoundToInt(srgb.R * 255f), (byte)Mathf.RoundToInt(srgb.G * 255f), (byte)Mathf.RoundToInt(srgb.B * 255f));
+                        (material, tint) = Painted(authored, paint, family, name);
+                        tints[srgb] = tint;
+                    }
+
+                    colors[i] = tint;
+                }
+
+                arrays[(int)Mesh.ArrayType.Color] = colors;
+            }
+        }
+
+        reads.TryAdd(name, first is { } paint0 ? new Color(paint0.R, paint0.G, paint0.B).SrgbToLinear() : MeanColour(material));
+        mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
+        mesh.SurfaceSetMaterial(mesh.GetSurfaceCount() - 1, material);
     }
 
     private Dictionary<string, Color> FarPaintColors(FamilyBody body,

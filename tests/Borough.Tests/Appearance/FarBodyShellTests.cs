@@ -100,7 +100,7 @@ public sealed class FarBodyShellTests
         string bodies = Shell("Main.FamilyBodies.cs");
         Assert.Equal(1, Occurrences(bodies, "new StandardMaterial3D"));
         Assert.Contains("CullMode = BaseMaterial3D.CullModeEnum.Disabled,", bodies);
-        Assert.Equal(2, Occurrences(bodies, "?? MissingBodyPart"));
+        Assert.Equal(3, Occurrences(bodies, "?? MissingBodyPart"));
     }
 
     private static int Occurrences(string source, string text)

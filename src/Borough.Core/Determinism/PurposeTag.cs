@@ -981,4 +981,10 @@ public enum PurposeTag : ulong
 
     /// <summary>Whether the generator leaves out the middle Streets of a 2×2 group of lattice squares.</summary>
     RoadMergedBlock = 72,
+
+    /// <summary>
+    /// Which proportions, materials and paints a house body is built with. Drawn by the shell on the
+    /// Building's id, never by a Tick, so it moves no State Hash.
+    /// </summary>
+    AppearanceHouse = 73,
 }
