@@ -44,6 +44,21 @@ namespace Borough.Tests.Tables;
 /// </remarks>
 public sealed class DerivedRebuildAuditTests
 {
+    [Fact]
+    public void External_job_access_counts_rebuild_even_when_snapshots_match()
+    {
+        World world = Entities.JobsAttractTests.City();
+        world.JobAccess.Refresh(world);
+        int lot = Entities.JobsAttractTests.PositiveLot(world);
+        long expected = world.JobAccess.Count(lot, 3);
+        var field = typeof(JobAccessibility).GetField("_counts",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        ((long[])field.GetValue(world.JobAccess)!).AsSpan().Clear();
+        Assert.Equal(0, world.JobAccess.Count(lot, 3));
+        world.RebuildDerived();
+        Assert.Equal(expected, world.JobAccess.Count(lot, 3));
+    }
+
     private static World PaintedGround()
     {
         var world = new World(0, GoldenFixtures.Rules());

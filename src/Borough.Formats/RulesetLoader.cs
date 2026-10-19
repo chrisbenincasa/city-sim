@@ -408,6 +408,12 @@ public static class RulesetLoader
 
             TripRuleset trips = ReadTrips();
             JobRuleset jobs = ReadJobs(trips);
+            if (placement.JobsRent > 0 && (!placement.Chooses || !trips.Runs || !trips.HasCommuteBudget))
+            {
+                Refuse(LineOf(_placementTable!), null,
+                    "jobs_rent requires a choice model and [trips] with a commute_budget_minutes. "
+                    + "Reachable jobs are scored in the same utility and walking clock as housing.");
+            }
             RefuseUndepositedLabour();
             RefuseBankableLabour(jobs);
             RefuseLabourSpentTooSlowly(rules, inputs);
@@ -7135,6 +7141,7 @@ public static class RulesetLoader
                     Rent = rent,
                     CentralityTiles = centrality,
                     ExportBudget = ReadExportBudget(table),
+                    ReachableJobs = ReadJobsNumber(table, "reachable_jobs"),
                 };
 
                 int first = stock.Count;
@@ -7880,6 +7887,18 @@ public static class RulesetLoader
 
         // ---- placement ------------------------------------------------------------------------
 
+        private int ReadJobsNumber(TableSyntaxBase table, string key)
+        {
+            if (!TryInteger(table, key, out long value, required: false)) { return 0; }
+            if (value < 0 || value > int.MaxValue)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, key) ?? table), null,
+                    $"{key} = {value} must be between 0 and {int.MaxValue}. Omit the key or use zero for no contribution.");
+                return 0;
+            }
+            return (int)value;
+        }
+
         /// <summary>
         /// Reads <c>[placement]</c>: how often the Unplaced Pool is drained into standing dwellings,
         /// how long it takes to look at everybody waiting, and how many dwellings one family sees
@@ -7955,6 +7974,7 @@ public static class RulesetLoader
                     CentralityTilesPerUnit = tilesPerUnit,
                     RentPerUnit = rentPerUnit,
                     MovingCostsRent = movingCosts,
+                    JobsRent = ReadJobsNumber(_placementTable, "jobs_rent"),
                 };
 
             RefuseImpossibleMove(placement);

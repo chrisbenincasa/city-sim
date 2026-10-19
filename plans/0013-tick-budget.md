@@ -1239,3 +1239,27 @@ and was nearly shipped as an argument.
 it does not price the individual consumers above or represent a balanced mature economy.
 The profiler excludes setup and reporting from Tick timings and reports the Decide guard setting.
 [`0067`](0067-aged-city-performance.md) owns the aged captures, population controls and Layers attribution.
+
+## Arrival job-access work, 10/18/2026
+
+- `JobsAttractTests.Accessibility_work_per_Day` measures deterministic work in Release on `zeus`,
+  Intel Core i5-10400, seed 7, route workers 1, first full Day with the Decide guard disabled.
+  Concurrent sessions make this unsuitable for timing claims. Cold load/rebuild work is excluded.
+- The reviewed slice (`d8abb8a8`) refreshed every Lot after an input change. Candidate preparation
+  instead keeps the original sampled alternatives, prepares their Lots before choice, and reuses
+  exact counts only while every input snapshot still matches.
+
+| Citizens | Live Lots | Full-field floods | Candidate floods | Full-field nodes | Candidate nodes |
+|---|---|---|---|---|---|
+| 1,000 | 136 | 8,704 | 875 | 16,864,384 | 686,806 |
+| 10,000 | 1,032 | 66,048 | 330 | 144,919,488 | 408,368 |
+
+- The existing sample has two families, standing homes and buildable Lots. Each comparison prepares
+  at most `2 × placement.candidates` origins, with duplicate Lots sharing a flood. Input validation
+  still scans all Lots and Businesses; aggregation now scales with sampled origins times nearby
+  employers. This measures walking work, not total arrival-pass CPU cost.
+- All 64 first-Day State Hash samples at 32-Tick intervals match before and after at 1,000 Citizens.
+  Admissions stay 256 with employers and 238 without; the larger city still admits 166.
+- [Export-base slice 4](export-base.md#slice-4-evidence-and-limits) owns the exact reproduction
+  command, fixture, cold-rebuild exception, behavior evidence and validation. No quiet-machine
+  Tick-budget claim follows from these counts.

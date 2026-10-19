@@ -546,6 +546,10 @@
               }
             }
           },
+          "reachable_jobs": {
+            "description": "Open posts reachable from an Outside home, in the qualified-vacancy units used by arrival choice. Non-negative. Absent means zero; without placement.jobs_rent it changes no choice.",
+            "type": "integer"
+          },
           "rent": {
             "description": "What a home costs per Day out here, as a whole tenancy and not a rate per Tile. It is what a prospective Household compares against the cost of living in the city, and what a Household waiting for somewhere to live compares against every home it is shown. Required beside a choice model and refused without one.",
             "type": "integer"
@@ -1185,6 +1189,10 @@
         },
         "interval": {
           "description": "How many Ticks between passes that drain the Unplaced Pool into standing dwellings. Omitting the whole [placement] table means the pass does not run and nobody is ever housed, which is loud rather than quiet — the Pool grows and the Census says so.",
+          "type": "integer"
+        },
+        "jobs_rent": {
+          "description": "Daily rent equivalent of ln(1 + qualified vacancies reachable on foot within the Commute Budget), shared by all Life Stages. Non-negative; absent or zero disables the arrival term. Requires mu_percent and [trips] with commute_budget_minutes. Cheap housing may offset zero jobs; no job-access filter is added.",
           "type": "integer"
         },
         "move_at_need": {

@@ -935,6 +935,9 @@ public sealed partial class World
     public ZonedLots LotsAdmitting { get; } = new();
     public StandingHousing HousingBuildings { get; } = new();
 
+    /// <summary>Rebuilt walking accessibility used by arrival comparisons.</summary>
+    public JobAccessibility JobAccess { get; } = new();
+
     /// <summary>
     /// The city's Districts — a centre and the basin that drains to it, <c>adr/0134</c>.
     /// </summary>
@@ -5172,6 +5175,7 @@ public sealed partial class World
         RefreshPermissionSummaries();
         LotsAdmitting.Rebuild(Lots);
         HousingBuildings.Rebuild(this);
+        JobAccess.Rebuild(this);
 
         // The Cell-to-District index, from the membership rows' own saved coordinates. NOT a
         // re-evaluation: the watershed does not run here and must not, because a load restores the

@@ -305,7 +305,8 @@ public sealed partial class WalkScratch
     /// </remarks>
     /// <param name="graph">The Road Graph to search.</param>
     /// <param name="mode">Which subgraph to traverse.</param>
-    public void SettleAll(RoadGraph graph, TravelMode mode)
+    /// <param name="ceiling">Optional maximum settled cost, in the same clock as the graph.</param>
+    public void SettleAll(RoadGraph graph, TravelMode mode, TravelTime? ceiling = null)
     {
         ArgumentNullException.ThrowIfNull(graph);
 
@@ -315,6 +316,7 @@ public sealed partial class WalkScratch
         while (_heapCount > 0)
         {
             TravelTime cost = _heapCost[0];
+            if (ceiling is { } bound && cost > bound) { break; }
             int node = _heapNode[0];
 
             if (Work is { } popped) { popped.Pops++; }

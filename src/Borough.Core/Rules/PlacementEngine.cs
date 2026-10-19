@@ -54,6 +54,9 @@ public sealed class PlacementEngine
     /// <inheritdoc cref="_candidateBuildings"/>
     private int[] _candidateUtilities = [];
 
+    /// <summary>The sampled origin Lot for each arrival alternative.</summary>
+    private int[] _candidateLots = [];
+
     private int _tickConsidered;
     private int _tickPlaced;
     private int _tickDeparted;
@@ -724,6 +727,7 @@ public sealed class PlacementEngine
         _candidateUtilities[0] = HousingUtility.Saturate(
             (long)HousingUtility.Worth(
                 placement, home.CentralityTiles, weight, home.Rent, rentWeight)
+            + HousingUtility.JobsWorth(placement, home.ReachableJobs)
             + placement.StayingPut);
 
         int found = 1;
@@ -750,6 +754,7 @@ public sealed class PlacementEngine
                 }
 
                 _candidateBuildings[found] = building;
+                _candidateLots[found] = lot;
                 _candidateUtilities[found] = Utility(lot, building, weight, rentWeight);
                 found++;
             }
@@ -765,12 +770,32 @@ public sealed class PlacementEngine
             return ProspectOutcome.NoSample;
         }
 
+        PrepareJobs(prospect, found);
+
         int chosen = Choice.Draw(
             _candidateUtilities.AsSpan(0, found),
             placement.Mu,
             Randomness.Draw(_key, prospect.Identity, tick, PurposeTag.ChoiceDraw));
 
         return chosen == 0 ? ProspectOutcome.StayedOutside : ProspectOutcome.Willing;
+    }
+
+    /// <summary>Prepares sampled Lots, then adds their jobs terms without routing.</summary>
+    private void PrepareJobs(in ArrivalProspect prospect, int found)
+    {
+        PlacementRuleset placement = _world.Rules.Placement;
+        if (placement.JobsRent == 0) { return; }
+
+        _world.JobAccess.Prepare(_world, _candidateLots.AsSpan(1, found - 1));
+        byte tier = prospect.Composition.AdultsTier3 > 0 ? (byte)3
+            : prospect.Composition.AdultsTier2 > 0 ? (byte)2
+            : prospect.Composition.AdultsTier1 > 0 ? (byte)1 : (byte)0;
+        for (int candidate = 1; candidate < found; candidate++)
+        {
+            _candidateUtilities[candidate] = HousingUtility.Saturate(
+                (long)_candidateUtilities[candidate] + HousingUtility.JobsWorth(
+                    placement, _world.JobAccess.Count(_candidateLots[candidate], tier)));
+        }
     }
 
     /// <summary>
@@ -819,6 +844,7 @@ public sealed class PlacementEngine
             }
 
             _candidateBuildings[found] = ~lot;
+            _candidateLots[found] = lot;
             _candidateUtilities[found] = HousingUtility.Worth(
                 _world.Rules.Placement, Distance(lot), weight, rent, rentWeight);
             found++;
@@ -904,6 +930,7 @@ public sealed class PlacementEngine
 
         _candidateBuildings = new int[candidates];
         _candidateUtilities = new int[candidates];
+        _candidateLots = new int[candidates];
     }
 
     /// <summary>

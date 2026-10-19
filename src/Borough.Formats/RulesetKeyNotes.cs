@@ -606,6 +606,9 @@ public static class RulesetKeyNotes
         ["[[hinterland]] emigrant_balance_max"] =
             "The most. Stated as a band rather than one figure, because a single figure gives every "
             + "arrival the same means.",
+        ["[[hinterland]] reachable_jobs"] =
+            "Open posts reachable from an Outside home, in the qualified-vacancy units used by arrival "
+            + "choice. Non-negative. Absent means zero; without placement.jobs_rent it changes no choice.",
         ["[[hinterland]] export_budget"] =
             "The most this Hinterland pays the city for exports in one Day, from 0 to 2147483647. "
             + "It buys at its prices, the figure it also sells at, and only Goods a city firm made "
@@ -788,6 +791,11 @@ public static class RulesetKeyNotes
             "How far a Household would walk to trade one unit of what it prefers, in Tiles. It is "
             + "what makes distance comparable with rent. Required beside mu_percent and refused "
             + "without it.",
+        ["[placement] jobs_rent"] =
+            "Daily rent equivalent of ln(1 + qualified vacancies reachable on foot within the Commute "
+            + "Budget), shared by all Life Stages. Non-negative; absent or zero disables the arrival "
+            + "term. Requires mu_percent and [trips] with commute_budget_minutes. Cheap housing may "
+            + "offset zero jobs; no job-access filter is added.",
         ["[placement] rent_per_unit"] =
             "The difference in daily rent worth one unit of what a Household prefers. It is what "
             + "makes rent comparable with distance, and it is a soft trade-off rather than the "

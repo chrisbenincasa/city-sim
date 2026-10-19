@@ -27,7 +27,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-54 sections, 393 keys.
+54 sections, 395 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
@@ -36,7 +36,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[[building]] bins reserve`](#building-bins-reserve) — 3 keys
 - [`[[business]]`](#business) — 17 keys
 - [`[[hinterland.population]]`](#hinterlandpopulation) — 5 keys
-- [`[[hinterland]]`](#hinterland) — 9 keys
+- [`[[hinterland]]`](#hinterland) — 10 keys
 - [`[[hinterland]] prices`](#hinterland-prices) — 2 keys
 - [`[[housing_form]]`](#housing_form) — 11 keys
 - [`[[lattice]]`](#lattice) — 4 keys
@@ -73,7 +73,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[market]`](#market) — 2 keys
 - [`[needs]`](#needs) — 9 keys
 - [`[parking]`](#parking) — 5 keys
-- [`[placement]`](#placement) — 10 keys
+- [`[placement]`](#placement) — 11 keys
 - [`[rent]`](#rent) — 1 key
 - [`[roads]`](#roads) — 19 keys
 - [`[school]`](#school) — 7 keys
@@ -407,6 +407,10 @@ The display text for this declaration. It reaches the shell's names and nothing 
 **`prices`** · *array of inline tables*
 
 What this Hinterland will sell each Good or service for, one entry each. These are the only authored anchor under every price in the design: a District's Pool may charge up to the cheapest declared Hinterland price and no more.
+
+**`reachable_jobs`** · *whole number*
+
+Open posts reachable from an Outside home, in the qualified-vacancy units used by arrival choice. Non-negative. Absent means zero; without placement.jobs_rent it changes no choice.
 
 **`rent`** · *whole number*
 
@@ -1651,6 +1655,10 @@ How long a Household keeps looking for a home before it gives up and leaves. Req
 **`interval`** · *whole number*
 
 How many Ticks between passes that drain the Unplaced Pool into standing dwellings. Omitting the whole [placement] table means the pass does not run and nobody is ever housed, which is loud rather than quiet — the Pool grows and the Census says so.
+
+**`jobs_rent`** · *whole number*
+
+Daily rent equivalent of ln(1 + qualified vacancies reachable on foot within the Commute Budget), shared by all Life Stages. Non-negative; absent or zero disables the arrival term. Requires mu_percent and [trips] with commute_budget_minutes. Cheap housing may offset zero jobs; no job-access filter is added.
 
 **`move_at_need`** · *whole number*
 
