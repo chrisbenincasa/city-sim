@@ -226,6 +226,7 @@ public static class RulesetLoader
         // Satisfaction -- so the thing consumed decides, not the Rule consuming it.
         private readonly List<Need> _resourceNeeds = [];
         private readonly List<ShelfLife> _shelfLives = [];
+        private readonly List<ServiceReach> _reaches = [];
         private int _labourLine;
         private readonly Dictionary<string, byte> _kinds = new(StringComparer.Ordinal);
 
@@ -304,6 +305,7 @@ public static class RulesetLoader
         private TableSyntaxBase? _tripsTable;
         private TableSyntaxBase? _jobsTable;
         private TableSyntaxBase? _householdsTable;
+        private TableSyntaxBase? _rentTable;
         private TableSyntaxBase? _treasuryTable;
         private TableSyntaxBase? _trafficTable;
         private TableSyntaxBase? _parkingTable;
@@ -406,10 +408,21 @@ public static class RulesetLoader
 
             TripRuleset trips = ReadTrips();
             JobRuleset jobs = ReadJobs(trips);
+            if (placement.JobsRent > 0 && (!placement.Chooses || !trips.Runs || !trips.HasCommuteBudget))
+            {
+                Refuse(LineOf(_placementTable!), null,
+                    "jobs_rent requires a choice model and [trips] with a commute_budget_minutes. "
+                    + "Reachable jobs are scored in the same utility and walking clock as housing.");
+            }
             RefuseUndepositedLabour();
             RefuseBankableLabour(jobs);
             RefuseLabourSpentTooSlowly(rules, inputs);
             HouseholdRuleset households = ReadHouseholds();
+
+            // After ReadBusinessKinds, because the deadline is refused against the longest
+            // pay_period_days in the file (money-circulation L16) and a trade knows nothing about
+            // rent. Neither reader can see that defect alone.
+            RentRuleset rent = ReadRent(businessKinds, placement);
             TreasuryRuleset treasury = ReadTreasury();
             TrafficRuleset traffic = ReadTraffic();
             ParkingRuleset parking = ReadParking();
@@ -516,6 +529,7 @@ public static class RulesetLoader
                 Trips = trips,
                 Jobs = jobs,
                 Households = households,
+                Rent = rent,
                 Treasury = treasury,
                 Traffic = traffic,
                 Policies = policies,
@@ -539,6 +553,7 @@ public static class RulesetLoader
                 Care = care,
                 ResourceNeeds = [.. _resourceNeeds],
                 ResourceShelfLives = [.. _shelfLives],
+                ResourceReaches = [.. _reaches],
                 Founding = founding,
                 ResourceKeys = Keys(_resources),
                 KindKeys = Keys(_kinds),
@@ -572,6 +587,7 @@ public static class RulesetLoader
                         _families.Add(ReadFamily(table));
                         _resourceNeeds.Add(ReadNeed(table));
                         _shelfLives.Add(ReadShelfLife(table, _families[^1]));
+                        _reaches.Add(ReadReach(table, _families[^1]));
                         RefuseLabourThatKeeps(table);
                         RefuseStorage(table);
                         break;
@@ -799,6 +815,21 @@ public static class RulesetLoader
                         }
 
                         _householdsTable = table;
+                        break;
+
+                    case "rent":
+                        // Singular and optional, on [households]' reasoning exactly. A city collects
+                        // rent one way, so two tables of numbers for it is ambiguous rather than
+                        // additive.
+                        if (_rentTable is not null)
+                        {
+                            Refuse(LineOf(table), null,
+                                "a second [rent] is declared. A city collects rent one way, so two "
+                                + "tables of numbers for it is ambiguous rather than additive.");
+                            break;
+                        }
+
+                        _rentTable = table;
                         break;
 
                     case "treasury":
@@ -1047,7 +1078,7 @@ public static class RulesetLoader
                             + "[[recipe]], [[reserve]], [[zone_rule]], "
                             + "[[policy]], [[hinterland]], [[lattice]], [[terrain]], [layers], "
                             + "[placement], [roads], [lots], [trips], [jobs], [households], "
-                            + "[traffic], [parking], [water], [districts], [market], "
+                            + "[rent], [traffic], [parking], [water], [districts], [market], "
                             + "[immigration], [[hinterland.population]], "
                             + "[income_tax], [business_tax] and "
                             + "[founding]. A trade is declared with [[business]] and the founding "
@@ -1417,6 +1448,12 @@ public static class RulesetLoader
                 RefuseUnsupportedPoolTerms(table, name, allInputs, inputFirst, allInputs.Count,
                     allOutputs, outputFirst, allOutputs.Count,
                     definitions[i].HasFills && definitions[i].Fills.Scope == Scope.Pool);
+
+                RefuseServiceBoughtAndMade(
+                    table, name, allInputs, inputFirst, allInputs.Count,
+                    allOutputs, outputFirst, allOutputs.Count);
+
+                RefuseServiceBoughtTwice(table, name, allInputs, inputFirst, allInputs.Count);
             }
 
             inputs = [.. allInputs];
@@ -1424,6 +1461,117 @@ public static class RulesetLoader
             emissions = [.. allEmissions];
 
             return definitions;
+        }
+
+        /// <summary>
+        /// Refusal — a <c>pool</c> term needs a market that delivers its Resource, and only Goods and
+        /// services have one.
+        /// </summary>
+        private void RefusePoolTermsWithoutDelivery(
+            TableSyntaxBase table, string? name, List<Term> terms, int first, int end)
+        {
+            for (int i = first; i < end; i++)
+            {
+                if (terms[i].Bin.Scope != Scope.Pool)
+                {
+                    continue;
+                }
+
+                ResourceFamily family = _families[terms[i].Bin.Resource.Raw - 1];
+
+                if (family is ResourceFamily.Good or ResourceFamily.Service or ResourceFamily.None)
+                {
+                    continue;
+                }
+
+                Refuse(LineOf(table), name,
+                    $"this Rule has a pool term for '{NameOfResource(terms[i].Bin.Resource)}', which "
+                    + $"is a {FamilyName(family)}. A District Pool trades goods and services only, so "
+                    + "the term would find no market and move nothing.");
+            }
+        }
+
+        /// <summary>
+        /// Refusal — one Rule cannot be both the provider of a service and a client for it.
+        /// </summary>
+        /// <remarks>
+        /// A firm never contracts with itself (<c>adr/0179</c>), so such a Rule would pay a market
+        /// for units it was about to make and the allowance it drew on could never be its own. The
+        /// two halves are legitimate in two Rules on one Business — an office that subcontracts —
+        /// and this refuses only the pair that cannot settle.
+        /// </remarks>
+        private void RefuseServiceBoughtAndMade(
+            TableSyntaxBase table, string? name,
+            List<Term> inputs, int inputFirst, int inputEnd,
+            List<Term> outputs, int outputFirst, int outputEnd)
+        {
+            for (int i = inputFirst; i < inputEnd; i++)
+            {
+                ResourceId resource = inputs[i].Bin.Resource;
+
+                if (_families[resource.Raw - 1] != ResourceFamily.Service)
+                {
+                    continue;
+                }
+
+                for (int o = outputFirst; o < outputEnd; o++)
+                {
+                    if (outputs[o].Bin.Resource != resource)
+                    {
+                        continue;
+                    }
+
+                    Refuse(LineOf(table), name,
+                        $"this Rule both buys and makes the service '{NameOfResource(resource)}'. A "
+                        + "firm is never its own provider, so the purchase would have to find "
+                        + "another office while this one was making the same units. Split the two "
+                        + "into separate Rules, or drop one of them.");
+
+                    break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Refusal — one Rule cannot buy the same service twice.
+        /// </summary>
+        /// <remarks>
+        /// 🔴 <b>A capacity leak, not a duplicate declaration.</b> Each term asks the provider's
+        /// allowance for a whole batch independently and each one spends it, so two terms naming one
+        /// service sell a Day's capacity twice over. The Goods path is safe from the same shape
+        /// because repeated draws on one Bin are netted before the affordability walk; an allowance
+        /// has no netting, and a clean fix would be the netting rather than this refusal. Until then
+        /// the pair is refused where it is cheap to see. One Rule wanting twice as much asks for
+        /// twice the <c>amount</c>.
+        /// </remarks>
+        private void RefuseServiceBoughtTwice(
+            TableSyntaxBase table, string? name, List<Term> inputs, int first, int end)
+        {
+            for (int i = first; i < end; i++)
+            {
+                ResourceId resource = inputs[i].Bin.Resource;
+
+                if (_families[resource.Raw - 1] != ResourceFamily.Service)
+                {
+                    continue;
+                }
+
+                for (int j = first; j < i; j++)
+                {
+                    if (inputs[j].Bin.Resource != resource)
+                    {
+                        continue;
+                    }
+
+                    Refuse(LineOf(table), name,
+                        $"this Rule buys the service '{NameOfResource(resource)}' twice. Each term "
+                        + "would ask its provider for a whole batch and spend the Day's allowance "
+                        + "again, so the office would sell more than it made. State one term with "
+                        + "the amount you want.");
+
+                    break;
+                }
+            }
         }
 
         private void RefuseUnsupportedPoolTerms(
@@ -1448,6 +1596,9 @@ public static class RulesetLoader
             {
                 return;
             }
+
+            RefusePoolTermsWithoutDelivery(table, name, inputs, inputFirst, inputEnd);
+            RefusePoolTermsWithoutDelivery(table, name, outputs, outputFirst, outputEnd);
 
             if (_districtsTable is null)
             {
@@ -2464,13 +2615,17 @@ public static class RulesetLoader
                 case "labour":
                     return ResourceFamily.Labour;
 
+                case "service":
+                    return ResourceFamily.Service;
+
                 default:
                     Refuse(LineOf(table), family,
                         $"'{family}' is not a Resource family. The families are good (moves as a "
                         + "Shipment, on the Road Graph, in the traffic), utility (flows along the "
                         + "District adjacency graph), money (conserved, and does not move at all) and "
                         + "labour (worker-time a Business's present staff deposit and its Rules "
-                        + "spend). The family decides transport and whether the Bin has a ceiling, so there "
+                        + "spend) and service (a Professional Service a firm buys from a provider "
+                        + "in reach). The family decides transport and whether the Bin has a ceiling, so there "
                         + "is no default.");
                     return ResourceFamily.None;
             }
@@ -2521,6 +2676,41 @@ public static class RulesetLoader
             long ticks = IntegerMath.FloorDiv((long)minutes * Ticks.PerDay, 24L * 60);
 
             return new ShelfLife((ulong)(ticks < 1 ? 1 : ticks), cycles);
+        }
+
+        /// <summary>
+        /// A Professional Service's reach: <c>reach_minutes</c> of free-flow travel, or
+        /// <c>remote = true</c> for a service delivered at any distance.
+        /// </summary>
+        private ServiceReach ReadReach(TableSyntaxBase table, ResourceFamily family)
+        {
+            const int MinutesPerDay = 60 * 24;
+            bool statesMinutes = Find(table, "reach_minutes") is not null;
+            bool statesRemote = TryBoolean(table, "remote", out bool remote);
+
+            if (family != ResourceFamily.Service)
+            {
+                if (statesMinutes || statesRemote)
+                {
+                    Refuse(LineOf(table), null,
+                        "reach_minutes and remote describe a Professional Service. Only a Resource "
+                        + "with family = \"service\" has a reach.");
+                }
+
+                return default;
+            }
+
+            if (statesMinutes == statesRemote || (statesRemote && !remote))
+            {
+                Refuse(LineOf(table), null,
+                    "a service states its reach once: reach_minutes for a provider the buyer must "
+                    + "travel to, or remote = true for one that reaches any distance.");
+                return default;
+            }
+
+            return statesRemote
+                ? ServiceReach.Unlimited
+                : new ServiceReach(CivicInt(table, "reach_minutes", 1, MinutesPerDay));
         }
 
         /// <summary>
@@ -2740,6 +2930,13 @@ public static class RulesetLoader
                 return false;
             }
 
+            if (_families[resource.Raw - 1] == ResourceFamily.Service)
+            {
+                Refuse(LineOf(entry), rule,
+                    "fills names a service. A service is never stocked, so it has no Bin to fill.");
+                return false;
+            }
+
             fills = new BinRef(scope, resource);
             return true;
         }
@@ -2796,13 +2993,59 @@ public static class RulesetLoader
                 }
 
                 if (!GlobalNamesAConservedResource(inline, rule, scope, resource)
-                    || !LabourIsSpentLocally(inline, rule, key, scope, resource))
+                    || !LabourIsSpentLocally(inline, rule, key, scope, resource)
+                    || !ServiceIsBoughtFromAProvider(inline, rule, key, scope, resource))
                 {
                     continue;
                 }
 
                 into.Add(new Term(new BinRef(scope, resource), (int)amount));
             }
+        }
+
+        /// <summary>
+        /// Refusal — a service is never stocked, so a firm buys one with a <c>pool</c> input and a
+        /// provider makes one with a <c>local</c> output.
+        /// </summary>
+        /// <remarks>
+        /// The two scopes are the two sides of <c>adr/0179</c>'s contract and neither is a Bin. A
+        /// pool input names the provider the firm pays; a local output adds to the office's allowance
+        /// for the Day. Any other spelling would need a Bin to hold a service, and none does.
+        /// </remarks>
+        private bool ServiceIsBoughtFromAProvider(
+            InlineTableSyntax inline, string? rule, string key, Scope scope, ResourceId resource)
+        {
+            if (_families[resource.Raw - 1] != ResourceFamily.Service)
+            {
+                return true;
+            }
+
+            if (key == "outputs")
+            {
+                if (scope == Scope.Local)
+                {
+                    return true;
+                }
+
+                Refuse(LineOf(inline), rule,
+                    $"this Rule makes the service '{NameOfResource(resource)}' into a scope that "
+                    + "cannot hold one. A provider's output is local: it adds to the office's own "
+                    + "allowance for the Day, which its clients buy with a pool input under a "
+                    + "contract. Nothing deposits a service into a market or into the treasury.");
+                return false;
+            }
+
+            if (key == "inputs" && scope == Scope.Pool)
+            {
+                return true;
+            }
+
+            Refuse(LineOf(inline), rule,
+                "this Rule names a service outside a pool input. A service is never stocked, so "
+                + "no Bin holds it; a firm buys it from its provider with "
+                + "{ scope = \"pool\", resource = ..., amount = ... } in inputs.");
+
+            return false;
         }
 
         /// <summary>
@@ -2991,6 +3234,8 @@ public static class RulesetLoader
                 // been read.
                 ApplyTenancies(rules, inputs, outputs, allBins, binFirst, i);
                 RefuseUnstaffedProduction(rules, inputs, outputs, i);
+                RefuseServiceBoughtWithoutAFirm(rules, inputs, i);
+                RefuseServiceMadeWithoutAStaffedFirm(rules, inputs, outputs, i);
 
                 // The kind's Rules are not declared on the kind: a Rule already names the kind it
                 // runs on, and a second list would be the same fact twice with nothing keeping the
@@ -4676,6 +4921,122 @@ public static class RulesetLoader
         }
 
         /// <summary>
+        /// Refusal — a service is bought by a firm, because its contract names a Business.
+        /// </summary>
+        private void RefuseServiceBoughtWithoutAFirm(RuleDefinition[] rules, Term[] inputs, int kindIndex)
+        {
+            for (int r = 0; r < rules.Length; r++)
+            {
+                RuleDefinition rule = rules[r];
+
+                if (rule.Kind != kindIndex + 1 || rule.Tenancy == BinTenancy.Business)
+                {
+                    continue;
+                }
+
+                for (int t = 0; t < rule.InputCount; t++)
+                {
+                    ResourceId resource = inputs[rule.InputFirst + t].Bin.Resource;
+
+                    if (_families[resource.Raw - 1] != ResourceFamily.Service)
+                    {
+                        continue;
+                    }
+
+                    string? name = TryString(_ruleTables[r], "name", out string? found, required: false)
+                        ? found
+                        : null;
+
+                    Refuse(LineOf(_ruleTables[r]), name,
+                        $"this Rule buys the service '{NameOfResource(resource)}', and no Business runs "
+                        + "it. A service is bought by a firm, and a Rule belongs to the Business when "
+                        + "its local terms address Bins with owner = \"business\".");
+                    break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Refusal — a Professional Service is made by a firm, and by the staff it has at work.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A provider's capacity is a Day's units rather than a stock (<c>adr/0179</c>), and what
+        /// produces them is time at a desk. So a Rule making a service belongs to a Business, like
+        /// the contract its clients hold, and spends labour, like any other production — an office
+        /// with nobody at work makes nothing, which is the whole of its capacity model.
+        /// </para>
+        /// <para>
+        /// The labour half overlaps <see cref="RefuseUnstaffedProduction"/> and says so separately
+        /// because the consequence is different: an unstaffed Good Rule fills no Bin, where an
+        /// unstaffed office would be a provider every firm in reach could contract with for nothing.
+        /// </para>
+        /// </remarks>
+        private void RefuseServiceMadeWithoutAStaffedFirm(
+            RuleDefinition[] rules, Term[] inputs, Term[] outputs, int kindIndex)
+        {
+            for (int r = 0; r < rules.Length; r++)
+            {
+                RuleDefinition rule = rules[r];
+
+                if (rule.Kind != kindIndex + 1)
+                {
+                    continue;
+                }
+
+                ResourceId made = default;
+
+                for (int t = 0; t < rule.OutputCount; t++)
+                {
+                    ResourceId resource = outputs[rule.OutputFirst + t].Bin.Resource;
+
+                    if (_families[resource.Raw - 1] == ResourceFamily.Service)
+                    {
+                        made = resource;
+                        break;
+                    }
+                }
+
+                if (made.Raw == 0)
+                {
+                    continue;
+                }
+
+                bool spendsLabour = false;
+
+                for (int t = 0; t < rule.InputCount; t++)
+                {
+                    spendsLabour |= _families[inputs[rule.InputFirst + t].Bin.Resource.Raw - 1]
+                        == ResourceFamily.Labour;
+                }
+
+                string? name = TryString(_ruleTables[r], "name", out string? found, required: false)
+                    ? found
+                    : null;
+
+                if (rule.Tenancy != BinTenancy.Business)
+                {
+                    Refuse(LineOf(_ruleTables[r]), name,
+                        $"this Rule makes the service '{NameOfResource(made)}', and no Business runs "
+                        + "it. A service is sold under a contract naming the provider's firm, and a "
+                        + "Rule belongs to the Business when its local terms address Bins with "
+                        + "owner = \"business\".");
+                    continue;
+                }
+
+                if (!spendsLabour)
+                {
+                    Refuse(LineOf(_ruleTables[r]), name,
+                        $"this Rule makes the service '{NameOfResource(made)}' and spends no labour, "
+                        + "so the office would supply the whole city with nobody at work. A "
+                        + "provider's capacity is what its staff get through in a Day: state a "
+                        + "labour input, give the kind a labour Bin with owner = \"business\" and "
+                        + "set [jobs] labour_per_day.");
+                }
+            }
+        }
+
+        /// <summary>
         /// Refuses a Business's Rule that makes a Good without spending labour.
         /// </summary>
         /// <remarks>
@@ -4791,6 +5152,14 @@ public static class RulesetLoader
                         continue;
                     }
 
+                    // A service a Rule makes names no Bin -- the units go into the provider's
+                    // allowance for the Day -- so it has no owner and cannot vote on whose Rule
+                    // this is. The labour such a Rule spends does, and the kind declares that Bin.
+                    if (_families[addressed.Resource.Raw - 1] == ResourceFamily.Service)
+                    {
+                        continue;
+                    }
+
                     BinTenancy holds = BinTenancy.Premises;
 
                     for (int b = binFirst; b < bins.Count; b++)
@@ -4852,6 +5221,14 @@ public static class RulesetLoader
 
                 if (!TryResource(inline, kind, LineOf(inline), out ResourceId resource))
                 {
+                    continue;
+                }
+
+                if (_families[resource.Raw - 1] == ResourceFamily.Service)
+                {
+                    Refuse(LineOf(inline), kind,
+                        $"'{NameOfResource(resource)}' is a service, and a service is never stocked. "
+                        + "A firm buys it from its provider through a pool input, so no Bin holds it.");
                     continue;
                 }
 
@@ -6763,6 +7140,8 @@ public static class RulesetLoader
                 {
                     Rent = rent,
                     CentralityTiles = centrality,
+                    ExportBudget = ReadExportBudget(table),
+                    ReachableJobs = ReadJobsNumber(table, "reachable_jobs"),
                 };
 
                 int first = stock.Count;
@@ -6919,13 +7298,13 @@ public static class RulesetLoader
                 // a price rather than a thing with one, so both would be a number the market never
                 // reads -- and a key the loader silently drops is a key a designer tunes and then
                 // wonders about, which is `bins`' capacity refusal one table over.
-                if (_families[resource.Raw - 1] != ResourceFamily.Good)
+                if (_families[resource.Raw - 1] is not (ResourceFamily.Good or ResourceFamily.Service))
                 {
                     Refuse(LineOf(inline), null,
-                        $"'{NameOfResource(resource)}' is not a good, so it has no import price. A "
-                        + "Hinterland prices what crosses the map's edge as cargo: a utility is not "
-                        + "stocked and money is what a price is denominated IN rather than a thing "
-                        + "that has one.");
+                        $"'{NameOfResource(resource)}' is not a good or a service, so it has no import "
+                        + "price. A Hinterland prices cargo and Professional Services: a utility is "
+                        + "not stocked and money is what a price is denominated IN rather than a "
+                        + "thing that has one.");
 
                     continue;
                 }
@@ -6970,6 +7349,7 @@ public static class RulesetLoader
             ResourceFamily.Utility => "utility",
             ResourceFamily.Money => "money",
             ResourceFamily.Labour => "labour",
+            ResourceFamily.Service => "service",
             _ => "good",
         };
 
@@ -7186,6 +7566,26 @@ public static class RulesetLoader
 
                     return false;
             }
+        }
+
+        /// <summary>A Hinterland's <c>export_budget</c>, absent meaning it buys nothing.</summary>
+        private Money ReadExportBudget(TableSyntaxBase table)
+        {
+            if (!TryInteger(table, "export_budget", out long budget, required: false))
+            {
+                return Money.Zero;
+            }
+
+            if (budget < 0 || budget > int.MaxValue)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, "export_budget") ?? table), null,
+                    $"export_budget is {budget}. It is the Money this Hinterland pays for exports in "
+                    + $"one Day, from 0 to {int.MaxValue}. Omit it or state zero for a Hinterland "
+                    + "that buys nothing.");
+                return Money.Zero;
+            }
+
+            return new Money(budget);
         }
 
         /// <summary>The <c>emigrant_balance_min</c>/<c>max</c> band.</summary>
@@ -7487,6 +7887,18 @@ public static class RulesetLoader
 
         // ---- placement ------------------------------------------------------------------------
 
+        private int ReadJobsNumber(TableSyntaxBase table, string key)
+        {
+            if (!TryInteger(table, key, out long value, required: false)) { return 0; }
+            if (value < 0 || value > int.MaxValue)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, key) ?? table), null,
+                    $"{key} = {value} must be between 0 and {int.MaxValue}. Omit the key or use zero for no contribution.");
+                return 0;
+            }
+            return (int)value;
+        }
+
         /// <summary>
         /// Reads <c>[placement]</c>: how often the Unplaced Pool is drained into standing dwellings,
         /// how long it takes to look at everybody waiting, and how many dwellings one family sees
@@ -7562,6 +7974,7 @@ public static class RulesetLoader
                     CentralityTilesPerUnit = tilesPerUnit,
                     RentPerUnit = rentPerUnit,
                     MovingCostsRent = movingCosts,
+                    JobsRent = ReadJobsNumber(_placementTable, "jobs_rent"),
                 };
 
             RefuseImpossibleMove(placement);
@@ -8110,6 +8523,16 @@ public static class RulesetLoader
                 "min_curve_radius_tiles", minimum: 1, maximum: CellGrid.WorldTiles,
                 "It is the tightest curve a Street may be laid on, so it is at least 1 Tile. "
                 + "Absent means half of block_tiles.");
+            int core = OptionalRoadNumber(
+                "dense_core_percent", minimum: 0, maximum: 100,
+                "It is a share of the town's radius, so it is between 0 and 100. Absent means 0.");
+            int merged = OptionalRoadNumber(
+                "merged_block_percent", minimum: 0, maximum: 100,
+                "It is a share of square groups, so it is between 0 and 100. Absent means 0, which "
+                + "keeps every grid line.");
+            int wooded = OptionalRoadNumber(
+                "woodland_merge_percent", minimum: 0, maximum: 100,
+                "It is a share of square groups, so it is between 0 and 100. Absent means 0.");
 
             return new RoadRuleset(
                 block, spread, arterials, junctions, crossings, paths,
@@ -8120,6 +8543,9 @@ public static class RulesetLoader
                 MinSegmentLengthTiles = shortest,
                 MinCrossingAngleDegrees = angle == 0 ? 30 : angle,
                 MinCurveRadiusTiles = radius == 0 ? (block > 1 ? block / 2 : 1) : radius,
+                DenseCorePercent = core,
+                MergedBlockPercent = merged,
+                WoodlandMergePercent = wooded,
             };
         }
 
@@ -8379,20 +8805,35 @@ public static class RulesetLoader
 
             bool chargesConstruction = TryInteger(_lotsTable, "construction_charge_per_floor_tile", out long construction, required: false);
             bool reservesCapital = TryInteger(_lotsTable, "buyer_reserve_per_member", out long reserve, required: false);
+            bool sellsCityLots = TryInteger(_lotsTable, "city_sale_interval_days", out long saleInterval, required: false);
             bool demolitionRange = demolition < 0 || demolition > int.MaxValue;
             bool constructionRange = construction < 0 || construction > int.MaxValue;
             bool reserveRange = reserve < 0 || reserve > int.MaxValue;
+            bool saleIntervalRange = sellsCityLots && (saleInterval < 1 || saleInterval > ushort.MaxValue);
 
-            if (demolitionRange || constructionRange || reserveRange)
+            if (demolitionRange || constructionRange || reserveRange || saleIntervalRange)
             {
                 string key = demolitionRange ? "demolition_price_per_tile"
-                    : constructionRange ? "construction_charge_per_floor_tile" : "buyer_reserve_per_member";
+                    : constructionRange ? "construction_charge_per_floor_tile"
+                    : reserveRange ? "buyer_reserve_per_member" : "city_sale_interval_days";
                 Refuse(LineOfLot(key), null, demolitionRange
                     ? $"demolition_price_per_tile = {demolition} is out of range. It is what "
                         + "the treasury pays the displaced per Tile of Lot footprint on neutral ground, "
                         + $"so it is at least 0 and at most {int.MaxValue}. Absent or zero means "
                         + "clearing an occupied Building costs nothing."
+                    : key == "city_sale_interval_days"
+                    ? $"city_sale_interval_days = {saleInterval} is out of range. It is how many Days "
+                        + $"pass between the city's offers of its built Lots, so it is at least 1 and at most {ushort.MaxValue}."
                     : $"{key} must be between 0 and {int.MaxValue} Money.");
+                return LotRuleset.None;
+            }
+
+            if (sellsCityLots && !chargesConstruction && !reservesCapital)
+            {
+                Refuse(LineOfLot("city_sale_interval_days"), null,
+                    "city_sale_interval_days is stated without land sales. State "
+                    + "construction_charge_per_floor_tile or buyer_reserve_per_member, even at 0, so a "
+                    + "buyer has a reserve to keep and the city has a price to sell at.");
                 return LotRuleset.None;
             }
 
@@ -8431,6 +8872,7 @@ public static class RulesetLoader
                 DemolitionPricePerTile = new Money(demolition),
                 ConstructionChargePerFloorTile = chargesConstruction ? new Money(construction) : null,
                 BuyerReservePerMember = reservesCapital ? new Money(reserve) : null,
+                CitySaleIntervalDays = sellsCityLots ? (int)saleInterval : null,
                 MinPlotDepthTiles = (int)minPlotDepth,
             };
         }
@@ -9084,6 +9526,102 @@ public static class RulesetLoader
 
             return (new Money(min), new Money(max));
         }
+
+        // ---- rent -------------------------------------------------------------------------------
+
+        /// <summary>
+        /// The <c>[rent]</c> table: whether the city charges its tenancies, and how long arrears run.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>The table is optional and its one key is required</b>, which is <c>[households]</c>'
+        /// shape and its reason: omitting the table is a city that charges nobody for a home and the
+        /// file has said so by omission, while stating the table and omitting the deadline would be a
+        /// placeholder sitting inside the range of legitimate answers.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>The deadline below the longest <c>pay_period_days</c> is refused rather than
+        /// clamped</b> (<c>plans/money-circulation.md</c> L16). A tenant paid every seven Days is
+        /// short on six of them, so a shorter deadline evicts every weekly-paid tenant in the city
+        /// between its paydays — which reads as an arrears mechanism and is a payday mechanism.
+        /// </para>
+        /// </remarks>
+        private RentRuleset ReadRent(
+            BusinessKindDefinition[] businessKinds, PlacementRuleset placement)
+        {
+            const string key = "evicts_after_days";
+
+            if (_rentTable is null)
+            {
+                return RentRuleset.None;
+            }
+
+            if (!TryInteger(_rentTable, key, out long days, required: true))
+            {
+                return RentRuleset.None;
+            }
+
+            if (days < 1 || days > ushort.MaxValue)
+            {
+                Refuse(LineOfRent(key), null,
+                    $"{key} is {days}. It is how many Days a tenant may owe rent before the tenancy "
+                    + $"ends, so it is 1 to {ushort.MaxValue}. It is what bounds the debt (adr/0006), "
+                    + "so there is no value meaning never -- omit the whole [rent] table for a city "
+                    + "that charges no rent.");
+
+                return RentRuleset.None;
+            }
+
+            if (!_families.Contains(ResourceFamily.Money))
+            {
+                Refuse(LineOfRent(key), null,
+                    "this file collects rent and names no money. A balance is a Bin and a Bin exists "
+                    + "only for a declared Resource (adr/0114), so there would be nothing to pay with "
+                    + "and nowhere for the rent to land. Add a [[resource]] block with "
+                    + "family = \"money\", or delete [rent].");
+
+                return RentRuleset.None;
+            }
+
+            if (!placement.GivesUp)
+            {
+                Refuse(LineOfRent(key), null,
+                    "this file collects rent and [placement] states no gives_up_after_days -- so a "
+                    + "Household evicted for arrears re-enters the Unplaced Pool and nothing ever "
+                    + "takes it out again except being housed, which it could not afford. Eviction "
+                    + "is a door into the Pool exactly as a gate kind is, and a Pool with a door "
+                    + "and no give-up rule grows without bound, which adr/0006 forbids. State how "
+                    + "long a Household keeps looking, in Days. It bounds the Unpremised Pool an "
+                    + "evicted Business lands in too.");
+
+                return RentRuleset.None;
+            }
+
+            int longest = 0;
+
+            foreach (BusinessKindDefinition trade in businessKinds)
+            {
+                longest = int.Max(longest, trade.PayPeriodDays);
+            }
+
+            if (days < longest)
+            {
+                Refuse(LineOfRent(key), null,
+                    $"{key} is {days} and a trade in this file pays every {longest} Days. Rent is "
+                    + "charged daily and a tenant settles it as money arrives, so a deadline shorter "
+                    + "than the longest pay period evicts a tenant for the Days between its paydays "
+                    + $"rather than for being unable to pay (money-circulation L16). State {longest} "
+                    + "or more.");
+
+                return RentRuleset.None;
+            }
+
+            return new RentRuleset((int)days);
+        }
+
+        /// <summary>Where a <c>[rent]</c> key sits, for a refusal that names a line.</summary>
+        private int LineOfRent(string key) =>
+            LineOf((SyntaxNodeBase?)Find(_rentTable!, key) ?? _rentTable!);
 
         // ---- treasury ---------------------------------------------------------------------------
 

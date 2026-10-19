@@ -50,6 +50,11 @@ public sealed class SubsidyEngine(World world)
     private long[] _awards = new long[world.Businesses.Rows.Capacity];
     private int[] _claimant = new int[world.Businesses.Rows.Capacity];
 
+    // The row behind each claimant's till. Rent arrears are settled against the Business and not
+    // its Bin, and a Bin cannot be resolved back to a Business owner (BinTable.Owner names a
+    // Building), so the slot is carried alongside rather than recovered.
+    private int[] _subject = new int[world.Businesses.Rows.Capacity];
+
     private MoneyFlow _paidFlow;
 
     /// <summary>What has left the treasury as subsidy since the last reading.</summary>
@@ -154,6 +159,10 @@ public sealed class SubsidyEngine(World world)
             _world.Withdraw(_world.Bins.Rows.At(treasury), award, tick);
             _world.Deposit(_world.Bins.Rows.At(till), award, tick);
 
+            // L16: a subsidy is income, and rent arrears are settled where income lands rather
+            // than at the next Day boundary. Returns zero where the Ruleset states no [rent].
+            _world.Arrears.SettleBusiness(_subject[at], tick);
+
             paid += award;
         }
 
@@ -179,6 +188,7 @@ public sealed class SubsidyEngine(World world)
         _claims = new long[slots];
         _awards = new long[slots];
         _claimant = new int[slots];
+        _subject = new int[slots];
     }
 
     private int Gather(in PolicyDefinition definition, long rate, out long claimed)
@@ -223,6 +233,7 @@ public sealed class SubsidyEngine(World world)
 
             _claims[count] = rate * workers;
             _claimant[count] = till;
+            _subject[count] = slot;
 
             claimed += _claims[count];
             count++;

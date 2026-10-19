@@ -182,8 +182,9 @@ public partial class Main
 
         float middleX = (west + east) * .5f, middleY = (south + north) * .5f;
         float band = interior.Wide * .25f;
-        float bandWest = anyWest ? middleX - band : west;
-        float bandEast = anyEast ? middleX + band : east;
+        bool across = anySouth || anyNorth;
+        float bandWest = !anyWest ? west : across ? middleX - band : anyEast ? middleX : east;
+        float bandEast = !anyEast ? east : across ? middleX + band : anyWest ? middleX : west;
         float reachSouth = anyNorth ? middleY : north;
         float reachNorth = anySouth ? middleY : south;
 
@@ -216,18 +217,18 @@ public partial class Main
                     House.East),
             };
 
-            bool across = house is House.South or House.North;
-            bool whole = share.Usable && (across
+            bool facing = house is House.South or House.North;
+            bool whole = share.Usable && (facing
                 ? share.West <= back.West + .01f && share.East >= back.East - .01f
                 : share.South <= back.South + .01f && share.North >= back.North - .01f);
             if (whole)
             {
-                Garden(lot.Id, Join(back, share), house, draws, fences);
+                Garden(lot.Id, Join(back, share), house, draws, fences, farFence: !green);
                 continue;
             }
 
             Garden(lot.Id, back, house, draws, fences);
-            if (share.Usable) Garden(lot.Id, share, house, draws, fences);
+            if (share.Usable) Garden(lot.Id, share, house, draws, fences, farFence: !green);
         }
 
         if (green && shared.Usable) Green(blockKey, shared, new GardenDraw(draw), fences);
@@ -241,7 +242,7 @@ public partial class Main
 
     private void Slab(GardenLayer layer, ulong id, Area area, float bottom, float top, Color paint)
     {
-        if (!area.Usable && layer == GardenLayer.Ground) return;
+        if (area.Wide <= 0f || area.Deep <= 0f) return;
         Put(layer, id, new Transform3D(Basis.FromScale(new Vector3(area.Wide, top - bottom, area.Deep)),
             new Vector3((area.West + area.East) * .5f, (bottom + top) * .5f, -(area.South + area.North) * .5f)), paint);
     }
@@ -273,7 +274,8 @@ public partial class Main
         return new Area(Math.Min(ax, bx), Math.Min(ay, by), Math.Max(ax, bx), Math.Max(ay, by));
     }
 
-    private void Garden(ulong id, Area g, House house, GardenDraw r, HashSet<(int, int, int, int)> fences)
+    // A garden backing onto a shared green leaves its far edge to the green's railing.
+    private void Garden(ulong id, Area g, House house, GardenDraw r, HashSet<(int, int, int, int)> fences, bool farFence = true)
     {
         if (!g.Usable) return;
         _gardenGround.Add(new Transform3D(Basis.FromScale(new Vector3(g.Wide, 1f, g.Deep)),
@@ -295,13 +297,13 @@ public partial class Main
             Slab(GardenLayer.Ground, id, Band(g, house, patio, depth - 2.5f, u, u + .9f), 0f, .08f, stone);
         }
 
-        if (depth > 9f && r.Chance(.8f))
+        if (depth > 9f && width >= 3.6f && r.Chance(.8f))
         {
             var (x, y) = Toward(g, house, depth - 2f, r.Range(1.8f, Math.Max(1.9f, width - 1.8f)));
             Module(GardenLayer.Shed, id, x, y, turn);
         }
 
-        if (depth > 14f && r.Chance(.45f))
+        if (depth > 14f && width >= 4.8f && r.Chance(.45f))
         {
             float d0 = r.Range(patio + 2f, depth - 8f);
             float u0 = r.Range(2.4f, Math.Max(2.5f, width - 2.4f));
@@ -313,7 +315,7 @@ public partial class Main
             }
         }
 
-        if (depth > 16f && r.Chance(.25f))
+        if (depth > 16f && width >= 4.4f && r.Chance(.25f))
         {
             var (x, y) = Toward(g, house, r.Range(patio + 3f, depth - 7f), width - 2.2f);
             Module(GardenLayer.Greenhouse, id, x, y, turn);
@@ -329,7 +331,7 @@ public partial class Main
         for (int k = 0; k < trees; k++)
         {
             var (x, y) = Toward(g, house, r.Range(Math.Min(depth * .5f, depth - 2f), Math.Max(depth * .5f, depth - 2f)),
-                r.Range(2f, Math.Max(2.1f, width - 2f)));
+                width < 4f ? width * .5f : r.Range(2f, width - 2f));
             Tree(id, x, y, depth < 12f ? .8f : 1f, r);
         }
 
@@ -346,7 +348,7 @@ public partial class Main
         var (bx1, by1) = Toward(g, house, depth, width);
         Boundary(id, ax0, ay0, ax1, ay1, kind, fences);
         Boundary(id, bx0, by0, bx1, by1, kind, fences);
-        Boundary(id, ax1, ay1, bx1, by1, kind, fences);
+        if (farFence) Boundary(id, ax1, ay1, bx1, by1, kind, fences);
     }
 
     private void Tree(ulong id, float east, float north, float scale, GardenDraw r)

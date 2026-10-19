@@ -36,7 +36,10 @@ public sealed partial class World
     /// minus one or below prices the tenancy at zero.
     /// </para>
     /// <para>
-    /// ⚠ <b>Nothing charges this.</b> It is read for a comparison; the daily charge is slice 4.
+    /// <b>It is a price and not a charge.</b> Placement and the choice model read it to compare
+    /// dwellings; what a standing tenant actually pays each Day is <see cref="ResidentRent"/> and
+    /// <see cref="BusinessRent"/> through <c>RentEngine</c>, which charge it only where the Ruleset
+    /// states <c>[rent]</c>.
     /// </para>
     /// </remarks>
     public Money TenancyRent(byte kind, int lotSlot, int floorTiles)
@@ -134,6 +137,39 @@ public sealed partial class World
     /// </remarks>
     public Money HouseholdRent(int buildingSlot) =>
         TenancyRent(buildingSlot, HouseholdFloorOf(buildingSlot));
+
+    /// <summary>
+    /// What the Household in <paramref name="householdSlot"/> is charged a Day for its home, which is
+    /// zero where it holds the ground under it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A resident Landowner pays none</b> (<c>plans/money-circulation.md</c> L7). Rent is a
+    /// payment from a tenant to the Lot's Landowner, and a Household paying itself would move money
+    /// out of one Bin and back into the same one — an entry that reads as a market in land while
+    /// being nothing of the kind.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The exemption is per tenancy and not per Building.</b> A Landowner living in one tenancy
+    /// of its own block pays nothing for that one and collects from every other Household in it, so
+    /// <see cref="HouseholdRent"/> stays the <em>price</em> of a tenancy there and this is what one
+    /// named resident is charged.
+    /// </para>
+    /// </remarks>
+    public Money ResidentRent(int householdSlot)
+    {
+        if (householdSlot < 0
+            || !Households.Rows.IsLive(householdSlot)
+            || !Buildings.Rows.TryResolve(Households.Dwelling[householdSlot], out int buildingSlot)
+            || !Lots.Rows.TryResolve(Buildings.Lot[buildingSlot], out int lotSlot))
+        {
+            return Money.Zero;
+        }
+
+        return Lots.LandownerOn(lotSlot) == householdSlot
+            ? Money.Zero
+            : HouseholdRent(buildingSlot);
+    }
 
     /// <summary>What the Business in <paramref name="businessSlot"/> pays a Day for its Unit.</summary>
     public Money BusinessRent(int businessSlot) =>
@@ -270,7 +306,7 @@ public sealed partial class World
 
         Space.Parcel parcel = new(face, (Space.StreetSide)Lots.Side[lotSlot], Quantities.Tiles.Zero, Lots.Parcel(lotSlot));
 
-        return (parcel, Space.BlockGround.At(Roads.Streets.Lattice, column, row));
+        return (parcel, Roads.Streets.Block(column, row));
     }
 
     private int SalesYardStalls(int buildingSlot)

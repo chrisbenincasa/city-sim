@@ -277,6 +277,31 @@ public enum ResourceFamily : byte
     /// which is the only thing that bounds it (<c>plans/private-production-and-labour.md</c>).
     /// </remarks>
     Labour = 4,
+
+    /// <summary>
+    /// A Professional Service: made from labour and delivered without a Vehicle.
+    /// </summary>
+    /// <remarks>
+    /// It is never stocked, so no Bin holds it. A firm buys it through a <c>pool</c> input from the
+    /// provider it keeps under contract (<c>adr/0179</c>), and the buyer must stand within the
+    /// service's reach of that provider.
+    /// </remarks>
+    Service = 5,
+}
+
+/// <summary>
+/// How far a buyer may stand from a Professional Service provider, in free-flow minutes.
+/// </summary>
+/// <remarks>
+/// <c>default</c> is no reach, which every non-service Resource has.
+/// </remarks>
+public readonly record struct ServiceReach(int Minutes)
+{
+    /// <summary>A remotely delivered service, which reaches any distance.</summary>
+    public static ServiceReach Unlimited => new(int.MaxValue);
+
+    /// <summary>Whether this reach covers any distance.</summary>
+    public bool IsUnlimited => Minutes == int.MaxValue;
 }
 
 /// <summary>
@@ -1846,6 +1871,18 @@ public readonly record struct HinterlandDefinition(
     public Money Rent { get; init; }
 
     /// <summary>
+    /// The most this Hinterland pays the city for exports in one Day. Zero buys nothing.
+    /// </summary>
+    /// <remarks>
+    /// It buys at its <c>prices</c>, the figure it also sells at, and only Goods a city firm made and
+    /// had no room to store. The budget resets at each Day boundary.
+    /// </remarks>
+    public Money ExportBudget { get; init; }
+
+    /// <summary>Qualified open posts reachable from an Outside home; absent means zero.</summary>
+    public int ReachableJobs { get; init; }
+
+    /// <summary>
     /// How far from a centre life out here is, in the Tiles the map is measured in.
     /// </summary>
     /// <remarks>
@@ -2056,6 +2093,9 @@ public readonly record struct PlacementRuleset(
     /// How much daily rent is worth one utility unit; zero when no choice model is stated.
     /// </summary>
     public int RentPerUnit { get; init; }
+
+    /// <summary>Daily rent equivalent of ln(1 + reachable vacancies); zero disables the term.</summary>
+    public int JobsRent { get; init; }
 
     /// <summary>
     /// The daily rent a Household will pay to avoid moving; zero means moving costs it nothing.
@@ -2372,6 +2412,24 @@ public readonly record struct RoadRuleset(
 
     /// <summary>The tightest curve a Street may be laid on, in Tiles — <c>min_curve_radius_tiles</c>.</summary>
     public int MinCurveRadiusTiles { get; init; }
+
+    /// <summary>
+    /// How far from the town's middle the generator keeps every grid line, in percent of the town's
+    /// radius — <c>dense_core_percent</c>.
+    /// </summary>
+    public int DenseCorePercent { get; init; }
+
+    /// <summary>
+    /// The share of 2×2 square groups beyond the dense core whose middle Streets the generator leaves
+    /// out, in percent — <c>merged_block_percent</c>. Zero keeps every line.
+    /// </summary>
+    public int MergedBlockPercent { get; init; }
+
+    /// <summary>
+    /// The merge chance a fully wooded group adds beyond the dense core, in percent —
+    /// <c>woodland_merge_percent</c>. Partial cover adds its share.
+    /// </summary>
+    public int WoodlandMergePercent { get; init; }
 
     /// <summary>Whether there are roads at all. <see cref="BlockTiles"/> is what a graph cannot lack.</summary>
     public bool Runs => BlockTiles != 0;
@@ -3153,6 +3211,9 @@ public readonly record struct LotRuleset(
     /// <summary>A buyer keeps this Money per Household member in its own balance.</summary>
     public Money? BuyerReservePerMember { get; init; }
 
+    /// <summary>Days between the city's offers of the built Lots it holds. Null means the city never sells.</summary>
+    public int? CitySaleIntervalDays { get; init; }
+
     /// <summary>Either authored key enables paid construction, including an explicit zero.</summary>
     public bool LandSales => ConstructionChargePerFloorTile.HasValue || BuyerReservePerMember.HasValue;
 
@@ -3868,6 +3929,49 @@ public readonly record struct HouseholdRuleset(
 }
 
 /// <summary>
+/// The <c>[rent]</c> table — <b>whether the city collects rent, and how long arrears may run</b>
+/// (<c>plans/money-circulation.md</c> L8, L16).
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>One key, and stating it is what turns the daily charge on.</b> A table whose absence means
+/// <em>nothing is charged</em> is <c>[jobs]</c>' and <c>[households]</c>' shape, and the one number
+/// in it is the eviction deadline because <em>a charge with no eviction is a debt with no
+/// sink</em>. <c>adr/0130</c>'s rule — a collection with an inflow owes a sink, declared together —
+/// so the deadline cannot be omitted while rent is charged, and a separate <c>collects</c> flag
+/// would be a second way to say what stating the table already says.
+/// </para>
+/// <para>
+/// ⚠ <b>The deadline is what bounds the debt</b>, which is why it is not optional. Unpaid rent
+/// accrues on <see cref="Entities.HouseholdTable.RentDebt"/> and
+/// <see cref="Entities.BusinessTable.RentDebt"/>; past the deadline the tenancy ends and the debt
+/// goes with it. Without the deadline those two columns are <c>adr/0006</c>'s magnitude trending
+/// upward at steady state.
+/// </para>
+/// <para>
+/// <b>The loader refuses a deadline shorter than the longest <c>pay_period_days</c></b> (L16).
+/// A tenant paid every seven Days is short on six of them, so a deadline of one would evict every
+/// weekly-paid Household in the city on its second Day.
+/// </para>
+/// </remarks>
+/// <param name="EvictsAfterDays">
+/// How many Days a tenant may owe rent before the tenancy ends.
+/// </param>
+public readonly record struct RentRuleset(int EvictsAfterDays)
+{
+    /// <summary>A Ruleset whose city charges no rent.</summary>
+    /// <remarks>
+    /// <b>Nothing is charged is the meaning of omission</b>, on <see cref="HouseholdRuleset.None"/>'s
+    /// rule: every Ruleset written before this table existed meant exactly that by saying nothing, so
+    /// omission is behaviour-preserving.
+    /// </remarks>
+    public static RentRuleset None => default;
+
+    /// <summary>Whether the city charges its tenancies rent each Day.</summary>
+    public bool Collects => EvictsAfterDays > 0;
+}
+
+/// <summary>
 /// The <c>[treasury]</c> table — <b>what the city is founded with</b> (<c>plans/0070</c> row 32).
 /// </summary>
 /// <remarks>
@@ -4499,6 +4603,18 @@ public sealed class Ruleset
     public HouseholdRuleset Households { get; init; } = HouseholdRuleset.None;
 
     /// <summary>
+    /// <b>Whether tenancies are charged rent, and how long arrears run before eviction</b> — the
+    /// <c>[rent]</c> table (<c>plans/money-circulation.md</c> L8, L16).
+    /// </summary>
+    /// <remarks>
+    /// <see cref="RentRuleset.None"/> when the file states no <c>[rent]</c>, and that is a city where
+    /// nothing is charged for a home — <see cref="Jobs"/>' polarity, for <see cref="Jobs"/>' reason.
+    /// <see cref="KindDefinition.RentPerFloorTile"/> still prices a tenancy for the comparisons
+    /// placement makes; this is what decides whether anybody pays it.
+    /// </remarks>
+    public RentRuleset Rent { get; init; } = RentRuleset.None;
+
+    /// <summary>
     /// <b>What the city is founded with</b> — the <c>[treasury]</c> table (<c>plans/0070</c> row 32).
     /// </summary>
     /// <remarks>
@@ -4810,6 +4926,15 @@ public sealed class Ruleset
         resource.Raw >= 1 && resource.Raw <= ResourceNeeds.Length
             ? ResourceNeeds[resource.Raw - 1]
             : Need.None;
+
+    /// <summary>Each Resource's service reach, indexed by <c>resource - 1</c>.</summary>
+    public ServiceReach[] ResourceReaches { get; init; } = [];
+
+    /// <summary>How far this service reaches, or <c>default</c> when it is not a service.</summary>
+    public ServiceReach ReachOf(ResourceId resource) =>
+        resource.Raw >= 1 && resource.Raw <= ResourceReaches.Length
+            ? ResourceReaches[resource.Raw - 1]
+            : default;
 
     /// <summary>Each Resource's shelf life, indexed by <c>resource - 1</c>. Empty means nothing spoils.</summary>
     public ShelfLife[] ResourceShelfLives { get; init; } = [];
@@ -5253,6 +5378,7 @@ public sealed class Ruleset
             Jobs = Jobs,
             Schooling = Schooling,
             Households = Households,
+            Rent = Rent,
             Treasury = Treasury,
             Traffic = Traffic,
             Parking = Parking,
@@ -5282,6 +5408,7 @@ public sealed class Ruleset
             Care = Care,
             ResourceNeeds = ResourceNeeds,
             ResourceShelfLives = ResourceShelfLives,
+            ResourceReaches = ResourceReaches,
             LifeStages = LifeStages,
         };
 
@@ -5295,6 +5422,10 @@ public sealed class Ruleset
     /// code rather than parsed.
     /// </remarks>
     public ResourceFamily Family(ResourceId resource) => _resources[resource.Raw - 1];
+
+    /// <summary>Whether every District opens a Pool for this Resource: a Good or a service.</summary>
+    public bool IsTraded(ResourceId resource) =>
+        Family(resource) is ResourceFamily.Good or ResourceFamily.Service;
 
     /// <summary>Whether this Resource is conserved — never created or destroyed inside the city.</summary>
     /// <remarks>

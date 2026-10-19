@@ -112,10 +112,13 @@ public static class RulesetKeyNotes
             "What this Resource is called. Every other table refers to it by this name, and the "
             + "engine never sees the string.",
         ["[[resource]] family"] =
-            "Which of the four kinds of thing this is: a good moves as a Shipment on the Road "
+            "Which of the five kinds of thing this is: a good moves as a Shipment on the Road "
             + "Graph and shows up in the traffic, a utility flows along the District adjacency "
-            + "graph, money is conserved and does not move at all, and labour is worker-time a "
-            + "Business's present staff deposit and its own Rules spend as a local input. The "
+            + "graph, money is conserved and does not move at all, labour is worker-time a "
+            + "Business's present staff deposit and its own Rules spend as a local input, and a "
+            + "service is a Professional Service a provider's Rule makes as a local output and a "
+            + "client firm buys from the provider it keeps, through a pool input -- no Bin ever "
+            + "holds one. The "
             + "family decides transport and whether a Bin holding it has a ceiling, so there is no "
             + "default. A labour Resource must declare a shelf life, and its Bin is owned by the "
             + "business and states no capacity.",
@@ -134,6 +137,15 @@ public static class RulesetKeyNotes
             + "ages on its own boundary within the cycle, offset from other Bins so a city's stock "
             + "does not all age on one Tick. Stock deposited just before its Bin's boundary ages a "
             + "full cycle at once.",
+
+        ["[[resource]] reach_minutes"] =
+            "How far a buyer may stand from a provider of this service, in free-flow travel "
+            + "minutes, from 1 to a day. Only a service has a reach, and it states either this or "
+            + "remote. A Hinterland provider is reached from anywhere, so this binds only once the "
+            + "city has its own providers.",
+        ["[[resource]] remote"] =
+            "true for a service delivered at any distance, in place of reach_minutes. Only a service "
+            + "may state it, and false is refused: state reach_minutes instead.",
 
         // ---- [[building]] ---------------------------------------------------------------------
         ["[[building]] name"] =
@@ -399,7 +411,8 @@ public static class RulesetKeyNotes
             "How much of it one application deposits.",
         ["[[rule]] outputs scope"] =
             "Where the term deposits: local, pool, global, or map. The map scope is write-only, so a "
-            + "Rule may emit to a Layer and can never read or wait on one.",
+            + "Rule may emit to a Layer and can never read or wait on one. A service output is local "
+            + "and adds to the provider's allowance for the Day rather than to a Bin.",
         ["[[rule]] outputs layer"] =
             "Which Map Layer a map-scoped term emits into. A Layer cell has no capacity, so such a "
             + "term never fails.",
@@ -593,6 +606,15 @@ public static class RulesetKeyNotes
         ["[[hinterland]] emigrant_balance_max"] =
             "The most. Stated as a band rather than one figure, because a single figure gives every "
             + "arrival the same means.",
+        ["[[hinterland]] reachable_jobs"] =
+            "Open posts reachable from an Outside home, in the qualified-vacancy units used by arrival "
+            + "choice. Non-negative. Absent means zero; without placement.jobs_rent it changes no choice.",
+        ["[[hinterland]] export_budget"] =
+            "The most this Hinterland pays the city for exports in one Day, from 0 to 2147483647. "
+            + "It buys at its prices, the figure it also sells at, and only Goods a city firm made "
+            + "and had no room to store. When several Hinterlands price a Good, the highest payer "
+            + "with budget left for at least one minimum batch buys it, as many batches as that "
+            + "budget covers. Absent or zero buys nothing.",
         ["[[hinterland]] rent"] =
             "What a home costs per Day out here, as a whole tenancy and not a rate per Tile. It is what "
             + "a prospective Household compares against the cost of living in the city, and what a "
@@ -604,13 +626,13 @@ public static class RulesetKeyNotes
             + "Household weighing one against the other is measuring both from the same place. "
             + "Required beside a choice model and refused without one.",
         ["[[hinterland]] prices"] =
-            "What this Hinterland will sell each Good for, one entry per Good. These are the only "
+            "What this Hinterland will sell each Good or service for, one entry each. These are the only "
             + "authored anchor under every price in the design: a District's Pool may charge up to "
             + "the cheapest declared Hinterland price and no more.",
         ["[[hinterland]] prices resource"] =
-            "Which Good is being priced, naming a [[resource]]. Only a good may be — a utility is "
-            + "not stocked, and money is what a price is denominated in rather than a thing that has "
-            + "one.",
+            "Which Good or service is being priced, naming a [[resource]]. A utility is not "
+            + "stocked, and money is what a price is denominated in rather than a thing that has "
+            + "one, so neither may be.",
         // ---- [[hinterland.population]] --------------------------------------------------------
         ["[[hinterland.population]] stage"] =
             "Which Life Stage every Household of this composition is in, naming a [[life_stage]]. "
@@ -769,6 +791,11 @@ public static class RulesetKeyNotes
             "How far a Household would walk to trade one unit of what it prefers, in Tiles. It is "
             + "what makes distance comparable with rent. Required beside mu_percent and refused "
             + "without it.",
+        ["[placement] jobs_rent"] =
+            "Daily rent equivalent of ln(1 + qualified vacancies reachable on foot within the Commute "
+            + "Budget), shared by all Life Stages. Non-negative; absent or zero disables the arrival "
+            + "term. Requires mu_percent and [trips] with commute_budget_minutes. Cheap housing may "
+            + "offset zero jobs; no job-access filter is added.",
         ["[placement] rent_per_unit"] =
             "The difference in daily rent worth one unit of what a Household prefers. It is what "
             + "makes rent comparable with distance, and it is a soft trade-off rather than the "
@@ -910,6 +937,20 @@ public static class RulesetKeyNotes
             "The tightest curve a Street may be laid on, as a radius in Tiles. A tighter curve is "
             + "refused. Straight Streets have no radius and always pass. Absent means half of "
             + "block_tiles.",
+        ["[roads] dense_core_percent"] =
+            "How far from the town's middle the generator keeps every grid line, in percent of the "
+            + "town's radius. The town is the ground the starting population needs, so the core "
+            + "grows with the city. Inside it every block is one lattice square. Absent means 0.",
+        ["[roads] merged_block_percent"] =
+            "The share of 2×2 groups of lattice squares beyond dense_core_percent that the generator "
+            + "lays as one block, by leaving out the four Streets inside the group. The share rises "
+            + "from 0 at the core's edge to this value at the town's edge, and holds beyond it. "
+            + "A merged block carves the building patterns of its own size. A group an Arterial "
+            + "crosses never merges. Absent or 0 keeps every grid line.",
+        ["[roads] woodland_merge_percent"] =
+            "The merge chance a fully wooded 2×2 group adds beyond the dense core, in percent. A "
+            + "group half covered adds half. It applies only when merged_block_percent is above 0. "
+            + "Absent means 0.",
         ["[roads] upkeep_per_segment_per_day"] =
             "What the treasury pays each Day for every Road Segment, foot paths and Arterials "
             + "included. Absent or zero means roads cost nothing to keep. A treasury that cannot "
@@ -1056,6 +1097,13 @@ public static class RulesetKeyNotes
             + "Only its own balance counts, never a Business's till. Either this key or "
             + "construction_charge_per_floor_tile enables land sales, even at zero. Absent means no reserve. Requires a money Resource.",
 
+        ["[lots] city_sale_interval_days"] =
+            "Days between the city's offers of the built Lots it holds, at their price: the land "
+            + "price plus the construction charge for the floor. Households housed on a Lot are drawn "
+            + "first, then any Household, each keeping buyer_reserve_per_member. The price goes to the "
+            + "treasury. Absent means the city keeps its Lots. Requires construction_charge_per_floor_tile "
+            + "or buyer_reserve_per_member. Between 1 and 65535.",
+
         ["[lots] storeys_per_rung"] =
             "Step between density rungs. Block-based forms use it in their plot-ratio target; explicit Perimeter parcels add it per rung to house_storeys. Detached houses keep house_storeys.",
 
@@ -1111,6 +1159,18 @@ public static class RulesetKeyNotes
             "The most. Both ends or neither — one end alone reads either as a fixed endowment or as "
             + "a band reaching down to destitute, and those are different cities. Omitting both "
             + "endows nobody.",
+
+        // ---- [rent] ---------------------------------------------------------------------------
+        ["[rent] evicts_after_days"] =
+            "How many Days a tenant may owe rent before the tenancy ends — a Household to the "
+            + "Unplaced Pool, a Business to the Unpremised Pool. Stating this key is also what "
+            + "turns the daily charge on, and then each Day every tenancy pays its kind's "
+            + "rent_per_floor_tile over its floor to the Lot's Landowner, or to the treasury while "
+            + "the city holds the Lot. A resident Landowner pays none for its own tenancy. A tenant "
+            + "short of the rent pays what it holds and owes the rest, later income settles the "
+            + "debt first, and this deadline is what bounds the debt. It is refused below the "
+            + "longest pay_period_days, because a tenant paid weekly is short between paydays. "
+            + "Omitting the whole [rent] table charges nobody.",
 
         // ---- [treasury] -----------------------------------------------------------------------
         ["[treasury] opening_balance"] =

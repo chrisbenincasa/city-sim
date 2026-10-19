@@ -62,6 +62,7 @@ public partial class Main
         }
         if (_world.Bins.Rows.TryResolve(_world.Businesses.Balance[slot], out int balance))
             stocks.Add(new($"Balance: {_world.Bins.LevelAt(balance):N0} money units"));
+        if (Evidence.RentOf(_world, _selectedBusiness) is { } rent) stocks.Add(new(RentSummary(rent)));
         if (stocks.Count == 0) stocks.Add(new("No stocks reported"));
         sections.Add(new("stocks", "Business stocks", true, stocks));
     }
