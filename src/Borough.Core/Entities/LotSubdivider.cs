@@ -216,6 +216,7 @@ public static class LotSubdivider
             int along = parcel.Offset.Raw;
             int segment = merged ? FrontOf(world.Roads.Streets, ground, ref parcel, out along) : sides[(int)parcel.Face];
             if (segment == Rows.NoSlot) { continue; }
+            if (!merged) { along += RunLead(world.Roads.Streets, ground, parcel.Face, segment); }
             into.Add(new Plot(SegmentId(world, segment), parcel.Side, along, into.Count, segment,
                 BlockPatterns.FormOf(pattern, parcel.Face), parcel, ground, default, default, false));
         }
@@ -287,6 +288,21 @@ public static class LotSubdivider
         };
         along = at - streets.Lattice.EdgeOf(streets.RunStart(column, row, axis));
         return streets.SegmentOn(column, row, axis);
+    }
+
+    // How far a one-square block's face starts past the start of the lattice Street along it. A
+    // face fronting anything other than that lattice Segment counts from the block's own corner.
+    private static int RunLead(StreetGrid streets, BlockGround ground, BlockFace face, int segment)
+    {
+        (int column, int row, StreetAxis axis, int start) = face switch
+        {
+            BlockFace.South => (ground.Column, ground.Row, StreetAxis.East, ground.East),
+            BlockFace.North => (ground.Column, ground.Row + 1, StreetAxis.East, ground.East),
+            BlockFace.West => (ground.Column, ground.Row, StreetAxis.North, ground.North),
+            _ => (ground.Column + 1, ground.Row, StreetAxis.North, ground.North),
+        };
+        if (streets.SegmentOn(column, row, axis) != segment) { return 0; }
+        return start - streets.Lattice.EdgeOf(streets.RunStart(column, row, axis));
     }
 
     private static void Anchor(World world, ref int column, ref int row)

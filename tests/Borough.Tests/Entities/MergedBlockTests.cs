@@ -1,4 +1,8 @@
+using Borough.Core;
 using Borough.Core.Arithmetic;
+using Borough.Core.Input;
+using Borough.Core.Persistence;
+using Borough.Tests.Persistence;
 using Borough.Appearance;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
@@ -108,6 +112,54 @@ public sealed class MergedBlockTests
         Assert.Equal(8, fronted.Count);
     }
 
+    [Fact]
+    public void A_carved_two_by_two_block_previews_from_any_square_and_survives_save_and_reload()
+    {
+        World world = Populated();
+        StreetGrid streets = world.Roads.Streets;
+        (int column, int row) = EmptyPatch(world);
+
+        Assert.True(world.Roads.BulldozeStreet(column, row + 1, StreetAxis.East));
+        Assert.True(world.Roads.BulldozeStreet(column + 1, row + 1, StreetAxis.East));
+        Assert.True(world.Roads.BulldozeStreet(column + 1, row, StreetAxis.North));
+        Assert.True(world.Roads.BulldozeStreet(column + 1, row + 1, StreetAxis.North));
+        world.RebuildDerived();
+
+        int first = world.Lots.Rows.SlotCount;
+        int carved = LotSubdivider.SubdivideBlock(world, column, row, LotTable.Housing);
+        Assert.True(carved > 0);
+
+        for (int square = 0; square < 4; square++)
+        {
+            int at = column + (square & 1), on = row + (square >> 1);
+            var into = new Parcel[LotSubdivider.PreviewCapacity(world, at, on)];
+            Assert.Equal(carved, LotSubdivider.Preview(world, at, on, into));
+        }
+
+        var save = new MemorySave();
+        SaveFile.Write(world, 0, save);
+        World restored = SaveFile.Read(save, world.Rules, out _);
+
+        Assert.Equal(world.HashState(), restored.HashState());
+        BlockGround block = restored.Roads.Streets.Block(column + 1, row + 1);
+        Assert.Equal((column, row, 2 * streets.BlockTiles), (block.Column, block.Row, block.Wide));
+        for (int lot = first; lot < world.Lots.Rows.SlotCount; lot++)
+        {
+            if (!world.Lots.Rows.IsLive(lot)) { continue; }
+            Assert.Equal(world.Lots.FrontageOn(lot), restored.Lots.FrontageOn(lot));
+            Assert.Equal(world.Lots.FrontageOffset[lot], restored.Lots.FrontageOffset[lot]);
+        }
+
+        var simulation = new Simulation(world, Key);
+        var resumed = new Simulation(restored, Key);
+        for (int tick = 0; tick < Ticks.PerDay; tick++)
+        {
+            simulation.Step(TickInput.Empty);
+            resumed.Step(TickInput.Empty);
+        }
+        Assert.Equal(world.HashState(), restored.HashState());
+    }
+
     [Theory]
     [InlineData(0, 0, true)]
     [InlineData(1, 0, false)]
@@ -170,6 +222,13 @@ public sealed class MergedBlockTests
 
         Assert.True(merged > 0, "the generator laid no merged block.");
         Assert.True(carved > 0, "no merged block carries Lots.");
+        for (int lot = 0; lot < world.Lots.Rows.SlotCount; lot++)
+        {
+            if (!world.Lots.Rows.IsLive(lot)) { continue; }
+            int segment = Frontage.Locate(streets, world.Lots.East[lot], world.Lots.North[lot], out Tiles along);
+            if (segment == Rows.NoSlot || segment != world.Lots.FrontageOn(lot)) { continue; }
+            Assert.Equal(along, world.Lots.FrontageOffset[lot]);
+        }
         int west = int.MaxValue, east = -1, south = int.MaxValue, north = -1;
         for (int row = 0; row < streets.Blocks; row++)
         {
