@@ -94,7 +94,7 @@ public readonly record struct BuildingFacts(
                     or BlockPattern.GalleryPrecinct => ParkingForm.Deck,
                 _ => ParkingForm.None,
             },
-            IsCorner(world.Roads.Streets.Lattice, lots, lot));
+            IsCorner(world.Roads.Streets, lots, lot));
         return true;
     }
 
@@ -102,24 +102,27 @@ public readonly record struct BuildingFacts(
     /// Whether the Lot's parcel reaches both an east–west and a north–south edge of its block, so its
     /// Building meets two street faces.
     /// </summary>
-    public static bool IsCorner(BlockLattice lattice, LotTable lots, int lot)
+    public static bool IsCorner(StreetGrid streets, LotTable lots, int lot)
     {
-        ArgumentNullException.ThrowIfNull(lattice);
+        ArgumentNullException.ThrowIfNull(streets);
         ArgumentNullException.ThrowIfNull(lots);
 
-        int west = lots.ParcelBounds(lot).X;
-        int south = lots.ParcelBounds(lot).Y;
-        int wide = lots.ParcelBounds(lot).Width;
-        int deep = lots.ParcelBounds(lot).Height;
-        if (lattice.Nominal <= 0 || wide <= 0 || deep <= 0)
+        LandRectangle parcel = lots.ParcelBounds(lot);
+        if (streets.Blocks <= 0 || parcel.Width <= 0 || parcel.Height <= 0)
         {
             return false;
         }
 
-        BlockGround block = BlockGround.At(lattice, lattice.LineAt(west), lattice.LineAt(south));
-        bool eastOrWest = west == block.East || west + wide == block.East + block.Wide;
-        bool northOrSouth = south == block.North || south + deep == block.North + block.Deep;
-        return eastOrWest && northOrSouth;
+        BlockLattice lattice = streets.Lattice;
+        return IsCorner(streets.Block(lattice.LineAt(parcel.X), lattice.LineAt(parcel.Y)), parcel);
+    }
+
+    /// <summary>Whether a parcel reaches both an east–west and a north–south edge of a block.</summary>
+    public static bool IsCorner(BlockGround block, LandRectangle parcel)
+    {
+        bool eastOrWest = parcel.X == block.East || parcel.X + parcel.Width == block.East + block.Wide;
+        bool northOrSouth = parcel.Y == block.North || parcel.Y + parcel.Height == block.North + block.Deep;
+        return parcel.Width > 0 && parcel.Height > 0 && eastOrWest && northOrSouth;
     }
 }
 

@@ -461,7 +461,7 @@ public sealed class PlacementTests
             kinds: [new KindDefinition(0, 0, 0, 0)
             {
                 Houses = true,
-                Rent = new Money(100),
+                RentPerFloorTile = new Money(100),
             }],
             inputs: [],
             outputs: [],
@@ -492,7 +492,7 @@ public sealed class PlacementTests
             kinds: [new KindDefinition(0, 0, 0, 0)
             {
                 Houses = true,
-                Rent = new Money(100),
+                RentPerFloorTile = new Money(100),
             }],
             inputs: [],
             outputs: [],
@@ -558,7 +558,7 @@ public sealed class PlacementTests
             kinds: [new KindDefinition(0, 0, 0, 0)
             {
                 Houses = true,
-                Rent = new Money(100),
+                RentPerFloorTile = new Money(100),
             }],
             inputs: [],
             outputs: [],
@@ -613,7 +613,7 @@ public sealed class PlacementTests
             kinds: [new KindDefinition(0, 0, 0, 0)
             {
                 Houses = true,
-                Rent = new Money(100),
+                RentPerFloorTile = new Money(100),
             }],
             inputs: [],
             outputs: [],

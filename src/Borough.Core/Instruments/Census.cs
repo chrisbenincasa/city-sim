@@ -114,7 +114,7 @@ public sealed class Census
     private const int MoneyCounters = 6;
 
     /// <summary>The members of <see cref="MoneyFlowCounter"/> — one per (mechanism, direction).</summary>
-    private const int MoneyFlowCounters = 11;
+    private const int MoneyFlowCounters = 12;
 
     private const int MoneyFlowMetrics = MoneyFlowCounters * AggregatesPerRuleCounter;
 
@@ -260,7 +260,8 @@ public sealed class Census
             simulation.DrainPlacementSpend(),
             simulation.DrainUpkeepSpend(),
             simulation.DrainCompensation(),
-            simulation.Zoning.DrainGrants());
+            simulation.Zoning.DrainGrants(),
+            simulation.World.Arrears.DrainTreasury());
     }
 
     /// <summary>
@@ -329,6 +330,12 @@ public sealed class Census
     /// Money the treasury paid zone-raised Businesses to open since the previous reading, already
     /// drained. A transfer, so the supply does not move.
     /// </param>
+    /// <param name="rent">
+    /// Rent that tenants of treasury-owned Lots actually paid since the previous reading, already
+    /// drained. ⚠ <b>It is a fifth income path and narrower than
+    /// <c>Simulation.LastRent.Collected</c></b> — that reading also carries rent a private Landowner
+    /// received and debt cancelled around a ring, neither of which the treasury's balance saw.
+    /// </param>
     public void Observe(
         World world,
         Ticks tick,
@@ -344,7 +351,8 @@ public sealed class Census
         MoneyFlow placementSpend = default,
         MoneyFlow upkeepSpend = default,
         MoneyFlow compensation = default,
-        MoneyFlow grants = default)
+        MoneyFlow grants = default,
+        MoneyFlow rent = default)
     {
         ArgumentNullException.ThrowIfNull(world);
 
@@ -454,6 +462,7 @@ public sealed class Census
         WriteMoney(_values, at + _moneyFlowBase, (int)MoneyFlowCounter.Upkeep, upkeepSpend);
         WriteMoney(_values, at + _moneyFlowBase, (int)MoneyFlowCounter.Compensation, compensation);
         WriteMoney(_values, at + _moneyFlowBase, (int)MoneyFlowCounter.Grant, grants);
+        WriteMoney(_values, at + _moneyFlowBase, (int)MoneyFlowCounter.Rent, rent);
 
         // The third income path, and the one that reached the treasury in silence until row 33. It
         // rides RuleActivity rather than PolicyActivity because it is the Bin Rule engine that moved
@@ -659,7 +668,8 @@ public sealed class Census
                 or MoneyFlowCounter.RuleToTreasury or MoneyFlowCounter.RuleFromTreasury
                 or MoneyFlowCounter.ProfitTax or MoneyFlowCounter.Subsidy
                 or MoneyFlowCounter.Placement or MoneyFlowCounter.Upkeep
-                or MoneyFlowCounter.Compensation or MoneyFlowCounter.Grant))
+                or MoneyFlowCounter.Compensation or MoneyFlowCounter.Grant
+                or MoneyFlowCounter.Rent))
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(metric), metric.MoneyFlowCounter, "not a money movement this census reads.");

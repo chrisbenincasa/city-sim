@@ -55,6 +55,17 @@ public static class WorldInvariants
         }
     }
 
+    internal static void HouseholdsHaveLiveBalances(World world, InvariantRegistry report)
+    {
+        if (!world.TryMoneyResource(out _)) { return; }
+        for (int row = 0; row < world.Households.Rows.SlotCount; row++)
+        {
+            if (!world.Households.Rows.IsLive(row)) { continue; }
+            report.Require(world.Bins.Rows.IsValid(world.Households.Balance[row]),
+                Invariant.HouseholdHasALiveBalance, row);
+        }
+    }
+
     /// <summary>Registers every check this slice can make.</summary>
     public static void RegisterAll(InvariantRegistry invariants)
     {
@@ -65,6 +76,7 @@ public static class WorldInvariants
         invariants.Register(InvariantTier.Staggered, SegmentsAreWellFormed);
 
         invariants.Register(InvariantTier.EndOfRun, EveryHandleResolves);
+        invariants.Register(InvariantTier.EndOfRun, HouseholdsHaveLiveBalances);
         invariants.Register(InvariantTier.EndOfRun, LandPermissionsAreWellFormed);
         invariants.Register(InvariantTier.EndOfRun, AgesMatchTheirBins);
         invariants.Register(InvariantTier.EndOfRun, EveryoneIsInExactlyOnePlace);
@@ -1889,7 +1901,7 @@ public static class WorldInvariants
             {
                 var resource = new ResourceId((ushort)raw);
 
-                if (world.Rules.Family(resource) != ResourceFamily.Good)
+                if (!world.Rules.IsTraded(resource))
                 {
                     continue;
                 }

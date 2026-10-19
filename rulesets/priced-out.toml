@@ -8,19 +8,23 @@
 # many dwellings a city needs moved when occupancy stopped being a flat 4. The MECHANISM is
 # verified on the merged tree -- `reassessed out` peaks at 6 and the Pool grows 5 -> 81 at 500
 # Citizens over 20,480 Ticks -- and the shares are not.
+# ⚠ CONVERTED AGAIN at money-circulation L7: rent is a RATE per floor Tile now, so the key states 20
+# and a dwelling tenancy of about 28 Tiles pays about 560 a Day. Every rent figure in the paragraphs
+# below is a per-tenancy price.
 #
 # ===========================================================================================
 # WHY IT EXISTS. Row 16b built the reassessment sweep: a housed Household whose balance falls
 # below its dwelling's rent is moved back to the Unplaced Pool. taxed.toml cannot demonstrate
-# it because its rent of 50 is below the opening band's minimum meaningful levy take, so
-# nobody is ever priced out. This file raises rent to 500 against the same 0..1000 band, adds
-# reconsider_ticks so the sweep runs, and adds gives_up_after_days so the Pool has a sink.
+# it because its rent of some 56 a tenancy is below the opening band's minimum meaningful levy
+# take, so nobody is ever priced out. This file raises rent to about 560 a tenancy against the
+# same 0..1000 band, adds reconsider_ticks so the sweep runs, and adds gives_up_after_days so the
+# Pool has a sink.
 #
 # WHAT TO WATCH. Three things happen that taxed.toml cannot show:
 #
-#   1. About half the Households open below 500 and are never placed at all.
+#   1. Over half the Households open below 560 and are never placed at all.
 #   2. Of those placed, the levy (10%/Day) drains them toward the crossing point. When a
-#      Household's balance crosses below 500 the reassessment sweep ejects it.
+#      Household's balance crosses below its rent the reassessment sweep ejects it.
 #   3. Ejected Households re-enter the Pool. Those who cannot find a dwelling they can afford
 #      within 60 Days give up and depart.
 #
@@ -28,9 +32,9 @@
 #
 # ===========================================================================================
 # IT IS A DEMONSTRATION, NOT A CITY. taxed.toml's first line applies here unchanged, and the
-# rent of 500 is chosen to make the reassessment visible, not to model anything. A city where
-# rent is half the wealth ceiling is a city that prices itself empty; the file exists to show
-# the mechanism doing it.
+# rate is chosen to make the reassessment visible, not to model anything. A city where rent is
+# over half the wealth ceiling is a city that prices itself empty; the file exists to show the
+# mechanism doing it.
 #
 # ===========================================================================================
 # The body below is taxed.toml's, with three edits marked EDIT.
@@ -60,8 +64,9 @@ bins = [
 ]
 houses   = true
 premises = true
-# EDIT 1 OF 3: rent raised from 50 to 500 so about half the opening band is locked out.
-rent = 500
+# EDIT 1 OF 3: rent raised so about half the opening band is locked out. The rate is per floor
+# Tile, and a dwelling tenancy here holds about 28 of them, so it costs about 560 a Day.
+rent_per_floor_tile = 20
 business = "shop"
 
 [[rule]]
@@ -157,9 +162,9 @@ shift_hours_min = 6
 shift_hours_max = 10
 arrive_early_max_minutes = 15
 
-# EDIT 3 OF 3: same band and circuit as taxed.toml. The levy drains toward 500; the rebate
-# does not lift fast enough to keep pace, so a Household placed at 600 crosses below 500
-# within a few Days and the reassessment sweep ejects it.
+# EDIT 3 OF 3: same band and circuit as taxed.toml. The levy drains toward the crossing point;
+# the rebate does not lift fast enough to keep pace, so a Household placed at 600 crosses below
+# the 560 its tenancy charges within a few Days and the reassessment sweep ejects it.
 [households]
 car_ownership_percent = 0
 opening_balance_min = 0

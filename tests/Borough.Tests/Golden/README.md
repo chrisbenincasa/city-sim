@@ -866,3 +866,85 @@ hash seed are unchanged. No baseline Ruleset states `[[building]] abandoned_afte
 `cut_off_since` folds zeroes. `abandoned_cause` records the existing cause wherever a session already
 abandoned a Building, so the traces move beyond the column's addition alone. `CutOffClockTests`
 covers the clock, the abandonment and save/reload.
+
+### The Landowner column (10/17/2026)
+
+`lot` gains a saved severable `landowner`, the Household holding the Lot and the Building on it
+([`plans/money-circulation.md`](../../../plans/money-circulation.md) land and rent `L1`, `L2`, and
+slice 1). Core save format goes to **22**. All three artifacts moved on the new column. Both traces
+and `world-hash.txt` were regenerated with the commands above. Baseline Ruleset content hashes and
+the hash seed are unchanged; no shipped Ruleset was edited.
+
+**The fixture was changed before the number was taken**, which is milestone 27 task 6's lesson
+applied again. Nothing in the simulation buys land yet — purchase is slice 2 — so a straight
+re-record would have folded an empty handle on every Lot in every artifact, and the baseline would
+have moved the day the column landed and never again however land changed hands.
+`GoldenFixtures.Build()` now gives Lot 1 to Household 0 and Lot 4 to Household 5, which it retires,
+so the hand-built world folds a live Landowner **and** a severed one. The two hashes differ —
+`0xA6AE729E3A53E11C` with every Lot city-held against the committed `0xF86F8796BA472C1D` — which is
+the proof the Landowner's id is folded rather than only the column.
+
+⚠ **Both session traces fold the column as zeroes and will until slice 2.** They moved on the
+declaration set alone: a session's verbs cannot buy a Lot, so every Lot in both is held by the city,
+which is also what `L14` says a generated city starts at. `LandownerTests` is what covers the owned,
+dissolved, departed and reloaded cases.
+
+**Behavior did not move.** `--census` over both committed sessions is byte-identical before and
+after once the trace is removed — **20,499 bytes** and **20,404 bytes**. The column has no reader in
+the simulation and no writer outside the fixtures.
+
+### Rent debt (10/17/2026)
+
+`household` and `business` each gain a saved `rent_debt` and `rent_debt_since_day`: what a tenant
+owes its Landowner and the Day the run of shortfalls began
+([`plans/money-circulation.md`](../../../plans/money-circulation.md) land and rent `L8`, `L16`, and
+slice 4). Core save format goes to **23**. All three artifacts moved on the new columns. Both traces
+and `world-hash.txt` were regenerated with the commands above. Baseline Ruleset content hashes and
+the hash seed are unchanged; no baseline Ruleset was edited.
+
+**The fixture was changed before the number was taken**, which is the Landowner column's lesson one
+slice along. `GoldenFixtures.Build()` runs on `Ruleset.Empty`, so no sweep charges anybody and a
+straight re-record would have folded two zeroed columns on every row — a baseline that moved the day
+the columns landed and never again however arrears moved. Household 3 now owes 1,427 since Day 9 and
+the first employer owes 613 since Day 4, so each column is folded as a value on both tables, with a
+clear row beside each owing one. The two hashes differ — `0xE012B4869995C55C` with both columns
+zeroed against the committed `0x262C997388DA111F` — which is the proof the figures are folded rather
+than only the declarations.
+
+⚠ **Both session traces fold the columns as zeroes and will until a baseline Ruleset states
+`[rent]`.** They moved on the declaration set alone. Collection is behind one optional key, and
+`declining.toml`, `declining-tuned.toml` and `congested.toml` state none, so no tenancy in either
+session is charged. `rulesets/renting.toml` is the shipped file that charges, and
+`RentCollectionTests`, `RentPaydayTests` and `RentRulesetLoadTests` cover the charge, the arrears,
+eviction and save/reload.
+
+**Behavior did not move.** `--census` over both committed sessions is byte-identical before and after
+once the trace is removed — **20,661 bytes** and **20,564 bytes**, measured against a worktree at
+`ddb6e8ee`. `RentEngine.Sweep` returns on the first line for a Ruleset that states no `[rent]`.
+
+### Service contracts (10/18/2026)
+
+A new saved `service_contract` table records each kept contract under which a firm imports a
+Professional Service (`adr/0179`). Core save format goes to **24**. All three artifacts moved on the
+new table's declaration. Both traces and `world-hash.txt` were regenerated with the commands above.
+Baseline Ruleset content hashes and the hash seed are unchanged. No baseline Ruleset declares a
+Service, so the table holds no rows in any artifact here. `ServiceImportTests` covers the
+contract's lifecycle and save/reload.
+
+### Hinterland export spending (10/18/2026)
+
+`hinterland` gains two saved columns, `exported_today` and `exported_yesterday`: what each Hinterland
+has paid the city for exports in the current and the previous Day. Core save format goes to **25**.
+All three artifacts moved on the new columns. Both traces and `world-hash.txt` were regenerated with
+the commands above. Baseline Ruleset content hashes and the hash seed are unchanged. No baseline
+Ruleset states `export_budget`, so the columns fold zeroes. `ExportTests` covers the budget, the
+hand-off between Hinterlands and save/reload.
+
+### Office service allowances (10/18/2026)
+
+A new saved `service_allowance` table records what each office may still sell of each Professional
+Service today, and `service_contract` gains the providing office (`adr/0179`). Core save format goes
+to **26**. All three artifacts moved on the new declarations. Both traces and `world-hash.txt` were
+regenerated with the commands above. Baseline Ruleset content hashes and the hash seed are
+unchanged. No baseline Ruleset declares a Service, so neither table holds rows here.
+`LocalServiceTests` covers the allowance, the sale, the provider draw and save/reload.

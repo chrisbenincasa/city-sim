@@ -20,10 +20,11 @@
 # in. `--kinds` says so in its own words: "1 Zone Rule(s) raise it on a bit this world paints, and
 # none has yet won a Lot."
 #
-# ⚠ SO `rent_per_unit` IS READ AND CANNOT BITE. Rent is per KIND, one kind means one rent, and a
-# term identical across every candidate CANCELS in a softmax -- only differences matter. The key is
-# required beside mu_percent and states a real scale; what it has no world for is a DIFFERENCE.
-# plans/0068 owns the decision that follows.
+# ⚠ `rent_per_unit` COULD NOT BITE WHEN THIS FILE WAS WRITTEN, AND NOW IT DOES. Rent was per KIND,
+# one kind meant one rent, and a term identical across every candidate CANCELS in a softmax.
+# money-circulation L7 made it a rate per floor Tile, charged on the floor a tenancy holds and
+# adjusted by the land value at its Lot, so two dwellings of ONE kind differ here by their ground.
+# plans/0068 owns the decision taken while the term still cancelled.
 #
 # ⚠ RENT IS IN THIS FILE TWICE AND THE TWO ARE DIFFERENT MECHANISMS. The affordability test is a
 # FILTER -- a dwelling costing more than the family holds is struck out before anything is scored --
@@ -102,8 +103,9 @@ bins = [
 ]
 houses   = true
 premises = true
-# EDIT 1 OF 3: rent raised from 50 to 500 so about half the opening band is locked out.
-rent = 500
+# EDIT 1 OF 3: rent raised so about half the opening band is locked out. The rate is per floor
+# Tile, and a dwelling tenancy here holds about 28 of them, so it costs about 560 a Day.
+rent_per_floor_tile = 20
 business = "shop"
 
 [[rule]]

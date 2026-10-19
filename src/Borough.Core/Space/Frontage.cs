@@ -330,13 +330,13 @@ public sealed class Frontage
 
         if (alongNorth == 0 && alongEast != 0)
         {
-            offset = new Tiles(alongEast);
+            offset = new Tiles(east.Raw - streets.Lattice.EdgeOf(streets.RunStart(column, row, StreetAxis.East)));
             return streets.Horizontal(column, row);
         }
 
         if (alongEast == 0 && alongNorth != 0)
         {
-            offset = new Tiles(alongNorth);
+            offset = new Tiles(north.Raw - streets.Lattice.EdgeOf(streets.RunStart(column, row, StreetAxis.North)));
             return streets.Vertical(column, row);
         }
 
@@ -418,7 +418,7 @@ public sealed class Frontage
                 face = BlockFace.North;
             }
 
-            return row >= 0;
+            return row >= 0 && Anchor(streets, ref column, ref row);
         }
 
         if (alongEast == 0 && alongNorth != 0)
@@ -431,10 +431,18 @@ public sealed class Frontage
                 face = BlockFace.East;
             }
 
-            return column >= 0;
+            return column >= 0 && Anchor(streets, ref column, ref row);
         }
 
         return false;
+    }
+
+    private static bool Anchor(StreetGrid streets, ref int column, ref int row)
+    {
+        if (column >= streets.Blocks || row >= streets.Blocks) { return true; }
+        BlockGround block = streets.Block(column, row);
+        (column, row) = (block.Column, block.Row);
+        return true;
     }
 
     private static byte Bit(StreetSide side) => (byte)(side == StreetSide.Left ? 1 : 2);

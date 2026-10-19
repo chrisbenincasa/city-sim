@@ -462,37 +462,41 @@ public partial class Main
 
         said.Add($"{WholeBlockPreviewText(at)} — Lot preview carved {_zoneCarves} times; {_world.Lots.Rows.LiveCount} Lots stand");
 
-        int column = streets.Lattice.LineAt(at.East.Raw);
-        int row = streets.Lattice.LineAt(at.North.Raw);
+        BlockGround block = streets.Block(streets.Lattice.LineAt(at.East.Raw), streets.Lattice.LineAt(at.North.Raw));
+        int column = block.Column, row = block.Row;
+        int eastLine = streets.Lattice.LineAt(block.East + block.Wide);
+        int northLine = streets.Lattice.LineAt(block.North + block.Deep);
         int free = 0;
         int faces = 0;
 
-        // The four faces and the side of each that belongs to THIS block, which is
-        // LotSubdivider.SubdivideBlock's own four constants rather than a second derivation.
-        ReadOnlySpan<(int Segment, StreetSide Side)> around =
+        // The side of each face that belongs to this block, as LotSubdivider.SubdivideBlock reads it.
+        // A face of a merged block runs along several lattice edges.
+        ReadOnlySpan<(int Column, int Row, StreetAxis Axis, StreetSide Side, int Edges)> around =
         [
-            (streets.Horizontal(column, row), StreetSide.Left),
-            (streets.Horizontal(column, row + 1), StreetSide.Right),
-            (streets.Vertical(column, row), StreetSide.Right),
-            (streets.Vertical(column + 1, row), StreetSide.Left),
+            (column, row, StreetAxis.East, StreetSide.Left, eastLine - column),
+            (column, northLine, StreetAxis.East, StreetSide.Right, eastLine - column),
+            (column, row, StreetAxis.North, StreetSide.Right, northLine - row),
+            (eastLine, row, StreetAxis.North, StreetSide.Left, northLine - row),
         ];
 
-        foreach ((int segment, StreetSide side) in around)
+        foreach ((int fromColumn, int fromRow, StreetAxis axis, StreetSide side, int edges) in around)
         {
-            if (segment == Rows.NoSlot)
+            bool fronted = false, open = false;
+            for (int edge = 0; edge < edges; edge++)
             {
-                continue;
+                int segment = axis == StreetAxis.East
+                    ? streets.Horizontal(fromColumn + edge, fromRow)
+                    : streets.Vertical(fromColumn, fromRow + edge);
+                if (segment == Rows.NoSlot) continue;
+                fronted = true;
+                open |= !_world.Frontage.Claimed(segment, side);
             }
 
-            faces++;
-
-            if (!_world.Frontage.Claimed(segment, side))
-            {
-                free++;
-            }
+            if (fronted) faces++;
+            if (open) free++;
         }
 
-        var held = _world.LandPermissions.Summary(_world.BlockGroundRectangle(column, row));
+        var held = _world.LandPermissions.Summary(new LandRectangle(block.East, block.North, block.Wide, block.Deep));
         ushort permission = ZonePermission();
         bool repaints = held.CommonUses != permission || held.AnyUses != permission;
 
@@ -514,9 +518,8 @@ public partial class Main
     /// wrong unit sat exactly on the thing a click acts on and nobody could tell. The moment
     /// <c>block_tiles</c> went to 16 the box covered four blocks.
     /// <para>
-    /// ⚠ <b>What a click acts on is the BLOCK</b> — <see cref="Virgin"/> and
-    /// <c>LotSubdivider.SubdivideBlock</c> both take <c>FloorDiv(tile, BlockTiles)</c> — so that is
-    /// what the box has to be. A world with no lattice keeps the Cell, because there is no block to
+    /// ⚠ <b>What a click acts on is the BLOCK</b> — <c>StreetGrid.Block</c>, which spans every lattice
+    /// square its Streets enclose — so that is what the box has to be. A world with no lattice keeps the Cell, because there is no block to
     /// draw and the Cell is still an honest unit of ground.
     /// </para>
     /// </remarks>
@@ -560,7 +563,7 @@ public partial class Main
         _cursor.Multimesh.SetInstanceTransform(
             0,
             block > 0
-                ? Block(at, _world.Roads.Streets.Lattice, 0.03f)
+                ? Block(at, _world.Roads.Streets, 0.03f)
                 : Tile(CellGrid.ToCells(at.East), CellGrid.ToCells(at.North), 0.03f));
         _cursor.Multimesh.SetInstanceColor(0, new Color(.95f, .80f, .25f).SrgbToLinear());
         _cursor.Multimesh.VisibleInstanceCount = 1;

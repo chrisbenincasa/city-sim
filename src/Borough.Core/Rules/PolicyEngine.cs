@@ -369,6 +369,18 @@ public sealed class PolicyEngine
             ? _world.Businesses.Rows.IsLive(slot)
             : _world.Households.Rows.IsLive(slot);
 
+    /// <summary>Settles one member's rent arrears out of what a Policy just paid it.</summary>
+    private void SettleRent(PolicySubject subject, int member, Ticks tick)
+    {
+        if (subject == PolicySubject.Business)
+        {
+            _world.Arrears.SettleBusiness(member, tick);
+            return;
+        }
+
+        _world.Arrears.SettleHousehold(member, tick);
+    }
+
     /// <summary>The Bin row holding one member's money.</summary>
     /// <remarks>
     /// ⚠ <b><c>Resolve</c> and not <c>TryResolve</c>, on both branches, and the asymmetry with
@@ -435,6 +447,15 @@ public sealed class PolicyEngine
         _world.Deposit(_world.Bins.Rows.At(destination), amount, tick);
 
         _tickApplied++;
+
+        // L16: a rebate is income, and rent arrears are settled where income lands rather than at
+        // the next Day boundary. Read off the DESTINATION Scope, so only a member that was paid
+        // settles -- a levy took money off it, and settling after one would collect rent out of
+        // whatever the levy left behind. Returns zero where the Ruleset states no [rent].
+        if (definition.To != Scope.Global)
+        {
+            SettleRent(definition.Subject, member, tick);
+        }
 
         // Read off the Scopes rather than off the Bins the transfer resolved to, because a Bin is
         // the treasury's by ownership and a transfer is the treasury's by direction, and task 5's

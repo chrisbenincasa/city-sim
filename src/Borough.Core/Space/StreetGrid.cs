@@ -124,9 +124,67 @@ public sealed class StreetGrid
     /// <summary>Blocks along one edge of the map — one fewer than the intersections.</summary>
     public int Blocks => Span > 0 ? Span - 1 : 0;
 
+    /// <summary>The most lattice squares one side of a merged block spans.</summary>
+    public const int SpanLimit = 4;
+
+    /// <summary>
+    /// The block holding square <c>(column, row)</c>: the rectangle of squares its lattice Streets
+    /// enclose, named by its south-west square.
+    /// </summary>
+    /// <remarks>
+    /// A merged block has a Street on every perimeter edge and none inside. Any other square is a
+    /// block of one, so every square of a merged block answers the same rectangle.
+    /// </remarks>
+    public BlockGround Block(int column, int row)
+    {
+        BlockGround square = BlockGround.At(Lattice, column, row);
+        int west = column, east = column, south = row, north = row;
+
+        while (Vertical(west, row) == Rows.NoSlot)
+        {
+            if (--west < 0 || east - west >= SpanLimit) { return square; }
+        }
+        while (Vertical(east + 1, row) == Rows.NoSlot)
+        {
+            if (++east >= Blocks || east - west >= SpanLimit) { return square; }
+        }
+        while (Horizontal(column, south) == Rows.NoSlot)
+        {
+            if (--south < 0 || north - south >= SpanLimit) { return square; }
+        }
+        while (Horizontal(column, north + 1) == Rows.NoSlot)
+        {
+            if (++north >= Blocks || north - south >= SpanLimit) { return square; }
+        }
+        if (west == east && south == north) { return square; }
+
+        for (int x = west; x <= east; x++)
+        {
+            if (Horizontal(x, south) == Rows.NoSlot || Horizontal(x, north + 1) == Rows.NoSlot) { return square; }
+            for (int y = south + 1; y <= north; y++)
+            {
+                if (Horizontal(x, y) != Rows.NoSlot) { return square; }
+            }
+        }
+        for (int y = south; y <= north; y++)
+        {
+            if (Vertical(west, y) == Rows.NoSlot || Vertical(east + 1, y) == Rows.NoSlot) { return square; }
+            for (int x = west + 1; x <= east; x++)
+            {
+                if (Vertical(x, y) != Rows.NoSlot) { return square; }
+            }
+        }
+
+        int fromEast = Lattice.EdgeOf(west), fromNorth = Lattice.EdgeOf(south);
+        return new BlockGround(west, south, fromEast, fromNorth,
+            Lattice.EdgeOf(east) + Lattice.WidthOf(east) - fromEast,
+            Lattice.EdgeOf(north) + Lattice.WidthOf(north) - fromNorth);
+    }
+
     /// <summary>
     /// The Segment running east from intersection <c>(column, row)</c>, or
-    /// <see cref="Rows.NoSlot"/> if no Street lies there.
+    /// <see cref="Rows.NoSlot"/> if no Street lies there. A straight Street spanning several edges
+    /// is held on each of them.
     /// </summary>
     public int Horizontal(int column, int row) =>
         column < 0 || row < 0 || column >= Blocks || row >= Span
@@ -148,6 +206,22 @@ public sealed class StreetGrid
     /// </summary>
     public int SegmentOn(int column, int row, StreetAxis axis) =>
         axis == StreetAxis.East ? Horizontal(column, row) : Vertical(column, row);
+
+    /// <summary>
+    /// The column (east) or row (north) where the Segment on edge <c>(column, row)</c> begins.
+    /// </summary>
+    public int RunStart(int column, int row, StreetAxis axis)
+    {
+        int slot = SegmentOn(column, row, axis);
+        if (slot == Rows.NoSlot) { return axis == StreetAxis.East ? column : row; }
+        if (axis == StreetAxis.East)
+        {
+            while (Horizontal(column - 1, row) == slot) { column--; }
+            return column;
+        }
+        while (Vertical(column, row - 1) == slot) { row--; }
+        return row;
+    }
 
     /// <summary>
     /// The lattice edge nearest a Tile — <b>the aim, where <see cref="SegmentOn"/> is the lookup.</b>
@@ -394,13 +468,15 @@ public sealed class StreetGrid
                 && OnLattice(nodes, a, out int columnA, out int rowA)
                 && OnLattice(nodes, b, out int columnB, out int rowB))
             {
-                if (rowA == rowB && columnB == columnA + 1)
+                bool single = columnB + rowB == columnA + rowA + 1;
+                if (!single && !segments.Centerline[slot].IsStraight) { continue; }
+                if (rowA == rowB && columnB > columnA)
                 {
-                    _horizontal[(rowA * Blocks) + columnA] = slot;
+                    for (int column = columnA; column < columnB; column++) { _horizontal[(rowA * Blocks) + column] = slot; }
                 }
-                else if (columnA == columnB && rowB == rowA + 1)
+                else if (columnA == columnB && rowB > rowA)
                 {
-                    _vertical[(columnA * Blocks) + rowA] = slot;
+                    for (int row = rowA; row < rowB; row++) { _vertical[(columnA * Blocks) + row] = slot; }
                 }
             }
 
