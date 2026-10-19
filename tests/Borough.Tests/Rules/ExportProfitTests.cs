@@ -28,6 +28,13 @@ public sealed class ExportProfitTests(ITestOutputHelper output)
         "[lots]\ndemolition_price_per_tile = 1024\nconstruction_charge_per_floor_tile = 256\n"
         + "buyer_reserve_per_member = 1024\n";
 
+    private static string Edit(string toml, string anchor, string replacement, int expected)
+    {
+        int found = toml.Split(anchor).Length - 1;
+        Assert.True(found == expected, $"Expected {expected} of '{anchor.TrimEnd()}' in exported.toml, found {found}.");
+        return toml.Replace(anchor, replacement, StringComparison.Ordinal);
+    }
+
     [Theory]
     [Trait(Tier.Key, Tier.Instrument)]
     [InlineData(false, false)]
@@ -35,16 +42,17 @@ public sealed class ExportProfitTests(ITestOutputHelper output)
     [InlineData(true, true)]
     public void Export_income_and_where_it_settles(bool payouts, bool landSales)
     {
-        string toml = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "exported.toml"));
+        string toml = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "exported.toml"))
+            .ReplaceLineEndings("\n");
 
         if (payouts)
         {
-            toml = toml.Replace("pay_period_days = 7\n", Payouts, StringComparison.Ordinal);
+            toml = Edit(toml, "pay_period_days = 7\n", Payouts, expected: 2);
         }
 
         if (landSales)
         {
-            toml = toml.Replace("[lots]\n", LandSales, StringComparison.Ordinal);
+            toml = Edit(toml, "[lots]\n", LandSales, expected: 1);
         }
 
         RulesetLoadResult loaded = RulesetLoader.Parse(toml, "exported.toml");
