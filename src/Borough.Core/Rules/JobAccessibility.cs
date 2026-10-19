@@ -64,7 +64,12 @@ public sealed class JobAccessibility
     {
         Searches = 0;
         Settled = 0;
-        if (world.Rules.Placement.JobsRent == 0) { return false; }
+        if (world.Rules.Placement.JobsRent == 0)
+        {
+            _lots = 0;
+            _rules = null;
+            return false;
+        }
 
         int lots = world.Lots.Rows.SlotCount;
         int businesses = world.Businesses.Rows.SlotCount;
@@ -135,7 +140,7 @@ public sealed class JobAccessibility
             foreach (int business in world.BuildingBusinesses.Walk(_buildings[candidate]))
             {
                 Vacancy vacancy = _employers[business];
-                if (vacancy.Posts == 0 || !trips.WithinBudget(WalkRouting.CostFromFlood(
+                if (vacancy.Posts <= 0 || !trips.WithinBudget(WalkRouting.CostFromFlood(
                         world.Roads, TravelMode.Foot, door, vacancy.Door, trips.CrossingCost, _walk)))
                 { continue; }
                 for (int tier = vacancy.Tier > 1 ? vacancy.Tier : 1; tier <= 3; tier++)

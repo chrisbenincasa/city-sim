@@ -73,6 +73,33 @@ public sealed class JobsAttractTests(ITestOutputHelper output)
         Assert.Contains("jobs_rent", result.Describe(), StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("commute_budget_minutes = 50\n")]
+    [InlineData("[trips]\ncrossing_seconds = 30\ncommute_fast_minutes = 20\ncommute_moderate_minutes = 40\ncommute_budget_minutes = 50\n")]
+    public void An_authored_jobs_weight_requires_a_commute_budget(string removed)
+    {
+        string text = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "jobs-attract.toml"))
+            .ReplaceLineEndings("\n");
+        Assert.Contains(removed, text, StringComparison.Ordinal);
+        RulesetLoadResult result = RulesetLoader.Parse(text.Replace(removed, "", StringComparison.Ordinal), "no-trips.toml");
+        Assert.Null(result.Ruleset);
+        Assert.Contains("jobs_rent", result.Describe(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Turning_the_jobs_weight_off_clears_reachable_counts()
+    {
+        World world = City();
+        world.JobAccess.Rebuild(world);
+        int lot = PositiveLot(world);
+
+        string text = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "jobs-attract.toml"));
+        world.Adopt(Rules(text.Replace("jobs_rent = 240", "jobs_rent = 0", StringComparison.Ordinal)), 9, world.Tick, Key);
+        world.JobAccess.Refresh(world);
+
+        Assert.Equal(0, world.JobAccess.Count(lot, 3));
+    }
+
     [Fact]
     public void Zero_jobs_weight_is_valid_without_a_choice_model()
     {
@@ -259,6 +286,36 @@ public sealed class JobsAttractTests(ITestOutputHelper output)
             if (simulation.Placement.Compare(prospect, gate, Ticks.Zero) == ProspectOutcome.Willing) { after++; }
         }
         Assert.True(before > after, $"Outside jobs increase, willingness {before} -> {after}");
+    }
+
+    [Fact]
+    public void Each_prospect_weighs_the_Outside_jobs_of_its_own_edge()
+    {
+        string text = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "jobs-attract.toml"))
+            .ReplaceLineEndings("\n");
+        const string west = "edge = \"west\"\n";
+        int at = text.IndexOf(west, StringComparison.Ordinal);
+        int jobs = text.IndexOf("reachable_jobs = 8\n", at, StringComparison.Ordinal);
+        Assert.True(at >= 0 && jobs > at && text.IndexOf("[[hinterland]]", at, StringComparison.Ordinal) > jobs);
+        text = text[..jobs] + "reachable_jobs = 80000\n" + text[(jobs + "reachable_jobs = 8\n".Length)..];
+
+        World world = City(rules: Rules(text));
+        var simulation = new Simulation(world, Key);
+        var gate = world.Buildings.Rows.At(0);
+        for (int building = 0; building < world.Buildings.Rows.SlotCount; building++)
+        {
+            if (world.Buildings.Rows.IsLive(building) && world.IsOutsideConnection(world.Buildings.Kind[building]))
+            { gate = world.Buildings.Rows.At(building); break; }
+        }
+        var composition = HinterlandComposition.Of(world.Rules.HinterlandPopulations[0]);
+        int fromWest = 0, fromEast = 0;
+        for (ulong identity = 1; identity <= 500; identity++)
+        {
+            var prospect = new ArrivalProspect(default, MapEdge.West, composition, new Money(20_000), identity);
+            if (simulation.Placement.Compare(prospect, gate, Ticks.Zero) == ProspectOutcome.Willing) { fromWest++; }
+            if (simulation.Placement.Compare(prospect with { Edge = MapEdge.East }, gate, Ticks.Zero) == ProspectOutcome.Willing) { fromEast++; }
+        }
+        Assert.True(fromEast > fromWest, $"willing from the east {fromEast}, from the strong west {fromWest}");
     }
 
     [Fact]
