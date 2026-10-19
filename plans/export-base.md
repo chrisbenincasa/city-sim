@@ -61,16 +61,31 @@ Consequences of these decisions:
 
 ## Open
 
-- **Profit build-up.** A till pays its surplus above a reserve to its owner Household (`adr/0176`).
-  That Household's savings then buy Lots and pay construction, which sends the land price to the
-  treasury and the construction charge outside the city
-  ([land ownership and rent](money-circulation.md#land-ownership-and-rent-decided-10162026)). The
-  budget guard bounds inflow, not accumulation. Check boundedness in the first long run with exports.
-  Measured 10/16/2026 on `rulesets/exported.toml`, seed 0, 120 Days, before owner payouts and land
-  purchase reached this branch: both Hinterlands spent their whole budget every Day (about 77,000 a
-  Day), and firm balances grew in a straight line from 3.6M on Day 10 to 10.5M on Day 120.
-  `MoneyIsConserved` held. Re-measure with owner payouts and land purchase in force before this
-  slice ships to a base Ruleset.
+- **Profit build-up. Re-measured 10/18/2026: still unbounded.** Money in the city grows by the
+  export income, about 77,000 a Day, with or without owner payouts and land sales. Owner payouts
+  (`adr/0176`) move the build-up from tills to owner Households. Land sales spend it only when the
+  city builds, and this fixture barely builds. Rent cannot bound it, because rent moves money to the
+  treasury or a Landowner and none of it leaves the city.
+  - Conditions: `ExportProfitTests` (instrument), `rulesets/exported.toml`, 400 Citizens, seed 0,
+    120 Days, commit `b24a01de`, Release, machine `zeus` under load (load average 7 to 12).
+  - Variants are edited in memory. Payouts add `pays_owner_above_pay_periods = 2` to both trades.
+    Land sales add `[lots]` `demolition_price_per_tile = 1024`, `construction_charge_per_floor_tile =
+    256` and `buyer_reserve_per_member = 1024`.
+
+  | Run | Issued, Day 10 → 120 | Firms, Day 120 | Households, Day 120 | Treasury, Day 120 |
+  |---|---|---|---|---|
+  | Shipped file | 3.59M → 12.10M | 10.48M | 1.63M | 0 |
+  | Owner payouts | 3.59M → 12.10M | 0.63M | 11.47M | 0 |
+  | Payouts and land sales | 3.51M → 11.96M | 0.76M | 11.00M | 0.20M |
+
+  - The shipped file reproduces the 10/16/2026 baseline. Firm balances rise from 3.56M on Day 10.
+  - Payouts paid owners 11.3M over 120 Days. Firm balances fall after Day 10 and hover under 1.1M.
+  - Land sales bought 4 Lots in 120 Days. Buildings went from 43 to 47 and Households stayed at 144,
+    so construction charges removed about 140,000 against about 9.2M of exports.
+  - `MoneyIsConserved` held in all three runs.
+  - A sink has to scale with income rather than with growth. Candidates are Household spending that
+    rises with wealth, imports of construction Materials, or departures that take savings out.
+    Decide one before this slice ships to a base Ruleset.
 - **Who staffs a service firm.** Keep the single `requires_tier` minimum. A tier mix waits on
   `adr/0026`.
 - **Office capacity. Decided 10/17/2026, slice 3a.** The unit is a Day's units of one service, made
@@ -112,7 +127,7 @@ Ordered by dependency. Each slice is one PR with its own acceptance.
      only through a `pool` input.
    - Hinterland `prices` accept services. A firm keeps the Hinterland it chose while that edge has a
      gate, and stalls on its District market when no gated Hinterland prices the service.
-   - `ServiceContractTable` saves the firm's provider. Save format version 22; goldens re-recorded
+   - `ServiceContractTable` saves the firm's provider. Save format version 24; goldens re-recorded
      for the new table only.
    - A `pool` term on a utility or labour Resource is refused at load (issue #177).
    - Fixture `rulesets/serviced.toml`; tests `ServiceImportTests`, `ServiceRulesetLoadTests`.
@@ -125,7 +140,7 @@ Ordered by dependency. Each slice is one PR with its own acceptance.
      through a pool term is restocking and does not export.
    - `World.PayForExport` pays the firm's balance, moves `Issued` and records revenue with no cost of
      goods. A new gate and each Day boundary wake firms asleep on a full Bin.
-   - `HinterlandTable.ExportedToday`/`ExportedYesterday` are saved. Save format version 23; goldens
+   - `HinterlandTable.ExportedToday`/`ExportedYesterday` are saved. Save format version 25; goldens
      re-recorded for the new columns only.
    - Goods only (Decision 13). Fixture `rulesets/exported.toml`; tests `ExportTests`.
 3a. **Offices make and sell services. Built 10/17/2026 on `export-base-3`.**
@@ -156,7 +171,7 @@ Ordered by dependency. Each slice is one PR with its own acceptance.
      would sleep through an office climbing from one to sixty-four (`adr/0171`).
    - `02 §5.8` and `adr/0179` are amended in place. Testing reach by routing inside the choice loop
      is `adr/0047:126`'s pre-registered reopening condition met, and the walk is bounded by a box.
-   - Save format version 24; goldens re-recorded for the new table, the new column and the version.
+   - Save format version 26; goldens re-recorded for the new table, the new column and the version.
    - Fixture `rulesets/offices.toml`; tests `LocalServiceTests`, `ServiceRulesetLoadTests`.
 3b. **Unserved service demand raises offices. Built 10/17/2026 on `export-base-3b`.**
    - `ZoneRuleEngine.MarketFor` reads a kind's first Business-owned *Good* Bin, so a labour Bin no
@@ -184,8 +199,8 @@ Ordered by dependency. Each slice is one PR with its own acceptance.
      where the city raises its own office.
 3c. **Service exports.** Sell unused office capacity to Hinterlands (Decision 13). Needs a decision
    first: what counts as unused (left at the Day boundary, or per firing), and whether a service
-   shares a Hinterland's Goods `export_budget`. Blocked in practice on the profit build-up, because
-   it is a second inflow with no sink.
+   shares a Hinterland's Goods `export_budget`. Still blocked on the profit build-up, because the
+   10/18/2026 run found no sink that scales with export income.
 4. **Jobs attract arrivals. Built 10/18/2026 on `export-base-4`.** Arrival choice reads qualified
    reachable vacancies on city and Hinterland alternatives. Plan 0073 keeps its no-wage boundary;
    the new count is not income. See the evidence and rollout limit below.

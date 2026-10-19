@@ -119,12 +119,17 @@ public static class RoadGenerator
     /// <exception cref="InvalidOperationException">
     /// The graph already has Segments, or two lattices overlap.
     /// </exception>
+    /// <param name="townTiles">
+    /// The width of ground the starting population needs, which places the dense core. Zero means
+    /// <paramref name="extentTiles"/>.
+    /// </param>
     public static void LayInto(
         RoadGraph graph,
         WorldKey key,
         LatticeDefinition[] lattices,
         int extentTiles,
-        MapLayers? layers = null)
+        MapLayers? layers = null,
+        int townTiles = 0)
     {
         ArgumentNullException.ThrowIfNull(graph);
         ArgumentNullException.ThrowIfNull(lattices);
@@ -162,7 +167,8 @@ public static class RoadGenerator
 
             int extent = extentTiles < room ? extentTiles : room;
 
-            layouts[lattice] = new Layout(graph, roads, key, extent, origin, lattice, layers);
+            layouts[lattice] = new Layout(graph, roads, key, extent, origin, lattice, layers,
+                townTiles > 0 && townTiles < extent ? townTiles : extent);
         }
 
         RefuseOverlap(layouts);
@@ -292,7 +298,8 @@ public static class RoadGenerator
         int extentTiles,
         LatticeDefinition origin,
         int index,
-        MapLayers? layers)
+        MapLayers? layers,
+        int townTiles)
     {
         /// <summary>
         /// Where the lines stand — <b>this world's, and not an arithmetic on
@@ -460,6 +467,12 @@ public static class RoadGenerator
 
         private bool[] _severed = [];
 
+        /// <summary>Lattice squares inside a merged 2×2 group, by <c>(row × (grid − 1)) + column</c>.</summary>
+        private bool[] _merged = [];
+
+        /// <summary>Lattice squares an Arterial will cross, by <c>(row × (grid − 1)) + column</c>.</summary>
+        private bool[] _arterial = [];
+
         public void Run()
         {
             LayStreets();
@@ -490,6 +503,7 @@ public static class RoadGenerator
 
             _streets = new Handle<RoadSegment>[2 * _grid * (_grid - 1)];
             _severed = new bool[_streets.Length];
+            MergeBlocks();
 
             // 🔴 A LENGTH PER SEGMENT AND NOT ONE FOR THE LATTICE. It was hoisted out of both loops
             // as `var length = new Tiles(roads.BlockTiles)`, which is the assumption row 25 removes:
@@ -498,6 +512,8 @@ public static class RoadGenerator
             {
                 for (int east = 0; east < _grid - 1; east++)
                 {
+                    if ((north & 1) == 1 && Merged(east, north - 1)) { continue; }
+
                     _streets[Horizontal(east, north)] = graph.Segments.Create(
                         Intersection(east, north),
                         Intersection(east + 1, north),
@@ -517,6 +533,8 @@ public static class RoadGenerator
             {
                 for (int north = 0; north < _grid - 1; north++)
                 {
+                    if ((east & 1) == 1 && Merged(east - 1, north)) { continue; }
+
                     _streets[Vertical(east, north)] = graph.Segments.Create(
                         Intersection(east, north),
                         Intersection(east, north + 1),
@@ -530,6 +548,81 @@ public static class RoadGenerator
                         EastOf(east), NorthOf(north + 1),
                         DeepAt(north));
                 }
+            }
+        }
+
+        /// <summary>
+        /// Chooses the 2×2 groups of squares laid as one block. A group whose middle lies within
+        /// <c>[roads] dense_core_percent</c> of the town's radius keeps its lines. Beyond it the
+        /// chance of merging rises from zero to <c>merged_block_percent</c> at the town's edge.
+        /// Woodland adds <c>woodland_merge_percent</c> in proportion to its cover, and a group an
+        /// Arterial crosses keeps its lines, because frontage on a through road is worth dividing.
+        /// </summary>
+        private void MergeBlocks()
+        {
+            int squares = _grid - 1;
+            _merged = new bool[squares > 0 ? squares * squares : 0];
+            if (roads.MergedBlockPercent <= 0) { return; }
+
+            TraceArterials();
+            int radius = IntegerMath.FloorDiv(townTiles, 2);
+            int core = IntegerMath.FloorDiv(radius * roads.DenseCorePercent, 100);
+            int ramp = radius - core;
+            int middleEast = IntegerMath.FloorDiv(EastOf(0) + EastOf(squares), 2);
+            int middleNorth = IntegerMath.FloorDiv(NorthOf(0) + NorthOf(squares), 2);
+            for (int row = 0; row + 1 < squares; row += 2)
+            {
+                for (int column = 0; column + 1 < squares; column += 2)
+                {
+                    int beyond = Distance(EastOf(column + 1), NorthOf(row + 1), middleEast, middleNorth) - core;
+                    if (beyond <= 0) { continue; }
+                    if (Crossed(column, row)) { continue; }
+                    int chance = (beyond >= ramp
+                        ? roads.MergedBlockPercent
+                        : IntegerMath.FloorDiv(roads.MergedBlockPercent * beyond, ramp))
+                        + Wooded(EastOf(column + 1), NorthOf(row + 1));
+                    ulong group = (ulong)(((long)index << 32) + (row * _grid) + column);
+                    if (Draw(group, 0, PurposeTag.RoadMergedBlock) % 100ul >= (ulong)chance) { continue; }
+                    _merged[(row * squares) + column] = true;
+                    _merged[(row * squares) + column + 1] = true;
+                    _merged[((row + 1) * squares) + column] = true;
+                    _merged[((row + 1) * squares) + column + 1] = true;
+                }
+            }
+        }
+
+        private bool Merged(int column, int row) => _merged[(row * (_grid - 1)) + column];
+
+        private bool Crossed(int column, int row)
+        {
+            int squares = _grid - 1;
+            return _arterial[(row * squares) + column] || _arterial[(row * squares) + column + 1]
+                || _arterial[((row + 1) * squares) + column] || _arterial[((row + 1) * squares) + column + 1];
+        }
+
+        private int Wooded(int east, int north) =>
+            layers is null || roads.WoodlandMergePercent <= 0
+                ? 0
+                : IntegerMath.FloorDiv(
+                    roads.WoodlandMergePercent * layers.WoodedTiles(SealCell(east), SealCell(north)),
+                    CellGrid.TilesInCell);
+
+        private void TraceArterials()
+        {
+            int squares = _grid - 1;
+            _arterial = new bool[squares * squares];
+            for (int arterial = 0; arterial < roads.ArterialCount; arterial++)
+            {
+                WalkArterial((ulong)arterial, trace: true);
+            }
+        }
+
+        private void MarkCrossed(int localEast, int localNorth)
+        {
+            int column = ColumnAt(OriginEast + localEast), row = RowAt(OriginNorth + localNorth);
+            if (column >= 0 && row >= 0 && column < _grid - 1 && row < _grid - 1)
+            {
+                _arterial[(row * (_grid - 1)) + column] = true;
             }
         }
 
@@ -563,7 +656,7 @@ public static class RoadGenerator
         /// Manhattan says there is none, which is the case that makes a tight heuristic inadmissible.
         /// Both live here, and it is 5c's problem rather than this slice's.
         /// </remarks>
-        private void WalkArterial(ulong arterial)
+        private void WalkArterial(ulong arterial, bool trace = false)
         {
             (int east, int north, int headingEast, int headingNorth) = Entry(arterial);
 
@@ -579,33 +672,13 @@ public static class RoadGenerator
 
             while (InBounds(tileEast, tileNorth))
             {
-                SealTile(OriginEast + tileEast, OriginNorth + tileNorth);
-
-                // A Junction piece every so many Tiles of arc length. The first anchors the
-                // Arterial's first Segment; before it there is road with no graph edge, which is
-                // correct — an Arterial with no Junction on it is unreachable, and that is what a
-                // limited-access road is.
-                if (!anchored || sinceJunction >= roads.ArterialJunctionTiles)
+                if (trace)
                 {
-                    Handle<RoadNode> junction = graph.Nodes.Create(
-                        new Tiles(OriginEast + tileEast), new Tiles(OriginNorth + tileNorth));
-
-                    ConnectToGrid(junction, tileEast, tileNorth);
-
-                    if (anchored)
-                    {
-                        graph.Segments.Create(
-                            previous,
-                            junction,
-                            new Tiles(sinceJunction * StepTiles),
-                            RoadKind.Arterial,
-                            TravelMode.Car,
-                            TravelMode.Car);
-                    }
-
-                    previous = junction;
-                    anchored = true;
-                    sinceJunction = 0;
+                    MarkCrossed(tileEast, tileNorth);
+                }
+                else
+                {
+                    LayArterialTile(tileEast, tileNorth, ref previous, ref anchored, ref sinceJunction);
                 }
 
                 if (step > 0 && (step % CurvatureEverySteps) == 0)
@@ -623,7 +696,7 @@ public static class RoadGenerator
                 int nextEast = Fixed.ToIntFloor(east);
                 int nextNorth = Fixed.ToIntFloor(north);
 
-                MarkSevered(tileEast, tileNorth, nextEast, nextNorth);
+                if (!trace) { MarkSevered(tileEast, tileNorth, nextEast, nextNorth); }
 
                 tileEast = nextEast;
                 tileNorth = nextNorth;
@@ -631,6 +704,39 @@ public static class RoadGenerator
         }
 
         /// <summary>A curvature perturbation in [-60, +60], drawn on its own counter.</summary>
+        private void LayArterialTile(
+            int tileEast, int tileNorth, ref Handle<RoadNode> previous, ref bool anchored, ref int sinceJunction)
+        {
+            SealTile(OriginEast + tileEast, OriginNorth + tileNorth);
+
+            // A Junction piece every so many Tiles of arc length. The first anchors the
+            // Arterial's first Segment; before it there is road with no graph edge, which is
+            // correct — an Arterial with no Junction on it is unreachable, and that is what a
+            // limited-access road is.
+            if (!anchored || sinceJunction >= roads.ArterialJunctionTiles)
+            {
+                Handle<RoadNode> junction = graph.Nodes.Create(
+                    new Tiles(OriginEast + tileEast), new Tiles(OriginNorth + tileNorth));
+
+                ConnectToGrid(junction, tileEast, tileNorth);
+
+                if (anchored)
+                {
+                    graph.Segments.Create(
+                        previous,
+                        junction,
+                        new Tiles(sinceJunction * StepTiles),
+                        RoadKind.Arterial,
+                        TravelMode.Car,
+                        TravelMode.Car);
+                }
+
+                previous = junction;
+                anchored = true;
+                sinceJunction = 0;
+            }
+        }
+
         private int Bend(ulong arterial, ulong counter) =>
             (int)(Draw(arterial, counter, PurposeTag.RoadArterialCurvature) % 121ul) - 60;
 
@@ -866,7 +972,7 @@ public static class RoadGenerator
 
             for (int street = 0; street < _streets.Length; street++)
             {
-                if (!_severed[street])
+                if (!_severed[street] || _streets[street].IsNone)
                 {
                     continue;
                 }
@@ -911,6 +1017,11 @@ public static class RoadGenerator
                     // get the same cut-throughs in the same blocks. At index 0 it is the expression
                     // it always was, which is what keeps every existing world's State Hash still.
                     ulong block = (ulong)(((long)index << 32) + (north * _grid) + east);
+
+                    if (Merged(east, north))
+                    {
+                        continue;
+                    }
 
                     if (Draw(block, 0, PurposeTag.RoadFootPath) % 1000ul
                         >= (ulong)roads.FootPathsPerThousandBlocks)

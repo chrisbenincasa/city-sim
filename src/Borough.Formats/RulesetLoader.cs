@@ -8523,6 +8523,16 @@ public static class RulesetLoader
                 "min_curve_radius_tiles", minimum: 1, maximum: CellGrid.WorldTiles,
                 "It is the tightest curve a Street may be laid on, so it is at least 1 Tile. "
                 + "Absent means half of block_tiles.");
+            int core = OptionalRoadNumber(
+                "dense_core_percent", minimum: 0, maximum: 100,
+                "It is a share of the town's radius, so it is between 0 and 100. Absent means 0.");
+            int merged = OptionalRoadNumber(
+                "merged_block_percent", minimum: 0, maximum: 100,
+                "It is a share of square groups, so it is between 0 and 100. Absent means 0, which "
+                + "keeps every grid line.");
+            int wooded = OptionalRoadNumber(
+                "woodland_merge_percent", minimum: 0, maximum: 100,
+                "It is a share of square groups, so it is between 0 and 100. Absent means 0.");
 
             return new RoadRuleset(
                 block, spread, arterials, junctions, crossings, paths,
@@ -8533,6 +8543,9 @@ public static class RulesetLoader
                 MinSegmentLengthTiles = shortest,
                 MinCrossingAngleDegrees = angle == 0 ? 30 : angle,
                 MinCurveRadiusTiles = radius == 0 ? (block > 1 ? block / 2 : 1) : radius,
+                DenseCorePercent = core,
+                MergedBlockPercent = merged,
+                WoodlandMergePercent = wooded,
             };
         }
 
@@ -8792,20 +8805,35 @@ public static class RulesetLoader
 
             bool chargesConstruction = TryInteger(_lotsTable, "construction_charge_per_floor_tile", out long construction, required: false);
             bool reservesCapital = TryInteger(_lotsTable, "buyer_reserve_per_member", out long reserve, required: false);
+            bool sellsCityLots = TryInteger(_lotsTable, "city_sale_interval_days", out long saleInterval, required: false);
             bool demolitionRange = demolition < 0 || demolition > int.MaxValue;
             bool constructionRange = construction < 0 || construction > int.MaxValue;
             bool reserveRange = reserve < 0 || reserve > int.MaxValue;
+            bool saleIntervalRange = sellsCityLots && (saleInterval < 1 || saleInterval > ushort.MaxValue);
 
-            if (demolitionRange || constructionRange || reserveRange)
+            if (demolitionRange || constructionRange || reserveRange || saleIntervalRange)
             {
                 string key = demolitionRange ? "demolition_price_per_tile"
-                    : constructionRange ? "construction_charge_per_floor_tile" : "buyer_reserve_per_member";
+                    : constructionRange ? "construction_charge_per_floor_tile"
+                    : reserveRange ? "buyer_reserve_per_member" : "city_sale_interval_days";
                 Refuse(LineOfLot(key), null, demolitionRange
                     ? $"demolition_price_per_tile = {demolition} is out of range. It is what "
                         + "the treasury pays the displaced per Tile of Lot footprint on neutral ground, "
                         + $"so it is at least 0 and at most {int.MaxValue}. Absent or zero means "
                         + "clearing an occupied Building costs nothing."
+                    : key == "city_sale_interval_days"
+                    ? $"city_sale_interval_days = {saleInterval} is out of range. It is how many Days "
+                        + $"pass between the city's offers of its built Lots, so it is at least 1 and at most {ushort.MaxValue}."
                     : $"{key} must be between 0 and {int.MaxValue} Money.");
+                return LotRuleset.None;
+            }
+
+            if (sellsCityLots && !chargesConstruction && !reservesCapital)
+            {
+                Refuse(LineOfLot("city_sale_interval_days"), null,
+                    "city_sale_interval_days is stated without land sales. State "
+                    + "construction_charge_per_floor_tile or buyer_reserve_per_member, even at 0, so a "
+                    + "buyer has a reserve to keep and the city has a price to sell at.");
                 return LotRuleset.None;
             }
 
@@ -8844,6 +8872,7 @@ public static class RulesetLoader
                 DemolitionPricePerTile = new Money(demolition),
                 ConstructionChargePerFloorTile = chargesConstruction ? new Money(construction) : null,
                 BuyerReservePerMember = reservesCapital ? new Money(reserve) : null,
+                CitySaleIntervalDays = sellsCityLots ? (int)saleInterval : null,
                 MinPlotDepthTiles = (int)minPlotDepth,
             };
         }

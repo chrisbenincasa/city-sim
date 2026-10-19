@@ -937,6 +937,20 @@ public static class RulesetKeyNotes
             "The tightest curve a Street may be laid on, as a radius in Tiles. A tighter curve is "
             + "refused. Straight Streets have no radius and always pass. Absent means half of "
             + "block_tiles.",
+        ["[roads] dense_core_percent"] =
+            "How far from the town's middle the generator keeps every grid line, in percent of the "
+            + "town's radius. The town is the ground the starting population needs, so the core "
+            + "grows with the city. Inside it every block is one lattice square. Absent means 0.",
+        ["[roads] merged_block_percent"] =
+            "The share of 2×2 groups of lattice squares beyond dense_core_percent that the generator "
+            + "lays as one block, by leaving out the four Streets inside the group. The share rises "
+            + "from 0 at the core's edge to this value at the town's edge, and holds beyond it. "
+            + "A merged block carves the building patterns of its own size. A group an Arterial "
+            + "crosses never merges. Absent or 0 keeps every grid line.",
+        ["[roads] woodland_merge_percent"] =
+            "The merge chance a fully wooded 2×2 group adds beyond the dense core, in percent. A "
+            + "group half covered adds half. It applies only when merged_block_percent is above 0. "
+            + "Absent means 0.",
         ["[roads] upkeep_per_segment_per_day"] =
             "What the treasury pays each Day for every Road Segment, foot paths and Arterials "
             + "included. Absent or zero means roads cost nothing to keep. A treasury that cannot "
@@ -1082,6 +1096,13 @@ public static class RulesetKeyNotes
             "Money per Household member a buyer must keep after paying for land and construction. "
             + "Only its own balance counts, never a Business's till. Either this key or "
             + "construction_charge_per_floor_tile enables land sales, even at zero. Absent means no reserve. Requires a money Resource.",
+
+        ["[lots] city_sale_interval_days"] =
+            "Days between the city's offers of the built Lots it holds, at their price: the land "
+            + "price plus the construction charge for the floor. Households housed on a Lot are drawn "
+            + "first, then any Household, each keeping buyer_reserve_per_member. The price goes to the "
+            + "treasury. Absent means the city keeps its Lots. Requires construction_charge_per_floor_tile "
+            + "or buyer_reserve_per_member. Between 1 and 65535.",
 
         ["[lots] storeys_per_rung"] =
             "Step between density rungs. Block-based forms use it in their plot-ratio target; explicit Perimeter parcels add it per rung to house_storeys. Detached houses keep house_storeys.",

@@ -27,7 +27,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-54 sections, 391 keys.
+54 sections, 395 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
@@ -68,14 +68,14 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[jobs]`](#jobs) — 15 keys
 - [`[land_permissions]`](#land_permissions) — 1 key
 - [`[layers]`](#layers) — 20 keys
-- [`[lots]`](#lots) — 18 keys
+- [`[lots]`](#lots) — 19 keys
 - [`[lots] trade_form_weights`](#lots-trade_form_weights) — 7 keys
 - [`[market]`](#market) — 2 keys
 - [`[needs]`](#needs) — 9 keys
 - [`[parking]`](#parking) — 5 keys
 - [`[placement]`](#placement) — 11 keys
 - [`[rent]`](#rent) — 1 key
-- [`[roads]`](#roads) — 16 keys
+- [`[roads]`](#roads) — 19 keys
 - [`[school]`](#school) — 7 keys
 - [`[schooling]`](#schooling) — 5 keys
 - [`[shopping]`](#shopping) — 7 keys
@@ -1456,6 +1456,10 @@ How many Ticks between recomputations of the woodland field.
 
 Money per Household member a buyer must keep after paying for land and construction. Only its own balance counts, never a Business's till. Either this key or construction_charge_per_floor_tile enables land sales, even at zero. Absent means no reserve. Requires a money Resource.
 
+**`city_sale_interval_days`** · *whole number*
+
+Days between the city's offers of the built Lots it holds, at their price: the land price plus the construction charge for the floor. Households housed on a Lot are drawn first, then any Household, each keeping buyer_reserve_per_member. The price goes to the treasury. Absent means the city keeps its Lots. Requires construction_charge_per_floor_tile or buyer_reserve_per_member. Between 1 and 65535.
+
 **`construction_charge_per_floor_tile`** · *whole number*
 
 Money a Household pays outside the city per floor Tile before a Zone Rule builds. Either this key or buyer_reserve_per_member enables land sales, even at zero. Absent means no construction charge. If both keys are absent, Zone Rules build without a buyer. Requires a money Resource.
@@ -1716,6 +1720,10 @@ How much wider the wide line of each four-line period is, and how much narrower 
 
 The Street grid spacing in Tiles — the block. It decides Segment count and therefore every routing figure downstream. Omitting the whole [roads] table means the world has no roads at all.
 
+**`dense_core_percent`** · *whole number*
+
+How far from the town's middle the generator keeps every grid line, in percent of the town's radius. The town is the ground the starting population needs, so the core grows with the city. Inside it every block is one lattice square. Absent means 0.
+
 **`foot_crossing_every`** · *whole number*
 
 Keep a pedestrian crossing at every nth Street an Arterial severs. Zero means no crossings and a network cut in two for anybody on foot.
@@ -1727,6 +1735,10 @@ The same for a foot path.
 **`foot_paths_per_thousand_blocks`** · *whole number*
 
 How many blocks in a thousand get a cut-through for pedestrians. The stronger Severance lever of the two.
+
+**`merged_block_percent`** · *whole number*
+
+The share of 2×2 groups of lattice squares beyond dense_core_percent that the generator lays as one block, by leaving out the four Streets inside the group. The share rises from 0 at the core's edge to this value at the town's edge, and holds beyond it. A merged block carves the building patterns of its own size. A group an Arterial crosses never merges. Absent or 0 keeps every grid line.
 
 **`min_crossing_angle_degrees`** · *whole number*
 
@@ -1755,6 +1767,10 @@ What the treasury pays each Day for every Road Segment, foot paths and Arterials
 **`walk_speed_kph`** · *whole number*
 
 Walking speed on foot. It is also what turns the Commute Budget into the box the job search draws candidates from.
+
+**`woodland_merge_percent`** · *whole number*
+
+The merge chance a fully wooded 2×2 group adds beyond the dense core, in percent. A group half covered adds half. It applies only when merged_block_percent is above 0. Absent means 0.
 
 ---
 

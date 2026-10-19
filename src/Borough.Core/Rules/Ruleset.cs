@@ -2413,6 +2413,24 @@ public readonly record struct RoadRuleset(
     /// <summary>The tightest curve a Street may be laid on, in Tiles — <c>min_curve_radius_tiles</c>.</summary>
     public int MinCurveRadiusTiles { get; init; }
 
+    /// <summary>
+    /// How far from the town's middle the generator keeps every grid line, in percent of the town's
+    /// radius — <c>dense_core_percent</c>.
+    /// </summary>
+    public int DenseCorePercent { get; init; }
+
+    /// <summary>
+    /// The share of 2×2 square groups beyond the dense core whose middle Streets the generator leaves
+    /// out, in percent — <c>merged_block_percent</c>. Zero keeps every line.
+    /// </summary>
+    public int MergedBlockPercent { get; init; }
+
+    /// <summary>
+    /// The merge chance a fully wooded group adds beyond the dense core, in percent —
+    /// <c>woodland_merge_percent</c>. Partial cover adds its share.
+    /// </summary>
+    public int WoodlandMergePercent { get; init; }
+
     /// <summary>Whether there are roads at all. <see cref="BlockTiles"/> is what a graph cannot lack.</summary>
     public bool Runs => BlockTiles != 0;
 
@@ -3192,6 +3210,9 @@ public readonly record struct LotRuleset(
 
     /// <summary>A buyer keeps this Money per Household member in its own balance.</summary>
     public Money? BuyerReservePerMember { get; init; }
+
+    /// <summary>Days between the city's offers of the built Lots it holds. Null means the city never sells.</summary>
+    public int? CitySaleIntervalDays { get; init; }
 
     /// <summary>Either authored key enables paid construction, including an explicit zero.</summary>
     public bool LandSales => ConstructionChargePerFloorTile.HasValue || BuyerReservePerMember.HasValue;
