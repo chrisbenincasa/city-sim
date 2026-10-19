@@ -987,4 +987,16 @@ public enum PurposeTag : ulong
     /// Building's id, never by a Tick, so it moves no State Hash.
     /// </summary>
     AppearanceHouse = 73,
+
+    /// <summary>
+    /// Whether a housing block's middle is drawn as private gardens or round a shared green. Drawn by
+    /// the shell on block coordinates, never by a Tick, so it moves no State Hash.
+    /// </summary>
+    AppearanceInterior = 74,
+
+    /// <summary>
+    /// The furniture, planting and boundary of the garden behind a Lot. Drawn by the shell on the
+    /// Lot's id, never by a Tick, so it moves no State Hash.
+    /// </summary>
+    AppearanceGarden = 75,
 }
