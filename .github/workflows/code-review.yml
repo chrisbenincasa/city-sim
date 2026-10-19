@@ -76,7 +76,8 @@ jobs:
             behavior, breaks determinism, loses or corrupts saved state, or is a security issue.
             Missing tests, stale comments or documentation, naming and performance concerns are
             merge_with_caution at most. Answer safe_to_merge when no finding needs a change before merge.
-          # A review runs on PR open; /describe and /improve stay comment-only.
+          # A review runs on PR open; /describe stays comment-only. /improve is unavailable because
+          # the job cannot write contents.
           github_action_config.auto_review: "true"
           github_action_config.auto_describe: "false"
           github_action_config.auto_improve: "false"
