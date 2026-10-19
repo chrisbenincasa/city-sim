@@ -118,7 +118,7 @@ public partial class Main
     /// drain is the shell's only one — see <c>Simulation.DrainTreasuryFlows</c>, which a Census
     /// would otherwise be competing with for the same movements.
     /// </remarks>
-    /// <param name="input">The Tick's commands, or <c>default</c> after the first of a batch.</param>
+    /// <param name="input">The Tick's commands and the Ruleset hash in force.</param>
     private void StepAccounting(in TickInput input)
     {
         _ownedSimulation.Step(input);

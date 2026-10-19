@@ -36,6 +36,8 @@ changes are legitimate. No ratio, ADR quota or central number-ratification ledge
 
 Author new Building models and visual variants in Blender first, including debugging models.
 Follow [the authoring procedure](docs/07-the-drawing.md#building-authoring-procedure).
+Design for variation as [the drawing's guideline](docs/07-the-drawing.md#21-variation-is-the-look)
+requires, and put every visual choice to the user as rendered options before making it.
 Godot imports and assembles the assets; simulation geometry owns footprint, floor-area and access
 constraints. Use the drive skill when changing the shell or anything it draws, and watch the result.
 

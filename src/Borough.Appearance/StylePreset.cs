@@ -211,7 +211,8 @@ public sealed record FamilyBody(
     bool Rooflights = false,
     bool ReceivingCanopy = false,
     TowerBody? Tower = null,
-    MidriseBody? Midrise = null);
+    MidriseBody? Midrise = null,
+    HouseBody? House = null);
 
 /// <summary>A tower body's authored layout.</summary>
 public sealed record TowerBody(TowerVariant Variant);
@@ -229,6 +230,22 @@ public sealed record MidriseBody(
     bool Shops = false,
     bool Attic = true,
     bool Galleries = true);
+
+/// <summary>A house body's form. Every proportion, material and paint is drawn per Building.</summary>
+public sealed record HouseBody(HouseVariant Variant);
+
+/// <summary>The three house forms a body can build.</summary>
+public enum HouseVariant
+{
+    /// <summary>A row of side-gabled houses under one ridge along the street.</summary>
+    Terrace,
+
+    /// <summary>A row of houses, each with its own ridge running back from the street.</summary>
+    FrontGables,
+
+    /// <summary>A hipped block set back behind gabled bays that stand forward to the Lot line.</summary>
+    Villa,
+}
 
 /// <summary>What a mid-rise body's upper street storeys open with.</summary>
 public enum StreetOpenings

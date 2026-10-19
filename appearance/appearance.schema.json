@@ -167,11 +167,11 @@
               },
               "shape": {
                 "description": "The body's geometry. Defaults to block.",
-                "enum": ["block", "midrise", "tower"]
+                "enum": ["block", "house", "midrise", "tower"]
               },
               "variant": {
-                "description": "The tower layout or the mid-rise type. Required for a tower or a mid-rise body and refused for a block.",
-                "enum": ["point", "stepped-point", "l", "h", "mansion", "panel-slab"]
+                "description": "The tower layout, the mid-rise type or the house form. Required for a tower, mid-rise or house body and refused for a block.",
+                "enum": ["point", "stepped-point", "l", "h", "mansion", "panel-slab", "terrace", "front-gables", "villa"]
               },
               "module_metres": {
                 "description": "A mid-rise body's window module along a face, in metres. Defaults to 3.3 for a mansion and 3.6 for a panel slab.",
@@ -361,7 +361,7 @@
                 "if": {
                   "properties": {
                     "shape": {
-                      "enum": ["tower", "midrise"]
+                      "enum": ["tower", "midrise", "house"]
                     }
                   },
                   "required": ["shape"]
@@ -404,6 +404,10 @@
               {
                 "if": { "properties": { "shape": { "const": "tower" } }, "required": ["shape"] },
                 "then": { "properties": { "variant": { "enum": ["point", "stepped-point", "l", "h"] } } }
+              },
+              {
+                "if": { "properties": { "shape": { "const": "house" } }, "required": ["shape"] },
+                "then": { "properties": { "variant": { "enum": ["terrace", "front-gables", "villa"] } } }
               },
               {
                 "if": { "properties": { "shape": { "const": "midrise" } }, "required": ["shape"] },

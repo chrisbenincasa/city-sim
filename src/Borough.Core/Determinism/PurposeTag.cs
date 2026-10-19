@@ -983,6 +983,12 @@ public enum PurposeTag : ulong
     RoadMergedBlock = 72,
 
     /// <summary>
+    /// Which proportions, materials and paints a house body is built with. Drawn by the shell on the
+    /// Building's id, never by a Tick, so it moves no State Hash.
+    /// </summary>
+    AppearanceHouse = 73,
+
+    /// <summary>
     /// Whether a housing block's middle is drawn as private gardens or round a shared green. Drawn by
     /// the shell on block coordinates, never by a Tick, so it moves no State Hash.
     /// </summary>

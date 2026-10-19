@@ -60,6 +60,7 @@ public static partial class FamilyBodyBuilder
         ArgumentNullException.ThrowIfNull(body);
         if (body.Tower is not null) throw new ArgumentException("A tower body must be built with BuildTower().", nameof(body));
         if (body.Midrise is not null) throw new ArgumentException("A mid-rise body must be built with BuildMidrise().", nameof(body));
+        if (body.House is not null) throw new ArgumentException("A house body must be built with BuildHouse().", nameof(body));
         var mesh = new FamilyBodyMesh();
         var writer = new Writer(mesh, body);
         float height = storeys * Storey;
@@ -441,8 +442,11 @@ public static partial class FamilyBodyBuilder
 
     private sealed class Writer(FamilyBodyMesh mesh, FamilyBody body)
     {
+        private static readonly Vector4 Unpainted = new(1f, 1f, 1f, 0f);
+        private readonly Dictionary<string, Vector4> _paints = new(StringComparer.Ordinal);
 
-        public void Facade(Face face, float width, float height, List<Opening> openings)
+        public void Facade(Face face, float width, float height, List<Opening> openings,
+            string wall = "wall", string trim = "trim", string door = "door", string frame = "frame")
         {
             var us = new SortedSet<float> { 0f, width };
             var vs = new SortedSet<float> { 0f, height };
@@ -462,17 +466,17 @@ public static partial class FamilyBodyBuilder
                 {
                     float mu = (u[i] + u[i + 1]) / 2f, mv = (v[j] + v[j + 1]) / 2f;
                     if (openings.Exists(o => o.U < mu && mu < o.U + o.W && o.V < mv && mv < o.V + o.H)) continue;
-                    Quad("wall", face.Point(u[i], v[j]), face.Point(u[i + 1], v[j]), face.Point(u[i + 1], v[j + 1]), face.Point(u[i], v[j + 1]));
+                    Quad(wall, face.Point(u[i], v[j]), face.Point(u[i + 1], v[j]), face.Point(u[i + 1], v[j + 1]), face.Point(u[i], v[j + 1]));
                 }
             }
 
             foreach (Opening o in openings)
             {
-                Recess(face, o);
+                Recess(face, o, trim, door, frame);
             }
         }
 
-        private void Recess(Face face, Opening o)
+        private void Recess(Face face, Opening o, string trim, string door, string frame)
         {
             bool solid = o.Kind is OpeningKind.Door or OpeningKind.Roller;
             float depth = Reveal + (solid ? .05f : 0f);
@@ -481,15 +485,15 @@ public static partial class FamilyBodyBuilder
             {
                 (float p, float q) = corners[i];
                 (float r, float s) = corners[(i + 1) % 4];
-                Quad("trim", face.Point(p, q), face.Point(r, s), face.Point(r, s, depth), face.Point(p, q, depth));
+                Quad(trim, face.Point(p, q), face.Point(r, s), face.Point(r, s, depth), face.Point(p, q, depth));
             }
 
-            Quad(solid ? "door" : "glass", face.Point(o.U, o.V, depth), face.Point(o.U + o.W, o.V, depth),
+            Quad(solid ? door : "glass", face.Point(o.U, o.V, depth), face.Point(o.U + o.W, o.V, depth),
                 face.Point(o.U + o.W, o.V + o.H, depth), face.Point(o.U, o.V + o.H, depth));
 
             if (o.Kind == OpeningKind.Window)
             {
-                Slab(face, o.U - .06f, o.U + o.W + .06f, o.V - .07f, o.V, -.06f, .02f, "trim");
+                Slab(face, o.U - .06f, o.U + o.W + .06f, o.V - .07f, o.V, -.06f, .02f, trim);
             }
 
             if (o.Kind is OpeningKind.Shop or OpeningKind.Stair or OpeningKind.Window && o.W > 1.6f)
@@ -498,7 +502,7 @@ public static partial class FamilyBodyBuilder
                 for (int i = 1; i <= count; i++)
                 {
                     float at = o.U + (o.W * i / (count + 1));
-                    Slab(face, at - .035f, at + .035f, o.V, o.V + o.H, depth - .08f, depth, "frame");
+                    Slab(face, at - .035f, at + .035f, o.V, o.V + o.H, depth - .08f, depth, frame);
                 }
             }
 
@@ -610,7 +614,8 @@ public static partial class FamilyBodyBuilder
             if (cross.LengthSquared() < 1e-10f) return;
             Vector3 n = Vector3.Normalize(cross);
 
-            (float tileAlong, float tileUp) = body.TileMetres.TryGetValue(part, out (float, float) tile) ? tile : (1f, 1f);
+            (string surface, string tiled, Vector4 paint) = Dressing(part);
+            (float tileAlong, float tileUp) = body.TileMetres.TryGetValue(tiled, out (float, float) tile) ? tile : (1f, 1f);
             Vector3 along = MathF.Abs(n.Z) < .95f ? Vector3.Normalize(new Vector3(-n.Y, n.X, 0)) : Vector3.UnitX;
             Vector3 up = Vector3.Cross(n, along);
 
@@ -623,7 +628,28 @@ public static partial class FamilyBodyBuilder
                 uvs[i] = new Vector2(Vector3.Dot(p, along) / tileAlong, 1f - (Vector3.Dot(p, up) / tileUp));
             }
 
-            mesh.Part(part).Polygon(corners, uvs, Godot(n));
+            mesh.Part(surface).Polygon(corners, uvs, Godot(n), paint);
+        }
+
+        /// <summary>
+        /// The surface a dressed part name draws into, the name its tile size is filed under, and its
+        /// paint as sRGB with 1 in alpha, or white with 0 in alpha where it is unpainted.
+        /// </summary>
+        private (string Surface, string Tiled, Vector4 Paint) Dressing(string part)
+        {
+            int hash = part.IndexOf('#', StringComparison.Ordinal);
+            string surface = hash < 0 ? part : part[..hash];
+            int at = surface.IndexOf('@', StringComparison.Ordinal);
+            string tiled = at < 0 ? surface : surface[(at + 1)..];
+            if (hash < 0) return (surface, tiled, Unpainted);
+            if (!_paints.TryGetValue(part, out Vector4 paint))
+            {
+                uint rgb = Convert.ToUInt32(part[(hash + 1)..], 16);
+                paint = new Vector4(((rgb >> 16) & 0xff) / 255f, ((rgb >> 8) & 0xff) / 255f, (rgb & 0xff) / 255f, 1f);
+                _paints[part] = paint;
+            }
+
+            return (surface, tiled, paint);
         }
 
         private static Vector3 Godot(Vector3 v) => new(v.X, v.Z, -v.Y);

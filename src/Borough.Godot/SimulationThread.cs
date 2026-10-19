@@ -73,7 +73,7 @@ internal sealed class SimulationThread : IDisposable
             long started = Stopwatch.GetTimestamp();
             try
             {
-                for (int tick = 0; tick < _ticks; tick++) _step!(tick == 0 ? new TickInput(_commands, _rulesetHash) : default);
+                for (int tick = 0; tick < _ticks; tick++) _step!(new TickInput(tick == 0 ? _commands : [], _rulesetHash));
             }
             catch (Exception error) { _error = ExceptionDispatchInfo.Capture(error); }
             _milliseconds = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
