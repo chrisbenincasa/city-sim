@@ -53,9 +53,18 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 stamp="$(date +%Y%m%d-%H%M%S)"
 log="${BOROUGH_TEST_LOG:-/tmp/borough-test-$stamp.log}"
 
+# A lane yields the machine to the desktop and to other lanes. It runs at low
+# CPU and IO priority, and xUnit uses at most half the cores unless
+# BOROUGH_TEST_THREADS says otherwise.
+threads="${BOROUGH_TEST_THREADS:-$(( ($(nproc 2>/dev/null || echo 2) + 1) / 2 ))}"
+
 args=(test -c Release)
 [ -n "$filter" ] && args+=(--filter "$filter")
 args+=("${passthrough[@]+"${passthrough[@]}"}")
+args+=(-- "xUnit.MaxParallelThreads=$threads")
+
+polite=(nice -n 10)
+command -v ionice >/dev/null 2>&1 && polite+=(ionice -c 3)
 
 # The tree this run is a claim about. A rebase replays your work onto a parent
 # you never gated, so a green with no tree on it cannot be matched to the commit
@@ -74,9 +83,10 @@ ledger="$(git -C "$root" rev-parse --git-dir 2>/dev/null)/borough-test-lanes"
 echo "lane:   ${filter:-<everything>}"
 echo "tree:   $tree on $branch"
 echo "log:    $log"
+echo "xunit:  $threads threads, nice 10"
 echo
 
-( cd "$root" && dotnet "${args[@]}" ) 2>&1 | tee "$log"
+( cd "$root" && "${polite[@]}" dotnet "${args[@]}" ) 2>&1 | tee "$log"
 status=${PIPESTATUS[0]}
 
 echo
