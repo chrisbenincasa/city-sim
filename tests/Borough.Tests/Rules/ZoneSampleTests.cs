@@ -22,7 +22,7 @@ public sealed class ZoneSampleTests
 
     /// <summary>A Lot table with nowhere to front. The sample reads neither frontage nor Streets.</summary>
     private static LotTable Table(int capacity) =>
-        new(capacity, new RoadSegmentTable(1, new RoadNodeTable(1)));
+        new(capacity, new RoadSegmentTable(1, new RoadNodeTable(1)), HouseholdTable.NewRows(capacity));
 
     private static LotTable Lots(int count)
     {

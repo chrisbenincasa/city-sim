@@ -1,0 +1,187 @@
+# THE RENTING RULESET -- the first shipped file in which anybody PAYS for a home.
+#
+# One key is the whole demonstration: `[rent] evicts_after_days`. Stating it turns on the daily
+# charge (plans/money-circulation.md L7, L8, L16). Every other table here is `priced-out.toml`'s,
+# minus its levy, its rebate and its reassessment sweep, so that the only thing moving money is the
+# rent and the only thing emptying a dwelling is the arrears clock.
+#
+# ===================================================================================================
+# WHAT HAPPENS. Each Day the sweep charges every housed Household its dwelling's rate per floor Tile
+# over its tenancy's floor. Every Lot in a generated world is held by the CITY (L14), so the money
+# goes to the treasury and the city is the landlord. A Household short of the rent pays what it
+# holds and owes the rest; the Day that run began is saved, later income settles the debt before the
+# Day's own charge, and past `evicts_after_days` the tenancy ends and the Household goes to the
+# Unplaced Pool. `[placement] gives_up_after_days` is the Pool's sink, so the evicted leave.
+#
+# WHAT TO WATCH, and these two commands are exactly the ones:
+#
+#   dotnet run --project src/Borough.Headless -- --evidence --ruleset rulesets/renting.toml \
+#     --citizens 1000 --ticks 4096
+#   dotnet run --project src/Borough.Headless -- --income --ruleset rulesets/renting.toml \
+#     --citizens 1000 --ticks 4096
+#
+# `--evidence` prints the arrears panel: how many tenancies are charged, how many are behind, what
+# is owed and the Day the longest-running shortfall began. The Pool grows as the deadline comes
+# round. Its condemnation trail says it condemns nothing, which is true and deliberate -- the
+# arrears clock is the only thing emptying a dwelling here.
+#
+# `--income` prints the budget, where the same rent arrives as the `rent in` column and the treasury
+# column is that column's running total. `--money` refuses this file, because it charts the Policy
+# circuit and there is no `[[policy]]` here.
+#
+# ===================================================================================================
+# NOBODY EARNS HERE, AND THAT IS DELIBERATE. There is no wage and no selling Rule, so a Household
+# spends down the opening band and nothing replaces it: every Household is eventually evicted. That
+# makes the DEADLINE visible, which is what this file is for. A city where rent is met out of wages
+# is `base/`, and base adopts these keys at land-and-rent slice 7.
+#
+# ⚠ THE INSTANTIATED `shop` IS CHARGED TOO, and it goes to the Unpremised Pool first. A Business
+# holds a Unit, a Unit has floor, and floor is what rent is priced on -- so the shop in each dwelling
+# owes the same figure a family does. It opens with an empty till, because this file states no
+# `opening_grant` and nothing here sells anything, so it is behind from Day 0 and unpremised at the
+# deadline while the Households are still spending down their opening band. `--evidence` counts the
+# two kinds of tenancy separately for exactly this reason.
+#
+# 🔴 THE RATE IS PROVISIONAL. 4 per floor Tile against an opening band of 0..1000 and a tenancy of
+# about 28 Tiles prices a home at about 112 a Day, so the richest Household lasts about nine Days
+# before it is short. That is chosen to make the clock run inside a short session, not to model what
+# a home is worth.
+#
+# ===================================================================================================
+# The body below is priced-out.toml's, with four edits marked EDIT.
+
+[[resource]]
+name = "sundries"
+family = "good"
+
+[[resource]]
+name = "repairs"
+family = "good"
+
+[[resource]]
+name = "money"
+family = "money"
+
+[[business]]
+name = "shop"
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+[[building]]
+name = "dwelling"
+bins = [
+    { resource = "sundries", capacity = 48, owner = "occupant" },
+    { resource = "repairs",  capacity = 4 },
+]
+houses   = true
+premises = true
+# EDIT 1 OF 4: a rate a Household can meet for a few Days and not for ever, so the arrears clock
+# starts at different Days across the opening band rather than all at once.
+rent_per_floor_tile = 4
+business = "shop"
+
+[[rule]]
+name    = "restock"
+kind    = "dwelling"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = []
+outputs = [ { scope = "local", resource = "sundries", amount = 4 } ]
+
+[[rule]]
+name    = "consume"
+kind    = "dwelling"
+rate    = 32
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "sundries", amount = 4 } ]
+outputs = []
+
+[[rule]]
+name    = "upkeep"
+kind    = "dwelling"
+rate    = 16
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "repairs", amount = 4 } ]
+outputs = []
+
+[[zone_rule]]
+name          = "housing"
+kind          = "dwelling"
+zone          = 0
+interval      = 32
+revisit_ticks = 2048
+
+# EDIT 2 OF 4: no reconsider_ticks. priced-out.toml runs the affordability reassessment, which also
+# moves a housed Household back to the Pool -- and two mechanisms emptying dwellings in one file
+# would make neither readable. gives_up_after_days stays, because both Pools need it.
+[placement]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+gives_up_after_days = 60
+
+# EDIT 3 OF 4: the one key this file exists for. Seven Days, which is what a weekly pay period will
+# ask for when a city here starts paying wages -- the loader refuses a deadline below the longest
+# pay_period_days, and no trade here declares one.
+[rent]
+evicts_after_days = 7
+
+[layers]
+noise_range_metres            = 300
+noise_intensity_percent       = 400
+desirability_pollution_percent = 100
+desirability_noise_percent     = 100
+pollution_period      = 64
+pollution_offset      = 0
+land_value_period     = 256
+land_value_offset     = 16
+kernel_metres         = 1024
+pollution_decay_ticks = 2048
+land_value_tau        = 8
+
+[roads]
+block_tiles                    = 32
+arterial_count                 = 0
+arterial_junction_tiles        = 512
+foot_crossing_every            = 4
+foot_paths_per_thousand_blocks = 40
+street_speed_kph               = 50
+arterial_speed_kph             = 90
+walk_speed_kph                 = 5
+street_capacity_per_hour       = 3600
+arterial_capacity_per_hour     = 12000
+foot_path_capacity_per_hour    = 1000
+
+[lots]
+lots_per_segment = 5
+# The most ground a Building leaves on each side of its parcel. A LENGTH and not a fraction, so
+# coverage rises with the parcel -- see minimal.toml, which carries the argument.
+setback_tiles = 2
+
+[capacity]
+# How much floor one tenancy, job or parking space takes, in Tiles -- see minimal.toml, which carries
+# the argument and the measurement.
+floor_tiles_per_occupant      = 25
+floor_tiles_per_job           = 3
+floor_tiles_per_parking_space = 12
+
+[trips]
+crossing_seconds = 30
+commute_fast_minutes = 20
+commute_moderate_minutes = 40
+commute_budget_minutes = 50
+
+[jobs]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+shift_hours_min = 6
+shift_hours_max = 10
+arrive_early_max_minutes = 15
+
+# EDIT 4 OF 4: no levy and no rebate. taxed.toml's circuit would be a second hand on the balance,
+# and what this file measures is what the rent takes.
+[households]
+car_ownership_percent = 0
+opening_balance_min = 0
+opening_balance_max = 1000

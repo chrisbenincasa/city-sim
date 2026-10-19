@@ -136,14 +136,19 @@ Slices 1 and 3 can run in parallel. After slice 1, slices 2 and 6 can too.
 - Evidence names a Lot's Landowner, and the shell inspector shows it.
 - Acceptance: a dissolved Landowner's Lots read as city-held. Save/reload and replay hold. Goldens
   are re-recorded once, because the saved column moves the State Hash.
+- Built 10/17/2026: `LotTable.Landowner`, saved and severable, with `LandownerTests`, save format 22
+  and the goldens re-recorded. `LotTable` takes `Rows<Household>` from `HouseholdTable.NewRows`,
+  because a Lot naming its Landowner makes the three tables' relations a cycle.
 
 ### 2. Land sale and construction charge
 
-- `World.DemolitionPrice`'s formula becomes the land price of a Lot, and both demolition and sale
-  read it. It drops the rule that prices a Lot with nobody displaced at zero.
+- `World.LandPrice` shares the demolition footprint formula without its displacement guard.
+  `World.DemolitionPrice` still returns zero when nobody is displaced; slice 6 changes who it pays.
 - A Lot's price follows L18: the land price, plus the construction charge for any Building's floor
   Tiles.
-- New keys: a construction charge per floor Tile, and a buyer reserve in Money per member.
+- New optional `[lots]` keys are `construction_charge_per_floor_tile` and
+  `buyer_reserve_per_member`. Either enables sales, including an explicit zero. Both absent
+  preserve free, city-held construction. Base does not adopt them until slice 7.
 - Before `ZoneRuleEngine` raises a Building on a city-held Lot, it draws a buyer with equal chance
   among Households that can pay both and keep the reserve. The draw is a counter hash with its own
   `PurposeTag`. The buyer pays the land price to the treasury and the construction charge out
@@ -156,6 +161,62 @@ Slices 1 and 3 can run in parallel. After slice 1, slices 2 and 6 can too.
 - Acceptance: a fixture where Households with savings buy and build, a poorer Household is never
   drawn, and a city with no savings leaves zoned Lots vacant with "No capital". `MoneyIsConserved`
   holds, and `Issued` falls by the construction charge.
+
+- Built 10/17/2026 with `LandSaleTests`. Local housing checks capital before retiring source Lots,
+  preserves a common Landowner, and refuses mixed ownership. It prices the selected footprint
+  and floor area; vacancy evidence checks that same plan. Compulsory buyouts remain in slice 6.
+- Headless evidence demonstration used temporary copies of `declining.toml`, seed `17`, `1,000`
+  Citizens and `8,192` Ticks. A charge of `2,147,483,647` left `53` vacant Lots with "No capital";
+  an explicit zero left `42` vacant Lots and no capital refusals. The demonstration exposed a
+  stale evidence footer claiming capital had no mechanism; the footer now describes the flags.
+- Finance preflight reads the maximum available Household capital from one unsorted pass per
+  Zone Rule sweep. Only a real buyer draw builds the sorted scratch array. Binary search finds
+  the affordable suffix, and a counter hash draws uniformly within it. Payments update the sorted
+  entries and invalidate the maximum; a missing entry invalidates the index for rebuilding.
+- Scratch ends with the sweep and is neither saved nor hashed. Paid-construction tests match with
+  one and eight route workers and across a midrun save/reload. Batch Lot evidence shares one
+  maximum-capital pass without retaining a snapshot across queries.
+
+#### Buyer-search measurement (10/17/2026)
+
+- Machine `zeus`, Intel i5-10400, six cores/twelve logical CPUs, `powersave`, .NET 10.0.12,
+  Release, one simulation thread. Load average was `6.80/13.58/16.40` before the paired capture;
+  MSBuild workers were active. Host load was uncontrolled. These are busy-host observations,
+  not quiet-machine timings or a whole-Tick budget claim.
+- `SyntheticCity` generated two copies of `minimal.toml` with a demand-reading Zone Rule at
+  interval `32`, seed `62002`, actual population `100,000`, `36,000` Households and `10,080` Lots.
+  Every Household received `10,000` Money. Only the enabled copy declared the construction key.
+- Command `scripts/test.sh --filter 'FullyQualifiedName~LandSaleTests' -- --logger 'console;verbosity=detailed'`.
+  Each copy warmed up for 32 triggers. The next 32 trigger pairs were interleaved, alternating
+  which copy ran first. Neither sweep bought anything or built a sorted index. The table keeps
+  the one-time pass or sort rather than dividing it across 1,000 attempts.
+
+| Capture | Observed time | Scope |
+|---|---|---|
+| Enabled no-purchase Zone Rule sweep, worst / mean | 2.793 / 1.507 ms | Zone Rule contribution to one trigger Tick, without sorting |
+| Keys-absent sweep, worst / mean | 0.421 / 0.328 ms | Matched generated city and trigger Ticks |
+| Mean paired enabled-minus-absent difference | 1.179 ms | Difference within the 32 interleaved pairs; host load is uncontrolled |
+| First finance preflight in one sweep | 0.472 ms | One unsorted Household pass and one affordability query |
+| Subsequent first draw, index build and payment | 1.164 ms | The full sort remains payable on a purchase Tick |
+| Combined single-purchase finance work | 1.636 ms | Preflight plus draw/index/payment; Building creation is excluded |
+| Poor-city batch evidence over all 10,080 Lots | 11.218 ms | One capital pass; Household balances were emptied before timing |
+
+- PR review kept finance before `Demanded` because `Demanded` claims demand or joblessness and
+  starts the cooldown; the preflight path and its recorded measurement remain unchanged.
+
+- The isolated purchase cost `100` land plus `100` construction. A prior unpaired capture at
+  load average `18.67/17.27/17.81`, while another worktree's full suite was active, observed a
+  `22.047 ms` worst sweep. It cannot show the added cost by itself; the paired capture above
+  supplies the keys-absent baseline. Neither capture establishes quiet-host performance.
+- Logs are `test-B01-fix-paired.log`, `host-B01-fix-paired.log`,
+  `test-B01-fix-instrument-final.log` and `host-B01-fix-instrument.log` under
+  `.orchestra/20261017-land-slices-2-4/`.
+- Neither capture measures the `1,000,000`-Citizen target or an entire `Simulation.Step`. Repeat
+  at that population on a quiet host before slice 7 claims the Tick budget fits. The consumer
+  is recorded in `plans/0013`.
+- The unsorted preflight prevents no-purchase triggers from paying the sort. Successful purchases
+  still move the affected sorted-array range. Local housing evidence still evaluates assembly
+  geometry per Lot; sharing capital removes the Household-times-Lot term, not that geometry cost.
 
 ### 3. One rent figure
 
@@ -171,20 +232,57 @@ Slices 1 and 3 can run in parallel. After slice 1, slices 2 and 6 can too.
 - Acceptance: two dwellings of one kind on different land value rent for different amounts, and
   placement prefers the cheaper one when centrality is equal. Goldens are re-recorded.
 
+**Built 2026-10-17.** `World.TenancyRent` is the one function, `HouseholdRent` and `BusinessRent`
+name the two tenancies, and every Ruleset states `rent_per_floor_tile`.
+
+**Base's rate is 23 and not the 25 its capacity rate implies, and the reason is measured.** Rate
+24 and rate 25 leave the school one teacher short of its five jobs for three Days around Day 66 of
+`BaseFoundingPackageTests.Governing_the_rebate_down_restores_the_school_and_the_control_stays_short`,
+which is the demonstration slice 7 adopts. Measured on the committed `rulesets/base/founding.borough`
+at seed 20,260,924 and 2,000 Citizens, replaying 70 Days twice with the Day-45 `govern` command:
+every rate from 16 to 23 and from 26 to 32 keeps 5 of 5 teachers from Day 61 on, and the control
+stays short at all of them. A base tenancy holds about 17 Tiles, so 23 prices a home at about 390
+a Day on ground worth nothing against the flat 400 the file used to state. That named test is what
+rejected 24 and 25, so the shipped rate is guarded; what nothing guards is the sweep across rates,
+which is why it is recorded here.
+
 ### 4. Rent collection and arrears
 
 - Each Day, each tenancy pays the slice 3 figure to its Lot's Landowner, or to the treasury while
   the city holds the Lot. A resident Landowner pays none for its own tenancy.
 - A tenant short of its rent pays what it holds, owes the rest and saves the Day the shortfall
   began. Later income pays the debt first. Clearing the debt clears the Day.
+- Rent received is income, so a payment settles every Landowner it passes on the way down the chain.
+- Where a ring of Landowners owes each other, the mutual debt cancels rather than circulating. The
+  smallest debt in the ring comes off every member, which is the end state that carrying one coin
+  round the ring repeatedly reaches, at a cost set by the ring and not by the debt. It takes a coin
+  in the ring to stand in for, so a ring holding nothing cancels nothing. The Day's reading reports
+  the cancelled figure beside the cash, so the rent recorded is what circulation would have moved.
 - The loader refuses an eviction deadline shorter than the longest `pay_period_days`.
 - Past a Ruleset duration in Days, a Household is evicted with `World.Unplace` and a Business with
   `World.Unpremise`.
 - Evidence and the inspector show "Behind on rent since Day N".
 - An evicted Landowner keeps its Lots and their rent in the Unplaced Pool.
+- `examples/UrbanNeighbourhood` endows its two resident Households 100 against the 160 a Day its
+  homes now charge, so charging rent puts the showcase city in arrears on Day 1. Raise that
+  endowment with this slice, as slice 3 raised the arrival band to 256.
 - Acceptance: a fixture where a tenant falls behind and is evicted at the deadline, a tenant
   whose wage rises in time is not, and a tenant paid every 7 Days is never in arrears at payday.
   `MoneyIsConserved` holds.
+- Rent reaching the treasury is treasury income and gets a flow counter of its own, so the budget's
+  balance stays explained by the columns beside it. Private rent and cancelled debt are not income.
+- Built 10/17/2026: `RentEngine` sweeps each Day boundary behind payroll and the subsidies, one
+  optional key `[rent] evicts_after_days` turns it on and bounds the debt, `RentDebt` and
+  `RentDebtSinceDay` are saved on both tenant tables, eviction writes the debt off where the tenancy
+  ends, and `rulesets/renting.toml` demonstrates the clock. `RentAccounts` settles arrears at each
+  income site as money lands, follows the Landowner chain and cancels a ring's mutual debt. Save
+  format 23 and the goldens re-recorded.
+- The sweep charges and settles every tenancy on both tables before it tests any deadline, because a
+  Landowner in an earlier slot can be cleared by a tenant in a later one. `Behind` is counted in
+  that second pass, so it reports what the city owes when the Day finishes.
+- `MoneyFlowCounter.Rent` carries the treasury's share through `TreasuryFlows`, the Census, the
+  shell budget's `rent · in` row and `--income`'s `rent in` column. `--income` and `--evidence` both
+  run on `rulesets/renting.toml` unmodified, which is what the file's header advertises.
 
 ### 5. Sale on departure and city-held Lots
 
@@ -196,6 +294,51 @@ Slices 1 and 3 can run in parallel. After slice 1, slices 2 and 6 can too.
 - Acceptance: a departing Landowner's Lot passes to its tenant when the tenant can pay, and
   `Issued` falls by the sale price. A generated city's Lots move from the city to Households over
   time.
+- Built 10/18/2026 with `LandDepartureTests`. `World.SellLot` is the one sale step. It draws a
+  tenant who can pay and keep the reserve (`PurposeTag.LotTenantBuyer`), then any Household through
+  slice 2's sorted capital index with the seller excluded (`PurposeTag.LotResaleBuyer`). Slice 2's
+  construction draw shares that index search. `SellLot` checks the richest Household first, so a
+  Lot nobody can afford costs a price read and no tenant walk.
+- Departure sale follows slice 2's switch: either `[lots]` sale key turns it on. `World.Depart`
+  sells each Lot the leaver holds before the balance leaves, so `Issued` falls by the proceeds too.
+  The Unplaced Pool's give-up is the only departure, so an evicted Landowner sells the same way (L17).
+- `[lots] city_sale_interval_days` turns on the city's offer. It runs at the Day boundary behind
+  rent, so the Day's rent reaches the treasury before the Lot sells. The loader refuses it without
+  a sale key. No key moves the State Hash where it is absent, so goldens and base are unchanged.
+- Rent debt follows the Lot. A tenant's standing debt is paid to whoever holds its Lot when the
+  money arrives, which is slice 4's rule for a Lot that passes to the city. A tenant that buys its
+  own Lot has its debt written off, as slice 4 does for a resident Landowner.
+- Generated cities sell most built Lots on the first offer when balances exceed prices.
+  `shopping.toml` at a land rate of 400 keeps 11 of 60; they stay unsold until Households are
+  endowed, then sell at the next offer. `waged.toml` and `declining.toml` demolish the kept Lots
+  before anyone can afford them, so neither shows a later sale.
+- Land income to the treasury has no budget flow counter. Slice 2's construction sales already
+  had this gap, and city sales widen it. `TreasuryFlowsExplainTheBalanceTests` cannot see it,
+  because its Ruleset states no sale key. Tracked in #196.
+
+#### Departure and city-sale measurement (10/18/2026)
+
+- Machine `zeus`, as for slice 2, Release, one simulation thread. Load average was `8.5–16.7` on
+  12 logical CPUs while other worktrees ran suites. These are busy-host observations.
+- `LandDepartureTests.Departure_and_city_sale_scans_on_a_large_generated_city` generates two
+  copies of `minimal.toml` at seed `62002`: `99,808` Citizens, `35,936` Households and `10,080`
+  Lots. Only the enabled copy states `construction_charge_per_floor_tile = 1` and
+  `city_sale_interval_days = 1`. Paired runs alternate which copy goes first.
+- Command `scripts/test.sh --filter 'FullyQualifiedName~LandDepartureTests.Departure_and' -- --logger 'console;verbosity=detailed'`.
+
+| Capture | Observed time | Scope |
+|---|---|---|
+| Day offer with nobody able to buy, worst / mean paired difference | 2.026 / 1.646 ms | 32 pairs. The richest-Household check runs before the tenant walk |
+| The same offer before that check | 17.556 / 7.258 ms | Every tenant was tested on every Lot |
+| Departure holding no Lot, mean paired difference | 0.216–0.378 ms | 32 pairs per run, two runs |
+| Departure selling one built Lot, mean paired difference | 3.843–5.463 ms | 32 pairs per run, two runs. The worst pair reached 18.7 ms |
+| The sale step alone, its parts | Lot scan 0.097 ms, capital pass 0.508 ms, one Lot price 0.035 ms | Single reads |
+| First offer selling all 8,723 city-held built Lots | 8.926–12.774 ms | Every Household held 10,000 |
+
+- A departure scans every Lot, because no column lists a Household's Lots. The scan is 0.1 ms
+  here. A per-Landowner list would need a derived column with a rebuild audit, and the scan does
+  not yet justify one.
+- Repeat at `1,000,000` Citizens on a quiet host before slice 7 claims the Tick budget fits.
 
 ### 6. Compulsory purchase
 

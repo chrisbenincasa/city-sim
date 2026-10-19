@@ -591,7 +591,24 @@ public static class Evidence
     /// <param name="lot">Which Lot.</param>
     /// <exception cref="ArgumentNullException"><paramref name="world"/> is null.</exception>
     /// <exception cref="InvalidOperationException">The handle does not resolve.</exception>
-    public static LotEvidence OfLot(World world, Handle<Lot> lot)
+    public static LotEvidence OfLot(World world, Handle<Lot> lot) => OfLot(world, lot, null);
+
+    /// <summary>Reads every live Lot with one shared Household capital pass.</summary>
+    public static LotEvidence[] OfLots(World world)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        int richest = world.Rules.Lots.LandSales ? world.MaximumCapitalHousehold() : Rows.NoSlot;
+        var evidence = new LotEvidence[world.Lots.Rows.LiveCount];
+        int count = 0;
+        for (int lot = 0; lot < world.Lots.Rows.SlotCount; lot++)
+        {
+            if (world.Lots.Rows.IsLive(lot))
+            { evidence[count++] = OfLot(world, world.Lots.Rows.At(lot), richest); }
+        }
+        return evidence;
+    }
+
+    private static LotEvidence OfLot(World world, Handle<Lot> lot, int? capitalBuyer)
     {
         ArgumentNullException.ThrowIfNull(world);
 
@@ -616,9 +633,18 @@ public static class Evidence
             {
                 reason |= VacancyReason.NotZoned;
             }
+
+            if (NoConstructionCapital(world, slot, capitalBuyer))
+            {
+                reason |= VacancyReason.NoCapital;
+            }
         }
 
         int building = world.Lots.BuildingOn(slot);
+
+        // Resolved rather than copied: a severed handle means the Landowner died or left and the Lot
+        // passed to the city, so it reads as the city here rather than as a Household that is gone.
+        int landowner = world.Lots.LandownerOn(slot);
 
         return new LotEvidence(
             lot,
@@ -628,7 +654,60 @@ public static class Evidence
             world.Lots.AddressOf(slot),
             reason,
             LastCondemnation(world, lot),
-            building == Rows.NoSlot ? default : world.Buildings.Rows.At(building));
+            building == Rows.NoSlot ? default : world.Buildings.Rows.At(building),
+            landowner == Rows.NoSlot ? default : world.Households.Rows.At(landowner));
+    }
+
+    /// <summary>
+    /// What a housed Household pays for its home and what it owes, or <see langword="null"/> where
+    /// the city charges no rent.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Read here rather than off the columns, so the shell and a headless dump answer from one
+    /// place</b> — <see cref="OfLot"/>'s Landowner clause and the same reason. The daily figure is
+    /// <c>World.ResidentRent</c>, which is the charge and not the price, so a resident Landowner
+    /// reads zero.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Null where the Ruleset states no <c>[rent]</c>, and zero where it states one and this
+    /// tenant owes nothing.</b> Those are different answers and <see cref="RentEvidence"/> carries
+    /// why.
+    /// </para>
+    /// </remarks>
+    /// <param name="world">The world to read.</param>
+    /// <param name="household">Which Household.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="world"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">The handle does not resolve.</exception>
+    public static RentEvidence? RentOf(World world, Handle<Household> household)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+
+        int slot = world.Households.Rows.Resolve(household);
+
+        return world.Rules.Rent.Collects
+            ? new RentEvidence(
+                world.ResidentRent(slot),
+                world.Households.RentDebt[slot],
+                world.Households.RentDebtSinceDay[slot])
+            : null;
+    }
+
+    /// <inheritdoc cref="RentOf(World, Handle{Household})"/>
+    /// <param name="world">The world to read.</param>
+    /// <param name="business">Which Business.</param>
+    public static RentEvidence? RentOf(World world, Handle<Business> business)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+
+        int slot = world.Businesses.Rows.Resolve(business);
+
+        return world.Rules.Rent.Collects
+            ? new RentEvidence(
+                world.BusinessRent(slot),
+                world.Businesses.RentDebt[slot],
+                world.Businesses.RentDebtSinceDay[slot])
+            : null;
     }
 
     /// <summary>
@@ -706,6 +785,38 @@ public static class Evidence
             WaitingLevel = hasBin ? world.Bins.LevelAt(blocking) : 0,
             WaitingCapacity = hasBin ? world.Bins.Capacity[blocking] : 0,
         };
+    }
+
+    private static bool NoConstructionCapital(World world, int lot, int? capitalBuyer)
+    {
+        if (!world.Rules.Lots.LandSales || world.HasStreets && !world.Lots.HasFrontage(lot)) { return false; }
+        bool measured = false;
+        foreach (ZoneRuleDefinition definition in world.Rules.ZoneRules)
+        {
+            if (!definition.ReadsDemand && world.UnplacedPool.Count == 0) { continue; }
+            if (!definition.ReadsDemand && world.Rules.HousingConstruction is not null
+                && world.Rules.Declares(definition.Kind) && world.Rules.Kind(definition.Kind).Houses)
+            {
+                if ((definition.Admits & LotTable.Housing) == 0) { continue; }
+                Space.LocalLayoutProposal? proposal = HousingConstruction.Select(world, world.Key, world.Lots.Rows.At(lot), definition.Kind);
+                if (proposal is null) { continue; }
+                measured = true;
+                Space.LocalLot door = proposal.Sources[0];
+                int source = world.Lots.Rows.Resolve(door.Handle);
+                Money land = world.LandPrice(new Tiles(door.East), new Tiles(door.North),
+                    (long)proposal.Building.Footprint.Width * proposal.Building.Footprint.Height);
+                if (world.ConstructionBuyer(source, world.Lots.LandownerOn(source), land,
+                    world.ConstructionCharge(proposal.FloorTiles), world.Tick, draw: false, capitalBuyer) != Rows.NoSlot) { return false; }
+            }
+            else if (world.ConstructionPermission(lot, definition.Admits) == Space.PermissionRefusal.None)
+            {
+                measured = true;
+                if (world.ConstructionBuyer(lot, world.Lots.LandownerOn(lot), world.LandPrice(lot),
+                    world.ConstructionCharge(world.Lots.FloorTiles(lot)), world.Tick, draw: false, capitalBuyer) != Rows.NoSlot)
+                { return false; }
+            }
+        }
+        return measured;
     }
 
     private static bool AdmittedByAnyRule(World world, int lotSlot) =>

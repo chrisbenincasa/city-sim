@@ -1841,36 +1841,59 @@ public sealed class RulesetLoaderTests
         Assert.Equal(0, ruleset.Capacity.FloorTilesPerParkingSpace);
     }
 
-    // ---- [[building]] rent (02 §5.2 step 2b) -------------------------------------------------------
+    // ---- [[building]] rent_per_floor_tile (02 §5.2 step 2b, money-circulation L7) -----------------
 
     [Fact]
-    public void A_kind_that_declares_rent_carries_the_amount()
+    public void A_kind_that_declares_a_rent_rate_carries_it()
     {
         Ruleset ruleset = Accepted(Bakery.Replace(
             "name = \"bakery\"\n",
-            "name = \"bakery\"\nrent = 50\n",
+            "name = \"bakery\"\nrent_per_floor_tile = 50\n",
             StringComparison.Ordinal));
 
-        Assert.Equal(50, ruleset.Kind(1).Rent.Raw);
+        Assert.Equal(50, ruleset.Kind(1).RentPerFloorTile.Raw);
     }
 
     [Fact]
-    public void A_kind_with_no_rent_is_free()
+    public void A_kind_with_no_rent_rate_is_free()
     {
         Ruleset ruleset = Accepted(Bakery);
 
-        Assert.Equal(0, ruleset.Kind(1).Rent.Raw);
+        Assert.Equal(0, ruleset.Kind(1).RentPerFloorTile.Raw);
     }
 
     [Fact]
-    public void A_negative_rent_is_refused()
+    public void A_negative_rent_rate_is_refused()
     {
         RulesetRefusal refusal = Refused(Bakery.Replace(
             "name = \"bakery\"\n",
-            "name = \"bakery\"\nrent = -1\n",
+            "name = \"bakery\"\nrent_per_floor_tile = -1\n",
             StringComparison.Ordinal));
 
-        Assert.Contains("rent is -1", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("rent_per_floor_tile is -1", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The retired <c>rent</c> key is refused by name, and the refusal says what to divide.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>Refused rather than read as the rate, which is <c>tenanted</c>'s reasoning on a number
+    /// rather than on a pair of booleans.</b> <c>rent</c> priced a whole tenancy and
+    /// <c>rent_per_floor_tile</c> prices one Tile of it, so a file keeping the old name would charge
+    /// its dwelling's floor area times what its author meant — four hundred a Day becoming eleven
+    /// thousand on a sixty-Tile share. ***A key that changed units loads clean and runs a different
+    /// city.***
+    /// </remarks>
+    [Fact]
+    public void The_retired_rent_key_is_refused_and_names_the_rate()
+    {
+        RulesetRefusal refusal = Refused(Bakery.Replace(
+            "name = \"bakery\"\n",
+            "name = \"bakery\"\nrent = 400\n",
+            StringComparison.Ordinal));
+
+        Assert.Contains("rent_per_floor_tile", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("floor_tiles_per_occupant", refusal.Reason, StringComparison.Ordinal);
     }
 
     /// <summary>A stated zero is refused, and absence is how <em>none</em> is meant.</summary>

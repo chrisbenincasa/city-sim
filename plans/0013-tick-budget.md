@@ -95,6 +95,10 @@ the durable half of the document.
 | ⚠️ **One whole engine Tick per due Rule, *in situ*** | **~552 ns** | — | [`0011`](0011-rule-engine-bins-and-rules.md) **finding 42** |
 | ⚠️ **One Rule evaluation, *in situ*** | **~329 ns** | — | as above |
 | One **Zone Rule trigger**, 16-Lot sample | **488 → 740 ns** | **no — but the variable is the working set, not the Zone**: 1.56× over a 1,000× Zone against a control that moved 989× | [`0014`](0014-zone-rules-and-the-sweep-family.md) task 9 |
+| Land-sale finance, first-purchase trigger at 100,000 Citizens | 1.636 ms for preflight plus index/draw/payment | It includes one unsorted pass and one sort over 36,000 Households; busy host, not a 1M measurement | [money-circulation](money-circulation.md#buyer-search-measurement-10172026), slice 2 |
+| Zone Rules with finance enabled, worst no-purchase trigger at 100,000 Citizens | 2.793 ms enabled versus 0.421 ms keys-absent, worst of 32 interleaved pairs; mean paired difference 1.179 ms | It measures the Zone Rule sweep, not a whole Tick; busy host, not a 1M measurement | Same owner; repeat at 1M on a quiet host before slice 7's budget claim |
+| City Lot offer at 100,000 Citizens, nobody able to buy | 2.026 ms enabled worst; mean paired difference 1.646 ms over 32 interleaved pairs | One Day-boundary pass over 10,080 Lots; busy host, not a 1M measurement | [money-circulation](money-circulation.md#departure-and-city-sale-measurement-10182026), slice 5 |
+| Departure selling one built Lot at 100,000 Citizens | Mean paired difference 3.8–5.5 ms over 32 interleaved pairs, across two runs | One Lot scan, one Household capital pass and the sale; a departure holding nothing adds 0.2–0.4 ms; busy host | Same owner; repeat at 1M on a quiet host before slice 7's budget claim |
 | **Pollution diffusion**, one Cell dirty | **31.6 µs** | — | `MapLayerBenchmarks` |
 | **Pollution diffusion**, whole map | **1.01 ms** | — | as above |
 | One **State Hash** at 1M | **32.47 ms** | — | [S0a](../docs/spike-results.md) |
@@ -120,6 +124,7 @@ the durable half of the document.
 | 🔴 ⚠️ **The purchase**, whole, at **40,000** Citizens | **1.27 ms a Tick** | **NO — it is ~n^1.2 and the whole point of the row** | [`0044`](0044-the-purchase-and-the-provider-that-answers-it.md) task 4, measured 2026-08-26 |
 | 🔴 ⚠️ **The purchase**, whole, at **20,000** Citizens | **0.585 ms a Tick** | as above | as above |
 | 🔴 ⚠️ **The purchase**, whole, at **10,000** Citizens — ⚠ **an UPPER BOUND**, measured with a spin defect running (see below) | **0.237 ms a Tick** | as above | as above |
+| ⚠️ **The provider choice's reach walks**, `offices.toml`, seed 0, 9 shops and 1 office the city raised, 263,169-node network | **286 walks and 420 settled nodes over 4,096 Ticks; the largest walk settled 4 nodes** | **no — it is the box's best case** | [`export-base`](export-base.md) slice 3b, `LocalServiceTests.Provider_choice_walk_work_in_a_city_that_raises_its_offices`, 10/17/2026. The counts are deterministic. At ~35–40 ns a settled node (row above) the walks cost ~17 µs over two Days. The whole run's Step time was 1,202 ms in Release, one thread, on the i5-10400, at a load average of 8 from other sessions, so that figure is only an upper bound. Every shop stands near the one office, so no candidate inside the box had a long road route. `WalkRouting.Cost` still has no distance cutoff, and that worst case stays unmeasured until a fixture raises several offices across a city |
 
 ### ⚠️ Volume attribution is four times what its own ADR priced, and nobody changed its number
 
@@ -1234,3 +1239,27 @@ and was nearly shipped as an argument.
 it does not price the individual consumers above or represent a balanced mature economy.
 The profiler excludes setup and reporting from Tick timings and reports the Decide guard setting.
 [`0067`](0067-aged-city-performance.md) owns the aged captures, population controls and Layers attribution.
+
+## Arrival job-access work, 10/18/2026
+
+- `JobsAttractTests.Accessibility_work_per_Day` measures deterministic work in Release on `zeus`,
+  Intel Core i5-10400, seed 7, route workers 1, first full Day with the Decide guard disabled.
+  Concurrent sessions make this unsuitable for timing claims. Cold load/rebuild work is excluded.
+- The reviewed slice (`d8abb8a8`) refreshed every Lot after an input change. Candidate preparation
+  instead keeps the original sampled alternatives, prepares their Lots before choice, and reuses
+  exact counts only while every input snapshot still matches.
+
+| Citizens | Live Lots | Full-field floods | Candidate floods | Full-field nodes | Candidate nodes |
+|---|---|---|---|---|---|
+| 1,000 | 136 | 8,704 | 875 | 16,864,384 | 686,806 |
+| 10,000 | 1,032 | 66,048 | 330 | 144,919,488 | 408,368 |
+
+- The existing sample has two families, standing homes and buildable Lots. Each comparison prepares
+  at most `2 × placement.candidates` origins, with duplicate Lots sharing a flood. Input validation
+  still scans all Lots and Businesses; aggregation now scales with sampled origins times nearby
+  employers. This measures walking work, not total arrival-pass CPU cost.
+- All 64 first-Day State Hash samples at 32-Tick intervals match before and after at 1,000 Citizens.
+  Admissions stay 256 with employers and 238 without; the larger city still admits 166.
+- [Export-base slice 4](export-base.md#slice-4-evidence-and-limits) owns the exact reproduction
+  command, fixture, cold-rebuild exception, behavior evidence and validation. No quiet-machine
+  Tick-budget claim follows from these counts.

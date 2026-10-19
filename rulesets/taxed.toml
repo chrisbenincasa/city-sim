@@ -217,7 +217,7 @@ bins = [
 ]
 houses   = true
 premises = true
-rent     = 50
+rent_per_floor_tile = 2
 business = "shop"
 
 [[rule]]
@@ -347,9 +347,10 @@ transfer = { from = "global", to = "local", resource = "money", amount = 1 }
 # suspends ratification, so no row is open for them anywhere and none should be read as chosen. What
 # they are anchored to, so a reader can tell taste from derivation:
 #
-#   allowance_per_day = 50        THIS FILE'S OWN `rent = 50`, one Day of it. The only per-Day money
-#                                 figure the Ruleset already states, so the allowance is the earnings
-#                                 that cover the roof. Taste, not derivation.
+#   allowance_per_day = 50        ABOUT ONE DAY OF THIS FILE'S OWN RENT. rent_per_floor_tile = 2
+#                                 over a tenancy of about 28 Tiles is some 56 a Day, the only per-Day
+#                                 money figure the Ruleset states, so the allowance is anchored to a
+#                                 Day of rent -- just under it, not over. Taste, not derivation.
 #
 #   upper_threshold_per_day = 200 Four allowances. Chosen to sit ABOVE the 100 the rebate pays and
 #                                 BELOW the 1000 top of the opening band, so both bands are reachable

@@ -27,7 +27,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-53 sections, 383 keys.
+54 sections, 395 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
@@ -36,7 +36,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[[building]] bins reserve`](#building-bins-reserve) — 3 keys
 - [`[[business]]`](#business) — 17 keys
 - [`[[hinterland.population]]`](#hinterlandpopulation) — 5 keys
-- [`[[hinterland]]`](#hinterland) — 8 keys
+- [`[[hinterland]]`](#hinterland) — 10 keys
 - [`[[hinterland]] prices`](#hinterland-prices) — 2 keys
 - [`[[housing_form]]`](#housing_form) — 11 keys
 - [`[[lattice]]`](#lattice) — 4 keys
@@ -48,7 +48,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[[recipe]] inputs`](#recipe-inputs) — 3 keys
 - [`[[recipe]] outputs`](#recipe-outputs) — 3 keys
 - [`[[reserve]]`](#reserve) — 4 keys
-- [`[[resource]]`](#resource) — 7 keys
+- [`[[resource]]`](#resource) — 9 keys
 - [`[[rule]]`](#rule) — 14 keys
 - [`[[rule]] apply`](#rule-apply) — 4 keys
 - [`[[rule]] inputs`](#rule-inputs) — 3 keys
@@ -68,13 +68,14 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[jobs]`](#jobs) — 15 keys
 - [`[land_permissions]`](#land_permissions) — 1 key
 - [`[layers]`](#layers) — 20 keys
-- [`[lots]`](#lots) — 16 keys
+- [`[lots]`](#lots) — 19 keys
 - [`[lots] trade_form_weights`](#lots-trade_form_weights) — 7 keys
 - [`[market]`](#market) — 2 keys
 - [`[needs]`](#needs) — 9 keys
 - [`[parking]`](#parking) — 5 keys
-- [`[placement]`](#placement) — 10 keys
-- [`[roads]`](#roads) — 16 keys
+- [`[placement]`](#placement) — 11 keys
+- [`[rent]`](#rent) — 1 key
+- [`[roads]`](#roads) — 19 keys
 - [`[school]`](#school) — 7 keys
 - [`[schooling]`](#schooling) — 5 keys
 - [`[shopping]`](#shopping) — 7 keys
@@ -213,9 +214,9 @@ What the treasury pays to place a Building of this kind by hand. Absent or zero 
 
 Whether a BUSINESS may take a tenancy in a Building of this kind. houses' other half, over the same single ceiling, and it governs both ways a trade arrives: the one this kind comes with and one premised out of the unpremised pool. A kind declaring business and not this is refused, because the trade would have nowhere to sit. A kind declaring both is mixed use — the flats above the shop, competing for the same tenancies. Absent means no Business may take premises here.
 
-**`rent`** · *whole number*
+**`rent_per_floor_tile`** · *whole number*
 
-The daily rent a Building of this kind asks. Nothing charges it: placement skips a dwelling whose rent exceeds a seeking Household's money, reconsideration moves out a housed Household that falls below it, and the choice model weighs it. A recurring charge needs a [[rule]] or [[policy]]. Zero or absent means the dwelling is free.
+What one floor Tile of a Building of this kind costs a tenant per Day. A tenancy pays this for the floor it occupies, times one plus the land value at its Lot, so two dwellings of one kind rent for different amounts on different ground. A Business occupies its Unit's floor and a Household an equal share of the Building's. Nothing charges it: placement skips a dwelling a seeking Household cannot pay for, reconsideration moves out a housed Household that falls below it, and the choice model weighs what is left. Zero or absent means the kind is free to occupy.
 
 **`serves`** · *quoted string*
 
@@ -391,6 +392,10 @@ The most. Stated as a band rather than one figure, because a single figure gives
 
 The least money a Household arriving from this Hinterland brings with it.
 
+**`export_budget`** · *whole number*
+
+The most this Hinterland pays the city for exports in one Day, from 0 to 2147483647. It buys at its prices, the figure it also sells at, and only Goods a city firm made and had no room to store. When several Hinterlands price a Good, the highest payer with budget left for at least one minimum batch buys it, as many batches as that budget covers. Absent or zero buys nothing.
+
 **`id`** · *quoted string*
 
 Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.
@@ -401,11 +406,15 @@ The display text for this declaration. It reaches the shell's names and nothing 
 
 **`prices`** · *array of inline tables*
 
-What this Hinterland will sell each Good for, one entry per Good. These are the only authored anchor under every price in the design: a District's Pool may charge up to the cheapest declared Hinterland price and no more.
+What this Hinterland will sell each Good or service for, one entry each. These are the only authored anchor under every price in the design: a District's Pool may charge up to the cheapest declared Hinterland price and no more.
+
+**`reachable_jobs`** · *whole number*
+
+Open posts reachable from an Outside home, in the qualified-vacancy units used by arrival choice. Non-negative. Absent means zero; without placement.jobs_rent it changes no choice.
 
 **`rent`** · *whole number*
 
-What a home costs per Day out here, in the money a [[building]] rent is in. It is what a prospective Household compares against the cost of living in the city, and what a Household waiting for somewhere to live compares against every home it is shown. Required beside a choice model and refused without one.
+What a home costs per Day out here, as a whole tenancy and not a rate per Tile. It is what a prospective Household compares against the cost of living in the city, and what a Household waiting for somewhere to live compares against every home it is shown. Required beside a choice model and refused without one.
 
 ---
 
@@ -419,7 +428,7 @@ The import price, which becomes the ceiling on what that Good can cost inside th
 
 **`resource`** · *quoted string*
 
-Which Good is being priced, naming a [[resource]]. Only a good may be — a utility is not stocked, and money is what a price is denominated in rather than a thing that has one.
+Which Good or service is being priced, naming a [[resource]]. A utility is not stocked, and money is what a price is denominated in rather than a thing that has one, so neither may be.
 
 ---
 
@@ -753,7 +762,7 @@ What this reserve is called. A Bin's reserve profile names it by this.
 
 **`family`** · *quoted string*
 
-Which of the four kinds of thing this is: a good moves as a Shipment on the Road Graph and shows up in the traffic, a utility flows along the District adjacency graph, money is conserved and does not move at all, and labour is worker-time a Business's present staff deposit and its own Rules spend as a local input. The family decides transport and whether a Bin holding it has a ceiling, so there is no default. A labour Resource must declare a shelf life, and its Bin is owned by the business and states no capacity.
+Which of the five kinds of thing this is: a good moves as a Shipment on the Road Graph and shows up in the traffic, a utility flows along the District adjacency graph, money is conserved and does not move at all, labour is worker-time a Business's present staff deposit and its own Rules spend as a local input, and a service is a Professional Service a provider's Rule makes as a local output and a client firm buys from the provider it keeps, through a pool input -- no Bin ever holds one. The family decides transport and whether a Bin holding it has a ceiling, so there is no default. A labour Resource must declare a shelf life, and its Bin is owned by the business and states no capacity.
 
 **`id`** · *quoted string*
 
@@ -770,6 +779,14 @@ What this Resource is called. Every other table refers to it by this name, and t
 **`need`** · *quoted string*
 
 Which Household Need this Resource feeds when it is consumed. Only sustenance and satisfaction may be named: the other two Needs are fed by travelling to a service Building rather than by buying, and are declared with [[building]] serves instead. Absent means the Resource feeds no Need, which is the ordinary case.
+
+**`reach_minutes`** · *whole number*
+
+How far a buyer may stand from a provider of this service, in free-flow travel minutes, from 1 to a day. Only a service has a reach, and it states either this or remote. A Hinterland provider is reached from anywhere, so this binds only once the city has its own providers.
+
+**`remote`** · *true or false*
+
+true for a service delivered at any distance, in place of reach_minutes. Only a service may state it, and false is refused: state reach_minutes instead.
 
 **`shelf_life_cycle_minutes`** · *whole number*
 
@@ -901,7 +918,7 @@ Which Resource this term deposits, naming a [[resource]].
 
 **`scope`** · *quoted string*
 
-Where the term deposits: local, pool, global, or map. The map scope is write-only, so a Rule may emit to a Layer and can never read or wait on one.
+Where the term deposits: local, pool, global, or map. The map scope is write-only, so a Rule may emit to a Layer and can never read or wait on one. A service output is local and adds to the provider's allowance for the Day rather than to a Bin.
 
 ---
 
@@ -1435,9 +1452,21 @@ How many Ticks between recomputations of the woodland field.
 
 ## `[lots]`
 
+**`buyer_reserve_per_member`** · *whole number*
+
+Money per Household member a buyer must keep after paying for land and construction. Only its own balance counts, never a Business's till. Either this key or construction_charge_per_floor_tile enables land sales, even at zero. Absent means no reserve. Requires a money Resource.
+
+**`city_sale_interval_days`** · *whole number*
+
+Days between the city's offers of the built Lots it holds, at their price: the land price plus the construction charge for the floor. Households housed on a Lot are drawn first, then any Household, each keeping buyer_reserve_per_member. The price goes to the treasury. Absent means the city keeps its Lots. Requires construction_charge_per_floor_tile or buyer_reserve_per_member. Between 1 and 65535.
+
+**`construction_charge_per_floor_tile`** · *whole number*
+
+Money a Household pays outside the city per floor Tile before a Zone Rule builds. Either this key or buyer_reserve_per_member enables land sales, even at zero. Absent means no construction charge. If both keys are absent, Zone Rules build without a buyer. Requires a money Resource.
+
 **`demolition_price_per_tile`** · *whole number*
 
-What the treasury pays to demolish an occupied Building, per Tile of Lot footprint on ground of zero land value. The price is multiplied by one plus the land value at the Lot, so polluted or noisy ground is cheaper to clear and shoreline dearer, and land value of minus one or below clears free. The price is shared equally among the evicted Households and displaced Businesses. A Building nobody occupies demolishes free. Absent or zero means occupied demolition is free. Requires a money Resource.
+The land price per Tile of Lot footprint on ground of zero land value, also used to price occupied demolition. The price is multiplied by one plus the land value at the Lot, so polluted or noisy ground is cheaper to clear and shoreline dearer, and land value of minus one or below clears free. The price is shared equally among the evicted Households and displaced Businesses. A Building nobody occupies demolishes free. Absent or zero means occupied demolition is free. Requires a money Resource.
 
 **`house_depth_tiles`** · *whole number*
 
@@ -1627,6 +1656,10 @@ How long a Household keeps looking for a home before it gives up and leaves. Req
 
 How many Ticks between passes that drain the Unplaced Pool into standing dwellings. Omitting the whole [placement] table means the pass does not run and nobody is ever housed, which is loud rather than quiet — the Pool grows and the Census says so.
 
+**`jobs_rent`** · *whole number*
+
+Daily rent equivalent of ln(1 + qualified vacancies reachable on foot within the Commute Budget), shared by all Life Stages. Non-negative; absent or zero disables the arrival term. Requires mu_percent and [trips] with commute_budget_minutes. Cheap housing may offset zero jobs; no job-access filter is added.
+
 **`move_at_need`** · *whole number*
 
 The Sustenance or Satisfaction deficit at which a continuing shortage can prompt a move. Requires reassessment and Needs; each tenancy must endure its own shortage long enough to reach this depth. Absent means shortages never prompt moves.
@@ -1650,6 +1683,14 @@ The difference in daily rent worth one unit of what a Household prefers. It is w
 **`revisit_ticks`** · *whole number*
 
 How long the placement pass takes to look at everybody waiting in the Pool once, in Ticks. The sample per trigger is derived from this, so the fraction of a housing queue cleared per cycle does not shrink as the queue grows.
+
+---
+
+## `[rent]`
+
+**`evicts_after_days`** · *whole number*
+
+How many Days a tenant may owe rent before the tenancy ends — a Household to the Unplaced Pool, a Business to the Unpremised Pool. Stating this key is also what turns the daily charge on, and then each Day every tenancy pays its kind's rent_per_floor_tile over its floor to the Lot's Landowner, or to the treasury while the city holds the Lot. A resident Landowner pays none for its own tenancy. A tenant short of the rent pays what it holds and owes the rest, later income settles the debt first, and this deadline is what bounds the debt. It is refused below the longest pay_period_days, because a tenant paid weekly is short between paydays. Omitting the whole [rent] table charges nobody.
 
 ---
 
@@ -1679,6 +1720,10 @@ How much wider the wide line of each four-line period is, and how much narrower 
 
 The Street grid spacing in Tiles — the block. It decides Segment count and therefore every routing figure downstream. Omitting the whole [roads] table means the world has no roads at all.
 
+**`dense_core_percent`** · *whole number*
+
+How far from the town's middle the generator keeps every grid line, in percent of the town's radius. The town is the ground the starting population needs, so the core grows with the city. Inside it every block is one lattice square. Absent means 0.
+
 **`foot_crossing_every`** · *whole number*
 
 Keep a pedestrian crossing at every nth Street an Arterial severs. Zero means no crossings and a network cut in two for anybody on foot.
@@ -1690,6 +1735,10 @@ The same for a foot path.
 **`foot_paths_per_thousand_blocks`** · *whole number*
 
 How many blocks in a thousand get a cut-through for pedestrians. The stronger Severance lever of the two.
+
+**`merged_block_percent`** · *whole number*
+
+The share of 2×2 groups of lattice squares beyond dense_core_percent that the generator lays as one block, by leaving out the four Streets inside the group. The share rises from 0 at the core's edge to this value at the town's edge, and holds beyond it. A merged block carves the building patterns of its own size. A group an Arterial crosses never merges. Absent or 0 keeps every grid line.
 
 **`min_crossing_angle_degrees`** · *whole number*
 
@@ -1718,6 +1767,10 @@ What the treasury pays each Day for every Road Segment, foot paths and Arterials
 **`walk_speed_kph`** · *whole number*
 
 Walking speed on foot. It is also what turns the Commute Budget into the box the job search draws candidates from.
+
+**`woodland_merge_percent`** · *whole number*
+
+The merge chance a fully wooded 2×2 group adds beyond the dense core, in percent. A group half covered adds half. It applies only when merged_block_percent is above 0. Absent means 0.
 
 ---
 

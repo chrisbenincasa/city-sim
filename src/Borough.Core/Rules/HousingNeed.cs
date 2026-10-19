@@ -1,5 +1,6 @@
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
+using Borough.Core.Quantities;
 using Borough.Core.Space;
 using Borough.Core.Tables;
 
@@ -113,8 +114,17 @@ public static class HousingNeedAssessment
             return new(HousingNeedRefusal.None, _positions.Length, uncovered, served);
         }
 
-        private bool Suitable(int seeker, LocalLayoutProposal proposal) => HousingUtility.Suitable(_world, _key,
-            _positions[seeker], _world.Lots.Rows.Resolve(proposal.Sources[0].Handle), proposal.Building.Kind, true);
+        private bool Suitable(int seeker, LocalLayoutProposal proposal)
+        {
+            int lot = _world.Lots.Rows.Resolve(proposal.Sources[0].Handle);
+
+            // The proposal's own floor over its own tenancy count, which is the share a Household
+            // would hold in it. Nothing stands here yet, so there is no Building to price.
+            int floor = Arithmetic.IntegerMath.FloorDiv(proposal.FloorTiles, proposal.Occupancy);
+            Money rent = _world.TenancyRent(proposal.Building.Kind, lot, floor);
+
+            return HousingUtility.Suitable(_world, _key, _positions[seeker], lot, rent, true);
+        }
 
         private bool Match(int seeker)
         {
@@ -125,7 +135,7 @@ public static class HousingNeedAssessment
             {
                 if (_visited[home]) { continue; }
                 int building = _homes[home];
-                if (!HousingUtility.Affordable(_world, _positions[seeker], _world.Buildings.Kind[building])) { continue; }
+                if (!HousingUtility.Affordable(_world, _positions[seeker], _world.HouseholdRent(building))) { continue; }
                 _visited[home] = true;
                 int used = 0;
                 for (int other = 0; other < _assigned.Length; other++) { if (_assigned[other] == home) { used++; } }

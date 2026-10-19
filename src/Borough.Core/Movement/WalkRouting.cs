@@ -248,6 +248,45 @@ public static class WalkRouting
         return result;
     }
 
+    /// <summary>Settles costs from a door to every node inside a travel-time ceiling.</summary>
+    public static bool Flood(
+        RoadGraph graph, TravelMode mode, Address from, TravelTime ceiling, WalkScratch scratch)
+    {
+        scratch.Begin(graph.Nodes.Rows.SlotCount);
+        if (!from.Exists || !graph.Segments.Rows.IsLive(from.Segment)
+            || !Admits(graph.Segments, from.Segment, mode)
+            || !Endpoints(graph, from.Segment, out int a, out int b))
+        { return false; }
+        Speed speed = SpeedOn(graph, from.Segment, mode);
+        scratch.Seed(a, TravelTime.Over(from.Offset, speed));
+        scratch.Seed(b, TravelTime.Over(graph.Segments.LengthTiles[from.Segment] - from.Offset, speed));
+        scratch.SettleAll(graph, mode, ceiling);
+        return true;
+    }
+
+    /// <summary>Reads door-to-door cost from a flood started at the same origin.</summary>
+    public static TravelTime CostFromFlood(
+        RoadGraph graph, TravelMode mode, Address from, Address to, TravelTime crossingCost,
+        WalkScratch scratch)
+    {
+        if (!from.Exists || !to.Exists || !graph.Segments.Rows.IsLive(to.Segment)
+            || !Admits(graph.Segments, to.Segment, mode))
+        { return TravelTime.Impassable; }
+        if (from.Segment == to.Segment)
+        {
+            TravelTime direct = TravelTime.Over(
+                (from.Offset - to.Offset).Magnitude, SpeedOn(graph, from.Segment, mode));
+            return from.Side == to.Side || mode != TravelMode.Foot ? direct : direct + crossingCost;
+        }
+        if (!Endpoints(graph, to.Segment, out int a, out int b))
+        { return TravelTime.Impassable; }
+        Speed speed = SpeedOn(graph, to.Segment, mode);
+        TravelTime viaA = scratch.CostTo(a) + TravelTime.Over(to.Offset, speed);
+        TravelTime viaB = scratch.CostTo(b)
+            + TravelTime.Over(graph.Segments.LengthTiles[to.Segment] - to.Offset, speed);
+        return viaA < viaB ? viaA : viaB;
+    }
+
     /// <summary>Whether a Segment admits this mode in either direction.</summary>
     private static bool Admits(RoadSegmentTable segments, int slot, TravelMode mode) =>
         (segments.Modes[slot] & (byte)mode) != 0;

@@ -205,7 +205,7 @@ public sealed class CarParkCentreBuildingTests
                 Assert.True(UnitLiveFacts.TryOf(world, unit, out UnitLiveFacts live));
                 Assert.True(live.Let);
             });
-            Assert.True(BuildingFacts.IsCorner(world.Roads.Streets.Lattice, world.Lots, slot));
+            Assert.True(BuildingFacts.IsCorner(world.Roads.Streets, world.Lots, slot));
             centres++;
         }
 
@@ -260,7 +260,10 @@ public sealed class CarParkCentreBuildingTests
         world.Lots.ParcelWide[slot] = new Tiles(wide);
         world.Lots.ParcelDeep[slot] = new Tiles(deep);
 
-        Assert.Equal(corner, BuildingFacts.IsCorner(BlockLattice.Even(BlockTiles), world.Lots, slot));
+        BlockLattice lattice = BlockLattice.Even(BlockTiles);
+        LandRectangle parcel = world.Lots.ParcelBounds(slot);
+        BlockGround block = BlockGround.At(lattice, lattice.LineAt(parcel.X), lattice.LineAt(parcel.Y));
+        Assert.Equal(corner, BuildingFacts.IsCorner(block, parcel));
     }
 
     [Fact]

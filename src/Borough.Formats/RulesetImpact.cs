@@ -363,6 +363,7 @@ public sealed class RulesetImpact
         ("_resources", "resource"),
         ("ResourceNeeds", "resource"),
         ("ResourceShelfLives", "resource"),
+        ("ResourceReaches", "resource"),
         ("ResourceKeys", "resource"),
         ("_rules", "rule"),
         ("_kinds", "building"),

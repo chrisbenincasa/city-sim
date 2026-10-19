@@ -1,7 +1,7 @@
 # Row 30 — Diagnose decline, intervene and observe recovery
 
-State: **ready**. Designed in a session on 10/13/2026 against `e27fdaf6`; decisions below and in
-`adr/0177`. Owner: `decline-recovery` worktree. Coordinate Ruleset keys and saved state with 0077.
+State: **closed 10/14/2026**. Designed on 10/13/2026 against `e27fdaf6`; decisions below and in
+`adr/0177`. Built in PRs #150, #155, #158, #159, #163, #168 and #170.
 
 ## Outcome and boundary
 
@@ -287,10 +287,11 @@ two 2×2-block districts, a gate on the near side, one bridge Segment. Measured 
     save/reload and thread count are covered above.
   - Checks on 10/14/2026: `scripts/test.sh` passed 4,667 tests; `scripts/test.sh --all` passed 4,721.
 
-## Next step
+## Closure
 
-Agree the new saved state and Ruleset keys with plan 0077. Then close the row, or add an Input
-Log replay that runs a clock if the replay gap above matters.
+Closed 10/14/2026 without the Input Log replay case. Both clocks are saved state written by
+sequential Tick code, and repeated runs, save/reload and route worker count already hold them
+equal. Add a replay case if a fixture that places its people through the Input Log appears.
 
 ## Evidence and acceptance
 
@@ -320,7 +321,17 @@ Log replay that runs a clock if the replay gap above matters.
 
 ## Coordination
 
-0077 owns loader/authoring contracts and coordinates runtime factoring. Agree any new saved state
-and Ruleset keys before changing those surfaces. The first playable owns its founding and shortage
+0077 owns loader/authoring contracts and coordinates runtime factoring. Agreed 10/14/2026 against
+its contracts:
+
+| Surface | Added | Contract met |
+|---|---|---|
+| `[jobs] dismissed_after_failed_commute_days` | Whole Days, 1 to 65,535; absent turns the clock off | Loader refusal, schema, generated key reference, `KeySurface` tests |
+| `[[building]] abandoned_after_cut_off_days` | Whole Days, 1 to 65,535; requires `collapses_after_days`; absent turns the clock off | Same |
+| Citizen columns | `commute_failed_since`, `commute_episode_start_day`, `commute_episode_end_day`, `commute_episode_outcome` | Saved and hashed; save format 19 and 20 |
+| Building columns | `cut_off_since`; `AbandonmentCause.CutOff` | Saved and hashed; save format 21 |
+
+Neither key references another declaration, so the package resolver gains no reference edge. The
+base package ships 10 and 14 Days, and its founding log was re-recorded with them. The first playable owns its founding and shortage
 world; use a separate diagnostic fixture and agree how its evidence will integrate later.
 The design is complete. No blocker is identified for the probe.

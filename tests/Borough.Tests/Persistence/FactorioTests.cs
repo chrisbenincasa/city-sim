@@ -253,6 +253,16 @@ public sealed class FactorioTests(ITestOutputHelper output)
 
         Scan(Borough.Tests.Rules.ExpiryTests.Spoiling(), reached, []);
 
+        Scan(Borough.Tests.Rules.ServiceImportTests.Contracted(), reached, []);
+
+        // 🔴 The THIRTEENTH, export-base slice 3a, and it is the fourth's reason once more. A
+        // `service_allowance` row exists only where an office has made units, and no shipped Ruleset
+        // raises an office -- what would is `ZoneRuleEngine.MarketFor`, which needs a Business-owned
+        // Good Bin (slice 3b). So the table is empty in every world above and all EIGHT of its saved
+        // columns were unreachable the day it landed. The world also carries the contract column
+        // `provider`, which the imported world above leaves at none.
+        Scan(Borough.Tests.Rules.LocalServiceTests.Supplied(), reached, []);
+
         List<string> unreachable = [.. every.Where(name => !reached.Contains(name))];
 
         _output.WriteLine($"{reached.Count} of {every.Count} columns corrupted and observed");

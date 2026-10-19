@@ -476,6 +476,12 @@ internal sealed class WageEngine(World world, WorldKey key)
                 withheld += Transfer(worker, till, purse, treasury, levies, due, rate, today, tick);
                 paid += due;
                 reached++;
+
+                // L16: a wage is income, and rent arrears are settled where income lands rather
+                // than at the next Day boundary. Settled from the call site because the Household
+                // is resolved here -- Transfer takes the purse Bin and never needs the row. Returns
+                // zero in a city whose Ruleset states no [rent].
+                _world.Arrears.SettleHousehold(household, tick);
             }
 
             if (leaves)
@@ -555,6 +561,10 @@ internal sealed class WageEngine(World world, WorldKey key)
 
         _world.Withdraw(_world.Bins.Rows.At(till), surplus, tick);
         _world.Deposit(_world.Bins.Rows.At(purse), surplus, tick);
+
+        // L16: a draw is income, and rent arrears are settled where income lands rather than at the
+        // next Day boundary. Returns zero in a city whose Ruleset states no [rent].
+        _world.Arrears.SettleHousehold(owner, tick);
 
         return surplus;
     }
