@@ -3187,6 +3187,9 @@ public readonly record struct LotRuleset(
     /// <summary>A buyer keeps this Money per Household member in its own balance.</summary>
     public Money? BuyerReservePerMember { get; init; }
 
+    /// <summary>Days between the city's offers of the built Lots it holds. Null means the city never sells.</summary>
+    public int? CitySaleIntervalDays { get; init; }
+
     /// <summary>Either authored key enables paid construction, including an explicit zero.</summary>
     public bool LandSales => ConstructionChargePerFloorTile.HasValue || BuyerReservePerMember.HasValue;
 

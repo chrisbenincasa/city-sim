@@ -487,7 +487,7 @@
             "type": "integer"
           },
           "export_budget": {
-            "description": "The most this Hinterland pays the city for exports in one Day, from 0 to 2147483647. It buys at its prices, the figure it also sells at, and only Goods a city firm made and had no room to store. When several Hinterlands price a Good, the highest payer with budget left buys it. Absent or zero buys nothing.",
+            "description": "The most this Hinterland pays the city for exports in one Day, from 0 to 2147483647. It buys at its prices, the figure it also sells at, and only Goods a city firm made and had no room to store. When several Hinterlands price a Good, the highest payer with budget left for at least one minimum batch buys it, as many batches as that budget covers. Absent or zero buys nothing.",
             "type": "integer"
           },
           "id": {
@@ -985,6 +985,10 @@
           "description": "Money per Household member a buyer must keep after paying for land and construction. Only its own balance counts, never a Business's till. Either this key or construction_charge_per_floor_tile enables land sales, even at zero. Absent means no reserve. Requires a money Resource.",
           "type": "integer"
         },
+        "city_sale_interval_days": {
+          "description": "Days between the city's offers of the built Lots it holds, at their price: the land price plus the construction charge for the floor. Households housed on a Lot are drawn first, then any Household, each keeping buyer_reserve_per_member. The price goes to the treasury. Absent means the city keeps its Lots. Requires construction_charge_per_floor_tile or buyer_reserve_per_member. Between 1 and 65535.",
+          "type": "integer"
+        },
         "construction_charge_per_floor_tile": {
           "description": "Money a Household pays outside the city per floor Tile before a Zone Rule builds. Either this key or buyer_reserve_per_member enables land sales, even at zero. Absent means no construction charge. If both keys are absent, Zone Rules build without a buyer. Requires a money Resource.",
           "type": "integer"
@@ -1402,7 +1406,7 @@
         "type": "object",
         "properties": {
           "family": {
-            "description": "Which of the five kinds of thing this is: a good moves as a Shipment on the Road Graph and shows up in the traffic, a utility flows along the District adjacency graph, money is conserved and does not move at all, labour is worker-time a Business's present staff deposit and its own Rules spend as a local input, and a service is a Professional Service a firm buys from the provider it keeps, through a pool input, and no Bin ever holds. The family decides transport and whether a Bin holding it has a ceiling, so there is no default. A labour Resource must declare a shelf life, and its Bin is owned by the business and states no capacity.",
+            "description": "Which of the five kinds of thing this is: a good moves as a Shipment on the Road Graph and shows up in the traffic, a utility flows along the District adjacency graph, money is conserved and does not move at all, labour is worker-time a Business's present staff deposit and its own Rules spend as a local input, and a service is a Professional Service a provider's Rule makes as a local output and a client firm buys from the provider it keeps, through a pool input -- no Bin ever holds one. The family decides transport and whether a Bin holding it has a ceiling, so there is no default. A labour Resource must declare a shelf life, and its Bin is owned by the business and states no capacity.",
             "type": "string"
           },
           "id": {
@@ -1607,7 +1611,7 @@
                   "type": "string"
                 },
                 "scope": {
-                  "description": "Where the term deposits: local, pool, global, or map. The map scope is write-only, so a Rule may emit to a Layer and can never read or wait on one.",
+                  "description": "Where the term deposits: local, pool, global, or map. The map scope is write-only, so a Rule may emit to a Layer and can never read or wait on one. A service output is local and adds to the provider's allowance for the Day rather than to a Bin.",
                   "type": "string"
                 }
               }

@@ -972,4 +972,10 @@ public enum PurposeTag : ulong
     /// otherwise take the same ordinal for both.
     /// </summary>
     ProviderChoice = 69,
+
+    /// <summary>The draw picks a Household housed on a Lot to buy it when its holder sells.</summary>
+    LotTenantBuyer = 70,
+
+    /// <summary>The draw picks any eligible Household to buy a Lot that no tenant buys.</summary>
+    LotResaleBuyer = 71,
 }

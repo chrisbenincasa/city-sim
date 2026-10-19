@@ -33,7 +33,7 @@ public sealed class LandSaleTests(Xunit.Abstractions.ITestOutputHelper output)
         family = "money"
         """;
 
-    private static (World World, Handle<Lot>[] Lots) City(string keys = "construction_charge_per_floor_tile = 2\nbuyer_reserve_per_member = 10", string extra = "")
+    internal static (World World, Handle<Lot>[] Lots) City(string keys = "construction_charge_per_floor_tile = 2\nbuyer_reserve_per_member = 10", string extra = "")
     {
         var (world, lots) = LocalLayoutTests.Fixture(extra: Zone + "\n" + Currency + "\n" + extra,
             edit: text => text.Replace("[lots]", "[lots]\ndemolition_price_per_tile = 3\n" + keys, StringComparison.Ordinal));
@@ -42,7 +42,7 @@ public sealed class LandSaleTests(Xunit.Abstractions.ITestOutputHelper output)
         return (world, lots);
     }
 
-    private static Handle<Household> Household(World world, Handle<Lot> home, long savings, int members = 1)
+    internal static Handle<Household> Household(World world, Handle<Lot> home, long savings, int members = 1)
     {
         var household = world.CreateHousehold(world.Buildings.Rows.At(world.Lots.BuildingOn(world.Lots.Rows.Resolve(home))), 0);
         for (int i = 0; i < members; i++) { world.CreateCitizen(household); }
@@ -50,10 +50,10 @@ public sealed class LandSaleTests(Xunit.Abstractions.ITestOutputHelper output)
         return household;
     }
 
-    private static long Balance(World world, Handle<Household> household) =>
+    internal static long Balance(World world, Handle<Household> household) =>
         world.Bins.LevelAt(world.Bins.Rows.Resolve(world.Households.Balance[world.Households.Rows.Resolve(household)]));
 
-    private static void Conserved(World world)
+    internal static void Conserved(World world)
     {
         WorldInvariants.MoneyIsConserved(world, world.Invariants);
         Assert.DoesNotContain(world.Invariants.Collected, violation => violation.Invariant == Invariant.MoneyIsConserved);
