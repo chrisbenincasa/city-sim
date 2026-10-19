@@ -1,5 +1,7 @@
 using System.Numerics;
 using Borough.Appearance;
+using Borough.Core.Determinism;
+using Borough.Core.Quantities;
 
 namespace Borough.Tests.Appearance;
 
@@ -85,6 +87,34 @@ public sealed class HouseBodyTests
         FamilyBodyBuilder.BuildHouse(villa, FamilyBodyBuilder.VillaLeastFrontage, 24f, 2, 0);
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("frontage_metres = [16, 64]")]
+    public void A_villa_family_must_admit_only_frontages_its_bays_fit(string family)
+    {
+        StylePresetResult read = ReadBody("shape = \"house\"\nvariant = \"villa\"", family);
+
+        Assert.Null(read.Preset);
+        Assert.Contains(read.Errors, e => e.Message.Contains("builds a villa", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_house_draw_is_stable_in_range_and_its_own_purpose()
+    {
+        var key = WorldKey.FromSeed(3);
+        var seen = new HashSet<int>();
+        for (ulong building = 1; building <= 200; building++)
+        {
+            int seed = FamilyPicker.House(key, building);
+            Assert.Equal(seed, FamilyPicker.House(key, building));
+            Assert.InRange(seed, 0, FamilyBodyBuilder.HouseSeeds - 1);
+            Assert.Equal((int)(Randomness.Draw(key, building, Ticks.Zero, PurposeTag.AppearanceHouse) % FamilyBodyBuilder.HouseSeeds), seed);
+            seen.Add(seed);
+        }
+
+        Assert.True(seen.Count > 1);
+    }
+
     [Fact]
     public void Each_build_entry_point_refuses_a_house_or_a_block()
     {
@@ -133,13 +163,14 @@ public sealed class HouseBodyTests
         return $"{p.Part}:{p.Mesh.VertexCount}:{sum:F2}";
     }));
 
-    private static StylePresetResult ReadBody(string body) => StylePresetReader.Read([("house.toml", $$"""
+    private static StylePresetResult ReadBody(string body, string family = "frontage_metres = [24, 64]") => StylePresetReader.Read([("house.toml", $$"""
         [preset]
         name = "house"
         era_days = 1
         [[family]]
         id = "house"
         kinds = ["dwelling"]
+        {{family}}
         [family.body]
         library = "library"
         {{body}}

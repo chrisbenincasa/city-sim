@@ -175,6 +175,12 @@ public static class StylePresetReader
                         {
                             reading.Refuse(LineOf(table), $"fallback family '{families[owner].Id}' draws the massing and takes no body.");
                         }
+                        else if (body is { House.Variant: HouseVariant.Villa }
+                            && families[owner].FrontageMetres is not { Low: >= (long)FamilyBodyBuilder.VillaLeastFrontage })
+                        {
+                            reading.Refuse(LineOf(table),
+                                $"family '{families[owner].Id}' builds a villa, so its 'frontage_metres' must start at {FamilyBodyBuilder.VillaLeastFrontage} or more.");
+                        }
                         else if (body is not null)
                         {
                             families[owner] = families[owner] with { Body = body };
