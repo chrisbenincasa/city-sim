@@ -37,7 +37,7 @@ internal static class AppearanceDump
             return 2;
         }
 
-        string[] kinds = [.. Enumerable.Range(1, rules.KindCount).Select(k => names.Kind((byte)k) ?? $"#{k}")];
+        string[] kinds = [.. Enumerable.Range(1, rules.KindCount).Select(k => names.KindId((byte)k) ?? $"#{k}")];
 
         var key = WorldKey.FromSeed(options.Seed);
         World world = new(options.Citizens, rules, key);

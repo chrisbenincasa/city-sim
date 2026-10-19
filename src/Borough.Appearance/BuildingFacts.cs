@@ -10,7 +10,7 @@ namespace Borough.Appearance;
 /// is raised, so a Building keeps its architecture for life.
 /// </summary>
 /// <param name="Id">The Building's monotonic id.</param>
-/// <param name="Kind">The kind's name in the Ruleset in force.</param>
+/// <param name="Kind">The kind's declared id in the Ruleset in force.</param>
 /// <param name="FrontageMetres">Footprint length along the Street.</param>
 /// <param name="DepthMetres">Footprint length away from the Street.</param>
 /// <param name="Face">
@@ -75,7 +75,7 @@ public readonly record struct BuildingFacts(
 
         facts = new BuildingFacts(
             buildings.Rows.IdAt(slot),
-            names.Kind(kind) ?? $"#{kind}",
+            names.KindId(kind) ?? $"#{kind}",
             alongA ? wide : deep,
             alongA ? deep : wide,
             Math.Max(1, (int)lots.Storeys[lot]),
