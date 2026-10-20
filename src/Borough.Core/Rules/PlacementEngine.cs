@@ -1612,19 +1612,17 @@ public sealed class PlacementEngine
     /// <param name="households">Households in search order; repeats and departed ones are skipped.</param>
     public void ReconsiderJobless(ReadOnlySpan<Handle<Household>> households, Ticks tick)
     {
-        int left = 0;
-
         foreach (Handle<Household> household in households)
         {
             if (_world.Households.Rows.TryResolve(household, out int slot)
-                && _world.Buildings.Rows.TryResolve(_world.Households.Dwelling[slot], out int building)
-                && LeavesForWork(slot, building, tick))
+                && _world.Buildings.Rows.TryResolve(_world.Households.Dwelling[slot], out int building))
             {
-                left++;
+                LeavesForWork(slot, building, tick);
             }
         }
 
-        _leftFlow = _leftFlow.Fold(left);
+        _leftFlow = _leftFlow.Fold(_tickLeft);
+        _tickLeft = 0;
     }
 
     /// <summary>

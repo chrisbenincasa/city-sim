@@ -58,7 +58,8 @@ public sealed class JoblessDepartureTests(ITestOutputHelper output)
         (World open, Simulation _) = Run(rules, closeEmployers: false, out Cohort[] control);
         (World eager, Simulation _) = Run(Reluctant(0), closeEmployers: true, out Cohort[] unreluctant);
 
-        long left = closing.Placement.Drain().Left.Sum;
+        PlacementActivity activity = closing.Placement.Drain();
+        long left = activity.Left.Sum;
         int youngKept = Kept(closed, cohort, Young);
         int familyKept = Kept(closed, cohort, Family);
         int closedKept = Kept(closed, cohort, 0);
@@ -70,6 +71,9 @@ public sealed class JoblessDepartureTests(ITestOutputHelper output)
             + $"all {closedKept}% without employers, {openKept}% with them");
 
         Assert.True(left > 0);
+        Assert.Equal(
+            closed.PopulationLedger.HouseholdsDeparted[PopulationLedgerTable.Slot],
+            activity.Departed.Sum + left);
         Assert.True(closedKept < openKept, $"kept {closedKept}% closed, {openKept}% open");
         Assert.True(familyKept > youngKept, $"families kept {familyKept}%, young {youngKept}%");
         Assert.True(familyKept > eagerFamilyKept, $"families kept {familyKept}%, {eagerFamilyKept}% eager");

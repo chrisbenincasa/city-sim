@@ -225,8 +225,9 @@ Ordered by dependency. Each slice is one PR with its own acceptance.
      and 68% without it.
    - ⚠ No leaving Trip. The Citizens retire at once, because a Trip needs a Citizen to outlive its
      Household until it reaches the gate (issue #204).
-   - ⚠ Churn. Over those two Days 510 Households left a city that housed about 450 at closure, so
-     arrivals into a jobless city leave again after their first failed search. Arrival choice
+   - ⚠ Churn. Over those two Days 255 housed Households left, but only 29% of the about 450 housed
+     at closure did, so about half the leavers were arrivals into a jobless city that left again
+     after their first failed search. Arrival choice
      weighs jobs too, but the fixture's Outside job counts are small.
 
 ## Acceptance
