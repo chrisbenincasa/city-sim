@@ -1581,6 +1581,19 @@ public static class RulesetLoader
             }
         }
 
+        private void RefuseDeliveredUtilityLocalTerms(TableSyntaxBase table, string? name, List<Term> terms, int first, int end)
+        {
+            for (int i = first; i < end; i++)
+            {
+                ResourceId resource = terms[i].Bin.Resource;
+                if (_families[resource.Raw - 1] == ResourceFamily.Utility
+                    && _links[resource.Raw - 1] > 0 && terms[i].Bin.Scope != Scope.Pool)
+                {
+                    Refuse(LineOf(table), name, $"delivered Utility '{NameOfResource(resource)}' terms must use scope = \"pool\".");
+                }
+            }
+        }
+
         private void RefuseUnsupportedPoolTerms(
             TableSyntaxBase table, string? name,
             List<Term> inputs, int inputFirst, int inputEnd,
@@ -1606,6 +1619,8 @@ public static class RulesetLoader
 
             RefusePoolTermsWithoutDelivery(table, name, inputs, inputFirst, inputEnd);
             RefusePoolTermsWithoutDelivery(table, name, outputs, outputFirst, outputEnd);
+            RefuseDeliveredUtilityLocalTerms(table, name, inputs, inputFirst, inputEnd);
+            RefuseDeliveredUtilityLocalTerms(table, name, outputs, outputFirst, outputEnd);
 
             if (_districtsTable is null)
             {
@@ -2736,7 +2751,11 @@ public static class RulesetLoader
             bool hasStorage = Find(table, "storage") is not null;
             bool hasLink = Find(table, "link_per_crossing") is not null;
             bool hasLoss = Find(table, "loss_per_road_tile") is not null;
-            int storage = hasStorage ? CivicInt(table, "storage", 0, 0) : 0;
+            int storage = 0;
+            if (hasStorage && TryInteger(table, "storage", out long storageValue) && storageValue != 0)
+            {
+                Refuse(LineOf(table), null, "storage must be 0; stored Utilities arrive with Water.");
+            }
             int link = hasLink ? CivicInt(table, "link_per_crossing", 1, int.MaxValue) : 0;
             int loss = hasLoss ? CivicInt(table, "loss_per_road_tile", 0, int.MaxValue) : 0;
             if (family != ResourceFamily.Utility)
