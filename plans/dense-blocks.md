@@ -50,7 +50,7 @@ oblong blocks across the map, so it cannot make isolated 64 m blocks.
    instead of 786.
    The goldens and the founding package hash were re-recorded with this step. Walk search and
    road-graph size are measured in `plans/0013` ("The 64 m base grid"): 4.0× the nodes, 2.3× the
-   Segments, and about 3× the settled nodes per walk at the same distance.
+   Segments, and 3× to 4× the settled nodes per walk at the same distance.
 3. **Shell.** `ZoneInterior`, `Plots`, the readouts, the gardens and `BuildingFacts.IsCorner` use
    the span. `IsCorner` reads only the lattice, so it calls a Lot on an inner grid line a corner.
    Built: the zoning stroke visits each block once and sends one `zone` at its south-west Tile.

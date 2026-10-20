@@ -1285,7 +1285,7 @@ The profiler excludes setup and reporting from Tick timings and reports the Deci
 | 2,048 Ticks, Decide guard on (headless default) | 215 s | 508 s | 2.4× |
 
 - Walk search cost follows settled nodes (`≈ 37 ns` each, measured above). `--trips` now prints
-  settled nodes per band. At the same distance the 64 m grid settles about 3× as many:
+  settled nodes per band. At the same distance the 64 m grid settles 3× to 4× as many:
 
 | Walk distance | 128 m settled p50 / p90 | 64 m settled p50 / p90 |
 |---|---|---|
@@ -1293,9 +1293,9 @@ The profiler excludes setup and reporting from Tick timings and reports the Deci
 | up to 1,024 m | 15 / 26 | 47 / 81 |
 | up to 2,048 m | 40 / 60 | 141 / 258 |
 
-- The ratio stays under the 4× a uniform 64 m lattice would give, because merged blocks keep
-  128 m spacing outside the dense core. A search's scratch arrays are sized by node count, so each
-  route worker holds about 4× the scratch memory.
+- The median ratio rises with distance: 2.8× up to 512 m, 3.1× up to 1 km and 3.5× up to 2 km.
+  The 2 km p90 is 4.3×. A search's scratch arrays are sized by node count, so each route worker
+  holds about 4× the scratch memory.
 - Base sets no jobs weight, so the job-access floods (previous section) do not run on it.
 - The Tick figures compare two different cities, since the finer grid also places 2.5× the
   Buildings. They bound the change; they do not attribute it to the graph alone.
