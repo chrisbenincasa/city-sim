@@ -33,8 +33,9 @@ public sealed partial class World
     private long[] _utilityShort = [];
 
     // The import sources, one entry per Outside Connection standing on an edge whose Hinterland
-    // prices the Utility, sorted by ascending price and then by Building slot. Parallel arrays
-    // rather than a struct because the sort is an insertion sort over three columns.
+    // prices the Utility, sorted by ascending price and then by the gate's monotonic Building id.
+    // Parallel arrays rather than a struct because the sort is an insertion sort over three
+    // columns.
     private int[] _importGate = [];
     private int[] _importDistrict = [];
     private long[] _importPrice = [];
@@ -460,8 +461,10 @@ public sealed partial class World
     /// because the price is read off the edge rather than off a declaration order.
     /// </para>
     /// <para>
-    /// Sorted by ascending price and then by Building slot, so the cheapest units are bought first
-    /// and the order is a function of the slot numbering alone.
+    /// Sorted by ascending price and then by the gate's monotonic Building id, so the cheapest
+    /// units are bought first and equal-priced gates are bought in the order they were raised.
+    /// ⚠ <b>The id and not the slot</b>: a slot is recycled, so a gate raised today can hold the
+    /// slot a demolished one left and would otherwise be bought before an older gate.
     /// </para>
     /// </remarks>
     /// <returns>How many entries of the import arrays are live.</returns>
@@ -503,10 +506,12 @@ public sealed partial class World
                 Grow(ref _importPrice, count + 1);
 
                 int at = count;
+                ulong raised = Buildings.Rows.IdAt(gate);
 
                 while (at > 0
                     && (_importPrice[at - 1] > price
-                        || (_importPrice[at - 1] == price && _importGate[at - 1] > gate)))
+                        || (_importPrice[at - 1] == price
+                            && Buildings.Rows.IdAt(_importGate[at - 1]) > raised)))
                 {
                     _importPrice[at] = _importPrice[at - 1];
                     _importGate[at] = _importGate[at - 1];

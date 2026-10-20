@@ -479,6 +479,95 @@ public sealed class PowerImportTests
     }
 
     /// <summary>
+    /// Two gates at the same price are bought in the order they were raised, and a recycled
+    /// Building slot does not reorder them.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The second gate is raised into the slot a demolished filler left</b>, so it holds a lower
+    /// Building slot than the gate raised before it. A tiebreak on the slot would buy the newer
+    /// gate out first; the tiebreak is the monotonic Building id, which <c>CLAUDE.md</c>'s rule for
+    /// a handle's identity says is the thing a recyclable slot is not.
+    /// </para>
+    /// <para>
+    /// <b>Both Districts are short and the purse buys 50 units</b>, far under one gate's capacity
+    /// and under either District's shortfall — so whichever gate is reached first takes all of it
+    /// and the second finds nothing left to spend. Which District was served is the answer.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void Equal_priced_gates_are_bought_in_the_order_they_were_raised()
+    {
+        var world = new World(400, Funded(101), Key);
+        var simulation = new Simulation(world, Key) { VerifyDecideWritesNothing = true };
+
+        Lay(world);
+
+        int block = world.Rules.Roads.BlockTiles;
+        int spare = Rows.NoSlot;
+        int older = Rows.NoSlot;
+
+        for (int cell = 0; cell < Cells; cell++)
+        {
+            bool peak = cell < PeakCells || cell >= Cells - PeakCells;
+            int standing = 0;
+
+            // A greedy consumer at each end, so both Districts are short and neither link can
+            // carry one's shortfall to the other.
+            if (cell == 0)
+            {
+                Raise(world, cell, standing++, Works);
+                spare = Raise(world, cell, standing++, Dwelling);
+            }
+
+            if (cell == Cells - 1)
+            {
+                Raise(world, cell, standing++, Works);
+                older = Raise(world, cell, standing++, Gate);
+            }
+
+            for (int filler = standing; filler < (peak ? Tall : Low); filler++)
+            {
+                Raise(world, cell, filler, Dwelling);
+            }
+        }
+
+        world.DestroyBuilding(world.Buildings.Rows.At(spare), Ticks.Zero);
+
+        int newer = Raise(world, 0, Tall, Gate);
+
+        world.RebuildParcels();
+        world.RebuildDerived();
+        world.EvaluateDistricts();
+
+        Assert.Equal(2, world.Districts.Rows.LiveCount);
+        Assert.Equal(spare, newer);
+        Assert.True(newer < older, $"the newer gate holds slot {newer} and the older {older}");
+        Assert.True(
+            world.Buildings.Rows.IdAt(newer) > world.Buildings.Rows.IdAt(older),
+            "the gates were not raised in the order this test depends on");
+
+        int burning = DistrictAt(world, new Tiles(((Cells - 1) * block) + 4), Tiles.Zero);
+        int western = DistrictAt(world, Tiles.Zero, Tiles.Zero);
+
+        Assert.NotEqual(Rows.NoSlot, burning);
+        Assert.NotEqual(western, burning);
+
+        AfterSettling(simulation, day: 0);
+
+        long cheap = Cheap(world);
+
+        // The older gate stands in the east, and it is the one that sold.
+        Assert.Equal(101 / cheap, Imported(world, burning));
+        Assert.Equal(0, Imported(world, western));
+        Assert.Equal((101 / cheap) * cheap, Paid(world, burning));
+        Assert.Equal(0, Paid(world, western));
+        Assert.Equal(101 % cheap, Purse(world));
+
+        simulation.CheckEndOfRun();
+    }
+
+    /// <summary>
     /// A link bounds what a gate in the next District can deliver, so a wide door does not widen
     /// the road.
     /// </summary>
