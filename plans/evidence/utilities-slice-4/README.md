@@ -33,8 +33,8 @@ the south edge, which is the edge the Hinterland that prices Power sits behind.
 | | | Shot | Tick |
 |---|---|---|---|
 | Opening state | Day 2, both Districts at 100%. The east is served over the crossing and imports nothing. Treasury 4,194,304. | `01` | 4,097 |
-| **Trigger** | Shift-click at east 191 removes the crossing Street. The east District now has no plant, no neighbor and no gate. The reading does not move: the settle at Tick 4,096 already fixed Day 2's fraction. | `02` | 4,101 |
-| | The settle at Tick 6,144 finds no crossing and no import source. Day 3 runs at `power delivered at 0%` and the wash paints the east red. | `03` | 6,150 |
+| **Trigger** | Shift-click at east 191 removes the crossing Street. The east District now has no plant, no neighbor and no gate. The reading does not move, because the settle at Tick 4,096 already fixed Day 2's fraction. | `02` | 4,101 |
+| | The settle at Tick 6,144 finds no crossing and no import source. The wash paints the east red, the panel reads `power delivered at 0%`, and the attention card says every activity drawing it runs at that share and none of them is stopped. | `03` | 6,150 |
 | **Response** | Lot 44 is cleared and an Outside Connection opened on it. The gate draws no Utility, so the wash leaves it gray beside the red dwellings. The Day's fraction still does not move. | `04` | 6,156 |
 | **Consequence** | The settle at Tick 8,192 buys the shortfall and Day 4 is back at 100% on nothing but imports. The attention card reads `importing 576 gross units at 1,152 money units per Day from the treasury`, and the Utilities section reads `The District imported 576 gross units, including road loss; the treasury paid 1,152 money units`. | `05`, `06` | 8,200, 8,202 |
 | | The city budget's `Utility imports · out` row reads 1,152 today against 0 the Day before, the treasury has fallen to 4,193,152, and the panel's own arithmetic line reads `4,194,304 at the start, 0 in and 1,152 out, leaves 4,193,152.` | `07` | 8,204 |
@@ -65,6 +65,14 @@ array, and in no `.txt` here.
 - **The import is attributed to the District and the cost to the city.** The gate stands in Cell 7
   and nothing on it is charged; the units are charged to the District they were delivered to and
   paid for out of the one treasury.
+- 🔴 **A panel photographed straight after a pause can be a read from before the settle.**
+  `RefreshInspection` re-reads at most every 250 ms, which is 8 Ticks at rung 8, and a `shoot`
+  takes the picture on the next frame. The first cut of shot `03` showed a red east District beside
+  an inspector still reading `power delivered at 100%`, from a read taken at Tick 6,140 — four
+  Ticks before the settle the shot is about. ***A screenshot cannot report that its panel is
+  stale.*** Every shot here re-opens the two sections first, because `ui section` forces the read.
+  ⚠ **`ui building` does not force it**: `SelectInformation` returns early when the Building asked
+  for is already selected.
 - **`ui file-path` resolves a relative path against the Godot project directory**, not against the
   repository root that `shoot`, `readout` and `draw` use. A repo-relative path there silently saves
   the basename into `src/Borough.Godot/`.

@@ -17,16 +17,17 @@ inspector —
 dwelling
 SELECTED BUILDING · 37
 Current condition
-No supply shortfalls reported
+power delivered at 0% · no supply shortfalls reported
 Occupied places: 2 / 1
 What needs attention
-No supply shortfalls reported.
+Building supply · power delivered at 0%
+Every activity drawing it runs at that share and none of them is stopped. Yesterday the District's network served 0 of 512 units asked.
 Activities
 Building activity · lighting
 Scheduled.
 Utilities · 1
-power delivered at 100%
-Yesterday the District's network served 512 of the 512 units asked of it.
+power delivered at 0%
+Yesterday the District's network served 0 of the 512 units asked of it.
 Land
 Landowner: the city
 Households · 2
@@ -38,7 +39,7 @@ Stocks
 Premises · lumens
 256 / 65,536 units
 ui theme=dark debug=False visible=True scroll=0
-inspector (3410, 104), (406, 769) min=(125, 130)
-body (3430, 218), (366, 639) min=(59, 639)
-scroll (3430, 218), (366, 639) min=(59, 0)
+inspector (3410, 104), (406, 899) min=(125, 130)
+body (3430, 218), (358, 6879) min=(59, 769)
+scroll (3430, 218), (366, 1659) min=(59, 0)
 hover (40, 2084), (962, 127) debug (24, 264), (840, 36) console (24, 2004), (994, 132)

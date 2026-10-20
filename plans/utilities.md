@@ -39,7 +39,9 @@ import at an Outside Connection for a price.
   the runner. The dump's table is covered by calling `EvidenceDump.Utilities` from a test instead.
   A Ruleset that both declares a Utility and condemns something would close this.
 - A Utility is importable only where a Hinterland prices it. A gate on an edge whose Hinterland
-  states no price for the Utility imports nothing, and a District with no gate in it stays short.
+  states no price for the Utility imports nothing. Imported units travel the links like a plant's,
+  so a District with no gate of its own is served over the network; one the links cannot carry a
+  priced gate's units to stays short.
 - An import is capped at what the treasury can pay at that gate's price, `floor(balance / price)`
   units. Nothing is owed later, so a short treasury imports part of the shortfall and an empty one
   imports none of it.

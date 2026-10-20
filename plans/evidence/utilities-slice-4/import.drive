@@ -12,6 +12,11 @@
 # are built on and a gate stands on a vacant edge Lot. Lot 44 at east 253 is in the east District's
 # Cell 7, on the south edge, and the south Hinterland is the one that prices Power.
 #
+# ⚠ EVERY SHOT RE-OPENS THE TWO SECTIONS FIRST. `RefreshInspection` re-reads at most every 250 ms,
+# which is 8 Ticks at rung 8, so a panel photographed straight after a pause can be a read from
+# before the settle the shot is about. `ui section` forces the read; `ui building` does not, because
+# re-selecting the Building already selected returns early.
+#
 # ⚠ ONE `shoot` PER TICK, AND THE CAMERA MOVES ON THE TICK IT SHOOTS. `_pendingShot` holds one path
 # and the picture is taken on the NEXT frame, so a second `shoot` on the same Tick throws the first
 # away and a camera moved after a `shoot` lands in that shot. Hence the gaps.
@@ -32,6 +37,8 @@
 4101 pause
 4101 hold street
 4101 click 191 0 shift
+4101 ui section utilities on
+4101 ui section attention on
 4101 shoot plans/evidence/utilities-slice-4/02-crossing-cut.png
 4101 speed 8
 
@@ -39,6 +46,8 @@
 # delivers nothing.
 6150 pause
 6150 hold look
+6150 ui section utilities on
+6150 ui section attention on
 6150 shoot plans/evidence/utilities-slice-4/03-day3-short.png
 6150 speed 8
 
@@ -55,6 +64,8 @@
 6156 hold look
 6156 tilt 45
 6156 focus 240 3 120
+6156 ui section utilities on
+6156 ui section attention on
 6156 shoot plans/evidence/utilities-slice-4/04-gate-raised.png
 6156 speed 8
 
@@ -63,11 +74,15 @@
 8200 pause
 8200 tilt 40
 8200 focus 128 2 560
+8200 ui section utilities on
+8200 ui section attention on
 8200 shoot plans/evidence/utilities-slice-4/05-day4-imported.png
 8200 speed 8
 8202 pause
 8202 tilt 45
 8202 focus 240 3 120
+8202 ui section utilities on
+8202 ui section attention on
 8202 shoot plans/evidence/utilities-slice-4/06-day4-imported-close.png
 8202 speed 8
 

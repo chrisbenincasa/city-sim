@@ -39,7 +39,7 @@ Stocks
 Premises · lumens
 256 / 65,536 units
 ui theme=dark debug=False visible=True scroll=0
-inspector (3410, 104), (406, 873) min=(125, 130)
-body (3430, 218), (366, 743) min=(59, 743)
-scroll (3430, 218), (366, 743) min=(59, 0)
+inspector (3410, 104), (406, 899) min=(125, 130)
+body (3430, 218), (358, 6879) min=(59, 769)
+scroll (3430, 218), (366, 1737) min=(59, 0)
 hover (40, 2075), (962, 49) debug (24, 264), (840, 36) console (24, 1995), (994, 141)
