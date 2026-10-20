@@ -85,18 +85,30 @@ public sealed class UtilityEvidenceTests
     /// A fourth kind whose Power draw sits on an <c>on_fail</c> link rather than on the head.
     /// </summary>
     /// <remarks>
-    /// <b>The head starts failing</b>, because the lamp's widget Bin begins empty. The link refills
-    /// that Bin from the Pool, which is <c>adr/0045</c>'s ladder with a Utility at the bottom of it,
-    /// and a reporting terminal closes the chain as the loader requires. A reader stopping at the
-    /// head's own inputs calls this Building undrawn.
+    /// <para>
+    /// <b>The head starts failing</b>, because the lamp's oil Bin begins empty. The link refills that
+    /// Bin from the Pool, which is <c>adr/0045</c>'s ladder with a Utility at the bottom of it, and a
+    /// reporting terminal closes the chain as the loader requires. A reader stopping at the head's
+    /// own inputs calls this Building undrawn.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The lamp houses its tenant and its Bins belong to the occupant</b>, so the chain is a
+    /// Household's and the Household's balance pays the tariff. A premises Rule drawing a tariffed
+    /// Utility is refused at load, because nothing would pay for the Power it draws.
+    /// </para>
     /// </remarks>
     private const string FallbackChain = """
 
+        [[resource]]
+        name = "oil"
+        family = "good"
+
         [[building]]
         name = "lamp"
+        houses = true
         bins = [
-          { resource = "lumens", capacity = 65536 },
-          { resource = "widget", capacity = 16 },
+          { resource = "lumens", capacity = 65536, owner = "occupant" },
+          { resource = "oil", capacity = 16, owner = "occupant" },
         ]
 
         [[rule]]
@@ -105,7 +117,7 @@ public sealed class UtilityEvidenceTests
         rate    = 32
         apply   = { min = 1, max = 1 }
         on_fail = "lamp_mains"
-        inputs  = [ { scope = "local", resource = "widget", amount = 1 } ]
+        inputs  = [ { scope = "local", resource = "oil", amount = 1 } ]
         outputs = [ { scope = "local", resource = "lumens", amount = 1 } ]
 
         [[rule]]
@@ -115,7 +127,7 @@ public sealed class UtilityEvidenceTests
         apply   = { min = 1, max = 1 }
         on_fail = "lamp_dark"
         inputs  = [ { scope = "pool", resource = "power", amount = 4 } ]
-        outputs = [ { scope = "local", resource = "widget", amount = 1 } ]
+        outputs = [ { scope = "local", resource = "oil", amount = 1 } ]
 
         [[rule]]
         name    = "lamp_dark"
@@ -128,18 +140,32 @@ public sealed class UtilityEvidenceTests
 
         """;
 
-    /// <summary><c>powered.toml</c> with <see cref="FallbackChain"/> spliced in above its tables.</summary>
+    /// <summary>
+    /// <c>powered.toml</c> with <see cref="FallbackChain"/> spliced in above its tables, and the oil
+    /// it declares priced at the Hinterland.
+    /// </summary>
+    /// <remarks>
+    /// <b>The price is not decoration.</b> A District opens a Pool for every Good and the cheapest
+    /// import price is that Pool's only ceiling, so a file stating <c>[districts]</c> and leaving a
+    /// Good unpriced is refused at load.
+    /// </remarks>
     private static Ruleset ChainedRules()
     {
         string toml = File.ReadAllText(
             Path.Combine(AppContext.BaseDirectory, "Rulesets", "powered.toml"));
 
         const string tables = "\n[districts]\n";
+        const string priced = "{ resource = \"lumens\", price = 500 },";
 
         Assert.Contains(tables, toml, StringComparison.Ordinal);
+        Assert.Contains(priced, toml, StringComparison.Ordinal);
 
         RulesetLoadResult loaded = RulesetLoader.Parse(
-            toml.Replace(tables, FallbackChain + tables, StringComparison.Ordinal),
+            toml.Replace(tables, FallbackChain + tables, StringComparison.Ordinal)
+                .Replace(
+                    priced,
+                    priced + "\n    { resource = \"oil\", price = 500 },",
+                    StringComparison.Ordinal),
             "powered-chained.toml");
 
         Assert.True(loaded.Ok, loaded.Describe());
@@ -178,15 +204,17 @@ public sealed class UtilityEvidenceTests
                 }
 
                 // It takes a filler's place, so the ridge keeps its shape and its Building count
-                // and the watershed falls where every other test here finds it.
+                // and the watershed falls where every other test here finds it. One Household, which
+                // is what owns its Rules and pays for the Power they draw.
                 if (lamp)
                 {
                     lit = Raise(world, cell, standing++, Lamp);
+                    world.CreateHousehold(world.Buildings.Rows.At(lit), lifeStage: 1);
                 }
             }
 
-            // The rest are empty dwellings, raised to shape the watershed. Each one still draws
-            // Power through its lighting Rule; its apply count is its occupancy, so it draws none.
+            // The rest are empty dwellings, raised to shape the watershed. An empty one runs no
+            // lighting Instance at all, because the Rule belongs to a Household and it holds none.
             for (int filler = standing; filler < (peak ? Tall : Short); filler++)
             {
                 Raise(world, cell, filler, Dwelling);
@@ -645,8 +673,12 @@ public sealed class UtilityEvidenceTests
     /// A Building standing in no District is served nothing, and the reading says so rather than
     /// reporting an absent network as full delivery.
     /// </summary>
+    /// <remarks>
+    /// It is occupied because the drawing Rule belongs to a Household. An empty dwelling runs no
+    /// Instance of it and so reports no Utility, which would make this a test of nothing.
+    /// </remarks>
     [Fact]
-    public void Premises_in_no_district_report_nothing_delivered()
+    public void A_dwelling_in_no_district_reports_nothing_delivered()
     {
         City city = Build();
 
@@ -655,6 +687,7 @@ public sealed class UtilityEvidenceTests
         // Far enough east to be outside every built Cell, so the watershed claims nothing here.
         int outside = Raise(city.World, Cells + 8, 0, Dwelling);
 
+        city.World.CreateHousehold(city.World.Buildings.Rows.At(outside), lifeStage: 1);
         city.World.RebuildParcels();
         city.World.RebuildDerived();
 
