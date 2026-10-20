@@ -210,6 +210,8 @@ internal static class TripDump
 
         internal List<long> Detours { get; } = [];
 
+        internal List<long> Settled { get; } = [];
+
         internal int Unreachable { get; set; }
     }
 
@@ -281,6 +283,7 @@ internal static class TripDump
             TravelTime floor = TravelTime.Over(ideal, WalkSpeed(graph));
 
             _bands[band].Costs.Add(cost.Raw);
+            _bands[band].Settled.Add(from.Segment == to.Segment ? 0 : _scratch.Relaxed);
 
             if (floor.Raw > 0)
             {
@@ -299,11 +302,12 @@ internal static class TripDump
             output.WriteLine(
                 "Walks are IN-WORLD minutes (a Tick is 42.19 in-world seconds, not the 1/16 s of "
                 + "wall clock plans/0013 is denominated in). Detour is the real walk against the "
-                + "grid ideal: 100% is the ideal, 160% is half again as far.");
+                + "grid ideal: 100% is the ideal, 160% is half again as far. Settled is the nodes "
+                + "one search settles, which is what a walk search costs (plans/0013).");
             output.WriteLine();
             output.WriteLine(
                 "  up to        metres     pairs   p50 walk   p90 walk    detour p50   p90   "
-                + "no route");
+                + "no route   settled p50     p90");
 
             for (int i = 0; i < Bands.Length; i++)
             {
@@ -327,12 +331,14 @@ internal static class TripDump
 
                 band.Costs.Sort();
                 band.Detours.Sort();
+                band.Settled.Sort();
 
                 output.WriteLine(
                     $"  {Bands[i],2} blocks  {metres,10}  {walked,8}  "
                     + $"{Minutes(Percentile(band.Costs, 50)),6} min  {Minutes(Percentile(band.Costs, 90)),6} min  "
                     + $"{Percentile(band.Detours, 50),10}%  {Percentile(band.Detours, 90),4}%  "
-                    + $"{band.Unreachable,8}");
+                    + $"{band.Unreachable,8}  "
+                    + $"{Percentile(band.Settled, 50),12}  {Percentile(band.Settled, 90),6}");
             }
         }
 

@@ -48,15 +48,16 @@ oblong blocks across the map, so it cannot make isolated 64 m blocks.
    spans, and frontage offsets count from the Street's own start (`StreetGrid.RunStart`). Without
    this the founding carved its blocks as loose roadside and housed 219 Households by Day 45
    instead of 786.
-   Measure walk search and road-graph allocation (`plans/0013`), re-record the goldens and the
-   founding package hash once.
+   The goldens and the founding package hash were re-recorded with this step. Walk search and
+   road-graph size are measured in `plans/0013` ("The 64 m base grid"): 4.0× the nodes, 2.3× the
+   Segments, and about 3× the settled nodes per walk at the same distance.
 3. **Shell.** `ZoneInterior`, `Plots`, the readouts, the gardens and `BuildingFacts.IsCorner` use
    the span. `IsCorner` reads only the lattice, so it calls a Lot on an inner grid line a corner.
    Built: the zoning stroke visits each block once and sends one `zone` at its south-west Tile.
    The cursor box, interior clip, hover face count, tree yard test and rung overlay read
    `StreetGrid.Block`. The Street tool keeps `block_tiles` spacing because the lattice is still
    64 m. `scripts/ui/check-merged-blocks.py` asserts the hover and plot draw list on a hand-laid
-   128 m block. Gardens wait for PR #192.
+   128 m block. Gardens read the span through `ZoneInterior` (PR #192).
 
 ## Open questions
 
