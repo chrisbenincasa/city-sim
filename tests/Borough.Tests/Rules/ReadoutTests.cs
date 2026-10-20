@@ -95,6 +95,23 @@ public sealed class ReadoutTests
     }
 
     [Fact]
+    public void Floor_area_reads_the_buildings_floor_tiles_and_is_building_only()
+    {
+        var world = new World(1_000, Empty());
+        Handle<Lot> lot = world.Lots.Create(new Tiles(12), new Tiles(4), zone: 1);
+        Handle<Building> building = world.Buildings.Create(world.Lots, lot, kind: 1);
+        int slot = world.Buildings.Rows.Resolve(building);
+        var floorArea = new ReadoutId((ushort)Readout.FloorArea);
+
+        Assert.Equal(1, Readouts.Read(world, slot, floorArea));
+        Assert.True(Readouts.IsReadableAgainst(floorArea, ReadoutScope.Building));
+        Assert.False(Readouts.IsReadableAgainst(floorArea, ReadoutScope.Household));
+        Assert.False(Readouts.IsReadableAgainst(floorArea, ReadoutScope.Business));
+        Assert.Throws<InvalidOperationException>(() => Readouts.ReadHousehold(world, 0, floorArea));
+        Assert.Throws<InvalidOperationException>(() => Readouts.ReadBusiness(world, 0, floorArea));
+    }
+
+    [Fact]
     public void Housed_reads_one_for_a_household_with_a_dwelling_and_zero_once_it_is_unplaced()
     {
         var world = new World(1_000, Empty());
