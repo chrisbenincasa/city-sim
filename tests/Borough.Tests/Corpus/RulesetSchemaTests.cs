@@ -149,7 +149,6 @@ public sealed class RulesetSchemaTests
     [InlineData("[[building]]", "shift_start_latest_hour = 10")]
     [InlineData("[[business]]", "wage = 100")]
     [InlineData("[layers]", "sealing_decay_tau = 0")]
-    [InlineData("[[resource]]", "storage = 0")]
     [InlineData("[[zone_rule]]", "sample = 64")]
     public void A_key_the_loader_refuses_by_name_is_not_offered(string section, string statement)
     {

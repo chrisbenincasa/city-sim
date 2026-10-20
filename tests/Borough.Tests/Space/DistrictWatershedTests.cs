@@ -794,10 +794,14 @@ public sealed class DistrictWatershedTests
             // for that file's reason.
             // offices.toml IS serviced.toml with an office that makes the service, and its clients
             // still buy through the Pool, so it inherits the table for that file's reason.
+            // powered.toml states [districts] because a delivered Utility's network IS a District --
+            // one Pool row and one network per District -- and the links between them are road
+            // crossings, so a world with no Districts has nothing for Power to flow across.
             bool expected = file is "twinned.toml" or "provisioned.toml" or "oversupplied.toml"
                 or "waged.toml" or "pictured.toml" or "shopping.toml" or "insolvent.toml" or "stress-shopping.toml" or "profile-services.toml"
                 or "schooling.toml" or "taxing.toml" or "traded.toml" or "imported.toml" or "milled.toml"
-                or "granted.toml" or "serviced.toml" or "exported.toml" or "offices.toml";
+                or "granted.toml" or "serviced.toml" or "exported.toml" or "offices.toml"
+                or "powered.toml";
 
             Assert.Equal(expected, states);
         }

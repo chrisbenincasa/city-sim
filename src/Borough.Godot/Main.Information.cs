@@ -1046,7 +1046,7 @@ public partial class Main
                 "activities" => "waiting",
                 "households" => "household",
                 "businesses" => "trade",
-                "stocks" => "resource",
+                "stocks" or "utilities" => "resource",
                 "health" or "care" => "clinic",
                 "citizens" or "workers" => "household",
                 _ => null,
@@ -1105,6 +1105,7 @@ public partial class Main
         if (CutOffSummary(_selectedBuilding) is { } cutOff) sections[0].Rows.Insert(1, new(cutOff));
         sections.Add(Attention(evidence, default, false));
         sections.Add(Attention(evidence, default, false, true));
+        if (evidence.Utilities.Length > 0) sections.Add(UtilitiesSection(evidence));
         AddLandholding(sections, evidence.Lot);
         AddFacilityHealth(sections, slot);
         AddFacilitySchooling(sections, slot);
@@ -1156,6 +1157,22 @@ public partial class Main
     private InformationSection Attention(BuildingEvidence evidence, Handle<Household> household, bool onlyHousehold, bool routine = false, Handle<Business> business = default)
     {
         var rows = new List<InformationRow>();
+        // A Utility below full delivery goes at the TOP and outside the Rule loop. It causes every
+        // reduced output beneath it and no Rule here reports it, since a delivered Utility never
+        // blocks. A Building's networks are the whole Building's, so a tenant's panel shows them
+        // too -- a dwelling's Power is the Household's Power.
+        if (!routine)
+        {
+            foreach (UtilityEvidence drawn in evidence.Utilities.Span)
+            {
+                if (drawn.Delivered >= Ratio.One) continue;
+                rows.Add(new($"Building supply · {UtilitySentence(drawn)}\nEvery activity drawing"
+                    + " it runs at that share and none of them is stopped. Yesterday the District's"
+                    + $" network served {drawn.Received:N0} of {drawn.Asked:N0} units asked.",
+                    Icon: UiIcons.Resource(_names.Resource(drawn.Utility))));
+            }
+        }
+
         foreach (RuleEvidence rule in evidence.Rules.Span)
         {
             if (onlyHousehold && rule.Tenant != household) continue;

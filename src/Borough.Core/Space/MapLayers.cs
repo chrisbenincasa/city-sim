@@ -1233,13 +1233,14 @@ public sealed class MapLayers
     /// it is not a <c>const</c>-where-Ruleset-data-belongs defect is written down rather than assumed.
     /// </para>
     /// <para>
-    /// <b>Two is the lowest order that avoids both systematic errors the shipped geometry offers.</b>
-    /// A Cell is <see cref="CellGrid.TilesPerCell"/> = 32 Tiles and <c>[roads] block_tiles</c> is 32,
-    /// so the lattice lines land on Cell edges: <b>a single centre sample is systematically the
-    /// quietest Tile in the Cell, and a corner sample is systematically the loudest.</b> Four
-    /// quadrant-centre samples — the midpoint rule on a 2×2 subdivision — sit at Tile offsets 8 and
-    /// 24, on neither the edge nor the centre, and are symmetric under the Cell's own symmetry group,
-    /// so no orientation of the lattice is privileged.
+    /// <b>Two is the lowest order that avoids both systematic errors a 32-Tile lattice offers.</b>
+    /// A Cell is <see cref="CellGrid.TilesPerCell"/> = 32 Tiles, so at <c>block_tiles = 32</c> the
+    /// lattice lines land on Cell edges: <b>a single centre sample is systematically the quietest
+    /// Tile in the Cell, and a corner sample is systematically the loudest.</b> Four quadrant-centre
+    /// samples — the midpoint rule on a 2×2 subdivision — sit at Tile offsets 8 and 24 and are
+    /// symmetric under the Cell's own symmetry group, so no orientation of the lattice is privileged.
+    /// At <c>block_tiles = 16</c> those offsets are block centres, and in a merged 128 m block they
+    /// are quadrant centres again. The rank test below covers both.
     /// </para>
     /// <para>
     /// ⚠ <b>Two is a claim a measurement settles, and the measurement was run rather than argued</b>

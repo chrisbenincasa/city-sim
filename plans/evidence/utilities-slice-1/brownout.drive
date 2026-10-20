@@ -1,0 +1,70 @@
+# Utilities slice 1 — a brownout and its recovery, on the ridge in ridge.borough.
+#
+#   godot --path src/Borough.Godot -- --load plans/evidence/utilities-slice-1/ridge.borough \
+#     --drive plans/evidence/utilities-slice-1/brownout.drive
+#
+# The saved city opens on Day 2, fully delivered: a plant in the west District, an occupied
+# dwelling in the east, and one Street crossing the boundary between them. Tiles are in
+# ridge.geometry.txt, which the fixture writes beside the save.
+#
+# Two cameras. The wide one holds the whole ridge, west plant to east dwelling, so the Districts
+# can be compared. The close one stands over the occupied dwelling, where the selected Building's
+# panel and its massing are in one frame.
+#
+# ⚠ ONE `shoot` PER TICK, AND THE CAMERA MOVES ON THE TICK IT SHOOTS. `_pendingShot` holds one
+# path and the picture is taken on the NEXT frame, so a second `shoot` on the same Tick throws the
+# first away and a camera restored after a `shoot` lands in that shot. Hence the gaps.
+4097 pause
+4097 overlay utilities
+4097 ui building 37
+4097 ui section utilities on
+4097 turn left
+4097 tilt 40
+4097 focus 128 2 560
+4097 shoot plans/evidence/utilities-slice-1/01-day2-full.png
+4097 speed 8
+4099 pause
+4099 tilt 45
+4099 focus 225 3 90
+4099 shoot plans/evidence/utilities-slice-1/02-day2-full-close.png
+4099 speed 8
+
+# The trigger: the one crossing Street goes. The Day's delivered fraction was fixed by the settle
+# at Tick 4,096, so the reading does not move until the next one.
+4101 pause
+4101 tilt 40
+4101 focus 128 2 560
+4101 hold street
+4101 click 191 0 shift
+4101 shoot plans/evidence/utilities-slice-1/03-street-removed.png
+4101 speed 8
+
+# The settle at Tick 6,144 reads a road graph with no crossing in it. Day 3 runs at nothing
+# delivered, and the dwelling is browned out without a single Rule stopping.
+6150 pause
+6150 hold look
+6150 shoot plans/evidence/utilities-slice-1/04-day3-dark.png
+6150 speed 8
+6152 pause
+6152 tilt 45
+6152 focus 225 3 90
+6152 shoot plans/evidence/utilities-slice-1/05-day3-dark-close.png
+6152 speed 8
+
+# The repair: the same two Nodes joined again.
+6154 pause
+6154 tilt 40
+6154 focus 128 2 560
+6154 hold street
+6154 click 160 0
+6154 click 192 0
+6154 speed 8
+6156 pause
+6156 hold look
+6156 shoot plans/evidence/utilities-slice-1/06-street-relaid.png
+6156 speed 8
+
+# The settle at Tick 8,192 finds the link back. Day 4 is whole again.
+8200 pause
+8200 shoot plans/evidence/utilities-slice-1/07-day4-restored.png
+8200 quit

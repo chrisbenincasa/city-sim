@@ -691,6 +691,7 @@ public partial class Main
             "sealing" or "sealed" => Wash.Sealed,
             "health" => Wash.Health,
             "trouble" => Wash.Trouble,
+            "utilities" or "utility" => Wash.Utilities,
             "rung" or "pattern" => Wash.Rung,
             "age" or "vintage" => Wash.Age,
             "family" => Wash.Family,
@@ -700,7 +701,7 @@ public partial class Main
         if (want == Wash.None && layer is not ("off" or "none"))
         {
             _refused = $"there is no overlay called '{layer}'. There is off, pollution, value, "
-                + "sealing, health, trouble, and the debug ones, rung, age and family.";
+                + "sealing, health, trouble, utilities, and the debug ones, rung, age and family.";
         }
 
         _washing = want;
@@ -711,6 +712,11 @@ public partial class Main
         // ⚠ THE WASH AND THE LIST SHARE ONE READING, so arming the wash with a stale snapshot
         // standing would draw a city that had already moved on. Re-read rather than trust it.
         if (_washing == Wash.Trouble) ReadCity(); else _troubleRepaint = true;
+
+        // The delivered fraction moves once a Day, so the next Draw paints it and the Day boundary
+        // after that repaints it. See the Utilities wash's cadence in Draw.
+        _utilityRepaint = true;
+        _utilityDay = ulong.MaxValue;
 
         _instrument ??= new StandardMaterial3D
         {
@@ -942,6 +948,7 @@ public partial class Main
         Wash.Sealed => $"\nOVERLAY sealing — dark 0 to bright {_washPeak:N0} Tiles a Cell, "
             + $"{_washCells:N0} Cells read",
         Wash.Trouble => TroubleLegend(),
+        Wash.Utilities => UtilitiesLegend(),
         Wash.Family => FamilyLegend(),
         Wash.Health => "\nHEALTH — homes: green healthy, amber to red illness or Health deficit; blue care facilities. Select a home or facility for causes and waiting times.",
         Wash.Rung =>

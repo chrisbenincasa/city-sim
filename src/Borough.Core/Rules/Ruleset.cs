@@ -4939,6 +4939,14 @@ public sealed class Ruleset
     /// <summary>Each Resource's service reach, indexed by <c>resource - 1</c>.</summary>
     public ServiceReach[] ResourceReaches { get; init; } = [];
 
+    public int[] ResourceStorage { get; init; } = [];
+    public int[] ResourceLinks { get; init; } = [];
+    public int[] ResourceLosses { get; init; } = [];
+    public bool IsDeliveredUtility(ResourceId resource) => resource.Raw >= 1 && resource.Raw <= ResourceLinks.Length && ResourceLinks[resource.Raw - 1] > 0;
+    public int StorageOf(ResourceId resource) => resource.Raw >= 1 && resource.Raw <= ResourceStorage.Length ? ResourceStorage[resource.Raw - 1] : 0;
+    public int LinkPerCrossing(ResourceId resource) => resource.Raw >= 1 && resource.Raw <= ResourceLinks.Length ? ResourceLinks[resource.Raw - 1] : 0;
+    public int LossPerRoadTile(ResourceId resource) => resource.Raw >= 1 && resource.Raw <= ResourceLosses.Length ? ResourceLosses[resource.Raw - 1] : 0;
+
     /// <summary>How far this service reaches, or <c>default</c> when it is not a service.</summary>
     public ServiceReach ReachOf(ResourceId resource) =>
         resource.Raw >= 1 && resource.Raw <= ResourceReaches.Length
@@ -5428,6 +5436,9 @@ public sealed class Ruleset
             ResourceNeeds = ResourceNeeds,
             ResourceShelfLives = ResourceShelfLives,
             ResourceReaches = ResourceReaches,
+            ResourceStorage = ResourceStorage,
+            ResourceLinks = ResourceLinks,
+            ResourceLosses = ResourceLosses,
             LifeStages = LifeStages,
         };
 

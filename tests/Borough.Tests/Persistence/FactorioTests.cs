@@ -263,6 +263,17 @@ public sealed class FactorioTests(ITestOutputHelper output)
         // `provider`, which the imported world above leaves at none.
         Scan(Borough.Tests.Rules.LocalServiceTests.Supplied(), reached, []);
 
+        // 🔴 The FOURTEENTH, Utilities slice 1, and it is the ninth's reason with the declaration one
+        // step further out. A `utility_flow` row exists only where a Ruleset declares a delivered
+        // Utility -- `link_per_crossing` is what makes one -- and `powered.toml` is the only shipped
+        // file that does. So the table is empty in every world above and all SEVEN of its saved
+        // columns were unreachable the day it landed.
+        //
+        // ⚠ A row needs a District to hang off, so the world is stepped far enough for the watershed
+        // to have run and the Pools to have been fitted. A scribble reaches a zero column as well as
+        // a full one, so what the run has to produce is rows rather than magnitudes.
+        Scan(Borough.Tests.Utilities.PowerDeliveryTests.Delivering(), reached, []);
+
         List<string> unreachable = [.. every.Where(name => !reached.Contains(name))];
 
         _output.WriteLine($"{reached.Count} of {every.Count} columns corrupted and observed");
