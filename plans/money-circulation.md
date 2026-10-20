@@ -29,8 +29,8 @@ accumulates it.
 - Street upkeep and Utility imports are the treasury's two standing costs.
 - The treasury buys a short District's Utility shortfall at an Outside Connection at the daily
   settle, and pays for what that settle imported. The money leaves the city to the Outside, so the
-  money supply falls by it (`adr/0024`), as a Good import's payment does. An empty treasury imports
-  nothing: there is no debt, and the District stays short.
+  money supply falls by it (`adr/0024`), as a Good import's payment does. There is no debt, so an
+  empty treasury imports nothing and the District stays short.
 
 ## Evidence
 

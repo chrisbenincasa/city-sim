@@ -162,21 +162,22 @@ import at an Outside Connection for a price.
    - Imports fill only the deficit the plants and the links left, so a plant's unit is never
      displaced by a bought one.
    - Saved state: `Imported` and `ImportPaid` per District per Utility. Save format 27 → 28. No
-     golden moved, because no shipped Ruleset but `powered.toml` has a Utility row to hash.
+     golden moved, because the golden session runs `declining.toml` and only `powered.toml`
+     declares a delivered Utility, so the two new columns hash over an empty table.
    - Tests: `PowerImportTests`, `UtilityRulesetLoadTests`, `UtilityEvidenceTests`,
      `CityBudgetTests`. Driven demonstration in `evidence/utilities-slice-4/`.
    - **Known gaps accepted for slice 4.**
      - A short treasury caps the import at `floor(balance / price)` units and an empty one imports
        nothing. There is no debt, so the District goes short instead, and nothing in the shell
        warns that the balance is what is rationing it.
-     - Gates are augmented greedily in price order rather than solved as a min-cost flow. A cheap
-       gate behind a thin link can therefore leave a dearer gate's District short while cheaper
-       capacity stands unused.
+     - Gates are augmented one at a time in price order rather than solved as a min-cost flow, and
+       they share the links. A cheap gate's flow can saturate a link a dearer gate needed, so
+       neither the cheapest bill nor the largest total import is guaranteed.
      - `[market]` does not move a Utility price, but a delivered Utility's Pool row still opens at
        `ImportCeiling`, which is now the cheapest gate price rather than zero. Nothing reads that
        number and it is in the State Hash.
-     - A Ruleset may price a Utility on an edge with no gate on it. That is silent: the price is
-       simply never charged.
+     - A Ruleset may price a Utility on an edge that holds no gate. Nothing refuses that and
+       nothing ever charges the price.
 5. **Billing.** A per-unit tariff charge on delivered Utility terms, paid to the treasury, and
    the tariff Policy lever. Update the [money circulation](money-circulation.md) Utilities row.
 6. **Critical loads.** A Ruleset flag on a Building kind serves it in full before the rest share
