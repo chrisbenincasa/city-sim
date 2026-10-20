@@ -191,7 +191,7 @@ public sealed class CellDesirabilitySamplingTests
     /// absolutely, so what a sample order has to preserve is the <em>ordering</em> between Cells.
     /// </summary>
     /// <remarks>
-    /// Measured on this world, order 2 and order 8 order all but <b>10 of 630 Cell pairs</b> the same
+    /// Measured on this world on 10/19/2026, order 2 and order 8 order all but <b>10 of 630 Cell pairs</b> the same
     /// on a 32-Tile lattice, <b>8</b> on a 16-Tile lattice and <b>6</b> when half the Cells merge
     /// their 16-Tile squares. At 16 every order-2 sample is a block's centre. Every pair that
     /// disagrees is a pair the two orders put within 1% of each other — a tie broken differently
