@@ -1,0 +1,46 @@
+tick 8202
+powered.toml   Tick 8,202   Day 4   Friday   05:07
+Citizens 0   Buildings 44   vacant Lots 0   travelling 0
+speed paused   mode look   [ ] speed, space pause, w write log, g roads, c cells, tab tune, ctrl-z undo
+click acts   right-drag or two-finger scroll pans   edge of screen pans   pinch or -/= zooms   q/e turns   r/f tilts   l lens   o overlay
+UTILITIES — the share of each draw the Building's District network delivers: red nothing, amber part, green all of it. Grey draws no Utility at all. One fraction governs the whole of Day 5. Select a Building for the units behind it.
+hover —
+gate · 0 Households · 0 Businesses · No supply shortfalls reported
+debug —
+Tile (253, 0)    Cell (7, 0)
+gate — 0 of 0 occupied, 0 Tiles off
+Lot 44, future uses 0x0000 across the whole site
+ground: ordinary
+pollution 0    land value 0    sealing 81
+District 2
+inspector —
+dwelling
+SELECTED BUILDING · 37
+Current condition
+No supply shortfalls reported
+Occupied places: 2 / 1
+What needs attention
+Building supply · power delivered at 100% · importing 576 gross units at 1,152 money units per Day from the treasury
+The District relies on imports for full delivery.
+Activities
+Building activity · lighting
+Scheduled.
+Utilities · 1
+power delivered at 100%
+Yesterday the District's network served 512 of the 512 units asked of it.
+The District imported 576 gross units, including road loss; the treasury paid 1,152 money units.
+Land
+Landowner: the city
+Households · 2
+Household 1 →
+Household 2 →
+Workers · 0
+No workers.
+Stocks
+Premises · lumens
+256 / 65,536 units
+ui theme=dark debug=False visible=True scroll=0
+inspector (3410, 104), (406, 977) min=(125, 130)
+body (3430, 218), (366, 847) min=(59, 847)
+scroll (3430, 218), (366, 847) min=(59, 0)
+hover (40, 2075), (962, 49) debug (24, 264), (840, 36) console (24, 1999), (994, 137)
