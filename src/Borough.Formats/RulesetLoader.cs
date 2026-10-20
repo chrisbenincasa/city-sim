@@ -2752,7 +2752,7 @@ public static class RulesetLoader
             bool hasLink = Find(table, "link_per_crossing") is not null;
             bool hasLoss = Find(table, "loss_per_road_tile") is not null;
             int storage = 0;
-            if (hasStorage && TryInteger(table, "storage", out long storageValue) && storageValue != 0)
+            if (hasStorage && TryInteger(table, "storage", out long storageValue, required: true) && storageValue != 0)
             {
                 Refuse(LineOf(table), null, "storage must be 0; stored Utilities arrive with Water.");
             }
