@@ -11,7 +11,7 @@ using Xunit.Abstractions;
 namespace Borough.Tests.Rules;
 
 /// <summary>
-/// The Employment feedback acceptance run: <c>pictured.toml</c>, 2,000 Citizens, seed 0, 40 Days.
+/// The Employment feedback acceptance run: <c>employment.toml</c>, 2,000 Citizens, seed 0, 40 Days.
 /// On Day 10 three in four premised Businesses go bankrupt.
 /// </summary>
 public sealed class EmploymentRecoveryTests(ITestOutputHelper output)
@@ -25,7 +25,7 @@ public sealed class EmploymentRecoveryTests(ITestOutputHelper output)
     [Trait(Tier.Key, Tier.Instrument)]
     public void Employment_recovers_from_a_mass_bankruptcy_and_holds()
     {
-        (int before, int[] employed) = Run(Pictured());
+        (int before, int[] employed) = Run(Fixture());
 
         Assert.True(HoldsTheBar(before, employed), Describe("with the jobless signal", before, employed));
     }
@@ -34,15 +34,15 @@ public sealed class EmploymentRecoveryTests(ITestOutputHelper output)
     [Trait(Tier.Key, Tier.Instrument)]
     public void Without_the_jobless_signal_the_same_world_does_not_hold_the_bar()
     {
-        string toml = Pictured().Replace("jobless_threshold_days = 4\n", string.Empty, StringComparison.Ordinal);
+        string toml = Fixture().Replace("jobless_threshold_days = 4\n", string.Empty, StringComparison.Ordinal);
         (int before, int[] employed) = Run(toml);
 
         Assert.False(HoldsTheBar(before, employed), Describe("without the jobless signal", before, employed));
     }
 
-    private static string Pictured()
+    private static string Fixture()
     {
-        string toml = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "pictured.toml"));
+        string toml = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "employment.toml"));
 
         Assert.Contains("jobless_threshold_days = 4\n", toml, StringComparison.Ordinal);
 
@@ -77,7 +77,7 @@ public sealed class EmploymentRecoveryTests(ITestOutputHelper output)
 
     private static (int Before, int[] Employed) Run(string toml)
     {
-        RulesetLoadResult loaded = RulesetLoader.Parse(toml, "pictured.toml");
+        RulesetLoadResult loaded = RulesetLoader.Parse(toml, "employment.toml");
         Assert.True(loaded.Ok, loaded.Describe());
 
         var key = WorldKey.FromSeed(0);
