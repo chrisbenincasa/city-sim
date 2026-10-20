@@ -26,6 +26,19 @@ public sealed partial class World
     private long[] _utilityDeficit = [];
     private long[] _utilityServed = [];
 
+    // The import pass's scratch, per District slot: what the gates brought it, what the treasury
+    // paid for that, and what its sink edge still carried when the previous gate was done.
+    private long[] _utilityImported = [];
+    private long[] _utilityImportPaid = [];
+    private long[] _utilityShort = [];
+
+    // The import sources, one entry per Outside Connection standing on an edge whose Hinterland
+    // prices the Utility, sorted by ascending price and then by Building slot. Parallel arrays
+    // rather than a struct because the sort is an insertion sort over three columns.
+    private int[] _importGate = [];
+    private int[] _importDistrict = [];
+    private long[] _importPrice = [];
+
     // The max-flow residual network, (Districts + 2)² entries with the source and the sink last.
     // A matrix rather than an edge list because the District count is small and a dense residual
     // needs no incidence structure to walk in slot order.
@@ -215,15 +228,23 @@ public sealed partial class World
     /// Unused supply is lost and the fraction is recomputed from scratch, so a Day that produced
     /// nothing delivers nothing however large yesterday's surplus was.
     /// </para>
+    /// <para>
+    /// <b>Imports come last, after the local cover and the transfer</b>, because a plant's output is
+    /// already paid for and an imported unit is not. What each Outside Connection brings in is
+    /// bounded by <c>import_per_connection</c> and by what the treasury can pay at the gate's price.
+    /// </para>
     /// </remarks>
-    internal void SettleUtilityNetworks()
+    /// <returns>What the treasury paid the Outside for imported units.</returns>
+    internal Money SettleUtilityNetworks()
     {
         if (UtilityFlows.Rows.LiveCount == 0)
         {
-            return;
+            return Money.Zero;
         }
 
         _utilityAdjacency.Compute(this);
+
+        long paid = 0;
 
         for (int raw = 1; raw <= Rules.ResourceCount; raw++)
         {
@@ -231,12 +252,14 @@ public sealed partial class World
 
             if (Rules.IsDeliveredUtility(resource))
             {
-                SettleUtility(resource);
+                paid += SettleUtility(resource).Raw;
             }
         }
+
+        return new Money(paid);
     }
 
-    private void SettleUtility(ResourceId utility)
+    private Money SettleUtility(ResourceId utility)
     {
         int districts = Districts.Rows.SlotCount;
 
@@ -245,6 +268,9 @@ public sealed partial class World
         Grow(ref _utilitySurplus, districts);
         Grow(ref _utilityDeficit, districts);
         Grow(ref _utilityServed, districts);
+        Grow(ref _utilityImported, districts);
+        Grow(ref _utilityImportPaid, districts);
+        Grow(ref _utilityShort, districts);
 
         long loss = Rules.LossPerRoadTile(utility);
         bool anySurplus = false;
@@ -257,6 +283,8 @@ public sealed partial class World
             _utilitySurplus[district] = 0;
             _utilityDeficit[district] = 0;
             _utilityServed[district] = 0;
+            _utilityImported[district] = 0;
+            _utilityImportPaid[district] = 0;
 
             if (!Districts.Rows.IsLive(district))
             {
@@ -295,9 +323,19 @@ public sealed partial class World
             anyDeficit |= _utilityDeficit[district] > 0;
         }
 
-        if (anySurplus && anyDeficit)
+        // A deficit with no surplus anywhere still reaches the solver when a gate can import into
+        // it, because the import pass runs over the residual network this leaves behind.
+        int gates = anyDeficit ? ListImportGates(utility) : 0;
+        long paid = 0;
+
+        if (anyDeficit && (anySurplus || gates > 0))
         {
             Transmit(utility, districts);
+
+            if (gates > 0)
+            {
+                paid = Import(utility, districts, gates);
+            }
         }
 
         for (int district = 0; district < districts; district++)
@@ -330,9 +368,13 @@ public sealed partial class World
             UtilityFlows.Supplied[flow] = UtilityFlows.Produced[flow];
             UtilityFlows.Asked[flow] = demanded;
             UtilityFlows.Received[flow] = served;
+            UtilityFlows.Imported[flow] = _utilityImported[district];
+            UtilityFlows.ImportPaid[flow] = new Money(_utilityImportPaid[district]);
             UtilityFlows.Produced[flow] = 0;
             UtilityFlows.Demanded[flow] = 0;
         }
+
+        return new Money(paid);
     }
 
     /// <summary>What a District was served as a fraction of what it asked for, capped at whole.</summary>
@@ -400,6 +442,219 @@ public sealed partial class World
             _utilityServed[district] +=
                 _utilityDeficit[district] - _utilityResidual[(district * nodes) + sink];
         }
+    }
+
+    /// <summary>
+    /// Lists the Outside Connections that can import <paramref name="utility"/>, cheapest first.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A gate is a source attached to the District holding its Lot.</b> A gate standing in no
+    /// District imports nothing — there is no node for the units to arrive at, and carriage inside
+    /// the city is the links' business rather than the gate's.
+    /// </para>
+    /// <para>
+    /// <b>A gate's price is the cheapest a Hinterland on its edge charges</b>, which is
+    /// <c>Ruleset.ImportCeiling</c>'s rule narrowed to one edge. The loader admits one Hinterland
+    /// per edge, so the minimum is over one in every file that loads; it is written as a minimum
+    /// because the price is read off the edge rather than off a declaration order.
+    /// </para>
+    /// <para>
+    /// Sorted by ascending price and then by Building slot, so the cheapest units are bought first
+    /// and the order is a function of the slot numbering alone.
+    /// </para>
+    /// </remarks>
+    /// <returns>How many entries of the import arrays are live.</returns>
+    private int ListImportGates(ResourceId utility)
+    {
+        if (Rules.ImportPerConnection(utility) <= 0)
+        {
+            return 0;
+        }
+
+        int count = 0;
+
+        for (int edge = 0; edge < HinterlandTable.Edges; edge++)
+        {
+            if (!TryEdgeImportPrice(utility, HinterlandTable.EdgeAt(edge), out long price))
+            {
+                continue;
+            }
+
+            foreach (int gate in Buildings.Gates(Hinterlands).Walk(edge))
+            {
+                if (!Lots.Rows.TryResolve(Buildings.Lot[gate], out int lot))
+                {
+                    continue;
+                }
+
+                Handle<District> holding = DistrictsInCells.Of(
+                    DistrictCells,
+                    CellGrid.ToCells(Lots.East[lot]),
+                    CellGrid.ToCells(Lots.North[lot]));
+
+                if (!Districts.Rows.TryResolve(holding, out int district))
+                {
+                    continue;
+                }
+
+                Grow(ref _importGate, count + 1);
+                Grow(ref _importDistrict, count + 1);
+                Grow(ref _importPrice, count + 1);
+
+                int at = count;
+
+                while (at > 0
+                    && (_importPrice[at - 1] > price
+                        || (_importPrice[at - 1] == price && _importGate[at - 1] > gate)))
+                {
+                    _importPrice[at] = _importPrice[at - 1];
+                    _importGate[at] = _importGate[at - 1];
+                    _importDistrict[at] = _importDistrict[at - 1];
+                    at--;
+                }
+
+                _importPrice[at] = price;
+                _importGate[at] = gate;
+                _importDistrict[at] = district;
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    /// <summary>What the Outside charges for <paramref name="utility"/> behind one map edge.</summary>
+    private bool TryEdgeImportPrice(ResourceId utility, MapEdge edge, out long price)
+    {
+        price = 0;
+        bool priced = false;
+
+        for (int hinterland = 0; hinterland < Rules.Hinterlands.Length; hinterland++)
+        {
+            if (Rules.Hinterlands[hinterland].Edge != edge)
+            {
+                continue;
+            }
+
+            long offered = Rules.ImportPrice(hinterland, utility).Raw;
+
+            if (offered > 0 && (!priced || offered < price))
+            {
+                price = offered;
+                priced = true;
+            }
+        }
+
+        return priced;
+    }
+
+    /// <summary>
+    /// Buys the shortfall the links could not cover at the Outside Connections, cheapest gate
+    /// first, and pays for it out of the treasury.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A second pass over the residual network <see cref="Transmit"/> left.</b> The links carry
+    /// what pass 1 did not use, each District's sink edge holds what it is still short of, and the
+    /// source is cleared of the local surplus in both residual directions — so an import covers a
+    /// shortfall rather than displacing a unit a plant had already covered, and what arrives is
+    /// attributable to the gate that sold it.
+    /// </para>
+    /// <para>
+    /// <b>A gate's flow is capped at what the treasury can still pay at that gate's price</b>, and
+    /// the shortfall is not owed later: there is no debt until the borrowing row designs one, which
+    /// is <c>World.SpendOnUpkeep</c>'s rule. ⚠ <b>An empty treasury imports nothing</b> rather than
+    /// importing on credit, because the Outside gives nothing away and the alternative is a money
+    /// supply that stops balancing.
+    /// </para>
+    /// <para>
+    /// The withdrawal and <see cref="PayOutside"/> are paired here and never left to the caller, so
+    /// the Bin and <c>MoneySupply.Issued</c> move by the same amount in the same call
+    /// (<c>adr/0024</c>).
+    /// </para>
+    /// </remarks>
+    /// <returns>What the treasury paid.</returns>
+    private long Import(ResourceId utility, int districts, int gates)
+    {
+        int bin = TryMoneyResource(out ResourceId money) ? FindTreasuryBin(money) : Rows.NoSlot;
+        long purse = bin == Rows.NoSlot ? 0 : Bins.LevelAt(bin);
+
+        if (purse <= 0)
+        {
+            return 0;
+        }
+
+        int source = districts;
+        int sink = districts + 1;
+        int nodes = districts + 2;
+        long capacity = Rules.ImportPerConnection(utility);
+
+        for (int district = 0; district < districts; district++)
+        {
+            _utilityResidual[(source * nodes) + district] = 0;
+            _utilityResidual[(district * nodes) + source] = 0;
+            _utilityShort[district] = _utilityResidual[(district * nodes) + sink];
+        }
+
+        long paid = 0;
+
+        for (int entry = 0; entry < gates; entry++)
+        {
+            long price = _importPrice[entry];
+            long affordable = IntegerMath.FloorDiv(purse, price);
+            long allowed = capacity < affordable ? capacity : affordable;
+
+            if (allowed <= 0)
+            {
+                // The gates are in ascending price order, so no gate behind this one is cheaper
+                // and none of them is affordable either.
+                break;
+            }
+
+            int gateDistrict = _importDistrict[entry];
+
+            _utilityResidual[(source * nodes) + gateDistrict] = allowed;
+
+            while (Augment(nodes, source, sink))
+            {
+            }
+
+            // Cleared in both directions before the next gate, so one gate's unused capacity and
+            // the flow it did push cannot be spent again at another gate's price.
+            _utilityResidual[(source * nodes) + gateDistrict] = 0;
+            _utilityResidual[(gateDistrict * nodes) + source] = 0;
+
+            for (int district = 0; district < districts; district++)
+            {
+                long left = _utilityResidual[(district * nodes) + sink];
+                long taken = _utilityShort[district] - left;
+
+                if (taken <= 0)
+                {
+                    continue;
+                }
+
+                long charge = taken * price;
+
+                _utilityShort[district] = left;
+                _utilityServed[district] += taken;
+                _utilityImported[district] += taken;
+                _utilityImportPaid[district] += charge;
+                purse -= charge;
+                paid += charge;
+            }
+        }
+
+        if (paid > 0)
+        {
+            // Through Withdraw rather than out of the level, on SpendOnPlacement's reason: a Bin
+            // written without draining its wait list strands whoever was waiting for the space.
+            Withdraw(Bins.Rows.At(bin), paid, Tick);
+            PayOutside(new Money(paid));
+        }
+
+        return paid;
     }
 
     /// <summary>Pushes one bottleneck along the shortest augmenting path, or answers that none is left.</summary>

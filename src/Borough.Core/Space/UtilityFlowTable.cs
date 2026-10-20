@@ -26,6 +26,10 @@ public readonly struct UtilityFlow;
 /// <see cref="Supplied"/>/<see cref="Asked"/> beside what was actually served, and zeroes them.
 /// Unused supply is lost rather than carried.
 /// </para>
+/// <para>
+/// <see cref="Imported"/> and <see cref="ImportPaid"/> record the same settle's import leg — what
+/// came in at the Outside Connections and what the treasury paid for it.
+/// </para>
 /// </remarks>
 [Table]
 public sealed class UtilityFlowTable
@@ -49,6 +53,8 @@ public sealed class UtilityFlowTable
         Supplied = _rows.Saved<long>("supplied", Touch.Cold);
         Asked = _rows.Saved<long>("asked", Touch.Cold);
         Received = _rows.Saved<long>("received", Touch.Cold);
+        Imported = _rows.Saved<long>("imported", Touch.Cold);
+        ImportPaid = _rows.Saved<Money>("import_paid", Touch.Cold);
 
         _rows.Seal();
     }
@@ -118,6 +124,25 @@ public sealed class UtilityFlowTable
     public Column<long> Received { get; }
 
     /// <summary>
+    /// How much of <see cref="Received"/> came in at an Outside Connection rather than from a plant
+    /// — attributed to the District the units were delivered to, not to the one holding the gate.
+    /// </summary>
+    /// <remarks>
+    /// An import covers what the networks are still short of after local production and transfer,
+    /// so this is zero in a District the city's own plants can supply. The road loss is a first
+    /// claim on it as much as on local production.
+    /// </remarks>
+    public Column<long> Imported { get; }
+
+    /// <summary>What the treasury paid the Outside for <see cref="Imported"/>.</summary>
+    /// <remarks>
+    /// <b>Saved beside the units rather than derived from them</b>, because the price is a
+    /// Hinterland's and a hot reload may move it — and because the units may have arrived through
+    /// gates on two edges at two prices, which no single price would reconstruct.
+    /// </remarks>
+    public Column<Money> ImportPaid { get; }
+
+    /// <summary>
     /// <paramref name="standing"/> + <paramref name="amount"/> × <paramref name="times"/>, saturated
     /// at <see cref="Bound"/>. Every operand is a count and none may be negative.
     /// </summary>
@@ -154,6 +179,8 @@ public sealed class UtilityFlowTable
         Supplied[slot] = 0;
         Asked[slot] = 0;
         Received[slot] = 0;
+        Imported[slot] = 0;
+        ImportPaid[slot] = Money.Zero;
 
         return handle;
     }
