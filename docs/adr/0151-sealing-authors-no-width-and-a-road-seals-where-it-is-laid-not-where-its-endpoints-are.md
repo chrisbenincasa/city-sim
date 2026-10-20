@@ -73,6 +73,11 @@ therefore carries about two Segments' worth of frontage — **~64 Tiles of road*
 lots_per_segment = 5` puts about **10 Buildings** on it at 1 Tile each. **~74 Tiles of 1024, about 7%**,
 of which roads are roughly **86%**.
 
+At `block_tiles = 16` a Cell holds 2×2 blocks, so its lattice Streets seal **128 Tiles, 12.5%** before
+any Building. A merged 128 m block keeps the 32-Tile figure of 64 Tiles. `rulesets/base` paves the whole
+map, so at 4,000 Citizens every Cell carries road Sealing: mean 7.5%, peak 54%, none saturated
+(`SealingMeasurementTests`).
+
 ⚠ **A player who builds dense housing on few streets seals very little; a sprawl of streets seals a great
 deal.** That is intended, and it is the direction `CONTEXT.md` → Sealing had already committed to when it
 added *"Roads Seal, and so does every other built Tile"* and noted that Sealing *"had only ever been
@@ -82,9 +87,11 @@ the sealing term would be modelling the wrong cause.***
 ### Attribution needs a rule, and the obvious rule is wrong on a shipped world
 
 `MapLayers.Seal(Cells east, Cells north, int tiles)` — `Space/MapLayers.cs:392` — writes to **one Cell**.
-A Segment does not sit in one Cell. Every lattice Street runs intersection to intersection, which at
+A Segment need not sit in one Cell. Every lattice Street runs intersection to intersection, which at
 `block_tiles = 32` is Cell boundary to Cell boundary, so **a Street's two endpoints are never in the same
-Cell**; and `rulesets/severance.toml` sets `block_tiles = 256`, where one Segment spans **8**.
+Cell**; and `rulesets/severance.toml` sets `block_tiles = 256`, where one Segment spans **8**. At
+`block_tiles = 16` a Street on a Cell's inner line lies inside that Cell. Sealing per Cell crossed covers
+all three.
 
 Splitting a Segment's Tiles evenly between the Cells of its two endpoint Nodes is the rule that suggests
 itself, because it needs no geometry. 🔴 **`severance.toml` refutes it**: 128 Tiles into each endpoint
@@ -158,7 +165,7 @@ deliverable**, and writing the helper before a consumer exists is
 - **Demolition, terraforming or the verge unseal.** `CONTEXT.md` → Sealing is *"ever built on"* and
   `CONTEXT.md`:181 gives the Arterial verge as ground that stays unsealed. If either becomes a *subtraction*
   rather than a decay, sealing at the point of laying gains a mirror at the point of removing.
-- **`block_tiles` stops dividing the Cell evenly.** The 7% arithmetic and the Cell-boundary claim about
-  Street endpoints both assume it does; nothing enforces it.
+- **`block_tiles` stops dividing the Cell evenly.** The per-Cell road arithmetic above assumes it does;
+  nothing enforces it.
 - **The 7% is played and found too weak or too strong.** That is the width key's occasion, and it needs the
   varied-terrain world decision 5 already owes before the reading means anything.
