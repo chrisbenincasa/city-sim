@@ -1612,6 +1612,9 @@ public static class RulesetLoader
                 hasPool |= outputs[i].Bin.Scope == Scope.Pool;
             }
 
+            RefuseDeliveredUtilityLocalTerms(table, name, inputs, inputFirst, inputEnd);
+            RefuseDeliveredUtilityLocalTerms(table, name, outputs, outputFirst, outputEnd);
+
             if (!hasPool)
             {
                 return;
@@ -1619,9 +1622,6 @@ public static class RulesetLoader
 
             RefusePoolTermsWithoutDelivery(table, name, inputs, inputFirst, inputEnd);
             RefusePoolTermsWithoutDelivery(table, name, outputs, outputFirst, outputEnd);
-            RefuseDeliveredUtilityLocalTerms(table, name, inputs, inputFirst, inputEnd);
-            RefuseDeliveredUtilityLocalTerms(table, name, outputs, outputFirst, outputEnd);
-
             if (_districtsTable is null)
             {
                 Refuse(LineOf(table), name,
