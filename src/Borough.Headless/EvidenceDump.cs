@@ -778,6 +778,14 @@ internal static class EvidenceDump
                 CultureInfo.InvariantCulture,
                 $"  {Name(names.Resource(drawn.Utility)),-14}  "
                 + $"{Percent(drawn.Delivered),8}%  {drawn.Received,16}  {drawn.Asked,15}"));
+
+            if (drawn.Imported != 0 || drawn.ImportPaid.Raw != 0)
+            {
+                output.WriteLine(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"    imported yesterday {drawn.Imported} gross units (including road loss); "
+                    + $"treasury paid {drawn.ImportPaid.Raw} money units"));
+            }
         }
 
         output.WriteLine(

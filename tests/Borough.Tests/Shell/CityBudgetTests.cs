@@ -175,6 +175,25 @@ public sealed class CityBudgetTests
         Assert.Equal(32 + 64 + 128 + 256 + 512 + 1024 + 2048 + 4096, budget.Running.Expenditure);
     }
 
+    [Fact]
+    public void Utility_import_expenses_roll_with_the_day_and_explain_the_treasury_balance()
+    {
+        var budget = new CityBudget(Ticks.Zero, 10_000);
+        var imports = new TreasuryFlows(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1_200);
+
+        budget.Account(imports, new Ticks(1));
+        Assert.Equal(1_200, budget.Today.UtilityImport);
+        Assert.Equal(0, budget.Yesterday.UtilityImport);
+        Assert.Equal(0, budget.Residual(8_800));
+
+        budget.Account(imports, new Ticks(Ticks.PerDay));
+        Assert.Equal(0, budget.Today.UtilityImport);
+        Assert.Equal(2_400, budget.Yesterday.UtilityImport);
+        Assert.Equal(2_400, budget.Running.UtilityImport);
+        Assert.Equal(2_400, budget.Running.Expenditure);
+        Assert.Equal(0, budget.Residual(7_600));
+    }
+
     /// <summary>
     /// The shell's account agrees with the instrument, run against run, on the demonstration world.
     /// </summary>

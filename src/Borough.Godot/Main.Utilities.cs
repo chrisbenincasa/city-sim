@@ -98,8 +98,12 @@ public partial class Main
         {
             anyShort |= drawn.Delivered < Ratio.One;
 
+            string imports = drawn.Imported > 0
+                ? $"\nThe District imported {drawn.Imported:N0} gross units, including road loss; "
+                    + $"the treasury paid {drawn.ImportPaid.Raw:N0} money units."
+                : string.Empty;
             rows.Add(new($"{UtilitySentence(drawn)}\nYesterday the District's network served "
-                + $"{drawn.Received:N0} of the {drawn.Asked:N0} units asked of it.",
+                + $"{drawn.Received:N0} of the {drawn.Asked:N0} units asked of it.{imports}",
                 Icon: UiIcons.Resource(_names.Resource(drawn.Utility))));
         }
 

@@ -124,8 +124,8 @@ public sealed class UtilityFlowTable
     public Column<long> Received { get; }
 
     /// <summary>
-    /// How much of <see cref="Received"/> came in at an Outside Connection rather than from a plant
-    /// — attributed to the District the units were delivered to, not to the one holding the gate.
+    /// Gross units imported yesterday, including road loss, attributed to the District served rather
+    /// than the District holding the gate. This can exceed <see cref="Received"/>.
     /// </summary>
     /// <remarks>
     /// An import covers what the networks are still short of after local production and transfer,

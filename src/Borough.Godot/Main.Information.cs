@@ -1157,18 +1157,24 @@ public partial class Main
     private InformationSection Attention(BuildingEvidence evidence, Handle<Household> household, bool onlyHousehold, bool routine = false, Handle<Business> business = default)
     {
         var rows = new List<InformationRow>();
-        // A Utility below full delivery goes at the TOP and outside the Rule loop. It causes every
-        // reduced output beneath it and no Rule here reports it, since a delivered Utility never
-        // blocks. A Building's networks are the whole Building's, so a tenant's panel shows them
-        // too -- a dwelling's Power is the Household's Power.
+        // Utility shortages and import costs belong to the Building's District, so tenant panels
+        // show them too. A delivered Utility never blocks a Rule.
         if (!routine)
         {
             foreach (UtilityEvidence drawn in evidence.Utilities.Span)
             {
-                if (drawn.Delivered >= Ratio.One) continue;
-                rows.Add(new($"Building supply · {UtilitySentence(drawn)}\nEvery activity drawing"
-                    + " it runs at that share and none of them is stopped. Yesterday the District's"
-                    + $" network served {drawn.Received:N0} of {drawn.Asked:N0} units asked.",
+                bool shortSupply = drawn.Delivered < Ratio.One;
+                if (!shortSupply && drawn.Imported == 0) continue;
+                string detail = shortSupply
+                    ? "Every activity drawing it runs at that share and none of them is stopped. "
+                        + $"Yesterday the District's network served {drawn.Received:N0} of "
+                        + $"{drawn.Asked:N0} units asked."
+                    : "The District relies on imports for full delivery.";
+                string imports = drawn.Imported > 0
+                    ? $" · importing {drawn.Imported:N0} gross units at "
+                        + $"{drawn.ImportPaid.Raw:N0} money units per Day from the treasury"
+                    : string.Empty;
+                rows.Add(new($"Building supply · {UtilitySentence(drawn)}{imports}\n{detail}",
                     Icon: UiIcons.Resource(_names.Resource(drawn.Utility))));
             }
         }

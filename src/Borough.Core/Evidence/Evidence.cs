@@ -197,12 +197,14 @@ public static class Evidence
         int flow = world.UtilityFlowOf(instance, utility);
 
         return flow == Rows.NoSlot
-            ? new UtilityEvidence(utility, Ratio.Zero, 0, 0)
+            ? new UtilityEvidence(utility, Ratio.Zero, 0, 0, 0, Money.Zero)
             : new UtilityEvidence(
                 utility,
                 world.UtilityFlows.Delivered[flow],
                 world.UtilityFlows.Received[flow],
-                world.UtilityFlows.Asked[flow]);
+                world.UtilityFlows.Asked[flow],
+                world.UtilityFlows.Imported[flow],
+                world.UtilityFlows.ImportPaid[flow]);
     }
 
     /// <summary>
