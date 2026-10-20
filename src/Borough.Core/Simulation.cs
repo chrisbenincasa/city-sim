@@ -485,6 +485,15 @@ public sealed class Simulation
         // Roll after a successful reload and before input, even on Days with no population flows.
         _world.RollPopulationDayFlows(tick);
 
+        // The Utility networks' own Day boundary, beside the roll above rather than in Growth: the
+        // delivered fraction governs every firing of the Day that is starting, so it has to be
+        // settled before Phase 3 runs for the first time in it. Tick 0 is excluded because nothing
+        // has produced anything yet and a settle there would only write the zeroes a row opens at.
+        if (tick.Raw % (ulong)Ticks.PerDay == 0 && tick.Raw > 0)
+        {
+            _world.SettleUtilityNetworks();
+        }
+
         ApplyInput(input, tick);
         PhaseCompleted?.Invoke(TickPhase.Input);
         Wake(tick);

@@ -772,11 +772,11 @@ Identifies the declaration across the package. Other members refer to it by this
 
 The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.
 
-**`link_per_crossing`** · *unasserted*
+**`link_per_crossing`** · *whole number*
 
 Positive Utility link capacity per crossing. Its presence marks the Utility as delivered.
 
-**`loss_per_road_tile`** · *unasserted*
+**`loss_per_road_tile`** · *whole number*
 
 Nonnegative delivered Utility loss per road tile. It requires link_per_crossing and defaults to zero.
 
@@ -804,7 +804,7 @@ How long one shelf-life cycle lasts, in in-world minutes, from 1 to a year. Each
 
 How many cycles stock of this Resource stays good, from 1 to 4. At each of its own cycle boundaries, a Bin's stock ages by one cycle and stock older than this is discarded. Withdrawals take the oldest stock first. State it with shelf_life_cycle_minutes or not at all; absent means the Resource never spoils. Money may not spoil.
 
-**`storage`** · *unasserted*
+**`storage`** · *whole number*
 
 Storage for a Utility. Only zero is accepted in this slice because stored Utilities arrive with Water.
 

@@ -1426,10 +1426,12 @@
             "type": "string"
           },
           "link_per_crossing": {
-            "description": "Positive Utility link capacity per crossing. Its presence marks the Utility as delivered."
+            "description": "Positive Utility link capacity per crossing. Its presence marks the Utility as delivered.",
+            "type": "integer"
           },
           "loss_per_road_tile": {
-            "description": "Nonnegative delivered Utility loss per road tile. It requires link_per_crossing and defaults to zero."
+            "description": "Nonnegative delivered Utility loss per road tile. It requires link_per_crossing and defaults to zero.",
+            "type": "integer"
           },
           "name": {
             "description": "What this Resource is called. Every other table refers to it by this name, and the engine never sees the string.",
@@ -1456,7 +1458,8 @@
             "type": "integer"
           },
           "storage": {
-            "description": "Storage for a Utility. Only zero is accepted in this slice because stored Utilities arrive with Water."
+            "description": "Storage for a Utility. Only zero is accepted in this slice because stored Utilities arrive with Water.",
+            "type": "integer"
           }
         }
       }
