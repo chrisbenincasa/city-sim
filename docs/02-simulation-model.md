@@ -802,7 +802,7 @@ Two consequences of the logit form that matter:
 
 **Reachable jobs are the growth driver.** Exports pay firms, firms post jobs, and a dwelling with jobs in reach beats the Hinterland for more prospects, so the city keeps drawing people after its first Unplaced Pool is housed. The Hinterland row carries the same term. Wages join the comparison once posted wages exist ([plan](../plans/export-base.md)).
 
-**The same comparison runs in reverse for a Household with no work.** Once an adult has been jobless for a Ruleset duration, the Household compares its current home, with the jobs it can now reach, against the Hinterland, and Life Stage sets how reluctant it is to go. People arrive and leave for the same reasons, so a city that loses its employers loses population, families last. Departure because a Household can no longer pay its way joins later.
+**The same comparison runs in reverse for a Household with no work.** Each time a jobless adult searches and finds nothing, the Household compares its current home, with the jobs it can now reach, against the Hinterland. Life Stage sets how reluctant it is to go. No duration gates the comparison (`adr/0102`). People arrive and leave for the same reasons, so a city that loses its employers loses population, families last. Departure because a Household can no longer pay its way joins later.
 
 **Hard constraints are filters, soft trade-offs are utility.** Affordability filters candidates before scoring.
 

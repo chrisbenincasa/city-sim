@@ -4355,6 +4355,25 @@ public static class RulesetLoader
                     }
                 }
 
+                int leavingCosts = 0;
+
+                if (TryInteger(table, "leaving_costs_rent", out long leaving, required: false, name))
+                {
+                    if (leaving < 0 || leaving > int.MaxValue)
+                    {
+                        Refuse(
+                            LineOf((SyntaxNodeBase?)Find(table, "leaving_costs_rent") ?? table),
+                            name,
+                            $"leaving_costs_rent is {leaving}. It is the daily rent a jobless "
+                            + "Household in this stage would pay to stay in the city rather than "
+                            + "leave for a Hinterland, so it is zero or more.");
+                    }
+                    else
+                    {
+                        leavingCosts = (int)leaving;
+                    }
+                }
+
                 byte next = 0;
 
                 if (TryString(table, "next", out string? successor, required: false)
@@ -4524,6 +4543,7 @@ public static class RulesetLoader
                     CentralityBasePercent = centralityBase,
                     CentralitySpreadPercent = centralitySpread,
                     RentWeightPercent = rentWeight,
+                    LeavingCostsRent = leavingCosts,
                     SchoolLevel = schoolLevel,
                 };
             }

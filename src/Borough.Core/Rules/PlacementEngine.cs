@@ -67,10 +67,12 @@ public sealed class PlacementEngine
     private int _tickShortageMoves;
     private int _tickPreferredMoves;
     private int _tickDeclined;
+    private int _tickLeft;
 
     private RuleFlow _consideredFlow;
     private RuleFlow _placedFlow;
     private RuleFlow _departedFlow;
+    private RuleFlow _leftFlow;
     private RuleFlow _retiredFlow;
     private RuleFlow _foundedFlow;
     private RuleFlow _premisedFlow;
@@ -112,7 +114,7 @@ public sealed class PlacementEngine
         var activity = new PlacementActivity(
             _consideredFlow, _placedFlow, _departedFlow, _retiredFlow, _foundedFlow,
             _premisedFlow, _reassessedFlow, _shortageMovesFlow, _preferredMovesFlow,
-            _declinedFlow);
+            _declinedFlow, _leftFlow);
 
         _consideredFlow = default;
         _placedFlow = default;
@@ -124,6 +126,7 @@ public sealed class PlacementEngine
         _shortageMovesFlow = default;
         _preferredMovesFlow = default;
         _declinedFlow = default;
+        _leftFlow = default;
 
         return activity;
     }
@@ -1464,6 +1467,12 @@ public sealed class PlacementEngine
             Handle<Household> household = _world.Households.Rows.At(slot);
             bool pricedOut = rent.Raw > 0 && _world.BalanceOf(household).Raw < rent.Raw;
             bool shortage = !pricedOut && ShortagePromptsMove(household, buildingSlot, tick);
+
+            if (!pricedOut && !shortage && LeavesForWork(slot, buildingSlot, tick))
+            {
+                continue;
+            }
+
             bool prefers = !pricedOut && !shortage && PrefersSomewhereElse(slot, buildingSlot, tick);
 
             if (pricedOut || shortage || prefers)
@@ -1596,6 +1605,125 @@ public sealed class PlacementEngine
         return taken != 0;
     }
 
+    /// <summary>
+    /// Rechecks each housed Household whose jobless member just searched and found nothing, so a
+    /// failed occasion is noticed without waiting for the reassessment sample.
+    /// </summary>
+    /// <param name="households">Households in search order; repeats and departed ones are skipped.</param>
+    public void ReconsiderJobless(ReadOnlySpan<Handle<Household>> households, Ticks tick)
+    {
+        int left = 0;
+
+        foreach (Handle<Household> household in households)
+        {
+            if (_world.Households.Rows.TryResolve(household, out int slot)
+                && _world.Buildings.Rows.TryResolve(_world.Households.Dwelling[slot], out int building)
+                && LeavesForWork(slot, building, tick))
+            {
+                left++;
+            }
+        }
+
+        _leftFlow = _leftFlow.Fold(left);
+    }
+
+    /// <summary>
+    /// Whether a housed Household with a jobless adult chooses a Hinterland over its home, and
+    /// leaves the city for it if so.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The arrival comparison run from the other side</b> (<c>02 §5.4</c>, <c>adr/0102</c>). The
+    /// home carries its qualified reachable jobs, the cost of moving and its Life Stage's
+    /// <see cref="LifeStageDefinition.LeavingCostsRent"/>. Each Hinterland carries its own jobs.
+    /// The jobless adult is what makes a Household look, and nothing here counts how long it has
+    /// looked.
+    /// </para>
+    /// <para>
+    /// ⚠ The tier is the highest among <see cref="World.IsJobless"/> members, because those are the
+    /// members the home's jobs failed.
+    /// </para>
+    /// </remarks>
+    private bool LeavesForWork(int slot, int building, Ticks tick)
+    {
+        PlacementRuleset placement = _world.Rules.Placement;
+
+        if (!placement.Chooses || placement.JobsRent == 0 || !_world.Rules.Immigration.Stated)
+        {
+            return false;
+        }
+
+        byte tier = 0;
+
+        foreach (int member in _world.Members.Walk(slot))
+        {
+            if (_world.IsJobless(member) && _world.Citizens.SkillTier[member] > tier)
+            {
+                tier = _world.Citizens.SkillTier[member];
+            }
+        }
+
+        if (tier == 0 || !_world.Lots.Rows.TryResolve(_world.Buildings.Lot[building], out int home))
+        {
+            return false;
+        }
+
+        byte stage = _world.Households.LifeStage[slot];
+        int rentWeight = _world.Rules.RentWeight(stage);
+        long weight = HousingUtility.Taste(
+            _world.Rules, _key, _world.Households.TasteIdentity(slot), stage);
+
+        Retain(HinterlandTable.Edges + 1);
+        _candidateLots[0] = home;
+        _world.JobAccess.Prepare(_world, _candidateLots.AsSpan(0, 1));
+
+        _candidateUtilities[0] = HousingUtility.Saturate(
+            (long)Utility(home, building, weight, rentWeight)
+            + HousingUtility.JobsWorth(placement, _world.JobAccess.Count(home, tier))
+            + placement.StayingPut
+            + _world.Rules.LeavingCost(stage));
+
+        Span<MapEdge> edges = stackalloc MapEdge[HinterlandTable.Edges + 1];
+        int found = 1;
+
+        for (int edge = 0; edge < HinterlandTable.Edges; edge++)
+        {
+            MapEdge which = HinterlandTable.EdgeAt(edge);
+
+            if (!_world.Rules.TryHinterland(which, out HinterlandDefinition outside))
+            {
+                continue;
+            }
+
+            edges[found] = which;
+            _candidateUtilities[found] = HousingUtility.Saturate(
+                (long)HousingUtility.Worth(
+                    placement, outside.CentralityTiles, weight, outside.Rent, rentWeight)
+                + HousingUtility.JobsWorth(placement, outside.ReachableJobs));
+            found++;
+        }
+
+        if (found == 1)
+        {
+            return false;
+        }
+
+        int taken = Choice.Draw(
+            _candidateUtilities.AsSpan(0, found),
+            placement.Mu,
+            Randomness.Draw(
+                _key, _world.Households.Rows.IdAt(slot), tick, PurposeTag.JoblessDeparture));
+
+        if (taken == 0)
+        {
+            return false;
+        }
+
+        _world.Leave(_world.Households.Rows.At(slot), edges[taken]);
+        _tickLeft++;
+        return true;
+    }
+
     private bool ShortagePromptsMove(Handle<Household> household, int building, Ticks tick)
     {
         int threshold = _world.Rules.Placement.MoveAtNeed;
@@ -1656,6 +1784,7 @@ public sealed class PlacementEngine
         _shortageMovesFlow = _shortageMovesFlow.Fold(_tickShortageMoves);
         _preferredMovesFlow = _preferredMovesFlow.Fold(_tickPreferredMoves);
         _declinedFlow = _declinedFlow.Fold(_tickDeclined);
+        _leftFlow = _leftFlow.Fold(_tickLeft);
 
         _tickConsidered = 0;
         _tickPlaced = 0;
@@ -1667,6 +1796,7 @@ public sealed class PlacementEngine
         _tickShortageMoves = 0;
         _tickPreferredMoves = 0;
         _tickDeclined = 0;
+        _tickLeft = 0;
     }
 }
 
@@ -1690,6 +1820,10 @@ public sealed class PlacementEngine
 /// <param name="Considered">Pool members looked at.</param>
 /// <param name="Placed">Of those, the ones that found a dwelling.</param>
 /// <param name="Departed">Of those, the ones that gave up and left (<c>adr/0130</c>).</param>
+/// <param name="Left">
+/// Housed Households that left for a Hinterland after an adult found every job in reach full
+/// (<c>adr/0102</c>). ⚠ <b>Not a subset of <paramref name="Considered"/></b>.
+/// </param>
 /// <param name="Retired">
 /// Unpremised <b>Businesses</b> that gave up and emigrated. ⚠ <b>Not a subset of
 /// <paramref name="Considered"/></b>, which counts Households.
@@ -1697,4 +1831,4 @@ public sealed class PlacementEngine
 public readonly record struct PlacementActivity(
     RuleFlow Considered, RuleFlow Placed, RuleFlow Departed, RuleFlow Retired, RuleFlow Founded,
     RuleFlow Premised, RuleFlow Reassessed, RuleFlow ShortageMoves = default,
-    RuleFlow PreferredMoves = default, RuleFlow Declined = default);
+    RuleFlow PreferredMoves = default, RuleFlow Declined = default, RuleFlow Left = default);

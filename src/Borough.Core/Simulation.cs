@@ -2238,6 +2238,10 @@ public sealed class Simulation
         // acquire a worker first, and taking a job in a doomed Building is a churn nothing reports.
         _employment.Assign(tick);
 
+        // A failed search is the occasion a jobless Household rechecks its home against a
+        // Hinterland (adr/0102), so it is noticed on this Tick rather than at the next sample.
+        _placement.ReconsiderJobless(_employment.FailedSearches, tick);
+
         _zoning.Sweep(tick);
 
         // adr/0134's re-evaluation, LAST in the phase and after the Zone Rules, because the field it

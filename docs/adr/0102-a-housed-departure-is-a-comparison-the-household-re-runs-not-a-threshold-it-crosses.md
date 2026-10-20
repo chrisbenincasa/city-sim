@@ -123,6 +123,10 @@ is what Policy is for*. Different remedies, so the channel split is doing exactl
   scoring with the Hinterland as a row. Nothing here is buildable before the choice model, and that is
   correct under [`adr/0070`](0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) — the answer to
   *given the choice model does not exist, should Departure compensate?* is **build the choice model**.
+- **Amended 10/19/2026: a jobless adult is a third producer** (export-base slice 5). A failed job
+  search is the failed occasion, and the home's reachable qualified vacancies are the term. It
+  triggers the comparison and gates nothing. Searches refused for reach stay with the Destitute
+  channel.
 - **The cadence is the one number this creates and it is a perception bound.** It belongs beside
   `[placement]`'s and `[jobs]`' `revisit_ticks` and is authored the same way, so it inherits their
   precedent rather than opening an argument.
