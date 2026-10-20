@@ -320,6 +320,7 @@ public sealed class IncomeDumpTests
         Assert.Equal(gross.Granted, Column(report, 8));
         Assert.Equal(gross.Placed, Column(report, 9));
         Assert.Equal(gross.Kept, Column(report, 10));
+        Assert.Equal(0, Column(report, 11));
 
         long income = gross.Withheld + gross.Profit + gross.Policy + gross.Rule + gross.Rent;
         long expenditure = gross.Spent + gross.Drawn + gross.Granted + gross.Placed + gross.Kept;
@@ -453,7 +454,8 @@ public sealed class IncomeDumpTests
     public void The_mode_is_named_in_the_usage()
     {
         Assert.Contains("--income", Options.Usage, Ordinal);
-        Assert.Contains("Income is FIVE columns", Options.Usage, Ordinal);
+        Assert.Contains("Income is SIX columns", Options.Usage, Ordinal);
+        Assert.Contains("Utility tariffs paid by Rule owners", Options.Usage, Ordinal);
     }
 
     private const StringComparison Ordinal = StringComparison.Ordinal;
@@ -471,6 +473,7 @@ public sealed class IncomeDumpTests
         long Granted,
         long Placed,
         long Kept,
+        long Tariff,
         long Treasury,
         long Households);
 
@@ -496,7 +499,7 @@ public sealed class IncomeDumpTests
             string[] cells = line.Split(
                 "  ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-            if (cells.Length != 13)
+            if (cells.Length != 14)
             {
                 break;
             }
@@ -505,7 +508,7 @@ public sealed class IncomeDumpTests
                 Number(cells[0]), Number(cells[1]), Number(cells[2]), Number(cells[3]),
                 Number(cells[4]), Number(cells[5]), Number(cells[6]), Number(cells[7]),
                 Number(cells[8]), Number(cells[9]), Number(cells[10]), Number(cells[11]),
-                Number(cells[12])));
+                Number(cells[12]), Number(cells[13])));
         }
 
         Assert.NotEmpty(rows);
@@ -532,6 +535,7 @@ public sealed class IncomeDumpTests
                 8 => row.Granted,
                 9 => row.Placed,
                 10 => row.Kept,
+                11 => row.Tariff,
                 _ => throw new ArgumentOutOfRangeException(nameof(index), index, "not a flow column."),
             };
         }

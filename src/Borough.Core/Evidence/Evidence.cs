@@ -196,13 +196,19 @@ public static class Evidence
     {
         int flow = world.UtilityFlowOf(instance, utility);
 
+        int building = world.Buildings.Rows.Resolve(world.RuleInstances.Building[instance]);
+        bool billed = world.Rules.TariffOf(utility) >= 0;
+        (long paid, long unpaid) = billed
+            ? world.UtilityBills.PriorOn(world.Buildings, building, world.Rules.ResourceKey(utility), BusinessAccounts.DayOf(world.Tick))
+            : default;
+
         return flow == Rows.NoSlot
-            ? new UtilityEvidence(utility, Ratio.Zero, 0, 0)
+            ? new UtilityEvidence(utility, Ratio.Zero, 0, 0, billed, paid, unpaid)
             : new UtilityEvidence(
                 utility,
                 world.UtilityFlows.Delivered[flow],
                 world.UtilityFlows.Received[flow],
-                world.UtilityFlows.Asked[flow]);
+                world.UtilityFlows.Asked[flow], billed, paid, unpaid);
     }
 
     /// <summary>

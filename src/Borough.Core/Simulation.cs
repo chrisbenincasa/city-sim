@@ -352,7 +352,8 @@ public sealed class Simulation
             DrainPlacementSpend().Sum,
             DrainUpkeepSpend().Sum,
             DrainCompensation().Sum,
-            _zoning.DrainGrants().Sum);
+            _zoning.DrainGrants().Sum,
+            rules.Tariff.Sum);
     }
 
     /// <summary>What the most recent payday moved, or zeroes on a Tick that was not one.</summary>

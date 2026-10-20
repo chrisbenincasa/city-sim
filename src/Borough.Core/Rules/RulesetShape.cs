@@ -299,7 +299,9 @@ public static class RulesetShape
             // one moves money into Bins that hold something else -- and the two scopes, because
             // local->global and global->local are opposite cities and neither is a tuning of the
             // other. The subject is structure for the same reason a Rule's kind is.
-            if (was.Subject != now.Subject
+            if ((was.Utility == default ? 0 : current.ResourceKey(was.Utility))
+                    != (now.Utility == default ? 0 : replacement.ResourceKey(now.Utility))
+                || was.Subject != now.Subject
                 || was.From != now.From
                 || was.To != now.To
                 || current.ResourceKey(was.Resource) != replacement.ResourceKey(now.Resource))

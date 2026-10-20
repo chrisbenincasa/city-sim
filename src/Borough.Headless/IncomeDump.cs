@@ -22,7 +22,7 @@ using Borough.Formats;
 /// so the report has to say which of the two brought the money in.
 /// </para>
 /// <para>
-/// 🔴 <b>Income is printed in five columns and expenditure in five, and none of the ten is netted
+/// 🔴 <b>Income is printed in six columns and expenditure in five, and none is netted
 /// against another.</b> <c>MoneyFlowCounter.FromTreasury</c>'s own remark carries the argument: a net
 /// is the one figure that cannot say whether a city taxed nothing and paid nothing or taxed heavily
 /// and paid it all back. The split within income is the same argument one level down — money an
@@ -346,7 +346,7 @@ internal static class IncomeDump
     }
 
     /// <summary>
-    /// The budget, with income in five columns, expenditure in five, and the two levels they moved.
+    /// The budget, with income in six columns, expenditure in five, and the two levels they moved.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -389,6 +389,8 @@ internal static class IncomeDump
         Series rented =
             census.Series(Metric.Of(MoneyFlowCounter.Rent, Aggregate.Sum), window);
 
+        Series tariffs = census.Series(Metric.Of(MoneyFlowCounter.Tariff, Aggregate.Sum), window);
+
         ReadOnlySpan<CensusSample> levels = treasury.Samples.Span;
         var columns = new Columns(
             households.Samples.Span,
@@ -401,14 +403,15 @@ internal static class IncomeDump
             drawn.Samples.Span,
             granted.Samples.Span,
             placed.Samples.Span,
-            kept.Samples.Span);
+            kept.Samples.Span,
+            tariffs.Samples.Span);
 
         output.WriteLine(F($"Income and expenditure — one row per {cadence:N0} Ticks, which is a Day"));
         output.WriteLine();
 
         string header = Row(
             "tick", "withheld", "profit tax", "policy in", "rule in", "rent in", "policy out",
-            "rule out", "subsidy out", "placement out", "upkeep out", "treasury", "households");
+            "rule out", "subsidy out", "placement out", "upkeep out", "tariff in", "treasury", "households");
         output.WriteLine(header);
         output.WriteLine(new string('-', header.Length));
 
@@ -447,15 +450,16 @@ internal static class IncomeDump
         long grantedOut = Total(columns.Granted);
         long placedOut = Total(columns.Placed);
         long keptOut = Total(columns.Kept);
+        long tariffIn = Total(columns.Tariffs);
 
         output.WriteLine();
         output.WriteLine(F(
-            $"  Into the treasury: {income:N0} withheld from wages, {profit:N0} in profit tax, {moved:N0} by a Policy, {paidIn:N0} by a Bin Rule, {rentIn:N0} in rent on city Lots."));
+            $"  Into the treasury: {income:N0} withheld from wages, {profit:N0} in profit tax, {moved:N0} by a Policy, {paidIn:N0} by a Bin Rule, {rentIn:N0} in rent on city Lots, {tariffIn:N0} in Utility tariffs."));
         output.WriteLine(F(
             $"  Out of it: {out_:N0} by a Policy, {drawnOut:N0} by a Bin Rule, {grantedOut:N0} in subsidy, {placedOut:N0} on placements, {keptOut:N0} on road Upkeep."));
         Catalogued(output, catalogue);
         output.WriteLine(
-            "  The ten are printed apart and never netted. A net cannot say whether a city taxed");
+            "  The eleven are printed apart and never netted. A net cannot say whether a city taxed");
         output.WriteLine(
             "  nothing and paid nothing or taxed heavily and paid it all back; and within the");
         output.WriteLine(
@@ -470,7 +474,7 @@ internal static class IncomeDump
             "  on its way to a purse, the other leaves a till that was already holding it.");
         output.WriteLine();
         output.WriteLine(
-            "  ⚠ `policy in` is every Policy that pays INTO the treasury, a plain transfer and a");
+            "  ⚠ `policy in` is every swept Policy that pays INTO the treasury, a plain transfer and a");
         output.WriteLine(
             "  tool = \"charge\" alike: PolicyEngine folds both into one accumulator, so on a file");
         output.WriteLine(
@@ -505,7 +509,7 @@ internal static class IncomeDump
             "  arrears panel's collected figure is the larger number and is not this column.");
         output.WriteLine();
         output.WriteLine(
-            "  The treasury column is these ten columns' running total, and nothing else reaches");
+            "  The treasury column is these eleven columns' running total, and nothing else reaches");
         output.WriteLine(
             "  it: every unit of the balance is explained by the flows printed beside it.");
     }
@@ -529,7 +533,8 @@ internal static class IncomeDump
         ReadOnlySpan<CensusSample> drawn,
         ReadOnlySpan<CensusSample> granted,
         ReadOnlySpan<CensusSample> placed,
-        ReadOnlySpan<CensusSample> kept)
+        ReadOnlySpan<CensusSample> kept,
+        ReadOnlySpan<CensusSample> tariffs)
     {
         public ReadOnlySpan<CensusSample> Homes { get; } = homes;
 
@@ -582,6 +587,8 @@ internal static class IncomeDump
 
         /// <summary>What the city paid to keep its Road Segments. It reaches nobody, like <see cref="Placed"/>.</summary>
         public ReadOnlySpan<CensusSample> Kept { get; } = kept;
+
+        public ReadOnlySpan<CensusSample> Tariffs { get; } = tariffs;
     }
 
     /// <summary>
@@ -626,6 +633,7 @@ internal static class IncomeDump
             Cell(columns.Granted, i),
             Cell(columns.Placed, i),
             Cell(columns.Kept, i),
+            Cell(columns.Tariffs, i),
             Count(levels[i].Value),
             Cell(columns.Homes, i)));
     }
@@ -666,7 +674,8 @@ internal static class IncomeDump
     /// </remarks>
     private static int? Refuse(Ruleset rules, TextWriter output)
     {
-        if (rules.IncomeTax.Levies || rules.Rent.Collects)
+        if (rules.IncomeTax.Levies || rules.Rent.Collects
+            || Array.Exists(rules.Policies, policy => policy.Tool == PolicyTool.Tariff))
         {
             return null;
         }
@@ -685,8 +694,8 @@ internal static class IncomeDump
 
     private static string Row(
         string label, string a, string b, string c, string d, string e, string f, string g,
-        string h, string i, string j, string k, string l) =>
-        F($"{label,-10}  {a,11}  {b,11}  {c,11}  {d,11}  {e,11}  {f,11}  {g,11}  {h,11}  {i,13}  {j,11}  {k,14}  {l,14}");
+        string h, string i, string j, string k, string l, string m) =>
+        F($"{label,-10}  {a,11}  {b,11}  {c,11}  {d,11}  {e,11}  {f,11}  {g,11}  {h,11}  {i,13}  {j,11}  {k,11}  {l,14}  {m,14}");
 
     private static string Count(long value) => F($"{value:N0}");
 

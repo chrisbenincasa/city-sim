@@ -114,7 +114,7 @@ public sealed class Census
     private const int MoneyCounters = 6;
 
     /// <summary>The members of <see cref="MoneyFlowCounter"/> — one per (mechanism, direction).</summary>
-    private const int MoneyFlowCounters = 12;
+    private const int MoneyFlowCounters = 13;
 
     private const int MoneyFlowMetrics = MoneyFlowCounters * AggregatesPerRuleCounter;
 
@@ -463,6 +463,7 @@ public sealed class Census
         WriteMoney(_values, at + _moneyFlowBase, (int)MoneyFlowCounter.Compensation, compensation);
         WriteMoney(_values, at + _moneyFlowBase, (int)MoneyFlowCounter.Grant, grants);
         WriteMoney(_values, at + _moneyFlowBase, (int)MoneyFlowCounter.Rent, rent);
+        WriteMoney(_values, at + _moneyFlowBase, (int)MoneyFlowCounter.Tariff, activity.Tariff);
 
         // The third income path, and the one that reached the treasury in silence until row 33. It
         // rides RuleActivity rather than PolicyActivity because it is the Bin Rule engine that moved
@@ -669,7 +670,7 @@ public sealed class Census
                 or MoneyFlowCounter.ProfitTax or MoneyFlowCounter.Subsidy
                 or MoneyFlowCounter.Placement or MoneyFlowCounter.Upkeep
                 or MoneyFlowCounter.Compensation or MoneyFlowCounter.Grant
-                or MoneyFlowCounter.Rent))
+                or MoneyFlowCounter.Rent or MoneyFlowCounter.Tariff))
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(metric), metric.MoneyFlowCounter, "not a money movement this census reads.");
