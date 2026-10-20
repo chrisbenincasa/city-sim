@@ -1600,16 +1600,21 @@ public static class RulesetLoader
             List<Term> outputs, int outputFirst, int outputEnd, bool fillsPool)
         {
             bool hasPool = fillsPool;
+            bool needsMoney = fillsPool;
             bool hasMoney = _families.Contains(ResourceFamily.Money);
 
             for (int i = inputFirst; i < inputEnd; i++)
             {
                 hasPool |= inputs[i].Bin.Scope == Scope.Pool;
+                needsMoney |= inputs[i].Bin.Scope == Scope.Pool
+                    && _families[inputs[i].Bin.Resource.Raw - 1] != ResourceFamily.Utility;
             }
 
             for (int i = outputFirst; i < outputEnd; i++)
             {
                 hasPool |= outputs[i].Bin.Scope == Scope.Pool;
+                needsMoney |= outputs[i].Bin.Scope == Scope.Pool
+                    && _families[outputs[i].Bin.Resource.Raw - 1] != ResourceFamily.Utility;
             }
 
             RefuseDeliveredUtilityLocalTerms(table, name, inputs, inputFirst, inputEnd);
@@ -1628,7 +1633,7 @@ public static class RulesetLoader
                     "this Rule uses a pool term, but a pool term needs [districts].");
             }
 
-            if (!hasMoney)
+            if (needsMoney && !hasMoney)
             {
                 Refuse(LineOf(table), name,
                     "this Rule uses a pool term, but a pool term needs a Resource with family = \"money\".");
@@ -3140,8 +3145,8 @@ public static class RulesetLoader
         /// </para>
         /// <para>
         /// <b><c>pool</c> is refused when its required world support is absent.</b> A pool term needs
-        /// the District Pool and a money Resource, so <see cref="RefuseUnsupportedPoolTerms"/> checks
-        /// both facts while the Rule still has its source line.
+        /// the District Pool. Goods and services also need a money Resource, so
+        /// <see cref="RefuseUnsupportedPoolTerms"/> checks both facts at the Rule's source line.
         /// </para>
         /// </remarks>
         private bool GlobalNamesAConservedResource(
