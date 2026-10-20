@@ -41,7 +41,11 @@ the south edge, which is the edge the Hinterland that prices Power sits behind.
 | Recurrence | The settle at Tick 10,240 buys the same Day again. The running column reads 2,304 and the treasury 4,192,000. The bill is a standing cost of having no plant. | `08` | 10,248 |
 
 `importing.borough-city` is the end state at Tick 10,250, written through the menu at save format
-28. Opening it reproduces the last two rows without replaying the run.
+28. Opening it gives back the city the last two rows are about — the treasury at 4,192,000, the
+gate standing on Lot 44 and the dwelling's panel still reporting 576 gross units bought for 1,152
+— without replaying the run. ⚠ **The budget panel's own history does not survive the save.** Flows
+are an instrument's and are not saved, so a reopened city opens its account at the Tick it was
+loaded at and the running column starts again from zero there.
 
 Each `.png` has a `.txt` beside it holding the whole readout — HUD, hover, debug panel and every row
 of the inspector. The two budget shots also have a `.json` from `ui read`, because **a `Control` is
