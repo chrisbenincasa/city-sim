@@ -13,7 +13,7 @@ using Borough.Headless;
 namespace Borough.Tests.Evidence;
 
 /// <summary>
-/// Utilities slice 1 — what a Building's explanation says about the Power it is served.
+/// What a Building's explanation says about delivered Utilities and their reserves.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -64,6 +64,8 @@ public sealed class UtilityEvidenceTests
 
         /// <summary>The plant's Building slot.</summary>
         public required int Generator { get; init; }
+
+        public int[] Towers { get; init; } = [];
 
         /// <summary>The lamp's Building slot, or <c>Rows.NoSlot</c> where none was raised.</summary>
         public int Lit { get; init; } = Rows.NoSlot;
@@ -147,7 +149,7 @@ public sealed class UtilityEvidenceTests
         return loaded.Ruleset!;
     }
 
-    private static City Build(Ruleset? rules = null, bool lamp = false)
+    private static City Build(Ruleset? rules = null, bool lamp = false, int towers = 0)
     {
         var world = new World(400, rules ?? Rules(), Key);
         var simulation = new Simulation(world, Key) { VerifyDecideWritesNothing = true };
@@ -157,6 +159,7 @@ public sealed class UtilityEvidenceTests
         int generator = Rows.NoSlot;
         int home = Rows.NoSlot;
         int lit = Rows.NoSlot;
+        var stores = new List<int>();
 
         for (int cell = 0; cell < Cells; cell++)
         {
@@ -175,6 +178,11 @@ public sealed class UtilityEvidenceTests
                 for (int occupant = 0; occupant < Occupants; occupant++)
                 {
                     world.CreateHousehold(world.Buildings.Rows.At(home), lifeStage: 1);
+                }
+
+                for (int tower = 0; tower < towers; tower++)
+                {
+                    stores.Add(Raise(world, cell, standing++, kind: 3));
                 }
 
                 // It takes a filler's place, so the ridge keeps its shape and its Building count
@@ -213,6 +221,7 @@ public sealed class UtilityEvidenceTests
             Home = home,
             Generator = generator,
             Lit = lit,
+            Towers = [.. stores],
         };
     }
 
@@ -258,7 +267,7 @@ public sealed class UtilityEvidenceTests
             deep: new Tiles(GroundTiles),
             storeys: kind == Plant ? (byte)1 : (byte)2);
 
-        return world.Buildings.Rows.Resolve(world.CreateBuilding(lot, kind, Ticks.Zero, Key));
+        return world.Buildings.Rows.Resolve(world.CreateBuilding(lot, kind, world.Tick, Key));
     }
 
     private static int DistrictOf(World world, int buildingSlot)
@@ -324,7 +333,7 @@ public sealed class UtilityEvidenceTests
             Core.Evidence.Evidence.OfBuilding(world, world.Buildings.Rows.At(buildingSlot));
 
         Assert.Equal(1, evidence.Utilities.Length);
-        Assert.Equal(Power, evidence.Utilities.Span[0].Utility);
+        Assert.True(world.Rules.IsDeliveredUtility(evidence.Utilities.Span[0].Utility));
 
         return evidence.Utilities.Span[0];
     }
@@ -355,6 +364,11 @@ public sealed class UtilityEvidenceTests
         Assert.Equal(Ratio.One, lit.Delivered);
         Assert.True(lit.Asked > 0, "nothing in the east asked for Power");
         Assert.Equal(lit.Asked, lit.Received);
+        Assert.False(lit.KeepsReserve);
+        Assert.Equal(0, lit.ReserveLevel);
+        Assert.Equal(0, lit.ReserveCapacity);
+        Assert.Equal(0, lit.FromReserve);
+        Assert.Equal(0, lit.ToReserve);
 
         // Nothing is short, so there is no Utility to name in the one-line reading.
         Assert.Equal(0, Brownout(world, city.Home).Utility.Raw);
@@ -612,6 +626,10 @@ public sealed class UtilityEvidenceTests
             lit, names, Core.Evidence.Evidence.OfBuilding(world, world.Buildings.Rows.At(city.Home)));
 
         Assert.Contains("100%", PowerRow(lit.ToString()), StringComparison.Ordinal);
+        Assert.DoesNotContain("reserve", lit.ToString(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("  utility         delivered  served yesterday  asked yesterday\n",
+            lit.ToString().Replace("\r\n", "\n", StringComparison.Ordinal), StringComparison.Ordinal);
+        Assert.Equal(4, PowerRow(lit.ToString()).Split(' ', StringSplitOptions.RemoveEmptyEntries).Length);
 
         var plant = new StringWriter();
 
@@ -639,6 +657,191 @@ public sealed class UtilityEvidenceTests
         Assert.DoesNotContain("100%", PowerRow(dark.ToString()), StringComparison.Ordinal);
 
         city.Simulation.CheckEndOfRun();
+    }
+
+    private static RulesetLoadResult WaterRules(string? toml = null)
+    {
+        RulesetLoadResult loaded = RulesetLoader.Parse(
+            toml ?? File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "watered.toml")),
+            "watered.toml");
+        Assert.True(loaded.Ok, loaded.Describe());
+        return loaded;
+    }
+
+    private static int FlowOfHome(City city)
+    {
+        foreach (int instance in city.World.BuildingRules.Walk(city.Home))
+        {
+            return city.World.UtilityFlowOf(instance, new ResourceId(1));
+        }
+
+        throw new InvalidOperationException("the dwelling holds no Rule");
+    }
+
+    [Fact]
+    public void Water_reports_live_district_reserve_and_yesterdays_draw_and_refill()
+    {
+        RulesetLoadResult loaded = WaterRules();
+        City city = Build(loaded.Ruleset, towers: 2);
+        World world = city.World;
+        var water = new ResourceId(1);
+
+        AfterSettling(city.Simulation, day: 0);
+
+        int flow = FlowOfHome(city);
+        UtilityEvidence filled = Drawn(world, city.Home);
+        Assert.True(filled.KeepsReserve);
+        Assert.Equal(water, filled.Utility);
+        Assert.Equal(2 * 65536, filled.ReserveCapacity);
+        Assert.True(filled.ToReserve > 0);
+        Assert.Equal(world.UtilityFlows.ToReserve[flow], filled.ToReserve);
+        Assert.Equal(filled.ToReserve, filled.ReserveLevel);
+        Assert.Equal(0, filled.FromReserve);
+        var refillDump = new StringWriter();
+        EvidenceDump.Utilities(refillDump, loaded.Names,
+            Core.Evidence.Evidence.OfBuilding(world, world.Buildings.Rows.At(city.Home)));
+        string refillRow = Assert.Single(refillDump.ToString().Split('\n'),
+            line => line.StartsWith("  water", StringComparison.Ordinal));
+        Assert.Equal(filled.ToReserve.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            refillRow.Split(' ', StringSplitOptions.RemoveEmptyEntries)[7]);
+
+        foreach (int tower in city.Towers)
+        {
+            Assert.Equal(city.Burning, DistrictOf(world, tower));
+            int bin = world.FindBin(tower, water);
+            BuildingEvidence evidence = Core.Evidence.Evidence.OfBuilding(world, world.Buildings.Rows.At(tower));
+            BinEvidence stock = Assert.Single(evidence.Bins.ToArray(), b => b.Resource == water);
+            Assert.Equal(world.Bins.LevelAt(bin), stock.Level);
+            Assert.Equal(65536, stock.Capacity);
+        }
+
+        // Evidence reads current Bins, not the settle's opening scratch totals.
+        int firstBin = world.FindBin(city.Towers[0], water);
+        world.Deposit(world.Bins.Rows.At(firstBin), 123, world.Tick);
+        int westTower = Raise(world, cell: 0, index: Tall, kind: 3);
+        world.RebuildParcels();
+        world.RebuildDerived();
+        Assert.NotEqual(city.Burning, DistrictOf(world, westTower));
+        int westBin = world.FindBin(westTower, water);
+        world.Deposit(world.Bins.Rows.At(westBin), 777, world.Tick);
+
+        var hash = world.HashState();
+        UtilityEvidence live = Drawn(world, city.Home);
+        Assert.Equal(filled.ReserveLevel + 123, live.ReserveLevel);
+        Assert.Equal(filled.ReserveCapacity, live.ReserveCapacity);
+        Assert.Equal(hash, world.HashState());
+
+        int block = world.Rules.Roads.BlockTiles;
+        var east = new Tiles((Boundary(world) + 1) * block);
+        Issue(city.Simulation, Command.Demolish(
+            new Tiles(east.Raw - 1), Tiles.Zero, DemolishTarget.Street));
+        AfterSettling(city.Simulation, day: 1);
+
+        UtilityEvidence drained = Drawn(world, city.Home);
+        Assert.True(drained.FromReserve > 0);
+        Assert.Equal(world.UtilityFlows.FromReserve[flow], drained.FromReserve);
+        Assert.Equal(world.UtilityFlows.ToReserve[flow], drained.ToReserve);
+        Assert.Equal(0, drained.ToReserve);
+        long level = 0;
+        foreach (int tower in city.Towers)
+        {
+            level += world.Bins.LevelAt(world.FindBin(tower, water));
+        }
+        Assert.Equal(level, drained.ReserveLevel);
+        Assert.True(drained.ReserveLevel < filled.ReserveLevel + 123);
+
+        var printed = new StringWriter();
+        EvidenceDump.Utilities(printed, loaded.Names,
+            Core.Evidence.Evidence.OfBuilding(world, world.Buildings.Rows.At(city.Home)));
+        string row = Assert.Single(printed.ToString().Split('\n'),
+            line => line.StartsWith("  water", StringComparison.Ordinal));
+        Assert.Contains("reserve level", printed.ToString(), StringComparison.Ordinal);
+        Assert.Contains("reserve capacity", printed.ToString(), StringComparison.Ordinal);
+        Assert.Contains("drawn yesterday", printed.ToString(), StringComparison.Ordinal);
+        Assert.Contains("refilled yesterday", printed.ToString(), StringComparison.Ordinal);
+        string[] values = row.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        Assert.Equal(8, values.Length);
+        Assert.Equal(drained.ReserveLevel.ToString(System.Globalization.CultureInfo.InvariantCulture), values[4]);
+        Assert.Equal(drained.ReserveCapacity.ToString(System.Globalization.CultureInfo.InvariantCulture), values[5]);
+        Assert.Equal(drained.FromReserve.ToString(System.Globalization.CultureInfo.InvariantCulture), values[6]);
+        Assert.Equal("0", values[7]);
+        city.Simulation.CheckEndOfRun();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Water_feeds_the_generic_panel_attention_condition_and_wash_readings(bool shiftId)
+    {
+        string toml = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "watered.toml"));
+        if (shiftId)
+        {
+            toml = "[[resource]]\nname = \"unused\"\nfamily = \"utility\"\n\n" + toml;
+        }
+        City city = Build(WaterRules(toml).Ruleset);
+        World world = city.World;
+        var water = new ResourceId(shiftId ? (ushort)2 : (ushort)1);
+        AfterSettling(city.Simulation, day: 0);
+
+        UtilityEvidence full = Drawn(world, city.Home);
+        Assert.True(full.KeepsReserve);
+        Assert.Equal(0, full.ReserveCapacity);
+        Assert.Equal(0, full.ReserveLevel);
+        Assert.Equal(Ratio.One, full.Delivered);
+        Assert.Equal(0, Brownout(world, city.Home).Utility.Raw);
+        Assert.True(Core.Evidence.Evidence.TryUtilityOfBuilding(world,
+            world.Buildings.Rows.At(city.Home), out UtilityEvidence wash));
+        Assert.Equal(water, wash.Utility);
+        Assert.Equal(full.Delivered, wash.Delivered);
+
+        int block = world.Rules.Roads.BlockTiles;
+        var east = new Tiles((Boundary(world) + 1) * block);
+        Issue(city.Simulation, Command.Demolish(
+            new Tiles(east.Raw - 1), Tiles.Zero, DemolishTarget.Street));
+        AfterSettling(city.Simulation, day: 1);
+
+        UtilityEvidence shortWater = Drawn(world, city.Home);
+        Assert.Equal(water, shortWater.Utility);
+        Assert.Equal(Ratio.Zero, shortWater.Delivered);
+        Assert.Equal(water, Brownout(world, city.Home).Utility);
+        Assert.Equal(shortWater.Delivered, Brownout(world, city.Home).Delivered);
+        Assert.True(Core.Evidence.Evidence.TryUtilityOfBuilding(world,
+            world.Buildings.Rows.At(city.Home), out wash));
+        Assert.Equal(water, wash.Utility);
+        Assert.Equal(shortWater.Delivered, wash.Delivered);
+        Assert.Equal(0, Core.Evidence.Evidence.SupplyOfBuilding(world,
+            world.Buildings.Rows.At(city.Home)).Shortfalls);
+
+        int outside = Raise(world, Cells + 8, 0, Dwelling);
+        world.RebuildParcels();
+        world.RebuildDerived();
+        UtilityEvidence absent = Drawn(world, outside);
+        Assert.True(absent.KeepsReserve);
+        Assert.Equal(Ratio.Zero, absent.Delivered);
+        Assert.Equal(0, absent.ReserveLevel);
+        Assert.Equal(0, absent.ReserveCapacity);
+        Assert.Equal(0, absent.FromReserve);
+        Assert.Equal(0, absent.ToReserve);
+        city.Simulation.CheckEndOfRun();
+    }
+
+    [Fact]
+    public void Evidence_caps_vast_reserve_totals_at_the_utility_counter_bound()
+    {
+        string toml = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "watered.toml"));
+        City city = Build(WaterRules(toml.Replace("capacity = 65536",
+            "capacity = 5000000000000000000", StringComparison.Ordinal)).Ruleset, towers: 2);
+        World world = city.World;
+        foreach (int tower in city.Towers)
+        {
+            int bin = world.FindBin(tower, new ResourceId(1));
+            world.Deposit(world.Bins.Rows.At(bin), world.Bins.Capacity[bin], world.Tick);
+        }
+
+        UtilityEvidence drawn = Drawn(world, city.Home);
+        Assert.True(drawn.KeepsReserve);
+        Assert.Equal(UtilityFlowTable.Bound, drawn.ReserveLevel);
+        Assert.Equal(UtilityFlowTable.Bound, drawn.ReserveCapacity);
     }
 
     /// <summary>

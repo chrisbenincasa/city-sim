@@ -175,8 +175,14 @@ public readonly record struct WasteEvidence(
 /// </param>
 /// <param name="Received">What the network served in that District <b>yesterday</b>.</param>
 /// <param name="Asked">What its consumers asked of it yesterday, uncapped.</param>
+/// <param name="KeepsReserve">Whether the Utility keeps stock in Building Bins.</param>
+/// <param name="ReserveLevel">Current District stock, capped at UtilityFlowTable.Bound, in detailed evidence.</param>
+/// <param name="ReserveCapacity">District capacity, capped at UtilityFlowTable.Bound, in detailed evidence.</param>
+/// <param name="FromReserve">Yesterday's reserve draw for this District, including road loss.</param>
+/// <param name="ToReserve">Yesterday's refill into this District's reserve.</param>
 public readonly record struct UtilityEvidence(
-    ResourceId Utility, Ratio Delivered, long Received, long Asked);
+    ResourceId Utility, Ratio Delivered, long Received, long Asked,
+    bool KeepsReserve, long ReserveLevel, long ReserveCapacity, long FromReserve, long ToReserve);
 
 /// <summary>What is stopping a Building, or serving it short.</summary>
 /// <param name="Brownout">

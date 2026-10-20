@@ -769,21 +769,47 @@ internal static class EvidenceDump
         }
 
         output.WriteLine();
-        output.WriteLine("  utility         delivered  served yesterday  asked yesterday");
-        output.WriteLine("  --------------  ---------  ----------------  ---------------");
+        bool reserve = false;
 
         foreach (UtilityEvidence drawn in evidence.Utilities.Span)
         {
-            output.WriteLine(string.Create(
+            reserve |= drawn.KeepsReserve;
+        }
+
+        output.WriteLine("  utility         delivered  served yesterday  asked yesterday"
+            + (reserve ? "  reserve level  reserve capacity  drawn yesterday  refilled yesterday" : ""));
+        output.WriteLine("  --------------  ---------  ----------------  ---------------"
+            + (reserve ? "  -------------  ----------------  ---------------  ------------------" : ""));
+
+        foreach (UtilityEvidence drawn in evidence.Utilities.Span)
+        {
+            output.Write(string.Create(
                 CultureInfo.InvariantCulture,
                 $"  {Name(names.Resource(drawn.Utility)),-14}  "
                 + $"{Percent(drawn.Delivered),8}%  {drawn.Received,16}  {drawn.Asked,15}"));
+
+            if (drawn.KeepsReserve)
+            {
+                output.Write(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"  {drawn.ReserveLevel,13}  {drawn.ReserveCapacity,16}"
+                    + $"  {drawn.FromReserve,15}  {drawn.ToReserve,18}"));
+            }
+
+            output.WriteLine();
         }
 
         output.WriteLine(
-            "⚠ `delivered` governs the WHOLE of the current Day and the other two columns are "
+            "⚠ `delivered` governs the WHOLE of the current Day and served/asked are "
             + "YESTERDAY's. One settle a Day fixes the fraction every firing runs at, from what the "
             + "District's plants made, what its road length lost and what crossed its boundaries.");
+
+        if (reserve)
+        {
+            output.WriteLine(
+                "Reserve level and capacity are current District totals. Drawn and refilled are"
+                + " yesterday's flows. Drawn includes road loss and is not a subset of served.");
+        }
 
         output.WriteLine(
             "⚠ A Utility below 100% stops nothing. The Rules drawing it apply "

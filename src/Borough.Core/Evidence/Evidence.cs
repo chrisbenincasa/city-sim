@@ -175,7 +175,7 @@ public static class Evidence
 
                 if (!held)
                 {
-                    into.Add(ReadUtility(world, instance, term.Bin.Resource));
+                    into.Add(ReadUtility(world, instance, term.Bin.Resource, includeReserve: true));
                 }
             }
         }
@@ -192,17 +192,35 @@ public static class Evidence
     /// Premises in no District have no network row and are served nothing, which is
     /// <c>RuleEngine.Draw</c>'s own answer rather than a missing reading.
     /// </remarks>
-    private static UtilityEvidence ReadUtility(World world, int instance, ResourceId utility)
+    private static UtilityEvidence ReadUtility(
+        World world, int instance, ResourceId utility, bool includeReserve = false)
     {
         int flow = world.UtilityFlowOf(instance, utility);
+        bool reserve = world.Rules.StorageOf(utility) == UtilityStorage.Reserve;
 
-        return flow == Rows.NoSlot
-            ? new UtilityEvidence(utility, Ratio.Zero, 0, 0)
-            : new UtilityEvidence(
-                utility,
-                world.UtilityFlows.Delivered[flow],
-                world.UtilityFlows.Received[flow],
-                world.UtilityFlows.Asked[flow]);
+        if (flow == Rows.NoSlot)
+        {
+            return new UtilityEvidence(utility, Ratio.Zero, 0, 0, reserve, 0, 0, 0, 0);
+        }
+
+        long level = 0;
+        long capacity = 0;
+
+        if (reserve && includeReserve)
+        {
+            int pool = world.DistrictPools.Rows.Resolve(world.UtilityFlows.Pool[flow]);
+            int district = world.Districts.Rows.Resolve(world.DistrictPools.District[pool]);
+            (level, capacity) = world.ReadUtilityReserve(district, utility);
+        }
+
+        return new UtilityEvidence(
+            utility,
+            world.UtilityFlows.Delivered[flow],
+            world.UtilityFlows.Received[flow],
+            world.UtilityFlows.Asked[flow],
+            reserve, level, capacity,
+            world.UtilityFlows.FromReserve[flow],
+            world.UtilityFlows.ToReserve[flow]);
     }
 
     /// <summary>

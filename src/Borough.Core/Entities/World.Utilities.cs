@@ -99,6 +99,38 @@ public sealed partial class World
         return flow == Rows.NoSlot ? Ratio.Zero : UtilityFlows.Delivered[flow];
     }
 
+    /// <summary>Totals a District's current reserve from Building-owned Bins without changing it.</summary>
+    /// <remarks>Totals saturate at UtilityFlowTable.Bound, like the settle's reserve totals.</remarks>
+    public (long Level, long Capacity) ReadUtilityReserve(int districtSlot, ResourceId utility)
+    {
+        long level = 0;
+        long capacity = 0;
+
+        for (int bin = 0; bin < Bins.Rows.SlotCount; bin++)
+        {
+            if (!Bins.Rows.IsLive(bin)
+                || Bins.Resource[bin] != utility
+                || Bins.OwnerKind[bin] != BinOwnerKind.Building
+                || !Buildings.Rows.TryResolve(Bins.Owner[bin], out int building)
+                || !Lots.Rows.TryResolve(Buildings.Lot[building], out int lot)
+                || !Districts.Rows.TryResolve(
+                    DistrictsInCells.Of(
+                        DistrictCells,
+                        CellGrid.ToCells(Lots.East[lot]),
+                        CellGrid.ToCells(Lots.North[lot])),
+                    out int district)
+                || district != districtSlot)
+            {
+                continue;
+            }
+
+            level = UtilityFlowTable.Total(level, Bins.LevelAt(bin), 1);
+            capacity = UtilityFlowTable.Total(capacity, Bins.Capacity[bin], 1);
+        }
+
+        return (level, capacity);
+    }
+
     /// <summary>Rebuilds the Pool-to-network index from the rows' own saved handles.</summary>
     internal void RebuildUtilityFlows()
     {

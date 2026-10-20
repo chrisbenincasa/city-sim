@@ -98,8 +98,14 @@ public partial class Main
         {
             anyShort |= drawn.Delivered < Ratio.One;
 
+            string reserve = drawn.KeepsReserve
+                ? $"\nDistrict reserve {drawn.ReserveLevel:N0} / {drawn.ReserveCapacity:N0} units."
+                    + $" Yesterday drawn {drawn.FromReserve:N0}, refilled {drawn.ToReserve:N0}."
+                    + " Drawn includes road loss."
+                : string.Empty;
+
             rows.Add(new($"{UtilitySentence(drawn)}\nYesterday the District's network served "
-                + $"{drawn.Received:N0} of the {drawn.Asked:N0} units asked of it.",
+                + $"{drawn.Received:N0} of the {drawn.Asked:N0} units asked of it." + reserve,
                 Icon: UiIcons.Resource(_names.Resource(drawn.Utility))));
         }
 
