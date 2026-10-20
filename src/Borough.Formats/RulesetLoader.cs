@@ -227,6 +227,9 @@ public static class RulesetLoader
         private readonly List<Need> _resourceNeeds = [];
         private readonly List<ShelfLife> _shelfLives = [];
         private readonly List<ServiceReach> _reaches = [];
+        private readonly List<int> _storage = [];
+        private readonly List<int> _links = [];
+        private readonly List<int> _losses = [];
         private int _labourLine;
         private readonly Dictionary<string, byte> _kinds = new(StringComparer.Ordinal);
 
@@ -554,6 +557,9 @@ public static class RulesetLoader
                 ResourceNeeds = [.. _resourceNeeds],
                 ResourceShelfLives = [.. _shelfLives],
                 ResourceReaches = [.. _reaches],
+                ResourceStorage = [.. _storage],
+                ResourceLinks = [.. _links],
+                ResourceLosses = [.. _losses],
                 Founding = founding,
                 ResourceKeys = Keys(_resources),
                 KindKeys = Keys(_kinds),
@@ -588,8 +594,8 @@ public static class RulesetLoader
                         _resourceNeeds.Add(ReadNeed(table));
                         _shelfLives.Add(ReadShelfLife(table, _families[^1]));
                         _reaches.Add(ReadReach(table, _families[^1]));
+                        ReadUtilityDelivery(table, _families[^1]);
                         RefuseLabourThatKeeps(table);
-                        RefuseStorage(table);
                         break;
 
                     case "building":
@@ -1479,7 +1485,8 @@ public static class RulesetLoader
 
                 ResourceFamily family = _families[terms[i].Bin.Resource.Raw - 1];
 
-                if (family is ResourceFamily.Good or ResourceFamily.Service or ResourceFamily.None)
+                if (family is ResourceFamily.Good or ResourceFamily.Service or ResourceFamily.None
+                    || (family == ResourceFamily.Utility && _links[terms[i].Bin.Resource.Raw - 1] > 0))
                 {
                     continue;
                 }
@@ -2724,13 +2731,27 @@ public static class RulesetLoader
         /// with none of them implemented an accepted-and-dropped <c>storage = 0</c> would give a
         /// designer a Power Resource that warehouses electricity for ever and reads as a balance bug.
         /// </remarks>
-        private void RefuseStorage(TableSyntaxBase table)
+        private void ReadUtilityDelivery(TableSyntaxBase table, ResourceFamily family)
         {
-            RefuseRetired(table, "storage", "storage",
-                "storage is not implemented. It is CONTEXT → Resource's second parameter — whether a "
-                + "Bin carries over between periods, zero for Power and filling for Waste — and "
-                + "nothing reads it yet, so accepting it would silently give every Resource the "
-                + "carry-over of a warehouse. Remove the key; the hole is named rather than hidden.");
+            bool hasStorage = Find(table, "storage") is not null;
+            bool hasLink = Find(table, "link_per_crossing") is not null;
+            bool hasLoss = Find(table, "loss_per_road_tile") is not null;
+            int storage = hasStorage ? CivicInt(table, "storage", 0, 0) : 0;
+            int link = hasLink ? CivicInt(table, "link_per_crossing", 1, int.MaxValue) : 0;
+            int loss = hasLoss ? CivicInt(table, "loss_per_road_tile", 0, int.MaxValue) : 0;
+            if (family != ResourceFamily.Utility)
+            {
+                if (hasStorage || hasLink || hasLoss)
+                    Refuse(LineOf(table), null, $"storage, link_per_crossing, and loss_per_road_tile describe a delivered Utility, but this Resource has family = {FamilyName(family)}.");
+                _storage.Add(0); _links.Add(0); _losses.Add(0); return;
+            }
+            if (hasLink && !hasStorage)
+                Refuse(LineOf(table), null, "storage is required when link_per_crossing is present; stored Utilities arrive with Water.");
+            if (hasStorage && storage != 0)
+                Refuse(LineOf(table), null, "storage must be 0; stored Utilities arrive with Water.");
+            if (hasLoss && !hasLink)
+                Refuse(LineOf(table), null, "loss_per_road_tile requires link_per_crossing.");
+            _storage.Add(storage); _links.Add(link); _losses.Add(hasLink ? loss : 0);
         }
 
         /// <summary>Spells the entities a Readout is readable against, for a refusal message.</summary>
