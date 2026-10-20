@@ -60,11 +60,19 @@ public sealed class PowerImportTests
     /// <summary>What the west Hinterland below charges, dearer than the south's on purpose.</summary>
     private const long Dear = 5;
 
-    /// <summary>A second Hinterland, on another edge, pricing nothing but Power.</summary>
+    /// <summary>A second Hinterland, on another edge, selling Power dearer than the south does.</summary>
     /// <remarks>
     /// <b>Two prices need two edges.</b> The loader admits one <c>[[hinterland]]</c> per edge, so a
-    /// fixture asking which gate is bought first has to put the dear one somewhere else — and the
-    /// Goods stay priced at the south Hinterland, which is all <c>RefuseUnpricedGoods</c> wants.
+    /// fixture asking which gate is bought first has to put the dear one somewhere else.
+    /// <para>
+    /// ⚠ <b>Both Goods are priced here at the south Hinterland's own figures, and leaving them out
+    /// would not have been free.</b> <c>Ruleset.ImportCeiling</c> is the minimum across <em>every</em>
+    /// declared Hinterland and counts an unpriced Resource as zero, while <c>RefuseUnpricedGoods</c>
+    /// only asks for a price at <em>some</em> Hinterland — so an edge pricing nothing but Power would
+    /// load clean and make both Goods free for ever in the Pools. Nothing here buys a Good, so the
+    /// fixture would still pass; ***a fixture that holds only because nothing exercises it is the
+    /// one the next world copies.***
+    /// </para>
     /// </remarks>
     private const string WestHinterland = """
 
@@ -72,7 +80,11 @@ public sealed class PowerImportTests
         edge = "west"
         emigrant_balance_min = 0
         emigrant_balance_max = 0
-        prices = [ { resource = "power", price = 5 } ]
+        prices = [
+            { resource = "lumens", price = 500 },
+            { resource = "widget", price = 500 },
+            { resource = "power",  price = 5 },
+        ]
         """;
 
     private static Ruleset Rules() => Variant();
@@ -116,11 +128,28 @@ public sealed class PowerImportTests
     /// One Outside Connection in the west District, on the west edge, so an import has to travel a
     /// link to reach the consumers.
     /// </param>
+    /// <param name="StrandedGate">
+    /// One Outside Connection on the south edge at <see cref="Stranded"/>, raised after the
+    /// watershed ran so that it stands in no District.
+    /// </param>
     private readonly record struct Shape(
         bool Plant = false,
         bool Works = false,
         int SouthGates = 0,
-        bool WestGate = false);
+        bool WestGate = false,
+        bool StrandedGate = false);
+
+    /// <summary>
+    /// Where a gate stands to be on a priced edge and in no District.
+    /// </summary>
+    /// <remarks>
+    /// <b>On the south edge, which is the edge that prices Power</b>, so a gate here is skipped for
+    /// want of a District and not for want of a price. The ridge occupies the first 256 Tiles and
+    /// its two Districts cover only the Cells it built, so 8,192 is an empty Cell with no road
+    /// frontage — a Cell the next watershed would make a third District of, which is why the gate
+    /// is raised after that has run and the premise is asserted rather than assumed.
+    /// </remarks>
+    private const int Stranded = 8_192;
 
     private sealed class City
     {
@@ -197,6 +226,18 @@ public sealed class PowerImportTests
         world.EvaluateDistricts();
 
         Assert.Equal(2, world.Districts.Rows.LiveCount);
+
+        // Raised after the watershed, because a Cell holding a Building always ends up in some
+        // District once it has run. The Cell-to-District index is what the gate loop reads, and
+        // RebuildDerived restores it rather than re-deriving it, so the gate stays unplaced until
+        // phase 6 of the next revisit Tick.
+        if (shape.StrandedGate)
+        {
+            RaiseAt(world, new Tiles(Stranded), Tiles.Zero, Gate);
+
+            world.RebuildParcels();
+            world.RebuildDerived();
+        }
 
         int burning = DistrictOf(world, home);
         int western = DistrictAt(world, Tiles.Zero, Tiles.Zero);
@@ -617,6 +658,101 @@ public sealed class PowerImportTests
         // The brownout slice 1 demonstrates, unchanged by a pass that found no door to buy at.
         Assert.True(Delivered(world, city.Burning) > Ratio.Zero);
         Assert.True(Delivered(world, city.Burning) < Ratio.One);
+
+        city.Simulation.CheckEndOfRun();
+    }
+
+    /// <summary>
+    /// A gate on an edge whose Hinterland states no price for the Utility imports nothing.
+    /// </summary>
+    /// <remarks>
+    /// <b>The same world twice, and the only difference is the <c>prices</c> entry.</b> Under the
+    /// shipped file the west edge has no <c>[[hinterland]]</c> at all, so <c>TryEdgeImportPrice</c>
+    /// answers nothing for it and the gate is passed over before its District is ever looked up;
+    /// <see cref="TwoPrices"/> adds the price and the same door sells. ⚠ <b>The gate is asserted to
+    /// stand in a District</b>, because that is the other reason a gate is skipped and a test that
+    /// did not separate them would pass on either.
+    /// </remarks>
+    [Fact]
+    public void A_gate_on_an_unpriced_edge_imports_nothing()
+    {
+        City city = Build(new Shape(Works: true, WestGate: true));
+        World world = city.World;
+        long purse = Purse(world);
+        long issued = Issued(world);
+
+        foreach (HinterlandDefinition hinterland in world.Rules.Hinterlands)
+        {
+            Assert.NotEqual(MapEdge.West, hinterland.Edge);
+        }
+
+        Assert.Equal(city.Western, DistrictAt(world, Tiles.Zero, new Tiles(16)));
+
+        AfterSettling(city.Simulation, day: 0);
+
+        Assert.Equal(0, Imported(world, city.Burning));
+        Assert.Equal(0, Imported(world, city.Western));
+        Assert.Equal(0, Paid(world, city.Burning));
+        Assert.Equal(0, Paid(world, city.Western));
+        Assert.Equal(purse, Purse(world));
+        Assert.Equal(issued, Issued(world));
+        Assert.Equal(0, city.Simulation.DrainTreasuryFlows().UtilityImport);
+        Assert.True(
+            Delivered(world, city.Burning) < Ratio.One,
+            "the east is not short, so there was nothing for the gate to have sold");
+
+        // The same door, priced. Without this the assertions above hold on a fixture whose gate
+        // never stood anywhere a price could have reached it.
+        City priced = Build(new Shape(Works: true, WestGate: true), TwoPrices());
+
+        AfterSettling(priced.Simulation, day: 0);
+
+        Assert.True(Imported(priced.World, priced.Burning) > 0, "the priced gate sold nothing");
+
+        city.Simulation.CheckEndOfRun();
+        priced.Simulation.CheckEndOfRun();
+    }
+
+    /// <summary>
+    /// A gate standing in no District imports nothing, however well priced its edge is.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>There is no node for the units to arrive at.</b> A gate is a source attached to the
+    /// District holding its Lot, and carriage inside the city is the links' business — so a door on
+    /// ground the watershed has not claimed is a door onto nothing.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The window is real and it is a Day wide.</b> The Cell-to-District index covers the Cells
+    /// the last evaluation built, a Cell holding no other Building joins no District until the next
+    /// one, and the settle runs at the top of the Day Tick while the re-evaluation is in phase 6 of
+    /// it — so the first settle after a gate opens an empty Cell passes it over. The edge is priced
+    /// and the city is short, which is what leaves the District lookup as the only reason.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_gate_in_no_district_imports_nothing()
+    {
+        City city = Build(new Shape(Works: true, StrandedGate: true));
+        World world = city.World;
+        long purse = Purse(world);
+        long issued = Issued(world);
+
+        Assert.True(Cheap(world) > 0, "the south edge no longer prices Power");
+        Assert.Equal(Rows.NoSlot, DistrictAt(world, new Tiles(Stranded), Tiles.Zero));
+
+        AfterSettling(city.Simulation, day: 0);
+
+        Assert.Equal(0, Imported(world, city.Burning));
+        Assert.Equal(0, Imported(world, city.Western));
+        Assert.Equal(0, Paid(world, city.Burning));
+        Assert.Equal(0, Paid(world, city.Western));
+        Assert.Equal(purse, Purse(world));
+        Assert.Equal(issued, Issued(world));
+        Assert.Equal(0, city.Simulation.DrainTreasuryFlows().UtilityImport);
+        Assert.True(
+            Delivered(world, city.Burning) < Ratio.One,
+            "the east is not short, so there was nothing for the gate to have sold");
 
         city.Simulation.CheckEndOfRun();
     }

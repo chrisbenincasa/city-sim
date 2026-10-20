@@ -6395,6 +6395,14 @@ public sealed partial class World
     /// here with a zero ceiling has a Pool that is free for ever, which is <c>adr/0050</c>'s runaway
     /// arriving from below.
     /// </para>
+    /// <para>
+    /// ⚠ <b>A delivered Utility opens at zero instead, because its ceiling is not a Pool price.</b> A
+    /// Hinterland pricing a delivered Utility prices a <em>gate's import</em>
+    /// (<c>World.TryEdgeImportPrice</c>), and nothing buys in the Pool row — <c>RuleEngine</c> routes
+    /// such a term to <c>Draw</c>/<c>Feed</c> and never to <c>Buy</c>. Seeding it at the cheapest gate
+    /// price would hash and print a market price nothing can ever charge, which is what
+    /// <c>--market</c>'s per-District table would have shown.
+    /// </para>
     /// </remarks>
     public Handle<Bin> CreateDistrictPoolBin(Handle<District> district, ResourceId resource)
     {
@@ -6406,7 +6414,11 @@ public sealed partial class World
 
         Handle<Bin> handle = Bins.Create(BinOwnerKind.District, resource, long.MaxValue);
 
-        DistrictPools.Create(district, handle, Rules.ImportCeiling(resource));
+        Money opening = Rules.IsDeliveredUtility(resource)
+            ? Money.Zero
+            : Rules.ImportCeiling(resource);
+
+        DistrictPools.Create(district, handle, opening);
 
         Markets.Invalidate();
 
@@ -6885,9 +6897,10 @@ public sealed partial class World
                 continue;
             }
 
-            // A delivered Utility is not traded and has no price. No Hinterland sells one, so the
-            // ceiling is zero, and repricing against a zero ceiling would be adr/0050's runaway
-            // arriving from below on a row nobody buys in.
+            // A delivered Utility is not traded, so nobody buys in its Pool row. A Hinterland's
+            // price for one is a gate's import price (World.TryEdgeImportPrice) rather than a Pool
+            // ceiling, so repricing this row would move a number nothing ever charges. The row
+            // opens at zero in CreateDistrictPoolBin and this skip is what keeps it there.
             if (Rules.IsDeliveredUtility(Bins.Resource[bin]))
             {
                 continue;

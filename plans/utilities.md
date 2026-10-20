@@ -163,6 +163,9 @@ import at an Outside Connection for a price.
      drawing Rules; slice 5's tariff is what recovers it.
    - Imports fill only the deficit the plants and the links left, so a plant's unit is never
      displaced by a bought one.
+   - A Hinterland's price for a delivered Utility is a gate's import price and nothing else. The
+     District Pool row for one opens at zero rather than at `ImportCeiling`, so `--market` prints
+     no price for a market nobody buys in and the number stays out of the State Hash.
    - Saved state: `Imported` and `ImportPaid` per District per Utility. Save format 27 → 28. No
      golden moved, because the golden session runs `declining.toml` and only `powered.toml`
      declares a delivered Utility, so the two new columns hash over an empty table.
@@ -175,9 +178,6 @@ import at an Outside Connection for a price.
      - Gates are augmented one at a time in price order rather than solved as a min-cost flow, and
        they share the links. A cheap gate's flow can saturate a link a dearer gate needed, so
        neither the cheapest bill nor the largest total import is guaranteed.
-     - `[market]` does not move a Utility price, but a delivered Utility's Pool row still opens at
-       `ImportCeiling`, which is now the cheapest gate price rather than zero. Nothing reads that
-       number and it is in the State Hash.
      - A Ruleset may price a Utility on an edge that holds no gate. Nothing refuses that and
        nothing ever charges the price.
 5. **Billing.** A per-unit tariff charge on delivered Utility terms, paid to the treasury, and

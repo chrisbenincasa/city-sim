@@ -1170,9 +1170,12 @@ public partial class Main
                         + $"Yesterday the District's network served {drawn.Received:N0} of "
                         + $"{drawn.Asked:N0} units asked."
                     : "The District relies on imports for full delivery.";
+                // Two totals, printed apart. "N units at M" reads as M apiece, which invites a
+                // reader to multiply one total by the other; the Utilities panel words it the same
+                // way for the same reason.
                 string imports = drawn.Imported > 0
-                    ? $" · importing {drawn.Imported:N0} gross units at "
-                        + $"{drawn.ImportPaid.Raw:N0} money units per Day from the treasury"
+                    ? $" · imported {drawn.Imported:N0} gross units yesterday; the treasury paid "
+                        + $"{drawn.ImportPaid.Raw:N0} money units"
                     : string.Empty;
                 rows.Add(new($"Building supply · {UtilitySentence(drawn)}{imports}\n{detail}",
                     Icon: UiIcons.Resource(_names.Resource(drawn.Utility))));

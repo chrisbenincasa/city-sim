@@ -36,9 +36,16 @@ the south edge, which is the edge the Hinterland that prices Power sits behind.
 | **Trigger** | Shift-click at east 191 removes the crossing Street. The east District now has no plant, no neighbor and no gate. The reading does not move, because the settle at Tick 4,096 already fixed Day 2's fraction. | `02` | 4,101 |
 | | The settle at Tick 6,144 finds no crossing and no import source. The wash paints the east red, the panel reads `power delivered at 0%`, and the attention card says every activity drawing it runs at that share and none of them is stopped. | `03` | 6,150 |
 | **Response** | Lot 44 is cleared and an Outside Connection opened on it. The gate draws no Utility, so the wash leaves it gray beside the red dwellings. The Day's fraction still does not move. | `04` | 6,156 |
-| **Consequence** | The settle at Tick 8,192 buys the shortfall and Day 4 is back at 100% on nothing but imports. The attention card reads `importing 576 gross units at 1,152 money units per Day from the treasury`, and the Utilities section reads `The District imported 576 gross units, including road loss; the treasury paid 1,152 money units`. | `05`, `06` | 8,200, 8,202 |
+| **Consequence** | The settle at Tick 8,192 buys the shortfall and Day 4 is back at 100% on nothing but imports. The attention card reads `imported 576 gross units yesterday; the treasury paid 1,152 money units`, and the Utilities section reads `The District imported 576 gross units, including road loss; the treasury paid 1,152 money units`. | `05`, `06` | 8,200, 8,202 |
 | | The city budget's `Utility imports · out` row reads 1,152 today against 0 the Day before, the treasury has fallen to 4,193,152, and the panel's own arithmetic line reads `4,194,304 at the start, 0 in and 1,152 out, leaves 4,193,152.` | `07` | 8,204 |
 | Recurrence | The settle at Tick 10,240 buys the same Day again. The running column reads 2,304 and the treasury 4,192,000. The bill is a standing cost of having no plant. | `08` | 10,248 |
+
+⚠ **The attention line was reworded after these shots were taken.** Shots `05` and `06` were
+captured while the card read `importing 576 gross units at 1,152 money units per Day from the
+treasury`, which invites a reader to multiply the two totals as if 1,152 were a unit price. The
+string now states them apart. The `.txt` captures carry the current wording and the `.png` images
+still show the old one; nothing else in the demonstration renders the line, and the figures are
+unchanged.
 
 `importing.borough-city` is the end state at Tick 10,250, written through the menu at save format
 28. Opening it gives back the city the last two rows are about — the treasury at 4,192,000, the

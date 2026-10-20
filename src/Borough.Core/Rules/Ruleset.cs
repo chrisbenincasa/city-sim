@@ -4789,10 +4789,16 @@ public sealed class Ruleset
     /// inside the item*** when the item is a struct.
     /// </para>
     /// <para>
-    /// <b>Two readers.</b> <see cref="ImportCeiling"/>, the minimum across every declared Hinterland,
-    /// caps District Pool prices. <c>World.TryImportPrice</c> is what a purchase pays the Outside: the
-    /// minimum across the edges that have a gate. Carriage is free, so every gated edge is equally
-    /// near (<c>adr/0135</c>); when <c>adr/0133</c>'s charge ships, both become a per-District
+    /// <b>Three readers, at three widths.</b> <see cref="ImportCeiling"/> takes the minimum across
+    /// every declared Hinterland and caps District Pool prices. <c>World.TryImportPrice</c> is what a
+    /// purchase pays the Outside, which is the minimum across the edges that have a gate.
+    /// <c>World.TryEdgeImportPrice</c> is what one gate pays for a delivered Utility, which is the
+    /// minimum over a <em>single</em> edge and applies no gate-presence test of its own — the caller
+    /// is already walking that edge's gates. ⚠ <b>Only the third acts on a delivered Utility's
+    /// price</b>: <c>World.CreateDistrictPoolBin</c> opens such a Pool row at zero rather than at the
+    /// ceiling, and every purchase path <c>TryImportPrice</c> feeds is gated on
+    /// <see cref="IsDeliveredUtility"/>. Carriage is free, so every gated edge is equally near
+    /// (<c>adr/0135</c>); when <c>adr/0133</c>'s charge ships, all three become a per-District
     /// <c>min(price + haul)</c>. ***Collapsing the four to their minimum at load would have thrown
     /// away the content that makes the Outside legible*** — <c>CONTEXT.md</c> → Hinterland's *four
     /// comparable markets are each other's referent.*

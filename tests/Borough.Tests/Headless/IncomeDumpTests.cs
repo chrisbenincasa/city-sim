@@ -195,7 +195,8 @@ public sealed class IncomeDumpTests
         Assert.Contains("Revenue forgone is not expenditure.", report, Ordinal);
         Assert.True(gross.Relieved > 0, "nothing was relieved, so the caveat covers nothing.");
 
-        long expenditure = gross.Spent + gross.Drawn + gross.Granted + gross.Placed + gross.Kept;
+        long expenditure =
+            gross.Spent + gross.Drawn + gross.Granted + gross.Placed + gross.Kept + gross.Bought;
         long income = gross.Withheld + gross.Profit + gross.Policy + gross.Rule;
 
         Assert.Equal(income - expenditure, Rows(report)[^1].Treasury);
@@ -320,9 +321,11 @@ public sealed class IncomeDumpTests
         Assert.Equal(gross.Granted, Column(report, 8));
         Assert.Equal(gross.Placed, Column(report, 9));
         Assert.Equal(gross.Kept, Column(report, 10));
+        Assert.Equal(gross.Bought, Column(report, 11));
 
         long income = gross.Withheld + gross.Profit + gross.Policy + gross.Rule + gross.Rent;
-        long expenditure = gross.Spent + gross.Drawn + gross.Granted + gross.Placed + gross.Kept;
+        long expenditure =
+            gross.Spent + gross.Drawn + gross.Granted + gross.Placed + gross.Kept + gross.Bought;
 
         Assert.Equal(income - expenditure, Rows(report)[^1].Treasury);
     }
@@ -371,6 +374,75 @@ public sealed class IncomeDumpTests
 
         Assert.Equal(gross.Rent, Column(report, 5));
         Assert.Equal(gross.Rent, Rows(report)[^1].Treasury);
+    }
+
+    /// <summary>
+    /// 🔴 A city buying a Utility at an Outside Connection explains the fall in its own balance.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The sixth expenditure path, and the budget under-reported by the whole of it.</b> Utilities
+    /// slice 4 lets a District short of a delivered Utility buy the shortfall at a gate and pays the
+    /// Hinterland out of the treasury. Before <c>import out</c> this table printed ten zeroes
+    /// against a balance that fell every Day, and the footer below it still claimed every unit was
+    /// explained — ***which is <c>RuleToTreasury</c>'s defect arriving for the fifth time*** and on
+    /// the expenditure side, where a budget over-reports what the city has.
+    /// </para>
+    /// <para>
+    /// <b>The import is the ONLY flow this world has</b>, so the arithmetic is exact rather than
+    /// incidental. <c>powered.toml</c> pays no wage, levies nothing, prices no placement and states
+    /// no road Upkeep, so the whole fall in the balance is asserted to equal this one column and
+    /// every other column is asserted to be zero. A report folding the import into any of them
+    /// would fail the second half.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The identity is stated over the CHANGE in the balance.</b> This world is founded with
+    /// money, because an empty treasury imports nothing; an opening stock is not income and appears
+    /// in no column.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_utility_import_is_an_expenditure_column_and_the_balance_falls_by_it()
+    {
+        // Smaller and shorter than this file's other runs, because the import is a Day-boundary
+        // settle on a fixture with no payday to wait for: three Days is three readings of it.
+        (int code, string report) = Run(Importing(), citizens: "128", ticks: "6145");
+
+        Assert.Equal(0, code);
+        Assert.Contains("import out", report, Ordinal);
+        Assert.Contains("on Utility imports", report, Ordinal);
+
+        Gross gross = OverTheRun(report);
+        BudgetRow[] rows = Rows(report);
+
+        Assert.True(
+            gross.Bought > 0,
+            "the generated city never imported any power, so the column under test is a column of "
+            + "zeroes. powered.toml prices power at the south Hinterland and gives a gate kind "
+            + "import_per_connection; a zero here is a world with no gate or no shortfall.");
+        Assert.Equal(gross.Bought, Column(report, 11));
+
+        Assert.True(
+            rows[0].Treasury > 0,
+            "the world opened with an empty treasury, which imports nothing on credit.");
+
+        // The one flow this file can move. A second non-zero expenditure would make the equality
+        // below pass without saying which column carried the fall.
+        Assert.Equal(
+            0, gross.Spent + gross.Drawn + gross.Granted + gross.Placed + gross.Kept);
+        Assert.Equal(0, gross.Withheld + gross.Profit + gross.Policy + gross.Rule + gross.Rent);
+        Assert.Equal(rows[0].Treasury - rows[^1].Treasury, gross.Bought);
+
+        for (int i = 1; i < rows.Length; i++)
+        {
+            long moved = rows[i].Treasury - rows[i - 1].Treasury;
+
+            Assert.True(
+                moved == -rows[i].Bought,
+                $"reading {i}: the treasury moved by {moved} and the import column reads "
+                + $"{rows[i].Bought}, a residual of {moved + rows[i].Bought}. A unit of the balance "
+                + "no column names is a path out of the treasury this budget cannot attribute.");
+        }
     }
 
     /// <summary>
@@ -471,6 +543,7 @@ public sealed class IncomeDumpTests
         long Granted,
         long Placed,
         long Kept,
+        long Bought,
         long Treasury,
         long Households);
 
@@ -496,7 +569,7 @@ public sealed class IncomeDumpTests
             string[] cells = line.Split(
                 "  ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-            if (cells.Length != 13)
+            if (cells.Length != 14)
             {
                 break;
             }
@@ -505,7 +578,7 @@ public sealed class IncomeDumpTests
                 Number(cells[0]), Number(cells[1]), Number(cells[2]), Number(cells[3]),
                 Number(cells[4]), Number(cells[5]), Number(cells[6]), Number(cells[7]),
                 Number(cells[8]), Number(cells[9]), Number(cells[10]), Number(cells[11]),
-                Number(cells[12])));
+                Number(cells[12]), Number(cells[13])));
         }
 
         Assert.NotEmpty(rows);
@@ -532,6 +605,7 @@ public sealed class IncomeDumpTests
                 8 => row.Granted,
                 9 => row.Placed,
                 10 => row.Kept,
+                11 => row.Bought,
                 _ => throw new ArgumentOutOfRangeException(nameof(index), index, "not a flow column."),
             };
         }
@@ -547,7 +621,8 @@ public sealed class IncomeDumpTests
         string[] into = Line(report, "  Into the treasury:")
             .Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
-        // "  Out of it: S by a Policy, D by a Bin Rule, G in subsidy, P on placements, K on road Upkeep."
+        // "  Out of it: S by a Policy, D by a Bin Rule, G in subsidy, P on placements, K on road
+        //  Upkeep, I on Utility imports."
         string[] outOf = Line(report, "  Out of it:")
             .Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
@@ -562,6 +637,7 @@ public sealed class IncomeDumpTests
         return new Gross(
             Number(into[3]), Number(into[7]), Number(into[11]), Number(into[15]), Number(into[20]),
             Number(outOf[3]), Number(outOf[7]), Number(outOf[12]), Number(outOf[15]), Number(outOf[18]),
+            Number(outOf[22]),
             Number(claim[3].TrimEnd(',')), Number(claim[6]), Number(forgone[2]));
     }
 
@@ -585,6 +661,7 @@ public sealed class IncomeDumpTests
         long Granted,
         long Placed,
         long Kept,
+        long Bought,
         long Claimed,
         long Cut,
         long Relieved);
@@ -630,6 +707,37 @@ public sealed class IncomeDumpTests
         string path = Path.Combine(Path.GetTempPath(), $"borough-untaxed-{Guid.NewGuid():N}.toml");
 
         File.WriteAllText(path, text[..at]);
+
+        return path;
+    }
+
+    /// <summary>
+    /// <c>rulesets/powered.toml</c> with an <c>[income_tax]</c> table appended, written to a
+    /// temporary file.
+    /// </summary>
+    /// <remarks>
+    /// <b>The shipped import fixture plus the one table this mode refuses a file for lacking.</b>
+    /// <c>powered.toml</c> levies nothing and collects no rent, so <c>--income</c> refuses it on
+    /// <see cref="It_refuses_a_ruleset_that_levies_nothing"/>'s rule — and no shipped file both taxes
+    /// and imports a Utility. ⚠ <b>The appended schedule collects nothing</b>, because that file
+    /// declares no job and pays no wage; it is here to get past the refusal and for nothing else,
+    /// which is what leaves the import as the only flow in the report.
+    /// </remarks>
+    private static string Importing()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"borough-importing-{Guid.NewGuid():N}.toml");
+
+        File.WriteAllText(
+            path,
+            File.ReadAllText(Ruleset("powered.toml"))
+            + """
+
+            [income_tax]
+            allowance_per_day = 50
+            upper_threshold_per_day = 200
+            middle_rate_percent = 10
+            upper_rate_percent = 20
+            """);
 
         return path;
     }

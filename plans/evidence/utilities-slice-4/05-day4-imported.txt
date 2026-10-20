@@ -20,7 +20,7 @@ Current condition
 No supply shortfalls reported
 Occupied places: 2 / 1
 What needs attention
-Building supply · power delivered at 100% · importing 576 gross units at 1,152 money units per Day from the treasury
+Building supply · power delivered at 100% · imported 576 gross units yesterday; the treasury paid 1,152 money units
 The District relies on imports for full delivery.
 Activities
 Building activity · lighting
