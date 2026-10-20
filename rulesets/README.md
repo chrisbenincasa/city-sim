@@ -16,7 +16,7 @@ necessarily supply the Streets, Buildings, services or commands needed to exerci
 | Inspect houses, parcels and Streets | [neighbourhood.toml](neighbourhood.toml) | Small houses and independently sized residential parcels; the shell's default. |
 | Compare density and building forms | [platted.toml](platted.toml) | Five bands showing detached, perimeter, terrace, courtyard and slab patterns. |
 | Inspect attached houses | [rowhouses.toml](rowhouses.toml) | Narrow plots with shared side walls and gardens. The central bands deliberately stay empty. |
-| See most systems at once | [pictured.toml](pictured.toml) | Two centres on a coast with floods, traffic, shops, offices, exports, life stages and ruins. Launch with `--citizens 10000`. Demolish a Building to make room, then place a school, clinics and a hospital with the Service tool. |
+| See most systems at once | [pictured.toml](pictured.toml) | Two centres on a coast with floods, traffic, shops, offices, exports, life stages and ruins. Launch with `--citizens 5000`. Demolish a Building to make room, then place a school, clinics and a hospital with the Service tool. |
 | Build from an empty map | [base/ruleset.toml](base/ruleset.toml) | Lay Streets, zone housing, place an edge gate, attract families and place a public school. The treasury has an opening balance but no income. |
 | Try one small housing decision | [urban-neighbourhood.toml](urban-neighbourhood.toml) | Permit an addition after Households fail to find acceptable homes, then watch them move in. **Use the prepared save in the walkthrough below.** |
 | Watch work and shopping journeys | [shopping.toml](shopping.toml) | Weekly work and physical purchases carried home. Shop supply is synthetic. |

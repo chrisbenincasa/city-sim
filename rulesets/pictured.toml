@@ -36,8 +36,9 @@
 # Carried in together they stopped all hiring for a week at 10,000 Citizens (#207). Power has only
 # a fixture (`powered.toml`), whose plant no Zone Rule raises.
 #
-# ⚠ LAUNCH AT 10,000 CITIZENS. The city then fills both centres:
-#   godot --path src/Borough.Godot -- --ruleset rulesets/pictured.toml --citizens 10000
+# ⚠ LAUNCH AT 5,000 CITIZENS. Both centres then stand. At 10,000 the district view drew at 2 FPS
+# against 14 at 2,000, on a loaded machine (#209):
+#   godot --path src/Borough.Godot -- --ruleset rulesets/pictured.toml --citizens 5000
 #
 # 🔴 SERVICES NEED PLACING, AND THE GENERATED CITY LEAVES NO VACANT LOT FOR THEM. Demolish a
 # Building, then place a school, clinics and a hospital with the Service tool. Until clinics stand,
