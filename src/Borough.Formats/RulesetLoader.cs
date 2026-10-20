@@ -2741,15 +2741,13 @@ public static class RulesetLoader
         }
 
         /// <summary>
-        /// <b>The named hole for <c>CONTEXT</c> → Resource's second distinguishing parameter.</b>
+        /// Reads a Utility's delivery keys: <c>storage</c>, <c>link_per_crossing</c> and
+        /// <c>loss_per_road_tile</c>.
         /// </summary>
         /// <remarks>
-        /// <b>Storage — whether a Bin carries over between periods — is the axis this slice did not
-        /// build, and refusing it is the house form for a hole rather than ignoring it.</b> Zero for
-        /// Power, which is what <em>"there is no electricity warehouse"</em> means; large for Water;
-        /// filling for Sewage and Waste. Every one of those is a per-Tick behaviour on the Bin, and
-        /// with none of them implemented an accepted-and-dropped <c>storage = 0</c> would give a
-        /// designer a Power Resource that warehouses electricity for ever and reads as a balance bug.
+        /// <c>storage = 0</c> is accepted and means the Utility keeps no reserve between Days, which
+        /// is Power's "there is no electricity warehouse". A nonzero <c>storage</c> is refused,
+        /// because no carry-over is implemented and an accepted value would be silently ignored.
         /// </remarks>
         private void ReadUtilityDelivery(TableSyntaxBase table, ResourceFamily family)
         {
