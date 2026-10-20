@@ -144,6 +144,12 @@ public static class RulesetKeyNotes
             "Positive Utility link capacity per crossing. Its presence marks the Utility as delivered.",
         ["[[resource]] loss_per_road_tile"] =
             "Nonnegative delivered Utility loss per road tile. It requires link_per_crossing and defaults to zero.",
+        ["[[resource]] import_per_connection"] =
+            "How much of this delivered Utility one Outside Connection brings into the city per Day, "
+            + "in the same units as link_per_crossing. The treasury pays the cheapest [[hinterland]] "
+            + "price on the gate's edge for what arrives, and imports cover only what the District "
+            + "networks are still short of. It requires link_per_crossing, and it is stated with a "
+            + "[[hinterland]] price for the same Utility or not at all.",
 
         ["[[resource]] reach_minutes"] =
             "How far a buyer may stand from a provider of this service, in free-flow travel "
@@ -637,9 +643,10 @@ public static class RulesetKeyNotes
             + "authored anchor under every price in the design: a District's Pool may charge up to "
             + "the cheapest declared Hinterland price and no more.",
         ["[[hinterland]] prices resource"] =
-            "Which Good or service is being priced, naming a [[resource]]. A utility is not "
-            + "stocked, and money is what a price is denominated in rather than a thing that has "
-            + "one, so neither may be.",
+            "Which Good, service or delivered Utility is being priced, naming a [[resource]]. A "
+            + "Utility priced here is imported at an Outside Connection on this edge and states "
+            + "import_per_connection. An undelivered utility reaches no network, and money is what "
+            + "a price is denominated in rather than a thing that has one, so neither may be.",
         // ---- [[hinterland.population]] --------------------------------------------------------
         ["[[hinterland.population]] stage"] =
             "Which Life Stage every Household of this composition is in, naming a [[life_stage]]. "

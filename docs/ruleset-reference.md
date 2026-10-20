@@ -27,7 +27,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-54 sections, 398 keys.
+54 sections, 399 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
@@ -48,7 +48,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[[recipe]] inputs`](#recipe-inputs) — 3 keys
 - [`[[recipe]] outputs`](#recipe-outputs) — 3 keys
 - [`[[reserve]]`](#reserve) — 4 keys
-- [`[[resource]]`](#resource) — 12 keys
+- [`[[resource]]`](#resource) — 13 keys
 - [`[[rule]]`](#rule) — 14 keys
 - [`[[rule]] apply`](#rule-apply) — 4 keys
 - [`[[rule]] inputs`](#rule-inputs) — 3 keys
@@ -428,7 +428,7 @@ The import price, which becomes the ceiling on what that Good can cost inside th
 
 **`resource`** · *quoted string*
 
-Which Good or service is being priced, naming a [[resource]]. A utility is not stocked, and money is what a price is denominated in rather than a thing that has one, so neither may be.
+Which Good, service or delivered Utility is being priced, naming a [[resource]]. A Utility priced here is imported at an Outside Connection on this edge and states import_per_connection. An undelivered utility reaches no network, and money is what a price is denominated in rather than a thing that has one, so neither may be.
 
 ---
 
@@ -767,6 +767,10 @@ Which of the five kinds of thing this is: a good moves as a Shipment on the Road
 **`id`** · *quoted string*
 
 Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.
+
+**`import_per_connection`** · *whole number*
+
+How much of this delivered Utility one Outside Connection brings into the city per Day, in the same units as link_per_crossing. The treasury pays the cheapest [[hinterland]] price on the gate's edge for what arrives, and imports cover only what the District networks are still short of. It requires link_per_crossing, and it is stated with a [[hinterland]] price for the same Utility or not at all.
 
 **`label`** · *quoted string*
 

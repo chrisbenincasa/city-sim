@@ -4933,10 +4933,29 @@ public sealed class Ruleset
     public int[] ResourceStorage { get; init; } = [];
     public int[] ResourceLinks { get; init; } = [];
     public int[] ResourceLosses { get; init; } = [];
+
+    /// <summary>
+    /// What one Outside Connection may import of each delivered Utility per Day, indexed by
+    /// <c>resource - 1</c>. Zero for a Utility no gate can import.
+    /// </summary>
+    /// <remarks>
+    /// <b>Per gate rather than per Hinterland</b>, on <c>arrivals_per_day</c>'s shape: an Outside
+    /// Connection is the thing a player sites, so a second one on the same edge doubles what the
+    /// edge can bring in. The price comes off the Hinterland behind the edge
+    /// (<see cref="ImportPrice"/>), and the loader refuses one without the other.
+    /// </remarks>
+    public int[] ResourceImports { get; init; } = [];
+
     public bool IsDeliveredUtility(ResourceId resource) => resource.Raw >= 1 && resource.Raw <= ResourceLinks.Length && ResourceLinks[resource.Raw - 1] > 0;
     public int StorageOf(ResourceId resource) => resource.Raw >= 1 && resource.Raw <= ResourceStorage.Length ? ResourceStorage[resource.Raw - 1] : 0;
     public int LinkPerCrossing(ResourceId resource) => resource.Raw >= 1 && resource.Raw <= ResourceLinks.Length ? ResourceLinks[resource.Raw - 1] : 0;
     public int LossPerRoadTile(ResourceId resource) => resource.Raw >= 1 && resource.Raw <= ResourceLosses.Length ? ResourceLosses[resource.Raw - 1] : 0;
+
+    /// <inheritdoc cref="ResourceImports"/>
+    public int ImportPerConnection(ResourceId resource) =>
+        resource.Raw >= 1 && resource.Raw <= ResourceImports.Length
+            ? ResourceImports[resource.Raw - 1]
+            : 0;
 
     /// <summary>How far this service reaches, or <c>default</c> when it is not a service.</summary>
     public ServiceReach ReachOf(ResourceId resource) =>
@@ -5420,6 +5439,7 @@ public sealed class Ruleset
             ResourceStorage = ResourceStorage,
             ResourceLinks = ResourceLinks,
             ResourceLosses = ResourceLosses,
+            ResourceImports = ResourceImports,
             LifeStages = LifeStages,
         };
 

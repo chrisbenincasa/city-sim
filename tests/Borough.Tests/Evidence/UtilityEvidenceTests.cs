@@ -39,8 +39,12 @@ public sealed class UtilityEvidenceTests
     private const byte Dwelling = 1;
     private const byte Plant = 2;
 
-    /// <summary>The fourth kind, declared only by <see cref="FallbackChain"/>.</summary>
-    private const byte Lamp = 4;
+    /// <summary>
+    /// The fifth kind, declared only by <see cref="FallbackChain"/>. The chain splices in above
+    /// <c>[districts]</c>, so it follows <c>powered.toml</c>'s four — dwelling, plant, works and
+    /// the <c>gate</c> the import slice added.
+    /// </summary>
+    private const byte Lamp = 5;
 
     private const int Cells = 8;
     private const int PeakCells = 2;

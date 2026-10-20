@@ -873,9 +873,11 @@ public sealed class PowerDeliveryTests
     /// Rule and no <c>pool</c> term.
     /// </summary>
     /// <remarks>
-    /// <b>The <c>pool</c> terms have to go with the key.</b> A pool term naming a Utility that
-    /// states no <c>link_per_crossing</c> is refused at load, so a file that kept them would not be
-    /// a legal reload and the hole this covers would be unreachable.
+    /// <b>The <c>pool</c> terms have to go with the key, and so does the import.</b> A pool term
+    /// naming a Utility that states no <c>link_per_crossing</c> is refused at load, and so are an
+    /// <c>import_per_connection</c> and a <c>[[hinterland]]</c> price on an undelivered one — so a
+    /// file that kept any of them would not be a legal reload and the hole this covers would be
+    /// unreachable.
     /// </remarks>
     private static Ruleset Undelivered()
     {
@@ -892,6 +894,11 @@ public sealed class PowerDeliveryTests
                 .Replace("storage = 0", "", StringComparison.Ordinal)
                 .Replace("link_per_crossing = 2560", "", StringComparison.Ordinal)
                 .Replace("loss_per_road_tile = 1", "", StringComparison.Ordinal)
+                .Replace("import_per_connection = 2560", "", StringComparison.Ordinal)
+                .Replace(
+                    "{ resource = \"power\",  price = 2 },",
+                    "",
+                    StringComparison.Ordinal)
                 .Replace(
                     "inputs  = [ { scope = \"pool\", resource = \"power\", amount = 4 } ]",
                     "inputs  = []",

@@ -88,6 +88,11 @@ import at an Outside Connection for a price.
   - ⚠ A per-Tick settle, or a cadence between the two, would be more dynamic. Within-Day demand is
     lumpy because only the Rules firing in a Tick ask for anything, so a finer cadence needs
     demand smoothed over a window. Revisit if the one-Day lag reads as unresponsive in play.
+- An imported Utility pays its import price only, and no haulage charge (D7, 10/20/2026). The
+  price covers delivery to the city's edge. Inside the city, the treasury owns the network and
+  already pays for distance through street upkeep and `loss_per_road_tile`. A haulage fee would
+  have the treasury pay itself, or need a network owner Borough lacks. Good imports pay no
+  haulage either (`adr/0135`). Revisit when the `adr/0133` haulage charge ships for Goods.
 - Telecommunications is refused (`0074`). District heating is deferred. Gravity-fed sewage is
   deferred until plant siting proves to be decided by land price alone (`docs/deferred.md`).
 
@@ -95,7 +100,6 @@ import at an Outside Connection for a price.
 
 | # | Question | Candidates | Blocks |
 |---|---|---|---|
-| D7 | Does an import pay the haulage charge (`adr/0133`) | Yes; no | Import slice |
 | D8 | Does treatment discharge into a Water Body | Yes, joining the existing `[water] carries = "sewage"`; or a separate Bin | Sewage slice |
 | D9 | Does a sustained brownout feed decline | No; or after a Ruleset duration below a Ruleset fraction | After slice 1 |
 
@@ -136,7 +140,7 @@ import at an Outside Connection for a price.
    Leakage scales with road length.
 3. **Sewage.** Storage that fills, generated as an output of Water-drawing Rules. Inflow grows
    with road length. Overflow raises the pollution layer, which lowers Fertility. Resolve D8.
-4. **Import at an Outside Connection.** Price, gate and payer. Resolve D7.
+4. **Import at an Outside Connection.** Price, gate and payer. No haulage charge (D7).
 5. **Billing.** A per-unit tariff charge on delivered Utility terms, paid to the treasury, and
    the tariff Policy lever. Update the [money circulation](money-circulation.md) Utilities row.
 6. **Critical loads.** A Ruleset flag on a Building kind serves it in full before the rest share
