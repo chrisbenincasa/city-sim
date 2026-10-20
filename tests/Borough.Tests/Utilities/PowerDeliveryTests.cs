@@ -80,12 +80,10 @@ public sealed class PowerDeliveryTests
     /// Further road Tiles inside the plant's District, laid as Segments that join nothing, so the
     /// only thing that moves is the loss.
     /// </param>
-    /// <param name="SecondPlant">A plant in the consuming District as well.</param>
     private readonly record struct Shape(
         bool WorksBesideThePlant = false,
         int ExtraCrossings = 0,
-        int ExtraRoadTiles = 0,
-        bool SecondPlant = false);
+        int ExtraRoadTiles = 0);
 
     private sealed class City
     {
@@ -131,11 +129,6 @@ public sealed class PowerDeliveryTests
             if (cell == 0)
             {
                 generator = Raise(world, cell, standing++, Plant);
-            }
-
-            if (cell == Cells - 1 && shape.SecondPlant)
-            {
-                Raise(world, cell, standing++, Plant);
             }
 
             if (cell == (shape.WorksBesideThePlant ? 0 : Cells - 1))
@@ -260,14 +253,24 @@ public sealed class PowerDeliveryTests
             TravelMode.Any,
             TravelMode.Any);
 
-    private static int Raise(World world, int cell, int index, byte kind)
+    /// <summary>
+    /// Puts one Building on a Lot of its own in <paramref name="cell"/>, offset by
+    /// <paramref name="index"/> so a Cell can hold several.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b><paramref name="now"/> is the Tick the Building's Rules are armed from</b>, so a caller
+    /// raising something mid-run passes the Tick it is on. Arming from zero puts the Rule in a Wheel
+    /// bucket that has already been collected, and nothing runs it until the Wheel wraps.
+    /// </remarks>
+    private static int Raise(World world, int cell, int index, byte kind, Ticks? now = null)
     {
         int block = world.Rules.Roads.BlockTiles;
 
         Handle<Lot> lot = world.Lots.Create(
             new Tiles((cell * block) + 4 + (index * 2)), Tiles.Zero, zone: 1);
 
-        return world.Buildings.Rows.Resolve(world.CreateBuilding(lot, kind, Ticks.Zero, Key));
+        return world.Buildings.Rows.Resolve(
+            world.CreateBuilding(lot, kind, now ?? Ticks.Zero, Key));
     }
 
     private static int DistrictOf(World world, int buildingSlot)
@@ -493,25 +496,32 @@ public sealed class PowerDeliveryTests
 
     /// <summary>
     /// Demolishing the one joining Street leaves the far District short from the next Day on, and
-    /// its consumers go quiet rather than stopping.
+    /// laying it again brings the delivery back. Both edits go through the player's own door.
     /// </summary>
+    /// <remarks>
+    /// <b>The outage and the recovery belong in one test.</b> A world that was never short proves
+    /// nothing about restoring one, and a fraction that returns to the number it left says more
+    /// than a fraction that is merely above zero.
+    /// </remarks>
     [Fact]
-    public void Removing_the_joining_road_starves_the_far_district_from_the_next_day()
+    public void Removing_and_relaying_the_joining_road_starves_and_then_restores_the_far_district()
     {
         City city = Build();
         World world = city.World;
 
         AfterSettling(city.Simulation, day: 0);
 
-        Assert.True(Delivered(world, city.Burning) > Ratio.Zero);
+        Ratio joined = Delivered(world, city.Burning);
 
-        int crossing = world.Rules.Roads.BlockTiles * (Boundary(world) + 1);
+        Assert.True(joined > Ratio.Zero);
 
-        city.Simulation.Step(new TickInput(
-            [Command.Demolish(new Tiles(crossing - 1), Tiles.Zero, DemolishTarget.Street)],
-            rulesetHash: 0));
+        int block = world.Rules.Roads.BlockTiles;
+        int boundary = Boundary(world);
+        var west = new Tiles(boundary * block);
+        var east = new Tiles((boundary + 1) * block);
 
-        Assert.Equal(0, city.Simulation.CommandsRefused);
+        Issue(city.Simulation, Command.Demolish(
+            new Tiles(east.Raw - 1), Tiles.Zero, DemolishTarget.Street));
 
         AfterSettling(city.Simulation, day: 1);
 
@@ -521,17 +531,40 @@ public sealed class PowerDeliveryTests
         Assert.Equal(0, world.UtilityFlows.Received[burning]);
         Assert.Equal(Ratio.Zero, Delivered(world, city.Burning));
 
-        long lumens = Level(world, city.Home, Lumens);
-        long widgets = Level(world, city.Factory, Widget);
+        long dark = Level(world, city.Home, Lumens);
+        long idle = Level(world, city.Factory, Widget);
 
         AfterSettling(city.Simulation, day: 2);
 
-        Assert.Equal(lumens, Level(world, city.Home, Lumens));
-        Assert.Equal(widgets, Level(world, city.Factory, Widget));
-
+        // A whole Day with no power. The consumers apply nothing and neither one stops, because a
+        // delivered Utility never blocks.
+        Assert.Equal(dark, Level(world, city.Home, Lumens));
+        Assert.Equal(idle, Level(world, city.Factory, Widget));
         AssertNotStopped(world, city.Home);
         AssertNotStopped(world, city.Factory);
+
+        Issue(city.Simulation, Command.Street(west, Tiles.Zero, east, Tiles.Zero, SubTiles.Zero));
+
+        AfterSettling(city.Simulation, day: 3);
+
+        Assert.Equal(joined, Delivered(world, city.Burning));
+        Assert.True(world.UtilityFlows.Received[Flow(world, city.Burning)] > 0);
+
+        AfterSettling(city.Simulation, day: 4);
+
+        Assert.True(Level(world, city.Home, Lumens) > dark, "the dwelling stayed dark");
+        Assert.True(Level(world, city.Factory, Widget) > idle, "the works stayed idle");
         city.Simulation.CheckEndOfRun();
+    }
+
+    /// <summary>Applies one command on the next Tick and refuses to proceed if the world refused it.</summary>
+    private static void Issue(Simulation simulation, Command command)
+    {
+        int refused = simulation.CommandsRefused;
+
+        simulation.Step(new TickInput([command], rulesetHash: 0));
+
+        Assert.Equal(refused, simulation.CommandsRefused);
     }
 
     /// <summary>A second Segment over the same boundary doubles the link and raises the fraction.</summary>
@@ -554,16 +587,58 @@ public sealed class PowerDeliveryTests
         wide.Simulation.CheckEndOfRun();
     }
 
-    /// <summary>A plant in the consuming District restores full delivery.</summary>
+    /// <summary>
+    /// A plant raised in the short District during the run restores full delivery the next Day.
+    /// </summary>
+    /// <remarks>
+    /// The plant <b>goes up mid-run rather than at Tick zero</b>, which is the whole claim. A world
+    /// built with two plants would only show that enough supply delivers everything, and what has
+    /// to hold is that a browned-out District recovers. The network picks up a plant that did not
+    /// exist when it was last settled, and the consumers return to their full counts without having
+    /// stopped.
+    /// </remarks>
     [Fact]
-    public void A_second_plant_restores_full_delivery()
+    public void A_plant_raised_in_the_short_district_restores_full_delivery()
     {
-        City city = Build(new Shape(SecondPlant: true));
+        City city = Build();
+        World world = city.World;
 
         AfterSettling(city.Simulation, day: 0);
 
-        Assert.Equal(Ratio.One, Delivered(city.World, city.Burning));
-        Assert.Equal(Ratio.One, Delivered(city.World, city.Making));
+        Assert.True(Delivered(world, city.Burning) < Ratio.One, "the east is not short");
+
+        long lumens = Level(world, city.Home, Lumens);
+        long widgets = Level(world, city.Factory, Widget);
+        long opened = (long)world.Tick.Raw;
+
+        StepTo(city.Simulation, opened + LightingRate);
+
+        long shortLumens = Level(world, city.Home, Lumens) - lumens;
+        long shortWidgets = Level(world, city.Factory, Widget) - widgets;
+
+        // The east peak's ninth Building, armed from the Tick it is raised on.
+        Raise(world, Cells - 1, Tall, Plant, world.Tick);
+
+        AfterSettling(city.Simulation, day: 1);
+
+        Assert.Equal(city.Burning, DistrictOf(world, city.Home));
+        Assert.Equal(Ratio.One, Delivered(world, city.Burning));
+
+        lumens = Level(world, city.Home, Lumens);
+        widgets = Level(world, city.Factory, Widget);
+        opened = (long)world.Tick.Raw;
+
+        StepTo(city.Simulation, opened + LightingRate);
+
+        Assert.Equal(Occupants, Level(world, city.Home, Lumens) - lumens);
+        Assert.Equal(
+            FabricateMax * (LightingRate / FabricateRate),
+            Level(world, city.Factory, Widget) - widgets);
+        Assert.True(Level(world, city.Home, Lumens) - lumens > shortLumens);
+        Assert.True(Level(world, city.Factory, Widget) - widgets > shortWidgets);
+
+        AssertNotStopped(world, city.Home);
+        AssertNotStopped(world, city.Factory);
         city.Simulation.CheckEndOfRun();
     }
 
