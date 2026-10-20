@@ -44,11 +44,15 @@ public static class Evidence
         if (!world.Buildings.Rows.TryResolve(building, out int slot)) return default;
         int shortfalls = 0, routine = 0, unavailable = 0;
         RuleEvidence primary = default;
+        UtilityEvidence shortest = default;
         foreach (int instance in world.BuildingRules.Walk(slot))
         {
             RuleEvidence rule = ReadRule(world, instance, world.Tick);
             if (!household.IsNone && rule.Tenant != household) continue;
             if (!business.IsNone && rule.Business != business) continue;
+            // Before the blocked test, because a Rule under a brownout is not blocked at all. It
+            // succeeds at a reduced count.
+            NoteShortUtility(world, instance, rule.Rule, ref shortest);
             if (rule.Blocked == Blocking.Nothing) continue;
             if (rule.WaitingBin.IsNone || rule.Blocked is not (Blocking.Supply or Blocking.Space))
                 unavailable++;
@@ -60,7 +64,127 @@ public static class Evidence
                 primary = rule;
         }
         return new SupplyEvidence(world.Rules.Declares(world.Buildings.Kind[slot]),
-            shortfalls, routine, unavailable, primary);
+            shortfalls, routine, unavailable, primary, shortest);
+    }
+
+    /// <summary>
+    /// The first delivered Utility a Building's Rules draw, or false where they draw none.
+    /// </summary>
+    /// <remarks>
+    /// <b>For a reader that paints every Building at once</b> — a city-wide wash cannot afford
+    /// <see cref="OfBuilding"/> per Building, and one Utility is what a single colour can say. The
+    /// order is the Rules' declaration order, so the answer is the same on every pass.
+    /// </remarks>
+    /// <param name="world">The world to read.</param>
+    /// <param name="building">Which Building.</param>
+    /// <param name="drawn">The Utility and what its network delivers, when there is one.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="world"/> is null.</exception>
+    public static bool TryUtilityOfBuilding(
+        World world, Handle<Building> building, out UtilityEvidence drawn)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+
+        drawn = default;
+
+        if (!world.Buildings.Rows.TryResolve(building, out int slot))
+        {
+            return false;
+        }
+
+        foreach (int instance in world.BuildingRules.Walk(slot))
+        {
+            foreach (Term term in world.Rules.Inputs(world.RuleInstances.Rule[instance]))
+            {
+                if (IsDrawnUtility(world, term))
+                {
+                    drawn = ReadUtility(world, instance, term.Bin.Resource);
+
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Keeps the worst of the delivered Utilities one Rule Instance draws short, if any is.
+    /// </summary>
+    /// <remarks>
+    /// The worst rather than the first, because a reader given one Utility's name wants the one
+    /// hurting most. Ties keep the one already held, so the answer is the Rules' own order.
+    /// </remarks>
+    private static void NoteShortUtility(
+        World world, int instance, RuleId rule, ref UtilityEvidence worst)
+    {
+        foreach (Term term in world.Rules.Inputs(rule))
+        {
+            if (!IsDrawnUtility(world, term))
+            {
+                continue;
+            }
+
+            UtilityEvidence drawn = ReadUtility(world, instance, term.Bin.Resource);
+
+            if (drawn.Delivered < Ratio.One
+                && (worst.Utility.Raw == 0 || drawn.Delivered < worst.Delivered))
+            {
+                worst = drawn;
+            }
+        }
+    }
+
+    /// <summary>Adds the delivered Utilities one Rule Instance draws, each one once.</summary>
+    /// <remarks>
+    /// The scan for a duplicate is linear over a list a Ruleset's Utility count long, which is what
+    /// a set would be at these sizes.
+    /// </remarks>
+    private static void AddUtilities(
+        World world, List<UtilityEvidence> into, int instance, RuleId rule)
+    {
+        foreach (Term term in world.Rules.Inputs(rule))
+        {
+            if (!IsDrawnUtility(world, term))
+            {
+                continue;
+            }
+
+            bool held = false;
+
+            for (int at = 0; at < into.Count && !held; at++)
+            {
+                held = into[at].Utility == term.Bin.Resource;
+            }
+
+            if (!held)
+            {
+                into.Add(ReadUtility(world, instance, term.Bin.Resource));
+            }
+        }
+    }
+
+    /// <summary>Whether a term is a draw on a District's Utility network.</summary>
+    private static bool IsDrawnUtility(World world, in Term term) =>
+        term.Bin.Scope == Scope.Pool && world.Rules.IsDeliveredUtility(term.Bin.Resource);
+
+    /// <summary>
+    /// What the network a Rule Instance's term addresses delivers, and what it carried yesterday.
+    /// </summary>
+    /// <remarks>
+    /// Premises in no District have no network row and are served nothing, which is
+    /// <c>RuleEngine.Draw</c>'s own answer rather than a missing reading.
+    /// </remarks>
+    private static UtilityEvidence ReadUtility(World world, int instance, ResourceId utility)
+    {
+        int flow = world.UtilityFlowOf(instance, utility);
+
+        return flow == Rows.NoSlot
+            ? new UtilityEvidence(utility, Ratio.Zero, 0, 0)
+            : new UtilityEvidence(
+                utility,
+                world.UtilityFlows.Delivered[flow],
+                world.UtilityFlows.Received[flow],
+                world.UtilityFlows.Asked[flow]);
     }
 
     /// <summary>
@@ -361,9 +485,13 @@ public static class Evidence
         long tenantPressure = 0;
         at = 0;
 
+        var utilities = new List<UtilityEvidence>();
+
         foreach (int instance in world.BuildingRules.Walk(slot))
         {
             RuleEvidence evidence = ReadRule(world, instance, now);
+
+            AddUtilities(world, utilities, instance, evidence.Rule);
 
             if (evidence.Tenant.IsNone)
             {
@@ -413,7 +541,8 @@ public static class Evidence
 
         return new BuildingEvidence(
             building, kind, world.Buildings.Lot[slot], declared, occupancy, jobs,
-            occupants, workers, [.. bins], rules, [.. waste], pressure, tenantPressure);
+            occupants, workers, [.. bins], rules, [.. waste], [.. utilities],
+            pressure, tenantPressure);
     }
 
     private static void AddWaste(

@@ -220,6 +220,7 @@ public partial class Main
             {
                 Wash.Health => HealthColour(slot).SrgbToLinear(),
                 Wash.Trouble => TroubleColour(slot).SrgbToLinear(),
+                Wash.Utilities => UtilityColour(slot).SrgbToLinear(),
                 Wash.Rung => Patterns[RungOf(lot)].SrgbToLinear(),
                 Wash.Age => Shade(Vintage(slot)).SrgbToLinear(),
                 Wash.Family => FamilyColour(slot).SrgbToLinear(),
@@ -653,7 +654,8 @@ public partial class Main
         ? one.Slate.Darkened(0.35f) : one.Slate;
 
     /// <summary>Whether the overlay in force colours each Building by its own reading.</summary>
-    private bool BuildingWash => _washing is Wash.Rung or Wash.Age or Wash.Family or Wash.Health or Wash.Trouble;
+    private bool BuildingWash => _washing is Wash.Rung or Wash.Age or Wash.Family or Wash.Health
+        or Wash.Trouble or Wash.Utilities;
 
     private static Color YardPaint(Massing one) => one.Abandoned
         ? Outbuilding.SrgbToLinear().Darkened(0.35f) : Outbuilding.SrgbToLinear();

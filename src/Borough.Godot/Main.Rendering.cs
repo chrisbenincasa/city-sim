@@ -20,9 +20,11 @@ public partial class Main
         CheckBodyKitAtStartup();
         WorldChanges changes = _world.Changes!;
         if (changes.Full || _visualWash != _washing || _washing == Wash.Age
-            || _troubleRepaint && _washing == Wash.Trouble)
+            || _troubleRepaint && _washing == Wash.Trouble
+            || _utilityRepaint && _washing == Wash.Utilities)
         {
             _troubleRepaint = false;
+            _utilityRepaint = false;
             _fullBuildingPasses++;
             _visualWash = _washing;
             if (changes.Full) PlaceFamilyBodies();
