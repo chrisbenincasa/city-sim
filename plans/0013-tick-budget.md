@@ -1263,3 +1263,42 @@ The profiler excludes setup and reporting from Tick timings and reports the Deci
 - [Export-base slice 4](export-base.md#slice-4-evidence-and-limits) owns the exact reproduction
   command, fixture, cold-rebuild exception, behavior evidence and validation. No quiet-machine
   Tick-budget claim follows from these counts.
+
+## The 64 m base grid, 10/19/2026
+
+- Release on `zeus`, Intel Core i5-10400, commit `6e5c2e87`, seed 0, 10,000 Citizens, `nice -n 10`
+  on a busy desktop. Wall-clock figures are ratios between two runs taken back to back, not
+  quiet-machine timings.
+- "128 m" is `rulesets/base` with `block_tiles = 32`, `merged_block_percent = 0` and
+  `woodland_merge_percent = 0`. "64 m" is `rulesets/base` as shipped.
+- The road graph covers the whole map in both layouts.
+
+| Measure | 128 m | 64 m | Ratio |
+|---|---|---|---|
+| Road nodes | 263,542 | 1,050,998 | 4.0× |
+| Road Segments | 530,914 | 1,239,075 | 2.3× |
+| Nodes no Segment touches (merged-block centers) | — | about 214,000 | — |
+| Buildings at Tick 0 | 500 | 1,255 | 2.5× |
+| Peak RSS, `--roads` | 349 MB | 554 MB | 1.6× |
+| Peak RSS, 2,048 Ticks | 362 MB | 590 MB | 1.6× |
+| 2,048 Ticks, `--no-decide-guard` | 6.3 s | 16.9 s | 2.7× |
+| 2,048 Ticks, Decide guard on (headless default) | 215 s | 508 s | 2.4× |
+
+- Walk search cost follows settled nodes (`≈ 37 ns` each, measured above). `--trips` now prints
+  settled nodes per band. At the same distance the 64 m grid settles 3× to 4× as many:
+
+| Walk distance | 128 m settled p50 / p90 | 64 m settled p50 / p90 |
+|---|---|---|
+| up to 512 m | 5 / 8 | 14 / 23 |
+| up to 1,024 m | 15 / 26 | 47 / 81 |
+| up to 2,048 m | 40 / 60 | 141 / 258 |
+
+- The median ratio rises with distance: 2.8× up to 512 m, 3.1× up to 1 km and 3.5× up to 2 km.
+  The 2 km p90 is 4.3×. A search's scratch arrays are sized by node count, so each route worker
+  holds about 4× the scratch memory.
+- Base sets no jobs weight, so the job-access floods (previous section) do not run on it.
+- The Tick figures compare two different cities, since the finer grid also places 2.5× the
+  Buildings. They bound the change; they do not attribute it to the graph alone.
+- Command, per layout: `dotnet run -c Release --project src/Borough.Headless -- --ruleset
+  <dir>/ruleset.toml --citizens 10000` with `--roads`, `--trips` or `--ticks 2048`, under
+  `/usr/bin/time -f '%M KB, %e s'`.
