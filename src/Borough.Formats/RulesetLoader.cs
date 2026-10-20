@@ -227,6 +227,9 @@ public static class RulesetLoader
         private readonly List<Need> _resourceNeeds = [];
         private readonly List<ShelfLife> _shelfLives = [];
         private readonly List<ServiceReach> _reaches = [];
+        private readonly List<int> _storage = [];
+        private readonly List<int> _links = [];
+        private readonly List<int> _losses = [];
         private int _labourLine;
         private readonly Dictionary<string, byte> _kinds = new(StringComparer.Ordinal);
 
@@ -554,6 +557,9 @@ public static class RulesetLoader
                 ResourceNeeds = [.. _resourceNeeds],
                 ResourceShelfLives = [.. _shelfLives],
                 ResourceReaches = [.. _reaches],
+                ResourceStorage = [.. _storage],
+                ResourceLinks = [.. _links],
+                ResourceLosses = [.. _losses],
                 Founding = founding,
                 ResourceKeys = Keys(_resources),
                 KindKeys = Keys(_kinds),
@@ -588,8 +594,8 @@ public static class RulesetLoader
                         _resourceNeeds.Add(ReadNeed(table));
                         _shelfLives.Add(ReadShelfLife(table, _families[^1]));
                         _reaches.Add(ReadReach(table, _families[^1]));
+                        ReadUtilityDelivery(table, _families[^1]);
                         RefuseLabourThatKeeps(table);
-                        RefuseStorage(table);
                         break;
 
                     case "building":
@@ -1479,7 +1485,8 @@ public static class RulesetLoader
 
                 ResourceFamily family = _families[terms[i].Bin.Resource.Raw - 1];
 
-                if (family is ResourceFamily.Good or ResourceFamily.Service or ResourceFamily.None)
+                if (family is ResourceFamily.Good or ResourceFamily.Service or ResourceFamily.None
+                    || (family == ResourceFamily.Utility && _links[terms[i].Bin.Resource.Raw - 1] > 0))
                 {
                     continue;
                 }
@@ -1574,23 +1581,44 @@ public static class RulesetLoader
             }
         }
 
+        private void RefuseDeliveredUtilityLocalTerms(TableSyntaxBase table, string? name, List<Term> terms, int first, int end)
+        {
+            for (int i = first; i < end; i++)
+            {
+                ResourceId resource = terms[i].Bin.Resource;
+                if (_families[resource.Raw - 1] == ResourceFamily.Utility
+                    && _links[resource.Raw - 1] > 0 && terms[i].Bin.Scope != Scope.Pool)
+                {
+                    Refuse(LineOf(table), name, $"delivered Utility '{NameOfResource(resource)}' terms must use scope = \"pool\".");
+                }
+            }
+        }
+
         private void RefuseUnsupportedPoolTerms(
             TableSyntaxBase table, string? name,
             List<Term> inputs, int inputFirst, int inputEnd,
             List<Term> outputs, int outputFirst, int outputEnd, bool fillsPool)
         {
             bool hasPool = fillsPool;
+            bool needsMoney = fillsPool;
             bool hasMoney = _families.Contains(ResourceFamily.Money);
 
             for (int i = inputFirst; i < inputEnd; i++)
             {
                 hasPool |= inputs[i].Bin.Scope == Scope.Pool;
+                needsMoney |= inputs[i].Bin.Scope == Scope.Pool
+                    && _families[inputs[i].Bin.Resource.Raw - 1] != ResourceFamily.Utility;
             }
 
             for (int i = outputFirst; i < outputEnd; i++)
             {
                 hasPool |= outputs[i].Bin.Scope == Scope.Pool;
+                needsMoney |= outputs[i].Bin.Scope == Scope.Pool
+                    && _families[outputs[i].Bin.Resource.Raw - 1] != ResourceFamily.Utility;
             }
+
+            RefuseDeliveredUtilityLocalTerms(table, name, inputs, inputFirst, inputEnd);
+            RefuseDeliveredUtilityLocalTerms(table, name, outputs, outputFirst, outputEnd);
 
             if (!hasPool)
             {
@@ -1599,14 +1627,13 @@ public static class RulesetLoader
 
             RefusePoolTermsWithoutDelivery(table, name, inputs, inputFirst, inputEnd);
             RefusePoolTermsWithoutDelivery(table, name, outputs, outputFirst, outputEnd);
-
             if (_districtsTable is null)
             {
                 Refuse(LineOf(table), name,
                     "this Rule uses a pool term, but a pool term needs [districts].");
             }
 
-            if (!hasMoney)
+            if (needsMoney && !hasMoney)
             {
                 Refuse(LineOf(table), name,
                     "this Rule uses a pool term, but a pool term needs a Resource with family = \"money\".");
@@ -2724,13 +2751,31 @@ public static class RulesetLoader
         /// with none of them implemented an accepted-and-dropped <c>storage = 0</c> would give a
         /// designer a Power Resource that warehouses electricity for ever and reads as a balance bug.
         /// </remarks>
-        private void RefuseStorage(TableSyntaxBase table)
+        private void ReadUtilityDelivery(TableSyntaxBase table, ResourceFamily family)
         {
-            RefuseRetired(table, "storage", "storage",
-                "storage is not implemented. It is CONTEXT → Resource's second parameter — whether a "
-                + "Bin carries over between periods, zero for Power and filling for Waste — and "
-                + "nothing reads it yet, so accepting it would silently give every Resource the "
-                + "carry-over of a warehouse. Remove the key; the hole is named rather than hidden.");
+            bool hasStorage = Find(table, "storage") is not null;
+            bool hasLink = Find(table, "link_per_crossing") is not null;
+            bool hasLoss = Find(table, "loss_per_road_tile") is not null;
+            int storage = 0;
+            if (hasStorage && TryInteger(table, "storage", out long storageValue, required: true) && storageValue != 0)
+            {
+                Refuse(LineOf(table), null, "storage must be 0; stored Utilities arrive with Water.");
+            }
+            int link = hasLink ? CivicInt(table, "link_per_crossing", 1, int.MaxValue) : 0;
+            int loss = hasLoss ? CivicInt(table, "loss_per_road_tile", 0, int.MaxValue) : 0;
+            if (family != ResourceFamily.Utility)
+            {
+                if (hasStorage || hasLink || hasLoss)
+                    Refuse(LineOf(table), null, $"storage, link_per_crossing, and loss_per_road_tile describe a delivered Utility, but this Resource has family = {FamilyName(family)}.");
+                _storage.Add(0); _links.Add(0); _losses.Add(0); return;
+            }
+            if (hasLink && !hasStorage)
+                Refuse(LineOf(table), null, "storage is required when link_per_crossing is present; stored Utilities arrive with Water.");
+            if (hasStorage && storage != 0)
+                Refuse(LineOf(table), null, "storage must be 0; stored Utilities arrive with Water.");
+            if (hasLoss && !hasLink)
+                Refuse(LineOf(table), null, "loss_per_road_tile requires link_per_crossing.");
+            _storage.Add(storage); _links.Add(link); _losses.Add(hasLink ? loss : 0);
         }
 
         /// <summary>Spells the entities a Readout is readable against, for a refusal message.</summary>
@@ -3100,8 +3145,8 @@ public static class RulesetLoader
         /// </para>
         /// <para>
         /// <b><c>pool</c> is refused when its required world support is absent.</b> A pool term needs
-        /// the District Pool and a money Resource, so <see cref="RefuseUnsupportedPoolTerms"/> checks
-        /// both facts while the Rule still has its source line.
+        /// the District Pool. Goods and services also need a money Resource, so
+        /// <see cref="RefuseUnsupportedPoolTerms"/> checks both facts at the Rule's source line.
         /// </para>
         /// </remarks>
         private bool GlobalNamesAConservedResource(
