@@ -35,7 +35,7 @@ public enum RulesetChange
     ResourceFamily,
 
     /// <summary>
-    /// A Utility started or stopped being delivered — it gained or lost <c>link_per_crossing</c>.
+    /// A Utility's delivery or storage mode changed.
     /// </summary>
     /// <remarks>
     /// <b>This file's stated test, met twice over.</b> A delivered Utility's District Pool row is
@@ -200,10 +200,10 @@ public static class RulesetShape
                 return RulesetChange.ResourceFamily;
             }
 
-            // Delivery is structure and the amount a link carries is a number, which is the Bin's
-            // Resource against its capacity one rung up. A saved network row points at the Pool row
-            // delivery opens, and nothing at all points at link_per_crossing.
-            if (current.IsDeliveredUtility(resource) != replacement.IsDeliveredUtility(resource))
+            // Delivery and storage mode determine how saved network and Bin rows participate.
+            // Link capacity and road loss are tuning numbers.
+            if (current.IsDeliveredUtility(resource) != replacement.IsDeliveredUtility(resource)
+                || current.StorageOf(resource) != replacement.StorageOf(resource))
             {
                 return RulesetChange.ResourceDelivery;
             }

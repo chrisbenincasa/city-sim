@@ -889,7 +889,7 @@ public sealed class PowerDeliveryTests
 
         RulesetLoadResult loaded = RulesetLoader.Parse(
             (toml[..generate] + toml[lighting..])
-                .Replace("storage = 0", "", StringComparison.Ordinal)
+                .Replace("storage = \"none\"", "", StringComparison.Ordinal)
                 .Replace("link_per_crossing = 2560", "", StringComparison.Ordinal)
                 .Replace("loss_per_road_tile = 1", "", StringComparison.Ordinal)
                 .Replace(

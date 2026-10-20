@@ -227,7 +227,7 @@ public static class RulesetLoader
         private readonly List<Need> _resourceNeeds = [];
         private readonly List<ShelfLife> _shelfLives = [];
         private readonly List<ServiceReach> _reaches = [];
-        private readonly List<int> _storage = [];
+        private readonly List<UtilityStorage> _storage = [];
         private readonly List<int> _links = [];
         private readonly List<int> _losses = [];
         private int _labourLine;
@@ -2740,29 +2740,13 @@ public static class RulesetLoader
                 : new ServiceReach(CivicInt(table, "reach_minutes", 1, MinutesPerDay));
         }
 
-        /// <summary>
-        /// Reads a Utility's delivery keys: <c>storage</c>, <c>link_per_crossing</c> and
-        /// <c>loss_per_road_tile</c>.
-        /// </summary>
-        /// <remarks>
-        /// <c>storage = 0</c> is accepted and means the Utility keeps no reserve between Days, which
-        /// is Power's "there is no electricity warehouse". A nonzero <c>storage</c> is refused,
-        /// because no carry-over is implemented and an accepted value would be silently ignored.
-        /// </remarks>
+        /// <summary>Reads a Utility's storage mode, link capacity, and road loss.</summary>
         private void ReadUtilityDelivery(TableSyntaxBase table, ResourceFamily family)
         {
-            bool hasStorage = Find(table, "storage") is not null;
+            KeyValueSyntax? storageEntry = Find(table, "storage", RulesetKeyKind.Quoted);
+            bool hasStorage = storageEntry is not null;
             bool hasLink = Find(table, "link_per_crossing") is not null;
             bool hasLoss = Find(table, "loss_per_road_tile") is not null;
-
-            // Zero is the only accepted value, so the column carries zero for every Resource until
-            // the Water slice builds a store to put in it.
-            if (hasStorage
-                && TryInteger(table, "storage", out long storageValue, required: true)
-                && storageValue != 0)
-            {
-                Refuse(LineOf(table), null, "storage must be 0; stored Utilities arrive with Water.");
-            }
 
             int link = hasLink ? CivicInt(table, "link_per_crossing", 1, int.MaxValue) : 0;
             int loss = hasLoss ? CivicInt(table, "loss_per_road_tile", 0, int.MaxValue) : 0;
@@ -2776,17 +2760,36 @@ public static class RulesetLoader
                         + $"Utility, but this Resource has family = {FamilyName(family)}.");
                 }
 
-                _storage.Add(0);
+                _storage.Add(UtilityStorage.None);
                 _links.Add(0);
                 _losses.Add(0);
                 return;
             }
 
+            UtilityStorage storage = UtilityStorage.None;
+
+            if (storageEntry is not null)
+            {
+                if (storageEntry.Value is StringValueSyntax text && text.Value == "reserve")
+                {
+                    storage = UtilityStorage.Reserve;
+                }
+                else if (storageEntry.Value is StringValueSyntax fills && fills.Value == "fills")
+                {
+                    Refuse(LineOf(storageEntry), null,
+                        "storage = \"fills\" arrives with Sewage; use \"none\" or \"reserve\".");
+                }
+                else if (storageEntry.Value is not StringValueSyntax none || none.Value != "none")
+                {
+                    Refuse(LineOf(storageEntry), null,
+                        "storage must be \"none\" or \"reserve\".");
+                }
+            }
+
             if (hasLink && !hasStorage)
             {
                 Refuse(LineOf(table), null,
-                    "storage is required when link_per_crossing is present; stored Utilities arrive "
-                    + "with Water.");
+                    "storage is required when link_per_crossing is present; use \"none\" or \"reserve\".");
             }
 
             if (hasLoss && !hasLink)
@@ -2794,7 +2797,7 @@ public static class RulesetLoader
                 Refuse(LineOf(table), null, "loss_per_road_tile requires link_per_crossing.");
             }
 
-            _storage.Add(0);
+            _storage.Add(storage);
             _links.Add(link);
             _losses.Add(hasLink ? loss : 0);
         }
@@ -5315,6 +5318,14 @@ public static class RulesetLoader
                     Refuse(LineOf(inline), kind,
                         $"'{NameOfResource(resource)}' is a service, and a service is never stocked. "
                         + "A firm buys it from its provider through a pool input, so no Bin holds it.");
+                    continue;
+                }
+
+                if (_links[resource.Raw - 1] > 0 && _storage[resource.Raw - 1] != UtilityStorage.Reserve)
+                {
+                    Refuse(LineOf(inline), kind,
+                        $"a Building can hold a delivered Utility '{NameOfResource(resource)}' only "
+                        + "when it keeps a reserve (storage = \"reserve\").");
                     continue;
                 }
 

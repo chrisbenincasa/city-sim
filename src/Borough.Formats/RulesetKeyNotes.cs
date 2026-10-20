@@ -139,7 +139,9 @@ public static class RulesetKeyNotes
             + "full cycle at once.",
 
         ["[[resource]] storage"] =
-            "Storage for a Utility. Only zero is accepted in this slice because stored Utilities arrive with Water.",
+            "Utility storage mode, \"none\" or \"reserve\". Required with link_per_crossing. "
+            + "Only reserve Utilities may have Building Bins; undelivered Utilities may keep local Bins. "
+            + "The \"fills\" mode arrives with Sewage.",
         ["[[resource]] link_per_crossing"] =
             "Positive Utility link capacity per crossing. Its presence marks the Utility as delivered.",
         ["[[resource]] loss_per_road_tile"] =

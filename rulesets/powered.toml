@@ -24,9 +24,8 @@
 [[resource]]
 name = "power"
 family = "utility"
-# 0 because a delivered Utility has no store in this slice. A Utility that carries over between
-# Days arrives with Water.
-storage = 0
+# Power keeps no stock between Days.
+storage = "none"
 # What one road Segment crossing a District boundary carries in a Day. Deliberately short of what one
 # ridge's consumers draw, so a single crossing browns the far District out and a second one does not.
 link_per_crossing = 2560

@@ -7,6 +7,13 @@ using Borough.Core.Quantities;
 using Borough.Core.Space;
 using Borough.Core.Tables;
 
+/// <summary>Whether a Utility keeps stock between Days.</summary>
+public enum UtilityStorage : byte
+{
+    None = 0,
+    Reserve = 1,
+}
+
 /// <summary>
 /// Where a Bin Rule's term is drawn from or written to. <c>02 §4.1</c>'s four, and there are four.
 /// </summary>
@@ -4939,11 +4946,14 @@ public sealed class Ruleset
     /// <summary>Each Resource's service reach, indexed by <c>resource - 1</c>.</summary>
     public ServiceReach[] ResourceReaches { get; init; } = [];
 
-    public int[] ResourceStorage { get; init; } = [];
+    public UtilityStorage[] ResourceStorage { get; init; } = [];
     public int[] ResourceLinks { get; init; } = [];
     public int[] ResourceLosses { get; init; } = [];
     public bool IsDeliveredUtility(ResourceId resource) => resource.Raw >= 1 && resource.Raw <= ResourceLinks.Length && ResourceLinks[resource.Raw - 1] > 0;
-    public int StorageOf(ResourceId resource) => resource.Raw >= 1 && resource.Raw <= ResourceStorage.Length ? ResourceStorage[resource.Raw - 1] : 0;
+    public UtilityStorage StorageOf(ResourceId resource) => resource.Raw >= 1 && resource.Raw <= ResourceStorage.Length ? ResourceStorage[resource.Raw - 1] : UtilityStorage.None;
+
+    /// <summary>Whether this delivered Utility keeps a reserve in Building Bins.</summary>
+    public bool HasReserve(ResourceId resource) => IsDeliveredUtility(resource) && StorageOf(resource) == UtilityStorage.Reserve;
     public int LinkPerCrossing(ResourceId resource) => resource.Raw >= 1 && resource.Raw <= ResourceLinks.Length ? ResourceLinks[resource.Raw - 1] : 0;
     public int LossPerRoadTile(ResourceId resource) => resource.Raw >= 1 && resource.Raw <= ResourceLosses.Length ? ResourceLosses[resource.Raw - 1] : 0;
 

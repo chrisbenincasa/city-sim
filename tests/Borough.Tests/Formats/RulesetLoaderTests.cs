@@ -1098,22 +1098,17 @@ public sealed class RulesetLoaderTests
         Assert.Contains("two Bins for one Resource", refusal.Reason, StringComparison.Ordinal);
     }
 
-    /// <summary>
-    /// <b>The second parameter is a named hole, and the test is that it is named.</b> Nothing reads
-    /// <c>storage</c>, so accepting the key would hand a designer a Power Resource that warehouses
-    /// electricity — the hole hidden inside a plausible number rather than reported.
-    /// </summary>
     [Fact]
-    public void Utility_storage_zero_is_accepted()
+    public void An_undelivered_utility_with_no_storage_is_accepted()
     {
         Ruleset ruleset = Accepted("""
             [[resource]]
             name = "power"
             family = "utility"
-            storage = 0
+            storage = "none"
             """);
 
-        Assert.Equal(0, ruleset.StorageOf(new ResourceId(1)));
+        Assert.False(ruleset.HasReserve(new ResourceId(1)));
     }
 
     /// <summary><c>map</c> is write-only, so it cannot be an input and cannot be waited on.</summary>

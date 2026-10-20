@@ -1,0 +1,71 @@
+# This is a demonstration fixture, not a balanced city. Water flows from a pump to dwellings
+# through District networks, and Building-owned tower Bins keep the reserve between Days.
+#
+# A pump supplies 4096 units per Day. Each occupant draws 256 units per Day. A tower holds
+# 65536 units, enough for eight Days of a District with 32 occupants before road loss.
+# No upkeep or zoning Rules change the Buildings a test raises.
+
+[[resource]]
+name = "water"
+family = "utility"
+storage = "reserve"
+link_per_crossing = 2560
+loss_per_road_tile = 1
+
+[[resource]]
+name = "money"
+family = "money"
+
+[[building]]
+name = "dwelling"
+houses = true
+
+[[building]]
+name = "pump"
+
+[[building]]
+name = "tower"
+bins = [ { resource = "water", capacity = 65536 } ]
+
+[[rule]]
+name    = "pump_water"
+kind    = "pump"
+rate    = 8
+apply   = { min = 1, max = 1 }
+inputs  = []
+outputs = [ { scope = "pool", resource = "water", amount = 16 } ]
+
+[[rule]]
+name    = "draw_water"
+kind    = "dwelling"
+rate    = 32
+apply   = { derived = "occupancy" }
+inputs  = [ { scope = "pool", resource = "water", amount = 4 } ]
+outputs = []
+
+[districts]
+prominence_percent = 50
+revisit_ticks      = 2048
+hysteresis_percent = 50
+migrate_cells      = 16
+
+[roads]
+block_tiles                    = 32
+arterial_count                 = 0
+arterial_junction_tiles        = 512
+foot_crossing_every            = 4
+foot_paths_per_thousand_blocks = 40
+street_speed_kph               = 50
+arterial_speed_kph             = 90
+walk_speed_kph                 = 5
+street_capacity_per_hour       = 3600
+arterial_capacity_per_hour     = 12000
+foot_path_capacity_per_hour    = 1000
+
+[lots]
+street_half_width_tiles = 1
+lots_per_segment        = 5
+setback_tiles           = 2
+
+[capacity]
+floor_tiles_per_occupant = 25

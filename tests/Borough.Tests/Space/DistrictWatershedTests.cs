@@ -801,7 +801,7 @@ public sealed class DistrictWatershedTests
                 or "waged.toml" or "pictured.toml" or "shopping.toml" or "insolvent.toml" or "stress-shopping.toml" or "profile-services.toml"
                 or "schooling.toml" or "taxing.toml" or "traded.toml" or "imported.toml" or "milled.toml"
                 or "granted.toml" or "serviced.toml" or "exported.toml" or "offices.toml"
-                or "powered.toml";
+                or "powered.toml" or "watered.toml";
 
             Assert.Equal(expected, states);
         }

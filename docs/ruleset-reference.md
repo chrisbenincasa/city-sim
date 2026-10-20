@@ -808,9 +808,9 @@ How long one shelf-life cycle lasts, in in-world minutes, from 1 to a year. Each
 
 How many cycles stock of this Resource stays good, from 1 to 4. At each of its own cycle boundaries, a Bin's stock ages by one cycle and stock older than this is discarded. Withdrawals take the oldest stock first. State it with shelf_life_cycle_minutes or not at all; absent means the Resource never spoils. Money may not spoil.
 
-**`storage`** · *whole number*
+**`storage`** · *quoted string*
 
-Storage for a Utility. Only zero is accepted in this slice because stored Utilities arrive with Water.
+Utility storage mode, "none" or "reserve". Required with link_per_crossing. Only reserve Utilities may have Building Bins; undelivered Utilities may keep local Bins. The "fills" mode arrives with Sewage.
 
 ---
 
