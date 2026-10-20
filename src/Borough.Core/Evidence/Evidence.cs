@@ -71,9 +71,15 @@ public static class Evidence
     /// The first delivered Utility a Building's Rules draw, or false where they draw none.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>For a reader that paints every Building at once</b> — a city-wide wash cannot afford
     /// <see cref="OfBuilding"/> per Building, and one Utility is what a single colour can say. The
     /// order is the Rules' declaration order, so the answer is the same on every pass.
+    /// </para>
+    /// <para>
+    /// The walk follows each Rule Instance's <c>on_fail</c> chain, because a link has no instance
+    /// of its own and draws against the head's.
+    /// </para>
     /// </remarks>
     /// <param name="world">The world to read.</param>
     /// <param name="building">Which Building.</param>
@@ -93,13 +99,17 @@ public static class Evidence
 
         foreach (int instance in world.BuildingRules.Walk(slot))
         {
-            foreach (Term term in world.Rules.Inputs(world.RuleInstances.Rule[instance]))
+            for (RuleId at = world.RuleInstances.Rule[instance]; !at.IsNone;
+                at = world.Rules.Rule(at).OnFail)
             {
-                if (IsDrawnUtility(world, term))
+                foreach (Term term in world.Rules.Inputs(at))
                 {
-                    drawn = ReadUtility(world, instance, term.Bin.Resource);
+                    if (IsDrawnUtility(world, term))
+                    {
+                        drawn = ReadUtility(world, instance, term.Bin.Resource);
 
-                    return true;
+                        return true;
+                    }
                 }
             }
         }
@@ -112,24 +122,28 @@ public static class Evidence
     /// </summary>
     /// <remarks>
     /// The worst rather than the first, because a reader given one Utility's name wants the one
-    /// hurting most. Ties keep the one already held, so the answer is the Rules' own order.
+    /// hurting most. Ties keep the one already held, so the answer is the Rules' own order. The
+    /// scan covers the Instance's <c>on_fail</c> chain, whose links draw against this Instance.
     /// </remarks>
     private static void NoteShortUtility(
         World world, int instance, RuleId rule, ref UtilityEvidence worst)
     {
-        foreach (Term term in world.Rules.Inputs(rule))
+        for (RuleId at = rule; !at.IsNone; at = world.Rules.Rule(at).OnFail)
         {
-            if (!IsDrawnUtility(world, term))
+            foreach (Term term in world.Rules.Inputs(at))
             {
-                continue;
-            }
+                if (!IsDrawnUtility(world, term))
+                {
+                    continue;
+                }
 
-            UtilityEvidence drawn = ReadUtility(world, instance, term.Bin.Resource);
+                UtilityEvidence drawn = ReadUtility(world, instance, term.Bin.Resource);
 
-            if (drawn.Delivered < Ratio.One
-                && (worst.Utility.Raw == 0 || drawn.Delivered < worst.Delivered))
-            {
-                worst = drawn;
+                if (drawn.Delivered < Ratio.One
+                    && (worst.Utility.Raw == 0 || drawn.Delivered < worst.Delivered))
+                {
+                    worst = drawn;
+                }
             }
         }
     }
@@ -137,28 +151,32 @@ public static class Evidence
     /// <summary>Adds the delivered Utilities one Rule Instance draws, each one once.</summary>
     /// <remarks>
     /// The scan for a duplicate is linear over a list a Ruleset's Utility count long, which is what
-    /// a set would be at these sizes.
+    /// a set would be at these sizes. The Instance's <c>on_fail</c> chain is included, head first,
+    /// because its links draw against this Instance rather than holding one of their own.
     /// </remarks>
     private static void AddUtilities(
         World world, List<UtilityEvidence> into, int instance, RuleId rule)
     {
-        foreach (Term term in world.Rules.Inputs(rule))
+        for (RuleId link = rule; !link.IsNone; link = world.Rules.Rule(link).OnFail)
         {
-            if (!IsDrawnUtility(world, term))
+            foreach (Term term in world.Rules.Inputs(link))
             {
-                continue;
-            }
+                if (!IsDrawnUtility(world, term))
+                {
+                    continue;
+                }
 
-            bool held = false;
+                bool held = false;
 
-            for (int at = 0; at < into.Count && !held; at++)
-            {
-                held = into[at].Utility == term.Bin.Resource;
-            }
+                for (int at = 0; at < into.Count && !held; at++)
+                {
+                    held = into[at].Utility == term.Bin.Resource;
+                }
 
-            if (!held)
-            {
-                into.Add(ReadUtility(world, instance, term.Bin.Resource));
+                if (!held)
+                {
+                    into.Add(ReadUtility(world, instance, term.Bin.Resource));
+                }
             }
         }
     }

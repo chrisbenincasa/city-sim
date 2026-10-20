@@ -106,6 +106,8 @@ import at an Outside Connection for a price.
      the whole Day, so a cut road or a new plant reads from the next Day.
    - A short Utility degrades rather than blocks, which is why no field a stopped Rule fills can
      report a brownout. The explanation carries it in its own field.
+   - A Utility an `on_fail` link draws counts as drawn. A link holds no Rule Instance of its own
+     and runs against the head's, so the readers walk the chain from each Instance's head.
    - Tests: `DistrictAdjacencyTests`, `UtilityRulesetLoadTests`, `PowerDeliveryTests`,
      `UtilityEvidenceTests`. Driven demonstration in `evidence/utilities-slice-1/`.
    - Gap found: a Lot built in code gets one Tile of ground, so the shell draws no massing for it

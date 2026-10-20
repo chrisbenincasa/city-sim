@@ -39,6 +39,9 @@ public sealed class UtilityEvidenceTests
     private const byte Dwelling = 1;
     private const byte Plant = 2;
 
+    /// <summary>The fourth kind, declared only by <see cref="FallbackChain"/>.</summary>
+    private const byte Lamp = 4;
+
     private const int Cells = 8;
     private const int PeakCells = 2;
     private const int Tall = 8;
@@ -61,6 +64,9 @@ public sealed class UtilityEvidenceTests
 
         /// <summary>The plant's Building slot.</summary>
         public required int Generator { get; init; }
+
+        /// <summary>The lamp's Building slot, or <c>Rows.NoSlot</c> where none was raised.</summary>
+        public int Lit { get; init; } = Rows.NoSlot;
     }
 
     private static RulesetLoadResult Loaded()
@@ -75,15 +81,82 @@ public sealed class UtilityEvidenceTests
 
     private static Ruleset Rules() => Loaded().Ruleset!;
 
-    private static City Build()
+    /// <summary>
+    /// A fourth kind whose Power draw sits on an <c>on_fail</c> link rather than on the head.
+    /// </summary>
+    /// <remarks>
+    /// <b>The head starts failing</b>, because the lamp's widget Bin begins empty. The link refills
+    /// that Bin from the Pool, which is <c>adr/0045</c>'s ladder with a Utility at the bottom of it,
+    /// and a reporting terminal closes the chain as the loader requires. A reader stopping at the
+    /// head's own inputs calls this Building undrawn.
+    /// </remarks>
+    private const string FallbackChain = """
+
+        [[building]]
+        name = "lamp"
+        bins = [
+          { resource = "lumens", capacity = 65536 },
+          { resource = "widget", capacity = 16 },
+        ]
+
+        [[rule]]
+        name    = "lamp_oil"
+        kind    = "lamp"
+        rate    = 32
+        apply   = { min = 1, max = 1 }
+        on_fail = "lamp_mains"
+        inputs  = [ { scope = "local", resource = "widget", amount = 1 } ]
+        outputs = [ { scope = "local", resource = "lumens", amount = 1 } ]
+
+        [[rule]]
+        name    = "lamp_mains"
+        kind    = "lamp"
+        rate    = 32
+        apply   = { min = 1, max = 1 }
+        on_fail = "lamp_dark"
+        inputs  = [ { scope = "pool", resource = "power", amount = 4 } ]
+        outputs = [ { scope = "local", resource = "widget", amount = 1 } ]
+
+        [[rule]]
+        name    = "lamp_dark"
+        kind    = "lamp"
+        rate    = 32
+        apply   = { min = 1, max = 1 }
+        inputs  = []
+        outputs = []
+        reports = "unlit"
+
+        """;
+
+    /// <summary><c>powered.toml</c> with <see cref="FallbackChain"/> spliced in above its tables.</summary>
+    private static Ruleset ChainedRules()
     {
-        var world = new World(400, Rules(), Key);
+        string toml = File.ReadAllText(
+            Path.Combine(AppContext.BaseDirectory, "Rulesets", "powered.toml"));
+
+        const string tables = "\n[districts]\n";
+
+        Assert.Contains(tables, toml, StringComparison.Ordinal);
+
+        RulesetLoadResult loaded = RulesetLoader.Parse(
+            toml.Replace(tables, FallbackChain + tables, StringComparison.Ordinal),
+            "powered-chained.toml");
+
+        Assert.True(loaded.Ok, loaded.Describe());
+
+        return loaded.Ruleset!;
+    }
+
+    private static City Build(Ruleset? rules = null, bool lamp = false)
+    {
+        var world = new World(400, rules ?? Rules(), Key);
         var simulation = new Simulation(world, Key) { VerifyDecideWritesNothing = true };
 
         Lay(world);
 
         int generator = Rows.NoSlot;
         int home = Rows.NoSlot;
+        int lit = Rows.NoSlot;
 
         for (int cell = 0; cell < Cells; cell++)
         {
@@ -102,6 +175,13 @@ public sealed class UtilityEvidenceTests
                 for (int occupant = 0; occupant < Occupants; occupant++)
                 {
                     world.CreateHousehold(world.Buildings.Rows.At(home), lifeStage: 1);
+                }
+
+                // It takes a filler's place, so the ridge keeps its shape and its Building count
+                // and the watershed falls where every other test here finds it.
+                if (lamp)
+                {
+                    lit = Raise(world, cell, standing++, Lamp);
                 }
             }
 
@@ -132,6 +212,7 @@ public sealed class UtilityEvidenceTests
             Burning = burning,
             Home = home,
             Generator = generator,
+            Lit = lit,
         };
     }
 
@@ -319,6 +400,73 @@ public sealed class UtilityEvidenceTests
         Assert.Equal(lit.Asked, restored.Asked);
         Assert.Equal(lit.Received, restored.Received);
         Assert.Equal(0, Brownout(world, city.Home).Utility.Raw);
+
+        city.Simulation.CheckEndOfRun();
+    }
+
+    /// <summary>
+    /// A Utility drawn only by an <c>on_fail</c> link is reported, and loses its road with the rest.
+    /// </summary>
+    /// <remarks>
+    /// <b>A link has no Rule Instance of its own</b> — <c>RuleEngine.Descend</c> evaluates and fires
+    /// it against the head's instance — so a reader walking only the head's inputs would call this
+    /// Building undrawn while it runs at nothing delivered. That is the failure this covers, in all
+    /// three readers.
+    /// </remarks>
+    [Fact]
+    public void A_utility_drawn_only_by_a_fallback_is_reported_and_follows_the_road()
+    {
+        City city = Build(ChainedRules(), lamp: true);
+        World world = city.World;
+
+        Assert.NotEqual(Rows.NoSlot, city.Lit);
+        Assert.Equal(city.Burning, DistrictOf(world, city.Lit));
+
+        // The premise, asserted so this stays a regression: the loader instances heads only, and
+        // no head the lamp holds draws on a Pool itself. Reading heads alone finds no Utility here.
+        foreach (int instance in world.BuildingRules.Walk(city.Lit))
+        {
+            foreach (Term term in world.Rules.Inputs(world.RuleInstances.Rule[instance]))
+            {
+                Assert.NotEqual(Scope.Pool, term.Bin.Scope);
+            }
+        }
+
+        AfterSettling(city.Simulation, day: 0);
+
+        UtilityEvidence lit = Drawn(world, city.Lit);
+
+        Assert.Equal(Ratio.One, lit.Delivered);
+        Assert.Equal(0, Brownout(world, city.Lit).Utility.Raw);
+
+        Assert.True(Core.Evidence.Evidence.TryUtilityOfBuilding(
+            world, world.Buildings.Rows.At(city.Lit), out UtilityEvidence washed));
+        Assert.Equal(Power, washed.Utility);
+        Assert.Equal(Ratio.One, washed.Delivered);
+
+        int block = world.Rules.Roads.BlockTiles;
+        int boundary = Boundary(world);
+        var west = new Tiles(boundary * block);
+        var east = new Tiles((boundary + 1) * block);
+
+        Issue(city.Simulation, Command.Demolish(
+            new Tiles(east.Raw - 1), Tiles.Zero, DemolishTarget.Street));
+
+        AfterSettling(city.Simulation, day: 1);
+
+        Assert.Equal(Ratio.Zero, Drawn(world, city.Lit).Delivered);
+        Assert.Equal(Power, Brownout(world, city.Lit).Utility);
+
+        Assert.True(Core.Evidence.Evidence.TryUtilityOfBuilding(
+            world, world.Buildings.Rows.At(city.Lit), out washed));
+        Assert.Equal(Ratio.Zero, washed.Delivered);
+
+        Issue(city.Simulation, Command.Street(west, Tiles.Zero, east, Tiles.Zero, SubTiles.Zero));
+
+        AfterSettling(city.Simulation, day: 2);
+
+        Assert.Equal(Ratio.One, Drawn(world, city.Lit).Delivered);
+        Assert.Equal(0, Brownout(world, city.Lit).Utility.Raw);
 
         city.Simulation.CheckEndOfRun();
     }
