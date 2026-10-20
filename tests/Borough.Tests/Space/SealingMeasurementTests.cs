@@ -54,6 +54,14 @@ public sealed class SealingMeasurementTests(ITestOutputHelper output)
 
     private static Ruleset Load(string file)
     {
+        if (file.EndsWith("/ruleset.toml", StringComparison.Ordinal))
+        {
+            RulesetSourceResult source = RulesetSource.Load(PathTo(file));
+
+            return source.Ruleset
+                ?? throw new InvalidOperationException($"{file} was refused: {source.Diagnostics[0]}");
+        }
+
         RulesetLoadResult result = RulesetLoader.Load(PathTo(file));
 
         return result.Ruleset
@@ -153,6 +161,7 @@ public sealed class SealingMeasurementTests(ITestOutputHelper output)
     [InlineData("minimal.toml")]
     [InlineData("severance.toml")]
     [InlineData("twinned.toml")]
+    [InlineData("base/ruleset.toml")]
     public void What_a_generated_city_seals(string file)
     {
         Reading reading = Measure(file);

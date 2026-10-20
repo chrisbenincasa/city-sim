@@ -883,9 +883,9 @@ public static class RoadGenerator
         /// </para>
         /// <para>
         /// <b>The attribution is per Cell crossed and NOT split between the endpoints' two
-        /// Cells.</b> <see cref="MapLayers.Seal"/> writes one Cell and a Segment is never in one
-        /// Cell -- a Street runs Cell boundary to Cell boundary at the shipped
-        /// <c>block_tiles</c>, and <c>rulesets/severance.toml</c>'s 256 spans eight. Splitting
+        /// Cells.</b> <see cref="MapLayers.Seal"/> writes one Cell and a Segment may cross several
+        /// -- a Street runs Cell boundary to Cell boundary at <c>block_tiles = 32</c>, lies inside
+        /// one Cell on an inner line at 16, and spans eight at <c>rulesets/severance.toml</c>'s 256. Splitting
         /// between the endpoints would put half a Segment's Tiles into each end and <em>nothing</em>
         /// into the Cells the road runs through, which is a different quantity rather than an
         /// approximation of this one.

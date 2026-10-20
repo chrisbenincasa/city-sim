@@ -34,6 +34,12 @@ corner sample is *systematically a junction*. They are not two estimates with di
 bracket the truth from opposite sides, permanently, in every Cell of every world generated at the
 shipped lattice.
 
+At `block_tiles = 16`, which `rulesets/base` ships, the offsets 8 and 24 are block centres, so every
+order-2 sample is the quietest Tile of its block. In a merged 128 m block they are quadrant centres
+again. Rank still holds. `CellDesirabilitySamplingTests` measures 8 of 630 pairs ordered differently
+from order 8 on a uniform 16-Tile lattice and 6 of 630 with half the Cells merged, all within the 1% tie
+band.
+
 ### The reasoning that was written first was wrong, and the measurement said so
 
 What this record was opened to say is: *four quadrant centres is the lowest order that estimates the
