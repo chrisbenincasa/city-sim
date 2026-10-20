@@ -1,0 +1,122 @@
+# A FIXTURE, not a city. It exists so that Power can be watched flowing between two Districts, and
+# every number in it is chosen to make an assertion legible rather than to balance anything.
+#
+# WHAT IT DECLARES. One delivered Utility, `power`: `link_per_crossing` is what makes a Utility
+# delivered, so it gets a Pool row and a network in every District and may appear in `pool` terms.
+# Three kinds use it. A `plant` turns nothing into power and names no Bin and no labour, so a test
+# can watch a network run without raising a Citizen or staffing a firm. A `dwelling` draws power per
+# occupant, which is the `apply = { derived = "occupancy" }` shape degrading rather than failing. A
+# `works` draws power greedily and stores what it makes, which is the shape that outruns a link.
+#
+# WHY THE LOSS IS 1 PER ROAD TILE. The road graph is the network, so a longer District loses more.
+# A ridge of eight 32-Tile blocks credits 256 Tiles between its two Districts, which is a few per
+# cent of a plant's Day -- visible in the delivered fraction, and nowhere near dominating it.
+#
+# WHY NOTHING DECLINES AND NOTHING IS ZONED. There is no `upkeep` Rule and no `[[zone_rule]]`, so no
+# Building is ever condemned and none is ever raised. A test builds the city it wants and the city
+# stays built, which is what makes a Day-to-Day comparison of one network a comparison of one city.
+#
+# THE MONEY RESOURCE AND THE HINTERLAND ARE BOTH PAPERWORK. A file stating `[districts]` must price
+# every Good at some Hinterland, because a Pool's ceiling is the cheapest import price and an
+# unpriced Good is free for ever. Nothing here buys or sells: a delivered Utility is not traded and
+# has no price at all.
+
+[[resource]]
+name = "power"
+family = "utility"
+# 0 because a delivered Utility has no store in this slice. A Utility that carries over between
+# Days arrives with Water.
+storage = 0
+# What one road Segment crossing a District boundary carries in a Day. Deliberately short of what one
+# ridge's consumers draw, so a single crossing browns the far District out and a second one does not.
+link_per_crossing = 2560
+# What a District's network loses per Tile of road credited to it, in a Day.
+loss_per_road_tile = 1
+
+[[resource]]
+name = "lumens"
+family = "good"
+
+[[resource]]
+name = "widget"
+family = "good"
+
+[[resource]]
+name = "money"
+family = "money"
+
+[[hinterland]]
+edge = "south"
+emigrant_balance_min = 0
+emigrant_balance_max = 0
+prices = [
+    { resource = "lumens", price = 500 },
+    { resource = "widget", price = 500 },
+]
+
+# Kind 1, so the mass of Buildings a test raises to shape the watershed draws no power until it is
+# occupied.
+[[building]]
+name = "dwelling"
+bins = [ { resource = "lumens", capacity = 65536 } ]
+houses = true
+
+# Kind 2.
+[[building]]
+name = "plant"
+
+# Kind 3.
+[[building]]
+name = "works"
+bins = [ { resource = "widget", capacity = 1048576 } ]
+
+[[rule]]
+name    = "generate"
+kind    = "plant"
+rate    = 8
+apply   = { min = 1, max = 1 }
+inputs  = []
+outputs = [ { scope = "pool", resource = "power", amount = 16 } ]
+
+[[rule]]
+name    = "lighting"
+kind    = "dwelling"
+rate    = 32
+apply   = { derived = "occupancy" }
+inputs  = [ { scope = "pool", resource = "power", amount = 4 } ]
+outputs = [ { scope = "local", resource = "lumens", amount = 1 } ]
+
+[[rule]]
+name    = "fabricate"
+kind    = "works"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = [ { scope = "pool", resource = "power", amount = 4 } ]
+outputs = [ { scope = "local", resource = "widget", amount = 1 } ]
+
+[districts]
+prominence_percent = 50
+revisit_ticks      = 2048
+hysteresis_percent = 50
+migrate_cells      = 16
+
+[roads]
+block_tiles                    = 32
+arterial_count                 = 0
+arterial_junction_tiles        = 512
+foot_crossing_every            = 4
+foot_paths_per_thousand_blocks = 40
+street_speed_kph               = 50
+arterial_speed_kph             = 90
+walk_speed_kph                 = 5
+street_capacity_per_hour       = 3600
+arterial_capacity_per_hour     = 12000
+foot_path_capacity_per_hour    = 1000
+
+[lots]
+street_half_width_tiles = 1
+lots_per_segment        = 5
+setback_tiles           = 2
+
+[capacity]
+floor_tiles_per_occupant = 25

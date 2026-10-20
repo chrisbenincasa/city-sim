@@ -1425,6 +1425,14 @@
             "description": "The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.",
             "type": "string"
           },
+          "link_per_crossing": {
+            "description": "Positive Utility link capacity per crossing. Its presence marks the Utility as delivered.",
+            "type": "integer"
+          },
+          "loss_per_road_tile": {
+            "description": "Nonnegative delivered Utility loss per road tile. It requires link_per_crossing and defaults to zero.",
+            "type": "integer"
+          },
           "name": {
             "description": "What this Resource is called. Every other table refers to it by this name, and the engine never sees the string.",
             "type": "string"
@@ -1447,6 +1455,10 @@
           },
           "shelf_life_cycles": {
             "description": "How many cycles stock of this Resource stays good, from 1 to 4. At each of its own cycle boundaries, a Bin's stock ages by one cycle and stock older than this is discarded. Withdrawals take the oldest stock first. State it with shelf_life_cycle_minutes or not at all; absent means the Resource never spoils. Money may not spoil.",
+            "type": "integer"
+          },
+          "storage": {
+            "description": "Storage for a Utility. Only zero is accepted in this slice because stored Utilities arrive with Water.",
             "type": "integer"
           }
         }

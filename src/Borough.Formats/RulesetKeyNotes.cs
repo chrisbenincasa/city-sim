@@ -37,7 +37,7 @@ namespace Borough.Formats;
 /// </para>
 /// <para>
 /// ⚠ <b>The retired keys are deliberately absent</b> — <c>condemn_after</c>, <c>sample</c>,
-/// <c>wage</c>, <c>storage</c>, <c>sealing_decay_tau</c> in <c>[layers]</c>, the three
+/// <c>wage</c>, <c>sealing_decay_tau</c> in <c>[layers]</c>, the three
 /// <c>adr/0148</c> moved to <c>[[business]]</c>, <c>occupants</c>/<c>jobs</c>/<c>parking</c>/
 /// <c>footprint_tiles</c> from <c>plans/0052</c> and <c>plans/0053</c>, and <c>tenanted</c> from
 /// <c>plans/0054</c>. They are known to the loader only so it can refuse them by name with a
@@ -137,6 +137,13 @@ public static class RulesetKeyNotes
             + "ages on its own boundary within the cycle, offset from other Bins so a city's stock "
             + "does not all age on one Tick. Stock deposited just before its Bin's boundary ages a "
             + "full cycle at once.",
+
+        ["[[resource]] storage"] =
+            "Storage for a Utility. Only zero is accepted in this slice because stored Utilities arrive with Water.",
+        ["[[resource]] link_per_crossing"] =
+            "Positive Utility link capacity per crossing. Its presence marks the Utility as delivered.",
+        ["[[resource]] loss_per_road_tile"] =
+            "Nonnegative delivered Utility loss per road tile. It requires link_per_crossing and defaults to zero.",
 
         ["[[resource]] reach_minutes"] =
             "How far a buyer may stand from a provider of this service, in free-flow travel "

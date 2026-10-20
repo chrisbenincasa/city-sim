@@ -27,7 +27,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-54 sections, 395 keys.
+54 sections, 398 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
@@ -48,7 +48,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[[recipe]] inputs`](#recipe-inputs) — 3 keys
 - [`[[recipe]] outputs`](#recipe-outputs) — 3 keys
 - [`[[reserve]]`](#reserve) — 4 keys
-- [`[[resource]]`](#resource) — 9 keys
+- [`[[resource]]`](#resource) — 12 keys
 - [`[[rule]]`](#rule) — 14 keys
 - [`[[rule]] apply`](#rule-apply) — 4 keys
 - [`[[rule]] inputs`](#rule-inputs) — 3 keys
@@ -772,6 +772,14 @@ Identifies the declaration across the package. Other members refer to it by this
 
 The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.
 
+**`link_per_crossing`** · *whole number*
+
+Positive Utility link capacity per crossing. Its presence marks the Utility as delivered.
+
+**`loss_per_road_tile`** · *whole number*
+
+Nonnegative delivered Utility loss per road tile. It requires link_per_crossing and defaults to zero.
+
 **`name`** · *quoted string*
 
 What this Resource is called. Every other table refers to it by this name, and the engine never sees the string.
@@ -795,6 +803,10 @@ How long one shelf-life cycle lasts, in in-world minutes, from 1 to a year. Each
 **`shelf_life_cycles`** · *whole number*
 
 How many cycles stock of this Resource stays good, from 1 to 4. At each of its own cycle boundaries, a Bin's stock ages by one cycle and stock older than this is discarded. Withdrawals take the oldest stock first. State it with shelf_life_cycle_minutes or not at all; absent means the Resource never spoils. Money may not spoil.
+
+**`storage`** · *whole number*
+
+Storage for a Utility. Only zero is accepted in this slice because stored Utilities arrive with Water.
 
 ---
 

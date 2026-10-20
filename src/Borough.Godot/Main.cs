@@ -488,6 +488,18 @@ public partial class Main : Node3D
         Trouble,
 
         /// <summary>
+        /// What each Building's District network delivers of the first Utility it draws — the
+        /// brownout view.
+        /// </summary>
+        /// <remarks>
+        /// ⚠ <b>A Building drawing no delivered Utility has no reading and stays neutral</b>, which
+        /// includes every Building in a Ruleset that declares none. A delivered Utility never blocks
+        /// a Rule, so a browned-out city shows up nowhere in <see cref="Trouble"/> — ***this is the
+        /// only wash that can see a shortage nothing complains about.***
+        /// </remarks>
+        Utilities,
+
+        /// <summary>
         /// A Building's rung on <c>BlockPatterns.Ladder</c>. <b>A DEBUG VIEW AND NOT A SHIPPING
         /// ONE.</b>
         /// </summary>
@@ -1926,6 +1938,16 @@ public partial class Main : Node3D
             && tick - _cityReading.ReadAt.Raw >= (ulong)Math.Max(1, Cadence()))
         {
             ReadCity();
+        }
+
+        // ⚠ THE UTILITIES WASH REPAINTS ON THE DAY AND NOT ON THE LAYER CADENCE. One settle fixes
+        // every network's delivered fraction for the whole Day, so repainting faster would re-read
+        // an unchanged number off every Building in the city -- the massing pass this triggers is
+        // the expensive half.
+        if (_washing == Wash.Utilities && tick / (ulong)Ticks.PerDay != _utilityDay)
+        {
+            _utilityDay = tick / (ulong)Ticks.PerDay;
+            _utilityRepaint = true;
         }
 
         // ⚠ THE MINUTE COMES FROM Ticks AND IS NO LONGER DERIVED HERE. A Day begins at 05:00, so

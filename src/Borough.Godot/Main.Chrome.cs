@@ -156,7 +156,8 @@ public partial class Main
     private static readonly (string Name, string Label)[] Washes =
     [
         ("off", "Off"), ("pollution", "Pollution"), ("value", "Land value"), ("sealing", "Sealing"),
-        ("health", "Health"), ("trouble", "Trouble"), ("rung", "Rung"), ("age", "Age"), ("family", "Family"),
+        ("health", "Health"), ("trouble", "Trouble"), ("utilities", "Utilities"),
+        ("rung", "Rung"), ("age", "Age"), ("family", "Family"),
     ];
 
     private static bool DebugWash(string name) => name is "rung" or "age" or "family";
@@ -170,6 +171,7 @@ public partial class Main
         Wash.Sealed => "sealing",
         Wash.Health => "health",
         Wash.Trouble => "trouble",
+        Wash.Utilities => "utilities",
         Wash.Rung => "rung",
         Wash.Family => "family",
         _ => "age",
@@ -219,7 +221,12 @@ public partial class Main
             if (_legendTitle.Text != title || _legendBody.Text != body) _chromeRebuilt = true;
             _legendTitle.Text = title;
             _legendBody.Text = body;
-            _legendRamp.Colours = _washing == Wash.Trouble ? TroubleBands : Bands;
+            _legendRamp.Colours = _washing switch
+            {
+                Wash.Trouble => TroubleBands,
+                Wash.Utilities => UtilityBands,
+                _ => Bands,
+            };
             _legendRamp.QueueRedraw();
         }
     }

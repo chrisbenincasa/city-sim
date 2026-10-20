@@ -268,6 +268,9 @@ public sealed partial class World
         // rather than because nobody worked it out.
         DistrictPools = new Space.DistrictPoolTable(64, Districts, Bins);
 
+        // One row per delivered Utility per District, which is a subset of the line above's product.
+        UtilityFlows = new Space.UtilityFlowTable(8, DistrictPools);
+
         // Water is sized from the MAP and never from the population, which is the one capacity hint
         // in this constructor that has nothing to do with how many Citizens there are: a coastline is
         // a property of the ground, and an empty world on a wet key has every wet Cell that a
@@ -512,6 +515,11 @@ public sealed partial class World
             // derived because a Day's production is history -- nothing in the world records which
             // Ticks an office's Rule fired on, so a reload could not recompute what it had left.
             ServiceAllowances.Rows,
+
+            // Appended: each District's network for each delivered Utility. Saved for the allowance
+            // table's reason -- a Day's production is history, and nothing records which Ticks a
+            // plant's Rule fired on, so a reload could not recompute what the network carried.
+            UtilityFlows.Rows,
         ];
 
         // The same list minus the tables no Tick phase can write, for the Decide guard alone. See
@@ -958,6 +966,12 @@ public sealed partial class World
 
     /// <summary>Which Bins are in which District's Pool. Saved, and the only thing that knows.</summary>
     public Space.DistrictPoolTable DistrictPools { get; }
+
+    /// <summary>
+    /// Each District's network for each delivered Utility: what it made, what it was asked for, and
+    /// the fraction it delivers today.
+    /// </summary>
+    public Space.UtilityFlowTable UtilityFlows { get; }
 
     /// <summary>
     /// Where a purchase looks — a District's market row for a Good, and the sellers standing in it.
@@ -1467,6 +1481,12 @@ public sealed partial class World
         // that was fitted only at world creation would never acquire the Bin. It adds and never
         // removes -- see FitTreasury.
         FitTreasury();
+
+        // Before the Pools are fitted, so one swap both closes what the incoming file stopped
+        // delivering and opens what it starts delivering. A Utility that loses link_per_crossing
+        // loses its networks and the Pool rows addressing them, and a re-delivered one opens a new
+        // network at nothing delivered.
+        RetireUndeliveredNetworks();
 
         // The Pools, for the same reason one rung down: a Ruleset that adds a Good must reach the
         // Districts that already exist, and the watershed is the only other thing that fits them --
@@ -5183,6 +5203,10 @@ public sealed partial class World
         // distinction is the whole of why DistrictCellTable is Saved and this is not.
         DistrictsInCells.Rebuild(DistrictCells);
 
+        // The Pool-to-network index, from the flow rows' own saved handles. The flow columns are all
+        // saved, so there is nothing here a rebuild could recompute wrongly -- only the address.
+        RebuildUtilityFlows();
+
         // Not rebuilt here, invalidated. It reads Businesses, Buildings, Lots and the Cell index --
         // the last of which is the line above -- and the Rule Instance threading below has not run
         // yet. A flag costs one O(n) pass at the first query and cannot be got wrong by ordering.
@@ -6643,25 +6667,34 @@ public sealed partial class World
     }
 
     /// <summary>
-    /// Gives every live District one Pool Bin per <see cref="ResourceFamily.Good"/> the Ruleset in
-    /// force declares.
+    /// Gives every live District one Pool Bin per traded Resource and per delivered Utility the
+    /// Ruleset in force declares.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Goods and not every Resource</b>, which is the narrowest thing <c>04 §2</c> supports. Money
-    /// is refused because <c>plans/0037</c> decision 10 is open — <em>who holds the Pool's money
-    /// between a Provider's deposit and a consumer's draw</em> — and a Bin opened before that is
-    /// answered would be the answer, written by whoever needed a column. A Utility is refused because
-    /// <c>ResourceFamily.Utility</c> <em>"flows along the District adjacency graph"</em>, which is a
-    /// different mechanism with no milestone.
+    /// <b>Not every Resource.</b> Money is refused because <c>plans/0037</c> decision 10 is open —
+    /// <em>who holds the Pool's money between a Provider's deposit and a consumer's draw</em> — and a
+    /// Bin opened before that is answered would be the answer, written by whoever needed a column.
+    /// </para>
+    /// <para>
+    /// <b>A Utility is opened only where its <c>[[resource]]</c> declares <c>link_per_crossing</c></b>,
+    /// which is what makes it <em>delivered</em>: it flows along the District adjacency graph, so the
+    /// row is the network's address and <see cref="Space.UtilityFlowTable"/> is its state. Its Bin
+    /// stays empty — <c>storage</c> is 0 in this slice — and an undelivered Utility such as a Water
+    /// Body's sewage gets no row at all.
     /// </para>
     /// <para>
     /// <b>It adds and never removes</b>, which is <see cref="FitTreasury"/>'s rule and here it is
     /// load-bearing rather than tidy: a Good leaving the Ruleset must not destroy the stock standing
     /// in its Pool, and <c>04 §2</c>'s audit — <em>"if a hundred units of Food entered the District, a
-    /// hundred units must be accounted for"</em> — is what a removal would break. A District's Pool
+    /// hundred units must be accounted for"</em> — is what a removal would break. A Good's Pool
     /// closes when the <em>District</em> does, in <see cref="RetirePool"/>, and never because a file
     /// was edited.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A delivered Utility is the exception, in <see cref="RetireUndeliveredNetworks"/>.</b> Its
+    /// row holds no stock to audit, so a file that stops delivering it closes the row rather than
+    /// leaving a network nothing can settle and a price nothing can bound.
     /// </para>
     /// <para>
     /// <b>Asked rather than assumed, on <see cref="FitTreasury"/>'s reasoning</b>: it runs at world
@@ -6684,13 +6717,18 @@ public sealed partial class World
             {
                 var resource = new ResourceId((ushort)raw);
 
-                if (Rules.IsTraded(resource)
+                if ((Rules.IsTraded(resource) || Rules.IsDeliveredUtility(resource))
                     && FindDistrictPoolBin(slot, resource) == Rows.NoSlot)
                 {
                     CreateDistrictPoolBin(district, resource);
                 }
             }
         }
+
+        // After the Pool rows, because a network names one. A delivered Utility gets a row here on
+        // the same terms a Good does -- the Resource declares `link_per_crossing`, so it flows along
+        // the District adjacency graph and every District is a node of it.
+        FitUtilityFlows();
     }
 
     /// <summary>
@@ -6783,6 +6821,10 @@ public sealed partial class World
                 Bins.Rows.Free(Bins.Rows.At(bin));
             }
 
+            // A delivered Utility's network dies with its Pool row. Nothing is handed to the heir:
+            // there is no stock in this slice, and what the row holds is one Day's flow.
+            RetireUtilityFlow(row);
+
             DistrictPools.Rows.Free(DistrictPools.Rows.At(row));
         }
     }
@@ -6839,6 +6881,14 @@ public sealed partial class World
         {
             if (!DistrictPools.Rows.IsLive(row)
                 || !Bins.Rows.TryResolve(DistrictPools.Bin[row], out int bin))
+            {
+                continue;
+            }
+
+            // A delivered Utility is not traded and has no price. No Hinterland sells one, so the
+            // ceiling is zero, and repricing against a zero ceiling would be adr/0050's runaway
+            // arriving from below on a row nobody buys in.
+            if (Rules.IsDeliveredUtility(Bins.Resource[bin]))
             {
                 continue;
             }
