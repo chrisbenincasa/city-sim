@@ -163,6 +163,17 @@ public sealed class EmploymentEngine
     private RuleFlow _unsavouryFlow;
     private RuleFlow _boxWalksFlow;
 
+    private Handle<Household>[] _failedSearches = [];
+    private int _failedSearchCount;
+
+    /// <summary>
+    /// The Households of jobless Citizens whose search on the last <see cref="Assign"/> found no
+    /// job, in search order, with repeats.
+    /// </summary>
+    /// <remarks>Valid until the next <see cref="Assign"/>, which clears it.</remarks>
+    public ReadOnlySpan<Handle<Household>> FailedSearches =>
+        _failedSearches.AsSpan(0, _failedSearchCount);
+
     /// <summary>The members of <see cref="CommuteRung"/>.</summary>
     private const int RungCount = 3;
 
@@ -269,6 +280,7 @@ public sealed class EmploymentEngine
         // Citizen in the city from ever being promoted. Experience is denominated in Days and is
         // gated on the Day boundary alone.
         Progress(tick);
+        _failedSearchCount = 0;
 
         if (!jobs.Runs || tick.Raw % jobs.Interval != 0)
         {
@@ -311,6 +323,11 @@ public sealed class EmploymentEngine
         // worlds that already had a sink, which is the give-up departure on crowded.toml.
         Cells radius = Radius(trips.CommuteBudget, _world.Rules.Roads.WalkSpeed);
         Span<int> into = Scratch(jobs.SampleFor(slots));
+
+        if (_failedSearches.Length < into.Length)
+        {
+            _failedSearches = new Handle<Household>[into.Length];
+        }
 
         for (int draw = 0; draw < into.Length; draw++)
         {
@@ -376,6 +393,10 @@ public sealed class EmploymentEngine
             if (TryEmploy(slot, east, north, radius, door, mode, trips, tick))
             {
                 _tickEmployed++;
+            }
+            else if (_world.IsJobless(slot))
+            {
+                _failedSearches[_failedSearchCount++] = _world.Citizens.HouseholdOf[slot];
             }
         }
 

@@ -959,6 +959,10 @@
             "description": "The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.",
             "type": "string"
           },
+          "leaving_costs_rent": {
+            "description": "The daily rent a Household in this stage will pay to stay in the city rather than leave for a Hinterland when an adult finds every job in reach full. It is added to the home's score in that comparison, on top of [placement] moving_costs_rent, so a stage with a larger figure leaves later. It is a preference and never a timer. Absent is zero. The comparison runs only when [placement] jobs_rent is stated.",
+            "type": "integer"
+          },
           "name": {
             "description": "What this stage of a Household's life is called. next, childless and children_become name a stage by this.",
             "type": "string"
