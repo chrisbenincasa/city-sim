@@ -56,12 +56,13 @@ public partial class Main
     /// <summary>What the Utilities wash is saying, for the readout beside it.</summary>
     /// <remarks>
     /// <b>It names the Day rather than the Tick.</b> One settle governs the whole Day's firings, so
-    /// a Tick here would claim a resolution the delivery does not have.
+    /// a Tick here would claim a resolution the delivery does not have. The Day is the HUD clock's,
+    /// counted from 1, so the legend and the bar name the same Day.
     /// </remarks>
     private string UtilitiesLegend() =>
         "\nUTILITIES — the share of each draw the Building's District network delivers: red nothing, "
         + "amber part, green all of it. Grey draws no Utility at all. "
-        + $"One fraction governs the whole of Day {_world.Tick.Raw / (ulong)Ticks.PerDay:N0}. "
+        + $"One fraction governs the whole of Day {(_world.Tick.Raw / (ulong)Ticks.PerDay) + 1:N0}. "
         + "Select a Building for the units behind it.";
 
     /// <summary>A delivered fraction as whole per cent, floored the way a firing floors it.</summary>

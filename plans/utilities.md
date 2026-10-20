@@ -15,7 +15,7 @@ import at an Outside Connection for a price.
 | District | Derived by watershed. Holds one Pool Bin per Good | `DistrictWatershed`, `World.FitDistrictPools` |
 | District adjacency graph | Derived. Crossing counts per District pair, and road Tiles credited per District | `DistrictAdjacency.Compute` |
 | Utility network row | One saved row per District per delivered Utility, holding the Pool, today's fraction and yesterday's supplied/asked/received | `UtilityFlowTable`, `World.FitUtilityFlows` |
-| Daily settle | Production less road loss, local demand first, then integer max-flow across the links. Runs at the head of the Day's first Tick | `World.SettleUtilityNetworks`, `Simulation.Step` |
+| Daily settle | Road loss added to local demand, local production first, then integer max-flow across the links. Runs at the head of the Day's first Tick | `World.SettleUtilityNetworks`, `Simulation.Step` |
 | Degraded firing | A pool Utility input caps the application count at `floor(count × delivered)`. It never blocks a Rule | `RuleEngine.Check` |
 | Floor-area Readout | Built, Building-scoped | `Readouts.FloorArea` |
 | Evidence | Each drawn Utility with today's delivered Ratio and yesterday's received/asked. No new saved state | `BuildingEvidence.Utilities`, `Evidence.OfBuilding` |
@@ -31,6 +31,9 @@ import at an Outside Connection for a price.
   from outside the Building.
 - A pool term naming a Utility that states no `link_per_crossing` is refused at load, so the
   silent zero `RuleEngine`'s `Marketless` branch used to produce can no longer happen.
+- Delivery is structure rather than tuning on a hot reload (`RulesetChange.ResourceDelivery`). A
+  Utility that stops being delivered loses its networks and its District Pool rows
+  (`World.RetireUndeliveredNetworks`); what a crossing carries and what a Tile loses stay numbers.
 - ⚠ `--evidence` refuses a Ruleset with no `[[zone_rule]]`, so `powered.toml` cannot be run through
   the runner. The dump's table is covered by calling `EvidenceDump.Utilities` from a test instead.
   A Ruleset that both declares a Utility and condemns something would close this.
@@ -108,10 +111,27 @@ import at an Outside Connection for a price.
      report a brownout. The explanation carries it in its own field.
    - A Utility an `on_fail` link draws counts as drawn. A link holds no Rule Instance of its own
      and runs against the head's, so the readers walk the chain from each Instance's head.
+   - A District that has a consumer or a plant owes `loss_per_road_tile × road Tiles` before
+     anybody in it is served, and local production covers that total before the links do. So the
+     loss falls on an importing District as much as on a producing one.
    - Tests: `DistrictAdjacencyTests`, `UtilityRulesetLoadTests`, `PowerDeliveryTests`,
      `UtilityEvidenceTests`. Driven demonstration in `evidence/utilities-slice-1/`.
    - Gap found: a Lot built in code gets one Tile of ground, so the shell draws no massing for it
      and a wash over a hand-built fixture is invisible. The fixture states its ground.
+   - **Known gaps accepted for slice 1.**
+     - A District with neither demand nor production pays no road loss, so a pure relay forwards
+       what crosses it for nothing.
+     - `DistrictAdjacency` gives each pair touching one component of district-less road
+       `min(n_A, n_B)` crossings, taken per pair. One District facing a 3-Segment boundary onto a
+       component with two neighbors behind it therefore gets 2 + 2 crossings of outbound capacity
+       over that 3-Segment boundary, which overstates it.
+     - The max-flow picks one optimal split when total supply is short, with no fairness between
+       Districts.
+     - Dropping `link_per_crossing` on a hot reload closes the Utility's networks and Pool rows;
+       restoring it opens new ones at nothing delivered. A Day's production does not survive the
+       edit either way.
+     - A Day's `produced` and `demanded` saturate at `UtilityFlowTable.Bound` — 10¹⁸, which a
+       Ruleset only reaches by stating absurd amounts — rather than wrapping.
 2. **Water.** Storage that carries over between Days. A water tower is a Bin with large storage.
    Leakage scales with road length.
 3. **Sewage.** Storage that fills, generated as an output of Water-drawing Rules. Inflow grows
@@ -139,7 +159,11 @@ Golden fixtures carry the equivalences, and `evidence/utilities-slice-1/` carrie
 - With link capacity below the far District's demand, adding a second crossing road raises its
   delivered fraction.
 - Restoring the road, or placing a second plant there, restores full delivery the next Day.
-- Unused Power does not carry over, and network loss grows with road length.
-- Replay, save/reload and thread-count equivalence hold, and `DerivedRebuildAuditTests` covers
-  the adjacency graph.
+- Unused Power does not carry over, and network loss grows with road length — in the District that
+  generates the Power and in the one that imports it.
+- Replay, save/reload and thread-count equivalence hold. `DerivedRebuildAuditTests` covers the
+  Pool-to-network index and that a rebuild does not change the next settle's output; the adjacency
+  graph's rebuild stability is held by
+  `DistrictAdjacencyTests.Results_are_sorted_unique_and_unchanged_by_derived_rebuild`, since
+  `Compute` rebuilds the graph whole at every settle and nothing else reads it.
 - A driven demonstration shows the outage and the recovery in the shell.

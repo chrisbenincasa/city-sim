@@ -17,9 +17,11 @@ public sealed partial class World
     // Recomputed at each settle and read nowhere else, so there is no stale state to rebuild.
     private readonly DistrictAdjacency _utilityAdjacency = new();
 
-    // The settle's scratch, per District slot: its flow row, what it can export, what it is short
-    // of, and what it ends up with. Grown to the District table's slot count and no further.
+    // The settle's scratch, per District slot: its flow row, what its roads lose, what it can
+    // export, what it is short of, and what it ends up with. Grown to the District table's slot
+    // count and no further.
     private int[] _flowOfDistrict = [];
+    private long[] _utilityOwed = [];
     private long[] _utilitySurplus = [];
     private long[] _utilityDeficit = [];
     private long[] _utilityServed = [];
@@ -111,6 +113,62 @@ public sealed partial class World
         && Bins.Rows.TryResolve(DistrictPools.Bin[poolSlot], out int bin)
         && Rules.IsDeliveredUtility(Bins.Resource[bin]);
 
+    /// <summary>
+    /// Closes the networks of a Utility the Ruleset in force no longer delivers, and the Pool rows
+    /// that addressed them.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A reload is the only thing that can un-deliver a Utility</b>, so this runs from
+    /// <see cref="Adopt"/> and nowhere else. The rows have to go rather than merely stop being read,
+    /// because <see cref="SettleUtilityNetworks"/> walks the delivered Resources — a retired
+    /// Utility's counters and its delivered fraction stand still for as long as the edit lasts and
+    /// then serve a Day of production that predates it. ***A re-delivered Utility is a new network
+    /// and opens at nothing delivered.***
+    /// </para>
+    /// <para>
+    /// <b>The Pool row goes with it, which is the one place <see cref="FitDistrictPools"/>' "adds and
+    /// never removes" does not hold.</b> That rule protects the stock standing in a Good's Pool, and
+    /// a delivered Utility has none — <c>storage</c> is 0 and <c>adr/0139</c> makes a Pool a market
+    /// rather than a store. Left behind, the row is an undelivered Resource that
+    /// <see cref="RepriceDistrictPools"/> no longer skips, so it reprices against a zero import
+    /// ceiling and runs away from below, which is what <c>adr/0050</c> names.
+    /// </para>
+    /// </remarks>
+    internal void RetireUndeliveredNetworks()
+    {
+        RebuildUtilityFlows();
+
+        bool retired = false;
+
+        for (int pool = DistrictPools.Rows.SlotCount - 1; pool >= 0; pool--)
+        {
+            if (UtilityFlowOfPool(pool) == Rows.NoSlot || IsDeliveredUtilityPool(pool))
+            {
+                continue;
+            }
+
+            RetireUtilityFlow(pool);
+
+            if (Bins.Rows.TryResolve(DistrictPools.Bin[pool], out int bin))
+            {
+                // Before the Free, on RetirePool's order, because a waiter left on a freed Bin is a
+                // Rule Instance pointing at a recycled row.
+                WakeAll(bin, Tick);
+                Expiries.Close(Bins, bin);
+                Bins.Rows.Free(Bins.Rows.At(bin));
+            }
+
+            DistrictPools.Rows.Free(DistrictPools.Rows.At(pool));
+            retired = true;
+        }
+
+        if (retired)
+        {
+            Markets.Invalidate();
+        }
+    }
+
     /// <summary>Closes the network a dying District's Pool row carried, if it had one.</summary>
     /// <remarks>
     /// There is nothing to hand an heir. A delivered Utility has no stock in this slice, and what
@@ -136,11 +194,17 @@ public sealed partial class World
     /// <remarks>
     /// <para>
     /// Once a Day, at the head of the Tick beside <see cref="RollPopulationDayFlows"/>, so a Day's
-    /// firings all run against one fraction. Per District: production less the loss its road length
-    /// incurs, local use first, then an integer max-flow of the remaining surplus to the remaining
-    /// deficits over the District adjacency graph, with each link carrying
-    /// <c>crossings × link_per_crossing</c>. Multi-hop, because a relay District's links are edges
-    /// of the same network.
+    /// firings all run against one fraction. Per District: the loss its road length incurs is added
+    /// to what its consumers asked for, local production covers that total first, and then an
+    /// integer max-flow carries the remaining surplus to the remaining shortfalls over the District
+    /// adjacency graph, with each link carrying <c>crossings × link_per_crossing</c>. Multi-hop,
+    /// because a relay District's links are edges of the same network.
+    /// </para>
+    /// <para>
+    /// <b>The loss is a first claim on imports as much as on local production</b>, which is what
+    /// makes road length cost a District that generates nothing. Charged against production alone
+    /// it misses an importing District entirely, and stops growing inside a producing one the
+    /// moment its roads outrun its plants.
     /// </para>
     /// <para>
     /// Nothing is woken. A delivered-Utility term never blocks — <c>RuleEngine.Check</c> serves it
@@ -177,6 +241,7 @@ public sealed partial class World
         int districts = Districts.Rows.SlotCount;
 
         Grow(ref _flowOfDistrict, districts);
+        Grow(ref _utilityOwed, districts);
         Grow(ref _utilitySurplus, districts);
         Grow(ref _utilityDeficit, districts);
         Grow(ref _utilityServed, districts);
@@ -188,6 +253,7 @@ public sealed partial class World
         for (int district = 0; district < districts; district++)
         {
             _flowOfDistrict[district] = Rows.NoSlot;
+            _utilityOwed[district] = 0;
             _utilitySurplus[district] = 0;
             _utilityDeficit[district] = 0;
             _utilityServed[district] = 0;
@@ -210,18 +276,20 @@ public sealed partial class World
             _flowOfDistrict[district] = flow;
 
             long demanded = UtilityFlows.Demanded[flow];
-            long net = UtilityFlows.Produced[flow] - (loss * _utilityAdjacency.RoadTilesOf(district));
+            long produced = UtilityFlows.Produced[flow];
 
-            if (net < 0)
-            {
-                net = 0;
-            }
+            // A District with neither a consumer nor a plant runs no network, so its roads lose
+            // nothing. One with either owes its whole road length, and owes it before anybody in it
+            // is served.
+            long tiles = demanded > 0 || produced > 0 ? _utilityAdjacency.RoadTilesOf(district) : 0;
+            long owed = UtilityFlowTable.Total(0, loss, tiles);
+            long need = UtilityFlowTable.Total(demanded, loss, tiles);
+            long local = produced < need ? produced : need;
 
-            long local = net < demanded ? net : demanded;
-
+            _utilityOwed[district] = owed;
             _utilityServed[district] = local;
-            _utilitySurplus[district] = net - local;
-            _utilityDeficit[district] = demanded - local;
+            _utilitySurplus[district] = produced - local;
+            _utilityDeficit[district] = need - local;
 
             anySurplus |= _utilitySurplus[district] > 0;
             anyDeficit |= _utilityDeficit[district] > 0;
@@ -242,13 +310,22 @@ public sealed partial class World
             }
 
             long demanded = UtilityFlows.Demanded[flow];
-            long served = _utilityServed[district];
+
+            // What the consumers get is what the network covered less what the roads took, and the
+            // roads are paid first — so a District covered to a tenth of its loss delivers nothing
+            // rather than delivering a negative share.
+            long served = _utilityServed[district] - _utilityOwed[district];
+
+            if (served < 0)
+            {
+                served = 0;
+            }
 
             // A District nobody draws in is fully supplied: there is no shortfall to report, and a
             // fraction of zero there would read as an outage on every consumer raised in it.
             UtilityFlows.Delivered[flow] = demanded <= 0
                 ? Ratio.One
-                : new Ratio((int)IntegerMath.MulDivFloor(Fixed.One, served, demanded));
+                : Share(served, demanded);
 
             UtilityFlows.Supplied[flow] = UtilityFlows.Produced[flow];
             UtilityFlows.Asked[flow] = demanded;
@@ -256,6 +333,14 @@ public sealed partial class World
             UtilityFlows.Produced[flow] = 0;
             UtilityFlows.Demanded[flow] = 0;
         }
+    }
+
+    /// <summary>What a District was served as a fraction of what it asked for, capped at whole.</summary>
+    private static Ratio Share(long served, long demanded)
+    {
+        long share = IntegerMath.MulDivFloor(Fixed.One, served, demanded);
+
+        return share >= Fixed.One ? Ratio.One : new Ratio((int)share);
     }
 
     /// <summary>
@@ -291,8 +376,9 @@ public sealed partial class World
         foreach (DistrictAdjacency.Link link in _utilityAdjacency.Links)
         {
             // Both directions at full capacity, which is how an undirected edge is spelled in a
-            // residual network: pushing f one way leaves c − f forward and c + f back.
-            long capacity = link.Crossings * perCrossing;
+            // residual network: pushing f one way leaves c − f forward and c + f back. Saturated at
+            // the counters' own bound, so the pair of residual entries cannot pass long.MaxValue.
+            long capacity = UtilityFlowTable.Total(0, link.Crossings, perCrossing);
 
             _utilityResidual[(link.Lower * nodes) + link.Higher] = capacity;
             _utilityResidual[(link.Higher * nodes) + link.Lower] = capacity;

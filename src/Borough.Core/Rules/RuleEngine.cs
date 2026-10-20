@@ -1843,14 +1843,18 @@ public sealed class RuleEngine
         // load that caused it; production is what the plant's own inputs actually bought, which is
         // the count that fired. Posted here rather than in Check because Phase 2 writes nothing
         // (adr/0037), and from the term list because no Bin carries either figure.
+        //
+        // Both posts saturate at UtilityFlowTable.Bound. An amount and an apply count may each be
+        // int.MaxValue, so an unbounded accumulator wraps negative on the third firing of a Ruleset
+        // the loader accepts.
         for (int i = 0; i < _drawnCount; i++)
         {
-            _world.UtilityFlows.Demanded[_drawnNetwork[i]] += _drawnAmount[i] * _drawnFull;
+            _world.UtilityFlows.Demand(_drawnNetwork[i], _drawnAmount[i], _drawnFull);
         }
 
         for (int i = 0; i < _fedCount; i++)
         {
-            _world.UtilityFlows.Produced[_fedNetwork[i]] += _fedAmount[i] * verdict.Applications;
+            _world.UtilityFlows.Produce(_fedNetwork[i], _fedAmount[i], verdict.Applications);
         }
 
         int building = _world.Buildings.Rows.Resolve(_world.RuleInstances.Building[instance]);

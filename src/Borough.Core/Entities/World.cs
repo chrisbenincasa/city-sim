@@ -1482,6 +1482,12 @@ public sealed partial class World
         // removes -- see FitTreasury.
         FitTreasury();
 
+        // Before the Pools are fitted, so one swap both closes what the incoming file stopped
+        // delivering and opens what it starts delivering. A Utility that loses link_per_crossing
+        // loses its networks and the Pool rows addressing them, and a re-delivered one opens a new
+        // network at nothing delivered.
+        RetireUndeliveredNetworks();
+
         // The Pools, for the same reason one rung down: a Ruleset that adds a Good must reach the
         // Districts that already exist, and the watershed is the only other thing that fits them --
         // which runs on a cadence measured in Days, so waiting for it would leave a hot reload's new
@@ -6681,9 +6687,14 @@ public sealed partial class World
     /// <b>It adds and never removes</b>, which is <see cref="FitTreasury"/>'s rule and here it is
     /// load-bearing rather than tidy: a Good leaving the Ruleset must not destroy the stock standing
     /// in its Pool, and <c>04 §2</c>'s audit — <em>"if a hundred units of Food entered the District, a
-    /// hundred units must be accounted for"</em> — is what a removal would break. A District's Pool
+    /// hundred units must be accounted for"</em> — is what a removal would break. A Good's Pool
     /// closes when the <em>District</em> does, in <see cref="RetirePool"/>, and never because a file
     /// was edited.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A delivered Utility is the exception, in <see cref="RetireUndeliveredNetworks"/>.</b> Its
+    /// row holds no stock to audit, so a file that stops delivering it closes the row rather than
+    /// leaving a network nothing can settle and a price nothing can bound.
     /// </para>
     /// <para>
     /// <b>Asked rather than assumed, on <see cref="FitTreasury"/>'s reasoning</b>: it runs at world

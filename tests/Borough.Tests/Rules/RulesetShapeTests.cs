@@ -52,7 +52,8 @@ public sealed class RulesetShapeTests
         ResourceFamily breadFamily = ResourceFamily.Good,
         ResourceId? bakes = null,
         RuleId? onFail = null,
-        Layer emits = Layer.IndustrialPollution) =>
+        Layer emits = Layer.IndustrialPollution,
+        int breadLink = 0) =>
         new(
             resources: [ResourceFamily.Good, breadFamily],
             rules:
@@ -82,7 +83,10 @@ public sealed class RulesetShapeTests
                 new BinDeclaration(Bread, BinCapacity.Of(capacity)),
             ],
             kindRules: [new RuleId(1), new RuleId(2)],
-            zoneRules: [new ZoneRuleDefinition(House, 0, interval, sample)]);
+            zoneRules: [new ZoneRuleDefinition(House, 0, interval, sample)])
+        {
+            ResourceLinks = breadLink == 0 ? [] : [0, breadLink],
+        };
 
     private static RulesetChange Compare(Ruleset replacement) =>
         RulesetShape.Compare(Reference(), replacement);
@@ -183,6 +187,32 @@ public sealed class RulesetShapeTests
     {
         Assert.Equal(
             RulesetChange.ResourceFamily, Compare(Reference(breadFamily: ResourceFamily.Money)));
+    }
+
+    /// <summary>
+    /// A Utility that stops being delivered is a migration, and the amount its links carry is a
+    /// number.
+    /// </summary>
+    /// <remarks>
+    /// Delivery is what opens a District Pool row and the saved network row that points at it, so a
+    /// file that drops <c>link_per_crossing</c> leaves rows describing a network nothing settles —
+    /// the Bins case again (<c>02 §4.3</c>). What one crossing <em>carries</em> is read through that
+    /// row at each settle and is therefore tuning, which is the half with no symptom if it rots.
+    /// </remarks>
+    [Fact]
+    public void A_utility_may_not_start_or_stop_being_delivered()
+    {
+        Ruleset delivered = Reference(breadFamily: ResourceFamily.Utility, breadLink: 2560);
+        Ruleset undelivered = Reference(breadFamily: ResourceFamily.Utility);
+
+        Assert.Equal(
+            RulesetChange.ResourceDelivery, RulesetShape.Compare(delivered, undelivered));
+        Assert.Equal(
+            RulesetChange.ResourceDelivery, RulesetShape.Compare(undelivered, delivered));
+        Assert.Equal(
+            RulesetChange.None,
+            RulesetShape.Compare(
+                delivered, Reference(breadFamily: ResourceFamily.Utility, breadLink: 5120)));
     }
 
     /// <summary>A Rule's <c>on_fail</c> is the chain, and a Rule Instance walks it.</summary>

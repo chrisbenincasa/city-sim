@@ -2756,26 +2756,49 @@ public static class RulesetLoader
             bool hasStorage = Find(table, "storage") is not null;
             bool hasLink = Find(table, "link_per_crossing") is not null;
             bool hasLoss = Find(table, "loss_per_road_tile") is not null;
-            int storage = 0;
-            if (hasStorage && TryInteger(table, "storage", out long storageValue, required: true) && storageValue != 0)
+
+            // Zero is the only accepted value, so the column carries zero for every Resource until
+            // the Water slice builds a store to put in it.
+            if (hasStorage
+                && TryInteger(table, "storage", out long storageValue, required: true)
+                && storageValue != 0)
             {
                 Refuse(LineOf(table), null, "storage must be 0; stored Utilities arrive with Water.");
             }
+
             int link = hasLink ? CivicInt(table, "link_per_crossing", 1, int.MaxValue) : 0;
             int loss = hasLoss ? CivicInt(table, "loss_per_road_tile", 0, int.MaxValue) : 0;
+
             if (family != ResourceFamily.Utility)
             {
                 if (hasStorage || hasLink || hasLoss)
-                    Refuse(LineOf(table), null, $"storage, link_per_crossing, and loss_per_road_tile describe a delivered Utility, but this Resource has family = {FamilyName(family)}.");
-                _storage.Add(0); _links.Add(0); _losses.Add(0); return;
+                {
+                    Refuse(LineOf(table), null,
+                        "storage, link_per_crossing, and loss_per_road_tile describe a delivered "
+                        + $"Utility, but this Resource has family = {FamilyName(family)}.");
+                }
+
+                _storage.Add(0);
+                _links.Add(0);
+                _losses.Add(0);
+                return;
             }
+
             if (hasLink && !hasStorage)
-                Refuse(LineOf(table), null, "storage is required when link_per_crossing is present; stored Utilities arrive with Water.");
-            if (hasStorage && storage != 0)
-                Refuse(LineOf(table), null, "storage must be 0; stored Utilities arrive with Water.");
+            {
+                Refuse(LineOf(table), null,
+                    "storage is required when link_per_crossing is present; stored Utilities arrive "
+                    + "with Water.");
+            }
+
             if (hasLoss && !hasLink)
+            {
                 Refuse(LineOf(table), null, "loss_per_road_tile requires link_per_crossing.");
-            _storage.Add(storage); _links.Add(link); _losses.Add(hasLink ? loss : 0);
+            }
+
+            _storage.Add(0);
+            _links.Add(link);
+            _losses.Add(hasLink ? loss : 0);
         }
 
         /// <summary>Spells the entities a Readout is readable against, for a refusal message.</summary>

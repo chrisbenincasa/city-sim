@@ -18,8 +18,8 @@ Street crosses the boundary. `ridge.geometry.txt` holds those Tiles and the fixt
 beside the save.
 
 `powered.toml` gives Power `link_per_crossing = 2560` and `loss_per_road_tile = 1`. The east
-District's whole Day of demand is 512 units, so one crossing carries it and no crossing carries
-none of it.
+District's whole Day of demand is 512 units and its 64 Tiles of road lose 64 more, so the link
+carries 576 and delivers 512 of it. One crossing covers that and no crossing covers none of it.
 
 ## Trigger, response, consequence
 
@@ -46,8 +46,10 @@ row of the inspector — so the panel's wording is checkable without opening the
   shot. Hence the Tick gaps in `brownout.drive`.
 - **Clicking the dwelling's Tile selects the road**, because the Lots sit on the road line at
   `north = 0`. The script selects with `ui building 37`.
-- **The HUD clock counts Days from 1 and the readout's header counts from 0**, so one picture
-  carries `Day 4 · 05:04` in the bar and `Day 3` in the caption. Same Day.
+- **Two Day numberings are in the same frame.** The HUD bar and the Utilities legend count Days
+  from 1; the readout's status header and these captions count from 0. Shot `04` carries
+  `Day 4 · 05:04` in the bar, `governs the whole of Day 4` in the legend and `Day 3` in the
+  status header. Same Day. `Main.cs`'s status line is the one left on 0.
 - **A brownout appears in no field a stopped Rule fills.** `No supply shortfalls reported` is true
   of a Building running at nothing delivered, which is why the condition line carries the
   delivered clause and the attention card has a row of its own.

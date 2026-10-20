@@ -57,6 +57,27 @@ public sealed class UtilityFlowTable
     public Rows<UtilityFlow> Rows => _rows;
 
     /// <summary>
+    /// The largest amount a Day's counter holds. Every total the settle derives from one saturates
+    /// here as well.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A stated ceiling rather than a wrap.</b> A Ruleset may legally declare an output of
+    /// <c>int.MaxValue</c> at an apply count of <c>int.MaxValue</c>, which posts 4.6 × 10¹⁸ in one
+    /// firing — so a third firing used to turn <see cref="Produced"/> negative, and a negative
+    /// production is a city that generates power by asking for it.
+    /// </para>
+    /// <para>
+    /// <b>A quintillion, which leaves the max-flow its headroom.</b> An undirected link holds its
+    /// capacity in both residual directions and the pair sums to twice the capacity, so every
+    /// quantity the settle puts in that matrix needs a factor of two inside <c>long</c> — and 2 ×
+    /// 10¹⁸ is a fifth of <see cref="long.MaxValue"/>. A network at this bound is a Ruleset defect
+    /// rather than a city, and saturating is what makes it read as one.
+    /// </para>
+    /// </remarks>
+    public const long Bound = 1_000_000_000_000_000_000;
+
+    /// <summary>
     /// The Pool row whose District and Utility this network is. <b>The Resource is read off the
     /// Pool's Bin rather than copied here</b>, so the two cannot disagree.
     /// </summary>
@@ -91,10 +112,34 @@ public sealed class UtilityFlowTable
     public Column<long> Asked { get; }
 
     /// <summary>
-    /// What yesterday's network actually served — local use after loss, plus what arrived over the
-    /// links. The numerator <see cref="Delivered"/> was computed from.
+    /// What yesterday's network served its consumers — the local cover and the inflow together, less
+    /// the road loss they pay first. The numerator <see cref="Delivered"/> was computed from.
     /// </summary>
     public Column<long> Received { get; }
+
+    /// <summary>
+    /// <paramref name="standing"/> + <paramref name="amount"/> × <paramref name="times"/>, saturated
+    /// at <see cref="Bound"/>. Every operand is a count and none may be negative.
+    /// </summary>
+    /// <remarks>
+    /// An <c>Int128</c> intermediate, on <see cref="Arithmetic.IntegerMath.MulDivFloor"/>'s
+    /// precedent. The product of two <c>long</c>s always fits one, so the saturation is decided on
+    /// the true total rather than on whatever survived the multiply.
+    /// </remarks>
+    public static long Total(long standing, long amount, long times)
+    {
+        Int128 total = standing + ((Int128)amount * times);
+
+        return total > Bound ? Bound : (long)total;
+    }
+
+    /// <summary>Adds <c>amount × count</c> to today's production, saturating at <see cref="Bound"/>.</summary>
+    public void Produce(int slot, long amount, long count) =>
+        Produced[slot] = Total(Produced[slot], amount, count);
+
+    /// <summary>Adds <c>amount × count</c> to today's demand, saturating at <see cref="Bound"/>.</summary>
+    public void Demand(int slot, long amount, long count) =>
+        Demanded[slot] = Total(Demanded[slot], amount, count);
 
     /// <summary>Opens a network for one Pool row, delivering nothing until the first settle.</summary>
     public Handle<UtilityFlow> Create(Handle<DistrictPool> pool)

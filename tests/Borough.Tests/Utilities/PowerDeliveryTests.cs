@@ -80,10 +80,15 @@ public sealed class PowerDeliveryTests
     /// Further road Tiles inside the plant's District, laid as Segments that join nothing, so the
     /// only thing that moves is the loss.
     /// </param>
+    /// <param name="ExtraRoadTilesEast">
+    /// The same inside the far District, which generates nothing, so its loss falls on what the
+    /// links bring in rather than on any production.
+    /// </param>
     private readonly record struct Shape(
         bool WorksBesideThePlant = false,
         int ExtraCrossings = 0,
-        int ExtraRoadTiles = 0);
+        int ExtraRoadTiles = 0,
+        int ExtraRoadTilesEast = 0);
 
     private sealed class City
     {
@@ -164,7 +169,7 @@ public sealed class PowerDeliveryTests
         Assert.NotEqual(Rows.NoSlot, making);
         Assert.NotEqual(making, burning);
 
-        if (shape.ExtraCrossings > 0 || shape.ExtraRoadTiles > 0)
+        if (shape.ExtraCrossings > 0 || shape.ExtraRoadTiles > 0 || shape.ExtraRoadTilesEast > 0)
         {
             Widen(world, shape);
 
@@ -234,6 +239,18 @@ public sealed class PowerDeliveryTests
                 new Tiles(8),
                 new Tiles(8 + (laid * 2 / block)),
                 new Tiles(24),
+                new Tiles(8 + (laid * 2 / block)),
+                block);
+        }
+
+        for (int laid = 0; laid < shape.ExtraRoadTilesEast; laid += block)
+        {
+            // The same inside the far peak's own Cell, which holds no plant.
+            Join(
+                world,
+                new Tiles(((Cells - 1) * block) + 8),
+                new Tiles(8 + (laid * 2 / block)),
+                new Tiles(((Cells - 1) * block) + 24),
                 new Tiles(8 + (laid * 2 / block)),
                 block);
         }
@@ -706,6 +723,184 @@ public sealed class PowerDeliveryTests
 
         thin.Simulation.CheckEndOfRun();
         paved.Simulation.CheckEndOfRun();
+    }
+
+    /// <summary>
+    /// Road laid in a District that generates nothing lowers what it is delivered, because the loss
+    /// is a first claim on imports and not only on local production.
+    /// </summary>
+    /// <remarks>
+    /// <b>The far District's own production is asserted to be zero</b>, which is what separates this
+    /// from <see cref="Loss_grows_with_road_length"/>. Every unit it burns crossed the boundary, so
+    /// the only thing the extra Tiles can take it out of is the inflow.
+    /// </remarks>
+    [Fact]
+    public void Loss_grows_with_road_length_in_an_importing_district()
+    {
+        int added = 2 * Rules().Roads.BlockTiles;
+
+        City thin = Build();
+        City paved = Build(new Shape(ExtraRoadTilesEast: added));
+
+        AfterSettling(thin.Simulation, day: 0);
+        AfterSettling(paved.Simulation, day: 0);
+
+        int one = Flow(thin.World, thin.Burning);
+        int two = Flow(paved.World, paved.Burning);
+
+        Assert.Equal(0, thin.World.UtilityFlows.Supplied[one]);
+        Assert.Equal(0, paved.World.UtilityFlows.Supplied[two]);
+        Assert.Equal(thin.World.UtilityFlows.Asked[one], paved.World.UtilityFlows.Asked[two]);
+        Assert.Equal(
+            added * thin.World.Rules.LossPerRoadTile(Power),
+            thin.World.UtilityFlows.Received[one] - paved.World.UtilityFlows.Received[two]);
+        Assert.True(
+            Delivered(paved.World, paved.Burning) < Delivered(thin.World, thin.Burning),
+            "the longer importing District was delivered the same fraction");
+
+        thin.Simulation.CheckEndOfRun();
+        paved.Simulation.CheckEndOfRun();
+    }
+
+    /// <summary>
+    /// A Day's counters saturate at <see cref="UtilityFlowTable.Bound"/> rather than wrapping, and
+    /// the settle holds at the bound.
+    /// </summary>
+    /// <remarks>
+    /// <b>A Ruleset the loader accepts can reach it.</b> An output amount and an apply count may
+    /// each be <c>int.MaxValue</c>, which posts 4.6 × 10¹⁸ in one firing — so a third firing used to
+    /// carry <c>Produced</c> past <c>long.MaxValue</c> and leave a District generating a negative
+    /// amount of Power, with no invariant to notice.
+    /// </remarks>
+    [Fact]
+    public void A_days_counters_saturate_rather_than_wrapping()
+    {
+        City city = Build();
+        World world = city.World;
+
+        AfterSettling(city.Simulation, day: 0);
+
+        int making = Flow(world, city.Making);
+        int burning = Flow(world, city.Burning);
+
+        for (int firing = 0; firing < 3; firing++)
+        {
+            world.UtilityFlows.Produce(making, int.MaxValue, int.MaxValue);
+            world.UtilityFlows.Demand(burning, int.MaxValue, int.MaxValue);
+        }
+
+        Assert.Equal(UtilityFlowTable.Bound, world.UtilityFlows.Produced[making]);
+        Assert.Equal(UtilityFlowTable.Bound, world.UtilityFlows.Demanded[burning]);
+
+        AfterSettling(city.Simulation, day: 1);
+
+        Assert.Equal(UtilityFlowTable.Bound, world.UtilityFlows.Supplied[making]);
+        Assert.Equal(UtilityFlowTable.Bound, world.UtilityFlows.Asked[burning]);
+
+        // The settle solved a flow network with a quintillion on both sides of it and wrote nothing
+        // negative and nothing above whole.
+        Assert.InRange(world.UtilityFlows.Received[burning], 1, UtilityFlowTable.Bound);
+        Assert.InRange(world.UtilityFlows.Received[making], 0, UtilityFlowTable.Bound);
+        Assert.InRange(Delivered(world, city.Burning).Raw, 0, Fixed.One);
+        Assert.InRange(Delivered(world, city.Making).Raw, 0, Fixed.One);
+
+        city.Simulation.CheckEndOfRun();
+    }
+
+    /// <summary>
+    /// A reload that stops delivering Power closes the networks, so putting the delivery back cannot
+    /// serve a Day of production that predates the edit.
+    /// </summary>
+    /// <remarks>
+    /// <b>The plant is demolished while the delivery is off</b>, which is what makes the last
+    /// assertion about banked history rather than about generation. A network that kept its counters
+    /// across the edit would serve the part-Day it was holding when the file changed, to a city with
+    /// no plant standing in it.
+    /// </remarks>
+    [Fact]
+    public void A_reload_that_removes_delivery_cannot_be_reversed_into_power()
+    {
+        City city = Build();
+        World world = city.World;
+
+        AfterSettling(city.Simulation, day: 0);
+
+        Assert.True(Delivered(world, city.Burning) > Ratio.Zero, "the east was never lit");
+
+        // Far enough into the Day for the plant to have fed the network since the last settle, so
+        // there is history to resurrect.
+        StepTo(city.Simulation, (long)world.Tick.Raw + (4 * FabricateRate));
+
+        Assert.True(
+            world.UtilityFlows.Produced[Flow(world, city.Making)] > 0, "the plant fed nothing");
+
+        world.Adopt(Undelivered(), contentHash: 0, world.Tick, Key);
+
+        // Nothing holds a counter any more: the networks went, and so did the Pool rows that
+        // addressed them.
+        Assert.Equal(0, world.UtilityFlows.Rows.LiveCount);
+        Assert.Equal(DistrictMarkets.NoRow, world.Markets.Row(world, city.Burning, Power));
+
+        int lot = world.Lots.Rows.Resolve(world.Buildings.Lot[city.Generator]);
+
+        Issue(city.Simulation, Command.Demolish(
+            world.Lots.East[lot], Tiles.Zero, DemolishTarget.Building));
+
+        // Two Day boundaries with no delivered Utility in force at all.
+        AfterSettling(city.Simulation, day: 2);
+
+        world.Adopt(Rules(), contentHash: 0, world.Tick, Key);
+
+        int reopened = Flow(world, city.Burning);
+
+        Assert.Equal(Ratio.Zero, world.UtilityFlows.Delivered[reopened]);
+        Assert.Equal(0, world.UtilityFlows.Supplied[reopened]);
+        Assert.Equal(0, world.UtilityFlows.Produced[reopened]);
+
+        AfterSettling(city.Simulation, day: 3);
+
+        // The first settle under the restored file. No plant stands, so nothing was made and the
+        // east is served nothing.
+        Assert.Equal(0, world.UtilityFlows.Supplied[Flow(world, city.Making)]);
+        Assert.Equal(0, world.UtilityFlows.Received[Flow(world, city.Burning)]);
+        Assert.Equal(Ratio.Zero, Delivered(world, city.Burning));
+
+        city.Simulation.CheckEndOfRun();
+    }
+
+    /// <summary>
+    /// <c>powered.toml</c> with Power's delivery taken out — no <c>link_per_crossing</c>, no plant
+    /// Rule and no <c>pool</c> term.
+    /// </summary>
+    /// <remarks>
+    /// <b>The <c>pool</c> terms have to go with the key.</b> A pool term naming a Utility that
+    /// states no <c>link_per_crossing</c> is refused at load, so a file that kept them would not be
+    /// a legal reload and the hole this covers would be unreachable.
+    /// </remarks>
+    private static Ruleset Undelivered()
+    {
+        string toml = File.ReadAllText(
+            Path.Combine(AppContext.BaseDirectory, "Rulesets", "powered.toml"));
+
+        int generate = toml.IndexOf("[[rule]]\nname    = \"generate\"", StringComparison.Ordinal);
+        int lighting = toml.IndexOf("[[rule]]\nname    = \"lighting\"", StringComparison.Ordinal);
+
+        Assert.InRange(generate, 0, lighting);
+
+        RulesetLoadResult loaded = RulesetLoader.Parse(
+            (toml[..generate] + toml[lighting..])
+                .Replace("storage = 0", "", StringComparison.Ordinal)
+                .Replace("link_per_crossing = 2560", "", StringComparison.Ordinal)
+                .Replace("loss_per_road_tile = 1", "", StringComparison.Ordinal)
+                .Replace(
+                    "inputs  = [ { scope = \"pool\", resource = \"power\", amount = 4 } ]",
+                    "inputs  = []",
+                    StringComparison.Ordinal),
+            "unpowered.toml");
+
+        Assert.True(loaded.Ok, loaded.Describe());
+
+        return loaded.Ruleset!;
     }
 
     // ---- the equivalences ----------------------------------------------------------------------
