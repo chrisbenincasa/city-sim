@@ -1215,4 +1215,18 @@ public enum Invariant
     /// the overdraft — how far past the Day's capacity the row went.
     /// </remarks>
     AnOfficeSellsNoMoreThanItMade = 69,
+
+    /// <summary>
+    /// A Utility settle moved out of a District's tower Bins, or into them, exactly what it decided
+    /// to move.
+    /// </summary>
+    /// <remarks>
+    /// <b>The proportional split is where water would be created or destroyed</b>
+    /// (<c>World.DrainReserves</c> and <c>World.FillReserves</c>). The settle decides one total per
+    /// District and the split places it across that District's Bins, so a share that rounds wrong
+    /// leaves a residue nothing else would ever report — a reserve that drains faster than it serves
+    /// reads as leakage, and one that drains slower reads as free water. The other field is what was
+    /// left unplaced.
+    /// </remarks>
+    UtilityReserveIsConserved = 70,
 }

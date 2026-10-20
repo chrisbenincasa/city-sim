@@ -959,3 +959,24 @@ Baseline Ruleset content hashes and the hash seed are unchanged. No baseline Rul
 delivered Utility — `link_per_crossing` is what makes one, and only `powered.toml` states it — so the
 table holds no rows in any artifact here. `PowerDeliveryTests` covers production, transmission over a
 road crossing, the brownout, the loss, replay, save/reload and the thread count.
+
+### A Utility's reserve (10/20/2026)
+
+`utility_flow` gains two saved columns, `from_reserve` and `to_reserve`: what each District's
+consumers drew out of a reserve yesterday and what the refill put back
+([`plans/utilities.md`](../../../plans/utilities.md), slice 2). Core save format goes to **28**.
+
+🔴 **NOT ONE ARTIFACT MOVED, and that is the entry.** The table joined the fold one slice ago and
+holds **no live rows in any artifact here**, because no baseline Ruleset declares a delivered
+Utility — so two columns added to it fold nothing, where the *table* joining `World._tables` folded
+its allocator's four scalars. ***A table and a column are not the same kind of addition to a
+baseline***, which is the complement of the entries above: `SaveHeader.Current` moves because the
+declaration set is what a save is, and the State Hash does not move because an absent row has no
+columns to contribute. Nothing was regenerated, and regenerating would have produced the committed
+numbers.
+
+What covers the reserve instead is `WaterReserveTests` over `rulesets/watered.toml` — the refill, the
+outage, the brownout, the order of the claims, the proportional split across several towers, the Bin
+bounds, replay, the thread count, a save taken mid-drain, and a reload that stops delivering. ⚠ **A
+baseline Ruleset that ever states `link_per_crossing` turns this entry stale**, and the artifacts
+would then move on the whole table rather than on these two columns.

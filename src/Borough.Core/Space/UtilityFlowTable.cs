@@ -12,8 +12,11 @@ public readonly struct UtilityFlow;
 /// <remarks>
 /// <para>
 /// One row per delivered-Utility Pool row, opened by <c>World.FitDistrictPools</c> and freed with the
-/// Pool row in <c>World.RetirePool</c>. A delivered Utility has no stock — <c>[[resource]] storage</c>
-/// is 0 in this slice — so the Pool's Bin stays empty and these counters are the whole of the state.
+/// Pool row in <c>World.RetirePool</c>. <b>No stock stands in these rows and none stands in the
+/// Pool's Bin</b> — <c>adr/0139</c> makes a Pool a market rather than a store. A Utility declaring
+/// <c>[[resource]] storage = "reserve"</c> keeps its carry-over in the Bins of the Buildings that
+/// hold it, and <see cref="FromReserve"/> and <see cref="ToReserve"/> are what the network records of
+/// the two directions.
 /// </para>
 /// <para>
 /// Saved rather than derived because a Day's production is history. Nothing records which Ticks a
@@ -24,7 +27,8 @@ public readonly struct UtilityFlow;
 /// <c>World.SettleUtilityNetworks</c> reads them at the next Day boundary, writes
 /// <see cref="Delivered"/> for the Day that follows, copies the pair into
 /// <see cref="Supplied"/>/<see cref="Asked"/> beside what was actually served, and zeroes them.
-/// Unused supply is lost rather than carried.
+/// Supply a reserve cannot absorb is lost rather than carried, and a Utility with no reserve loses
+/// all of it.
 /// </para>
 /// </remarks>
 [Table]
@@ -49,6 +53,8 @@ public sealed class UtilityFlowTable
         Supplied = _rows.Saved<long>("supplied", Touch.Cold);
         Asked = _rows.Saved<long>("asked", Touch.Cold);
         Received = _rows.Saved<long>("received", Touch.Cold);
+        FromReserve = _rows.Saved<long>("from_reserve", Touch.Cold);
+        ToReserve = _rows.Saved<long>("to_reserve", Touch.Cold);
 
         _rows.Seal();
     }
@@ -118,6 +124,30 @@ public sealed class UtilityFlowTable
     public Column<long> Received { get; }
 
     /// <summary>
+    /// What yesterday's network in this District drew out of a reserve — its own towers first, then
+    /// whatever a neighbor's exported over the links.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Not a part of <see cref="Received"/>.</b> The two overlap and neither contains the other,
+    /// because road loss comes off what the network gathered before any consumer is served and nothing
+    /// records whether a lost unit came out of a tower or off a plant. So a District whose towers
+    /// cover only its leak reports this above zero with <see cref="Received"/> at zero, and no column
+    /// says how much of what the consumers got had been stored.
+    /// Zero for a Utility declaring <c>storage = "none"</c>, which keeps nothing between Days.
+    /// </remarks>
+    public Column<long> FromReserve { get; }
+
+    /// <summary>
+    /// What yesterday's refill added to this District's own towers — its own leftover production
+    /// first, then whatever a neighbor's surplus reached over the links.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>It is not the level and says nothing about it.</b> The level stands in the Bins; this is
+    /// one Day's inflow, and a tower full since last week reports zero here.
+    /// </remarks>
+    public Column<long> ToReserve { get; }
+
+    /// <summary>
     /// <paramref name="standing"/> + <paramref name="amount"/> × <paramref name="times"/>, saturated
     /// at <see cref="Bound"/>. Every operand is a count and none may be negative.
     /// </summary>
@@ -154,6 +184,8 @@ public sealed class UtilityFlowTable
         Supplied[slot] = 0;
         Asked[slot] = 0;
         Received[slot] = 0;
+        FromReserve[slot] = 0;
+        ToReserve[slot] = 0;
 
         return handle;
     }

@@ -262,6 +262,27 @@ public static class IntegerMath
         ArgumentOutOfRangeException.ThrowIfNegative(numerator);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(denominator);
 
+        return MulDivFloor(value, numerator, (Int128)denominator);
+    }
+
+    /// <summary>
+    /// <c>floor(value × numerator / denominator)</c> for non-negative operands, where the divisor is
+    /// itself too wide for <see cref="long"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>A divisor summed from several <see cref="long"/> quantities is the case this exists for.</b>
+    /// Such a sum can pass <see cref="long.MaxValue"/> while every quotient it produces stays small,
+    /// and capping it to <see cref="long"/> would not merely round a share — it would skew every share
+    /// it divides, because each one would be measured against a whole smaller than the truth.
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException">An operand is negative, or the denominator is zero.</exception>
+    /// <exception cref="OverflowException">The result exceeds <see cref="long"/>.</exception>
+    public static long MulDivFloor(long value, long numerator, Int128 denominator)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(value);
+        ArgumentOutOfRangeException.ThrowIfNegative(numerator);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(denominator);
+
         return checked((long)((Int128)value * numerator / denominator));
     }
 }

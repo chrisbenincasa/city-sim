@@ -336,4 +336,77 @@ public class IntegerMathTests
         long value, long numerator, long denominator) =>
         Assert.Throws<ArgumentOutOfRangeException>(
             () => IntegerMath.MulDivFloor(value, numerator, denominator));
+
+    /// <summary>
+    /// A divisor past <see cref="long.MaxValue"/> divides proportionally rather than saturating.
+    /// </summary>
+    /// <remarks>
+    /// <b>A divisor summed from several <see cref="long"/> quantities is why the overload exists.</b>
+    /// Two shares of an equal pair whose sum overflows a long are a half each; a divisor capped at
+    /// <see cref="long.MaxValue"/> would make each share the whole and hand the first one everything.
+    /// </remarks>
+    [Fact]
+    public void MulDivFloor_divides_by_a_denominator_wider_than_long()
+    {
+        const long part = 5_000_000_000_000_000_000;
+        Int128 whole = (Int128)part + part;
+
+        Assert.True(whole > long.MaxValue, "the pair fits in a long, so this tests nothing");
+
+        // An equal pair takes half each, which is the answer a saturated divisor cannot reach.
+        Assert.Equal(50, IntegerMath.MulDivFloor(100, part, whole));
+        Assert.Equal(0, IntegerMath.MulDivFloor(0, part, whole));
+
+        // An unequal pair over the same divisor, and the two shares still add to the whole total.
+        Assert.Equal(40, IntegerMath.MulDivFloor(100, 4_000_000_000_000_000_000, whole));
+        Assert.Equal(60, IntegerMath.MulDivFloor(100, 6_000_000_000_000_000_000, whole));
+
+        // A share that is not whole floors rather than rounding.
+        Int128 thirds = (Int128)part * 3;
+
+        Assert.Equal(33, IntegerMath.MulDivFloor(100, part, thirds));
+    }
+
+    /// <summary>The widened overload answers the narrow one wherever the narrow one has an answer.</summary>
+    [Fact]
+    public void MulDivFloor_widened_agrees_with_the_long_denominator()
+    {
+        long[] interesting =
+        [
+            1, 2, 3, 255, 65_536, 1_000_000_007, 2_147_483_648, 4_294_967_296, long.MaxValue,
+        ];
+
+        foreach (long value in interesting)
+        {
+            foreach (long denominator in interesting)
+            {
+                if ((Int128)value * 7 / denominator > long.MaxValue)
+                {
+                    continue;
+                }
+
+                Assert.Equal(
+                    IntegerMath.MulDivFloor(value, 7, denominator),
+                    IntegerMath.MulDivFloor(value, 7, (Int128)denominator));
+            }
+        }
+    }
+
+    /// <summary>A zero or negative wide divisor is refused, as the narrow one's is.</summary>
+    [Fact]
+    public void MulDivFloor_refuses_a_wide_denominator_it_has_no_answer_for()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => IntegerMath.MulDivFloor(1, 1, Int128.Zero));
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => IntegerMath.MulDivFloor(1, 1, -(Int128)long.MaxValue - 1));
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => IntegerMath.MulDivFloor(-1, 1, (Int128)long.MaxValue + 1));
+    }
+
+    /// <summary>A quotient past <see cref="long"/> overflows rather than wrapping.</summary>
+    [Fact]
+    public void MulDivFloor_wide_overflows_rather_than_wrapping() =>
+        Assert.Throws<OverflowException>(
+            () => IntegerMath.MulDivFloor(long.MaxValue, long.MaxValue, (Int128)2));
 }

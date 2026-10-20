@@ -266,8 +266,9 @@ public sealed class FactorioTests(ITestOutputHelper output)
         // 🔴 The FOURTEENTH, Utilities slice 1, and it is the ninth's reason with the declaration one
         // step further out. A `utility_flow` row exists only where a Ruleset declares a delivered
         // Utility -- `link_per_crossing` is what makes one -- and `powered.toml` is the only shipped
-        // file that does. So the table is empty in every world above and all SEVEN of its saved
-        // columns were unreachable the day it landed.
+        // file that does. So the table is empty in every world above and all NINE of its saved
+        // columns -- seven the day slice 1 landed and slice 2's reserve pair since -- were
+        // unreachable without this world.
         //
         // ⚠ A row needs a District to hang off, so the world is stepped far enough for the watershed
         // to have run and the Pools to have been fitted. A scribble reaches a zero column as well as

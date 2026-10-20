@@ -903,6 +903,90 @@ public sealed class PowerDeliveryTests
         return loaded.Ruleset!;
     }
 
+    /// <summary>
+    /// The settle's figures for <c>powered.toml</c> are the ones slice 1 recorded, to the unit.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Slice 2 gave the settle a reserve and five more steps, and <c>storage = "none"</c> is what
+    /// says Power takes none of them.</b> Every other test in this file asserts arithmetic over the
+    /// columns, which is the right shape for a fixture that may be retuned and the wrong one for this
+    /// claim: a change that moved the delivered fraction and the demand together would satisfy all of
+    /// them. ***These are magnitudes measured on the build before the reserve existed***, so the
+    /// numbers are the assertion.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A Ruleset edit to <c>powered.toml</c> moves them legitimately.</b> Re-measure and say so;
+    /// what must not change them is a change to <c>World.SettleUtility</c>.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_powered_settle_is_what_slice_one_measured()
+    {
+        (World world, Simulation simulation) = Settling();
+
+        int making = Flow(world, DistrictOf(world, Generator(world)));
+        int burning = Flow(world, DistrictOf(world, Home(world)));
+
+        Assert.Equal(4096, world.UtilityFlows.Produced[making]);
+        Assert.Equal(0, world.UtilityFlows.Demanded[making]);
+        Assert.Equal(4096, world.UtilityFlows.Supplied[making]);
+        Assert.Equal(0, world.UtilityFlows.Asked[making]);
+        Assert.Equal(0, world.UtilityFlows.Received[making]);
+        Assert.Equal(Fixed.One, world.UtilityFlows.Delivered[making].Raw);
+
+        Assert.Equal(0, world.UtilityFlows.Produced[burning]);
+        Assert.Equal(4608, world.UtilityFlows.Demanded[burning]);
+        Assert.Equal(0, world.UtilityFlows.Supplied[burning]);
+        Assert.Equal(4608, world.UtilityFlows.Asked[burning]);
+        Assert.Equal(2496, world.UtilityFlows.Received[burning]);
+        Assert.Equal(35498, world.UtilityFlows.Delivered[burning].Raw);
+
+        // A Utility that keeps no stock reports neither direction of a reserve.
+        Assert.Equal(0, world.UtilityFlows.FromReserve[making]);
+        Assert.Equal(0, world.UtilityFlows.ToReserve[making]);
+        Assert.Equal(0, world.UtilityFlows.FromReserve[burning]);
+        Assert.Equal(0, world.UtilityFlows.ToReserve[burning]);
+
+        simulation.CheckEndOfRun();
+    }
+
+    /// <summary>The plant, found by kind so that <see cref="Settling"/> need not hand it over.</summary>
+    private static int Generator(World world) => OnlyOfKind(world, Plant);
+
+    /// <summary>The occupied dwelling, which is the one Building any Household stands in.</summary>
+    private static int Home(World world)
+    {
+        for (int slot = 0; slot < world.Households.Rows.SlotCount; slot++)
+        {
+            if (world.Households.Rows.IsLive(slot)
+                && world.Buildings.Rows.TryResolve(world.Households.Dwelling[slot], out int building))
+            {
+                return building;
+            }
+        }
+
+        throw new InvalidOperationException("no Household is housed in this world.");
+    }
+
+    private static int OnlyOfKind(World world, byte kind)
+    {
+        int found = Rows.NoSlot;
+
+        for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
+        {
+            if (world.Buildings.Rows.IsLive(slot) && world.Buildings.Kind[slot] == kind)
+            {
+                Assert.Equal(Rows.NoSlot, found);
+                found = slot;
+            }
+        }
+
+        Assert.NotEqual(Rows.NoSlot, found);
+
+        return found;
+    }
+
     // ---- the equivalences ----------------------------------------------------------------------
 
     [Fact]
