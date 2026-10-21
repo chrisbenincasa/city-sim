@@ -139,8 +139,8 @@ public static class RulesetKeyNotes
             + "full cycle at once.",
 
         ["[[resource]] storage"] =
-            "Utility storage mode, \"none\" or \"reserve\". Required with link_per_crossing. "
-            + "Only reserve Utilities may have Building Bins; undelivered Utilities may keep local Bins. "
+            "Utility storage mode, \"none\" or \"reserve\". Required with link_per_crossing, and \"reserve\" requires link_per_crossing. "
+            + "A Building may hold a Bin of a delivered Utility only when it is \"reserve\"; an undelivered Utility may keep local Bins. "
             + "The \"fills\" mode arrives with Sewage.",
         ["[[resource]] link_per_crossing"] =
             "Positive Utility link capacity per crossing. Its presence marks the Utility as delivered.",
