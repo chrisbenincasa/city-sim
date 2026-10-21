@@ -539,6 +539,8 @@ public sealed class Simulation
 
         _world.TimeCutOffBuildings(tick);
 
+        _world.Commutes.Order(_world.Citizens);
+
         _world.Advance();
 
         // The save, and it is after Advance rather than at the end of Commit for a reason measured
