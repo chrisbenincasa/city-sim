@@ -36,6 +36,11 @@ public sealed class UtilityEvidenceTests
     /// <summary><c>powered.toml</c>'s first <c>[[resource]]</c>, and its delivered Utility.</summary>
     private static readonly ResourceId Power = new(1);
 
+    private static readonly ResourceId Money = new(3);
+
+    /// <summary>What the treasury stakes each ridge Household: four Days of the raised bill.</summary>
+    private const long RidgePurse = 8192;
+
     private const byte Dwelling = 1;
     private const byte Plant = 2;
 
@@ -553,6 +558,19 @@ public sealed class UtilityEvidenceTests
     public void Writes_the_ridge_city_for_the_driven_demonstration()
     {
         City city = Build();
+
+        // The ridge's Households hold no posts, so the treasury stakes each one a purse for the
+        // Power bill. Without it every bill the demonstration shows is waived rather than paid.
+        World world = city.World;
+        int treasury = world.FindTreasuryBin(Money);
+
+        for (int household = 0; household < world.Households.Rows.SlotCount; household++)
+        {
+            if (!world.Households.Rows.IsLive(household)) continue;
+
+            world.Withdraw(world.Bins.Rows.At(treasury), RidgePurse, world.Tick);
+            world.Deposit(world.Households.Balance[household], RidgePurse, world.Tick);
+        }
 
         // Two Days: the first settle has run, so the save opens on a city that is already lit.
         AfterSettling(city.Simulation, day: 1);
