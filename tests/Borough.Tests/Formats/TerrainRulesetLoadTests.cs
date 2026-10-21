@@ -391,6 +391,7 @@ public sealed class TerrainRulesetLoadTests
         // ⚠ varied.toml is still the only file that DEMONSTRATES priced ground: this one turns it
         // on beside sixteen other mechanisms, so nothing measured here could be attributed to it.
         // traded.toml is pictured.toml with banded trade forms, so it inherits the ground.
-        Assert.Equal(["pictured.toml", "traded.toml", "varied.toml"], priced);
+        // employment.toml is an earlier pictured.toml frozen for an instrument, so it does too.
+        Assert.Equal(["employment.toml", "pictured.toml", "traded.toml", "varied.toml"], priced);
     }
 }

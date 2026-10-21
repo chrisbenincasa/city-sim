@@ -1529,6 +1529,15 @@ public readonly record struct LifeStageDefinition
     /// Scales preference for rent, not the affordability budget. Zero ignores rent in utility only.
     /// </remarks>
     public int RentWeightPercent { get; init; }
+
+    /// <summary>
+    /// The daily rent a jobless Household in this stage will pay to stay in the city rather than
+    /// leave for a Hinterland; zero adds no reluctance beyond the ordinary cost of moving.
+    /// </summary>
+    /// <remarks>
+    /// A utility term on the incumbent home, never a duration or a gate (<c>adr/0102</c>).
+    /// </remarks>
+    public int LeavingCostsRent { get; init; }
 }
 
 
@@ -5351,6 +5360,16 @@ public sealed class Ruleset
     public int RentWeight(byte stage) => stage == 0 || stage > LifeStages.Length
         ? RentNeutralPercent
         : LifeStages[stage - 1].RentWeightPercent;
+
+    /// <summary>
+    /// What staying in the city is worth to a Household in <paramref name="stage"/> against a
+    /// Hinterland, in Q16.16 utility units, beyond <see cref="PlacementRuleset.StayingPut"/>.
+    /// </summary>
+    public int LeavingCost(byte stage) =>
+        stage == 0 || stage > LifeStages.Length || Placement.RentPerUnit == 0
+            ? 0
+            : (int)IntegerMath.FloorDiv(
+                (long)LifeStages[stage - 1].LeavingCostsRent * Fixed.One, Placement.RentPerUnit);
 
     /// <summary>This Ruleset with different Map Layer data, and everything else shared.</summary>
     /// <remarks>

@@ -41,7 +41,7 @@ for jobs and jobs attract people.
 | 6 | A daily purchase budget per Hinterland bounds exports | Removed once production needs workers |
 | 7 | The player works on the internal economy. Outside prices stay mostly steady; firms sell locally first and export surplus without a trade screen | Occasional outside price events |
 | 8 | Reachable jobs, as `log(1 + jobs)`, enter arrival placement on both the city and Hinterland sides | Wages, once posted wages (`adr/0026`) exist |
-| 9 | A jobless spell past a Ruleset duration makes a housed Household rerun the same comparison against the Hinterland. Life Stage sets reluctance | Departure when it cannot pay (Household financial resilience row) |
+| 9 | A housed Household with a jobless adult reruns the same comparison against the Hinterland after each failed job search. No duration gates it (`adr/0102`, 10/19/2026). Life Stage sets reluctance through `[[life_stage]] leaving_costs_rent` | Departure when it cannot pay (Household financial resilience row) |
 | 10 | Seeds differ through land. Hinterlands stay authored per Ruleset | Generator deals Hinterlands to edges (world-creation row) |
 | 11 | A firm keeps its service provider under a saved contract and chooses again only when the provider cannot supply it (`adr/0179`, 10/15/2026). A District Pool was rejected because it cannot say "within reach of this firm" | Local providers and their capacity, offices slice |
 | 12 | Surplus is output a firm cannot store. A Rule with its inputs and workers present, blocked only by a full output Bin of a Good it makes, sells that batch to the Hinterland. The Bin stays full, so local buyers lose nothing (10/16/2026). A waiting period before exporting was considered and not built | A waiting period, if a long run shows local buyers going without |
@@ -204,8 +204,31 @@ Ordered by dependency. Each slice is one PR with its own acceptance.
 4. **Jobs attract arrivals. Built 10/18/2026 on `export-base-4`.** Arrival choice reads qualified
    reachable vacancies on city and Hinterland alternatives. Plan 0073 keeps its no-wage boundary;
    the new count is not income. See the evidence and rollout limit below.
-5. **Jobless departure.** Read `NoVacancySince`; past the Ruleset duration, rerun the comparison
-   with Life Stage reluctance. Coordinate failure semantics with the decline-and-recovery row.
+5. **Jobless departure. Built 10/19/2026 on `export-base-5`.**
+   - A Citizen is jobless when of working age, without a Workplace, not studying, and last concluded
+     `None` or `NoVacancy` (`World.IsJobless`). `BeyondReach` is the destitute channel's and
+     `BelowCredential` names a missing school, so neither triggers the comparison.
+   - Every failed search by a jobless Citizen rechecks its Household on the same Tick
+     (`EmploymentEngine.FailedSearches`, then `PlacementEngine.ReconsiderJobless`). A Ruleset that
+     states `[placement] reconsider_ticks` also rechecks in the reassessment sample.
+   - The home scores rent, centrality, qualified reachable vacancies for the highest jobless tier,
+     `moving_costs_rent` and the stage's `leaving_costs_rent`. Each Hinterland scores its rent,
+     centrality and `reachable_jobs`. One draw (`PurposeTag.JoblessDeparture`) picks staying or the
+     destination edge.
+   - `World.Leave` shares the unhoused door's sale, money sink, ledger and Hinterland return. The
+     tenancy ends through `RetireHousehold`. `PlacementActivity.Left` counts the channel.
+   - Runs only with `[placement] jobs_rent` and `[immigration]` stated, so only `jobs-attract.toml`
+     changes. No saved state, no save-format change and no golden re-record.
+   - Evidence: `JoblessDepartureTests`, `jobs-attract.toml`, seed 7, employers destroyed after one
+     Day, two Days observed. Of the Households housed at closure, 71% stayed against 86% with
+     employers open. Young Households kept 56%. Families with `leaving_costs_rent = 1200` kept 100%,
+     and 68% without it.
+   - ⚠ No leaving Trip. The Citizens retire at once, because a Trip needs a Citizen to outlive its
+     Household until it reaches the gate (issue #204).
+   - ⚠ Churn. Over those two Days 255 housed Households left, but only 29% of the about 450 housed
+     at closure did, so about half the leavers were arrivals into a jobless city that left again
+     after their first failed search. Arrival choice
+     weighs jobs too, but the fixture's Outside job counts are small.
 
 ## Acceptance
 
@@ -214,7 +237,7 @@ Ordered by dependency. Each slice is one PR with its own acceptance.
   random placement of the same Lots would.
 - Export income enters the city and `MoneyIsConserved` holds across save, reload and replay.
 - A fixture with jobs in reach draws more arrivals than the same fixture without them.
-- A fixture that loses its employers loses Households over the stated duration, families last.
+- A fixture that loses its employers loses Households over time, families last.
 - A driven demonstration shows an office district forming and the treasury's balance of payments
   turning positive.
 

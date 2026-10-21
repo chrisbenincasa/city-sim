@@ -16,7 +16,7 @@ necessarily supply the Streets, Buildings, services or commands needed to exerci
 | Inspect houses, parcels and Streets | [neighbourhood.toml](neighbourhood.toml) | Small houses and independently sized residential parcels; the shell's default. |
 | Compare density and building forms | [platted.toml](platted.toml) | Five bands showing detached, perimeter, terrace, courtyard and slab patterns. |
 | Inspect attached houses | [rowhouses.toml](rowhouses.toml) | Narrow plots with shared side walls and gardens. The central bands deliberately stay empty. |
-| Photograph a varied scene | [pictured.toml](pictured.toml) | Coast, shops, school content, traffic and ruins in one fixture. Individual activities still depend on placement and simulation time. |
+| See most systems at once | [pictured.toml](pictured.toml) | Two centres on a coast with floods, traffic, shops, offices, exports, life stages and ruins. Launch with `--citizens 5000`. Demolish a Building to make room, then place a school, clinics and a hospital with the Service tool. |
 | Build from an empty map | [base/ruleset.toml](base/ruleset.toml) | Lay Streets, zone housing, place an edge gate, attract families and place a public school. The treasury has an opening balance but no income. |
 | Try one small housing decision | [urban-neighbourhood.toml](urban-neighbourhood.toml) | Permit an addition after Households fail to find acceptable homes, then watch them move in. **Use the prepared save in the walkthrough below.** |
 | Watch work and shopping journeys | [shopping.toml](shopping.toml) | Weekly work and physical purchases carried home. Shop supply is synthetic. |
@@ -79,7 +79,7 @@ historical implementation claims; use current code and tests to establish behavi
 | [platted.toml](platted.toml) | The complete five-pattern block ladder in concentric bands. |
 | [banded.toml](banded.toml) | Density-band admission restrictions: zoning alone does not permit every Building kind. |
 | [gridded.toml](gridded.toml) | A street grid with varying block spacing and a repeating hierarchy. |
-| [pictured.toml](pictured.toml) | Combined coastal city scene assembled from several mechanism demonstrations; useful for pictures, not attributing an economic result to one cause. |
+| [pictured.toml](pictured.toml) | Combined coastal city assembled from the mechanism demonstrations, including care and offices; useful for seeing systems together, not for attributing a result to one cause. Excludes the base package economy and Utilities. |
 | [varied.toml](varied.toml) | Terrain types with different Base Fertility, plus woodland and pollution-related tuning. |
 | [coastal.toml](coastal.toml) | Water Bodies and a city sited to meet the coast. |
 | [flooded.toml](flooded.toml) | Weather-driven flooding, with the city positioned in exposed ground. |
@@ -160,6 +160,7 @@ historical implementation claims; use current code and tests to establish behavi
 | [maintained.toml](maintained.toml) | Repair supply as the maintenance control against `declining.toml`. |
 | [thinned.toml](thinned.toml) | Occupant shedding under premises pressure before condemnation, with upkeep linked to occupancy. |
 | [evicted.toml](evicted.toml) | Tenancies ending from failed consumption while the premises remain standing. |
+| [employment.toml](employment.toml) | The frozen Employment feedback acceptance world: employment recovers after a mass bankruptcy only with the jobless signal. Used by `EmploymentRecoveryTests`. |
 
 ## Authoring and maintenance
 
