@@ -336,8 +336,8 @@ public sealed class InstanceBuffer
             }
             if (batch.BoundsDirty)
             {
-                Aabb changed = batch.Entries[0].Transform * meshBounds;
-                foreach (Entry entry in batch.Entries) changed = changed.Merge(entry.Transform * meshBounds);
+                Aabb changed = Transformed(batch.Entries[0].Transform, meshBounds);
+                foreach (Entry entry in batch.Entries) changed = changed.Merge(Transformed(entry.Transform, meshBounds));
                 batch.Bounds = changed;
                 batch.BoundsDirty = false;
             }
@@ -440,6 +440,33 @@ public sealed class InstanceBuffer
     }
 
     private bool Hides(Batch batch) => !NearOnly && Near is not null && Near(batch.Key);
+
+    // Godot's `Transform3D * Aabb`, with the same arithmetic in the same order. The operator reads
+    // through Basis and Vector3 indexers, which cost seconds across a million instances.
+    private static Aabb Transformed(in Transform3D transform, Aabb box)
+    {
+        Vector3 min = box.Position, max = box.Position + box.Size;
+        Basis basis = transform.Basis;
+        Vector3 origin = transform.Origin;
+        float lowX = origin.X, highX = origin.X, lowY = origin.Y, highY = origin.Y, lowZ = origin.Z, highZ = origin.Z;
+        Row(ref lowX, ref highX, basis.X.X, basis.Y.X, basis.Z.X, min, max);
+        Row(ref lowY, ref highY, basis.X.Y, basis.Y.Y, basis.Z.Y, min, max);
+        Row(ref lowZ, ref highZ, basis.X.Z, basis.Y.Z, basis.Z.Z, min, max);
+        return new Aabb(new Vector3(lowX, lowY, lowZ), new Vector3(highX - lowX, highY - lowY, highZ - lowZ));
+
+        static void Row(ref float low, ref float high, float x, float y, float z, Vector3 min, Vector3 max)
+        {
+            Term(ref low, ref high, x * min.X, x * max.X);
+            Term(ref low, ref high, y * min.Y, y * max.Y);
+            Term(ref low, ref high, z * min.Z, z * max.Z);
+        }
+
+        static void Term(ref float low, ref float high, float e, float f)
+        {
+            if (e < f) { low += e; high += f; }
+            else { low += f; high += e; }
+        }
+    }
 
     private static void Put(float[] buffer, ref int at, Color value)
     {

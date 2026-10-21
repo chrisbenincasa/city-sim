@@ -248,7 +248,7 @@ public partial class Main
     }
 
     private void Module(GardenLayer layer, ulong id, float east, float north, float turn) =>
-        Put(layer, id, new Transform3D(Basis.FromEuler(new Vector3(0f, turn, 0f)), new Vector3(east, 0f, -north)), Colors.White);
+        Put(layer, id, new Transform3D(YawScaled(turn, Vector3.One), new Vector3(east, 0f, -north)), Colors.White);
 
     private static float Facing(House house) => house switch
     {
@@ -357,7 +357,7 @@ public partial class Main
         float broad = tall * r.Range(.5f, .7f);
         float shade = .88f + r.Range(0f, .24f);
         Put(GardenLayer.Tree, id, new Transform3D(
-            Basis.FromEuler(new Vector3(0f, r.Range(0f, Mathf.Tau), 0f)) * Basis.FromScale(new Vector3(broad, tall, broad)),
+            YawScaled(r.Range(0f, Mathf.Tau), new Vector3(broad, tall, broad)),
             new Vector3(east, .05f, -north)), new Color(shade, shade, shade));
     }
 
@@ -376,7 +376,7 @@ public partial class Main
         {
             int panels = Math.Max(1, (int)MathF.Ceiling(length / FencePanel));
             float stretch = length / (panels * FencePanel);
-            Basis turn = Basis.FromEuler(new Vector3(0f, eastward ? 0f : Mathf.Pi / 2f, 0f)) * Basis.FromScale(new Vector3(stretch, 1f, 1f));
+            Basis turn = YawScaled(eastward ? 0f : Mathf.Pi / 2f, new Vector3(stretch, 1f, 1f));
             for (int k = 0; k < panels; k++)
             {
                 float t = (k + .5f) / panels;
@@ -446,7 +446,7 @@ public partial class Main
         bool eastward = MathF.Abs(x1 - x0) >= MathF.Abs(y1 - y0);
         int panels = Math.Max(1, (int)MathF.Ceiling(length / FencePanel));
         float stretch = length / (panels * FencePanel);
-        Basis turn = Basis.FromEuler(new Vector3(0f, eastward ? 0f : Mathf.Pi / 2f, 0f)) * Basis.FromScale(new Vector3(stretch, 1f, 1f));
+        Basis turn = YawScaled(eastward ? 0f : Mathf.Pi / 2f, new Vector3(stretch, 1f, 1f));
         for (int k = 0; k < panels; k++)
         {
             float t = (k + .5f) / panels;

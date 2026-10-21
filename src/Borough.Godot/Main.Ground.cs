@@ -561,9 +561,7 @@ public partial class Main
                         _trees.Multimesh.Identity(crowns, identity);
                         _trees.Multimesh.SetInstanceTransform(
                             crowns,
-                            new Transform3D(
-                                Basis.FromEuler(new Vector3(0f, (draw & 255) / 255f * Mathf.Tau, 0f))
-                                    * Basis.FromScale(new Vector3(broad, tall, broad)),
+                            new Transform3D(YawScaled((draw & 255) / 255f * Mathf.Tau, new Vector3(broad, tall, broad)),
                                 new Vector3(x, 0.05f, -z)));
                         float shade = 0.88f + ((draw >> 40) & 255) / 255f * 0.24f;
                         _trees.Multimesh.SetInstanceColor(crowns++, new Color(shade, shade, shade));
@@ -585,6 +583,15 @@ public partial class Main
 
         _trees.Multimesh.VisibleInstanceCount = crowns;
         _rocks.Multimesh.VisibleInstanceCount = stones;
+    }
+
+    // Equal to `Basis.FromEuler(new(0, yaw, 0)) * Basis.FromScale(scale)`, which composes three
+    // rotations through indexers and costs seconds across a city's trees.
+    private static Basis YawScaled(float yaw, Vector3 scale)
+    {
+        float sin = Mathf.Sin(yaw), cos = Mathf.Cos(yaw);
+        return new Basis(new Vector3(cos * scale.X, 0f, -sin * scale.X), new Vector3(0f, scale.Y, 0f),
+            new Vector3(sin * scale.Z, 0f, cos * scale.Z));
     }
 
     /// <summary>Where the standing city is, in metres, as the point a scatter should work out from.</summary>
