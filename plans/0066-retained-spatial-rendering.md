@@ -68,8 +68,11 @@ selection, hover, resizing and paused State Hash assertions against the new batc
 reported per second; shell and viewport rendering CPU/GPU are per frame. An unsupported GPU
 counter says unavailable. `BOROUGH_PERFORMANCE_LOG=PATH` writes one-second CSV windows;
 `python3 scripts/measure-shell.py` captures running/paused `minimal.toml` with 1,000 Citizens
-and checks paused drawing/uploads and the indicator. This is a development diagnostic, not a
-reference-machine benchmark. Build the shell before running it.
+and checks paused drawing/uploads and the indicator. `--ruleset`, `--citizens`, `--focus` and
+`--tilt` fix the world and camera; each `--probe NAME` adds a paused window under that
+`ui render-probe`. This is a development diagnostic, not a reference-machine benchmark. Build the
+shell before running it, and set `GODOT_VISIBLE=1` inside Claude Code. Without it the launcher
+renders on Xvfb, which adds about 33 ms to every frame.
 Some driven runs acknowledged `quit` but stalled during shutdown; the capture script records
 that separately and terminates its own process after preserving the measurements.
 

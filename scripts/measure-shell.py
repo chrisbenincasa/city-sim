@@ -19,6 +19,9 @@ parser.add_argument('--ruleset', default='rulesets/minimal.toml')
 parser.add_argument('--start-at', type=int, help='Age the city before opening the window; otherwise use the game default.')
 parser.add_argument('--startup-timeout', type=int, default=60, help='Seconds allowed for ageing and opening the first frame.')
 parser.add_argument('--focus', nargs=3, type=int, metavar=('EAST', 'NORTH', 'DISTANCE'), help='Fix the camera on this Tile at this distance.')
+parser.add_argument('--tilt', type=int, help='Degrees above the horizon after focusing.')
+parser.add_argument('--probe', action='append', default=[], metavar='NAME',
+                    help='A paused rendering comparison after the baseline, such as hide-tree; repeatable.')
 parser.add_argument('--headless', action='store_true', help='Use Godot without a display or GPU.')
 args = parser.parse_args()
 if (args.seconds < 3 or args.citizens < 1 or args.startup_timeout < 1
@@ -62,6 +65,8 @@ with tempfile.TemporaryDirectory(prefix='borough-perf-socket-') as socket_dir:
                     connection.settimeout(60)
                     if args.focus is not None:
                         send('focus ' + ' '.join(map(str, args.focus)))
+                    if args.tilt is not None:
+                        send(f'tilt {args.tilt}')
                     time.sleep(5)  # Exclude startup and shader compilation from the comparison.
                     time.sleep(args.seconds)
                     send('pause')
@@ -71,6 +76,11 @@ with tempfile.TemporaryDirectory(prefix='borough-perf-socket-') as socket_dir:
                     send(f'ui read {output / "ui.json"}')
                     if not args.headless:
                         send(f'shoot {output / "screen.png"}')
+                    for probe in args.probe:
+                        send(f'ui render-probe {probe}')
+                        time.sleep(args.seconds)
+                    if args.probe:
+                        send('ui render-probe baseline')
                     time.sleep(.5)
                     send('quit')
             try:

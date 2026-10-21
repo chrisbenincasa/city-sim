@@ -281,8 +281,12 @@ failure a screenshot renders as success.***
   of zeros (**F17**). The counts are CPU-side and stay true; the rows are withheld with the reason
   written into the file. ***A draw list needs a real display.***
 
-**This machine has one at `:1`**, and tmux panes inherit it from the server's global environment, so
-a driven run needs no Xvfb and no exported variable. Check it before blaming the shell:
+**This machine has one at `:1`**, and tmux panes inherit it from the server's global environment.
+🔴 **Inside Claude Code the `godot` launcher (`~/.local/bin/godot`) runs the shell on a private
+3840×2160 Xvfb display instead**, so no window takes focus. Draw lists and screenshots are still
+valid there, but frame rates are not: Xvfb presentation adds about 33 ms to every frame and stops
+the CPU and GPU from overlapping. `GODOT_VISIBLE=1` puts the window on `:1`. Any frame-rate
+reading needs it. Check the display before blaming the shell:
 
 ```
 echo "$DISPLAY"                 # :1
