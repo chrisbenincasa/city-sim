@@ -98,9 +98,16 @@ public partial class Main
         {
             anyShort |= drawn.Delivered < Ratio.One;
 
-            rows.Add(new($"{UtilitySentence(drawn)}\nYesterday the District's network served "
-                + $"{drawn.Received:N0} of the {drawn.Asked:N0} units asked of it.",
-                Icon: UiIcons.Resource(_names.Resource(drawn.Utility))));
+            string text = $"{UtilitySentence(drawn)}\nYesterday the District's network served "
+                + $"{drawn.Received:N0} of the {drawn.Asked:N0} units asked of it.";
+            if (drawn.HasTariff)
+            {
+                string name = _names.Resource(drawn.Utility) ?? $"Resource {drawn.Utility.Raw}";
+                text += $"\nPaid {drawn.Paid:N0} for {name} yesterday.";
+                if (drawn.Unpaid > 0) text += $" {drawn.Unpaid:N0} went unpaid.";
+            }
+
+            rows.Add(new(text, Icon: UiIcons.Resource(_names.Resource(drawn.Utility))));
         }
 
         return new("utilities", $"Utilities · {evidence.Utilities.Length}", anyShort, rows);
