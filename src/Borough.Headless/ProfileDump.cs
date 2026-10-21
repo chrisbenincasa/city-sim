@@ -97,7 +97,7 @@ internal static class ProfileDump
             stepThreads = options.RouteWorkers,
             threading = "one coordinator; route worker limit includes caller; all world writes remain serial",
             allocationScope = "process-wide allocation delta during Step, including workers",
-            routeWorkScope = "synchronous queries only; routeBatch reports prepared/used/fallback queries",
+            routeWorkScope = "synchronous queries only; routeBatch and hiringBatch report prepared/used/fallback queries",
             reuseScope = "Trip, Shopping and civic searches; shared FIFO across categories; cold at capture start",
             payrollWorkScope = "diagnostic population scan immediately before accrual; intrusive, not function-internal counters",
             timing = "Step only; setup, counters, hashes and end invariants excluded"
@@ -283,6 +283,7 @@ internal static class ProfileDump
                     phaseMs = phases!.Reading(),
                     tableGrowth = growth!.Read(),
                     routeBatch = batch,
+                    hiringBatch = sim.Employment.LastBatch,
                     routeReuse = new
                     {
                         estimates = estimateReuse!.Reading(),
