@@ -6,7 +6,7 @@ Money that reaches a Business or a Household has somewhere to go next. A city ru
 of Days keeps money moving between Households, Businesses and the treasury, and no one holder
 accumulates it.
 
-## Current behaviour (checked 10/11/2026 at `a5553cbb`)
+## Current behaviour (checked 10/11/2026 at `a5553cbb`; the Utility rows 10/20/2026 on `utilities-4`)
 
 | Business outflow | Built | Recipient |
 |---|---|---|
@@ -17,7 +17,7 @@ accumulates it.
 | Profit to an owner | `WageEngine.Draw` | Founding Household, or a housed Household drawn at random |
 | Rent | No | — |
 | Premises upkeep | No | — |
-| Utilities | No | — |
+| Utilities | No. The treasury buys the import and nothing bills a drawing Rule | — |
 
 - Households pay for shopping, tuition, income tax and content levies. Nothing else leaves a
   Household.
@@ -26,7 +26,11 @@ accumulates it.
 - `World.Found` saves the founding Household as the Business's owner. A Zone Rule's Business has
   no founder, and the treasury's opening grant funds it. It draws an owner on its first payday
   with a surplus.
-- Street upkeep is the only maintenance cost, and the treasury pays it.
+- Street upkeep and Utility imports are the treasury's two standing costs.
+- The treasury buys a short District's Utility shortfall at an Outside Connection at the daily
+  settle, and pays for what that settle imported. The money leaves the city to the Outside, so the
+  money supply falls by it (`adr/0024`), as a Good import's payment does. There is no debt, so an
+  empty treasury imports nothing and the District stays short.
 
 ## Evidence
 
@@ -55,7 +59,7 @@ The founding loop's base city, run with `quits_after_days_unpaid` and the M2 con
 | Housed-only rebate | Built and in base (`housed` Readout) | Decide whether base keeps it after the slice 7 run |
 | Land ownership and rent | Decided (L1–L18) | Build [slices 1–7](#land-and-rent-slices) |
 | Premises upkeep | Scoping | Decide whether upkeep is Money only or consumes repairs |
-| Utility billing | Scoping | Waits on the Power, Water and Sewage delivery row |
+| Utility billing | Scoping; the treasury already pays for imports (utilities slice 4) | Waits on the Power, Water and Sewage delivery row. Slice 5's tariff is what recovers the import cost from the drawing Rules |
 
 ## Decisions
 

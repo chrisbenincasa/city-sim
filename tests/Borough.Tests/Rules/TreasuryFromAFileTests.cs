@@ -117,8 +117,8 @@ public sealed class TreasuryFromAFileTests
     }
 
     /// <summary>
-    /// Only the funded and granted worlds and the base package found their treasury with money, and
-    /// every other Ruleset opens empty.
+    /// Only the funded, granted and powered worlds and the base package found their treasury with
+    /// money, and every other Ruleset opens empty.
     /// </summary>
     /// <remarks>
     /// <b>The survey, asserted rather than remembered.</b> <c>adr/0116</c> chose an empty opening
@@ -127,11 +127,12 @@ public sealed class TreasuryFromAFileTests
     /// because a player with no money has no fiscal decision to make. <c>granted.toml</c> overrides it
     /// because an opening grant is paid out of the treasury and an empty one refuses every grant.
     /// The base package overrides it because a founded city pays for its school from the opening
-    /// balance. This fails when another Ruleset acquires the key, which is the moment to ask whether
-    /// the default still holds.
+    /// balance. <c>powered.toml</c> overrides it because the treasury is what pays for an imported
+    /// Utility and an empty one imports nothing. This fails when another Ruleset acquires the key,
+    /// which is the moment to ask whether the default still holds.
     /// </remarks>
     [Fact]
-    public void Only_the_funded_and_granted_worlds_and_the_base_package_open_with_money()
+    public void Only_the_funded_granted_and_powered_worlds_and_the_base_package_open_with_money()
     {
         var founded = new List<string>();
 
@@ -145,7 +146,7 @@ public sealed class TreasuryFromAFileTests
             }
         }
 
-        Assert.Equal(["funded.toml", "granted.toml", BasePackage], founded);
+        Assert.Equal(["funded.toml", "granted.toml", "powered.toml", BasePackage], founded);
     }
 
     /// <summary>

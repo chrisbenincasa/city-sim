@@ -16,10 +16,17 @@
 # Building is ever condemned and none is ever raised. A test builds the city it wants and the city
 # stays built, which is what makes a Day-to-Day comparison of one network a comparison of one city.
 #
-# THE MONEY RESOURCE AND THE HINTERLAND ARE BOTH PAPERWORK. A file stating `[districts]` must price
-# every Good at some Hinterland, because a Pool's ceiling is the cheapest import price and an
-# unpriced Good is free for ever. Nothing here buys or sells: a delivered Utility is not traded and
-# has no price at all.
+# WHAT THE HINTERLAND IS FOR. A file stating `[districts]` must price every Good at some Hinterland,
+# because a Pool's ceiling is the cheapest import price and an unpriced Good is free for ever. The
+# south Hinterland also prices `power`, which is what makes the Utility importable: a `gate` raised
+# on the south edge brings in `import_per_connection` units a Day and the treasury pays that price
+# for each of them. Nothing here buys or sells a Good; the Utility import is the only trade.
+#
+# WHY THERE IS A TREASURY AND A [placement] TABLE. The treasury is the importer's purse -- an empty
+# one imports nothing, so a fixture that demonstrates an import has to be founded with money. The
+# `[placement]` table is what `arrivals_per_day` obliges: a gate kind is a door into the Unplaced
+# Pool, and `adr/0006` requires that Pool to have a sink. Nothing arrives through the door in these
+# worlds, because no `[immigration]` table makes the Outside present anybody.
 
 [[resource]]
 name = "power"
@@ -32,6 +39,9 @@ storage = 0
 link_per_crossing = 2560
 # What a District's network loses per Tile of road credited to it, in a Day.
 loss_per_road_tile = 1
+# What one Outside Connection brings in per Day. Equal to `link_per_crossing` on purpose, so one
+# gate on the far side of a boundary is worth exactly one more crossing road.
+import_per_connection = 2560
 
 [[resource]]
 name = "lumens"
@@ -52,6 +62,10 @@ emigrant_balance_max = 0
 prices = [
     { resource = "lumens", price = 500 },
     { resource = "widget", price = 500 },
+    # Two per unit, so a Day of one gate's capacity costs 5,120 and the opening balance below buys
+    # several hundred Days of it. A short District's bill is legible without the treasury being the
+    # thing under test.
+    { resource = "power",  price = 2 },
 ]
 
 # Kind 1, so the mass of Buildings a test raises to shape the watershed draws no power until it is
@@ -69,6 +83,12 @@ name = "plant"
 [[building]]
 name = "works"
 bins = [ { resource = "widget", capacity = 1048576 } ]
+
+# Kind 4, the Outside Connection. `arrivals_per_day` is the key that makes a kind one (adr/0088);
+# the number is a ceiling on Households and has nothing to do with the Utility it imports.
+[[building]]
+name = "gate"
+arrivals_per_day = 12
 
 [[rule]]
 name    = "generate"
@@ -93,6 +113,18 @@ rate    = 8
 apply   = { min = 1, max = 4 }
 inputs  = [ { scope = "pool", resource = "power", amount = 4 } ]
 outputs = [ { scope = "local", resource = "widget", amount = 1 } ]
+
+# What the importer spends. Nothing collects a tax or a levy here, so this is all the money the
+# city will ever have.
+[treasury]
+opening_balance = 4194304
+
+# adr/0006's sink for the Pool the gate kind above opens a door into.
+[placement]
+interval            = 32
+revisit_ticks       = 1024
+candidates          = 3
+gives_up_after_days = 120
 
 [districts]
 prominence_percent = 50

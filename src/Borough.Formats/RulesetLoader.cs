@@ -230,6 +230,13 @@ public static class RulesetLoader
         private readonly List<int> _storage = [];
         private readonly List<int> _links = [];
         private readonly List<int> _losses = [];
+        private readonly List<int> _imports = [];
+
+        // Where to report an import_per_connection that does not pair with a [[hinterland]] price:
+        // the key's own line where it is stated, the [[resource]] table's where it is not. Parallel
+        // to _imports, because that refusal runs after the [[hinterland]] tables and the resource's
+        // own syntax node is out of reach by then.
+        private readonly List<int> _importLines = [];
         private int _labourLine;
         private readonly Dictionary<string, byte> _kinds = new(StringComparer.Ordinal);
 
@@ -455,6 +462,10 @@ public static class RulesetLoader
             // reaches. Neither table can see the defect alone.
             RefuseUnpricedGoods(districts, hinterlands, hinterlandPrices);
 
+            // Beside it, and a property of the pair for the same reason: an import needs a price
+            // and a capacity, and each key is in a table that cannot see the other.
+            RefuseHalfPricedUtilityImports(hinterlands, hinterlandPrices);
+
             // The same shape one table along: [capacity]'s ceiling on attendance can only bind on a
             // kind that serves something, and ReadCapacity runs before ReadKinds so it cannot ask.
             RefuseInertServicePlaces(capacity, kinds);
@@ -560,6 +571,7 @@ public static class RulesetLoader
                 ResourceStorage = [.. _storage],
                 ResourceLinks = [.. _links],
                 ResourceLosses = [.. _losses],
+                ResourceImports = [.. _imports],
                 Founding = founding,
                 ResourceKeys = Keys(_resources),
                 KindKeys = Keys(_kinds),
@@ -2756,6 +2768,11 @@ public static class RulesetLoader
             bool hasStorage = Find(table, "storage") is not null;
             bool hasLink = Find(table, "link_per_crossing") is not null;
             bool hasLoss = Find(table, "loss_per_road_tile") is not null;
+            KeyValueSyntax? importKey = Find(table, "import_per_connection");
+            bool hasImport = importKey is not null;
+            string name = NameOfResource(new ResourceId((ushort)_families.Count));
+
+            _importLines.Add(hasImport ? LineOf(importKey!) : LineOf(table));
 
             // Zero is the only accepted value, so the column carries zero for every Resource until
             // the Water slice builds a store to put in it.
@@ -2768,19 +2785,22 @@ public static class RulesetLoader
 
             int link = hasLink ? CivicInt(table, "link_per_crossing", 1, int.MaxValue) : 0;
             int loss = hasLoss ? CivicInt(table, "loss_per_road_tile", 0, int.MaxValue) : 0;
+            int import = hasImport ? CivicInt(table, "import_per_connection", 1, int.MaxValue) : 0;
 
             if (family != ResourceFamily.Utility)
             {
-                if (hasStorage || hasLink || hasLoss)
+                if (hasStorage || hasLink || hasLoss || hasImport)
                 {
                     Refuse(LineOf(table), null,
-                        "storage, link_per_crossing, and loss_per_road_tile describe a delivered "
-                        + $"Utility, but this Resource has family = {FamilyName(family)}.");
+                        "storage, link_per_crossing, loss_per_road_tile and import_per_connection "
+                        + $"describe a delivered Utility, but '{name}' has family = "
+                        + $"{FamilyName(family)}.");
                 }
 
                 _storage.Add(0);
                 _links.Add(0);
                 _losses.Add(0);
+                _imports.Add(0);
                 return;
             }
 
@@ -2796,9 +2816,20 @@ public static class RulesetLoader
                 Refuse(LineOf(table), null, "loss_per_road_tile requires link_per_crossing.");
             }
 
+            // An undelivered Utility has no network for an import to arrive on. Its Pool row is
+            // never opened, so a capacity here would be a number no settle ever reads.
+            if (hasImport && !hasLink)
+            {
+                Refuse(LineOf(table), null,
+                    $"import_per_connection on '{name}' requires link_per_crossing. An Outside "
+                    + "Connection imports onto the District network the key opens, and an "
+                    + "undelivered Utility has none.");
+            }
+
             _storage.Add(0);
             _links.Add(link);
             _losses.Add(hasLink ? loss : 0);
+            _imports.Add(hasLink ? import : 0);
         }
 
         /// <summary>Spells the entities a Readout is readable against, for a refusal message.</summary>
@@ -7382,17 +7413,22 @@ public static class RulesetLoader
                     continue;
                 }
 
-                // Only a Good. A utility is not stocked and a money Resource is the DENOMINATION of
-                // a price rather than a thing with one, so both would be a number the market never
-                // reads -- and a key the loader silently drops is a key a designer tunes and then
-                // wonders about, which is `bins`' capacity refusal one table over.
-                if (_families[resource.Raw - 1] is not (ResourceFamily.Good or ResourceFamily.Service))
+                // A Good, a Professional Service, or a DELIVERED Utility. An undelivered Utility
+                // reaches no network and a money Resource is the DENOMINATION of a price rather
+                // than a thing with one, so both would be a number the market never reads -- and a
+                // key the loader silently drops is a key a designer tunes and then wonders about,
+                // which is `bins`' capacity refusal one table over.
+                if (_families[resource.Raw - 1] is not (ResourceFamily.Good or ResourceFamily.Service)
+                    && !(_families[resource.Raw - 1] == ResourceFamily.Utility
+                        && _links[resource.Raw - 1] > 0))
                 {
                     Refuse(LineOf(inline), null,
-                        $"'{NameOfResource(resource)}' is not a good or a service, so it has no import "
-                        + "price. A Hinterland prices cargo and Professional Services: a utility is "
-                        + "not stocked and money is what a price is denominated IN rather than a "
-                        + "thing that has one.");
+                        $"prices names '{NameOfResource(resource)}', which is not a good, a service "
+                        + "or a delivered utility, so it has no import price. A Hinterland prices "
+                        + "cargo, Professional Services and a Utility that states "
+                        + "link_per_crossing: an undelivered utility reaches no District network to "
+                        + "be imported onto, and money is what a price is denominated IN rather than "
+                        + "a thing that has one.");
 
                     continue;
                 }
@@ -11643,6 +11679,78 @@ public static class RulesetLoader
                     + "what that Pool can charge, so an unpriced good is not merely unanchored -- it "
                     + "is free everywhere, for ever. Add a prices entry for it to some [[hinterland]], "
                     + "or delete the [districts] table.");
+            }
+        }
+
+        /// <summary>
+        /// <b>A delivered Utility is importable with both halves of an import or with neither</b> —
+        /// a <c>[[hinterland]]</c> price and an <c>import_per_connection</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Half an import is a key that loads clean and moves nothing.</b> The settle takes a
+        /// gate's flow as <c>min(capacity, what the treasury can pay at the price)</c>, so a price
+        /// with no capacity imports nothing at a stated price and a capacity with no price has
+        /// nothing to charge for the units — neither reads as a missing key, both read as a city
+        /// whose Districts stay short beside an Outside Connection.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>It asks for a price at SOME Hinterland rather than at every one</b>, on
+        /// <see cref="RefuseUnpricedGoods"/>'s terms. Which edge a gate stands on is a property of
+        /// the world, so a file pricing one edge has authored an import route and the loader cannot
+        /// tell whether a Building will ever stand on it.
+        /// </para>
+        /// </remarks>
+        private void RefuseHalfPricedUtilityImports(
+            HinterlandDefinition[] hinterlands, Money[] prices)
+        {
+            int stride = _families.Count;
+
+            for (int resource = 0; resource < stride; resource++)
+            {
+                if (_links[resource] <= 0)
+                {
+                    // An undelivered Resource is refused where the key is written, in
+                    // ReadUtilityDelivery and ReadPrices. Naming it here as well would report one
+                    // mistake twice.
+                    continue;
+                }
+
+                bool priced = false;
+
+                for (int hinterland = 0; hinterland < hinterlands.Length; hinterland++)
+                {
+                    if (prices[(hinterland * stride) + resource].Raw > 0)
+                    {
+                        priced = true;
+                        break;
+                    }
+                }
+
+                if (priced == (_imports[resource] > 0))
+                {
+                    continue;
+                }
+
+                string name = NameOfResource(new ResourceId((ushort)(resource + 1)));
+
+                if (priced)
+                {
+                    Refuse(_importLines[resource], null,
+                        $"a [[hinterland]] prices the delivered Utility '{name}' and it states no "
+                        + "import_per_connection, so no Outside Connection can bring any of it in "
+                        + "and the price would be read by nobody. State import_per_connection, or "
+                        + "delete the prices entry.");
+
+                    continue;
+                }
+
+                Refuse(_importLines[resource], null,
+                    $"'{name}' states import_per_connection and no [[hinterland]] prices it, so an "
+                    + "Outside Connection has capacity to import at no price. The treasury pays the "
+                    + "Hinterland's price for every imported unit and there is nothing here to "
+                    + "charge it. Add a prices entry for it to some [[hinterland]], or delete the "
+                    + "capacity.");
             }
         }
 

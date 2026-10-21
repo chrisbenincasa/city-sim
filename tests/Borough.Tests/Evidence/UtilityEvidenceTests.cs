@@ -38,9 +38,14 @@ public sealed class UtilityEvidenceTests
 
     private const byte Dwelling = 1;
     private const byte Plant = 2;
+    private const byte Gate = 4;
 
-    /// <summary>The fourth kind, declared only by <see cref="FallbackChain"/>.</summary>
-    private const byte Lamp = 4;
+    /// <summary>
+    /// The fifth kind, declared only by <see cref="FallbackChain"/>. The chain splices in above
+    /// <c>[districts]</c>, so it follows <c>powered.toml</c>'s four — dwelling, plant, works and
+    /// the <c>gate</c> the import slice added.
+    /// </summary>
+    private const byte Lamp = 5;
 
     private const int Cells = 8;
     private const int PeakCells = 2;
@@ -147,7 +152,7 @@ public sealed class UtilityEvidenceTests
         return loaded.Ruleset!;
     }
 
-    private static City Build(Ruleset? rules = null, bool lamp = false)
+    private static City Build(Ruleset? rules = null, bool lamp = false, bool importing = false)
     {
         var world = new World(400, rules ?? Rules(), Key);
         var simulation = new Simulation(world, Key) { VerifyDecideWritesNothing = true };
@@ -163,7 +168,7 @@ public sealed class UtilityEvidenceTests
             bool peak = cell < PeakCells || cell >= Cells - PeakCells;
             int standing = 0;
 
-            if (cell == 0)
+            if (cell == 0 && !importing)
             {
                 generator = Raise(world, cell, standing++, Plant);
             }
@@ -175,6 +180,11 @@ public sealed class UtilityEvidenceTests
                 for (int occupant = 0; occupant < Occupants; occupant++)
                 {
                     world.CreateHousehold(world.Buildings.Rows.At(home), lifeStage: 1);
+                }
+
+                if (importing)
+                {
+                    Raise(world, cell, standing++, Gate);
                 }
 
                 // It takes a filler's place, so the ridge keeps its shape and its Building count
@@ -199,7 +209,9 @@ public sealed class UtilityEvidenceTests
 
         Assert.Equal(2, world.Districts.Rows.LiveCount);
 
-        int making = DistrictOf(world, generator);
+        int making = importing
+            ? DistrictAt(world, new Tiles(1), Tiles.Zero)
+            : DistrictOf(world, generator);
         int burning = DistrictOf(world, home);
 
         Assert.NotEqual(Rows.NoSlot, making);
@@ -612,6 +624,10 @@ public sealed class UtilityEvidenceTests
             lit, names, Core.Evidence.Evidence.OfBuilding(world, world.Buildings.Rows.At(city.Home)));
 
         Assert.Contains("100%", PowerRow(lit.ToString()), StringComparison.Ordinal);
+        Assert.DoesNotContain("imported yesterday", lit.ToString(), StringComparison.Ordinal);
+        UtilityEvidence local = Drawn(world, city.Home);
+        Assert.Equal(0, local.Imported);
+        Assert.Equal(Money.Zero, local.ImportPaid);
 
         var plant = new StringWriter();
 
@@ -641,6 +657,60 @@ public sealed class UtilityEvidenceTests
         city.Simulation.CheckEndOfRun();
     }
 
+    [Theory]
+    [InlineData(2560, true)]
+    [InlineData(256, false)]
+    public void Evidence_and_the_dump_report_gross_imports_and_the_treasurys_bill(
+        int capacity, bool fullyServed)
+    {
+        string toml = File.ReadAllText(
+            Path.Combine(AppContext.BaseDirectory, "Rulesets", "powered.toml"));
+        RulesetLoadResult loaded = RulesetLoader.Parse(
+            toml.Replace("import_per_connection = 2560", $"import_per_connection = {capacity}",
+                StringComparison.Ordinal), "powered-evidence.toml");
+        Assert.True(loaded.Ok, loaded.Describe());
+
+        City city = Build(loaded.Ruleset!, importing: true);
+        World world = city.World;
+        AfterSettling(city.Simulation, day: 0);
+
+        int flow = world.UtilityFlowOfPool(world.Markets.Row(world, city.Burning, Power));
+        Assert.NotEqual(Rows.NoSlot, flow);
+        Assert.Equal(0, world.UtilityFlows.Supplied[flow]);
+
+        ulong before = world.HashState();
+        BuildingEvidence building = Core.Evidence.Evidence.OfBuilding(
+            world, world.Buildings.Rows.At(city.Home));
+        UtilityEvidence drawn = Assert.Single(building.Utilities.ToArray());
+
+        Assert.Equal(fullyServed, drawn.Delivered == Ratio.One);
+        Assert.True(drawn.Imported > drawn.Received, "gross imports must include the road loss");
+        Assert.Equal(world.UtilityFlows.Imported[flow], drawn.Imported);
+        Assert.Equal(world.UtilityFlows.ImportPaid[flow], drawn.ImportPaid);
+        Assert.Equal(drawn.Imported * world.Rules.ImportCeiling(Power).Raw, drawn.ImportPaid.Raw);
+        if (!fullyServed)
+        {
+            Assert.Equal(capacity, drawn.Imported);
+            Assert.Equal(drawn, Brownout(world, city.Home));
+        }
+
+        Assert.True(Core.Evidence.Evidence.TryUtilityOfBuilding(
+            world, world.Buildings.Rows.At(city.Home), out UtilityEvidence washed));
+        Assert.Equal(drawn, washed);
+
+        using var printed = new StringWriter();
+        EvidenceDump.Utilities(printed, loaded.Names, building);
+        string dump = printed.ToString();
+        Assert.Contains($"imported yesterday {drawn.Imported} gross units (including road loss)",
+            dump, StringComparison.Ordinal);
+        Assert.Contains($"treasury paid {drawn.ImportPaid.Raw} money units", dump,
+            StringComparison.Ordinal);
+        Assert.Equal(fullyServed, PowerRow(dump).Contains("100%", StringComparison.Ordinal));
+        Assert.Equal(before, world.HashState());
+
+        city.Simulation.CheckEndOfRun();
+    }
+
     /// <summary>
     /// A Building standing in no District is served nothing, and the reading says so rather than
     /// reporting an absent network as full delivery.
@@ -664,6 +734,8 @@ public sealed class UtilityEvidenceTests
 
         Assert.Equal(Ratio.Zero, drawn.Delivered);
         Assert.Equal(0, drawn.Asked);
+        Assert.Equal(0, drawn.Imported);
+        Assert.Equal(Money.Zero, drawn.ImportPaid);
         Assert.Equal(Power, Brownout(city.World, outside).Utility);
     }
 }
