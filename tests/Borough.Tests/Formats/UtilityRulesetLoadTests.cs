@@ -148,11 +148,32 @@ public sealed class UtilityRulesetLoadTests
         Assert.Contains("link_per_crossing", refusal.Reason, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// A reserve with no link is refused rather than loading as a Bin nothing ever fills.
+    /// </summary>
+    /// <remarks>
+    /// <b>The mode only means anything on a delivered Utility.</b> A tower Bin is filled by the
+    /// settle and the settle runs on the networks a link opens, so <c>"reserve"</c> stated alone is
+    /// <c>adr/0048</c>'s <em>loads clean and misbehaves in silence</em> — the Ruleset declares storage
+    /// the city can neither fill nor draw.
+    /// </remarks>
+    [Fact]
+    public void A_reserve_without_a_link_names_both_keys()
+    {
+        RulesetRefusal refusal = Refused("""
+            [[resource]]
+            name = "water"
+            family = "utility"
+            storage = "reserve"
+            """, "link_per_crossing");
+
+        Assert.Contains("storage = \"reserve\"", refusal.Reason, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("utility", "none", true, false)]
     [InlineData("utility", "reserve", true, true)]
     [InlineData("utility", "none", false, false)]
-    [InlineData("utility", "reserve", false, false)]
     [InlineData("utility", null, false, false)]
     [InlineData("good", null, false, false)]
     [InlineData("money", null, false, false)]
@@ -176,7 +197,6 @@ public sealed class UtilityRulesetLoadTests
     [Theory]
     [InlineData("reserve", true)]
     [InlineData("none", false)]
-    [InlineData("reserve", false)]
     public void Building_bins_accept_reserve_or_undelivered_utilities(string storage, bool delivered)
     {
         Ruleset ruleset = Accepted($$"""

@@ -37,6 +37,10 @@ public sealed partial class World
     private long[] _utilityFilled = [];
     private long[] _utilityFromReserve = [];
 
+    // What an idle District's roads have still to take out of the refill it accepts. Zero for a
+    // District with a consumer or a plant, which owes its road loss out of its need instead.
+    private long[] _utilityRefillOwed = [];
+
     // What a pass opened a District's source and sink edges at, so the pass that follows can read
     // back what each one carried, and what pass 1 left of each District's own production.
     private long[] _utilitySurplusLeft = [];
@@ -108,18 +112,9 @@ public sealed partial class World
 
         for (int bin = 0; bin < Bins.Rows.SlotCount; bin++)
         {
-            if (!Bins.Rows.IsLive(bin)
-                || Bins.Resource[bin] != utility
-                || Bins.OwnerKind[bin] != BinOwnerKind.Building
-                || !Buildings.Rows.TryResolve(Bins.Owner[bin], out int building)
-                || !Lots.Rows.TryResolve(Buildings.Lot[building], out int lot)
-                || !Districts.Rows.TryResolve(
-                    DistrictsInCells.Of(
-                        DistrictCells,
-                        CellGrid.ToCells(Lots.East[lot]),
-                        CellGrid.ToCells(Lots.North[lot])),
-                    out int district)
-                || district != districtSlot)
+            int district = TowerDistrictOf(bin, utility);
+
+            if (district == Rows.NoSlot || district != districtSlot)
             {
                 continue;
             }
@@ -130,6 +125,31 @@ public sealed partial class World
 
         return (level, capacity);
     }
+
+    /// <summary>
+    /// The District slot a tower Bin of <paramref name="utility"/> stands in, or
+    /// <see cref="Rows.NoSlot"/> where <paramref name="bin"/> is no tower of it.
+    /// </summary>
+    /// <remarks>
+    /// <b>A tower is a Building-owned Bin of the Utility, and its District is its Lot's</b> — the
+    /// chain <c>RuleEngine.MarketRow</c> walks, because a Building carries no District handle and
+    /// must not. One definition for <see cref="CollectReserves"/> and for
+    /// <see cref="ReadUtilityReserve"/>, so what a panel reads is what the settle moved.
+    /// </remarks>
+    private int TowerDistrictOf(int bin, ResourceId utility) =>
+        Bins.Rows.IsLive(bin)
+        && Bins.Resource[bin] == utility
+        && Bins.OwnerKind[bin] == BinOwnerKind.Building
+        && Buildings.Rows.TryResolve(Bins.Owner[bin], out int building)
+        && Lots.Rows.TryResolve(Buildings.Lot[building], out int lot)
+        && Districts.Rows.TryResolve(
+            DistrictsInCells.Of(
+                DistrictCells,
+                CellGrid.ToCells(Lots.East[lot]),
+                CellGrid.ToCells(Lots.North[lot])),
+            out int district)
+            ? district
+            : Rows.NoSlot;
 
     /// <summary>Rebuilds the Pool-to-network index from the rows' own saved handles.</summary>
     internal void RebuildUtilityFlows()
@@ -361,17 +381,24 @@ public sealed partial class World
             long produced = UtilityFlows.Produced[flow];
 
             // A District with neither a consumer nor a plant runs no network, so its roads lose
-            // nothing. One with either owes its whole road length, and owes it before anybody in it
-            // is served. Standing reserve capacity counts as running one: stored water leaks along
-            // the roads whether or not anybody is drawing on it.
-            bool running = demanded > 0
-                || produced > 0
-                || (reserve && _utilityReserveCapacity[district] > 0);
+            // nothing out of the city's supply. One with either owes its whole road length, and owes
+            // it before anybody in it is served.
+            bool running = demanded > 0 || produced > 0;
 
             long tiles = running ? _utilityAdjacency.RoadTilesOf(district) : 0;
             long owed = UtilityFlowTable.Total(0, loss, tiles);
             long need = UtilityFlowTable.Total(demanded, loss, tiles);
             long local = produced < need ? produced : need;
+
+            // Leakage is a toll on flow, so an idle District holding towers pays its road length out
+            // of the refill it takes rather than out of a need the max-flow would serve. One that
+            // takes no refill — full towers, or none — moves no water and loses none.
+            if (reserve)
+            {
+                _utilityRefillOwed[district] = running || _utilityReserveCapacity[district] <= 0
+                    ? 0
+                    : UtilityFlowTable.Total(0, loss, _utilityAdjacency.RoadTilesOf(district));
+            }
 
             _utilityOwed[district] = owed;
             _utilityServed[district] = local;
@@ -533,6 +560,11 @@ public sealed partial class World
     /// neighbor's towers over the links. Anything after that is lost.
     /// </para>
     /// <para>
+    /// <b>An idle District's road loss rides on the refill</b> (<see cref="TakeRefillToll"/>) rather
+    /// than on a need the two delivery passes would serve, so towers nobody draws on compete with no
+    /// consumer for a short Day's supply.
+    /// </para>
+    /// <para>
     /// <b>⚠ No pass can take back what an earlier one delivered.</b> An augmenting path leaves the
     /// source on a source edge and enters the sink on a sink edge, both of them forward, because the
     /// search expands neither node — so flow on those edges only ever grows, whatever a later pass
@@ -623,29 +655,41 @@ public sealed partial class World
         DrainReserves(districts);
         MeasureReserveSpace(districts);
 
-        // The Day's leftover production refills its own District's towers first.
+        // The Day's leftover production refills its own District's towers first, and an idle
+        // District's roads take their toll out of what arrives before any of it lands.
         for (int district = 0; district < districts; district++)
         {
             long room = _utilityReserveSpace[district];
-            long left = _utilitySurplusLeft[district];
-            long filled = left < room ? left : room;
 
-            if (filled <= 0)
+            if (room <= 0)
             {
                 continue;
             }
 
-            _utilitySurplusLeft[district] = left - filled;
-            _utilityFilled[district] += filled;
+            long taking = UtilityFlowTable.Total(room, _utilityRefillOwed[district], 1);
+            long left = _utilitySurplusLeft[district];
+            long taken = left < taking ? left : taking;
+
+            if (taken <= 0)
+            {
+                continue;
+            }
+
+            _utilitySurplusLeft[district] = left - taken;
+            _utilityFilled[district] += TakeRefillToll(district, taken);
         }
 
-        // Pass 3: the rest of the production into the rest of the reserve space. The sink edges carry
-        // room now rather than unserved demand — a consumer this Day could not reach gets nothing,
-        // and what would have gone to it fills a tower instead.
+        // Pass 3: the rest of the production into the rest of the reserve space and the toll still
+        // owed on it. The sink edges carry room now rather than unserved demand — a consumer this Day
+        // could not reach gets nothing, and what would have gone to it fills a tower instead.
         for (int district = 0; district < districts; district++)
         {
-            _utilityWanted[district] =
-                _utilityReserveSpace[district] - _utilityFilled[district];
+            _utilityWanted[district] = _utilityReserveSpace[district] > 0
+                ? UtilityFlowTable.Total(
+                    _utilityReserveSpace[district] - _utilityFilled[district],
+                    _utilityRefillOwed[district],
+                    1)
+                : 0;
             _utilityResidual[(source * nodes) + district] = _utilitySurplusLeft[district];
             _utilityResidual[(district * nodes) + sink] = _utilityWanted[district];
         }
@@ -656,11 +700,36 @@ public sealed partial class World
 
         for (int district = 0; district < districts; district++)
         {
-            _utilityFilled[district] +=
-                _utilityWanted[district] - _utilityResidual[(district * nodes) + sink];
+            _utilityFilled[district] += TakeRefillToll(
+                district,
+                _utilityWanted[district] - _utilityResidual[(district * nodes) + sink]);
         }
 
         FillReserves(districts);
+    }
+
+    /// <summary>
+    /// Pays what an idle District's roads are still owed out of a refill it has just taken, and
+    /// answers what is left of that refill to put in its towers.
+    /// </summary>
+    /// <remarks>
+    /// The toll is a first claim on the refill, as the road loss is a first claim on what a running
+    /// District gathers. It is zero for a District with a consumer or a plant, which owes its roads
+    /// out of its need instead, so this leaves such a District's refill whole.
+    /// </remarks>
+    private long TakeRefillToll(int district, long arriving)
+    {
+        if (arriving <= 0)
+        {
+            return 0;
+        }
+
+        long owed = _utilityRefillOwed[district];
+        long paid = arriving < owed ? arriving : owed;
+
+        _utilityRefillOwed[district] = owed - paid;
+
+        return arriving - paid;
     }
 
     /// <summary>
@@ -669,10 +738,9 @@ public sealed partial class World
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>A tower is a Building-owned Bin of the Utility, and its District is its Lot's</b> — the
-    /// chain <c>RuleEngine.MarketRow</c> walks, because a Building carries no District handle and must
-    /// not. The list comes out in ascending Bin slot order, which is what makes the splits below
-    /// reproducible across a save and a reload.
+    /// <b>A tower is what <see cref="TowerDistrictOf"/> answers a District for.</b> The list comes out
+    /// in ascending Bin slot order, which is what makes the splits below reproducible across a save
+    /// and a reload.
     /// </para>
     /// <para>
     /// <b>⚠ The totals saturate at <see cref="UtilityFlowTable.Bound"/></b>, because they become
@@ -689,6 +757,7 @@ public sealed partial class World
         Grow(ref _utilityDrained, districts);
         Grow(ref _utilityFilled, districts);
         Grow(ref _utilityFromReserve, districts);
+        Grow(ref _utilityRefillOwed, districts);
 
         Array.Clear(_utilityReserveLevel, 0, districts);
         Array.Clear(_utilityReserveCapacity, 0, districts);
@@ -696,26 +765,15 @@ public sealed partial class World
         Array.Clear(_utilityDrained, 0, districts);
         Array.Clear(_utilityFilled, 0, districts);
         Array.Clear(_utilityFromReserve, 0, districts);
+        Array.Clear(_utilityRefillOwed, 0, districts);
 
         _reserveBinCount = 0;
 
         for (int bin = 0; bin < Bins.Rows.SlotCount; bin++)
         {
-            if (!Bins.Rows.IsLive(bin)
-                || Bins.Resource[bin] != utility
-                || Bins.OwnerKind[bin] != BinOwnerKind.Building
-                || !Buildings.Rows.TryResolve(Bins.Owner[bin], out int building)
-                || !Lots.Rows.TryResolve(Buildings.Lot[building], out int lot))
-            {
-                continue;
-            }
+            int district = TowerDistrictOf(bin, utility);
 
-            if (!Districts.Rows.TryResolve(
-                    DistrictsInCells.Of(
-                        DistrictCells,
-                        CellGrid.ToCells(Lots.East[lot]),
-                        CellGrid.ToCells(Lots.North[lot])),
-                    out int district))
+            if (district == Rows.NoSlot)
             {
                 continue;
             }

@@ -768,6 +768,85 @@ public sealed class UtilityEvidenceTests
         city.Simulation.CheckEndOfRun();
     }
 
+    /// <summary>
+    /// <c>watered.toml</c> with a second delivered Utility that keeps no reserve, drawn by the same
+    /// dwelling. Water stays Resource 1, because the ids follow the file's order.
+    /// </summary>
+    private static string MixedStorage()
+    {
+        string toml = File.ReadAllText(
+            Path.Combine(AppContext.BaseDirectory, "Rulesets", "watered.toml"));
+
+        const string dwelling = "[[building]]\nname = \"dwelling\"";
+        const string tables = "[districts]\n";
+
+        Assert.Contains(dwelling, toml, StringComparison.Ordinal);
+        Assert.Contains(tables, toml, StringComparison.Ordinal);
+
+        return toml
+            .Replace(
+                dwelling,
+                "[[resource]]\nname = \"power\"\nfamily = \"utility\"\nstorage = \"none\"\n"
+                + "link_per_crossing = 2560\n\n" + dwelling,
+                StringComparison.Ordinal)
+            .Replace(
+                tables,
+                "[[rule]]\nname    = \"draw_power\"\nkind    = \"dwelling\"\nrate    = 32\n"
+                + "apply   = { derived = \"occupancy\" }\n"
+                + "inputs  = [ { scope = \"pool\", resource = \"power\", amount = 4 } ]\n"
+                + "outputs = []\n\n" + tables,
+                StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A Building drawing one Utility that stores and one that does not prints a full row for each.
+    /// </summary>
+    /// <remarks>
+    /// <b>The header carries the four reserve columns when any drawn Utility keeps a reserve</b>, so
+    /// the Utility that keeps none has to fill them. A dash says there is no reserve to report; a
+    /// zero would read as a tower standing empty, and an absent cell leaves the table ragged.
+    /// </remarks>
+    [Fact]
+    public void The_dump_dashes_the_reserve_columns_of_a_utility_that_keeps_none()
+    {
+        RulesetLoadResult loaded = WaterRules(MixedStorage());
+        City city = Build(loaded.Ruleset, towers: 1);
+        World world = city.World;
+
+        AfterSettling(city.Simulation, day: 0);
+
+        BuildingEvidence evidence = Core.Evidence.Evidence.OfBuilding(
+            world, world.Buildings.Rows.At(city.Home));
+
+        Assert.Equal(2, evidence.Utilities.Length);
+        Assert.Single(evidence.Utilities.ToArray(), drawn => drawn.KeepsReserve);
+
+        var printed = new StringWriter();
+
+        EvidenceDump.Utilities(printed, loaded.Names, evidence);
+
+        string[] lines = printed.ToString().Split('\n');
+        string water = Row(lines, "  water");
+        string power = Row(lines, "  power");
+
+        Assert.Contains("reserve level", printed.ToString(), StringComparison.Ordinal);
+        Assert.Contains("A dash is a Utility that keeps no reserve.", printed.ToString(),
+            StringComparison.Ordinal);
+
+        // Eight fields and one width in both rows, so every column the header opened is filled.
+        Assert.Equal(8, water.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length);
+        Assert.Equal(
+            ["power", "0%", "0", "512", "-", "-", "-", "-"],
+            power.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+        Assert.Equal(water.Length, power.Length);
+
+        city.Simulation.CheckEndOfRun();
+    }
+
+    /// <summary>The dump's one row for a Resource, trimmed of the line ending.</summary>
+    private static string Row(string[] lines, string head) =>
+        Assert.Single(lines, line => line.StartsWith(head, StringComparison.Ordinal)).TrimEnd();
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

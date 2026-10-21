@@ -795,6 +795,13 @@ internal static class EvidenceDump
                     $"  {drawn.ReserveLevel,13}  {drawn.ReserveCapacity,16}"
                     + $"  {drawn.FromReserve,15}  {drawn.ToReserve,18}"));
             }
+            else if (reserve)
+            {
+                // A Building drawing both a storing and a non-storing Utility carries the columns in
+                // the header, and a dash is what the non-storing row has to say under them. A zero
+                // there would read as a tower standing empty.
+                output.Write($"  {"-",13}  {"-",16}  {"-",15}  {"-",18}");
+            }
 
             output.WriteLine();
         }
@@ -808,7 +815,8 @@ internal static class EvidenceDump
         {
             output.WriteLine(
                 "Reserve level and capacity are current District totals. Drawn and refilled are"
-                + " yesterday's flows. Drawn includes road loss and is not a subset of served.");
+                + " yesterday's flows. Drawn includes road loss and is not a subset of served. A dash"
+                + " is a Utility that keeps no reserve.");
         }
 
         output.WriteLine(

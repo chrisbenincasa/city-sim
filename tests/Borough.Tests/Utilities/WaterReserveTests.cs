@@ -552,10 +552,12 @@ public sealed class WaterReserveTests
         Assert.Equal(Ratio.One, Delivered(world, city.East));
         Assert.Equal(TowerCapacity - need, Level(world, city.EastTowers[0]));
 
-        // The west gave up its own road loss and not one unit more: the east was covered at home, so
-        // pass 2 had no deficit to export into.
-        Assert.Equal(westOwed, world.UtilityFlows.FromReserve[west]);
-        Assert.Equal(TowerCapacity - westOwed, Level(world, city.WestTowers[0]));
+        // The west gave up nothing, though its roads are credited a loss. The east was covered at
+        // home so pass 2 had no deficit to export into, and a full tower takes no refill for the
+        // roads to tax.
+        Assert.Equal(0, world.UtilityFlows.FromReserve[west]);
+        Assert.Equal(0, world.UtilityFlows.ToReserve[west]);
+        Assert.Equal(TowerCapacity, Level(world, city.WestTowers[0]));
 
         city.Simulation.CheckEndOfRun();
     }
@@ -594,9 +596,11 @@ public sealed class WaterReserveTests
         Assert.True(Delivered(world, city.East) < Ratio.One, "the east is not short");
         Assert.True(Delivered(world, city.East) > Ratio.Zero, "the east got nothing");
 
-        Assert.Equal(westOwed, world.UtilityFlows.FromReserve[west]);
-        Assert.Equal(
-            TowerCapacity - LinkPerCrossing - westOwed, Level(world, city.WestTowers[0]));
+        // Nothing left the west's towers but the export. It has no consumer and no plant, so its
+        // own roads are paid out of a refill, and a full tower takes none.
+        Assert.True(westOwed > 0, "the west District is credited no road");
+        Assert.Equal(0, world.UtilityFlows.FromReserve[west]);
+        Assert.Equal(TowerCapacity - LinkPerCrossing, Level(world, city.WestTowers[0]));
 
         city.Simulation.CheckEndOfRun();
     }
@@ -629,17 +633,17 @@ public sealed class WaterReserveTests
     }
 
     /// <summary>
-    /// A District holding reserve capacity pays its road loss with no consumer and no plant in it,
-    /// and a District holding nothing pays nothing.
+    /// A District with no consumer and no plant loses nothing while its towers stand full, however
+    /// much road it is credited.
     /// </summary>
     /// <remarks>
-    /// <b>This is the gap slice 1 left for a Utility that stores.</b> Stored water leaks along the
-    /// roads whether or not anybody is drawing on it, so the trigger for owing the loss is the
-    /// capacity rather than the draw. ⚠ <b>The east holds no tower here and is credited road</b>,
-    /// which is what makes the second half an assertion rather than a tautology.
+    /// <b>Leakage is a toll on flow.</b> Stored water does not decay, so a District moving no water
+    /// pays nothing — and a full tower is a District that can accept no refill to be taxed on. The
+    /// west is credited road and holds the whole reserve, which is what makes this an assertion
+    /// rather than a tautology.
     /// </remarks>
     [Fact]
-    public void A_reserve_pays_its_road_loss_with_no_demand_and_no_production()
+    public void A_full_reserve_with_no_demand_and_no_production_loses_nothing()
     {
         City city = Build(new Shape(Pumping: false, Homes: 0, WestTowers: 1));
         World world = city.World;
@@ -650,28 +654,68 @@ public sealed class WaterReserveTests
 
         int west = Flow(world, city.West);
         int east = Flow(world, city.East);
-        long owed = Owed(world, city.West);
 
-        Assert.True(owed > 0, "the west District is credited no road");
+        Assert.True(Owed(world, city.West) > 0, "the west District is credited no road");
         Assert.True(Owed(world, city.East) > 0, "the east District is credited no road");
 
         Assert.Equal(0, world.UtilityFlows.Asked[west]);
         Assert.Equal(0, world.UtilityFlows.Supplied[west]);
-        Assert.Equal(owed, world.UtilityFlows.FromReserve[west]);
-        Assert.Equal(TowerCapacity - owed, Level(world, city.WestTowers[0]));
+        Assert.Equal(0, world.UtilityFlows.FromReserve[west]);
+        Assert.Equal(0, world.UtilityFlows.ToReserve[west]);
+        Assert.Equal(TowerCapacity, Level(world, city.WestTowers[0]));
 
         // Nobody draws, so the fraction is whole: a District with no consumers reports no shortfall.
         Assert.Equal(Ratio.One, Delivered(world, city.West));
 
-        // The east has capacity for nothing and owes nothing, which is slice 1's behavior unchanged.
+        // The east holds no tower and takes nothing either, which is slice 1's behavior unchanged.
         Assert.Equal(0, world.UtilityFlows.FromReserve[east]);
         Assert.Equal(0, world.UtilityFlows.Received[east]);
 
         AfterSettling(city.Simulation, day: 1);
 
-        // A second Day takes the same again: the leak is a function of the road and not of the level.
-        Assert.Equal(owed, world.UtilityFlows.FromReserve[west]);
-        Assert.Equal(TowerCapacity - (2 * owed), Level(world, city.WestTowers[0]));
+        // A week of this would read the same. The level is what it was raised to.
+        Assert.Equal(0, world.UtilityFlows.FromReserve[west]);
+        Assert.Equal(TowerCapacity, Level(world, city.WestTowers[0]));
+
+        city.Simulation.CheckEndOfRun();
+    }
+
+    /// <summary>
+    /// A District with no consumer and no plant pays its road loss out of the refill it takes, and
+    /// only the remainder reaches its towers.
+    /// </summary>
+    /// <remarks>
+    /// <b>The east draws nothing here</b> — no dwelling in it holds a Household — so every unit that
+    /// crosses the link is refill, and what lands in the tower is a crossing's Day less the east's
+    /// own road loss. Compare
+    /// <see cref="A_surplus_refills_a_reserve_over_the_link"/>, where consumers are served out of the
+    /// same crossing first.
+    /// </remarks>
+    [Fact]
+    public void A_refilling_reserve_pays_its_road_loss_out_of_the_refill()
+    {
+        City city = Build(new Shape(Homes: 0, EastTowers: 1));
+        World world = city.World;
+
+        AfterSettling(city.Simulation, day: 0);
+
+        int east = Flow(world, city.East);
+        long owed = Owed(world, city.East);
+        long filled = LinkPerCrossing - owed;
+
+        Assert.True(owed > 0, "the east District is credited no road");
+        Assert.Equal(0, world.UtilityFlows.Asked[east]);
+
+        // One crossing's Day arrived, the roads took theirs off the top, and the tower kept the rest.
+        Assert.Equal(filled, world.UtilityFlows.ToReserve[east]);
+        Assert.Equal(filled, Level(world, city.EastTowers[0]));
+        Assert.Equal(0, world.UtilityFlows.FromReserve[east]);
+
+        AfterSettling(city.Simulation, day: 1);
+
+        // The toll is a Day's road length again, not a one-off on the first refill.
+        Assert.Equal(filled, world.UtilityFlows.ToReserve[east]);
+        Assert.Equal(2 * filled, Level(world, city.EastTowers[0]));
 
         city.Simulation.CheckEndOfRun();
     }

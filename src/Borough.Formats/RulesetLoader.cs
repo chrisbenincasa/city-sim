@@ -2797,6 +2797,15 @@ public static class RulesetLoader
                 Refuse(LineOf(table), null, "loss_per_road_tile requires link_per_crossing.");
             }
 
+            // A reserve is a delivered Utility's carry-over and nothing fills a tower Bin of an
+            // undelivered one, so the pair accepted alone is a Bin the city never reaches.
+            if (storage == UtilityStorage.Reserve && !hasLink)
+            {
+                Refuse(LineOf(table), null,
+                    "storage = \"reserve\" is a delivered Utility's reserve, so it requires "
+                    + "link_per_crossing.");
+            }
+
             _storage.Add(storage);
             _links.Add(link);
             _losses.Add(hasLink ? loss : 0);

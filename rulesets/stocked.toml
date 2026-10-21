@@ -43,9 +43,10 @@
 # stays bounded by the ceiling of 4 rather than by taste.
 #
 # ⚠ A RESERVE IS NOT `CONTEXT` -> Resource's *Storage*. That parameter is whether a Bin carries over
-# between periods, and `RulesetLoader` holds `storage` open as a named hole on `[[resource]]` for it.
-# A Household's Life-Stage-sized money buffer is also called a reserve in `CONTEXT`; that one is
-# Money and is unrelated. Three uses of one word, and this file means only the first.
+# between periods, and `[[resource]] storage = "reserve"` is where it is stated -- on a delivered
+# Utility, whose stock stands in the Building Bins holding it and survives the daily settle. A
+# Household's Life-Stage-sized money buffer is also called a reserve in `CONTEXT`; that one is Money
+# and is unrelated. Three uses of one word, and this file means only the first.
 #
 # ⚠ THE BASKET NAMES ONE GOOD AND THAT IS A LIMIT OF THIS FILE, NOT OF THE SHAPE. `use_per_day` maps
 # as many Goods as an actor consumes; a second Good here would need a second Bin and a second sink to
