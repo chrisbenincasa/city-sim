@@ -774,7 +774,7 @@ A Household or a Business. What fills a Building.
 ## Services
 
 **Service**
-A capability the city provides rather than sells: education, health, safety, waste, recreation, and the utilities. Delivered by a Building the player places — the design's one placement exception — staffed by Citizens, and paid for from the treasury. **A Service is never a Good**: it has no Bin, is not conserved, and is never shipped.
+A capability the city provides rather than sells: education, health, safety, waste, recreation, and the utilities. Delivered by a Building the player places — the design's one placement exception — staffed by Citizens, and paid for from the treasury. A Utility is the exception: the treasury runs the plants and bills each drawing Household or Business a per-unit tariff for what it receives. **A Service is never a Good**: it has no Bin, is not conserved, and is never shipped.
 
 **Delivery Mode**
 How a Service reaches the people who use it. Three modes, distinguished by **who makes the journey** — which is the axis that actually separates these systems, not what they provide.

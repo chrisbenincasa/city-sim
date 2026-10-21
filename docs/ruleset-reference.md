@@ -27,7 +27,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-54 sections, 400 keys.
+54 sections, 401 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
@@ -41,7 +41,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[[housing_form]]`](#housing_form) — 11 keys
 - [`[[lattice]]`](#lattice) — 4 keys
 - [`[[life_stage]]`](#life_stage) — 17 keys
-- [`[[policy]]`](#policy) — 12 keys
+- [`[[policy]]`](#policy) — 13 keys
 - [`[[policy]] apply`](#policy-apply) — 4 keys
 - [`[[policy]] transfer`](#policy-transfer) — 4 keys
 - [`[[recipe]]`](#recipe) — 5 keys
@@ -620,7 +620,7 @@ Which population the Policy runs over: household or business. A third, building,
 
 **`tool`** · *quoted string*
 
-Which of the things a Policy does: transfer, charge, relief or subsidy. A charge takes money from a liable payer to the treasury; a relief takes a share off a Business's profit tax bill and moves no money anywhere; a subsidy pays out of the treasury against a daily funding bound. Absent means transfer -- the unconditional movement a Policy was before the catalogue, and what every Policy written without this key is.
+Which of the things a Policy does: transfer, charge, relief, subsidy or tariff. A tariff charges per delivered Utility unit received. A charge takes money from a liable payer to the treasury; a relief takes a share off a Business's profit tax bill and moves no money anywhere; a subsidy pays out of the treasury against a daily funding bound. Absent means transfer -- the unconditional movement a Policy was before the catalogue, and what every Policy written without this key is.
 
 **`trade`** · *quoted string*
 
@@ -629,6 +629,10 @@ Which [[business]] this Policy is aimed at, naming a declared trade. Absent mean
 **`transfer`** · *unasserted*
 
 The movement of money the Policy makes, stated as both ends at once. That is what makes it a transfer rather than a term list: the two sides balance inside one atomic Rule.
+
+**`utility`** · *quoted string*
+
+The delivered Utility a tariff bills. Only a tariff states this key. Each Utility has at most one tariff, paid per unit received by the drawing Household or Business.
 
 ---
 
@@ -660,7 +664,7 @@ How many applications one unit of that Readout is worth, as a percentage.
 
 **`amount`** · *whole number*
 
-How much moves per application.
+How much moves per application. For a tariff, money per Utility unit received; zero switches billing off.
 
 **`from`** · *quoted string*
 

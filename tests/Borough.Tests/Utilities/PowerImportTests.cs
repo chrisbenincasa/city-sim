@@ -2,6 +2,7 @@ using Borough.Core;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Input;
+using Borough.Core.Instruments;
 using Borough.Core.Persistence;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
@@ -82,7 +83,6 @@ public sealed class PowerImportTests
         emigrant_balance_max = 0
         prices = [
             { resource = "lumens", price = 500 },
-            { resource = "widget", price = 500 },
             { resource = "power",  price = 5 },
         ]
         """;
@@ -651,9 +651,13 @@ public sealed class PowerImportTests
 
         Assert.Equal(0, Imported(world, city.Burning));
         Assert.Equal(0, Paid(world, city.Burning));
-        Assert.Equal(purse, Purse(world));
+        // The treasury still moves: it funds the plant, pays the works' contract and collects the
+        // tariff. None of that leaves the city, so the money supply holds.
+        TreasuryFlows flows = city.Simulation.DrainTreasuryFlows();
+
+        Assert.Equal(0, flows.UtilityImport);
+        Assert.Equal(purse + flows.Income - flows.Expenditure, Purse(world));
         Assert.Equal(issued, Issued(world));
-        Assert.Equal(0, city.Simulation.DrainTreasuryFlows().UtilityImport);
 
         // The brownout slice 1 demonstrates, unchanged by a pass that found no door to buy at.
         Assert.True(Delivered(world, city.Burning) > Ratio.Zero);
