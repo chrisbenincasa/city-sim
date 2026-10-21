@@ -3641,6 +3641,20 @@ public sealed partial class World
     public bool IsOfWorkingAge(int citizenSlot) =>
         !Rules.DeclaresLifeStages || Citizens.Age[citizenSlot] != 0;
 
+    /// <summary>
+    /// Whether a working-age Citizen has no job, is not studying, and was not last refused for
+    /// reach or credentials.
+    /// </summary>
+    /// <remarks>
+    /// A reach refusal is the destitute channel's and a credential refusal names a missing school
+    /// (<c>adr/0102</c>), so neither makes a Household compare its home against a Hinterland.
+    /// </remarks>
+    public bool IsJobless(int citizenSlot) =>
+        IsOfWorkingAge(citizenSlot)
+        && !Businesses.Rows.IsValid(Citizens.Workplace[citizenSlot])
+        && (EmploymentState)Citizens.Employment[citizenSlot]
+            is EmploymentState.None or EmploymentState.NoVacancy;
+
     /// <summary>Whether <paramref name="node"/> is already in <paramref name="owner"/>'s list.</summary>
     private static bool Lists(IndexList list, int owner, int node)
     {
@@ -4039,7 +4053,7 @@ public sealed partial class World
     /// both its endpoints exist — a gate to leave from and a dwelling to arrive at. An <em>unhoused</em>
     /// Household has no dwelling by definition, so there is no origin Address to travel from, and a
     /// Trip from the gate to the gate is not a journey. ***The housed Departure is the one with a
-    /// journey in it***, and that channel is milestone 16's with the comparison (<c>adr/0128</c>).
+    /// journey in it***, and <see cref="Leave"/> does not make that journey yet.
     /// </para>
     /// </remarks>
     /// <param name="household">The Household leaving. It must be in the Pool.</param>
@@ -4049,9 +4063,7 @@ public sealed partial class World
 
         if (Buildings.Rows.TryResolve(Households.Dwelling[slot], out _))
         {
-            // A housed Household leaving is the other channel, it is a comparison rather than a
-            // threshold (adr/0102), and it ships at 16. Reaching here with a dwelling means somebody
-            // wired the wrong channel to this door.
+            // A housed Household leaves through Leave, after a comparison (adr/0102).
             Invariants.Report(Invariant.OnlyAnUnhousedHouseholdGivesUp, slot);
             return;
         }
@@ -4064,6 +4076,38 @@ public sealed partial class World
             return;
         }
 
+        // The Pool membership goes first, because DestroyHousehold frees the Household row and the
+        // membership holds a handle to it -- a Pool left holding a freed row is what
+        // Invariant.ThePoolIsDenseAndAgreesWithTheHouseholds exists to catch, and it would catch it
+        // at the end of the run rather than here.
+        UnplacedPool.Leave(Households, position);
+
+        Emigrate(household, slot, Rules.Immigration.Stated ? DepartureEdge(slot) : MapEdge.None);
+    }
+
+    /// <summary>
+    /// Sends a housed Household out of the city to <paramref name="destination"/>, the Hinterland
+    /// it chose over its home (<c>adr/0102</c>).
+    /// </summary>
+    /// <remarks>
+    /// The housed channel's door. It shares the unhoused channel's sale, money sink and ledger, and
+    /// ends the tenancy through <see cref="RetireHousehold"/>. No leaving Trip is made yet.
+    /// </remarks>
+    public void Leave(Handle<Household> household, MapEdge destination)
+    {
+        int slot = Households.Rows.Resolve(household);
+
+        if (!Buildings.Rows.TryResolve(Households.Dwelling[slot], out _))
+        {
+            Invariants.Report(Invariant.OnlyAnUnhousedHouseholdGivesUp, slot);
+            return;
+        }
+
+        Emigrate(household, slot, destination);
+    }
+
+    private void Emigrate(Handle<Household> household, int slot, MapEdge destination)
+    {
         // The sale proceeds land in the balance, so they leave the city with it.
         SellOnDeparture(slot, Tick);
 
@@ -4077,26 +4121,15 @@ public sealed partial class World
             MoneySupply.Issued[MoneySupplyTable.Slot] -= new Money(Bins.LevelAt(balance));
         }
 
-        // The Pool membership goes first, because DestroyHousehold frees the Household row and the
-        // membership holds a handle to it -- a Pool left holding a freed row is what
-        // Invariant.ThePoolIsDenseAndAgreesWithTheHouseholds exists to catch, and it would catch it
-        // at the end of the run rather than here.
-        UnplacedPool.Leave(Households, position);
-
         // The emigration, counted where the money leaves and for the same reason it is written there.
         Record(PopulationLedger.Departures, Members.Length(slot));
         Record(PopulationLedger.HouseholdsDeparted, 1);
 
         // Count and return the actual composition before retiring its Citizens.
-        if (Rules.Immigration.Stated)
+        if (destination != MapEdge.None
+            && Rules.TryHinterland(destination, out HinterlandDefinition outside))
         {
-            MapEdge destination = DepartureEdge(slot);
-
-            if (destination != MapEdge.None
-                && Rules.TryHinterland(destination, out HinterlandDefinition outside))
-            {
-                ReturnToHinterland(destination, CompositionOf(household, outside));
-            }
+            ReturnToHinterland(destination, CompositionOf(household, outside));
         }
 
         RetireHousehold(household);

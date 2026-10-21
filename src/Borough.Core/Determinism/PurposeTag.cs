@@ -999,4 +999,10 @@ public enum PurposeTag : ulong
     /// Lot's id, never by a Tick, so it moves no State Hash.
     /// </summary>
     AppearanceGarden = 75,
+
+    /// <summary>
+    /// Whether a housed Household with an adult who found every job in reach full stays or leaves,
+    /// and for which Hinterland (<c>adr/0102</c>).
+    /// </summary>
+    JoblessDeparture = 76,
 }

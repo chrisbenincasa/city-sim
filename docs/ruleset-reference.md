@@ -27,7 +27,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-54 sections, 399 keys.
+54 sections, 400 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
@@ -40,7 +40,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[[hinterland]] prices`](#hinterland-prices) — 2 keys
 - [`[[housing_form]]`](#housing_form) — 11 keys
 - [`[[lattice]]`](#lattice) — 4 keys
-- [`[[life_stage]]`](#life_stage) — 16 keys
+- [`[[life_stage]]`](#life_stage) — 17 keys
 - [`[[policy]]`](#policy) — 12 keys
 - [`[[policy]] apply`](#policy-apply) — 4 keys
 - [`[[policy]] transfer`](#policy-transfer) — 4 keys
@@ -551,6 +551,10 @@ Identifies the declaration across the package. Other members refer to it by this
 **`label`** · *quoted string*
 
 The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.
+
+**`leaving_costs_rent`** · *whole number*
+
+The daily rent a Household in this stage will pay to stay in the city rather than leave for a Hinterland when an adult finds every job in reach full. It is added to the home's score in that comparison, on top of [placement] moving_costs_rent, so a stage with a larger figure leaves later. It is a preference and never a timer. Absent is zero. The comparison runs only when [placement] jobs_rent is stated.
 
 **`name`** · *quoted string*
 

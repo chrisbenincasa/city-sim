@@ -528,6 +528,12 @@ public static class RulesetKeyNotes
             + "this build had before stages could disagree about price; a world stating "
             + "[immigration] is refused without it, because who presents themselves at a gate turns "
             + "on what they mind paying.",
+        ["[[life_stage]] leaving_costs_rent"] =
+            "The daily rent a Household in this stage will pay to stay in the city rather than leave "
+            + "for a Hinterland when an adult finds every job in reach full. It is added to the "
+            + "home's score in that comparison, on top of [placement] moving_costs_rent, so a stage "
+            + "with a larger figure leaves later. It is a preference and never a timer. Absent is "
+            + "zero. The comparison runs only when [placement] jobs_rent is stated.",
         ["[[life_stage]] centrality_spread_percent"] =
             "The width of the band a Household of this stage draws its own position from, so that a "
             + "stage is a distribution rather than one opinion. Zero means the stage agrees with "
