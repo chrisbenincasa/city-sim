@@ -87,6 +87,9 @@ public partial class Main
     /// all. Each is scaled by the detailed tree's bounds, so a chunk that changes mesh keeps its
     /// silhouette.
     /// </remarks>
+    private static readonly float TreeBatchMetres =
+        float.Parse(System.Environment.GetEnvironmentVariable("BOROUGH_TREE_BATCH_METRES") ?? "256");
+
     private static (ArrayMesh Near, ArrayMesh Middle, ArrayMesh Far) TreeMeshes()
     {
         var (corners, paints) = Load("visual-study/expanded/round-tree");

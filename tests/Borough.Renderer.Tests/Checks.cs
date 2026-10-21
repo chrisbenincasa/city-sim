@@ -14,6 +14,7 @@ public partial class Checks : Node
             CheckFacades();
             CheckRoofs();
             CheckNearBand();
+            CheckBatchMetres();
             var layer = new InstanceLayer();
             AddChild(layer);
             InstanceBuffer b = layer.Multimesh;
@@ -147,6 +148,25 @@ public partial class Checks : Node
         bodies.QueueFree();
         boxes.QueueFree();
     }
+    private void CheckBatchMetres()
+    {
+        var trees = new InstanceLayer { BatchMetres = 256 };
+        AddChild(trees);
+        Mesh near = new SphereMesh();
+        trees.Details = [(400, near)];
+        InstanceBuffer b = trees.Multimesh;
+        b.Mesh = new BoxMesh();
+        Write(b, 0, 1, new Vector3(10, 0, 10));
+        Write(b, 1, 2, new Vector3(900, 0, 10));
+        b.VisibleInstanceCount = 2;
+        b.Flush(new Vector3(0, 350, 0), 8000);
+        var batches = b.Batches.OrderBy(batch => batch.Bounds.Position.X).ToArray();
+        Require(batches.Length == 2, "a finer layer splits one default Chunk into its own batches");
+        Require(batches[0].Detail == 0 && batches[1].Detail == -1,
+            "only the batch under the eye draws the near band");
+        trees.QueueFree();
+    }
+
     private static void Require(bool condition, string name)
     {
         if (!condition) throw new InvalidOperationException(name);

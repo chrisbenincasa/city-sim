@@ -25,6 +25,15 @@ public partial class InstanceLayer : Node3D
     public float DetailDistance { get; set; }
 
     /// <summary>
+    /// The side of this layer's batches, set before the first instance is written. A layer with
+    /// <see cref="Details"/> batches finer than <see cref="ChunkMetres"/>, because a batch draws one
+    /// band and a coarse batch puts the near mesh on instances far outside the near band.
+    /// ⚠ <see cref="InstanceBuffer.Near"/> predicates key on <see cref="ChunkMetres"/>, so a layer
+    /// that uses one keeps the default.
+    /// </summary>
+    public float BatchMetres { get; set; } = ChunkMetres;
+
+    /// <summary>
     /// Meshes drawn instead of the buffer's mesh, nearest band first. A chunk draws the first mesh
     /// whose distance reaches the nearest point of its bounds, and the buffer's mesh beyond them all.
     /// </summary>
@@ -178,8 +187,8 @@ public sealed class InstanceBuffer
     }
     private void SetTransform(Entry entry, Transform3D transform)
     {
-        var key = new Vector2I(Mathf.FloorToInt(transform.Origin.X / InstanceLayer.ChunkMetres),
-            Mathf.FloorToInt(transform.Origin.Z / InstanceLayer.ChunkMetres));
+        var key = new Vector2I(Mathf.FloorToInt(transform.Origin.X / _owner.BatchMetres),
+            Mathf.FloorToInt(transform.Origin.Z / _owner.BatchMetres));
         if (entry.Batch is null || entry.Batch.Key != key)
         {
             if (entry.Batch is not null) Remove(entry);

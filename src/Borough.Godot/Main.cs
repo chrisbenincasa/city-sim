@@ -1306,6 +1306,7 @@ public partial class Main : Node3D
         _yards = Layer(Outbuilding, Vector3.One, perInstance: true);
         var (nearTree, middleTree, farTree) = TreeMeshes();
         _trees = Layer(Colors.White, farTree, perInstance: true);
+        _trees.BatchMetres = TreeBatchMetres;
         nearTree.SurfaceSetMaterial(0, farTree.SurfaceGetMaterial(0));
         middleTree.SurfaceSetMaterial(0, farTree.SurfaceGetMaterial(0));
         _rocks = Layer(Boulder, new SphereMesh { Radius = 0.5f, Height = 1f, RadialSegments = 7, Rings = 3 });

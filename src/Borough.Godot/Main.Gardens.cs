@@ -65,6 +65,7 @@ public partial class Main
         _gardenLayers[(int)GardenLayer.Hedge] = Layer(Colors.White, Vector3.One, perInstance: true);
         var (near, middle, far) = TreeMeshes();
         _gardenLayers[(int)GardenLayer.Tree] = Layer(Colors.White, far, perInstance: true);
+        _gardenLayers[(int)GardenLayer.Tree].BatchMetres = TreeBatchMetres;
         near.SurfaceSetMaterial(0, far.SurfaceGetMaterial(0));
         middle.SurfaceSetMaterial(0, far.SurfaceGetMaterial(0));
         _gardenLayers[(int)GardenLayer.Tree].DetailDistance = 4000f;
