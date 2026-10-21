@@ -354,6 +354,7 @@ public static class LotSubdivider
         world.Lots.PodiumStoreys[slot] = world.Rules.Lots.PodiumOn(world.Key, parcel.East, parcel.North);
         world.Lots.Pattern[slot] = (byte)((byte)plot.Form + 1);
         world.Frontage.Claim(plot.Segment, parcel.Side);
+        world.LotsInCells.Add(world.Lots, slot);
         return true;
     }
 
@@ -379,6 +380,7 @@ public static class LotSubdivider
         world.Lots.PodiumStoreys[slot] = rules.PodiumOn(world.Key, parcel.East, parcel.North);
         world.Lots.Pattern[slot] = (byte)((byte)plot.Form + 1);
         world.Frontage.Claim(plot.Segment, plot.Side);
+        world.LotsInCells.Add(world.Lots, slot);
         return true;
     }
 
@@ -478,9 +480,8 @@ public static class LotSubdivider
     {
         var address = parcel.Address(ground);
         LandRectangle candidate = Ground(parcel);
-        for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
+        foreach (int slot in Near(world, candidate, address.East, address.North))
         {
-            if (!world.Lots.Rows.IsLive(slot)) { continue; }
             if (Takes(world.Lots.Parcel(slot), world.Lots.East[slot], world.Lots.North[slot], (StreetSide)world.Lots.Side[slot])) { return false; }
         }
         if (proposal is null) { return true; }
@@ -840,9 +841,8 @@ public static class LotSubdivider
 
     private static bool FreeRotated(World world, Proposal? proposal, Tiles east, Tiles north, StreetSide side, OrientedRectangle ground)
     {
-        for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
+        foreach (int slot in Near(world, ground.Bounds, east, north))
         {
-            if (!world.Lots.Rows.IsLive(slot)) { continue; }
             if (Takes(world.Lots.Parcel(slot), world.Lots.East[slot], world.Lots.North[slot], (StreetSide)world.Lots.Side[slot])) { return false; }
         }
         if (proposal is null) { return true; }
@@ -854,6 +854,20 @@ public static class LotSubdivider
 
         bool Takes(OrientedRectangle lot, Tiles lotEast, Tiles lotNorth, StreetSide lotSide) =>
             ground.Overlaps(lot) || (lotEast == east && lotNorth == north && lotSide == side);
+    }
+
+    // Every Lot that could overlap the ground or share the Address.
+    private static LotResidency.Query Near(World world, LandRectangle ground, Tiles east, Tiles north)
+    {
+        long west = east.Raw, south = north.Raw, eastEnd = east.Raw, northEnd = north.Raw;
+        if (ground.Width > 0 && ground.Height > 0)
+        {
+            if (ground.X < west) { west = ground.X; }
+            if (ground.Y < south) { south = ground.Y; }
+            if ((long)ground.X + ground.Width > eastEnd) { eastEnd = (long)ground.X + ground.Width; }
+            if ((long)ground.Y + ground.Height > northEnd) { northEnd = (long)ground.Y + ground.Height; }
+        }
+        return world.LotsInCells.Near(world.Lots, west, south, eastEnd, northEnd);
     }
 
     private static LandRectangle Around(ReadOnlySpan<SidePlot> plots)

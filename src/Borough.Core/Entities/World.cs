@@ -921,6 +921,9 @@ public sealed partial class World
     /// </remarks>
     public BuildingResidency BuildingsInCells { get; } = new();
 
+    /// <summary>Which Lots stand near a box of Tiles, for the subdivider's free-ground test.</summary>
+    public LotResidency LotsInCells { get; } = new();
+
     /// <summary>Which Cells are in the Hazard Region, and how deep a flood stands on each.</summary>
     /// <remarks>
     /// <b><c>(derived AND rebuilt)</c> from <see cref="Flood"/>'s own saved coordinates</b>, on
@@ -5217,6 +5220,7 @@ public sealed partial class World
         // clears its own arrays and CellNext rather than being cleared with the block at the top,
         // because its head and tail are not columns and the block above is a list of columns.
         BuildingsInCells.Rebuild(Buildings, Lots);
+        LotsInCells.Rebuild(Lots);
 
         // The Hazard Region's index, from the Flood rows' own saved coordinates. A load does not
         // re-run the generator (FloodCellTable's own remark on why it is Saved), so this is the one
