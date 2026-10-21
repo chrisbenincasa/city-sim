@@ -7,7 +7,7 @@ reaches the Citizens and Businesses inside it as a graded consequence they can e
 plant is a spatial decision with a cost, an emission and a labour demand. The alternative is to
 import at an Outside Connection for a price.
 
-## Current behaviour (checked 10/20/2026 on `utilities-1`)
+## Current behaviour (checked 10/20/2026 on `utilities-5`)
 
 | Piece | Built | Where |
 |---|---|---|
@@ -18,13 +18,16 @@ import at an Outside Connection for a price.
 | Daily settle | Road loss added to local demand, local production first, then integer max-flow across the links. Runs at the head of the Day's first Tick | `World.SettleUtilityNetworks`, `Simulation.Step` |
 | Degraded firing | A pool Utility input caps the application count at `floor(count × delivered)`. It never blocks a Rule | `RuleEngine.Check` |
 | Floor-area Readout | Built, Building-scoped | `Readouts.FloorArea` |
-| Evidence | Each drawn Utility with today's delivered Ratio and yesterday's received/asked. No new saved state | `BuildingEvidence.Utilities`, `Evidence.OfBuilding` |
+| Evidence | Each drawn Utility with today's delivered Ratio, yesterday's received/asked and, when tariffed, what the Building paid and left unpaid yesterday | `BuildingEvidence.Utilities`, `Evidence.OfBuilding` |
 | Shell | Building panel Utilities section, the brownout clause in the condition line and in attention, and a Utilities Building wash | `Main.Utilities.cs`, `Main.Information.cs`, `Main.Diagnosis.cs` |
 | Headless | The evidence dump prints a per-Utility delivered/served/asked table | `EvidenceDump.Utilities` |
 | Water Body Bin | One Utility Resource per body, filled by runoff, drained downstream | `WaterBodyTable`, `World.RunoffIntoWater`, `World.DrainWaterBodies` |
 | Networked Service (`serves = "power"`, `"water"` or `"sewage"`) | Refused at load. These are Resources, not Needs | `RulesetLoader`, `adr/0032`, `adr/0103` |
 | Utility import price | No. Import prices are Good-only | slice 4 |
-| Billing and the tariff Policy | No | slice 5 |
+| Tariff Policy | `[[policy]]` with `tool = "tariff"` and `utility`. `transfer.amount` is money per unit received, local to global, and Govern sets it. One per delivered Utility. Absent means no billing | `RulesetLoader`, `PolicyTool.Tariff`, `Ruleset.TariffOf` |
+| Billing | When a Rule drawing a tariffed Utility fires, its Household or Business pays `units per application × fired applications × tariff` to the treasury. A brownout fires fewer applications and bills less. A short payer pays its balance and the rest is waived, never owed. A Business books the payment as expense. A premises Rule drawing a tariffed Utility is refused at load | `RuleEngine.Fire` |
+| Billing evidence | One saved row per Building per delivered Utility, holding today's and yesterday's paid and unpaid. Rows retire with the Building | `UtilityBillTable`, `BuildingEvidence.Utilities` |
+| Tariff treasury flow | `Tariff` income column, in the Budget panel as `utility tariffs · in` | `TreasuryFlows`, `Main.Budget.cs` |
 | Base content | No. `powered.toml` is the only file declaring a Utility, and the shell's tool browser still lists "Utilities" as disabled | slice 7 |
 
 - A Building can hold a Local Utility Bin, and a Rule can consume from it. Nothing fills that Bin
@@ -137,8 +140,23 @@ import at an Outside Connection for a price.
 3. **Sewage.** Storage that fills, generated as an output of Water-drawing Rules. Inflow grows
    with road length. Overflow raises the pollution layer, which lowers Fertility. Resolve D8.
 4. **Import at an Outside Connection.** Price, gate and payer. Resolve D7.
-5. **Billing.** A per-unit tariff charge on delivered Utility terms, paid to the treasury, and
-   the tariff Policy lever. Update the [money circulation](money-circulation.md) Utilities row.
+5. **Billing. Built on `utilities-5`, 10/20/2026.**
+   - The charge happens at firing, on what the Rule received, so a brownout bills less without a
+     second rule. It never blocks: a Utility term still never stops a Rule.
+   - A payer short of the bill pays its balance and the rest is waived and reported as unpaid.
+     Blocking would contradict D4, and carrying it as debt would be an automatic overdraft.
+   - The tariff is a `[[policy]]` with `tool = "tariff"`, read at firing rather than swept. The
+     player sets it with Govern; the Ruleset's amount is the default. Save format 28.
+   - `rulesets/powered.toml` circulates money: the dwelling's Households and the works' Business
+     pay the tariff, and the plant is a staffed `generation` Business funded by a `plant_funding`
+     transfer on `school_funding`'s shape.
+   - Tests: `UtilityTariffLoadTests`, `UtilityBillingTests`, `PowerTariffTests`. Driven
+     demonstration in `evidence/utilities-slice-5/`.
+   - **Known gaps accepted for slice 5.**
+     - The Building panel's network line reports the settle that fixed today's fraction as
+       "yesterday", so on the Day after a cut it reads `served 0` above a full bill for that Day.
+     - No verb closes the Building panel, so a driven run cannot photograph the Budget panel's
+       amounts with a Building selected.
 6. **Critical loads.** A Ruleset flag on a Building kind serves it in full before the rest share
    the remainder, as real load shedding protects hospitals and pumping. Take this up once a
    critical kind draws a Utility. Water pumping that draws Power makes a power shortage cascade
