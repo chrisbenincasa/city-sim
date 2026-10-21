@@ -59,9 +59,17 @@
 # draws four applications a firing and a dwelling of three draws nine. The wage covers a Household in
 # a dwelling of TWO, which is the occupancy every test here raises.
 #
-# ⚠ THE HINTERLAND IS PAPERWORK. A file stating `[districts]` must price every Good at some
-# Hinterland, because a Pool's ceiling is the cheapest import price and an unpriced Good is free for
-# ever. Nothing here buys or sells a Good; a delivered Utility has no price at all, only a tariff.
+# WHAT THE HINTERLAND IS FOR. A file stating `[districts]` must price every Good at some Hinterland,
+# because a Pool's ceiling is the cheapest import price and an unpriced Good is free for ever. The
+# south Hinterland also prices `power`, which is what makes the Utility importable: a `gate` raised
+# on the south edge brings in `import_per_connection` units a Day and the treasury pays that price
+# for each of them. Nothing here buys or sells a Good; the Utility import is the only trade.
+#
+# WHY THERE IS A TREASURY AND A [placement] TABLE. The treasury is the importer's purse -- an empty
+# one imports nothing, so a fixture that demonstrates an import has to be founded with money. The
+# `[placement]` table is what `arrivals_per_day` obliges: a gate kind is a door into the Unplaced
+# Pool, and `adr/0006` requires that Pool to have a sink. Nothing arrives through the door in these
+# worlds, because no `[immigration]` table makes the Outside present anybody.
 
 [[resource]]
 name = "power"
@@ -74,6 +82,9 @@ storage = 0
 link_per_crossing = 2560
 # What a District's network loses per Tile of road credited to it, in a Day.
 loss_per_road_tile = 1
+# What one Outside Connection brings in per Day. Equal to `link_per_crossing` on purpose, so one
+# gate on the far side of a boundary is worth exactly one more crossing road.
+import_per_connection = 2560
 
 [[resource]]
 name = "lumens"
@@ -89,6 +100,10 @@ emigrant_balance_min = 0
 emigrant_balance_max = 0
 prices = [
     { resource = "lumens", price = 500 },
+    # Two per unit, so a Day of one gate's capacity costs 5,120 and the opening balance below buys
+    # several hundred Days of it. A short District's bill is legible without the treasury being the
+    # thing under test.
+    { resource = "power",  price = 2 },
 ]
 
 # The plant's trade. It pays daily rather than weekly so that a Day's funding and a Day's payroll are
@@ -129,6 +144,12 @@ name = "works"
 premises = true
 business = "fabrication"
 bins = [ { resource = "money", owner = "business" } ]
+
+# Kind 4, the Outside Connection. `arrivals_per_day` is the key that makes a kind one (adr/0088);
+# the number is a ceiling on Households and has nothing to do with the Utility it imports.
+[[building]]
+name = "gate"
+arrivals_per_day = 12
 
 [[rule]]
 name    = "generate"
@@ -184,12 +205,20 @@ interval = 2048
 apply = { derived = "jobs", percent = 100 }
 transfer = { from = "global", to = "local", resource = "money", amount = 256 }
 
-# ⚠ THE WORKS STOPS WITHOUT THIS. A `global` money input joins the affordability walk like any other
-# input, so a dry treasury blocks `machinery` on Supply, the east's greedy consumer draws nothing and
-# the brownout every delivery test reads disappears. 65,536 is 256 Days of a single plant's funding
-# with nobody paying any tariff back, which is longer than any fixture here runs unbalanced.
+# The treasury is the importer's purse and the works' contract. A `global` money input joins the
+# affordability walk like any other input, so a dry treasury blocks `machinery` on Supply, the east's
+# greedy consumer draws nothing and the brownout every delivery test reads disappears; an empty one
+# also imports nothing. Nothing collects a tax or a levy here, so this and the tariff are all the
+# money the city will ever have.
 [treasury]
-opening_balance = 65536
+opening_balance = 4194304
+
+# adr/0006's sink for the Pool the gate kind above opens a door into.
+[placement]
+interval            = 32
+revisit_ticks       = 1024
+candidates          = 3
+gives_up_after_days = 120
 
 [districts]
 prominence_percent = 50

@@ -940,11 +940,12 @@ public sealed class PowerDeliveryTests
     /// Rule, no <c>pool</c> term and no tariff.
     /// </summary>
     /// <remarks>
-    /// <b>The <c>pool</c> terms and the tariff have to go with the key.</b> A pool term naming a
-    /// Utility that states no <c>link_per_crossing</c> is refused at load, and so is a tariff on a
-    /// Utility that is not delivered — a file that kept either would not be a legal reload and the
-    /// hole this covers would be unreachable. The works' whole Rule goes rather than its pool term,
-    /// because a Business Rule exists here to be billed and there is nothing left to bill it for.
+    /// <b>The <c>pool</c> terms, the tariff and the import have to go with the key.</b> A pool term
+    /// naming a Utility that states no <c>link_per_crossing</c> is refused at load, and so are a
+    /// tariff, an <c>import_per_connection</c> and a <c>[[hinterland]]</c> price on an undelivered
+    /// one — so a file that kept any of them would not be a legal reload and the hole this covers
+    /// would be unreachable. The works' whole Rule goes rather than its pool term, because a Business
+    /// Rule exists here to be billed and there is nothing left to bill it for.
     /// </remarks>
     private static Ruleset Undelivered()
     {
@@ -964,6 +965,11 @@ public sealed class PowerDeliveryTests
                 .Replace("storage = 0", "", StringComparison.Ordinal)
                 .Replace("link_per_crossing = 2560", "", StringComparison.Ordinal)
                 .Replace("loss_per_road_tile = 1", "", StringComparison.Ordinal)
+                .Replace("import_per_connection = 2560", "", StringComparison.Ordinal)
+                .Replace(
+                    "{ resource = \"power\",  price = 2 },",
+                    "",
+                    StringComparison.Ordinal)
                 .Replace(
                     "inputs  = [ { scope = \"pool\", resource = \"power\", amount = 2 } ]",
                     "inputs  = []",

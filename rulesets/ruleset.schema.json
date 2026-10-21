@@ -540,7 +540,7 @@
                   "type": "integer"
                 },
                 "resource": {
-                  "description": "Which Good or service is being priced, naming a [[resource]]. A utility is not stocked, and money is what a price is denominated in rather than a thing that has one, so neither may be.",
+                  "description": "Which Good, service or delivered Utility is being priced, naming a [[resource]]. A Utility priced here is imported at an Outside Connection on this edge and states import_per_connection. An undelivered utility reaches no network, and money is what a price is denominated in rather than a thing that has one, so neither may be.",
                   "type": "string"
                 }
               }
@@ -1428,6 +1428,10 @@
           "id": {
             "description": "Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.",
             "type": "string"
+          },
+          "import_per_connection": {
+            "description": "How much of this delivered Utility one Outside Connection brings into the city per Day, in the same units as link_per_crossing. The treasury pays the cheapest [[hinterland]] price on the gate's edge for what arrives, and imports cover only what the District networks are still short of. It requires link_per_crossing, and it is stated with a [[hinterland]] price for the same Utility or not at all.",
+            "type": "integer"
           },
           "label": {
             "description": "The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.",

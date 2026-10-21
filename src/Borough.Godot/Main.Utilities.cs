@@ -100,6 +100,12 @@ public partial class Main
 
             string text = $"{UtilitySentence(drawn)}\nYesterday the District's network served "
                 + $"{drawn.Received:N0} of the {drawn.Asked:N0} units asked of it.";
+            if (drawn.Imported > 0)
+            {
+                text += $"\nThe District imported {drawn.Imported:N0} gross units, including road loss; "
+                    + $"the treasury paid {drawn.ImportPaid.Raw:N0} money units.";
+            }
+
             if (drawn.HasTariff)
             {
                 string name = _names.Resource(drawn.Utility) ?? $"Resource {drawn.Utility.Raw}";

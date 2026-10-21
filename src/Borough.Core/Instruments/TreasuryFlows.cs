@@ -8,7 +8,7 @@ using Borough.Core.Rules;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Thirteen magnitudes, with income and expenditure kept separate.</b>
+/// <b>Fourteen magnitudes, with income and expenditure kept separate.</b>
 /// <c>MoneyFlowCounter.FromTreasury</c> carries the argument and
 /// <c>Borough.Headless.IncomeDump</c> prints it, because a net cannot say whether a city taxed
 /// nothing and paid nothing or taxed heavily and paid it all back. Within the income the same
@@ -70,6 +70,11 @@ using Borough.Core.Rules;
 /// What the city paid zone-raised Businesses to open — <c>[[business]] opening_grant</c>. A transfer,
 /// so the money supply does not move.
 /// </param>
+/// <param name="UtilityImport">
+/// What the city paid the Outside for delivered Utility units imported at its Outside Connections.
+/// It leaves the money supply on <paramref name="Placement"/>'s terms, because a Hinterland holds no
+/// balance.
+/// </param>
 public readonly record struct TreasuryFlows(
     long Withheld,
     long ProfitTax,
@@ -83,14 +88,15 @@ public readonly record struct TreasuryFlows(
     long Upkeep,
     long Compensation,
     long Grant,
+    long UtilityImport,
     long Tariff = 0)
 {
     /// <summary>Everything that arrived, including Utility tariffs.</summary>
     public long Income => Withheld + ProfitTax + PolicyIn + RuleIn + Rent + Tariff;
 
-    /// <summary>Everything that left, through all seven paths.</summary>
+    /// <summary>Everything that left, through all eight paths.</summary>
     public long Expenditure =>
-        PolicyOut + RuleOut + Subsidy + Placement + Upkeep + Compensation + Grant;
+        PolicyOut + RuleOut + Subsidy + Placement + Upkeep + Compensation + Grant + UtilityImport;
 
     /// <summary>Adds another interval's flows to this one, column by column.</summary>
     /// <param name="other">The interval to add.</param>
@@ -108,5 +114,6 @@ public readonly record struct TreasuryFlows(
         Upkeep + other.Upkeep,
         Compensation + other.Compensation,
         Grant + other.Grant,
+        UtilityImport + other.UtilityImport,
         Tariff + other.Tariff);
 }

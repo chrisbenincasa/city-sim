@@ -203,12 +203,15 @@ public static class Evidence
             : default;
 
         return flow == Rows.NoSlot
-            ? new UtilityEvidence(utility, Ratio.Zero, 0, 0, billed, paid, unpaid)
+            ? new UtilityEvidence(utility, Ratio.Zero, 0, 0, 0, Money.Zero, billed, paid, unpaid)
             : new UtilityEvidence(
                 utility,
                 world.UtilityFlows.Delivered[flow],
                 world.UtilityFlows.Received[flow],
-                world.UtilityFlows.Asked[flow], billed, paid, unpaid);
+                world.UtilityFlows.Asked[flow],
+                world.UtilityFlows.Imported[flow],
+                world.UtilityFlows.ImportPaid[flow],
+                billed, paid, unpaid);
     }
 
     /// <summary>

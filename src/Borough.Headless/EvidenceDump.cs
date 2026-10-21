@@ -780,6 +780,14 @@ internal static class EvidenceDump
                 + $"{Percent(drawn.Delivered),8}%  {drawn.Received,16}  {drawn.Asked,15}  "
                 + $"{(drawn.HasTariff ? drawn.Paid.ToString(CultureInfo.InvariantCulture) : "unbilled"),14}  "
                 + $"{(drawn.HasTariff ? drawn.Unpaid.ToString(CultureInfo.InvariantCulture) : "unbilled"),16}"));
+
+            if (drawn.Imported != 0 || drawn.ImportPaid.Raw != 0)
+            {
+                output.WriteLine(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"    imported yesterday {drawn.Imported} gross units (including road loss); "
+                    + $"treasury paid {drawn.ImportPaid.Raw} money units"));
+            }
         }
 
         output.WriteLine(

@@ -1970,12 +1970,13 @@ internal sealed class Options
                                 a [[rule]] paid in off a premises, rent tenants of
                                 city-held Lots paid, and Utility tariffs paid by Rule owners.
                                 Each reaches the treasury without being netted
-                                against expenditure. Expenditure is FIVE: a [[policy]]
+                                against expenditure. Expenditure is SIX: a [[policy]]
                                 transfer, a [[rule]] drawing on the treasury, a
                                 tool = "subsidy" apportioned against its own ceiling, the
-                                price of a service Building placed by hand, and road Upkeep.
-                                The treasury column is their running total less the five
-                                expenditure columns, exactly. Profit-tax RELIEF is printed under the table and is
+                                price of a service Building placed by hand, road Upkeep,
+                                and what a District short of a delivered Utility bought at
+                                an Outside Connection. The treasury column is their
+                                running total less the six expenditure columns, exactly. Profit-tax RELIEF is printed under the table and is
                                 deliberately outside that arithmetic: it moves no money, so it
                                 is revenue forgone rather than spending. Prints the
                                 [income_tax] and [business_tax] bands and the [rent] rate

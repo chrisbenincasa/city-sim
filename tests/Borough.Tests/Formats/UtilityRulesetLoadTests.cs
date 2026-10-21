@@ -1,3 +1,4 @@
+using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Tables;
 using Borough.Formats;
@@ -92,6 +93,7 @@ public sealed class UtilityRulesetLoadTests
     [InlineData("storage", 0)]
     [InlineData("link_per_crossing", 120)]
     [InlineData("loss_per_road_tile", 3)]
+    [InlineData("import_per_connection", 2560)]
     public void Delivery_keys_on_a_good_name_the_key_and_family(string key, int value)
     {
         RulesetRefusal refusal = Refused($$"""
@@ -129,6 +131,105 @@ public sealed class UtilityRulesetLoadTests
             """, "storage");
 
         Assert.Contains("link_per_crossing", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    // ---- the import price and its capacity ---------------------------------------------------
+
+    /// <summary>One <c>[[hinterland]]</c> on the south edge pricing whatever it is handed.</summary>
+    private static string Priced(string resource, int price) => $$"""
+
+        [[hinterland]]
+        edge = "south"
+        emigrant_balance_min = 0
+        emigrant_balance_max = 0
+        prices = [ { resource = "{{resource}}", price = {{price}} } ]
+        """;
+
+    /// <summary>
+    /// A delivered Utility carries an import price and a per-gate capacity, and both reach the
+    /// Ruleset.
+    /// </summary>
+    [Fact]
+    public void A_priced_delivered_utility_reaches_the_ruleset_with_its_capacity()
+    {
+        Ruleset ruleset = Accepted(
+            DeliveredUtility + "\nimport_per_connection = 2560" + Priced("power", 7));
+        var power = new ResourceId(1);
+
+        Assert.Equal(2560, ruleset.ImportPerConnection(power));
+        Assert.Equal(new Money(7), ruleset.ImportPrice(0, power));
+        Assert.Equal(new Money(7), ruleset.ImportCeiling(power));
+    }
+
+    /// <summary>
+    /// An undelivered Utility has no network to import onto, so a <c>prices</c> entry for one is
+    /// refused.
+    /// </summary>
+    [Fact]
+    public void A_price_for_an_undelivered_utility_names_the_key_and_the_resource()
+    {
+        RulesetRefusal refusal = Refused("""
+            [[resource]]
+            name = "power"
+            family = "utility"
+            """ + Priced("power", 7), "prices");
+
+        Assert.Contains("'power'", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("link_per_crossing", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>The same for the capacity half, which names the key and the Resource too.</summary>
+    [Fact]
+    public void A_capacity_on_an_undelivered_utility_names_the_key_and_the_resource()
+    {
+        RulesetRefusal refusal = Refused("""
+            [[resource]]
+            name = "power"
+            family = "utility"
+            import_per_connection = 2560
+            """ + Priced("power", 7), "import_per_connection");
+
+        Assert.Contains("'power'", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("link_per_crossing", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A price with no capacity is refused: no Outside Connection could bring any of it in, so the
+    /// price would be read by nobody.
+    /// </summary>
+    [Fact]
+    public void A_priced_utility_with_no_capacity_names_both_halves()
+    {
+        RulesetRefusal refusal =
+            Refused(DeliveredUtility + Priced("power", 7), "import_per_connection");
+
+        Assert.Contains("'power'", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("[[hinterland]]", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A capacity no Hinterland prices is refused: the treasury pays per imported unit and there is
+    /// no price for it to pay.
+    /// </summary>
+    [Fact]
+    public void A_capacity_no_hinterland_prices_names_both_halves()
+    {
+        RulesetRefusal refusal = Refused(
+            DeliveredUtility + "\nimport_per_connection = 2560", "import_per_connection");
+
+        Assert.Contains("'power'", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("[[hinterland]]", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>A delivered Utility that neither half names stays unimportable and loads.</summary>
+    [Fact]
+    public void A_delivered_utility_with_neither_half_loads_unimportable()
+    {
+        Ruleset ruleset = Accepted(DeliveredUtility);
+        var power = new ResourceId(1);
+
+        Assert.True(ruleset.IsDeliveredUtility(power));
+        Assert.Equal(0, ruleset.ImportPerConnection(power));
     }
 
     [Theory]

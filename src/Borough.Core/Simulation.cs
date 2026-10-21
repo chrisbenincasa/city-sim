@@ -285,6 +285,16 @@ public sealed class Simulation
     /// <summary>What road Upkeep has cost the treasury since the last drain.</summary>
     private MoneyFlow _upkeepFlow;
 
+    /// <summary>
+    /// What importing delivered Utilities at the Outside Connections has cost the treasury since
+    /// the last drain.
+    /// </summary>
+    /// <remarks>
+    /// Folded once per Tick, on <see cref="_upkeepFlow"/>'s terms. The settle runs at the head of
+    /// each Day's first Tick, so at most one fold in a Day is ever non-zero.
+    /// </remarks>
+    private MoneyFlow _utilityImportFlow;
+
     /// <inheritdoc cref="Subsidies"/>
     internal MoneyFlow DrainPlacementSpend()
     {
@@ -311,6 +321,16 @@ public sealed class Simulation
         MoneyFlow flow = _upkeepFlow;
 
         _upkeepFlow = default;
+
+        return flow;
+    }
+
+    /// <inheritdoc cref="_utilityImportFlow"/>
+    internal MoneyFlow DrainUtilityImportSpend()
+    {
+        MoneyFlow flow = _utilityImportFlow;
+
+        _utilityImportFlow = default;
 
         return flow;
     }
@@ -353,6 +373,7 @@ public sealed class Simulation
             DrainUpkeepSpend().Sum,
             DrainCompensation().Sum,
             _zoning.DrainGrants().Sum,
+            DrainUtilityImportSpend().Sum,
             rules.Tariff.Sum);
     }
 
@@ -492,7 +513,12 @@ public sealed class Simulation
         // has produced anything yet and a settle there would only write the zeroes a row opens at.
         if (tick.Raw % (ulong)Ticks.PerDay == 0 && tick.Raw > 0)
         {
-            _world.SettleUtilityNetworks();
+            long imported = _world.SettleUtilityNetworks().Raw;
+
+            if (imported > 0)
+            {
+                _utilityImportFlow = _utilityImportFlow.Fold(imported);
+            }
         }
 
         ApplyInput(input, tick);
