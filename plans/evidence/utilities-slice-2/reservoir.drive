@@ -1,0 +1,132 @@
+# Utilities slice 2 — a reserve draining and refilling, on the ridge in reservoir.borough.
+#
+#   godot --path src/Borough.Godot -- --load plans/evidence/utilities-slice-2/reservoir.borough \
+#     --drive plans/evidence/utilities-slice-2/reservoir.drive
+#
+# The saved city opens on Day 1 with Water fully delivered and two towers filling: a pump in the
+# west District, an occupied dwelling and two towers in the east, and one Street crossing the
+# boundary between them. Tiles, Building ids and the measured arc are in reservoir.geometry.txt,
+# which the fixture writes beside the save.
+#
+# Two cameras. The wide one holds the whole ridge so the two Districts can be compared. The close
+# one stands over the east end, where a selected Building's panel and its massing are in one frame.
+#
+# ⚠ ONE `shoot` PER TICK, AND THE CAMERA MOVES ON THE TICK IT SHOOTS. `_pendingShot` holds one path
+# and the picture is taken on the NEXT frame, so a second `shoot` on the same Tick throws the first
+# away and a camera restored after a `shoot` lands in that shot. Hence the gaps.
+2049 pause
+2049 overlay utilities
+2049 ui building 37
+2049 ui section utilities on
+2049 ui section stocks on
+2049 turn left
+2049 tilt 40
+2049 focus 128 2 560
+2049 shoot plans/evidence/utilities-slice-2/01-day1-filling.png
+2049 speed 8
+
+# The reserve stands in Buildings, so one tower holds half of what the District's panel reports.
+2051 pause
+2051 ui building 38
+2051 tilt 45
+2051 focus 229 3 90
+2051 ui section utilities on
+2051 ui section stocks on
+2051 shoot plans/evidence/utilities-slice-2/02-day1-tower.png
+2051 speed 8
+
+# Back to the dwelling and the wide eye for the rest of the run.
+2053 pause
+2053 ui building 37
+2053 tilt 40
+2053 focus 128 2 560
+2053 speed 8
+
+# The settle at Tick 4,096 tops the towers up to their 2,048 and refills only the 64 of room left.
+4100 pause
+4100 ui section utilities on
+4100 ui section stocks on
+4100 shoot plans/evidence/utilities-slice-2/03-day2-full.png
+4100 speed 8
+
+# The trigger: the one crossing Street goes, so the pump can reach the east District no longer.
+# The Day's delivered fraction was fixed by the settle at Tick 4,096, so the reading does not move
+# until the next one.
+4102 pause
+4102 hold street
+4102 click 191 0 shift
+4102 ui section utilities on
+4102 ui section stocks on
+4102 shoot plans/evidence/utilities-slice-2/04-crossing-removed.png
+4102 speed 8
+
+# The settle at Tick 6,144 finds no crossing and covers the whole Day out of the towers. Water is
+# still delivered at 100% — which is the whole difference from slice 1, where Power with
+# `storage = "none"` went to 0% at this settle.
+6150 pause
+6150 hold look
+6150 ui section utilities on
+6150 ui section stocks on
+6150 shoot plans/evidence/utilities-slice-2/05-day3-draining.png
+6150 speed 8
+
+# Two Days further down. 576 units a Day leave the towers: 512 of demand and 64 of road loss.
+10250 pause
+10250 ui section utilities on
+10250 ui section stocks on
+10250 shoot plans/evidence/utilities-slice-2/06-day5-low.png
+10250 speed 8
+
+# The towers hold 320 against a need of 576, so the Day grades to half rather than failing.
+12300 pause
+12300 ui section utilities on
+12300 ui section stocks on
+12300 shoot plans/evidence/utilities-slice-2/07-day6-half.png
+12300 speed 8
+12302 pause
+12302 tilt 45
+12302 focus 225 3 90
+12302 ui section utilities on
+12302 ui section stocks on
+12302 shoot plans/evidence/utilities-slice-2/08-day6-half-close.png
+12302 speed 8
+
+# Empty. The brownout arrives four Days after the road did, and no Rule stops.
+14350 pause
+14350 tilt 40
+14350 focus 128 2 560
+14350 ui section utilities on
+14350 ui section stocks on
+14350 shoot plans/evidence/utilities-slice-2/09-day7-dark.png
+14350 speed 8
+14352 pause
+14352 ui building 38
+14352 tilt 45
+14352 focus 229 3 90
+14352 ui section utilities on
+14352 ui section stocks on
+14352 shoot plans/evidence/utilities-slice-2/10-day7-tower-empty.png
+14352 speed 8
+
+# The repair: the same two Nodes joined again.
+14354 pause
+14354 hold street
+14354 click 160 0
+14354 click 192 0
+14354 speed 8
+14356 pause
+14356 hold look
+14356 ui building 37
+14356 tilt 40
+14356 focus 128 2 560
+14356 ui section utilities on
+14356 ui section stocks on
+14356 shoot plans/evidence/utilities-slice-2/11-crossing-relaid.png
+14356 speed 8
+
+# The settle at Tick 16,384 finds the link again. Day 8 is whole and the towers are filling.
+16400 pause
+16400 ui section utilities on
+16400 ui section stocks on
+16400 shoot plans/evidence/utilities-slice-2/12-day8-restored.png
+16400 quit

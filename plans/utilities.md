@@ -7,33 +7,44 @@ reaches the Citizens and Businesses inside it as a graded consequence they can e
 plant is a spatial decision with a cost, an emission and a labour demand. The alternative is to
 import at an Outside Connection for a price.
 
-## Current behaviour (checked 10/20/2026 on `utilities-1`)
+## Current behaviour (checked 10/20/2026 on `utilities-2`)
 
 | Piece | Built | Where |
 |---|---|---|
-| Delivered Utility | A Utility Resource stating `link_per_crossing` is delivered. `storage`, `link_per_crossing` and `loss_per_road_tile` load | `RulesetLoader`, `Ruleset.IsDeliveredUtility` |
+| Delivered Utility | A Utility Resource stating `link_per_crossing` is delivered. `storage` is `"none"` or `"reserve"`, required beside `link_per_crossing`; `loss_per_road_tile` loads | `RulesetLoader`, `Ruleset.IsDeliveredUtility`, `Ruleset.HasReserve` |
 | District | Derived by watershed. Holds one Pool Bin per Good | `DistrictWatershed`, `World.FitDistrictPools` |
 | District adjacency graph | Derived. Crossing counts per District pair, and road Tiles credited per District | `DistrictAdjacency.Compute` |
-| Utility network row | One saved row per District per delivered Utility, holding the Pool, today's fraction and yesterday's supplied/asked/received | `UtilityFlowTable`, `World.FitUtilityFlows` |
+| Utility network row | One saved row per District per delivered Utility, holding the Pool, today's fraction, yesterday's supplied/asked/received and yesterday's reserve draw and refill. Save format 28 | `UtilityFlowTable`, `World.FitUtilityFlows` |
 | Daily settle | Road loss added to local demand, local production first, then integer max-flow across the links. Runs at the head of the Day's first Tick | `World.SettleUtilityNetworks`, `Simulation.Step` |
+| Reserve | A tower is a Building Bin of a `"reserve"` Utility, and a District's reserve is the sum of the towers standing in it. Three max-flow passes on one residual: cover, export, refill | `World.TransmitReserves`, `rulesets/watered.toml` |
 | Degraded firing | A pool Utility input caps the application count at `floor(count × delivered)`. It never blocks a Rule | `RuleEngine.Check` |
 | Floor-area Readout | Built, Building-scoped | `Readouts.FloorArea` |
-| Evidence | Each drawn Utility with today's delivered Ratio and yesterday's received/asked. No new saved state | `BuildingEvidence.Utilities`, `Evidence.OfBuilding` |
-| Shell | Building panel Utilities section, the brownout clause in the condition line and in attention, and a Utilities Building wash | `Main.Utilities.cs`, `Main.Information.cs`, `Main.Diagnosis.cs` |
-| Headless | The evidence dump prints a per-Utility delivered/served/asked table | `EvidenceDump.Utilities` |
+| Evidence | Each drawn Utility with today's delivered Ratio, yesterday's received/asked and, for a reserve Utility, the District's current level and capacity with yesterday's draw and refill | `BuildingEvidence.Utilities`, `Evidence.OfBuilding` |
+| Shell | Building panel Utilities section with the reserve lines, the brownout clause in the condition line and in attention, and a Utilities Building wash. A tower's own stock is in Stocks | `Main.Utilities.cs`, `Main.Information.cs`, `Main.Diagnosis.cs` |
+| Headless | The evidence dump prints a per-Utility delivered/served/asked table, with four reserve columns where a Utility keeps one | `EvidenceDump.Utilities` |
 | Water Body Bin | One Utility Resource per body, filled by runoff, drained downstream | `WaterBodyTable`, `World.RunoffIntoWater`, `World.DrainWaterBodies` |
 | Networked Service (`serves = "power"`, `"water"` or `"sewage"`) | Refused at load. These are Resources, not Needs | `RulesetLoader`, `adr/0032`, `adr/0103` |
 | Utility import price | No. Import prices are Good-only | slice 4 |
 | Billing and the tariff Policy | No | slice 5 |
-| Base content | No. `powered.toml` is the only file declaring a Utility, and the shell's tool browser still lists "Utilities" as disabled | slice 7 |
+| Base content | No. `powered.toml` and `watered.toml` are the only files declaring a Utility, and the shell's tool browser still lists "Utilities" as disabled | slice 7 |
 
 - A Building can hold a Local Utility Bin, and a Rule can consume from it. Nothing fills that Bin
-  from outside the Building.
+  from outside the Building unless the Utility is delivered and keeps a reserve.
+- A Building kind may declare a Bin of a *delivered* Utility only where that Utility is
+  `"reserve"`, and `storage = "fills"` is refused until Sewage arrives. An undelivered Utility's
+  local Bin stays legal.
 - A pool term naming a Utility that states no `link_per_crossing` is refused at load, so the
   silent zero `RuleEngine`'s `Marketless` branch used to produce can no longer happen.
-- Delivery is structure rather than tuning on a hot reload (`RulesetChange.ResourceDelivery`). A
-  Utility that stops being delivered loses its networks and its District Pool rows
-  (`World.RetireUndeliveredNetworks`); what a crossing carries and what a Tile loses stay numbers.
+- Delivery is structure rather than tuning on a hot reload (`RulesetChange.ResourceDelivery`), and
+  so is the storage mode. A Utility that stops being delivered loses its networks and its District
+  Pool rows (`World.RetireUndeliveredNetworks`) and its tower Bins keep their stock as plain local
+  Bins; what a crossing carries and what a Tile loses stay numbers.
+- `FromReserve` is not a part of `Received`. Road loss comes off what the network gathered before
+  any consumer is served and nothing records whether a lost unit came out of a tower or off a
+  plant, so no column says how much of what a consumer got had been stored.
+- A tower is withdrawn from and deposited into through `World.Withdraw` and `World.Deposit`, so the
+  Bin bound is asserted at the write and a Rule waiting on a tower wakes. `Markets.Moved` runs
+  there too, so a reserve Utility's District market totals are no longer always zero.
 - ⚠ `--evidence` refuses a Ruleset with no `[[zone_rule]]`, so `powered.toml` cannot be run through
   the runner. The dump's table is covered by calling `EvidenceDump.Utilities` from a test instead.
   A Ruleset that both declares a Utility and condemns something would close this.
@@ -43,6 +54,11 @@ import at an Outside Connection for a price.
 - One abstraction for all three, separated by storage (`CONTEXT.md` → Utility, `adr/0031`).
   Power has none and fails within the period. Water drains a reserve first. Sewage fills and
   overflows.
+- A reserve is held in Building Bins and never in the District Pool (10/20/2026). A District Pool
+  is a market rather than a store (`adr/0139`), so a tower is an ordinary Building Bin of the
+  Utility and a District's reserve is the sum of the towers standing in it. Siting a tower is
+  therefore a spatial decision like siting a plant, and a tower lost to the bulldozer takes its
+  stock with it.
 - Delivery is Networked: nobody moves, and there is no Vehicle or congestion (`adr/0032`).
 - Utilities ride the Road Graph. The player draws no network. Every Lot is connected by its
   frontage.
@@ -132,8 +148,54 @@ import at an Outside Connection for a price.
        edit either way.
      - A Day's `produced` and `demanded` saturate at `UtilityFlowTable.Bound` — 10¹⁸, which a
        Ruleset only reaches by stating absurd amounts — rather than wrapping.
-2. **Water.** Storage that carries over between Days. A water tower is a Bin with large storage.
-   Leakage scales with road length.
+2. **Water with a reserve. Built on `utilities-2`, 10/20/2026.**
+   - `[[resource]] storage` is a string: `"none"` or `"reserve"`. A `"reserve"` Utility's stock
+     stands in Building Bins, so a tower is any Building kind declaring a Bin of it, and a
+     District's reserve is the sum of the levels and capacities of the towers standing in it. The
+     fixture is `rulesets/watered.toml` — a pump, a per-occupant dwelling draw and a tower kind.
+   - The settle runs three max-flow passes on one residual, after local production has covered what
+     it can: production surplus to deficits, then each District's own reserve to its own remaining
+     deficit and a full reserve's leftover out over free link capacity, then the refill — own
+     leftover production into own towers first, then surplus over the links into reserve space.
+     Anything left is lost. Continuing on one residual never reduces an earlier pass's flow on a
+     source or sink edge, so no pass takes back a delivery an earlier one made.
+   - Water drawn from a reserve counts as received, and the delivered fraction is slice 1's
+     formula unchanged.
+   - Leakage applies to flow and stored water does not decay. A District holding reserve capacity
+     owes its road loss even with no demand and no production, which closes one slice 1 gap for a
+     reserve Utility; a `"none"` Utility's trigger is unchanged.
+   - A drain takes from each tower in proportion to its level and a refill fills in proportion to
+     its free space, through `IntegerMath.MulDivFloor` against an `Int128` basis total, with the
+     remainder in ascending Bin slot order. `Invariant.UtilityReserveIsConserved` catches a split
+     that fails to place what the settle decided to move.
+   - Two saved columns carry the Day's two flows, `FromReserve` and `ToReserve`, and the save
+     format is 28. No golden artifact moved, because no baseline Ruleset states
+     `link_per_crossing` and `utility_flow` therefore holds no live row in one
+     (`tests/Borough.Tests/Golden/README.md`).
+   - Power is unchanged. `PowerDeliveryTests.The_powered_settle_is_what_slice_one_measured` pins
+     `powered.toml`'s settle magnitudes to the figures measured before this slice.
+   - Tests: `UtilityRulesetLoadTests`, `WaterReserveTests`, `UtilityEvidenceTests`,
+     `PowerDeliveryTests`, `IntegerMathTests`. Driven demonstration in
+     `evidence/utilities-slice-2/`.
+   - Observed in the demonstration: a Building panel reports the *District's* reserve while a
+     tower's Stocks section reports *that Building's* Bin, and neither says the first is a sum of
+     the second. `watered.toml`'s tower ceiling is eight Days of a District that out-draws the
+     pump, so no world it describes ever fills one; the driven run states a ceiling of its own
+     beside its save. The shell can neither raise nor restore a pump, because the service tool
+     refuses a kind declaring no `serves` and a Utility may not be served (`adr/0032`), so a
+     demonstration's outage has to be a road rather than a plant.
+   - **Known gaps accepted for slice 2.**
+     - A new tower Bin opens empty, and changing `storage` between the two modes on a hot reload is
+       `RulesetChange.ResourceDelivery`, so a Day's production does not survive the edit.
+     - A District's reserve level and capacity saturate at `UtilityFlowTable.Bound` — 10¹⁸, as
+       `produced` and `demanded` already did — in the settle's own arithmetic and in the evidence.
+       A Ruleset reaches it only by declaring absurd Bin ceilings.
+     - A reserve Utility's District market totals now move when a tower is drawn from or refilled,
+       so the Pool's market figures for it are no longer always zero.
+     - Where several Districts' reserves could cover one deficit the max-flow picks one optimal
+       split, with no fairness between them. Slice 1's gap, unchanged.
+     - Nothing says how much of what a consumer received had been stored, because the roads are
+       paid out of the gathered total before any consumer is served.
 3. **Sewage.** Storage that fills, generated as an output of Water-drawing Rules. Inflow grows
    with road length. Overflow raises the pollution layer, which lowers Fertility. Resolve D8.
 4. **Import at an Outside Connection.** Price, gate and payer. Resolve D7.
@@ -167,3 +229,24 @@ Golden fixtures carry the equivalences, and `evidence/utilities-slice-1/` carrie
   `DistrictAdjacencyTests.Results_are_sorted_unique_and_unchanged_by_derived_rebuild`, since
   `Compute` rebuilds the graph whole at every settle and nothing else reads it.
 - A driven demonstration shows the outage and the recovery in the shell.
+
+## Acceptance for slice 2
+
+Met on `utilities-2`. `WaterReserveTests` carries the settle lines, `UtilityRulesetLoadTests` the
+loader's, `UtilityEvidenceTests` the readings, `PowerDeliveryTests` Power's equivalence, and
+`evidence/utilities-slice-2/` carries the last.
+
+- A Utility declaring `storage = "reserve"` carries stock between Days in the Bins of the towers
+  standing in each District. One declaring `"none"` carries nothing, and `"fills"` is refused.
+- A District whose supply is cut covers its whole need out of its own towers at full delivery and
+  takes its demand and its road loss out of them each Day. The Day their level falls short of that
+  need it delivers the fraction they cover, and the Day after it delivers nothing.
+- Restoring the supply returns delivery to full and refills the towers at what the links leave.
+- A tower's share of a drain and of a refill is proportional to its level and to its free space,
+  and a District's reserve never exceeds the capacity of the Bins holding it.
+- A District holding reserve capacity owes its road loss with no demand and no production.
+- A save taken mid-drain resumes identically, a rerun from the same seed reaches the same state,
+  the thread count does not change it, and a reload that removes delivery leaves the towers holding
+  their water. `powered.toml`'s settle magnitudes are what slice 1 measured.
+- A driven demonstration shows the reserve filling, draining Day by Day through an outage, the
+  brownout it postponed, and the refill after the repair.

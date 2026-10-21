@@ -1,0 +1,44 @@
+tick 6150
+reservoir.toml   Tick 6,150   Day 3   Thursday   05:04
+Citizens 0   Buildings 44   vacant Lots 0   travelling 0
+speed paused   mode look   [ ] speed, space pause, w write log, g roads, c cells, tab tune, ctrl-z undo
+click acts   right-drag or two-finger scroll pans   edge of screen pans   pinch or -/= zooms   q/e turns   r/f tilts   l lens   o overlay
+UTILITIES — the share of each draw the Building's District network delivers: red nothing, amber part, green all of it. Grey draws no Utility at all. One fraction governs the whole of Day 4. Select a Building for the units behind it.
+hover —
+Open ground · ordinary — click to inspect
+debug —
+Tile (191, 0)    Cell (5, 0)
+dwelling — 0 of 1 occupied, 22 Tiles off
+Lot 28, future uses 0x0000 across the whole site
+ground: ordinary
+pollution 0    land value 0    sealing 27
+District 3
+inspector —
+dwelling
+SELECTED BUILDING · 37
+Current condition
+No supply shortfalls reported
+Occupied places: 2 / 1
+What needs attention
+No supply shortfalls reported.
+Activities
+Building activity · draw_water
+Scheduled.
+Utilities · 1
+water delivered at 100%
+Yesterday the District's network served 512 of the 512 units asked of it.
+District reserve 1,472 / 2,048 units. Yesterday drawn 576, refilled 0. Drawn includes road loss.
+Land
+Landowner: the city
+Households · 2
+Household 1 →
+Household 2 →
+Workers · 0
+No workers.
+Stocks
+No stocks reported.
+ui theme=dark debug=False visible=True scroll=0
+inspector (3410, 104), (406, 847) min=(125, 130)
+body (3430, 218), (358, 5761) min=(59, 717)
+scroll (3430, 218), (366, 1659) min=(59, 0)
+hover (40, 2084), (962, 127) debug (24, 264), (840, 36) console (24, 2004), (994, 132)

@@ -1,0 +1,27 @@
+saved tick           2049
+districts            2
+buildings            44
+boundary cells       5 | 6
+crossing demolish    east 191 north 0
+crossing relay from  east 160 north 0
+crossing relay to    east 192 north 0
+occupied dwelling    building 37 at east 225 north 0
+pump                 building 1 at east 1 north 0
+tower                building 38 at east 229 north 0
+tower                building 39 at east 233 north 0
+tower capacity       1024 units each
+
+The arc, measured on this world after the save was written. `delivered` governs the Day
+the settle opened; the four reserve figures are the District's, and `drawn` carries the
+road loss as well as the Day's demand.
+
+settle   2048  day  1  water                100%               512              512           1984              2048                0                1984
+settle   4096  day  2  water                100%               512              512           2048              2048                0                  64
+  the crossing Street is removed at tick 4097
+settle   6144  day  3  water                100%               512              512           1472              2048              576                   0
+settle   8192  day  4  water                100%               512              512            896              2048              576                   0
+settle  10240  day  5  water                100%               512              512            320              2048              576                   0
+settle  12288  day  6  water                 50%               256              512              0              2048              320                   0
+settle  14336  day  7  water                  0%                 0              512              0              2048                0                   0
+  the crossing Street is laid again at tick 14337
+settle  16384  day  8  water                100%               512              512           1984              2048                0                1984

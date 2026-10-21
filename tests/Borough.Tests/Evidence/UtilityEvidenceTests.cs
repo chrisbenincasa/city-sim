@@ -844,6 +844,193 @@ public sealed class UtilityEvidenceTests
         Assert.Equal(UtilityFlowTable.Bound, drawn.ReserveCapacity);
     }
 
+    /// <summary>The header on the Ruleset the driven demonstration runs under.</summary>
+    private const string Demonstration = """
+        # SLICE 2'S DRIVEN DEMONSTRATION, and `rulesets/watered.toml` with one number changed: a
+        # tower holds 1024 units rather than 65536. Two towers at the authored ceiling are 67 Days
+        # of filling and 228 of draining at this ridge's rates, and nobody can watch that.
+        #
+        # Written beside the save that carries it by
+        # UtilityEvidenceTests.Writes_the_watered_city_for_the_driven_demonstration. Edit the test.
+
+
+        """;
+
+    /// <summary>
+    /// Writes the watered ridge as a city save the shell can open, which is slice 2's driven
+    /// demonstration, and the Ruleset and the measured arc beside it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>An instrument, for the slice 1 writer's reason</b> — it writes files rather than holding
+    /// the reserve to anything, which is what the Water tests above are for.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The shell cannot build this world itself.</b> <c>SyntheticCity</c> raises housing, a gate
+    /// kind and the trade Zone Rule's kind and nothing else, and the service tool refuses a kind
+    /// declaring no <c>serves</c> — which a pump may not declare, since <c>serves = "water"</c> is a
+    /// Networked Service the loader refuses. So a pump and a tower reach a city save only from here,
+    /// and a demolished pump could not be raised again, which is why the demonstration's outage is
+    /// the crossing road rather than the pump.
+    /// </para>
+    /// <para>
+    /// <b>The arc is measured after the save is written</b>, on the same world and through the same
+    /// printer the runner uses, so the drive script's Tick landings and the README's figures are read
+    /// off a run rather than predicted.
+    /// </para>
+    /// <para>
+    /// Set <c>BOROUGH_RESERVE_CITY</c> to the save path; it goes to a temporary file otherwise.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    [Trait(Tier.Key, Tier.Instrument)]
+    public void Writes_the_watered_city_for_the_driven_demonstration()
+    {
+        string save = Path.GetFullPath(Environment.GetEnvironmentVariable("BOROUGH_RESERVE_CITY")
+            ?? Path.Combine(
+                Path.GetTempPath(), $"borough-utility-reservoir-{Environment.ProcessId}.borough"));
+
+        const string ceiling =
+            "# 65536 units, enough for eight Days of a District with 32 occupants before road loss.";
+
+        const string tuned =
+            "# 1024 units, so the east District below fills its two towers in two Days and runs "
+            + "four on them.";
+
+        string authored = File.ReadAllText(
+            Path.Combine(AppContext.BaseDirectory, "Rulesets", "watered.toml"));
+
+        Assert.Contains(ceiling, authored, StringComparison.Ordinal);
+        Assert.Contains("capacity = 65536", authored, StringComparison.Ordinal);
+
+        Directory.CreateDirectory(Path.GetDirectoryName(save)!);
+
+        string rules = Path.ChangeExtension(save, ".toml");
+
+        File.WriteAllText(
+            rules,
+            Demonstration + authored
+                .Replace(ceiling, tuned, StringComparison.Ordinal)
+                .Replace("capacity = 65536", "capacity = 1024", StringComparison.Ordinal));
+
+        RulesetSourceResult loaded = RulesetSource.Load(rules);
+
+        Assert.True(loaded.Ok, loaded.Describe());
+        Assert.NotNull(loaded.Capture);
+
+        City city = Build(loaded.Ruleset, towers: 2);
+        World world = city.World;
+        var water = new ResourceId(1);
+
+        // One Day of production, so the save opens on towers that are visibly filling rather than on
+        // a reserve nothing has reached yet.
+        AfterSettling(city.Simulation, day: 0);
+
+        UtilityEvidence opening = Drawn(world, city.Home);
+
+        Assert.Equal(Ratio.One, opening.Delivered);
+        Assert.Equal(2048, opening.ReserveCapacity);
+        Assert.Equal(1984, opening.ReserveLevel);
+        Assert.Equal(1984, opening.ToReserve);
+        Assert.Equal(0, opening.FromReserve);
+
+        CitySave.Write(save, world, loaded.Capture!, seed: 7);
+
+        SavedCity reopened = CitySave.Read(save);
+
+        Assert.Equal(world.HashState(), reopened.World.HashState());
+        Assert.Equal(1984, Drawn(reopened.World, city.Home).ReserveLevel);
+
+        int block = world.Rules.Roads.BlockTiles;
+        int boundary = Boundary(world);
+
+        string Where(int slot)
+        {
+            int lot = world.Lots.Rows.Resolve(world.Buildings.Lot[slot]);
+
+            return $"building {world.Buildings.Rows.IdAt(slot)} at east {world.Lots.East[lot].Raw}"
+                + $" north {world.Lots.North[lot].Raw}";
+        }
+
+        // The Tiles and ids a drive script has to click and select, written beside the save rather
+        // than copied into one by hand. The watershed decides where the boundary falls.
+        var geometry = new System.Text.StringBuilder();
+
+        geometry.Append(
+            $"""
+             saved tick           {world.Tick.Raw}
+             districts            {world.Districts.Rows.LiveCount}
+             buildings            {world.Buildings.Rows.LiveCount}
+             boundary cells       {boundary} | {boundary + 1}
+             crossing demolish    east {((boundary + 1) * block) - 1} north 0
+             crossing relay from  east {boundary * block} north 0
+             crossing relay to    east {(boundary + 1) * block} north 0
+             occupied dwelling    {Where(city.Home)}
+             pump                 {Where(city.Generator)}
+             tower                {Where(city.Towers[0])}
+             tower                {Where(city.Towers[1])}
+             tower capacity       {world.Bins.Capacity[world.FindBin(city.Towers[0], water)]} units each
+
+             """);
+
+        string Row()
+        {
+            var printed = new StringWriter();
+
+            EvidenceDump.Utilities(
+                printed,
+                loaded.Names,
+                Core.Evidence.Evidence.OfBuilding(world, world.Buildings.Rows.At(city.Home)));
+
+            string row = Assert.Single(
+                printed.ToString().Split('\n'),
+                line => line.StartsWith("  water", StringComparison.Ordinal));
+
+            return string.Create(
+                System.Globalization.CultureInfo.InvariantCulture,
+                $"settle {world.Tick.Raw - 1,6}  day {(world.Tick.Raw - 1) / Ticks.PerDay,2}{row.TrimEnd()}\n");
+        }
+
+        geometry.Append(
+            """
+
+            The arc, measured on this world after the save was written. `delivered` governs the Day
+            the settle opened; the four reserve figures are the District's, and `drawn` carries the
+            road loss as well as the Day's demand.
+
+            """).Append('\n').Append(Row());
+
+        AfterSettling(city.Simulation, day: 1);
+        geometry.Append(Row());
+
+        var crossing = new Tiles(((boundary + 1) * block) - 1);
+
+        Issue(city.Simulation, Command.Demolish(crossing, Tiles.Zero, DemolishTarget.Street));
+        geometry.Append($"  the crossing Street is removed at tick {world.Tick.Raw - 1}\n");
+
+        for (int day = 2; day <= 6; day++)
+        {
+            AfterSettling(city.Simulation, day);
+            geometry.Append(Row());
+        }
+
+        Issue(city.Simulation, Command.Street(
+            new Tiles(boundary * block),
+            Tiles.Zero,
+            new Tiles((boundary + 1) * block),
+            Tiles.Zero,
+            SubTiles.Zero));
+
+        geometry.Append($"  the crossing Street is laid again at tick {world.Tick.Raw - 1}\n");
+
+        AfterSettling(city.Simulation, day: 7);
+        geometry.Append(Row());
+
+        File.WriteAllText(Path.ChangeExtension(save, ".geometry.txt"), geometry.ToString());
+
+        city.Simulation.CheckEndOfRun();
+    }
+
     /// <summary>
     /// A Building standing in no District is served nothing, and the reading says so rather than
     /// reporting an absent network as full delivery.
