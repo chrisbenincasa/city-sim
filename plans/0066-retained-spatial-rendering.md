@@ -316,4 +316,4 @@ the per-panel plan byte for byte.
   was not measured.
 
 The board's *Bounded scene preparation and uploads* row owns planning only within reach for every
-component.
+component. Its design is [chunked scene preparation](chunked-scene-preparation.md).
