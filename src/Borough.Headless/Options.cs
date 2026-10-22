@@ -1863,7 +1863,7 @@ internal sealed class Options
           --profile-reuse       count cross-Tick FIFO reuse at 65,536/1,048,576 entries; one worker only
           --profile-services    distribute schools, clinics and hospitals before ageing; needs school/care
           --profile-work        emit work, route reuse and table growth (instrumented timings)
-          --route-workers N     1..8 concurrent commute route workers including caller; profile only
+          --route-workers N     1..8 concurrent commute and hiring route workers including caller; profile only
           --profile-wait        after ageing, print ready/PID and wait for 'go' on stdin to attach a profiler
           --warmup-ticks N       unmeasured ageing before --profile (default 14336, seven Days)
           --shopping            shopping outings, carried Goods and weekly work; needs a [shopping] Ruleset

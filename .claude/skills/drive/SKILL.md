@@ -17,7 +17,12 @@ stale and a draw list can.*** So, before any driven verification of a shell chan
 
 ```
 dotnet build src/Borough.Godot          # no -c. The default is Debug and Debug is what loads
+scripts/build-shell.sh --optimized      # timings and large cities; plain `scripts/build-shell.sh` returns to Debug
+scripts/build-shell.sh --check          # which mode the loaded assemblies were built in
 ```
+
+An incremental `dotnet build` ignores a change to `-p:Optimize` and keeps whatever mode was there,
+so switch modes only through the script, which rebuilds fully and reads the mode back.
 
 🔴 **A fresh worktree has no import cache, and a driven run does not import.** Every texture fails
 with `Unable to open file: res://.godot/imported/...` and the shell draws untextured surfaces
