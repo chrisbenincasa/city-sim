@@ -236,3 +236,33 @@ that city fell from 863,726 to 45,353.
 
 While the simulation runs, a frame whose Buildings change runs `Scatter` and the garden `Fill`
 again. Both now cover only the camera's reach rather than the whole city.
+
+### Where the load time goes, 2026-10-22
+
+Wall-clock probes on the optimized shell, same save and machine, load 0.9–1.4, three runs. The
+spread between runs is under 0.2 s per phase. A `dotnet-trace` sample of one run splits each phase.
+
+| Phase | Thread | Time | Main parts |
+|---|---|---:|---|
+| Godot and .NET start, scene load to `Main._Ready` | main | 0.85–0.96 s | Engine native |
+| `CitySave.Read` | loader | 1.93–1.95 s | `RebuildDerived` 0.68 s, `VerifyRestoredHandles` 0.41 s, `Rows.Restore` 0.37 s, `HashState` 0.23 s |
+| `Simulation.CheckEndOfRun` | loader | 0.88–0.99 s | Every end-of-run invariant, led by `EveryHandleResolves` and the queue checks |
+| `FinishReady` | main | 2.08–2.12 s | `GD.Load` textures about 1.06 s, `Pave` 0.56 s (road `Fill` 0.50 s), `Readout` 0.17 s |
+| Native Godot frame before the first `_Process` | main | 0.77–0.79 s | Not visible to the managed sampler |
+| First `Draw` | main | 2.17–2.19 s | `PlanGardens` 0.69 s, `Massings` 0.41 s, `FillGardens` 0.34 s, `Flush` 0.25 s, `Fill` 0.20 s, GC 0.15 s |
+| First frame row after launch | | 8.76–9.06 s | |
+
+- The main thread idles in `PollPreparation` for the whole save read and invariant check, about 2.9 s.
+- `FinishReady` and the first `Draw` run only after both finish.
+- The textures in `FacadeMaterials`, `RoofMaterials` and `FinishReady` are 2048×2048 JPEGs imported
+  lossless (`compress/mode=0`). Each load decodes a lossless image with its mipmaps on the main thread.
+- The headless runner checks end-of-run invariants at the end of a run. The shell also checks them
+  on every save load, after `CitySave.Read` has already matched the saved State Hash.
+- The native frame likely uploads the textures and meshes `FinishReady` created and compiles their
+  pipelines. `perf` could confirm it, but `kernel.perf_event_paranoid` is 4 on this machine.
+
+`Textures.Prefetch` now requests the ten city textures from Godot's worker threads in `_Ready`, so
+they decode during the save read. `FacadeMaterials`, `RoofMaterials` and `FinishReady` collect them
+through `Textures.Load`. The first frame row arrives 7.9–8.0 s after launch, down from 8.8–9.0 s
+(load 1.46–1.47, three runs). Close views of plaster, brick and shingle roofs differ from the
+unprefetched shell by no more than two runs of the same build differ from each other.

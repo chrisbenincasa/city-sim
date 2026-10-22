@@ -1118,6 +1118,8 @@ public partial class Main : Node3D
             return;
         }
 
+        Textures.Prefetch();
+
         if (load is not null)
         {
             string city = Globalize(load);
@@ -1290,9 +1292,9 @@ public partial class Main : Node3D
         // to update when one is replaced -- along with the shader's `MASONRY_MEAN`, which is a
         // property of the file and which nothing checks.
         _paint.SetShaderParameter(
-            "masonry_albedo", GD.Load<Texture2D>("res://assets/city/brick-wall-diffuse.jpg"));
+            "masonry_albedo", Textures.Load("res://assets/city/brick-wall-diffuse.jpg"));
         _paint.SetShaderParameter(
-            "masonry_normal", GD.Load<Texture2D>("res://assets/city/brick-wall-normal.jpg"));
+            "masonry_normal", Textures.Load("res://assets/city/brick-wall-normal.jpg"));
 
         // Shared roof families: one mesh per family, transforms per Building.
         _roofs = Layer(Roofing, RoofMeshes.Create(0), perInstance: true);
