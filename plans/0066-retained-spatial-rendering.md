@@ -160,4 +160,43 @@ The opening camera stands about 14.6 km above the ground, so any limit under tha
 opening figure. GPU time climbed to 157 ms over the first 10 s whether the city ran or paused, as
 the 8 MB per-frame upload allowance made the garden batches resident ([#217](https://github.com/chrisbenincasa/city-sim/issues/217)).
 The 2,000 m value was chosen from shots at 700 m and 2,000 m camera distances, where it matched
-the unlimited picture. About 22 ms of GPU time at the opening camera is not yet attributed.
+the unlimited picture.
+
+With the limit, render probes at the paused opening camera split the remaining 21.8 ms of GPU time.
+Load fell from 5.3 to 1.9 during the run, so the savings are rough.
+
+| Probe | GPU per frame | Saving |
+|---|---:|---:|
+| `hide-building,roof,paired-roof,parapet,hip` | 14.9 ms | 6.9 ms |
+| `scale50` | 15.6 ms | 6.2 ms |
+| `hide-garden-ground,garden-hedge` | 17.3 ms | 4.6 ms |
+| `hide-road,footway,kerb,plot,zone,cell` | 17.9 ms | 4.0 ms |
+| `ssao-off` | 20.6 ms | 1.3 ms |
+
+No single layer dominates. Garden ground and hedges still draw at any distance.
+
+## Loading a million-Citizen save, 2026-10-21
+
+A headless `--save-city` of `stress-shopping.toml` at 1,000,000 Citizens and Tick 256 (55 MB)
+opens with `--load` and reaches its first frame in 14.8 s, of which the first frame takes 8.2 s.
+Conditions: optimized shell, i5-10400, GTX 1080, load 1.3–2.0, five runs within 0.2 s.
+
+A sampled trace of the main thread before the first frame:
+
+| Work | Seconds |
+|---|---:|
+| `UpdateBuildings`: `Massings` and foliage `Scatter` | 2.7 |
+| `UpdateBuildings`: garden `Fill` | 1.9 |
+| `UpdateBuildings`: `PlanGardens` | 0.7 |
+| `FinishReady`: `Pave`, facade materials, texture loads, surfaces | 2.9 |
+| `FlushInstances`, mostly batch bounds | 1.5 |
+| Suspended for garbage collection, within the rows above | 1.5 |
+
+`InstanceBuffer` now keeps its instances in one array of structs addressed by handle, and mirrors
+each batch's MultiMesh counts. GC suspension fell to 0.38 s and the load to 14.2–14.5 s. The
+25,000-Citizen draw list is unchanged apart from Traveller rows, which follow frame timing.
+`DOTNET_gcServer=1` took the old load to 13.9 s; its memory cost is unmeasured.
+
+At the opening camera every foliage, kerb and garden prop chunk lies beyond its draw distance. Much
+of the 4.9 s in `Scatter`, garden `Fill` and `PlanGardens` therefore builds instances the first
+frame does not draw. Garden ground and hedges have no limit and are drawn.

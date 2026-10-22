@@ -66,38 +66,59 @@ public readonly record struct InstanceValue(Transform3D Transform, Color Colour,
 
 public sealed class InstanceBuffer
 {
-    public sealed class Entry
+    // Instances live in one array of plain structs, addressed by handle. Millions of per-instance
+    // objects made every garbage collection during a city's first frame trace them all.
+    private struct Entry
     {
         internal (ulong Id, int Part) Key;
-        internal Batch Batch = null!;
+        internal Batch? Batch;
         internal int Slot;
         internal ulong Seen;
-        public int Index { get; internal set; }
-        public Transform3D Transform { get; internal set; }
-        public Color Colour { get; internal set; } = Colors.White;
-        public Color Custom { get; internal set; }
-        public bool Far { get; internal set; }
+        internal int Index;
+        internal Transform3D Transform;
+        internal Color Colour;
+        internal Color Custom;
+        internal bool Far;
     }
+    public readonly record struct Instance(int Index, Transform3D Transform);
     public sealed class Batch
     {
         internal Vector2I Key;
-        internal readonly List<Entry> Entries = [];
+        internal readonly List<int> Entries = [];
+        internal InstanceBuffer Owner = null!;
         internal float[] Buffer = [];
         internal bool BoundsDirty = true;
         internal bool Near;
+
+        // Mirrors of the MultiMesh's counts, which cost a native call to read.
+        internal int Capacity;
+        internal int Visible;
         public MultiMeshInstance3D Node { get; internal set; } = null!;
         public bool Resident { get; internal set; } = true;
         /// <summary>The index into <see cref="InstanceLayer.Details"/> drawn, or -1 for the buffer's mesh.</summary>
         public int Detail { get; internal set; } = -1;
         public Aabb Bounds { get; internal set; }
-        public IReadOnlyList<Entry> Instances => Entries;
+        public IEnumerable<Instance> Instances
+        {
+            get
+            {
+                for (int i = 0; i < Entries.Count; i++)
+                {
+                    Entry entry = Owner._data[Entries[i]];
+                    yield return new Instance(entry.Index, entry.Transform);
+                }
+            }
+        }
     }
     private readonly InstanceLayer _owner;
     private readonly Dictionary<Vector2I, Batch> _batches = [];
-    private readonly Dictionary<(ulong Id, int Part), Entry> _entries = [];
+    private readonly Dictionary<(ulong Id, int Part), int> _entries = [];
     private readonly Dictionary<ulong, int> _parts = [];
     private readonly HashSet<Batch> _dirty = [];
-    private List<Entry> _order = [], _previous = [];
+    private Entry[] _data = new Entry[16];
+    private int _dataCount;
+    private readonly Stack<int> _free = [];
+    private List<int> _order = [], _previous = [];
     private ulong _generation;
     private bool _writing;
     private Vector3? _eye;
@@ -108,7 +129,7 @@ public sealed class InstanceBuffer
 
     /// <summary>
     /// Whether a chunk is inside the near band. A <see cref="NearOnly"/> layer draws only near
-    /// chunks; any other layer hides its <see cref="Entry.Far"/> entries in near chunks.
+    /// chunks; any other layer hides its <see cref="InstanceValue.Far"/> instances in near chunks.
     /// </summary>
     public Func<Vector2I, bool>? Near { get; set; }
     public bool NearOnly { get; set; }
@@ -154,20 +175,38 @@ public sealed class InstanceBuffer
         if (id != 0) _parts[id] = part + 1;
         Acquire(index, (id, part));
     }
-    private Entry Acquire(int index, (ulong Id, int Part) key)
+    private int Allocate((ulong Id, int Part) key, int index)
+    {
+        int handle;
+        if (_free.Count > 0) handle = _free.Pop();
+        else
+        {
+            if (_dataCount == _data.Length) Array.Resize(ref _data, _data.Length * 2);
+            handle = _dataCount++;
+        }
+        _data[handle] = new Entry { Key = key, Index = index, Colour = Colors.White };
+        return handle;
+    }
+    private void Release(int handle)
+    {
+        _data[handle] = default;
+        _free.Push(handle);
+    }
+    private int Acquire(int index, (ulong Id, int Part) key)
     {
         if (index != _order.Count) throw new InvalidOperationException("Instances must be written consecutively.");
-        if (!_entries.TryGetValue(key, out var entry))
+        if (!_entries.TryGetValue(key, out int handle))
         {
-            entry = new Entry { Key = key };
-            _entries.Add(key, entry);
+            handle = Allocate(key, index);
+            _entries.Add(key, handle);
         }
+        ref Entry entry = ref _data[handle];
         entry.Seen = _generation;
         entry.Index = index;
-        _order.Add(entry);
-        return entry;
+        _order.Add(handle);
+        return handle;
     }
-    private Entry Writing(int index)
+    private int Writing(int index)
     {
         if (!_writing) Begin();
         return index < _order.Count ? _order[index] : Acquire(index, (0, index));
@@ -176,13 +215,14 @@ public sealed class InstanceBuffer
     {
         SetTransform(Writing(index), transform);
     }
-    private void SetTransform(Entry entry, Transform3D transform)
+    private void SetTransform(int handle, Transform3D transform)
     {
         var key = new Vector2I(Mathf.FloorToInt(transform.Origin.X / InstanceLayer.ChunkMetres),
             Mathf.FloorToInt(transform.Origin.Z / InstanceLayer.ChunkMetres));
-        if (entry.Batch is null || entry.Batch.Key != key)
+        Batch? current = _data[handle].Batch;
+        if (current is null || current.Key != key)
         {
-            if (entry.Batch is not null) Remove(entry);
+            if (current is not null) Remove(handle);
             if (!_batches.TryGetValue(key, out var batch))
             {
                 var mesh = new MultiMesh
@@ -192,38 +232,41 @@ public sealed class InstanceBuffer
                     UseCustomData = UseCustomData,
                     Mesh = Mesh
                 };
-                batch = new Batch { Key = key, Node = _owner.CreateBatch(mesh) };
+                batch = new Batch { Key = key, Owner = this, Node = _owner.CreateBatch(mesh) };
                 _batches.Add(key, batch);
             }
-            entry.Batch = batch;
-            entry.Slot = batch.Entries.Count;
-            batch.Entries.Add(entry);
+            ref Entry moved = ref _data[handle];
+            moved.Batch = batch;
+            moved.Slot = batch.Entries.Count;
+            batch.Entries.Add(handle);
             batch.BoundsDirty = true;
             _dirty.Add(batch);
         }
-        if (entry.Transform != transform) { entry.Transform = transform; entry.Batch.BoundsDirty = true; _dirty.Add(entry.Batch); }
+        ref Entry entry = ref _data[handle];
+        if (entry.Transform != transform) { entry.Transform = transform; entry.Batch!.BoundsDirty = true; _dirty.Add(entry.Batch); }
     }
     public void SetInstanceColor(int index, Color colour)
     {
-        Entry entry = Writing(index);
-        if (entry.Colour != colour) { entry.Colour = colour; _dirty.Add(entry.Batch); }
+        ref Entry entry = ref _data[Writing(index)];
+        if (entry.Colour != colour) { entry.Colour = colour; _dirty.Add(entry.Batch!); }
     }
     public void SetInstanceCustomData(int index, Color custom)
     {
-        Entry entry = Writing(index);
-        if (entry.Custom != custom) { entry.Custom = custom; _dirty.Add(entry.Batch); }
+        ref Entry entry = ref _data[Writing(index)];
+        if (entry.Custom != custom) { entry.Custom = custom; _dirty.Add(entry.Batch!); }
     }
     public void SetInstanceFar(int index, bool far)
     {
-        Entry entry = Writing(index);
-        if (entry.Far != far) { entry.Far = far; _dirty.Add(entry.Batch); }
+        ref Entry entry = ref _data[Writing(index)];
+        if (entry.Far != far) { entry.Far = far; _dirty.Add(entry.Batch!); }
     }
-    private void Remove(Entry entry)
+    private void Remove(int handle)
     {
-        Batch batch = entry.Batch;
-        Entry last = batch.Entries[^1];
-        batch.Entries[entry.Slot] = last;
-        last.Slot = entry.Slot;
+        Batch batch = _data[handle].Batch!;
+        int slot = _data[handle].Slot;
+        int last = batch.Entries[^1];
+        batch.Entries[slot] = last;
+        _data[last].Slot = slot;
         batch.Entries.RemoveAt(batch.Entries.Count - 1);
         batch.BoundsDirty = true;
         _dirty.Add(batch);
@@ -232,11 +275,12 @@ public sealed class InstanceBuffer
     {
         if (!_writing) Begin();
         if (count != _order.Count) throw new InvalidOperationException("Instance count disagrees with writes.");
-        foreach (Entry old in _previous)
+        foreach (int old in _previous)
         {
-            if (old.Seen == _generation) continue;
+            if (_data[old].Seen == _generation) continue;
             Remove(old);
-            _entries.Remove(old.Key);
+            _entries.Remove(_data[old].Key);
+            Release(old);
         }
         _previous.Clear();
         _writing = false;
@@ -249,30 +293,33 @@ public sealed class InstanceBuffer
         {
             var key = (id, part);
             InstanceValue value = values[part];
-            if (!_entries.TryGetValue(key, out Entry? entry))
+            if (!_entries.TryGetValue(key, out int handle))
             {
-                entry = new Entry { Key = key, Index = _order.Count };
-                _entries.Add(key, entry);
-                _order.Add(entry);
+                handle = Allocate(key, _order.Count);
+                _entries.Add(key, handle);
+                _order.Add(handle);
                 geometry = true;
             }
-            geometry |= entry.Transform != value.Transform;
-            SetTransform(entry, value.Transform);
+            geometry |= _data[handle].Transform != value.Transform;
+            SetTransform(handle, value.Transform);
+            ref Entry entry = ref _data[handle];
             if (entry.Colour != value.Colour || entry.Custom != value.Custom || entry.Far != value.Far)
             {
                 entry.Colour = value.Colour;
                 entry.Custom = value.Custom;
                 entry.Far = value.Far;
-                _dirty.Add(entry.Batch);
+                _dirty.Add(entry.Batch!);
             }
         }
-        for (int part = values.Count; _entries.Remove((id, part), out Entry? entry); part++)
+        for (int part = values.Count; _entries.Remove((id, part), out int handle); part++)
         {
-            Remove(entry);
-            Entry last = _order[^1];
-            _order[entry.Index] = last;
-            last.Index = entry.Index;
+            Remove(handle);
+            int index = _data[handle].Index;
+            int last = _order[^1];
+            _order[index] = last;
+            _data[last].Index = index;
             _order.RemoveAt(_order.Count - 1);
+            Release(handle);
             geometry = true;
         }
         return geometry;
@@ -281,23 +328,30 @@ public sealed class InstanceBuffer
     public Dictionary<(ulong Id, int Part), InstanceValue> Snapshot()
     {
         var snapshot = new Dictionary<(ulong, int), InstanceValue>(_order.Count);
-        foreach (Entry entry in _order) snapshot.Add(entry.Key, new(entry.Transform, entry.Colour, entry.Custom, entry.Far));
+        foreach (int handle in _order)
+        {
+            ref Entry entry = ref _data[handle];
+            snapshot.Add(entry.Key, new(entry.Transform, entry.Colour, entry.Custom, entry.Far));
+        }
         return snapshot;
     }
-    public bool IsResident(int index) => _order[index].Batch.Resident && _order[index].Slot < _order[index].Batch.Node.Multimesh.InstanceCount
-        && !(_order[index].Far && _order[index].Batch.Near);
-    public ulong IdAt(int index) => _order[index].Key.Id;
-    public Transform3D GetInstanceTransform(int index) => _order[index].Transform;
-    public Color GetInstanceColor(int index) => _order[index].Colour;
+    public bool IsResident(int index)
+    {
+        ref Entry entry = ref _data[_order[index]];
+        return entry.Batch!.Resident && entry.Slot < entry.Batch.Capacity && !(entry.Far && entry.Batch.Near);
+    }
+    public ulong IdAt(int index) => _data[_order[index]].Key.Id;
+    public Transform3D GetInstanceTransform(int index) => _data[_order[index]].Transform;
+    public Color GetInstanceColor(int index) => _data[_order[index]].Colour;
     public Transform3D UploadedTransform(int index)
     {
-        Entry entry = _order[index];
-        return entry.Batch.Node.Multimesh.GetInstanceTransform(entry.Slot);
+        ref Entry entry = ref _data[_order[index]];
+        return entry.Batch!.Node.Multimesh.GetInstanceTransform(entry.Slot);
     }
     public Color UploadedColour(int index)
     {
-        Entry entry = _order[index];
-        return entry.Batch.Node.Multimesh.GetInstanceColor(entry.Slot);
+        ref Entry entry = ref _data[_order[index]];
+        return entry.Batch!.Node.Multimesh.GetInstanceColor(entry.Slot);
     }
     public void Flush(Vector3? eye = null, float detailDistance = 0, long maxBytes = long.MaxValue, bool allowOversize = true)
     {
@@ -319,8 +373,8 @@ public sealed class InstanceBuffer
         Aabb meshBounds = Mesh.GetAabb();
         var pending = new List<Batch>(_dirty);
         if (eye is { } camera)
-            pending.Sort((a, b) => camera.DistanceSquaredTo(a.BoundsDirty && a.Entries.Count > 0 ? a.Entries[0].Transform.Origin : a.Bounds.GetCenter())
-                .CompareTo(camera.DistanceSquaredTo(b.BoundsDirty && b.Entries.Count > 0 ? b.Entries[0].Transform.Origin : b.Bounds.GetCenter())));
+            pending.Sort((a, b) => camera.DistanceSquaredTo(a.BoundsDirty && a.Entries.Count > 0 ? _data[a.Entries[0]].Transform.Origin : a.Bounds.GetCenter())
+                .CompareTo(camera.DistanceSquaredTo(b.BoundsDirty && b.Entries.Count > 0 ? _data[b.Entries[0]].Transform.Origin : b.Bounds.GetCenter())));
         long used = 0;
         foreach (Batch batch in pending)
         {
@@ -328,7 +382,7 @@ public sealed class InstanceBuffer
             int count = batch.Entries.Count;
             if (count == 0)
             {
-                InstanceCount -= mesh.InstanceCount;
+                InstanceCount -= batch.Capacity;
                 _batches.Remove(batch.Key);
                 batch.Node.QueueFree();
                 _dirty.Remove(batch);
@@ -336,9 +390,15 @@ public sealed class InstanceBuffer
             }
             if (batch.BoundsDirty)
             {
-                Aabb changed = Transformed(batch.Entries[0].Transform, meshBounds);
-                foreach (Entry entry in batch.Entries) changed = changed.Merge(Transformed(entry.Transform, meshBounds));
-                batch.Bounds = changed;
+                Aabb first = Transformed(_data[batch.Entries[0]].Transform, meshBounds);
+                Vector3 low = first.Position, high = first.End;
+                foreach (int handle in batch.Entries)
+                {
+                    Aabb box = Transformed(_data[handle].Transform, meshBounds);
+                    low = low.Min(box.Position);
+                    high = high.Max(box.End);
+                }
+                batch.Bounds = new Aabb(low, high - low);
                 batch.BoundsDirty = false;
             }
             Aabb bounds = batch.Bounds;
@@ -346,8 +406,9 @@ public sealed class InstanceBuffer
             batch.Near = Hides(batch);
             if (!batch.Resident)
             {
-                InstanceCount -= mesh.InstanceCount;
+                InstanceCount -= batch.Capacity;
                 mesh.InstanceCount = 0;
+                batch.Capacity = 0;
                 batch.Buffer = [];
 
                 // An emptied MultiMesh keeps the CustomAabb of its last upload, which the culler
@@ -357,7 +418,7 @@ public sealed class InstanceBuffer
                 _dirty.Remove(batch);
                 continue;
             }
-            int capacity = mesh.InstanceCount;
+            int capacity = batch.Capacity;
             int wanted = capacity;
             if (capacity < count || capacity > Math.Max(32, count * 4))
             {
@@ -372,11 +433,12 @@ public sealed class InstanceBuffer
                 while (next < count) next = checked(next * 2);
                 InstanceCount += next - capacity;
                 mesh.InstanceCount = next;
+                batch.Capacity = next;
                 batch.Buffer = new float[checked(next * stride)];
             }
             for (int i = 0; i < count; i++)
             {
-                Entry entry = batch.Entries[i];
+                ref Entry entry = ref _data[batch.Entries[i]];
                 Transform3D t = entry.Far && batch.Near ? new Transform3D(new Basis(Vector3.Zero, Vector3.Zero, Vector3.Zero), entry.Transform.Origin) : entry.Transform;
                 int at = i * stride;
                 float[] b = batch.Buffer;
@@ -391,6 +453,7 @@ public sealed class InstanceBuffer
             mesh.CustomAabb = bounds;
             mesh.Buffer = batch.Buffer;
             mesh.VisibleInstanceCount = count;
+            batch.Visible = count;
             batch.Node.Visible = true;
             Uploads++;
             UploadedInstances += count;
@@ -402,9 +465,9 @@ public sealed class InstanceBuffer
         ResidentBatches = 0;
         foreach (Batch batch in _batches.Values)
         {
-            if (!batch.Resident || batch.Node.Multimesh.InstanceCount == 0) continue;
+            if (!batch.Resident || batch.Capacity == 0) continue;
             ResidentBatches++;
-            ResidentInstances += batch.Node.Multimesh.VisibleInstanceCount;
+            ResidentInstances += batch.Visible;
         }
         UploadMilliseconds += System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalMilliseconds;
     }
