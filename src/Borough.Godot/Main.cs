@@ -1446,7 +1446,7 @@ public partial class Main : Node3D
 
         // Submit only after every shell reader has finished. Captures and Drive barriers keep
         // the published Tick stable until their frame has been observed.
-        if (_stopping || _preparation is not null || _pendingShot is not null || _menuOpen) return;
+        if (_stopping || _preparation is not null || _pendingShot is not null || _menuOpen || !LoadChecked()) return;
         if (_queued.Count > 0 && _owed < 1) _owed = 1;
         ulong until = _next < _drive.Length ? _drive[_next].At : ulong.MaxValue;
         int ticks = (int)Math.Min((ulong)Math.Min(_batchTicks, (int)_owed), until > _world.Tick.Raw ? until - _world.Tick.Raw : 0);
@@ -2148,7 +2148,7 @@ public partial class Main : Node3D
             Record();
         }
 
-        Stop(0);
+        if (LoadChecked(wait: true)) Stop(0);
 
         return _rung;
     }

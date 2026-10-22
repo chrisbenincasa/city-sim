@@ -266,3 +266,13 @@ they decode during the save read. `FacadeMaterials`, `RoofMaterials` and `Finish
 through `Textures.Load`. The first frame row arrives 7.9–8.0 s after launch, down from 8.8–9.0 s
 (load 1.46–1.47, three runs). Close views of plaster, brick and shingle roofs differ from the
 unprefetched shell by no more than two runs of the same build differ from each other.
+
+A save that is not stepped on load now runs its end-of-run invariant check on a pool thread while
+`FinishReady` and the first frames run. The check writes one shared cache, `DistrictMarkets`, which
+it rebuilds on first use, so the loader rebuilds it before starting the check. `Main` steps no Tick
+until the check finishes, and `Quit` waits for it. A failed check still stops the shell with exit
+code 1. A load with `--start-at` beyond the saved Tick checks before stepping, as before.
+
+- First frame row: 7.2–7.3 s after launch, down from 7.9–8.0 s (load 1.48–1.77, three runs).
+- The saving is 0.7 s of the check's 0.9 s, because the market rebuild stays on the loader thread.
+- State Hash at Ticks 258 and 270 matches the serial check (`973AE3309C1C70F1` at Tick 270).
