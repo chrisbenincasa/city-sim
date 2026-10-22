@@ -200,3 +200,39 @@ each batch's MultiMesh counts. GC suspension fell to 0.38 s and the load to 14.2
 At the opening camera every foliage, kerb and garden prop chunk lies beyond its draw distance. Much
 of the 4.9 s in `Scatter`, garden `Fill` and `PlanGardens` therefore builds instances the first
 frame does not draw. Garden ground and hedges have no limit and are drawn.
+
+### Gated layers
+
+Trees, rocks, kerbs, garden trees and garden props are now built only where the camera could draw
+them. Each such `InstanceLayer` is `Gated`:
+
+- A producer calls `BuildFrom()`, which records the camera position, and skips anything
+  `Reaches()` rejects.
+- Reach is the detail distance plus its 15% hysteresis plus a slack of a quarter of the detail
+  distance. An instance counts by its nearest point, so a long kerb band reaches by its near end.
+- `Regate()` runs each frame before the flush. It writes a layer again once the camera is more
+  than the slack from where that layer was built, or its detail distance has changed.
+- A gated build before the camera exists is empty and stale, so the first frame builds it.
+- `Scatter` clips its cell window to the reached ground. `Kerbs()` skips Segments out of reach and
+  caches each Segment's pieces until the next `Pave()`, which also snapshots the Addresses.
+
+Results on the same save, machine and conditions (load 1.2–1.5, three runs each):
+
+| Measure | Before | Gated |
+|---|---:|---:|
+| First frame row after launch | 14.2–14.5 s | 8.8–9.0 s |
+| First frame | about 8.2 s | 3.07–3.11 s |
+| Rebuild on descending to `focus 1875 1875 700` | none | 730–755 ms |
+| Rebuild on panning 4,500 m east at 700 m | none | 311–315 ms |
+
+The descent pays for building about 137,000 kerbs and the nearby trees and garden props for the
+first time, work the ungated shell did for the whole city at load. The render profile's
+`render_regate` row gives the count, total and worst rebuild in milliseconds.
+
+The 25,000-Citizen draw list at `focus 120 120 900` keeps every row it had. It gains 7,212 trees
+and 16 kerbs 7–11 km out, because a freshly built chunk starts resident and keeps the 15%
+hysteresis, where the ungated chunks had been dropped at the opening camera. Retained trees on
+that city fell from 863,726 to 45,353.
+
+While the simulation runs, a frame whose Buildings change runs `Scatter` and the garden `Fill`
+again. Both now cover only the camera's reach rather than the whole city.

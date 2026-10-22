@@ -1018,6 +1018,8 @@ public partial class Main : Node3D
     /// together than <see cref="KerbDropLengthMetres"/>.
     /// </remarks>
     private readonly List<ulong> _kerbIds = [];
+    private List<(int Segment, byte Side, float Along)> _kerbAddresses = [];
+    private readonly Dictionary<int, (ulong Id, Transform3D Where, Color What)[]> _kerbPieces = [];
 
     /// <summary>Which vacant Lot each drawn pad is, in instance order.</summary>
     private readonly List<ulong> _plotIds = [];
@@ -1318,6 +1320,7 @@ public partial class Main : Node3D
         _kerbs.DetailDistance = 5000f;
         _travellers.DetailDistance = 3000f;
         _cars.DetailDistance = 5000f;
+        _trees.Gated = _rocks.Gated = _kerbs.Gated = true;
         DressSurfaces();
 
         Ground();
@@ -1907,6 +1910,7 @@ public partial class Main : Node3D
         int under = _underWater;
 
         Cursor();
+        Regate();
         FlushInstances();
 
         ulong tick = _world.Tick.Raw;

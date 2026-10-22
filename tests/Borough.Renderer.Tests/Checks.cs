@@ -14,6 +14,7 @@ public partial class Checks : Node
             CheckFacades();
             CheckRoofs();
             CheckNearBand();
+            CheckGate();
             var layer = new InstanceLayer();
             AddChild(layer);
             InstanceBuffer b = layer.Multimesh;
@@ -103,7 +104,7 @@ public partial class Checks : Node
             b.Flush(maxBytes: 1280, allowOversize: false);
             Require(b.PendingBatches == 0 && b.ResidentInstances == 2, "deferred uploads finish on subsequent frames");
             b.VisibleInstanceCount = 0; b.Flush();
-            GD.Print("Renderer checks passed: capacity, retention, identity, removal, migration, bounds, bulk buffers, near band.");
+            GD.Print("Renderer checks passed: capacity, retention, identity, removal, migration, bounds, bulk buffers, near band, gate.");
             GetTree().Quit();
         }
         catch (Exception error) { GD.PrintErr(error); GetTree().Quit(1); }
@@ -147,6 +148,38 @@ public partial class Checks : Node
         bodies.QueueFree();
         boxes.QueueFree();
     }
+    private void CheckGate()
+    {
+        var layer = new InstanceLayer { Gated = true, DetailDistance = 1000f };
+        AddChild(layer);
+        Require(GetViewport().GetCamera3D() is null, "the gate check starts without a camera");
+        layer.BuildFrom();
+        Require(!layer.Reaches(Vector3.Zero) && layer.Ground() is { } none && !none.HasArea() && layer.Stale(Vector3.Zero),
+            "a gated build before any camera is empty and stale");
+
+        var camera = new Camera3D { Position = new Vector3(0, 100, 0) };
+        AddChild(camera);
+        camera.MakeCurrent();
+        layer.BuildFrom();
+        Require(layer.Reaches(new Vector3(1000, 0, 0)) && !layer.Reaches(new Vector3(5000, 0, 0)),
+            "a gated build reaches its detail distance and no farther");
+        Require(layer.Ground() is { } ground && ground.HasPoint(new Vector2(1000, 0)) && !ground.HasPoint(new Vector2(5000, 0)),
+            "the reached ground holds what reaches");
+        Require(!layer.Stale(new Vector3(200, 100, 0)) && layer.Stale(new Vector3(300, 100, 0)),
+            "a gated layer goes stale after a quarter of its detail distance");
+        var box = new Transform3D(Basis.FromScale(new Vector3(4000, 1, 1)), new Vector3(3000, 0, 0));
+        Require(layer.Reaches(box), "a long box reaches by its nearest end");
+
+        camera.Position = new Vector3(0, 5000, 0);
+        layer.BuildFrom();
+        Require(layer.Ground() is { } high && !high.HasArea() && !layer.Reaches(Vector3.Zero),
+            "a camera beyond reach builds nothing");
+        layer.DetailDistance = 8000f;
+        Require(layer.Stale(camera.Position), "a changed detail distance makes the layer stale");
+        camera.QueueFree();
+        layer.QueueFree();
+    }
+
     private static void Require(bool condition, string name)
     {
         if (!condition) throw new InvalidOperationException(name);

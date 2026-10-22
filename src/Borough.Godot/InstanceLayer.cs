@@ -25,6 +25,71 @@ public partial class InstanceLayer : Node3D
     public float DetailDistance { get; set; }
 
     /// <summary>
+    /// Whether the layer holds only instances its camera could draw. A producer calls
+    /// <see cref="BuildFrom"/> before writing, skips what <see cref="Reaches"/> rejects, and writes
+    /// the layer again once <see cref="Stale"/> says the camera has left the slack it built with.
+    /// </summary>
+    public bool Gated { get; set; }
+    private bool _gating;
+    private Vector3? _builtFrom;
+    private float _builtDistance;
+    private float Slack => DetailDistance * 0.25f;
+    private float Reach => DetailDistance * InstanceBuffer.Hysteresis + Slack;
+
+    /// <summary>Starts a build from the camera's position. Before there is a camera a gated build is empty.</summary>
+    public void BuildFrom()
+    {
+        _builtDistance = DetailDistance;
+        _gating = Gated && DetailDistance > 0;
+        _builtFrom = _gating && IsInsideTree() ? GetViewport().GetCamera3D()?.GlobalPosition : null;
+    }
+
+    /// <summary>Whether the build's camera could draw something within a cube of half-size <paramref name="extent"/>.</summary>
+    public bool Reaches(Vector3 point, float extent = 32f)
+    {
+        if (!_gating) return true;
+        if (_builtFrom is not { } eye) return false;
+        float x = Gap(point.X - eye.X, extent), y = Gap(point.Y - eye.Y, extent), z = Gap(point.Z - eye.Z, extent);
+        float reach = Reach;
+        return x * x + y * y + z * z <= reach * reach;
+
+        static float Gap(float offset, float extent) => MathF.Max(0f, MathF.Abs(offset) - extent);
+    }
+
+    /// <summary>Whether the build's camera could draw a unit box, or a module of up to 32 m, so placed.</summary>
+    public bool Reaches(in Transform3D where)
+    {
+        if (!_gating) return true;
+
+        // Millions of garden pieces pass through here per rebuild, and Godot's Basis column and
+        // vector methods are not inlined. The sum of every component's magnitude bounds the sum of
+        // the column lengths without a root.
+        ref readonly Basis b = ref where.Basis;
+        float columns = MathF.Abs(b.Row0.X) + MathF.Abs(b.Row0.Y) + MathF.Abs(b.Row0.Z)
+            + MathF.Abs(b.Row1.X) + MathF.Abs(b.Row1.Y) + MathF.Abs(b.Row1.Z)
+            + MathF.Abs(b.Row2.X) + MathF.Abs(b.Row2.Y) + MathF.Abs(b.Row2.Z);
+        return Reaches(where.Origin, MathF.Max(32f, 0.5f * columns));
+    }
+
+    /// <summary>
+    /// The ground, as east and north metres, that holds every point <see cref="Reaches"/> accepts at
+    /// <paramref name="extent"/>, or null for a whole build. It has no area when nothing reaches.
+    /// </summary>
+    public Rect2? Ground(float extent = 32f)
+    {
+        if (!_gating) return null;
+        if (_builtFrom is not { } eye) return new Rect2();
+        float height = Mathf.Max(0f, Mathf.Abs(eye.Y) - extent);
+        if (height >= Reach) return new Rect2(eye.X, -eye.Z, 0f, 0f);
+        float radius = Mathf.Sqrt(Reach * Reach - height * height) + extent;
+        return new Rect2(eye.X - radius, -eye.Z - radius, radius * 2f, radius * 2f);
+    }
+
+    public bool Stale(Vector3 eye) =>
+        Gated && DetailDistance > 0
+            && (_builtFrom is not { } from || _builtDistance != DetailDistance || from.DistanceSquaredTo(eye) > Slack * Slack);
+
+    /// <summary>
     /// Meshes drawn instead of the buffer's mesh, nearest band first. A chunk draws the first mesh
     /// whose distance reaches the nearest point of its bounds, and the buffer's mesh beyond them all.
     /// </summary>
@@ -66,6 +131,9 @@ public readonly record struct InstanceValue(Transform3D Transform, Color Colour,
 
 public sealed class InstanceBuffer
 {
+    /// <summary>How far past its detail distance a resident chunk stays, so a hovering camera does not churn buffers.</summary>
+    internal const float Hysteresis = 1.15f;
+
     // Instances live in one array of plain structs, addressed by handle. Millions of per-instance
     // objects made every garbage collection during a city's first frame trace them all.
     private struct Entry
@@ -477,8 +545,7 @@ public sealed class InstanceBuffer
         if (Needed is not null && !Needed(batch)) return false;
         if (_eye is not { } eye || _detailDistance <= 0) return true;
         Vector3 nearest = eye.Clamp(batch.Bounds.Position, batch.Bounds.End);
-        // Hysteresis prevents reallocating buffers while the camera hovers at a detail boundary.
-        float distance = _detailDistance * (batch.Resident ? 1.15f : 1f);
+        float distance = _detailDistance * (batch.Resident ? Hysteresis : 1f);
         return eye.DistanceSquaredTo(nearest) <= distance * distance;
     }
 
@@ -494,7 +561,7 @@ public sealed class InstanceBuffer
             for (int i = 0; i < details.Count && detail < 0; i++)
             {
                 bool inside = batch.Detail >= 0 && batch.Detail <= i;
-                if (distance <= details[i].Within * (inside ? 1.15f : 1f)) detail = i;
+                if (distance <= details[i].Within * (inside ? Hysteresis : 1f)) detail = i;
             }
         }
         if (detail == batch.Detail) return;

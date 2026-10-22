@@ -71,12 +71,14 @@ public partial class Main
         near.SurfaceSetMaterial(0, far.SurfaceGetMaterial(0));
         middle.SurfaceSetMaterial(0, far.SurfaceGetMaterial(0));
         _gardenLayers[(int)GardenLayer.Tree].DetailDistance = 4000f;
+        _gardenLayers[(int)GardenLayer.Tree].Gated = true;
         _gardenLayers[(int)GardenLayer.Tree].Details = [(400f, near), (1500f, middle)];
 
         for (int i = 0; i < GardenModules.Length; i++)
         {
             _gardenLayers[(int)GardenLayer.Shed + i] = Layer(Colors.White, Commit(Load($"garden/{GardenModules[i]}").Corners), perInstance: true);
             _gardenLayers[(int)GardenLayer.Shed + i].DetailDistance = GardenPropDistance;
+            _gardenLayers[(int)GardenLayer.Shed + i].Gated = true;
         }
 
         for (int i = 0; i < _gardenIds.Length; i++)
@@ -150,6 +152,35 @@ public partial class Main
         {
             Fill(_gardenLayers[i], _gardenPieces[i], _gardenIds[i]);
         }
+    }
+
+    /// <summary>Writes again each gated layer whose camera has moved beyond what it was built for.</summary>
+    private void Regate()
+    {
+        long started = System.Diagnostics.Stopwatch.GetTimestamp();
+        bool wrote = false;
+        Vector3 eye = _camera.GlobalPosition;
+        if (_trees.Stale(eye) || _rocks.Stale(eye))
+        {
+            Scatter();
+            wrote = true;
+        }
+        if (_kerbs.Stale(eye))
+        {
+            Fill(_kerbs, Kerbs(), _kerbIds);
+            wrote = true;
+        }
+        for (int i = 0; i < _gardenLayers.Length; i++)
+        {
+            if (!_gardenLayers[i].Stale(eye)) continue;
+            Fill(_gardenLayers[i], _gardenPieces[i], _gardenIds[i]);
+            wrote = true;
+        }
+        if (!wrote) return;
+        double elapsed = System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+        _regates++;
+        _regateMilliseconds += elapsed;
+        _regateMaximum = Math.Max(_regateMaximum, elapsed);
     }
 
     private static Area BlockLand(Transform3D interior)

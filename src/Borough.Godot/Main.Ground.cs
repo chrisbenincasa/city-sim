@@ -472,11 +472,25 @@ public partial class Main
     /// </remarks>
     private void Scatter()
     {
-        IndexFoliageBuildings();
         int block = _world.Roads.Streets.BlockTiles;
         int lots = _world.Rules.Lots.LotsPerSegment;
         float reach = Mathf.Max(_span * 1.6f, 2_048f);
         Rect2 window = _laid.Grow(reach);
+        _trees.BuildFrom();
+        _rocks.BuildFrom();
+        if (_trees.Ground() is { } woods && _rocks.Ground() is { } stony)
+            window = window.Intersection(woods.Merge(stony));
+        int fromEast = Mathf.Max(0, (int)(window.Position.X / CellGrid.MetresPerCell));
+        int fromNorth = Mathf.Max(0, (int)(window.Position.Y / CellGrid.MetresPerCell));
+        int toEast = Mathf.Min(CellGrid.WorldCells - 1, (int)(window.End.X / CellGrid.MetresPerCell));
+        int toNorth = Mathf.Min(CellGrid.WorldCells - 1, (int)(window.End.Y / CellGrid.MetresPerCell));
+        if (!window.HasArea() || toEast < fromEast || toNorth < fromNorth)
+        {
+            _trees.Multimesh.VisibleInstanceCount = 0;
+            _rocks.Multimesh.VisibleInstanceCount = 0;
+            return;
+        }
+        IndexFoliageBuildings(window);
 
         // ⚠ THE YARD TEST FOLLOWS THE PAVING AND NOT THE LOTS. `SyntheticCity` lays a lattice larger
         // than it subdivides (`plans/0049` F8), so a rectangle drawn round the Lots leaves paved
@@ -495,11 +509,6 @@ public partial class Main
             if (water.Rows.IsLive(slot)) submerged.Add(new Vector2I(water.East[slot].Raw, water.North[slot].Raw));
         int crowns = 0;
         int stones = 0;
-
-        int fromEast = Mathf.Max(0, (int)(window.Position.X / CellGrid.MetresPerCell));
-        int fromNorth = Mathf.Max(0, (int)(window.Position.Y / CellGrid.MetresPerCell));
-        int toEast = Mathf.Min(CellGrid.WorldCells - 1, (int)(window.End.X / CellGrid.MetresPerCell));
-        int toNorth = Mathf.Min(CellGrid.WorldCells - 1, (int)(window.End.Y / CellGrid.MetresPerCell));
 
         // Stable city-centred order; residency and upload priority belong to InstanceBuffer.
         Vector2 anchor = CityAnchor(paved);
@@ -546,6 +555,8 @@ public partial class Main
                     ulong draw = Scramble(key + (ulong)i);
                     float x = (east * CellGrid.MetresPerCell) + ((draw & 0xFFFu) / 4095f * CellGrid.MetresPerCell);
                     float z = (north * CellGrid.MetresPerCell) + (((draw >> 12) & 0xFFFu) / 4095f * CellGrid.MetresPerCell);
+
+                    if (!(i < wants ? _trees : _rocks).Reaches(new Vector3(x, 0f, -z))) continue;
 
                     if (BuildingExcludesFoliage(new Vector2(x, z))
                         || (paved.HasPoint(new Vector2(x, z)) && !InAYard(x, z, lots)))
@@ -1440,13 +1451,14 @@ public partial class Main
     private System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where, Color What)>
         Kerbs()
     {
+        if (_kerbs.Ground() is { } reached && !reached.HasArea()) yield break;
         RoadSegmentTable segments = _world.Roads.Segments;
         RoadNodeTable nodes = _world.Roads.Nodes;
 
         // Every Address in the city, in Segment order, so the walk below merges against the Segment
-        // loop rather than searching. Built per repave, which is rare -- Pave() runs on a road edit
-        // and not on a frame.
-        List<(int Segment, byte Side, float Along)> addresses = Addresses();
+        // loop rather than searching. Pave() takes it on a road edit and not on a frame, so a kerb
+        // written again for a moved camera shows the Addresses of the last repave.
+        List<(int Segment, byte Side, float Along)> addresses = _kerbAddresses;
 
         int at = 0;
 
@@ -1483,48 +1495,70 @@ public partial class Main
                 ? ArterialWidthMetres
                 : CarriagewayWidthMetres;
 
-            float half = carriageway * 0.5f;
             float length = run.Length;
-            (Vector3 ahead, Vector3 behind) = (run.Ahead(0f), -run.Ahead(length));
-            ulong id = segments.Rows.IdAt(slot);
 
-            for (byte side = 0; side <= 1; side++)
+            // Every point of a Segment lies within half its length of its chord's midpoint.
+            if (!_kerbs.Reaches((run.From + run.To) * 0.5f, length * 0.5f + carriageway)) continue;
+
+            if (!_kerbPieces.TryGetValue(slot, out var pieces))
             {
-                // Left is left of A→B, the direction StreetSide and every Address are stated in.
-                float lateral = side == (byte)StreetSide.Left ? 1f : -1f;
-
-                // The band's own two edges: it starts at the channel and is KerbWidthMetres deep.
-                float low = Trim(
-                    Mitre(a, slot, ahead, Left(ahead) * lateral, half, 0f, KerbWidthMetres), length);
-                float high = length - Trim(
-                    Mitre(b, slot, behind, -Left(behind) * lateral, half, 0f, KerbWidthMetres), length);
-
-                if (high <= low)
-                {
-                    continue;
-                }
-
-                foreach ((Transform3D where, Color paint) in Kerb(
-                    run, lateral, carriageway, low, high, addresses, first, at, side))
-                {
-                    yield return (id, where, paint);
-                }
+                _kerbPieces.Add(slot, pieces = [.. SegmentKerbs(slot, a, b, run, carriageway, addresses, first, at)]);
             }
 
-            // The kerb's own U round the head of a dead end, inside the pavement's. The band ran
-            // back by KerbWidthMetres above, so this bar spans the asphalt exactly.
-            Color stone = Kerbstone.SrgbToLinear();
-            float tall = KerbTopMetres / (KerbBoxMetres * 0.5f);
-
-            if (DeadEnd(a, slot))
+            foreach (var piece in pieces)
             {
-                yield return (id, Head(run.From, ahead, carriageway, 0f, KerbWidthMetres, tall), stone);
+                yield return piece;
+            }
+        }
+    }
+
+    private System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where, Color What)> SegmentKerbs(
+        int slot, int a, int b, Run run, float carriageway, List<(int Segment, byte Side, float Along)> addresses,
+        int first, int at)
+    {
+        RoadSegmentTable segments = _world.Roads.Segments;
+        float half = carriageway * 0.5f;
+        float length = run.Length;
+
+        (Vector3 ahead, Vector3 behind) = (run.Ahead(0f), -run.Ahead(length));
+        ulong id = segments.Rows.IdAt(slot);
+
+        for (byte side = 0; side <= 1; side++)
+        {
+            // Left is left of A→B, the direction StreetSide and every Address are stated in.
+            float lateral = side == (byte)StreetSide.Left ? 1f : -1f;
+
+            // The band's own two edges: it starts at the channel and is KerbWidthMetres deep.
+            float low = Trim(
+                Mitre(a, slot, ahead, Left(ahead) * lateral, half, 0f, KerbWidthMetres), length);
+            float high = length - Trim(
+                Mitre(b, slot, behind, -Left(behind) * lateral, half, 0f, KerbWidthMetres), length);
+
+            if (high <= low)
+            {
+                continue;
             }
 
-            if (DeadEnd(b, slot))
+            foreach ((Transform3D where, Color paint) in Kerb(
+                run, lateral, carriageway, low, high, addresses, first, at, side))
             {
-                yield return (id, Head(run.To, behind, carriageway, 0f, KerbWidthMetres, tall), stone);
+                yield return (id, where, paint);
             }
+        }
+
+        // The kerb's own U round the head of a dead end, inside the pavement's. The band ran
+        // back by KerbWidthMetres above, so this bar spans the asphalt exactly.
+        Color stone = Kerbstone.SrgbToLinear();
+        float tall = KerbTopMetres / (KerbBoxMetres * 0.5f);
+
+        if (DeadEnd(a, slot))
+        {
+            yield return (id, Head(run.From, ahead, carriageway, 0f, KerbWidthMetres, tall), stone);
+        }
+
+        if (DeadEnd(b, slot))
+        {
+            yield return (id, Head(run.To, behind, carriageway, 0f, KerbWidthMetres, tall), stone);
         }
     }
 
@@ -1945,6 +1979,8 @@ public partial class Main
     /// </remarks>
     private void Pave()
     {
+        _kerbAddresses = Addresses();
+        _kerbPieces.Clear();
         Fill(_roads, Paving(), _roadIds);
         Fill(_footways, Footways(), _footwayIds);
         Fill(_kerbs, Kerbs(), _kerbIds);
