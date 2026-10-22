@@ -182,6 +182,7 @@ public sealed class InstanceBuffer
     private readonly Dictionary<Vector2I, Batch> _batches = [];
     private readonly Dictionary<(ulong Id, int Part), int> _entries = [];
     private readonly Dictionary<ulong, int> _parts = [];
+    private readonly Dictionary<long, List<int>> _owned = [];
     private readonly HashSet<Batch> _dirty = [];
     private Entry[] _data = new Entry[16];
     private int _dataCount;
@@ -230,6 +231,7 @@ public sealed class InstanceBuffer
     internal InstanceBuffer(InstanceLayer owner) => _owner = owner;
     private void Begin()
     {
+        if (_owned.Count > 0) throw new InvalidOperationException("A layer written by owner cannot be written whole.");
         (_order, _previous) = (_previous, _order);
         _order.Clear();
         _parts.Clear();
@@ -290,7 +292,7 @@ public sealed class InstanceBuffer
         Batch? current = _data[handle].Batch;
         if (current is null || current.Key != key)
         {
-            if (current is not null) Remove(handle);
+            if (current is not null) Detach(handle);
             if (!_batches.TryGetValue(key, out var batch))
             {
                 var mesh = new MultiMesh
@@ -328,7 +330,7 @@ public sealed class InstanceBuffer
         ref Entry entry = ref _data[Writing(index)];
         if (entry.Far != far) { entry.Far = far; _dirty.Add(entry.Batch!); }
     }
-    private void Remove(int handle)
+    private void Detach(int handle)
     {
         Batch batch = _data[handle].Batch!;
         int slot = _data[handle].Slot;
@@ -346,7 +348,7 @@ public sealed class InstanceBuffer
         foreach (int old in _previous)
         {
             if (_data[old].Seen == _generation) continue;
-            Remove(old);
+            Detach(old);
             _entries.Remove(_data[old].Key);
             Release(old);
         }
@@ -356,11 +358,11 @@ public sealed class InstanceBuffer
     public bool Replace(ulong id, IReadOnlyList<InstanceValue> values)
     {
         if (_writing || id == 0) throw new InvalidOperationException("Entity edits require a completed layer and a nonzero id.");
+        if (_owned.Count > 0) throw new InvalidOperationException("A layer written by owner takes no entity edits.");
         bool geometry = false;
         for (int part = 0; part < values.Count; part++)
         {
             var key = (id, part);
-            InstanceValue value = values[part];
             if (!_entries.TryGetValue(key, out int handle))
             {
                 handle = Allocate(key, _order.Count);
@@ -368,29 +370,99 @@ public sealed class InstanceBuffer
                 _order.Add(handle);
                 geometry = true;
             }
-            geometry |= _data[handle].Transform != value.Transform;
-            SetTransform(handle, value.Transform);
-            ref Entry entry = ref _data[handle];
-            if (entry.Colour != value.Colour || entry.Custom != value.Custom || entry.Far != value.Far)
-            {
-                entry.Colour = value.Colour;
-                entry.Custom = value.Custom;
-                entry.Far = value.Far;
-                _dirty.Add(entry.Batch!);
-            }
+            geometry |= Assign(handle, values[part]);
         }
         for (int part = values.Count; _entries.Remove((id, part), out int handle); part++)
         {
-            Remove(handle);
-            int index = _data[handle].Index;
-            int last = _order[^1];
-            _order[index] = last;
-            _data[last].Index = index;
-            _order.RemoveAt(_order.Count - 1);
-            Release(handle);
+            Unorder(handle);
             geometry = true;
         }
         return geometry;
+    }
+
+    /// <summary>
+    /// Replaces one owner's instances, which keep the order given. A layer written by owner is
+    /// never written whole, and <see cref="Canonical"/> lists it by owner key, then by that order.
+    /// </summary>
+    public bool Write(long owner, IReadOnlyList<InstanceValue> values, IReadOnlyList<ulong> ids)
+    {
+        if (_writing || _entries.Count > 0) throw new InvalidOperationException("A layer written whole cannot be written by owner.");
+        if (values.Count != ids.Count) throw new ArgumentException("Every instance needs an id.");
+        if (!_owned.TryGetValue(owner, out List<int>? handles))
+        {
+            if (values.Count == 0) return false;
+            handles = [];
+            _owned.Add(owner, handles);
+        }
+        bool geometry = false;
+        for (int local = 0; local < values.Count; local++)
+        {
+            if (local == handles.Count)
+            {
+                handles.Add(Allocate((ids[local], local), _order.Count));
+                _order.Add(handles[local]);
+                geometry = true;
+            }
+            int handle = handles[local];
+            _data[handle].Key = (ids[local], local);
+            geometry |= Assign(handle, values[local]);
+        }
+        for (int local = handles.Count - 1; local >= values.Count; local--)
+        {
+            Unorder(handles[local]);
+            geometry = true;
+        }
+        handles.RemoveRange(values.Count, handles.Count - values.Count);
+        if (handles.Count == 0) _owned.Remove(owner);
+        return geometry;
+    }
+
+    public bool Remove(long owner) => Write(owner, [], []);
+
+    /// <summary>
+    /// Instance indices in canonical order. A layer written by owner lists owners by key, each in
+    /// the order it was written. Any other layer lists its indices in order.
+    /// </summary>
+    public int[] Canonical()
+    {
+        var order = new int[_order.Count];
+        if (_owned.Count == 0)
+        {
+            for (int i = 0; i < order.Length; i++) order[i] = i;
+            return order;
+        }
+        long[] owners = [.. _owned.Keys];
+        Array.Sort(owners);
+        int at = 0;
+        foreach (long owner in owners)
+            foreach (int handle in _owned[owner]) order[at++] = _data[handle].Index;
+        return order;
+    }
+
+    private bool Assign(int handle, in InstanceValue value)
+    {
+        bool moved = _data[handle].Transform != value.Transform;
+        SetTransform(handle, value.Transform);
+        ref Entry entry = ref _data[handle];
+        if (entry.Colour != value.Colour || entry.Custom != value.Custom || entry.Far != value.Far)
+        {
+            entry.Colour = value.Colour;
+            entry.Custom = value.Custom;
+            entry.Far = value.Far;
+            _dirty.Add(entry.Batch!);
+        }
+        return moved;
+    }
+
+    private void Unorder(int handle)
+    {
+        Detach(handle);
+        int index = _data[handle].Index;
+        int last = _order[^1];
+        _order[index] = last;
+        _data[last].Index = index;
+        _order.RemoveAt(_order.Count - 1);
+        Release(handle);
     }
 
     public Dictionary<(ulong Id, int Part), InstanceValue> Snapshot()

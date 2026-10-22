@@ -275,8 +275,8 @@ Each step lands alone. Each must pass the equivalence checks below before the ne
 
 | Step | Change | Expected effect on the 1M save |
 |---|---|---|
-| 1 | Owner-scoped writes, canonical draw order, `render_prepare` profile rows, and the `Preparation` skeleton with no components | None. Byte-identical draw lists prove the canonical order. |
-| 2 | Kerbs become reach-gated owners with eviction and the frame budget | Removes the 300 ms of kerb planning from the descent frame. Bounds the kerb cache. |
+| 1 | Owner-scoped writes and canonical draw order in `InstanceBuffer`; `DrawList` prints canonical order | None. Byte-identical draw lists prove the canonical order. |
+| 2 | `Preparation` with squares, queue, eviction, the frame budget and `render_prepare` rows; kerbs become its first reach-gated owners | Removes the 300 ms of kerb planning from the descent frame. Bounds the kerb cache. |
 | 3 | Wild trees and rocks plan per Cell, with a per-Building footprint index | A pan plans only entering Cells and stops walking 204,557 footprints |
 | 4 | Gardens split into a global layout and reach-gated dressing, with the fence owner rule | Gated garden pieces are held only near the camera. Garden rebuilds rewrite only straddling blocks. |
 | 5 | Lot and Segment journals; Commands stop forcing `Full`; a wash change recolors only; roads, footways, plots and zones become per-owner global components | A Command touches its owners instead of a 1.5 s full pass. A Street avoids the whole 0.65 s `Pave`. |
@@ -294,6 +294,17 @@ Each step lands alone. Each must pass the equivalence checks below before the ne
 | Edits | A driven Zone, Street and Demolish sequence on a 25,000-Citizen `shopping.toml` city, with `draw` before and after each | Byte-identical. This check comes into force at step 5. |
 | In-process | `BOROUGH_RENDER_VERIFY=1` re-plans each migrated component for the whole city after each preparation pass and compares keyed instances and order, as `VerifyBuildingDrawing` does | No difference |
 | Cost | `render_prepare` and `render_regate` rows on the optimized shell, load below 2, three runs | Reported with conditions, against the tables above |
+
+### Step 1 result, 2026-10-22
+
+- Optimized shell, i5-10400, load 2.65–3.25. These runs check equality only, so no timing is recorded.
+- The 1M save at all four cameras and the running city at Tick 600 match the pre-change draw lists
+  byte for byte, `traveller` and `car` rows removed.
+- The 25,000-Citizen city at `focus 120 120 900` matches a build of `f049ab4e` byte for byte over
+  3,746,663 lines.
+- No layer writes by owner yet, so these runs prove the refactored whole-layer and `Replace` paths.
+  The renderer checks (`scripts/test-renderer.sh`) cover owner writes, canonical order and the refusal
+  to mix the two write modes.
 
 ## Decisions settled, 2026-10-22
 

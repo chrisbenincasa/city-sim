@@ -15,6 +15,7 @@ public partial class Checks : Node
             CheckRoofs();
             CheckNearBand();
             CheckGate();
+            CheckOwners();
             var layer = new InstanceLayer();
             AddChild(layer);
             InstanceBuffer b = layer.Multimesh;
@@ -104,7 +105,7 @@ public partial class Checks : Node
             b.Flush(maxBytes: 1280, allowOversize: false);
             Require(b.PendingBatches == 0 && b.ResidentInstances == 2, "deferred uploads finish on subsequent frames");
             b.VisibleInstanceCount = 0; b.Flush();
-            GD.Print("Renderer checks passed: capacity, retention, identity, removal, migration, bounds, bulk buffers, near band, gate.");
+            GD.Print("Renderer checks passed: capacity, retention, identity, removal, migration, bounds, bulk buffers, near band, gate, owners.");
             GetTree().Quit();
         }
         catch (Exception error) { GD.PrintErr(error); GetTree().Quit(1); }
@@ -178,6 +179,49 @@ public partial class Checks : Node
         Require(layer.Stale(camera.Position), "a changed detail distance makes the layer stale");
         camera.QueueFree();
         layer.QueueFree();
+    }
+
+    private void CheckOwners()
+    {
+        var layer = new InstanceLayer();
+        AddChild(layer);
+        InstanceBuffer b = layer.Multimesh;
+        b.Mesh = new BoxMesh();
+        b.UseColors = true;
+        static InstanceValue At(float east) => new(new Transform3D(Basis.Identity, new Vector3(east, 0, 0)), Colors.White);
+
+        b.Write(2, [At(10), At(20)], [21, 22]);
+        b.Write(1, [At(2048)], [11]);
+        b.Flush();
+        Require(b.VisibleInstanceCount == 3 && b.Canonical().Select(b.IdAt).SequenceEqual<ulong>([11, 21, 22]),
+            "canonical order is owner key, then each owner's order");
+
+        long uploads = b.Uploads;
+        Require(!b.Write(2, [At(10), At(20)], [21, 22]), "an unchanged owner reports no geometry");
+        b.Flush();
+        Require(b.Uploads == uploads, "an unchanged owner uploads nothing");
+
+        Require(b.Write(2, [At(15)], [23]), "a shrunk owner reports geometry");
+        b.Flush();
+        Require(b.Uploads == uploads + 1 && b.Canonical().Select(b.IdAt).SequenceEqual<ulong>([11, 23]),
+            "a rewritten owner uploads only its own chunk and keeps its place");
+
+        b.Remove(1);
+        b.Flush();
+        Require(b.VisibleInstanceCount == 1 && b.BatchCount == 1 && b.IdAt(0) == 23, "a removed owner releases its instances");
+
+        Require(Throws(() => b.VisibleInstanceCount = 0), "a layer written by owner refuses a whole write");
+        Require(Throws(() => b.Replace(9, [At(0)])), "a layer written by owner refuses an entity edit");
+        b.Remove(2);
+        b.Flush();
+        Require(b.BatchCount == 0, "an emptied owner layer releases all buffers");
+        layer.QueueFree();
+    }
+
+    private static bool Throws(Action action)
+    {
+        try { action(); return false; }
+        catch (InvalidOperationException) { return true; }
     }
 
     private static void Require(bool condition, string name)

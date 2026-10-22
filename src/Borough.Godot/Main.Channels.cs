@@ -687,8 +687,13 @@ public partial class Main
         {
             InstanceBuffer mesh = layer.Multimesh;
 
-            for (int at = 0; at < mesh.VisibleInstanceCount; at++)
+            // A layer written by owner holds its instances in camera-history order, so rows follow
+            // the canonical order and are numbered by rank within it.
+            int[] canonical = mesh.Canonical();
+
+            for (int rank = 0; rank < canonical.Length; rank++)
             {
+                int at = canonical[rank];
                 if (!mesh.IsResident(at)) continue;
                 Transform3D where = mesh.UploadedTransform(at);
                 Vector3 size = where.Basis.Scale;
@@ -696,7 +701,7 @@ public partial class Main
 
                 text.Append(
                     CultureInfo.InvariantCulture,
-                    $"row\t{name}\t{at}\t{(ids is not null && at < mesh.VisibleInstanceCount ? mesh.IdAt(at).ToString(CultureInfo.InvariantCulture) : "-")}\t"
+                    $"row\t{name}\t{rank}\t{(ids is not null ? mesh.IdAt(at).ToString(CultureInfo.InvariantCulture) : "-")}\t"
                         + $"{Figure(where.Origin.X)}\t{Figure(where.Origin.Y)}\t{Figure(where.Origin.Z)}\t"
                         + $"{Figure(size.X)}\t{Figure(size.Y)}\t{Figure(size.Z)}\t"
                         + $"{Figure(where.Basis.GetEuler().Y)}\t"
