@@ -276,3 +276,44 @@ code 1. A load with `--start-at` beyond the saved Tick checks before stepping, a
 - First frame row: 7.2–7.3 s after launch, down from 7.9–8.0 s (load 1.48–1.77, three runs).
 - The saving is 0.7 s of the check's 0.9 s, because the market rebuild stays on the loader thread.
 - State Hash at Ticks 258 and 270 matches the serial check (`973AE3309C1C70F1` at Tick 270).
+
+### The first `Draw` on that save, 2026-10-22
+
+A `dotnet-trace` sample of one load (proportions only; the machine was at load 2.6) splits the
+2.25 s first `Draw`:
+
+| Part | Time | Main cost |
+|---|---:|---|
+| `PlanGardens` | 0.69 s | `Garden` 0.41 s, of which `Boundary` 0.26 s builds fence and railing panels |
+| `Massings` | 0.44 s | Spread across the per-Building `Buildings` walk |
+| `FillGardens` | 0.38 s | The loop over every planned piece and its `Reaches` test |
+| `InstanceBuffer.Flush` | 0.27 s | `MultiMesh` instance counts, AABBs and transforms |
+| `Fill` (Buildings) | 0.20 s | |
+| `CheckBodyKitAtStartup` | 0.13 s | Style preset read and material property walk |
+
+`PlanGardens` plans every block in the city, 12,499 blocks, and holds 3.17 M pieces:
+
+| Layer | Pieces | Gated |
+|---|---:|---|
+| Fence | 1,811,608 | 2,000 m |
+| Railing | 374,264 | 2,000 m |
+| Tree | 366,533 | 4,000 m |
+| Ground | 320,269 | No |
+| Hedge | 112,293 | No |
+| Other props | 180,980 | 2,000 m |
+
+Each piece is a `(ulong, Transform3D, Color)` of 72 bytes, so the plan holds about 228 MB before
+list slack. Fence and railing panels are 69% of the pieces, and the opening camera draws none of them.
+
+`PlanGardens` now records each fence and railing as one `PanelRun`. `FillPanels` tests a run at its
+middle with its half-length added to the extent, then splits a reached run into the same panels in
+the same order. The draw lists at `focus 1875 1875 700`, after the 4,500 m pan and at 300 m match
+the per-panel plan byte for byte.
+
+- First frame row: 6.9–7.0 s after launch, down from 7.2–7.3 s (load 1.32–1.45, three runs).
+- Descent rebuild: 719–721 ms, down from 730–755 ms; pan rebuild about 300 ms.
+- The plan no longer holds 2.19 M panel pieces, about 157 MB by the 72-byte count. Process memory
+  was not measured.
+
+The board's *Bounded scene preparation and uploads* row owns planning only within reach for every
+component.
