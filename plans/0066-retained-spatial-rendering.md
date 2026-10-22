@@ -134,3 +134,30 @@ For Release captures, build with `dotnet build src/Borough.Godot -c Release
 loads is the one measured. Restore the normal Debug build afterwards with `dotnet build
 src/Borough.Godot -t:Rebuild`. Godot's GPU counters were unavailable, Metal log timing fields were
 redacted, and Screen Recording permission was absent; no native GPU-time comparison was obtained.
+
+## Garden prop draw distance, 2026-10-21
+
+Garden props are hidden beyond 2,000 m (`GardenPropDistance` in `Main.Gardens.cs`). The garden
+tree layer keeps its own 4,000 m limit, and garden ground and hedges have none. Before the limit,
+the opening camera of a 1,000,000-Citizen `stress-shopping.toml` city drew every fence and railing
+in the city.
+
+| Layer | Triangles per mesh | Instances | Triangles per frame |
+|---|---:|---:|---:|
+| fence-panel | 60 | 1,811,608 | 108.7 M |
+| railing-panel | 144 | 374,264 | 53.9 M |
+| seven other props | | | 14.1 M |
+
+Conditions: i5-10400, GTX 1080, Godot 4.7.2 Vulkan Forward+, shell built with
+`scripts/build-shell.sh --optimized`, `scripts/measure-shell.py`, 15 s per phase, load 1.65–1.95.
+
+| Limit | GPU per frame | FPS | Primitives | Draw calls |
+|---|---:|---:|---:|---:|
+| None | 156–157 ms | 6.4 | 186.7 M | 5,059 |
+| 1,500 m | 21.6–21.9 ms | 45 | 9.9 M | 2,899 |
+
+The opening camera stands about 14.6 km above the ground, so any limit under that gives the same
+opening figure. GPU time climbed to 157 ms over the first 10 s whether the city ran or paused, as
+the 8 MB per-frame upload allowance made the garden batches resident ([#217](https://github.com/chrisbenincasa/city-sim/issues/217)).
+The 2,000 m value was chosen from shots at 700 m and 2,000 m camera distances, where it matched
+the unlimited picture. About 22 ms of GPU time at the opening camera is not yet attributed.

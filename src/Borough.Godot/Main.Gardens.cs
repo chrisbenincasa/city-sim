@@ -23,6 +23,9 @@ public partial class Main
     private const float GreenLeast = 36f;
     private const float FencePanel = 2f;
 
+    // A 1 m fence is under a pixel beyond this, and a whole city of them costs over 100 ms of GPU time a frame.
+    private const float GardenPropDistance = 2000f;
+
     private enum GardenLayer
     {
         Ground, Hedge, Tree, Shed, Greenhouse, VegBed, Table, Bench, Play, Flowerbed, Fence, Railing,
@@ -73,6 +76,7 @@ public partial class Main
         for (int i = 0; i < GardenModules.Length; i++)
         {
             _gardenLayers[(int)GardenLayer.Shed + i] = Layer(Colors.White, Commit(Load($"garden/{GardenModules[i]}").Corners), perInstance: true);
+            _gardenLayers[(int)GardenLayer.Shed + i].DetailDistance = GardenPropDistance;
         }
 
         for (int i = 0; i < _gardenIds.Length; i++)
