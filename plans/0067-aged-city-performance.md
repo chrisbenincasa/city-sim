@@ -716,7 +716,8 @@ Only one batch can be outstanding. Commands are copied before dispatch, logged a
 Tick and consumed only on the first Step. Scheduling caps accumulated debt and batch size; slow
 batches shrink to one Tick. Paused edits buy one Tick, Drive barriers cap dispatch, and capture holds
 the published Tick. Worker failures reach the shell and terminate the run; shutdown joins the worker.
-Godot accepts `--route-workers 1..8`, default one, including the simulation thread. The existing
+Godot accepts `--route-workers 1..8`, including the simulation thread. The default was one until
+2026-10-21 and is now the processor count less two, from one to eight. The existing
 small-route bypass remains in Core. `--main-thread-sim` supplies the comparison control. Neither
 switch enters saved or hashed state. `Main.Performance` reports worker wall time separately from
 shell time and records frames that reused the prepared scene while the worker was busy.
@@ -1186,4 +1187,5 @@ Ticks 0–256 from population, Decide guard off. The disk was under sustained IO
 The six-worker run prepared 316,683 hiring searches, used 311,890 and searched 68 synchronously.
 Every run ends at State Hash `8145DA568B473C41` with 217,421 Citizens employed and invariants
 passing. `RouteWorkerTests` checks per-Tick hash equality with two and eight workers and requires
-consumed hiring prices. Default execution stays serial in the shell and headless runner.
+consumed hiring prices. The headless runner stays serial by default; the shell defaults to the
+processor count less two route workers, from one to eight.
