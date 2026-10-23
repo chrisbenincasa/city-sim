@@ -221,8 +221,16 @@ public partial class Main
 
         // ArmWash builds both of these before any layer is asked, and sets them from the overlay
         // style alone, so a copy carries settings that do not change after it is taken.
-        if ((BuildingWash ? _categorical : _muted) is not { } source) return null;
+        if ((BuildingWash ? _categoricalBody : _mutedBody) is not { } source) return null;
         return Faded(source, layer);
+    }
+
+    private static ShaderMaterial BodyCopy(ShaderMaterial wash)
+    {
+        var copy = (ShaderMaterial)wash.Duplicate();
+        copy.ResourceName = $"{wash.ResourceName}-body";
+        copy.SetShaderParameter("body", true);
+        return copy;
     }
 
     /// <summary>The abandonment overlay a body layer wears, on its own side of the fade.</summary>

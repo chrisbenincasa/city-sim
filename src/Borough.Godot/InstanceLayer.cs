@@ -45,8 +45,6 @@ public partial class InstanceLayer : Node3D
         set { _overlay = value; foreach (var batch in Multimesh.Batches) batch.Node.MaterialOverlay = value; }
     }
 
-    /// <summary>Instance shader parameters every batch node carries.</summary>
-    public Dictionary<StringName, Variant> InstanceParameters { get; } = [];
     public GeometryInstance3D.ShadowCastingSetting CastShadow
     {
         get => _shadows;
@@ -55,7 +53,6 @@ public partial class InstanceLayer : Node3D
     internal MultiMeshInstance3D CreateBatch(MultiMesh mesh)
     {
         var node = new MultiMeshInstance3D { Multimesh = mesh, MaterialOverride = _material, MaterialOverlay = _overlay, CastShadow = _shadows };
-        foreach ((StringName name, Variant value) in InstanceParameters) node.SetInstanceShaderParameter(name, value);
         AddChild(node);
         return node;
     }
