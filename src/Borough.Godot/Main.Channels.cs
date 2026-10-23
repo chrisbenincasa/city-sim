@@ -335,8 +335,10 @@ public partial class Main
         // which is the rung the frame was composed with and not the one the picture was taken at.
         Draw(_alpha);
 
-        // The per-frame upload allowance leaves chunks near a camera that has just jumped unloaded
-        // for many frames, so a picture taken without this one shows roads and no Buildings.
+        // The per-frame preparation and upload allowances leave chunks near a camera that has just
+        // jumped unfilled for many frames, so a picture taken without these shows roads and no
+        // Buildings.
+        _scene.Drain();
         FlushInstances(immediate: true);
 
         // 🔴 AND THE PICTURE IS TAKEN NEXT FRAME, because recomposing repairs the CAPTION and cannot
@@ -632,6 +634,7 @@ public partial class Main
     {
         // Recomposed for Caption's reason: Draw ran before this frame's commands did.
         Draw(_alpha);
+        _scene.Drain();
         FlushInstances(immediate: true);
 
         var text = new System.Text.StringBuilder();

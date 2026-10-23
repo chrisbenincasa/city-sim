@@ -16,6 +16,7 @@ public partial class Checks : Node
             CheckNearBand();
             CheckGate();
             CheckOwners();
+            CheckPreparation();
             var layer = new InstanceLayer();
             AddChild(layer);
             InstanceBuffer b = layer.Multimesh;
@@ -105,7 +106,7 @@ public partial class Checks : Node
             b.Flush(maxBytes: 1280, allowOversize: false);
             Require(b.PendingBatches == 0 && b.ResidentInstances == 2, "deferred uploads finish on subsequent frames");
             b.VisibleInstanceCount = 0; b.Flush();
-            GD.Print("Renderer checks passed: capacity, retention, identity, removal, migration, bounds, bulk buffers, near band, gate, owners.");
+            GD.Print("Renderer checks passed: capacity, retention, identity, removal, migration, bounds, bulk buffers, near band, gate, owners, preparation.");
             GetTree().Quit();
         }
         catch (Exception error) { GD.PrintErr(error); GetTree().Quit(1); }
@@ -215,6 +216,69 @@ public partial class Checks : Node
         b.Remove(2);
         b.Flush();
         Require(b.BatchCount == 0, "an emptied owner layer releases all buffers");
+        layer.QueueFree();
+    }
+
+    private void CheckPreparation()
+    {
+        var layer = new InstanceLayer { Gated = true, DetailDistance = 1000f };
+        AddChild(layer);
+        layer.Multimesh.Mesh = new BoxMesh();
+        var camera = new Camera3D { Position = new Vector3(0, 100, 0) };
+        AddChild(camera);
+        camera.MakeCurrent();
+
+        // Owners every 500 m east; each draws two pieces 10 m apart. Reach is 1,400 m.
+        long[] owners = [4, 1, 3, 2, 0, 5, 6, 7, 8, 9];
+        void List(List<PreparedOwner> into)
+        {
+            foreach (long owner in owners) into.Add(new PreparedOwner(owner, new Vector3(owner * 500f, 0, 0), 20f));
+        }
+        static PreparedPiece[] Plan(long owner) => [Piece(owner, owner * 500f), Piece(owner, owner * 500f + 10f)];
+        static PreparedPiece Piece(long owner, float east) =>
+            new((ulong)owner + 1, new Transform3D(Basis.Identity, new Vector3(east, 0, 0)), Colors.White);
+        ulong[] Drawn() => [.. layer.Multimesh.Canonical().Select(layer.Multimesh.IdAt)];
+
+        var scene = new ScenePreparation(verify: true);
+
+        // Owners, planned, written, queued, plan bytes and plans made.
+        long[] Row()
+        {
+            var text = new System.Text.StringBuilder();
+            scene.Statistics(text);
+            string row = text.ToString().Split('\n').First(line => line.StartsWith("render_prepare\ttest\t"));
+            return [.. row.Split('\t').Skip(2).Take(6).Select(long.Parse)];
+        }
+
+        int component = scene.Register("test", layer, List, Plan);
+        scene.Reset(component);
+        Require(scene.Regate(camera.Position) && scene.Queued == 3, "a regate queues the reached owners");
+        scene.Spend(0);
+        Require(scene.Queued == 2 && Drawn().SequenceEqual<ulong>([1, 1]), "a spent allowance still prepares the nearest owner");
+        scene.Drain();
+        Require(Drawn().SequenceEqual<ulong>([1, 1, 2, 2, 3, 3]) && Row()[5] == 3, "a drained layer lists reached owners by key");
+        Require(!scene.Regate(camera.Position), "an unmoved camera regates nothing");
+
+        camera.Position = new Vector3(500, 100, 0);
+        scene.Regate(camera.Position);
+        scene.Drain();
+        Require(Drawn().SequenceEqual<ulong>([1, 1, 2, 2, 3, 3, 4, 4]) && Row()[5] == 4,
+            "owners reached whole by both cameras keep their plans and instances");
+
+        camera.Position = new Vector3(4500, 100, 0);
+        scene.Regate(camera.Position);
+        scene.Drain();
+        Require(Drawn().SequenceEqual<ulong>([8, 8, 9, 9, 10, 10]), "owners out of reach lose their instances");
+        Require(Row().Take(4).SequenceEqual<long>([10, 3, 3, 0]), "plans beyond evict reach are dropped");
+
+        owners = [8];
+        scene.Reset(component);
+        Require(Drawn().SequenceEqual<ulong>([9, 9]), "a reset removes vanished owners at once and keeps the rest");
+        scene.Regate(camera.Position);
+        scene.Drain();
+        Require(Drawn().SequenceEqual<ulong>([9, 9]), "a reset owner is planned again");
+
+        camera.QueueFree();
         layer.QueueFree();
     }
 

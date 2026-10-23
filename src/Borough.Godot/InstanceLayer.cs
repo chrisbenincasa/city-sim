@@ -44,16 +44,32 @@ public partial class InstanceLayer : Node3D
         _builtFrom = _gating && IsInsideTree() ? GetViewport().GetCamera3D()?.GlobalPosition : null;
     }
 
-    /// <summary>Whether the build's camera could draw something within a cube of half-size <paramref name="extent"/>.</summary>
-    public bool Reaches(Vector3 point, float extent = 32f)
+    /// <summary>
+    /// Whether the build's camera could draw something within a cube of half-size
+    /// <paramref name="extent"/>, at <paramref name="scale"/> times its reach.
+    /// </summary>
+    public bool Reaches(Vector3 point, float extent = 32f, float scale = 1f)
     {
         if (!_gating) return true;
         if (_builtFrom is not { } eye) return false;
         float x = Gap(point.X - eye.X, extent), y = Gap(point.Y - eye.Y, extent), z = Gap(point.Z - eye.Z, extent);
-        float reach = Reach;
+        float reach = Reach * scale;
         return x * x + y * y + z * z <= reach * reach;
 
         static float Gap(float offset, float extent) => MathF.Max(0f, MathF.Abs(offset) - extent);
+    }
+
+    /// <summary>Whether the build's camera reaches every point of the box, and so every piece whose origin lies in it.</summary>
+    public bool Holds(in Aabb box)
+    {
+        if (!_gating) return true;
+        if (_builtFrom is not { } eye) return false;
+        Vector3 end = box.End;
+        float x = Far(box.Position.X, end.X, eye.X), y = Far(box.Position.Y, end.Y, eye.Y), z = Far(box.Position.Z, end.Z, eye.Z);
+        float reach = Reach;
+        return x * x + y * y + z * z <= reach * reach;
+
+        static float Far(float low, float high, float at) => MathF.Max(MathF.Abs(low - at), MathF.Abs(high - at));
     }
 
     /// <summary>Whether the build's camera could draw a unit box, or a module of up to 32 m, so placed.</summary>

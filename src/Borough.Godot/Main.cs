@@ -1007,7 +1007,8 @@ public partial class Main : Node3D
     private readonly List<ulong> _footwayIds = [];
 
     /// <summary>
-    /// Which <b>Segment</b> each kerb instance runs along — <b>bands and drops alike</b>.
+    /// Marks the kerb layer's ids as named. Each kerb instance's id is the <b>Segment</b> it runs
+    /// along — <b>bands and drops alike</b> — and the draw list reads it from the buffer.
     /// </summary>
     /// <remarks>
     /// 🔴 <b>A DROP IS AN ADDRESS AND THIS COLUMN NAMES ITS SEGMENT INSTEAD</b>, which is a real loss
@@ -1019,7 +1020,12 @@ public partial class Main : Node3D
     /// </remarks>
     private readonly List<ulong> _kerbIds = [];
     private List<(int Segment, byte Side, float Along)> _kerbAddresses = [];
-    private readonly Dictionary<int, (ulong Id, Transform3D Where, Color What)[]> _kerbPieces = [];
+
+    // PROVISIONAL main-thread allowance for planning and writing near owners, per frame.
+    private const double PreparationMilliseconds = 4;
+
+    private readonly ScenePreparation _scene = new(verify: System.Environment.GetEnvironmentVariable("BOROUGH_RENDER_VERIFY") is not null);
+    private int _kerbComponent;
 
     /// <summary>Which vacant Lot each drawn pad is, in instance order.</summary>
     private readonly List<ulong> _plotIds = [];
@@ -1323,6 +1329,7 @@ public partial class Main : Node3D
         _travellers.DetailDistance = 3000f;
         _cars.DetailDistance = 5000f;
         _trees.Gated = _rocks.Gated = _kerbs.Gated = true;
+        _kerbComponent = _scene.Register("kerb", _kerbs, KerbOwners, Kerbs);
         DressSurfaces();
 
         Ground();
@@ -1913,6 +1920,7 @@ public partial class Main : Node3D
 
         Cursor();
         Regate();
+        _scene.Spend(PreparationMilliseconds);
         FlushInstances();
 
         ulong tick = _world.Tick.Raw;

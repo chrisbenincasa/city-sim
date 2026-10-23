@@ -1,7 +1,7 @@
 # Chunked scene preparation
 
 Owns the board row *Bounded scene preparation and uploads*. State: design. Worktree
-`chunk-preparation`, based on `lot-index` at `f049ab4e`. Nothing here is implemented.
+`chunk-preparation`, based on `lot-index` at `f049ab4e`. Steps 1 and 2 are implemented.
 
 ## Outcome
 
@@ -305,6 +305,30 @@ Each step lands alone. Each must pass the equivalence checks below before the ne
 - No layer writes by owner yet, so these runs prove the refactored whole-layer and `Replace` paths.
   The renderer checks (`scripts/test-renderer.sh`) cover owner writes, canonical order and the refusal
   to mix the two write modes.
+
+### Step 2 result, 2026-10-22
+
+- `ScenePreparation` (`src/Borough.Godot/ScenePreparation.cs`) holds squares, owner states, the
+  queue, the 4 ms frame allowance, evict reach and the 64 MB plan cap. Kerbs are its only component.
+  The name avoids `Main._preparation`, which is the city load's `CityPreparation`.
+- A component registers a name, a layer, an owner lister and a plan function. A plan is the owner's
+  pieces in walk order. `Capture` and the input type wait for workers (D3), and a reset of the whole
+  component stands in for `Touched` until the journals of step 5.
+- `Pave` resets the kerb component. Vanished Segments lose their instances at once; the rest keep
+  theirs until rewritten.
+- `draw` and `shoot` drain the queue. `BOROUGH_RENDER_VERIFY=1` re-plans every reached owner after
+  each drain and compares ids, transforms and colors in canonical order.
+- Optimized shell, i5-10400, load 4.8–21 with two shells running. These runs check equality only,
+  so no timing is recorded.
+- Against a build of step 1 (`7eb91a09`), `traveller` and `car` rows removed, draw lists match byte
+  for byte at all four cameras on the 1M save, for the running city at Tick 600, and for the
+  25,000-Citizen `shopping.toml` city at `focus 120 120 900`.
+- Counts on the 1M save: 52,454 kerb owners; 19,097 planned on the descent; 5,089 newly planned on
+  the pan, matching the measured figure; plans hold 9.9–10.7 MB.
+- The verify run on the 25,000-Citizen city panned four times with no difference. That city has
+  1,227,001 kerb owners.
+- The renderer checks cover reach, canonical order, owners kept whole across a regate, the
+  one-owner minimum per frame, eviction and reset.
 
 ## Decisions settled, 2026-10-22
 

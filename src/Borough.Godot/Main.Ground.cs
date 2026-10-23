@@ -1448,68 +1448,79 @@ public partial class Main
     /// escape it.
     /// </para>
     /// </remarks>
-    private System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where, Color What)>
-        Kerbs()
+    private PreparedPiece[] Kerbs(long owner)
     {
-        if (_kerbs.Ground() is { } reached && !reached.HasArea()) yield break;
-        RoadSegmentTable segments = _world.Roads.Segments;
-        RoadNodeTable nodes = _world.Roads.Nodes;
+        int slot = (int)owner;
+        if (!KerbRun(slot, out int a, out int b, out Run run, out float carriageway)) return [];
 
-        // Every Address in the city, in Segment order, so the walk below merges against the Segment
-        // loop rather than searching. Pave() takes it on a road edit and not on a frame, so a kerb
-        // written again for a moved camera shows the Addresses of the last repave.
+        // Pave() takes the Address snapshot on a road edit and not on a frame, so a kerb planned
+        // for a moved camera shows the Addresses of the last repave.
         List<(int Segment, byte Side, float Along)> addresses = _kerbAddresses;
+        int first = AddressesFrom(addresses, slot);
+        int end = AddressesFrom(addresses, slot + 1);
 
-        int at = 0;
-
-        for (int slot = 0; slot < segments.Rows.SlotCount; slot++)
+        var pieces = new List<PreparedPiece>();
+        foreach ((ulong id, Transform3D where, Color what) in SegmentKerbs(slot, a, b, run, carriageway, addresses, first, end))
         {
-            while (at < addresses.Count && addresses[at].Segment < slot)
-            {
-                at++;
-            }
+            pieces.Add(new PreparedPiece(id, where, what));
+        }
+        return [.. pieces];
+    }
 
-            int first = at;
-
-            while (at < addresses.Count && addresses[at].Segment == slot)
-            {
-                at++;
-            }
-
-            if (!segments.Rows.IsLive(slot)
-                || !nodes.Rows.TryResolve(segments.NodeA[slot], out int a)
-                || !nodes.Rows.TryResolve(segments.NodeB[slot], out int b))
-            {
-                continue;
-            }
-
-            if ((Modes(segments, slot) & (TravelMode.Foot | TravelMode.Car))
-                != (TravelMode.Foot | TravelMode.Car))
-            {
-                continue;
-            }
-
-            var run = new Run(segments.Centerline[slot], NodeAt(nodes, a), NodeAt(nodes, b));
-
-            float carriageway = (RoadKind)segments.Kind[slot] == RoadKind.Arterial
-                ? ArterialWidthMetres
-                : CarriagewayWidthMetres;
-
-            float length = run.Length;
+    /// <summary>Each kerbed Segment, with a cube that holds all of its kerb.</summary>
+    private void KerbOwners(List<PreparedOwner> into)
+    {
+        for (int slot = 0; slot < _world.Roads.Segments.Rows.SlotCount; slot++)
+        {
+            if (!KerbRun(slot, out _, out _, out Run run, out float carriageway)) continue;
 
             // Every point of a Segment lies within half its length of its chord's midpoint.
-            if (!_kerbs.Reaches((run.From + run.To) * 0.5f, length * 0.5f + carriageway)) continue;
-
-            if (!_kerbPieces.TryGetValue(slot, out var pieces))
-            {
-                _kerbPieces.Add(slot, pieces = [.. SegmentKerbs(slot, a, b, run, carriageway, addresses, first, at)]);
-            }
-
-            foreach (var piece in pieces)
-            {
-                yield return piece;
-            }
+            into.Add(new PreparedOwner(slot, (run.From + run.To) * 0.5f, run.Length * 0.5f + carriageway));
         }
+    }
+
+    /// <summary>Whether the Segment carries both feet and cars, and so has a kerb.</summary>
+    private bool KerbRun(int slot, out int a, out int b, out Run run, out float carriageway)
+    {
+        RoadSegmentTable segments = _world.Roads.Segments;
+        RoadNodeTable nodes = _world.Roads.Nodes;
+        run = default;
+        carriageway = 0f;
+        b = 0;
+
+        if (slot >= segments.Rows.SlotCount
+            || !segments.Rows.IsLive(slot)
+            || !nodes.Rows.TryResolve(segments.NodeA[slot], out a)
+            || !nodes.Rows.TryResolve(segments.NodeB[slot], out b))
+        {
+            a = 0;
+            return false;
+        }
+
+        if ((Modes(segments, slot) & (TravelMode.Foot | TravelMode.Car))
+            != (TravelMode.Foot | TravelMode.Car))
+        {
+            return false;
+        }
+
+        run = new Run(segments.Centerline[slot], NodeAt(nodes, a), NodeAt(nodes, b));
+        carriageway = (RoadKind)segments.Kind[slot] == RoadKind.Arterial
+            ? ArterialWidthMetres
+            : CarriagewayWidthMetres;
+        return true;
+    }
+
+    /// <summary>The index of the first Address on <paramref name="slot"/> or a later Segment.</summary>
+    private static int AddressesFrom(List<(int Segment, byte Side, float Along)> addresses, int slot)
+    {
+        int low = 0, high = addresses.Count;
+        while (low < high)
+        {
+            int middle = (low + high) >>> 1;
+            if (addresses[middle].Segment < slot) low = middle + 1;
+            else high = middle;
+        }
+        return low;
     }
 
     private System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where, Color What)> SegmentKerbs(
@@ -1980,10 +1991,9 @@ public partial class Main
     private void Pave()
     {
         _kerbAddresses = Addresses();
-        _kerbPieces.Clear();
         Fill(_roads, Paving(), _roadIds);
         Fill(_footways, Footways(), _footwayIds);
-        Fill(_kerbs, Kerbs(), _kerbIds);
+        _scene.Reset(_kerbComponent);
     }
 
     /// <summary>The Cell lattice, drawn over the ground the city stands on.</summary>

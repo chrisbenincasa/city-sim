@@ -178,6 +178,7 @@ public partial class Main
         text.Append(CultureInfo.InvariantCulture, $"render_work\t{_fullBuildingPasses}\t{_buildingEdits}\t{_movementIndexVisits}\t{_movementQueries}\n");
         text.Append(CultureInfo.InvariantCulture, $"render_frames\t{_frameCount}\t{_frameMilliseconds:F3}\t{_frameMaximum:F3}\n");
         text.Append(CultureInfo.InvariantCulture, $"render_regate\t{_regates}\t{_regateMilliseconds:F3}\t{_regateMaximum:F3}\n");
+        _scene.Statistics(text);
         Godot.Rid viewport = GetViewport().GetViewportRid();
         text.Append(CultureInfo.InvariantCulture, $"render_times\t{Godot.RenderingServer.ViewportGetMeasuredRenderTimeCpu(viewport):F3}\t{Godot.RenderingServer.ViewportGetMeasuredRenderTimeGpu(viewport):F3}\n");
         long Info(Godot.RenderingServer.ViewportRenderInfoType pass, Godot.RenderingServer.ViewportRenderInfo what) =>

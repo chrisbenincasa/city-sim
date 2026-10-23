@@ -205,11 +205,7 @@ public partial class Main
             Scatter();
             wrote = true;
         }
-        if (_kerbs.Stale(eye))
-        {
-            Fill(_kerbs, Kerbs(), _kerbIds);
-            wrote = true;
-        }
+        wrote |= _scene.Regate(eye);
         for (int i = 0; i < _gardenLayers.Length; i++)
         {
             if (!_gardenLayers[i].Stale(eye)) continue;
