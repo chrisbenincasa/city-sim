@@ -609,9 +609,17 @@ public sealed class LocalServiceTests(ITestOutputHelper output)
 
         Assert.Equal(Rows.NoSlot, Provider(world, first, Accounting));
 
+        // Which fallen-back client wins the office's next unit is the match's business, so any of
+        // them returning is the claim.
+        List<int> fellBack = Shops(world).FindAll(s => Hinterland(world, s, Accounting) == North);
+
         Assert.True(
-            StepUntil(world, sim, w => Provider(w, first, Accounting) == office, 2 * Ticks.PerDay),
-            "a client that fell back to a Hinterland never returned to the office");
+            StepUntil(
+                world,
+                sim,
+                w => fellBack.Exists(s => Provider(w, s, Accounting) == office),
+                2 * Ticks.PerDay),
+            "no client that fell back to a Hinterland ever returned to the office");
         sim.CheckEndOfRun();
     }
 

@@ -948,3 +948,10 @@ to **26**. All three artifacts moved on the new declarations. Both traces and `w
 regenerated with the commands above. Baseline Ruleset content hashes and the hash seed are
 unchanged. No baseline Ruleset declares a Service, so neither table holds rows here.
 `LocalServiceTests` covers the allowance, the sale, the provider draw and save/reload.
+
+### Map at 256 Cells (10/22/2026)
+
+`CellGrid.WorldCells` went from 512 to 256 (`adr/0089`). All three artifacts moved, because terrain,
+water and woodland generation span the whole map. Both traces and `world-hash.txt` were regenerated
+with the commands above. Baseline Ruleset content hashes, the save format version and the hash seed
+are unchanged. The save header records `WorldCells`, so a save written at 512 Cells is refused.

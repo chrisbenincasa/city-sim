@@ -191,8 +191,8 @@ public sealed class JobsAttractTests(ITestOutputHelper output)
         long with = Admitted(jobs);
         long absent = Admitted(none);
         output.WriteLine($"Day arrivals with jobs {with}, without {absent}; walks {jobs.JobAccess.TotalSearches}, settled {jobs.JobAccess.TotalSettled}.");
-        Assert.Equal(256, with);
-        Assert.Equal(238, absent);
+        Assert.Equal(300, with);
+        Assert.Equal(228, absent);
         Assert.True(with > absent, $"jobs {with}, none {absent}");
     }
 

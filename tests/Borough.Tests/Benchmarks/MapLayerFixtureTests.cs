@@ -42,18 +42,14 @@ public sealed class MapLayerFixtureTests
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>This was the row's good news, and at 512 Cells it is merely good.</b> A cost whose driver
+    /// <b>This is the row's good news.</b> A cost whose driver
     /// saturates far below any plausible source count has no guessed multiplicand: it does not matter
     /// how many factories a million-Citizen city has, because any plausible number is past the knee.
     /// </para>
     /// <para>
-    /// ⚠ <b>The knee moved 256 → 8,192 when the map went to 512 Cells on 2026-08-13</b>
-    /// (<c>adr/0089</c>) — 32× for a 16× area, because a halo of fixed radius covers a smaller share
-    /// of a larger map and overlaps less. Against S0a's <b>120,001 Buildings</b> in a 1M city the
-    /// headroom falls from <b>469× to 14.6×</b>. The claim survives; <b>the reason it survives has
-    /// changed from <em>obviously</em> to <em>by a factor of fifteen</em></b>, and fifteen is inside
-    /// the range an industrial share could plausibly move. Routed to <c>plans/0013</c>'s Map Layer row
-    /// rather than left here, per <c>adr/0073</c>.
+    /// ⚠ <b>The knee is 2,048 on the 256-Cell map</b> (<c>adr/0089</c>). It grows faster than the
+    /// map's area, because a halo of fixed radius covers a smaller share of a larger map and overlaps
+    /// less. Against S0a's <b>120,001 Buildings</b> in a 1M city the headroom is <b>58.6×</b>.
     /// </para>
     /// <para>
     /// <b>Both the knee and the margin are asserted, because only the second is the claim.</b> An
@@ -75,7 +71,7 @@ public sealed class MapLayerFixtureTests
         // Measured rather than assumed, twice over: an early draft asserted saturation at 16, and the
         // 256 that replaced it was a reading on a 128-Cell map that survived the map's flip in silence
         // until this line failed.
-        const int Knee = 8_192;
+        const int Knee = 2_048;
 
         Assert.Equal(CellGrid.WorldCellCount, ResidentAfter(Knee));
 
@@ -84,7 +80,7 @@ public sealed class MapLayerFixtureTests
         Assert.True(ResidentAfter(Knee / 2) < CellGrid.WorldCellCount);
 
         // A 1M-Citizen city holds 120,001 Buildings (S0a). The knee must stay well below that or the
-        // row acquires a multiplicand — and "well below" is now 14.6x where it was 469x.
+        // row acquires a multiplicand. "Well below" is 58.6x.
         const int BuildingsAtTarget = 120_001;
 
         Assert.True(

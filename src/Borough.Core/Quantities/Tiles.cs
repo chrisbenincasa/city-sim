@@ -6,7 +6,7 @@ namespace Borough.Core.Quantities;
 /// Whole-Tile distance or extent, as a signed 32-bit count. Space in the core is Tiles and nothing else.
 /// </summary>
 /// <remarks>
-/// The map is 16384² Tiles at roughly 4 m each, so i32 carries five orders of magnitude of headroom
+/// The map is 8192² Tiles at roughly 4 m each, so i32 carries five orders of magnitude of headroom
 /// over any distance the world can hold. Signed because a difference of two coordinates is a
 /// direction as well as a length.
 /// <para>
