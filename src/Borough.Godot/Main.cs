@@ -1935,7 +1935,7 @@ public partial class Main : Node3D
 
         _readout.Text =
             $"{RulesetName()}   Tick {tick:N0}   "
-            + $"Day {tick / (ulong)Ticks.PerDay}   {Weekday(tick)}   "
+            + $"Day {ClockDay(tick)}   {Weekday(tick)}   "
             + $"{minute / 60:00}:{minute % 60:00}\n"
             + $"Citizens {_world.Citizens.Rows.LiveCount:N0}   Buildings {Counted(drawn)}   "
             + $"vacant Lots {vacant:N0}   "
