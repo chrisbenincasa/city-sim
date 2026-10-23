@@ -326,7 +326,7 @@ interval      = 32
 revisit_ticks = 2048
 
 [[zone_rule]]
-name                 = "trade"
+name                 = "commerce"
 kind                 = "shopfront"
 zone                 = 1
 interval             = 32
