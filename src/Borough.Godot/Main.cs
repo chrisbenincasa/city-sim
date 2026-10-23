@@ -1976,6 +1976,7 @@ public partial class Main : Node3D
         RefreshCityEvidence();
         RefreshBudget();
         RefreshHinterlands();
+        RefreshNeeds();
     }
 
     /// <summary>

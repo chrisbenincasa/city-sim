@@ -647,6 +647,8 @@ public partial class Main
             RefreshHinterlands();
         }
 
+        if (!_governing) _needsShown = false;
+
         _governing = !_governing;
         _policyPanel.Visible = _governing;
         _policiesButton.ButtonPressed = _governing;

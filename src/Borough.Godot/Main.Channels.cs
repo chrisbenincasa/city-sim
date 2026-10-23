@@ -838,5 +838,5 @@ public partial class Main
     /// own remark says. ⚠ <b>A separator line rather than a blank one</b>, so a caller greps for
     /// <c>hover</c> and knows which panel a line came from.
     /// </remarks>
-    private string Captioned() => $"{_readout.Text}\nhover —\n{_hover.Text}\ndebug —\n{Pointing()}\ninspector —\n{_inspectionCaption}\n{InformationGeometry()}";
+    private string Captioned() => $"{_readout.Text}\nhover —\n{_hover.Text}\ndebug —\n{Pointing()}\ninspector —\n{_inspectionCaption}{NeedsCaption()}\n{InformationGeometry()}";
 }

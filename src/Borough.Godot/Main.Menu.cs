@@ -249,7 +249,7 @@ public partial class Main
         _queued.Clear();
         install();
         _verb = Verb.Look;
-        _toolsShown = _governing = _layersShown = _cityShown = _budgetShown = false;
+        _toolsShown = _governing = _layersShown = _cityShown = _budgetShown = _needsShown = false;
         _cityRead = false;
         _cityGroup = -1;
         _cityCause = null;
