@@ -740,6 +740,9 @@ public partial class Main : Node3D
     /// <inheritdoc cref="_wash"/>
     private ShaderMaterial? _categorical;
 
+    /// <summary>The copies of <see cref="_muted"/> and <see cref="_categorical"/> a family body wears.</summary>
+    private ShaderMaterial? _mutedBody, _categoricalBody;
+
     /// <summary>The ground's ordinary material, kept so an overlay can be taken off again.</summary>
     private Material _skinned = null!;
 

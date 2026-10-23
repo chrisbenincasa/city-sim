@@ -733,6 +733,8 @@ public partial class Main
         _categorical.SetShaderParameter("treatment", style);
         _muted.SetShaderParameter("treatment", style == 0 ? 0 : 1);
         _muted.SetShaderParameter("context_colour", style == 0 ? Muted : new Color(0.43f, 0.46f, 0.44f));
+        _mutedBody ??= BodyCopy(_muted);
+        _categoricalBody ??= BodyCopy(_categorical);
 
         foreach ((string name, InstanceLayer over, bool _, List<ulong>? _) in Layers())
         {
