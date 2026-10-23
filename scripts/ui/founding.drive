@@ -5,7 +5,7 @@
 #
 # The player lays ten Streets, zones housing and trade, and places the gate and the school.
 # The city grows, the treasury runs dry and the school loses its teachers. On Day 45 the player
-# cuts housed_rebate from 640 to 384, and the school has its teachers back by Day 60.
+# cuts housed_rebate from 640 to 256, and the school has its teachers back by Day 60.
 #
 # Up to Day 45 the session's Input Log is rulesets/base/founding.borough, byte for byte, and
 # BaseFoundingPackageTests measures the same city headless. Run with BOROUGH_LOG=1 to write it.
@@ -257,7 +257,7 @@
 92159 readout artifacts/founding/day-045.txt
 92159 ui read artifacts/founding/day-045.json
 92160 pause
-92160 ui govern 2 384
+92160 ui govern 2 256
 92160 speed 1
 92161 pause
 92161 shoot artifacts/founding/06-governed.png
