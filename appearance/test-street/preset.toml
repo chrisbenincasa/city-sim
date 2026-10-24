@@ -11,6 +11,11 @@ era_days = 30
 # Patterns whose Buildings stand in attached rows along a block face.
 attached = ["perimeter", "back-to-back"]
 
+# Detached houses on one block face and era stand in runs of 2 to 4 Lots. A matched run shares its
+# family and roof pitch. A run of copies shares its family, proportions, materials and paint.
+runs = { alone = 3, matched = 5, copies = 2 }
+run_houses = [2, 4]
+
 [[family]]
 id = "box"
 fallback = true
@@ -904,4 +909,159 @@ depth_metres = [12, 28]
 library = "test-street/rowhouses"
 shape = "house"
 variant = "villa"
+tile_metres = { roof = [4.0, 4.0] }
+
+# One house on a narrow detached Lot, drawn in one of ten forms. scripts/art/house-forms.py is the
+# Blender reference. The L-plan and rear outshot draw less floor than the Building holds and the side
+# wing draws more, reaching 3 m into the side garden (docs/07-the-drawing.md). The weights favor the
+# plain gables so the rarer forms read as exceptions on a street.
+
+[[family]]
+id = "house-detached-side-gable"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [1, 3]
+frontage_metres = [8, 11]
+depth_metres = [8, 16]
+weight = 3
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "terrace"
+tile_metres = { roof = [4.0, 4.0] }
+
+[[family]]
+id = "house-detached-front-gable"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [1, 3]
+frontage_metres = [8, 11]
+depth_metres = [8, 16]
+weight = 3
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "front-gables"
+tile_metres = { roof = [4.0, 4.0] }
+
+[[family]]
+id = "house-detached-hipped"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [1, 3]
+frontage_metres = [8, 11]
+depth_metres = [8, 16]
+weight = 2
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "hipped"
+tile_metres = { roof = [4.0, 4.0] }
+
+[[family]]
+id = "house-detached-half-hip"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [1, 3]
+frontage_metres = [8, 11]
+depth_metres = [8, 16]
+weight = 1
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "half-hip"
+tile_metres = { roof = [4.0, 4.0] }
+
+[[family]]
+id = "house-detached-cross-gable"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [1, 3]
+frontage_metres = [8, 11]
+depth_metres = [8, 16]
+weight = 2
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "cross-gable"
+tile_metres = { roof = [4.0, 4.0] }
+
+[[family]]
+id = "house-detached-saltbox"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [1, 3]
+frontage_metres = [8, 11]
+depth_metres = [8, 16]
+weight = 1
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "saltbox"
+tile_metres = { roof = [4.0, 4.0] }
+
+[[family]]
+id = "house-detached-gambrel"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [1, 3]
+frontage_metres = [8, 11]
+depth_metres = [8, 16]
+weight = 1
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "gambrel"
+tile_metres = { roof = [4.0, 4.0] }
+
+[[family]]
+id = "house-detached-l-plan"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [1, 3]
+frontage_metres = [8, 11]
+depth_metres = [8, 16]
+weight = 1
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "l-plan"
+tile_metres = { roof = [4.0, 4.0] }
+
+[[family]]
+id = "house-detached-rear-outshot"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [1, 3]
+frontage_metres = [8, 11]
+depth_metres = [8, 16]
+weight = 1
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "rear-outshot"
+tile_metres = { roof = [4.0, 4.0] }
+
+[[family]]
+id = "house-detached-side-wing"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [1, 3]
+frontage_metres = [8, 11]
+depth_metres = [8, 16]
+weight = 1
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "side-wing"
 tile_metres = { roof = [4.0, 4.0] }

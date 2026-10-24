@@ -102,27 +102,6 @@ public partial class Main : Node3D
     /// <summary>What is left of the foot half once the kerb has taken its band. <b>Derived.</b></summary>
     private const float PavementWidthMetres = FootwayWidthMetres - KerbWidthMetres;
 
-    /// <summary>
-    /// How far a <b>dropped</b> kerb bites into the carriageway beyond the kerb line.
-    /// </summary>
-    /// <remarks>
-    /// 🔴 <b>THE DROP HAS TO READ AS A SHAPE, BECAUSE ITS REAL CUE IS A HEIGHT NOBODY CAN SEE.</b> A
-    /// dropped kerb is the same stone at the road's level, and the difference is <b>0.1 m</b> on a
-    /// city drawn from hundreds of metres up — invisible, at every zoom this camera offers. Giving it
-    /// a colour of its own would have been inventing a material to stand in for a height. **Giving it
-    /// an apron across the channel is the thing a dropped kerb actually has**, and it is legible
-    /// because it changes the *outline* of the kerb rather than its tone.
-    /// </remarks>
-    private const float KerbDropBiteMetres = 1.0f;
-
-    /// <summary>How long one <b>dropped</b> kerb is drawn, along the Street.</summary>
-    /// <remarks>
-    /// ⚠ <b>One Tile, and that is the only thing recommending it.</b> A real drop is 1.2 m at a door
-    /// and 3–4 m at a driveway, and the city holds neither — an Address is a point
-    /// (<c>adr/0074</c>), so ***the length is pure invention where the POSITION is not***. Adjacent
-    /// drops that would overlap are merged rather than drawn twice; see <see cref="Kerbs"/>.
-    /// </remarks>
-    private const float KerbDropLengthMetres = 4f;
 
     /// <summary>The same as <see cref="StreetWidthMetres"/>, for an <see cref="RoadKind.Arterial"/>.</summary>
     /// <remarks>
@@ -171,17 +150,16 @@ public partial class Main : Node3D
     private static readonly Color Flagstone = new(0.52f, 0.50f, 0.46f);
 
     /// <summary>
-    /// <b>Kerbstone — the band against the channel, and the dropped one at an Address.</b> Paler and
-    /// cooler than <see cref="Flagstone"/>, because a kerb is a different stone from the paving.
+    /// Kerbstone, the band against the channel. Paler and cooler than <see cref="Flagstone"/>,
+    /// because a kerb is a different stone from the paving.
     /// </summary>
-    /// <remarks>
-    /// ⚠ <b>ONE colour for the band AND the drop, deliberately.</b> A dropped kerb is the same stone
-    /// laid lower — ***so tinting the drop would be inventing a material to say a height with***, and
-    /// what says it instead is <see cref="KerbDropBiteMetres"/>'s apron. The two are told apart in a
-    /// <c>draw</c> list by their height and their width, which is where a machine should be reading
-    /// them from anyway.
-    /// </remarks>
     private static readonly Color Kerbstone = new(0.62f, 0.62f, 0.60f);
+
+    /// <summary>White road paint. <b>sRGB.</b></summary>
+    private static readonly Color LinePaint = new(0.86f, 0.86f, 0.82f);
+
+    /// <summary>Yellow road paint. <b>sRGB.</b></summary>
+    private static readonly Color CentrePaint = new(0.88f, 0.70f, 0.18f);
 
     // 🔴 BuildingFillLow/High AND DepthFillLow/High STOOD HERE AND ARE NOW `[lots] setback_tiles`.
     // Four drawing constants -- 0.55-1.00 of the frontage and 0.45-0.85 of the depth -- deciding how
@@ -673,6 +651,10 @@ public partial class Main : Node3D
     private InstanceLayer _roads = null!;
     private InstanceLayer _footways = null!;
     private InstanceLayer _kerbs = null!;
+    private InstanceLayer _markings = null!;
+
+    /// <summary>Which Segment each road-marking instance paints.</summary>
+    private readonly List<ulong> _markingIds = [];
     private InstanceLayer _plots = null!;
     private PanelContainer _tuner = null!;
 
@@ -1006,17 +988,7 @@ public partial class Main : Node3D
     /// </summary>
     private readonly List<ulong> _footwayIds = [];
 
-    /// <summary>
-    /// Which <b>Segment</b> each kerb instance runs along — <b>bands and drops alike</b>.
-    /// </summary>
-    /// <remarks>
-    /// 🔴 <b>A DROP IS AN ADDRESS AND THIS COLUMN NAMES ITS SEGMENT INSTEAD</b>, which is a real loss
-    /// and is recorded rather than papered over: the Lot is what a reader would want to join on, and
-    /// one list cannot carry two kinds of id. ⚠ **Recover the Lot by matching the drop's centre to
-    /// `LotTable.FrontageOffset` on the Segment named here** — one join rather than none, and see
-    /// <see cref="Kerbs"/> for why merging makes even that approximate where two Addresses are closer
-    /// together than <see cref="KerbDropLengthMetres"/>.
-    /// </remarks>
+    /// <summary>Which Segment each kerb instance runs along, so a Segment appears once per side and once per cap.</summary>
     private readonly List<ulong> _kerbIds = [];
 
     /// <summary>Which vacant Lot each drawn pad is, in instance order.</summary>
@@ -1211,16 +1183,13 @@ public partial class Main : Node3D
         // foot half: the kerb took its band out of it, at the same top, so the two are flush.
         _footways = Layer(Flagstone, new Vector3(1f, 0.3f, 1f), perInstance: true, casts: false);
 
-        // THE KERB, AND IT IS ONE MESH FOR TWO THINGS AT TWO HEIGHTS. A band is drawn with its top
-        // flush with the pavement -- 0.15 m, so the only step in the street is at the channel -- and
-        // a DROP is drawn with its top at 0.07 m, two centimetres over the asphalt. The instance
-        // transform carries the difference, which is why one 0.3 m box serves both: a drop is scaled
-        // to 0.07/0.15 of it and sits lower.
-        //
-        // ⚠ TWO CENTIMETRES AND NOT ZERO, because a drop flush with the carriageway is two coplanar
-        // faces and the depth test picks between them per pixel. ***A dropped kerb that z-fights
-        // reads as a rendering fault and not as a kerb.***
+        // The kerb band's top is flush with the pavement at 0.15 m, so the only step in the street
+        // is at the channel.
         _kerbs = Layer(Kerbstone, new Vector3(1f, 0.3f, 1f), perInstance: true, casts: false);
+
+        // The paint box is 0.12 m tall at y = 0, so its top stands 1 cm over the asphalt's.
+        _markings = Layer(LinePaint, new Vector3(1f, 0.12f, 1f), perInstance: true, casts: false);
+        ((BoxMesh)_markings.Multimesh.Mesh).Material = new ShaderMaterial { Shader = GD.Load<Shader>("res://road-marking.gdshader") };
 
         // 🔴 A VACANT LOT DREW NOTHING AT ALL, so Zone -- which creates Lots and never a Building --
         // had NO visible result on any world. Buildings() walks the Building table, and a Lot with

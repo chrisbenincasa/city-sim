@@ -37,6 +37,43 @@ draw family geometry. A debug wash shows which family each Building would draw.
 - The wash is driven and photographed: `plans/evidence/appearance-families/family-wash.drive`
   and its two captures, taken on `zeus` on 2026-09-24.
 
+## Variety
+
+A family is done when a street of it looks varied, not when its bodies draw. Decided with the user
+on October 24, 2026, after narrow houses shipped in two forms and read as repeated.
+
+- A form is a roof shape plus a plan. Pitch, paint and materials vary within a form and do not count.
+- Each size band a family covers draws at least four forms.
+- Neighbors share a form only inside a run. Outside runs, a driven street of 14 Buildings in one
+  band shows no two neighbors with the same form and pitch within 5 degrees.
+- The coverage report counts fallback Buildings by kind and exact Lot shape, so a gap shows its size.
+- Pitch stops at 45 degrees, 48 for the half-hip, until a form needs a steeper roof.
+
+Narrow detached houses meet this bar with ten forms (`FamilyBodyBuilder.Detached.cs`,
+`scripts/art/house-forms.py`). The other shipped families have not been checked against it.
+
+Driven on `pictured.toml` at 5,000 Citizens, Tick 600, around Tile 12783 4975, every dwelling drew
+a house body and none fell back to a box. Side gable, front gable, hipped, half-hip, cross gable,
+saltbox, gambrel and the three plans all appear on the 8 m detached Lots, in mixed order along each
+street. The captures do not measure the 14-Building bar, because the draw list does not name a
+body's form. `forms-h2-*.png` from `forms-h2.drive`.
+
+Detached houses also stand in runs, decided with the user on October 24, 2026. A preset's `runs`
+weights what a run shares, and `run_houses` gives its length in Lots. Each face draws one length
+per era, and a run is that many parcels of the face, so a house's run depends only on its own
+facts. Three kinds of run mix:
+
+| Run | Shares | test-street weight |
+|---|---|---|
+| alone | nothing | 3 |
+| matched | family and roof pitch | 5 |
+| copies | family, proportions, materials and paint | 2 |
+
+On `pictured.toml` at 5,000 Citizens and Tick 600, 495 house bodies stand alone, 951 in matched runs
+and 358 in copies. 734 of 1,476 neighboring house pairs on one face share a family, where the
+family weights alone would give about one in eight. `runs-h3-*.png` from `runs-h3.drive` show the
+same blocks as `forms-h2`.
+
 ## What the demonstration showed
 
 - 33 of 50 dwellings fall back to `box`. The test street covers only a few size bands, so this
@@ -194,3 +231,5 @@ Limits of this slice:
 - A wash change still refills every Building's massing on the main thread, which hitches for about
   0.35 s at 1M Citizens. The Age wash does so on every update.
 - Author the rest of the families. The coverage report says which size bands and kinds need them.
+- Check the shipped families against the variety bar, starting with rowhouses and walkups. The
+  detached roof forms can also serve the wider house families.
