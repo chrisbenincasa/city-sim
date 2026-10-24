@@ -34,6 +34,7 @@ public sealed class ScenePreparation(bool verify = false)
     {
         public PreparedOwner Where;
         public PreparedPiece[]? Plan;
+        public long Inputs;
         public int Pieces;
         public Aabb Origins;
         public bool Written, Complete, Queued;
@@ -48,12 +49,20 @@ public sealed class ScenePreparation(bool verify = false)
         public float Extent => Mathf.Max(High.X - Low.X, Mathf.Max(High.Y - Low.Y, High.Z - Low.Z)) * 0.5f;
     }
 
-    private sealed class Component(string name, InstanceLayer layer, Action<List<PreparedOwner>> owners, Func<long, PreparedPiece[]> plan)
+    private sealed class Component(
+        string name,
+        InstanceLayer layer,
+        Action<List<PreparedOwner>> owners,
+        Func<long, PreparedPiece[]> plan,
+        Func<long, long>? inputs,
+        Func<InstanceLayer, PreparedPiece, bool>? reaches)
     {
         public readonly string Name = name;
         public readonly InstanceLayer Layer = layer;
         public readonly Action<List<PreparedOwner>> ListOwners = owners;
         public readonly Func<long, PreparedPiece[]> Plan = plan;
+        public readonly Func<long, long>? Inputs = inputs;
+        public readonly Func<InstanceLayer, PreparedPiece, bool> Reaches = reaches ?? (static (layer, piece) => layer.Reaches(piece.Where));
         public Dictionary<long, Owner> Owners = [];
         public readonly Dictionary<Vector2I, Square> Squares = [];
         public bool Pending = true;
@@ -75,11 +84,25 @@ public sealed class ScenePreparation(bool verify = false)
     public int Queued => _queue.Count - _next;
 
     /// <summary>Adds a component whose layer it writes by owner from now on.</summary>
-    public int Register(string name, InstanceLayer layer, Action<List<PreparedOwner>> owners, Func<long, PreparedPiece[]> plan)
+    /// <param name="inputs">
+    /// A value that changes whenever an owner's plan would change. A regate re-plans each reached
+    /// owner whose value differs from the one its plan was made with.
+    /// </param>
+    /// <param name="reaches">Whether the layer's build draws a piece. <see cref="InstanceLayer.Reaches(in Transform3D)"/> if null.</param>
+    public int Register(
+        string name,
+        InstanceLayer layer,
+        Action<List<PreparedOwner>> owners,
+        Func<long, PreparedPiece[]> plan,
+        Func<long, long>? inputs = null,
+        Func<InstanceLayer, PreparedPiece, bool>? reaches = null)
     {
-        _components.Add(new Component(name, layer, owners, plan));
+        _components.Add(new Component(name, layer, owners, plan, inputs, reaches));
         return _components.Count - 1;
     }
+
+    /// <summary>Makes the next <see cref="Regate"/> build the component from the camera and check every reached owner's inputs.</summary>
+    public void Refresh(int component) => _components[component].Pending = true;
 
     /// <summary>
     /// Lists the component's owners again and discards every plan. Vanished owners lose their
@@ -146,6 +169,12 @@ public sealed class ScenePreparation(bool verify = false)
                     {
                         Unwrite(c, owner);
                         continue;
+                    }
+                    if (c.Inputs is { } inputs && (owner.Plan is not null || owner.Written)
+                        && inputs(owner.Where.Owner) != owner.Inputs)
+                    {
+                        Drop(c, owner);
+                        owner.Complete = false;
                     }
                     if (owner.Written && owner.Complete && (owner.Pieces == 0 || layer.Holds(owner.Origins))) continue;
                     owner.Queued = true;
@@ -223,6 +252,7 @@ public sealed class ScenePreparation(bool verify = false)
         long started = Stopwatch.GetTimestamp();
         if (owner.Plan is null)
         {
+            if (c.Inputs is { } inputs) owner.Inputs = inputs(key);
             PreparedPiece[] plan = c.Plan(key);
             owner.Plan = plan;
             owner.Pieces = plan.Length;
@@ -239,7 +269,7 @@ public sealed class ScenePreparation(bool verify = false)
         _ids.Clear();
         foreach (ref readonly PreparedPiece piece in owner.Plan.AsSpan())
         {
-            if (!layer.Reaches(piece.Where)) continue;
+            if (!c.Reaches(layer, piece)) continue;
             _values.Add(new InstanceValue(piece.Where, piece.What));
             _ids.Add(piece.Id);
         }
@@ -307,13 +337,17 @@ public sealed class ScenePreparation(bool verify = false)
             int at = 0;
             _listed.Clear();
             c.ListOwners(_listed);
-            _listed.Sort(static (a, b) => a.Owner.CompareTo(b.Owner));
-            foreach (PreparedOwner where in _listed)
+            var listed = new Dictionary<long, PreparedOwner>(_listed.Count);
+            foreach (PreparedOwner where in _listed) listed.Add(where.Owner, where);
+            long[] keys = [.. listed.Keys];
+            buffer.SortOwners(keys);
+            foreach (long key in keys)
             {
+                PreparedOwner where = listed[key];
                 if (!layer.Reaches(where.Middle, where.Extent)) continue;
                 foreach (PreparedPiece piece in c.Plan(where.Owner))
                 {
-                    if (!layer.Reaches(piece.Where)) continue;
+                    if (!c.Reaches(layer, piece)) continue;
                     int index = at < canonical.Length ? canonical[at] : -1;
                     at++;
                     if (index < 0 || buffer.IdAt(index) != piece.Id || buffer.GetInstanceTransform(index) != piece.Where

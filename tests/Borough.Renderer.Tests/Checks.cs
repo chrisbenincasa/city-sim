@@ -17,6 +17,7 @@ public partial class Checks : Node
             CheckGate();
             CheckOwners();
             CheckPreparation();
+            CheckPreparedInputs();
             var layer = new InstanceLayer();
             AddChild(layer);
             InstanceBuffer b = layer.Multimesh;
@@ -106,7 +107,7 @@ public partial class Checks : Node
             b.Flush(maxBytes: 1280, allowOversize: false);
             Require(b.PendingBatches == 0 && b.ResidentInstances == 2, "deferred uploads finish on subsequent frames");
             b.VisibleInstanceCount = 0; b.Flush();
-            GD.Print("Renderer checks passed: capacity, retention, identity, removal, migration, bounds, bulk buffers, near band, gate, owners, preparation.");
+            GD.Print("Renderer checks passed: capacity, retention, identity, removal, migration, bounds, bulk buffers, near band, gate, owners, preparation, prepared inputs.");
             GetTree().Quit();
         }
         catch (Exception error) { GD.PrintErr(error); GetTree().Quit(1); }
@@ -277,6 +278,52 @@ public partial class Checks : Node
         scene.Regate(camera.Position);
         scene.Drain();
         Require(Drawn().SequenceEqual<ulong>([9, 9]), "a reset owner is planned again");
+
+        camera.QueueFree();
+        layer.QueueFree();
+    }
+
+    private void CheckPreparedInputs()
+    {
+        var layer = new InstanceLayer { Gated = true, DetailDistance = 1000f };
+        AddChild(layer);
+        layer.Multimesh.Mesh = new BoxMesh();
+        layer.Multimesh.SortOwners = static keys => Array.Sort(keys, static (a, b) => b.CompareTo(a));
+        var camera = new Camera3D { Position = new Vector3(0, 100, 0) };
+        AddChild(camera);
+        camera.MakeCurrent();
+
+        // Three owners 100 m apart, all in reach. Each piece's id carries its owner's input.
+        long[] inputs = [0, 0, 0];
+        static void List(List<PreparedOwner> into)
+        {
+            for (long owner = 0; owner < 3; owner++) into.Add(new PreparedOwner(owner, new Vector3(owner * 100f, 0, 0), 20f));
+        }
+        PreparedPiece[] Plan(long owner) =>
+            [new((ulong)((owner * 10) + inputs[owner]), new Transform3D(Basis.Identity, new Vector3(owner * 100f, 0, 0)), Colors.White)];
+        ulong[] Drawn() => [.. layer.Multimesh.Canonical().Select(layer.Multimesh.IdAt)];
+
+        var scene = new ScenePreparation(verify: true);
+        long Plans()
+        {
+            var text = new System.Text.StringBuilder();
+            scene.Statistics(text);
+            string row = text.ToString().Split('\n').First(line => line.StartsWith("render_prepare\tinputs\t"));
+            return long.Parse(row.Split('\t')[7]);
+        }
+
+        int component = scene.Register("inputs", layer, List, Plan, owner => inputs[owner]);
+        scene.Reset(component);
+        scene.Regate(camera.Position);
+        scene.Drain();
+        Require(Drawn().SequenceEqual<ulong>([20, 10, 0]) && Plans() == 3, "a layer lists owners in its own order");
+
+        inputs[1] = 5;
+        Require(!scene.Regate(camera.Position), "a changed input waits for a regate");
+        scene.Refresh(component);
+        Require(scene.Regate(camera.Position) && scene.Queued == 1, "a refresh queues only the owner whose inputs changed");
+        scene.Drain();
+        Require(Drawn().SequenceEqual<ulong>([20, 15, 0]) && Plans() == 4, "an owner with changed inputs is planned again");
 
         camera.QueueFree();
         layer.QueueFree();

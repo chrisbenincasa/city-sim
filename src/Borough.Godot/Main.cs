@@ -1026,6 +1026,11 @@ public partial class Main : Node3D
 
     private readonly ScenePreparation _scene = new(verify: System.Environment.GetEnvironmentVariable("BOROUGH_RENDER_VERIFY") is not null);
     private int _kerbComponent;
+    private int _treeComponent;
+    private int _rockComponent;
+    private ScatterBasis _scatterBasis;
+    private readonly HashSet<Vector2I> _submerged = [];
+    private int _paves;
 
     /// <summary>Which vacant Lot each drawn pad is, in instance order.</summary>
     private readonly List<ulong> _plotIds = [];
@@ -1330,12 +1335,14 @@ public partial class Main : Node3D
         _cars.DetailDistance = 5000f;
         _trees.Gated = _rocks.Gated = _kerbs.Gated = true;
         _kerbComponent = _scene.Register("kerb", _kerbs, KerbOwners, Kerbs);
+        _treeComponent = _scene.Register("tree", _trees, TreeOwners, Trees, ScatterInputs, ScatterReaches);
+        _rockComponent = _scene.Register("rock", _rocks, RockOwners, Rocks, ScatterInputs, ScatterReaches);
+        _trees.Multimesh.SortOwners = _rocks.Multimesh.SortOwners = SortCells;
         DressSurfaces();
 
         Ground();
         Hazard();
         Surface();
-        Scatter();
         Flood();
         Pave();
         Sun();

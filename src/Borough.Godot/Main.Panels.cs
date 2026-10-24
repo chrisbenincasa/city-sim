@@ -966,7 +966,6 @@ public partial class Main
         // survive, but it is re-laid with the others so that "what a rebuild redoes" is one list.
         Ground();
         Skin();
-        Scatter();
         Hazard();
         Flood();
         Pave();

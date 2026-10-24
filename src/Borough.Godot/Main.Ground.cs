@@ -469,28 +469,26 @@ public partial class Main
     /// Outside it there is no lattice to avoid and the test is not applied — ***a regular gap in open
     /// country would draw the road grid where there are no roads.***
     /// </para>
+    /// <para>
+    /// Each Cell owns its trees and its rocks. A change to the inputs all Cells share resets both
+    /// components. Otherwise the next regate re-plans only the Cells whose own inputs changed.
+    /// </para>
     /// </remarks>
     private void Scatter()
     {
         int block = _world.Roads.Streets.BlockTiles;
-        int lots = _world.Rules.Lots.LotsPerSegment;
         float reach = Mathf.Max(_span * 1.6f, 2_048f);
         Rect2 window = _laid.Grow(reach);
-        _trees.BuildFrom();
-        _rocks.BuildFrom();
-        if (_trees.Ground() is { } woods && _rocks.Ground() is { } stony)
-            window = window.Intersection(woods.Merge(stony));
         int fromEast = Mathf.Max(0, (int)(window.Position.X / CellGrid.MetresPerCell));
         int fromNorth = Mathf.Max(0, (int)(window.Position.Y / CellGrid.MetresPerCell));
         int toEast = Mathf.Min(CellGrid.WorldCells - 1, (int)(window.End.X / CellGrid.MetresPerCell));
         int toNorth = Mathf.Min(CellGrid.WorldCells - 1, (int)(window.End.Y / CellGrid.MetresPerCell));
-        if (!window.HasArea() || toEast < fromEast || toNorth < fromNorth)
-        {
-            _trees.Multimesh.VisibleInstanceCount = 0;
-            _rocks.Multimesh.VisibleInstanceCount = 0;
-            return;
-        }
-        IndexFoliageBuildings(window);
+        if (!window.HasArea()) toEast = fromEast - 1;
+
+        _submerged.Clear();
+        var water = _world.WaterCells;
+        for (int slot = 0; slot < water.Rows.SlotCount; slot++)
+            if (water.Rows.IsLive(slot)) _submerged.Add(new Vector2I(water.East[slot].Raw, water.North[slot].Raw));
 
         // ⚠ THE YARD TEST FOLLOWS THE PAVING AND NOT THE LOTS. `SyntheticCity` lays a lattice larger
         // than it subdivides (`plans/0049` F8), so a rectangle drawn round the Lots leaves paved
@@ -500,100 +498,162 @@ public partial class Main
         // `_laid.Grow(_span * 0.5f)` suppressed a city-width of countryside in every direction, so
         // the bigger the city the barer its surroundings -- plans/0051 F7. One block of slack is
         // kept because a Node is a centreline and a carriageway has width.
-        Rect2 paved = _paved.Grow(block * MetresPerTile);
+        var basis = new ScatterBasis(
+            _world, fromEast, fromNorth, toEast, toNorth, _paved.Grow(block * MetresPerTile),
+            _world.Rules.Lots.LotsPerSegment, _paves);
+
+        if (basis != _scatterBasis)
+        {
+            _scatterBasis = basis;
+            _scene.Reset(_treeComponent);
+            _scene.Reset(_rockComponent);
+        }
+        else
+        {
+            _scene.Refresh(_treeComponent);
+            _scene.Refresh(_rockComponent);
+        }
+    }
+
+    /// <summary>What every Cell's scatter reads besides its own Cell. A change re-lists and re-plans every Cell.</summary>
+    /// <remarks>The lattice <see cref="InAYard"/> reads changes only through <see cref="Pave"/>, which counts in <c>Paves</c> and scatters.</remarks>
+    private readonly record struct ScatterBasis(
+        Borough.Core.Entities.World? World, int FromEast, int FromNorth, int ToEast, int ToNorth, Rect2 Paved, int Lots, int Paves);
+
+    private static long CellOwner(int east, int north) => ((long)north * CellGrid.WorldCells) + east;
+
+    private static (int East, int North) OwnerCell(long owner) =>
+        ((int)(owner % CellGrid.WorldCells), (int)(owner / CellGrid.WorldCells));
+
+    private static bool Rocky(TerrainKind kind) => kind is TerrainKind.Rock or TerrainKind.ThinSoil;
+
+    private void TreeOwners(List<PreparedOwner> into) => ScatterOwners(into, rocks: false);
+
+    private void RockOwners(List<PreparedOwner> into) => ScatterOwners(into, rocks: true);
+
+    /// <summary>Each Cell in the scatter window that could ever draw a tree, or a rock.</summary>
+    /// <remarks>
+    /// Woodland never grows past the count the seed laid, and terrain is fixed at world creation,
+    /// so a Cell left out here stays empty until the window is listed again.
+    /// </remarks>
+    private void ScatterOwners(List<PreparedOwner> into, bool rocks)
+    {
         WoodlandCellTable trees = _world.Layers.Woodland;
         TerrainCellTable ground = _world.Layers.Terrain;
-        var submerged = new HashSet<Vector2I>();
-        var water = _world.WaterCells;
-        for (int slot = 0; slot < water.Rows.SlotCount; slot++)
-            if (water.Rows.IsLive(slot)) submerged.Add(new Vector2I(water.East[slot].Raw, water.North[slot].Raw));
-        int crowns = 0;
-        int stones = 0;
-
-        // Stable city-centred order; residency and upload priority belong to InstanceBuffer.
-        Vector2 anchor = CityAnchor(paved);
-        var cells = new List<Vector2I>((toEast - fromEast + 1) * (toNorth - fromNorth + 1));
-
-        for (int north = fromNorth; north <= toNorth; north++)
+        ScatterBasis basis = _scatterBasis;
+        for (int north = basis.FromNorth; north <= basis.ToNorth; north++)
         {
-            for (int east = fromEast; east <= toEast; east++)
+            for (int east = basis.FromEast; east <= basis.ToEast; east++)
             {
-                cells.Add(new Vector2I(east, north));
-            }
-        }
-
-        cells.Sort((left, right) =>
-        {
-            int order = CellReach(left, anchor).CompareTo(CellReach(right, anchor));
-
-            // ⚠ TIES BROKEN ON THE INDEX so the order is total. `List.Sort` is introsort and is not
-            // stable, and an unstable order here is a woodland that rearranges itself whenever a
-            // Building is put up -- the one thing `Scramble` was chosen to prevent.
-            return order != 0 ? order
-                : left.Y != right.Y ? left.Y.CompareTo(right.Y)
-                : left.X.CompareTo(right.X);
-        });
-
-        foreach (Vector2I cell in cells)
-        {
-            if (submerged.Contains(cell)) continue;
-            {
-                int east = cell.X;
-                int north = cell.Y;
-
                 var at = new Cells(east);
                 var up = new Cells(north);
-                ulong key = Scramble(((ulong)(uint)north << 20) | (uint)east);
-                int wooded = trees.At(at, up);
-                int wants = wooded * CrownsPerCell / CellGrid.TilesInCell;
-                TerrainKind kind = ground.At(at, up);
-                int rocky = kind is TerrainKind.Rock or TerrainKind.ThinSoil ? 3 : 0;
+                if (rocks ? !Rocky(ground.At(at, up)) : trees.PotentialAt(at, up) == 0) continue;
 
-                for (int i = 0; i < wants + rocky; i++)
-                {
-                    ulong identity = ((ulong)(uint)north << 32) | ((ulong)(uint)east << 16) | (uint)(i + 1);
-                    ulong draw = Scramble(key + (ulong)i);
-                    float x = (east * CellGrid.MetresPerCell) + ((draw & 0xFFFu) / 4095f * CellGrid.MetresPerCell);
-                    float z = (north * CellGrid.MetresPerCell) + (((draw >> 12) & 0xFFFu) / 4095f * CellGrid.MetresPerCell);
+                // A piece's reach is tested at extent 32 from a ground point inside its Cell.
+                into.Add(new PreparedOwner(
+                    CellOwner(east, north),
+                    new Vector3((east + 0.5f) * CellGrid.MetresPerCell, 0f, -(north + 0.5f) * CellGrid.MetresPerCell),
+                    (CellGrid.MetresPerCell * 0.5f) + 32f));
+            }
+        }
+    }
 
-                    if (!(i < wants ? _trees : _rocks).Reaches(new Vector3(x, 0f, -z))) continue;
+    /// <summary>Changes whenever the Cell's woodland, terrain, water or nearby footprints change.</summary>
+    private long ScatterInputs(long owner)
+    {
+        (int east, int north) = OwnerCell(owner);
+        var cell = new Vector2I(east, north);
+        var at = new Cells(east);
+        var up = new Cells(north);
+        long footprints = _foliageBlocks.TryGetValue(cell, out FoliageCell? near) ? near.Stamp : 0;
 
-                    if (BuildingExcludesFoliage(new Vector2(x, z))
-                        || (paved.HasPoint(new Vector2(x, z)) && !InAYard(x, z, lots)))
-                    {
-                        continue;
-                    }
+        return (footprints << 24)
+            | ((long)_world.Layers.Woodland.At(at, up) << 9)
+            | ((long)_world.Layers.Terrain.At(at, up) << 1)
+            | (_submerged.Contains(cell) ? 1L : 0L);
+    }
 
-                    if (i < wants)
-                    {
-                        float tall = 7f + (((draw >> 24) & 0xFFu) / 255f * 9f);
-                        float broad = tall * (0.45f + (((draw >> 32) & 0x3Fu) / 63f * 0.3f));
+    // The ground point keeps the whole-city scatter's reach test, which ignored a piece's height.
+    private static bool ScatterReaches(InstanceLayer layer, PreparedPiece piece) =>
+        layer.Reaches(new Vector3(piece.Where.Origin.X, 0f, piece.Where.Origin.Z));
 
-                        _trees.Multimesh.Identity(crowns, identity);
-                        _trees.Multimesh.SetInstanceTransform(
-                            crowns,
-                            new Transform3D(YawScaled((draw & 255) / 255f * Mathf.Tau, new Vector3(broad, tall, broad)),
-                                new Vector3(x, 0.05f, -z)));
-                        float shade = 0.88f + ((draw >> 40) & 255) / 255f * 0.24f;
-                        _trees.Multimesh.SetInstanceColor(crowns++, new Color(shade, shade, shade));
-                    }
-                    else
-                    {
-                        float lump = 1.6f + (((draw >> 24) & 0xFFu) / 255f * 3.4f);
+    private PreparedPiece[] Trees(long owner) => CellScatter(owner, rocks: false);
 
-                        _rocks.Multimesh.Identity(stones, identity);
-                        _rocks.Multimesh.SetInstanceTransform(
-                            stones++,
-                            new Transform3D(
-                                Basis.FromScale(new Vector3(lump, lump * 0.6f, lump * 0.8f)),
-                                new Vector3(x, lump * 0.3f, -z)));
-                    }
-                }
+    private PreparedPiece[] Rocks(long owner) => CellScatter(owner, rocks: true);
+
+    /// <summary>One Cell's trees, or its rocks, in the order the Cell draws them.</summary>
+    private PreparedPiece[] CellScatter(long owner, bool rocks)
+    {
+        (int east, int north) = OwnerCell(owner);
+        if (_submerged.Contains(new Vector2I(east, north))) return [];
+
+        int lots = _scatterBasis.Lots;
+        Rect2 paved = _scatterBasis.Paved;
+        var at = new Cells(east);
+        var up = new Cells(north);
+        ulong key = Scramble(((ulong)(uint)north << 20) | (uint)east);
+        int wants = _world.Layers.Woodland.At(at, up) * CrownsPerCell / CellGrid.TilesInCell;
+        int rocky = Rocky(_world.Layers.Terrain.At(at, up)) ? 3 : 0;
+        int first = rocks ? wants : 0;
+        int end = rocks ? wants + rocky : wants;
+        var pieces = new List<PreparedPiece>(end - first);
+
+        for (int i = first; i < end; i++)
+        {
+            ulong identity = ((ulong)(uint)north << 32) | ((ulong)(uint)east << 16) | (uint)(i + 1);
+            ulong draw = Scramble(key + (ulong)i);
+            float x = (east * CellGrid.MetresPerCell) + ((draw & 0xFFFu) / 4095f * CellGrid.MetresPerCell);
+            float z = (north * CellGrid.MetresPerCell) + (((draw >> 12) & 0xFFFu) / 4095f * CellGrid.MetresPerCell);
+
+            if (BuildingExcludesFoliage(new Vector2(x, z))
+                || (paved.HasPoint(new Vector2(x, z)) && !InAYard(x, z, lots)))
+            {
+                continue;
+            }
+
+            if (!rocks)
+            {
+                float tall = 7f + (((draw >> 24) & 0xFFu) / 255f * 9f);
+                float broad = tall * (0.45f + (((draw >> 32) & 0x3Fu) / 63f * 0.3f));
+                float shade = 0.88f + ((draw >> 40) & 255) / 255f * 0.24f;
+                pieces.Add(new PreparedPiece(
+                    identity,
+                    new Transform3D(YawScaled((draw & 255) / 255f * Mathf.Tau, new Vector3(broad, tall, broad)),
+                        new Vector3(x, 0.05f, -z)),
+                    new Color(shade, shade, shade)));
+            }
+            else
+            {
+                float lump = 1.6f + (((draw >> 24) & 0xFFu) / 255f * 3.4f);
+                pieces.Add(new PreparedPiece(
+                    identity,
+                    new Transform3D(
+                        Basis.FromScale(new Vector3(lump, lump * 0.6f, lump * 0.8f)),
+                        new Vector3(x, lump * 0.3f, -z)),
+                    Colors.White));
             }
         }
 
-        _trees.Multimesh.VisibleInstanceCount = crowns;
-        _rocks.Multimesh.VisibleInstanceCount = stones;
+        return [.. pieces];
+    }
+
+    /// <summary>Orders Cells city-centred: by distance from <see cref="CityAnchor"/>, then north, then east.</summary>
+    private void SortCells(long[] owners)
+    {
+        Vector2 anchor = CityAnchor(_scatterBasis.Paved);
+        var keyed = new (float Reach, long Owner)[owners.Length];
+        for (int i = 0; i < owners.Length; i++)
+        {
+            (int east, int north) = OwnerCell(owners[i]);
+            keyed[i] = (CellReach(new Vector2I(east, north), anchor), owners[i]);
+        }
+
+        // ⚠ TIES BROKEN ON THE OWNER so the order is total. An unstable order here is a woodland
+        // that rearranges itself whenever a Building is put up -- the one thing `Scramble` was
+        // chosen to prevent.
+        Array.Sort(keyed, static (left, right) =>
+            left.Reach != right.Reach ? left.Reach.CompareTo(right.Reach) : left.Owner.CompareTo(right.Owner));
+        for (int i = 0; i < owners.Length; i++) owners[i] = keyed[i].Owner;
     }
 
     // Equal to `Basis.FromEuler(new(0, yaw, 0)) * Basis.FromScale(scale)`, which composes three
@@ -1991,9 +2051,11 @@ public partial class Main
     private void Pave()
     {
         _kerbAddresses = Addresses();
+        _paves++;
         Fill(_roads, Paving(), _roadIds);
         Fill(_footways, Footways(), _footwayIds);
         _scene.Reset(_kerbComponent);
+        Scatter();
     }
 
     /// <summary>The Cell lattice, drawn over the ground the city stands on.</summary>

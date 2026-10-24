@@ -435,9 +435,13 @@ public sealed class InstanceBuffer
 
     public bool Remove(long owner) => Write(owner, [], []);
 
+    /// <summary>Puts owner keys in canonical order. Ascending key order unless set.</summary>
+    public Action<long[]> SortOwners { get; set; } = static owners => Array.Sort(owners);
+
     /// <summary>
-    /// Instance indices in canonical order. A layer written by owner lists owners by key, each in
-    /// the order it was written. Any other layer lists its indices in order.
+    /// Instance indices in canonical order. A layer written by owner lists owners in
+    /// <see cref="SortOwners"/> order, each in the order it was written. Any other layer lists its
+    /// indices in order.
     /// </summary>
     public int[] Canonical()
     {
@@ -448,7 +452,7 @@ public sealed class InstanceBuffer
             return order;
         }
         long[] owners = [.. _owned.Keys];
-        Array.Sort(owners);
+        SortOwners(owners);
         int at = 0;
         foreach (long owner in owners)
             foreach (int handle in _owned[owner]) order[at++] = _data[handle].Index;

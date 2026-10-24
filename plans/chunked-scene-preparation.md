@@ -1,7 +1,7 @@
 # Chunked scene preparation
 
 Owns the board row *Bounded scene preparation and uploads*. State: design. Worktree
-`chunk-preparation`, based on `lot-index` at `f049ab4e`. Steps 1 and 2 are implemented.
+`chunk-preparation`, based on `lot-index` at `f049ab4e`. Steps 1 to 3 are implemented.
 
 ## Outcome
 
@@ -329,6 +329,37 @@ Each step lands alone. Each must pass the equivalence checks below before the ne
   1,227,001 kerb owners.
 - The renderer checks cover reach, canonical order, owners kept whole across a regate, the
   one-owner minimum per frame, eviction and reset.
+
+### Step 3 result, 2026-10-24
+
+- Trees and rocks are two `ScenePreparation` components. Each Cell is one owner. A plan holds the
+  Cell's trees or its rocks in the whole-city walk's order.
+- The owner list holds only Cells that could ever draw. A tree Cell needs a seeded woodland count
+  (`Potential`), which woodland never grows past. A rock Cell needs rocky terrain, which is fixed at
+  world creation.
+- The footprint index is kept by Cell and updated per footprint as Massing records it. Each indexed
+  Cell carries a stamp that changes with its footprints.
+- A Cell's inputs are its woodland count, terrain, water and footprint stamp. A regate re-plans each
+  reached Cell whose inputs changed since its plan.
+- Inputs shared by every Cell reset both components: the World, the scatter window, the paving, Lots
+  per Segment and the count of `Pave` runs. `Pave` now scatters, so a new Street clears its crowns at
+  once. The whole-city scatter kept them until the next camera rebuild or footprint change.
+- `InstanceBuffer.SortOwners` puts Cells in draw order: distance from `CityAnchor`, then north, then
+  east. It runs when a list is printed, so a moved anchor re-plans nothing.
+- The per-piece reach test keeps the whole-city scatter's ground point (`ScatterReaches`).
+- Optimized shell, i5-10400, load 1.1 at the start, four shells running together. These runs check
+  equality only, so no timing is recorded.
+- Against step 2 (`d8cb4de4`), `traveller` and `car` rows removed, draw lists match byte for byte
+  at all four cameras on the 1M save, for the running city at Tick 600, and for the 25,000-Citizen
+  `shopping.toml` city at `focus 120 120 900`.
+- Counts on the 1M save: 220,160 tree owners and 38,961 rock owners. The descent planned 19,104 tree
+  Cells. The pan planned 5,031 more, where the whole-city scatter re-planned 21,600–25,344. Tree
+  plans hold 3.2–4.4 MB.
+- The verify run on the 25,000-Citizen city, with four camera moves and a Street, found no
+  difference after `Pave` began to scatter. Before that change it caught a Cell planned on the old
+  lattice.
+- The renderer checks cover an owner order set on the layer, re-planning only the owner whose
+  inputs changed, and `Refresh`.
 
 ## Decisions settled, 2026-10-22
 
