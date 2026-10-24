@@ -59,7 +59,7 @@ internal static class AppearanceDump
 
         var picks = new SortedDictionary<(string Kind, string Family), int>();
         var fallbacks = new SortedDictionary<string, (int Buildings, int Fallback, int Missing)>(StringComparer.Ordinal);
-        var unclaimed = new SortedDictionary<(BlockPattern Pattern, int Storeys), (int Buildings, int Frontage0, int Frontage1, int Depth0, int Depth1)>();
+        var unclaimed = new SortedDictionary<(string Kind, BlockPattern Pattern, int Storeys, int Frontage, int Depth), int>();
         for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
         {
             if (!BuildingFacts.TryOf(world, names, slot, out BuildingFacts facts)) continue;
@@ -71,11 +71,8 @@ internal static class AppearanceDump
                 fallback + (pick.Choice == FamilyChoice.Fallback ? 1 : 0),
                 missing + (pick.Choice == FamilyChoice.Missing ? 1 : 0));
             if (pick.Choice == FamilyChoice.Eligible) continue;
-            (BlockPattern, int) shape = (facts.Pattern, facts.Storeys);
-            unclaimed[shape] = unclaimed.TryGetValue(shape, out var seen)
-                ? (seen.Buildings + 1, Math.Min(seen.Frontage0, facts.FrontageMetres), Math.Max(seen.Frontage1, facts.FrontageMetres),
-                    Math.Min(seen.Depth0, facts.DepthMetres), Math.Max(seen.Depth1, facts.DepthMetres))
-                : (1, facts.FrontageMetres, facts.FrontageMetres, facts.DepthMetres, facts.DepthMetres);
+            var shape = (facts.Kind, facts.Pattern, facts.Storeys, facts.FrontageMetres, facts.DepthMetres);
+            unclaimed[shape] = unclaimed.GetValueOrDefault(shape) + 1;
         }
 
         output.WriteLine();
@@ -96,12 +93,12 @@ internal static class AppearanceDump
         }
 
         output.WriteLine();
-        output.WriteLine("## Fallback and missing use by block pattern and storeys");
-        output.WriteLine("  pattern               storeys  buildings  frontage m  depth m");
-        foreach (((BlockPattern pattern, int storeys), var shape) in unclaimed)
+        output.WriteLine("## Fallback and missing use by kind and lot shape");
+        output.WriteLine("  kind                  pattern               storeys  frontage m  depth m  buildings");
+        foreach (((string kind, BlockPattern pattern, int storeys, int frontage, int depth), int count) in unclaimed)
         {
             output.WriteLine(string.Create(CultureInfo.InvariantCulture,
-                $"  {pattern,-20}  {storeys,7}  {shape.Buildings,9}  {$"{shape.Frontage0}-{shape.Frontage1}",10}  {$"{shape.Depth0}-{shape.Depth1}",7}"));
+                $"  {kind,-20}  {pattern,-20}  {storeys,7}  {frontage,10}  {depth,7}  {count,9}"));
         }
 
         return 0;

@@ -420,11 +420,19 @@ public static class StylePresetReader
                     "terrace" => HouseVariant.Terrace,
                     "front-gables" => HouseVariant.FrontGables,
                     "villa" => HouseVariant.Villa,
+                    "hipped" => HouseVariant.Hipped,
+                    "half-hip" => HouseVariant.HalfHip,
+                    "cross-gable" => HouseVariant.CrossGable,
+                    "saltbox" => HouseVariant.Saltbox,
+                    "gambrel" => HouseVariant.Gambrel,
+                    "l-plan" => HouseVariant.LPlan,
+                    "rear-outshot" => HouseVariant.RearOutshot,
+                    "side-wing" => HouseVariant.SideWing,
                     _ => null,
                 };
                 if (variant is not null && parsed is null)
                 {
-                    Refuse(LineOf(_keys["variant"]), "'variant' must be \"terrace\", \"front-gables\" or \"villa\".");
+                    Refuse(LineOf(_keys["variant"]), "'variant' must be \"terrace\", \"front-gables\", \"villa\", \"hipped\", \"half-hip\", \"cross-gable\", \"saltbox\", \"gambrel\", \"l-plan\", \"rear-outshot\" or \"side-wing\".");
                 }
                 else if (parsed is { } found)
                 {

@@ -234,17 +234,41 @@ public sealed record MidriseBody(
 /// <summary>A house body's form. Every proportion, material and paint is drawn per Building.</summary>
 public sealed record HouseBody(HouseVariant Variant);
 
-/// <summary>The three house forms a body can build.</summary>
+/// <summary>The house forms a body can build.</summary>
 public enum HouseVariant
 {
-    /// <summary>A row of side-gabled houses under one ridge along the street.</summary>
+    /// <summary>A row of side-gabled houses under one ridge along the street, or one house on a narrow Lot.</summary>
     Terrace,
 
-    /// <summary>A row of houses, each with its own ridge running back from the street.</summary>
+    /// <summary>A row of houses, each with its own ridge running back from the street, or one on a narrow Lot.</summary>
     FrontGables,
 
     /// <summary>A hipped block set back behind gabled bays that stand forward to the Lot line.</summary>
     Villa,
+
+    /// <summary>One house under a roof that slopes on all four sides.</summary>
+    Hipped,
+
+    /// <summary>One front-gabled house whose gable peaks are clipped by small hips.</summary>
+    HalfHip,
+
+    /// <summary>One side-gabled house with a smaller street gable over one side.</summary>
+    CrossGable,
+
+    /// <summary>One house whose rear roof slope runs down to a storey lower than its front.</summary>
+    Saltbox,
+
+    /// <summary>One house with a storey fewer of wall and its top floor inside a gambrel roof.</summary>
+    Gambrel,
+
+    /// <summary>One house whose street face steps back beside a full-height gabled wing.</summary>
+    LPlan,
+
+    /// <summary>One house with a single-storey range behind it under a lean-to roof.</summary>
+    RearOutshot,
+
+    /// <summary>One house with a single-storey wing standing into its side garden.</summary>
+    SideWing,
 }
 
 /// <summary>What a mid-rise body's upper street storeys open with.</summary>

@@ -3,8 +3,8 @@ using System.Numerics;
 namespace Borough.Appearance;
 
 /// <summary>
-/// The three house forms. Every proportion, material and paint is drawn from a seed, so a street of
-/// one form is still a street of different houses.
+/// The house forms. Every proportion, material and paint is drawn from a seed, so a street of one form
+/// is still a street of different houses.
 /// </summary>
 /// <remarks>
 /// It follows <c>scripts/art/house-families.py</c>. A part name carries its dressing: <c>wall@bricks-088#d6cfbf</c>
@@ -61,8 +61,11 @@ public static partial class FamilyBodyBuilder
             case HouseVariant.FrontGables:
                 FrontGables(writer, look);
                 break;
-            default:
+            case HouseVariant.Villa:
                 Villa(writer, look);
+                break;
+            default:
+                Detached(writer, look, house.Variant);
                 break;
         }
 
@@ -95,6 +98,9 @@ public static partial class FamilyBodyBuilder
         public string Door = string.Empty, BayWall = string.Empty;
         public int Bays;
         public float BayWidth, Spacing, BayPitch;
+        public float WingPitch;
+        public int Side;
+        public bool Dormer;
 
         public static readonly string Plinth = Dressed("plinth", null, "9d988e");
 
@@ -155,8 +161,18 @@ public static partial class FamilyBodyBuilder
                 return look;
             }
 
-            look.Pitch = form == HouseVariant.Terrace ? r.Range(25f, 40f) : r.Range(38f, 52f);
+            look.Pitch = form switch
+            {
+                HouseVariant.Terrace => r.Range(22f, 40f),
+                HouseVariant.FrontGables => r.Range(30f, 45f),
+                HouseVariant.Hipped => r.Range(22f, 35f),
+                HouseVariant.HalfHip => r.Range(38f, 48f),
+                HouseVariant.CrossGable => r.Range(28f, 40f),
+                HouseVariant.Saltbox => r.Range(32f, 42f),
+                _ => r.Range(30f, 40f),
+            };
             int count = Math.Max(2, (int)MathF.Round(frontage / r.Range(6.0f, 8.5f)));
+            if (frontage < SingleHouseFrontage || IsDetached(form)) count = 1;
             bool pairs = r.Chance(.5f);
             for (int i = 0; i < count; i++)
             {
@@ -164,6 +180,13 @@ public static partial class FamilyBodyBuilder
             }
 
             look.PairedAttic = r.Chance(.5f);
+            if (IsDetached(form))
+            {
+                look.WingPitch = r.Range(40f, 45f);
+                look.Side = r.Chance(.5f) ? 1 : -1;
+                look.Dormer = r.Chance(.6f);
+            }
+
             return look;
         }
     }
@@ -380,15 +403,16 @@ public static partial class FamilyBodyBuilder
     private static Opening Window(float u, int storey, float width) =>
         new(u, (storey * Storey) + WindowSill, width, WindowHeight, OpeningKind.Window);
 
-    private static List<Opening> HouseFront(HouseModule m, HouseLook s)
+    private static List<Opening> HouseFront(HouseModule m, HouseLook s, int? storeys = null)
     {
         float w = m.Width;
+        int levels = storeys ?? s.Storeys;
         float Flip(float u, float width) => m.Mirror ? w - u - width : u;
         var openings = new List<Opening> { new(Flip(.7f, 1f), DoorSill, 1f, DoorHeight, OpeningKind.Door) };
         float ground = MathF.Min(s.WindowWidth * 1.5f, w * .3f);
         openings.Add(new Opening(Flip((w * .62f) - (ground / 2f), ground), WindowSill, ground, WindowHeight, OpeningKind.Window));
         ReadOnlySpan<float> centres = w >= 6.5f ? [w * .28f, w * .72f] : [w * .6f];
-        for (int k = 1; k < s.Storeys; k++)
+        for (int k = 1; k < levels; k++)
         {
             foreach (float c in centres) openings.Add(Window(Flip(c - (s.WindowWidth / 2f), s.WindowWidth), k, s.WindowWidth));
         }
@@ -396,7 +420,7 @@ public static partial class FamilyBodyBuilder
         return openings;
     }
 
-    private static List<Opening> HouseBack(HouseModule m, HouseLook s)
+    private static List<Opening> HouseBack(HouseModule m, HouseLook s, int? storeys = null)
     {
         float w = m.Width;
         var openings = new List<Opening>
@@ -404,7 +428,7 @@ public static partial class FamilyBodyBuilder
             new((w * .25f) - .5f, DoorSill, 1f, 2.5f, OpeningKind.Door),
             Window((w * .7f) - (s.WindowWidth / 2f), 0, s.WindowWidth),
         };
-        for (int k = 1; k < s.Storeys; k++)
+        for (int k = 1; k < (storeys ?? s.Storeys); k++)
         {
             foreach (float c in (ReadOnlySpan<float>)[.3f, .7f]) openings.Add(Window((w * c) - (s.WindowWidth / 2f), k, s.WindowWidth));
         }
@@ -412,10 +436,10 @@ public static partial class FamilyBodyBuilder
         return openings;
     }
 
-    private static List<Opening> Ends(float depth, HouseLook s)
+    private static List<Opening> Ends(float depth, HouseLook s, int? storeys = null)
     {
         var openings = new List<Opening>();
-        for (int k = 0; k < s.Storeys; k++)
+        for (int k = 0; k < (storeys ?? s.Storeys); k++)
         {
             foreach (float c in (ReadOnlySpan<float>)[.3f, .7f]) openings.Add(Window((depth * c) - .5f, k, 1f));
         }
@@ -434,17 +458,18 @@ public static partial class FamilyBodyBuilder
         w.Box(new Vector3((-s.W / 2f) - .05f, (-s.D / 2f) - .05f, 0f), new Vector3((s.W / 2f) + .05f, (s.D / 2f) + .05f, PlinthHeight), HouseLook.Plinth);
 
     /// <summary>A wall with its openings, split at the first floor where the ground storey is brick.</summary>
-    private static void Elevation(Writer w, HouseLook s, Face face, float width, List<Opening> openings, string wall, string door)
+    private static void Elevation(Writer w, HouseLook s, Face face, float width, List<Opening> openings, string wall, string door, float? height = null)
     {
-        if (s.Ground is { } ground && s.H > Storey)
+        float h = height ?? s.H;
+        if (s.Ground is { } ground && h > Storey)
         {
             w.Facade(face, width, Storey, openings.FindAll(o => o.V < Storey), ground, s.Trim, door, s.Frame);
             var upper = new Face(face.Point(0f, Storey), face.Along, face.Outward);
-            w.Facade(upper, width, s.H - Storey, [.. openings.Where(o => o.V >= Storey).Select(o => o with { V = o.V - Storey })], wall, s.Trim, door, s.Frame);
+            w.Facade(upper, width, h - Storey, [.. openings.Where(o => o.V >= Storey).Select(o => o with { V = o.V - Storey })], wall, s.Trim, door, s.Frame);
         }
         else
         {
-            w.Facade(face, width, s.H, openings, wall, s.Trim, door, s.Frame);
+            w.Facade(face, width, h, openings, wall, s.Trim, door, s.Frame);
         }
     }
 
