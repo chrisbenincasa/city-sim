@@ -1,0 +1,43 @@
+lane:   FullyQualifiedName~LabourShortfallProbe
+tree:   b6737549-dirty on HEAD
+log:    /tmp/borough-test-20261024-104319.log
+xunit:  6 threads, nice 10
+
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Borough.Analysers -> /home/christian/Code/city-sim/.claude/worktrees/inv-review-probe-b/src/Borough.Analysers/bin/Release/netstandard2.0/Borough.Analysers.dll
+  Borough.Core -> /home/christian/Code/city-sim/.claude/worktrees/inv-review-probe-b/src/Borough.Core/bin/Release/net10.0/Borough.Core.dll
+  Borough.Formats -> /home/christian/Code/city-sim/.claude/worktrees/inv-review-probe-b/src/Borough.Formats/bin/Release/net10.0/Borough.Formats.dll
+  Borough.Appearance -> /home/christian/Code/city-sim/.claude/worktrees/inv-review-probe-b/src/Borough.Appearance/bin/Release/net10.0/Borough.Appearance.dll
+  Borough.Headless -> /home/christian/Code/city-sim/.claude/worktrees/inv-review-probe-b/src/Borough.Headless/bin/Release/net10.0/Borough.Headless.dll
+  Borough.Tests -> /home/christian/Code/city-sim/.claude/worktrees/inv-review-probe-b/tests/Borough.Tests/bin/Release/net10.0/Borough.Tests.dll
+Test run for /home/christian/Code/city-sim/.claude/worktrees/inv-review-probe-b/tests/Borough.Tests/bin/Release/net10.0/Borough.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+/home/christian/Code/city-sim/.claude/worktrees/inv-review-probe-b/tests/Borough.Tests/bin/Release/net10.0/Borough.Tests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.13]   Discovering: Borough.Tests
+[xUnit.net 00:00:00.77]   Discovered:  Borough.Tests
+[xUnit.net 00:00:00.80]   Starting:    Borough.Tests
+[xUnit.net 00:00:03.26]   Finished:    Borough.Tests
+  Passed Borough.Tests.ReviewProbes.LabourShortfallProbe.Labour_blocks_read_as_shortfalls_since_tick_zero [2 s]
+  Standard Output Messages:
+ tick 8704 building 91: Shortfalls 2, primary waits for resource 2 (Labour), StarvedSince 0, MissedFirings 0 -> inspector: "Current shortfall since Tick 0 · 0 missed firings"
+ tick 8960 building 91: Shortfalls 2, primary waits for resource 2 (Labour), StarvedSince 0, MissedFirings 0 -> inspector: "Current shortfall since Tick 0 · 0 missed firings"
+ tick 19456 building 67: Shortfalls 8, primary waits for resource 2 (Labour), StarvedSince 0, MissedFirings 0 -> inspector: "Current shortfall since Tick 0 · 0 missed firings"
+ tick 19712 building 67: Shortfalls 6, primary waits for resource 2 (Labour), StarvedSince 0, MissedFirings 0 -> inspector: "Current shortfall since Tick 0 · 0 missed firings"
+ samples every 256 Ticks over 20000 Ticks
+ labour-blocked Rule Instance samples 7415, of which StarvedSince == 0: 7415
+ non-labour supply-blocked samples 21815
+ Building samples blocked only on labour whose SupplyEvidence reports Shortfalls > 0: 5
+ City Evidence supply-trouble subjects 29158, of which waiting for Labour 7343
+
+
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 3.6852 Seconds
+
+───────────────────────────────────────────────────────────
+full output: /tmp/borough-test-20261024-104319.log
+tree:        b6737549-dirty on HEAD
