@@ -47,7 +47,7 @@ Sweep 02 of the [system review](system-review-brief.md).
 - **Recommendation:** call `RediffusePollution` from `RebuildDerived`, or mark every non-zero
   source dirty there. Hash unchanged for decay > 0. Small, one PR.
 - **Acceptance:** the decay 0 probe passes; a Factorio case runs `fouled.toml` with decay 0.
-- **Routing:** proposed GitHub issue, `needs-triage`.
+- **Routing:** #234, `needs-triage`.
 
 #### SS-B2 — Six `[layers]` percent keys load with the wrong sign above 16383
 
@@ -71,7 +71,7 @@ Sweep 02 of the [system review](system-review-brief.md).
   and give the six keys a maximum so the loader refuses with a message. No hash change where it
   did not overflow. Small, one PR.
 - **Acceptance:** `RoundDivOverflowProbe` passes; a loader test refuses 20000 and 40000.
-- **Routing:** proposed GitHub issue, `needs-triage`.
+- **Routing:** #235, `needs-triage`.
 
 #### SS-B3 — Same-Tick reassessment reuses placement's random draws
 
@@ -94,7 +94,7 @@ Sweep 02 of the [system review](system-review-brief.md).
   housed this Tick. Either moves `chosen.toml` goldens. Small.
 - **Acceptance:** a test houses H at Tick T, forces H into the reassessment sample at T, and
   asserts different draws.
-- **Routing:** proposed GitHub issue, `needs-triage`.
+- **Routing:** #236, `needs-triage`.
 
 ### Bad design decisions
 
@@ -130,7 +130,7 @@ None. No performance candidate arose in this scope.
   both K Ticks and compares hashes, over the audit's worlds plus one Ruleset swap. Add Treasury to
   the column walk. One PR.
 - **Acceptance:** the variant fails on the SS-B1 world before its fix and passes after.
-- **Routing:** proposed GitHub issue, `needs-triage`.
+- **Routing:** #239, `needs-triage`.
 
 #### SS-I2 — 25 analyser gaps compile cleanly in `Borough.Core`
 
@@ -157,7 +157,7 @@ None. No performance candidate arose in this scope.
   harmless. The rest can follow as one PR per analyser.
 - **Acceptance:** each probe becomes a `Fires` case in `ArithmeticLintTests` or `StateLintTests`;
   `run-probes.sh` prints `fired` for every probe.
-- **Routing:** proposed GitHub issue, `needs-triage`, one per analyser or one with a checklist.
+- **Routing:** #237, `needs-triage`.
 
 #### SS-I3 — `TableRegistrationTests` matches tables by type, so a new instance of a registered type can go unsaved
 
@@ -172,7 +172,7 @@ None. No performance candidate arose in this scope.
   `LifeStages.Buckets` removed.
 - **Recommendation:** match `Rows` instances reachable from `World` by reference. Small.
 - **Acceptance:** the probe's removal makes the guard fail.
-- **Routing:** proposed GitHub issue, `needs-triage`.
+- **Routing:** #238, `needs-triage`.
 
 ## Open questions
 
@@ -221,6 +221,5 @@ it should pass.
 
 ## Next actions
 
-- Decide which proposed issues to file: SS-B1, SS-B2, SS-B3, SS-I1, SS-I2, SS-I3.
-- SS-B1 and SS-I1 belong together; the audit variant is the regression check for the bug.
+- Triage #234–#239. #234 (SS-B1) and #239 (SS-I1) are linked; the audit variant is the regression check for the bug.
 - Recheck SS-I1 after #219 merges and SS-B2's line numbers after #212 merges.
