@@ -117,7 +117,7 @@ public static class StylePresetReader
         ArgumentNullException.ThrowIfNull(sources);
         var errors = new List<AppearanceDiagnostic>();
         var families = new List<AppearanceFamily>();
-        (string Name, int EraDays, BlockPattern[] Attached)? preset = null;
+        (string Name, int EraDays, BlockPattern[] Attached, HouseRuns? Runs)? preset = null;
         string? presetAt = null;
 
         foreach ((string file, string text) in sources)
@@ -220,7 +220,7 @@ public static class StylePresetReader
         CheckFamilies(families, errors);
         return errors.Count > 0 || preset is not { } found
             ? new StylePresetResult(null, errors)
-            : new StylePresetResult(new StylePreset(found.Name, found.EraDays, found.Attached, [.. families]), errors);
+            : new StylePresetResult(new StylePreset(found.Name, found.EraDays, found.Attached, [.. families], found.Runs), errors);
     }
 
     /// <summary>
@@ -301,14 +301,64 @@ public static class StylePresetReader
 
         public void Refuse(int line, string message) => errors.Add(new AppearanceDiagnostic(file, line, message));
 
-        public (string, int, BlockPattern[])? Preset()
+        public (string, int, BlockPattern[], HouseRuns?)? Preset()
         {
             int before = errors.Count;
-            Collect(["name", "era_days", "attached"]);
+            Collect(["name", "era_days", "attached", "runs", "run_houses"]);
             string? name = Text("name", required: true);
             long? era = Integer("era_days", required: true, least: 1);
             BlockPattern[] attached = Names("attached", PatternNames) ?? [];
-            return errors.Count > before || name is null || era is null ? null : (name, (int)era, attached);
+            HouseRuns? runs = Runs();
+            return errors.Count > before || name is null || era is null ? null : (name, (int)era, attached, runs);
+        }
+
+        private HouseRuns? Runs()
+        {
+            Bounds? houses = Range("run_houses");
+            switch (Value("runs", required: false))
+            {
+                case null:
+                    if (houses is not null) Refuse(LineOf(_keys["run_houses"]), "'run_houses' needs 'runs'.");
+                    return null;
+                case InlineTableSyntax table:
+                    var weights = new Dictionary<string, long>(StringComparer.Ordinal);
+                    foreach (KeyValueSyntax pair in table.Items.Select(i => i.KeyValue).OfType<KeyValueSyntax>())
+                    {
+                        string share = NameOf(pair.Key);
+                        if (share is not ("alone" or "matched" or "copies"))
+                        {
+                            Refuse(LineOf(pair), $"'runs.{share}' is not a run. Expected alone, matched or copies.");
+                        }
+                        else if (pair.Value is IntegerValueSyntax { Value: >= 0 } weight)
+                        {
+                            weights[share] = weight.Value;
+                        }
+                        else
+                        {
+                            Refuse(LineOf(pair), $"'runs.{share}' must be a whole number of at least 0.");
+                        }
+                    }
+
+                    long alone = weights.GetValueOrDefault("alone");
+                    long matched = weights.GetValueOrDefault("matched");
+                    long copies = weights.GetValueOrDefault("copies");
+                    if (alone + matched + copies <= 0)
+                    {
+                        Refuse(LineOf(_keys["runs"]), "'runs' must give at least one run a weight above 0.");
+                        return null;
+                    }
+
+                    if (houses is not { Low: >= 1 } span)
+                    {
+                        Refuse(LineOf(_keys["runs"]), "'runs' needs 'run_houses' = [low, high], with low at least 1.");
+                        return null;
+                    }
+
+                    return new HouseRuns((int)alone, (int)matched, (int)copies, span);
+                default:
+                    Refuse(LineOf(_keys["runs"]), "'runs' must be an inline table of alone, matched and copies weights.");
+                    return null;
+            }
         }
 
         public AppearanceFamily? Family()

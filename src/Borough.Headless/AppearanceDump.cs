@@ -60,6 +60,8 @@ internal static class AppearanceDump
         var picks = new SortedDictionary<(string Kind, string Family), int>();
         var fallbacks = new SortedDictionary<string, (int Buildings, int Fallback, int Missing)>(StringComparer.Ordinal);
         var unclaimed = new SortedDictionary<(string Kind, BlockPattern Pattern, int Storeys, int Frontage, int Depth), int>();
+        var shares = new SortedDictionary<RunShare, int>();
+        var street = new List<(ulong Face, StreetSide Side, int Offset, string Family)>();
         for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
         {
             if (!BuildingFacts.TryOf(world, names, slot, out BuildingFacts facts)) continue;
@@ -70,6 +72,13 @@ internal static class AppearanceDump
             fallbacks[facts.Kind] = (buildings + 1,
                 fallback + (pick.Choice == FamilyChoice.Fallback ? 1 : 0),
                 missing + (pick.Choice == FamilyChoice.Missing ? 1 : 0));
+            if (pick.Choice == FamilyChoice.Eligible && pick.Family?.Body?.House is not null && facts.Face != 0)
+            {
+                RunShare share = FamilyPicker.RunOf(preset, key, facts).Share;
+                shares[share] = shares.GetValueOrDefault(share) + 1;
+                street.Add((facts.Face, facts.Side, facts.Offset, family));
+            }
+
             if (pick.Choice == FamilyChoice.Eligible) continue;
             var shape = (facts.Kind, facts.Pattern, facts.Storeys, facts.FrontageMetres, facts.DepthMetres);
             unclaimed[shape] = unclaimed.GetValueOrDefault(shape) + 1;
@@ -101,6 +110,25 @@ internal static class AppearanceDump
                 $"  {kind,-20}  {pattern,-20}  {storeys,7}  {frontage,10}  {depth,7}  {count,9}"));
         }
 
+        output.WriteLine();
+        output.WriteLine("## House bodies by run");
+        output.WriteLine("  run        buildings");
+        foreach ((RunShare share, int count) in shares)
+        {
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  {share,-9}  {count,9}"));
+        }
+
+        street.Sort();
+        int pairs = 0, same = 0;
+        for (int i = 1; i < street.Count; i++)
+        {
+            if (street[i].Face != street[i - 1].Face || street[i].Side != street[i - 1].Side) continue;
+            pairs++;
+            if (street[i].Family == street[i - 1].Family) same++;
+        }
+
+        output.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"  {same} of {pairs} neighboring house pairs on one face share a family."));
         return 0;
     }
 }

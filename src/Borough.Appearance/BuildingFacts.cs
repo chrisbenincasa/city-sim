@@ -22,6 +22,8 @@ namespace Borough.Appearance;
 /// <param name="Anchored">Whether one of its Units is an anchor.</param>
 /// <param name="Parking">The car park laid on the Building's own ground.</param>
 /// <param name="Corner">The Lot's parcel reaches both an east–west and a north–south edge of its block.</param>
+/// <param name="Offset">How far along its Segment the Lot's Address stands, in Tiles.</param>
+/// <param name="ParcelFrontage">The Lot's parcel length along the Street, in Tiles.</param>
 public readonly record struct BuildingFacts(
     ulong Id,
     string Kind,
@@ -36,7 +38,9 @@ public readonly record struct BuildingFacts(
     int Units = 0,
     bool Anchored = false,
     ParkingForm Parking = ParkingForm.None,
-    bool Corner = false)
+    bool Corner = false,
+    int Offset = 0,
+    int ParcelFrontage = 0)
 {
     /// <summary>Reads the facts of the live Building in <paramref name="slot"/>.</summary>
     /// <returns><c>false</c> where the slot is dead or the Building has no Lot or no footprint.</returns>
@@ -61,6 +65,7 @@ public readonly record struct BuildingFacts(
         }
 
         bool alongA = LotGeometry.Front(world, lot).Y != 0;
+        LandRectangle parcel = lots.ParcelBounds(lot);
         Address address = lots.AddressOf(lot);
         byte kind = buildings.Kind[slot];
         BlockPattern pattern = lots.PatternOf(lot);
@@ -94,7 +99,9 @@ public readonly record struct BuildingFacts(
                     or BlockPattern.GalleryPrecinct => ParkingForm.Deck,
                 _ => ParkingForm.None,
             },
-            IsCorner(world.Roads.Streets, lots, lot));
+            IsCorner(world.Roads.Streets, lots, lot),
+            address.Exists ? address.Offset.Raw : 0,
+            alongA ? parcel.Width : parcel.Height);
         return true;
     }
 

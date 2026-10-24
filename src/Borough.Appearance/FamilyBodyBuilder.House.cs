@@ -41,7 +41,8 @@ public static partial class FamilyBodyBuilder
     private static readonly float DoorHeight = MathF.Min(2.75f, Storey - .75f);
 
     /// <param name="seed">Which draw, from 0 to <see cref="HouseSeeds"/>.</param>
-    public static FamilyBodyMesh BuildHouse(FamilyBody body, float frontage, float depth, int storeys, int seed)
+    /// <param name="pitch">The draw whose roof pitches the house takes, or <c>null</c> for its own.</param>
+    public static FamilyBodyMesh BuildHouse(FamilyBody body, float frontage, float depth, int storeys, int seed, int? pitch = null)
     {
         ArgumentNullException.ThrowIfNull(body);
         if (body.House is not { } house) throw new ArgumentException("Only a house body is built with BuildHouse().", nameof(body));
@@ -53,6 +54,12 @@ public static partial class FamilyBodyBuilder
         var mesh = new FamilyBodyMesh();
         var writer = new Writer(mesh, body);
         HouseLook look = HouseLook.Draw(house.Variant, seed, frontage, depth, storeys);
+        if (pitch is { } other && other != seed)
+        {
+            HouseLook pitched = HouseLook.Draw(house.Variant, other, frontage, depth, storeys);
+            (look.Pitch, look.WingPitch, look.BayPitch) = (pitched.Pitch, pitched.WingPitch, pitched.BayPitch);
+        }
+
         switch (house.Variant)
         {
             case HouseVariant.Terrace:

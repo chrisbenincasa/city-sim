@@ -10,6 +10,10 @@ public sealed class HouseBodyTests
     public static TheoryData<string> Variants =>
         ["terrace", "front-gables", "villa", "hipped", "half-hip", "cross-gable", "saltbox", "gambrel", "l-plan", "rear-outshot", "side-wing"];
 
+    /// <summary>The forms with a drawn pitch. The gambrel's two slopes are fixed.</summary>
+    public static TheoryData<string> PitchedVariants =>
+        ["terrace", "front-gables", "villa", "hipped", "half-hip", "cross-gable", "saltbox", "l-plan", "rear-outshot", "side-wing"];
+
     [Theory]
     [MemberData(nameof(Variants))]
     public void The_same_seed_builds_the_same_house(string variant)
@@ -18,6 +22,17 @@ public sealed class HouseBodyTests
 
         Assert.Equal(Describe(FamilyBodyBuilder.BuildHouse(body, 40f, 24f, 2, 17)),
             Describe(FamilyBodyBuilder.BuildHouse(body, 40f, 24f, 2, 17)));
+    }
+
+    [Theory]
+    [MemberData(nameof(PitchedVariants))]
+    public void A_house_takes_another_draw_s_pitch_and_keeps_its_own_with_its_own_draw(string variant)
+    {
+        FamilyBody body = House(variant);
+        string own = Describe(FamilyBodyBuilder.BuildHouse(body, 40f, 24f, 2, 17));
+
+        Assert.Equal(own, Describe(FamilyBodyBuilder.BuildHouse(body, 40f, 24f, 2, 17, 17)));
+        Assert.Contains(Enumerable.Range(0, 8), pitch => Describe(FamilyBodyBuilder.BuildHouse(body, 40f, 24f, 2, 17, pitch)) != own);
     }
 
     [Theory]

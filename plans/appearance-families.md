@@ -44,8 +44,8 @@ on October 24, 2026, after narrow houses shipped in two forms and read as repeat
 
 - A form is a roof shape plus a plan. Pitch, paint and materials vary within a form and do not count.
 - Each size band a family covers draws at least four forms.
-- A driven street of 14 Buildings in one band shows no two neighbors with the same form and pitch
-  within 5 degrees.
+- Neighbors share a form only inside a run. Outside runs, a driven street of 14 Buildings in one
+  band shows no two neighbors with the same form and pitch within 5 degrees.
 - The coverage report counts fallback Buildings by kind and exact Lot shape, so a gap shows its size.
 - Pitch stops at 45 degrees, 48 for the half-hip, until a form needs a steeper roof.
 
@@ -57,6 +57,22 @@ a house body and none fell back to a box. Side gable, front gable, hipped, half-
 saltbox, gambrel and the three plans all appear on the 8 m detached Lots, in mixed order along each
 street. The captures do not measure the 14-Building bar, because the draw list does not name a
 body's form. `forms-h2-*.png` from `forms-h2.drive`.
+
+Detached houses also stand in runs, decided with the user on October 24, 2026. A preset's `runs`
+weights what a run shares, and `run_houses` gives its length in Lots. Each face draws one length
+per era, and a run is that many parcels of the face, so a house's run depends only on its own
+facts. Three kinds of run mix:
+
+| Run | Shares | test-street weight |
+|---|---|---|
+| alone | nothing | 3 |
+| matched | family and roof pitch | 5 |
+| copies | family, proportions, materials and paint | 2 |
+
+On `pictured.toml` at 5,000 Citizens and Tick 600, 495 house bodies stand alone, 951 in matched runs
+and 358 in copies. 734 of 1,476 neighboring house pairs on one face share a family, where the
+family weights alone would give about one in eight. `runs-h3-*.png` from `runs-h3.drive` show the
+same blocks as `forms-h2`.
 
 ## What the demonstration showed
 

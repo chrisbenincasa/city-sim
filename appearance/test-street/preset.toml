@@ -11,6 +11,11 @@ era_days = 30
 # Patterns whose Buildings stand in attached rows along a block face.
 attached = ["perimeter", "back-to-back"]
 
+# Detached houses on one block face and era stand in runs of 2 to 4 Lots. A matched run shares its
+# family and roof pitch. A run of copies shares its family, proportions, materials and paint.
+runs = { alone = 3, matched = 5, copies = 2 }
+run_houses = [2, 4]
+
 [[family]]
 id = "box"
 fallback = true

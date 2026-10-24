@@ -81,7 +81,26 @@ public sealed record PaintScheme(IReadOnlyDictionary<string, Paint> Parts, int W
 /// share a draw, and so share a family.
 /// </param>
 /// <param name="Attached">The block patterns whose Buildings stand in attached runs.</param>
-public sealed record StylePreset(string Name, int EraDays, BlockPattern[] Attached, AppearanceFamily[] Families);
+/// <param name="Runs">How detached houses on one block face group into runs, or <c>null</c> where each draws alone.</param>
+public sealed record StylePreset(string Name, int EraDays, BlockPattern[] Attached, AppearanceFamily[] Families, HouseRuns? Runs = null);
+
+/// <summary>
+/// Runs of neighboring detached houses on one block face and era. Each run draws what its houses
+/// share, by weight.
+/// </summary>
+/// <param name="Alone">The weight of runs whose houses share nothing.</param>
+/// <param name="Matched">The weight of runs whose houses share their family and roof pitch.</param>
+/// <param name="Copies">The weight of runs whose houses share their family, proportions, materials and paint.</param>
+/// <param name="Houses">How many Lots one run spans, drawn per face.</param>
+public sealed record HouseRuns(int Alone, int Matched, int Copies, Bounds Houses);
+
+/// <summary>What the houses of one run share.</summary>
+public enum RunShare : byte
+{
+    Alone,
+    Matched,
+    Copies,
+}
 
 /// <summary>What one bay of one storey shows on a wall.</summary>
 public enum BayKind : byte

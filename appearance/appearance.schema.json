@@ -25,6 +25,23 @@
             "$ref": "#/$defs/pattern"
           },
           "uniqueItems": true
+        },
+        "runs": {
+          "description": "Weights of the runs detached houses on one block face and era stand in. A matched run shares its family and roof pitch; a run of copies shares its family, proportions, materials and paint.",
+          "type": "object",
+          "properties": {
+            "alone": { "type": "integer", "minimum": 0 },
+            "matched": { "type": "integer", "minimum": 0 },
+            "copies": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "run_houses": {
+          "description": "How many Lots one run spans, as [low, high]. Required with runs.",
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1 },
+          "minItems": 2,
+          "maxItems": 2
         }
       },
       "required": [
