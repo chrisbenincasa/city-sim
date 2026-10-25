@@ -28,6 +28,10 @@ sys.argv = _argv
 ts, S = hf.ts, hf.S
 import bpy
 
+for _name, _metres in (('roofing-tiles-003', [2.4, 2.4]), ('clean-asphalt', [2.1, 2.1])):
+    ts.SURFACES[_name] = {'metres': _metres, 'mean': None,
+                          'maps': {k: hf.LIB / f'{_name}-{k}.jpg' for k in ('albedo', 'normal', 'roughness')}}
+
 E = .35
 FREE = .3
 BAY = 3.5
@@ -237,7 +241,7 @@ def parapet(h):
     doors = walls(h)
     ts.box('parapet', (x0, y0, H), (x1, y0 + .25, top), wall)
     ts.box('back parapet', (x0, y1 - .25, H), (x1, y1, H + .5), s['end'])
-    ts.box('roof deck', (x0, y0, H - .2), (x1, y1, H + .05), hf.flat('4f4d4a'))
+    ts.box('roof deck', (x0, y0, H - .2), (x1, y1, H + .05), hf.textured('clean-asphalt'))
     for attached, x, inward in ((h['left'], x0, 1), (h['right'], x1, -1)):
         a, b = sorted((x, x + inward * (.15 if attached else .25)))
         ts.box('side parapet', (a, y0, H), (b, y1, H + (.6 if attached else .5)), s['end'])
@@ -255,6 +259,7 @@ def mansard(h):
     """Two storeys of wall and the third inside a mansard, lit by a dormer a bay."""
     x0, x1, y0, y1 = h['x0'], h['x1'], h['y0'], h['y1']
     s = h['s']
+    ts.materials['roof'] = ts.materials[hf.textured('roofing-tiles-003')]
     H2 = (h['storeys'] - 1) * S
     Ht, k, cy = H2 + S, 1.1, (y0 + y1) / 2
     crown = Ht + .35

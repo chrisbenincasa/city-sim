@@ -165,7 +165,7 @@ public static partial class FamilyBodyBuilder
     private static void ParapetRoof(Writer w, FamilyBody body, float x, float y, float height, AttachedSides attached)
     {
         float top = height + TerraceParapetMetres;
-        w.Box(new Vector3(-x, -y, height - .2f), new Vector3(x, y, height + .05f), "roof");
+        w.Box(new Vector3(-x, -y, height - .2f), new Vector3(x, y, height + .05f), "membrane");
         w.Box(new Vector3(-x, -y, height), new Vector3(x, -y + .25f, top), "wall");
         w.Box(new Vector3(-x, y - .25f, height), new Vector3(x, y, height + .5f), "wall");
         foreach ((float side, bool shared) in (ReadOnlySpan<(float, bool)>)[(-x, attached.HasFlag(AttachedSides.Left)), (x, attached.HasFlag(AttachedSides.Right))])

@@ -115,7 +115,7 @@ patterns = ["perimeter", "back-to-back"]
 
 [family.body]
 library = "test-street/rowhouses"
-materials = { wall = "bricks-088", wall-end = "bricks-088", roof = "clay-roof-tiles-02" }
+materials = { wall = "bricks-088", wall-end = "bricks-088", membrane = "clean-asphalt" }
 bay_metres = 3.5
 terrace = "parapet"
 chimney = true
@@ -188,7 +188,7 @@ patterns = ["perimeter", "back-to-back"]
 
 [family.body]
 library = "test-street/rowhouses"
-materials = { wall = "bricks-088", wall-end = "bricks-088", roof = "clay-roof-tiles-02" }
+materials = { wall = "bricks-088", wall-end = "bricks-088", roof = "roofing-tiles-003" }
 bay_metres = 3.5
 terrace = "mansard"
 chimney = true

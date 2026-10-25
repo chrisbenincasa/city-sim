@@ -80,6 +80,11 @@ side gable, parapet, mansard, front gable, paired gable and bay front. Each form
 `pitch_degrees` (`FamilyBodyBuilder.Terrace.cs`, `scripts/art/rowhouse-forms.py`). Paired gable
 admits frontages up to 11 m, so the 12 m band draws five forms.
 
+Every form keeps Painted Bricks 088 walls and the shared paints. Pitched forms keep Clay Roof Tiles
+02. The mansard roofs in Roofing Tiles 003 slate. The parapet deck is a `membrane` part in Clean
+Asphalt, and its coping and cornice keep the trim paint. The user chose these on October 25, 2026
+from Blender renders over flat paint, bitumen, asphalt and cast-stone alternatives.
+
 Attached houses stand in terraces. The preset's `terrace_houses = [3, 6]` gives a terrace's length
 in Lots, drawn once per face and era. A terrace shares its family and pitch, each house draws its
 own paint, and odd houses lay their bays from the right. An even terrace takes its first-ranked
