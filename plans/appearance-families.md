@@ -108,6 +108,40 @@ mansards, with one empty Lot. `terraces-rowhouses-*.png` from `terraces-rowhouse
 among other kinds, so it has no 14-house street to drive. `terraces-traded.png` from
 `terraces-traded.drive` shows lone houses closing on both sides.
 
+Apartments meet the bar with eight forms in each band, chosen by the user on October 25, 2026 from
+Blender renders: parapet, hipped, side gable, mansard, centre gable, bay front, forecourt and
+set-back top. Each form is a family (`<base>-<form>` for the six shipped apartment families) whose
+body names it with `apartment` (`FamilyBodyBuilder.Apartment.cs`, `scripts/art/apartment-forms.py`).
+The hipped, side gable and centre gable forms draw their pitch from `pitch_degrees` and roof in Clay
+Roof Tiles 02. The mansard roofs in Roofing Tiles 003. Walls and paints are unchanged. A hipped
+roof over a detached Building deeper than it is wide turns its ridge back from the street. Mansard,
+set-back top, centre gable, bay front and forecourt draw up to about 15% less floor than the
+Building holds, inside the low-rise allowance in `docs/07-the-drawing.md`.
+
+Apartments stand in runs. The preset's `apartment_lots = [1, 3]` gives a run's length in Lots,
+drawn once per face. A run ignores era, because era splits put matching forms side by side. The
+apartment families share one place in the ordinary draw, weighted by their total over the number
+of forms the Lot admits, so the eight forms take no more Lots than the shipped families did. Once a
+Lot draws an apartment, its run ranks only apartment forms and passes over its neighbors' forms.
+
+| Ruleset, 600 Ticks | Forms by band | Neighbor pairs across runs with one form and pitch within 5° |
+|---|---|---|
+| `apartments.toml`, 10,000 Citizens | 20–28 m: 8, 28–36 m: 8 | 0 of 170 |
+| `apartments.toml`, 3,000 Citizens | 20–28 m: 8, 28–36 m: 5 | 0 of 40 |
+| `platted.toml`, 10,000 Citizens | detached 16–64 m: 7 | 0 |
+
+`apartments.toml` is a fixture Ruleset of 24 by 16 m perimeter Lots at three storeys. At 1,000
+Citizens it raises too few walk-ups to show their band. On `gridded`, `coastal`, `granted`,
+`minimal` and `traded` at 10,000 Citizens, the 20–28 m band draws six to eight forms, and no
+neighbors across runs share a form.
+
+Driven on `apartments.toml` at 10,000 Citizens, Tick 600, Tile row 355 from Tile 228 to 310 is a
+street of 14 apartments: centre gable, hipped 28°, forecourt, bay front, mansard, three centre
+gables at 32°, two side gables at 30°, bay front, set-back top, bay front and hipped 31°.
+`forms-apartments-*.png` from `forms-apartments.drive` show the ten east of Tile 256 from the
+front. Runs stop at a cross street, so the Buildings either side of one can match. Row 221 has two
+such pairs at its five crossings.
+
 Each form is written twice, in Python for Blender and in C#, and no test checks that the two agree.
 The C# is the reference and the script's docstring says so.
 

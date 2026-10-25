@@ -64,6 +64,8 @@ internal static class AppearanceDump
         var street = new List<(ulong Face, StreetSide Side, int Offset, string Family)>();
         var bands = new SortedDictionary<(int Frontage, string Family), int>();
         var terraces = new List<(ulong Face, StreetSide Side, int Offset, string Family, ulong Cell, int Pitch)>();
+        var blocks = new SortedDictionary<(string Band, string Form), int>();
+        var runs = new List<(ulong Face, StreetSide Side, int Offset, string Form, ulong Cell, int Pitch, int Parcel)>();
         for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
         {
             if (!BuildingFacts.TryOf(world, names, slot, out BuildingFacts facts)) continue;
@@ -86,6 +88,16 @@ internal static class AppearanceDump
             {
                 bands[(facts.FrontageMetres, family)] = bands.GetValueOrDefault((facts.FrontageMetres, family)) + 1;
                 terraces.Add((facts.Face, facts.Side, facts.Offset, family, terrace.Cell, FamilyPicker.TerracePitch(terraced, key, terrace)));
+            }
+
+            if (pick.Choice == FamilyChoice.Eligible && pick.Family is { Body.Apartment: { } block } flats
+                && FamilyPicker.ApartmentRunOf(preset, key, facts) is { } run)
+            {
+                string band = string.Create(CultureInfo.InvariantCulture,
+                    $"{flats.FrontageMetres?.Low}-{flats.FrontageMetres?.High} m, {flats.Storeys?.Low}-{flats.Storeys?.High} storeys");
+                string form = block.Form.ToString();
+                blocks[(band, form)] = blocks.GetValueOrDefault((band, form)) + 1;
+                runs.Add((facts.Face, facts.Side, facts.Offset, form, run.Cell, FamilyPicker.TerracePitch(flats, key, run), facts.Offset / facts.ParcelFrontage));
             }
 
             if (pick.Choice == FamilyChoice.Eligible) continue;
@@ -161,6 +173,35 @@ internal static class AppearanceDump
 
         output.WriteLine(string.Create(CultureInfo.InvariantCulture,
             $"  {neighbors} neighboring attached pairs on one face: {inside} inside a terrace, {alike} across terraces with one form and a pitch within 5 degrees."));
+
+        output.WriteLine();
+        output.WriteLine("## Apartments by band and form");
+        output.WriteLine("  band                        form           buildings");
+        foreach (((string band, string form), int count) in blocks)
+        {
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  {band,-26}  {form,-13}  {count,9}"));
+        }
+
+        foreach (IGrouping<string, (string Band, string Form)> band in blocks.Keys.GroupBy(k => k.Band, StringComparer.Ordinal))
+        {
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  {band.Key}: {band.Count()} forms."));
+        }
+
+        // Corridor and two-unit apartments share forms, so a form here is the body's, not the family.
+        // Apartments with a house between them are not neighbors.
+        runs.Sort();
+        int flatPairs = 0, flatInside = 0, flatAlike = 0;
+        for (int i = 1; i < runs.Count; i++)
+        {
+            var (a, b) = (runs[i - 1], runs[i]);
+            if (a.Face != b.Face || a.Side != b.Side || b.Parcel - a.Parcel != 1) continue;
+            flatPairs++;
+            if (a.Cell == b.Cell) flatInside++;
+            else if (a.Form == b.Form && Math.Abs(a.Pitch - b.Pitch) <= 5) flatAlike++;
+        }
+
+        output.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"  {flatPairs} neighboring apartment pairs on one face: {flatInside} inside a run, {flatAlike} across runs with one form and a pitch within 5 degrees."));
         return 0;
     }
 }
