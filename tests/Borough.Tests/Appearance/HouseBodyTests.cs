@@ -7,7 +7,12 @@ namespace Borough.Tests.Appearance;
 
 public sealed class HouseBodyTests
 {
-    public static TheoryData<string> Variants => ["terrace", "front-gables", "villa"];
+    public static TheoryData<string> Variants =>
+        ["terrace", "front-gables", "villa", "hipped", "half-hip", "cross-gable", "saltbox", "gambrel", "l-plan", "rear-outshot", "side-wing"];
+
+    /// <summary>The forms with a drawn pitch. The gambrel's two slopes are fixed.</summary>
+    public static TheoryData<string> PitchedVariants =>
+        ["terrace", "front-gables", "villa", "hipped", "half-hip", "cross-gable", "saltbox", "l-plan", "rear-outshot", "side-wing"];
 
     [Theory]
     [MemberData(nameof(Variants))]
@@ -17,6 +22,17 @@ public sealed class HouseBodyTests
 
         Assert.Equal(Describe(FamilyBodyBuilder.BuildHouse(body, 40f, 24f, 2, 17)),
             Describe(FamilyBodyBuilder.BuildHouse(body, 40f, 24f, 2, 17)));
+    }
+
+    [Theory]
+    [MemberData(nameof(PitchedVariants))]
+    public void A_house_takes_another_draw_s_pitch_and_keeps_its_own_with_its_own_draw(string variant)
+    {
+        FamilyBody body = House(variant);
+        string own = Describe(FamilyBodyBuilder.BuildHouse(body, 40f, 24f, 2, 17));
+
+        Assert.Equal(own, Describe(FamilyBodyBuilder.BuildHouse(body, 40f, 24f, 2, 17, 17)));
+        Assert.Contains(Enumerable.Range(0, 8), pitch => Describe(FamilyBodyBuilder.BuildHouse(body, 40f, 24f, 2, 17, pitch)) != own);
     }
 
     [Theory]
@@ -35,7 +51,11 @@ public sealed class HouseBodyTests
     public void Every_draw_stays_on_its_lot_and_faces_the_way_it_is_wound(string variant)
     {
         FamilyBody body = House(variant);
-        foreach ((float frontage, float depth, int storeys) in new[] { (24f, 12f, 1), (40f, 24f, 2), (64f, 28f, 3) })
+        float reach = variant == "side-wing" ? FamilyBodyBuilder.SideWingReach : 0f;
+        (float, float, int)[] lots = variant == "villa"
+            ? [(24f, 12f, 1), (40f, 24f, 2), (64f, 28f, 3)]
+            : [(8f, 12f, 2), (10f, 14f, 1), (24f, 12f, 1), (40f, 24f, 2), (64f, 28f, 3)];
+        foreach ((float frontage, float depth, int storeys) in lots)
         {
             for (int seed = 0; seed < FamilyBodyBuilder.HouseSeeds; seed += 7)
             {
@@ -47,7 +67,7 @@ public sealed class HouseBodyTests
                     {
                         Vector3 p = positions[i];
                         string at = $"{variant} {frontage}x{depth}x{storeys} seed {seed} {part}";
-                        Assert.InRange(MathF.Abs(p.X), 0f, (frontage / 2f) + .5f);
+                        Assert.InRange(MathF.Abs(p.X), 0f, (frontage / 2f) + reach + .5f);
                         Assert.InRange(MathF.Abs(p.Z), 0f, (depth / 2f) + .5f);
                         Assert.True(p.Y >= 0f && p.Y < (storeys * ShellBuilder.StoreyMetres) + 16f, at);
                     }
@@ -132,7 +152,7 @@ public sealed class HouseBodyTests
         StylePresetResult block = ReadBody("shape = \"house\"\nvariant = \"villa\"\nbay_metres = 4");
 
         Assert.Null(unknown.Preset);
-        Assert.Contains(unknown.Errors, e => e.Message.Contains("\"terrace\", \"front-gables\" or \"villa\"", StringComparison.Ordinal));
+        Assert.Contains(unknown.Errors, e => e.Message.Contains("\"rear-outshot\" or \"side-wing\"", StringComparison.Ordinal));
         Assert.Null(block.Preset);
         Assert.Contains(block.Errors, e => e.Message.Contains("'bay_metres' is only valid for a block body", StringComparison.Ordinal));
     }

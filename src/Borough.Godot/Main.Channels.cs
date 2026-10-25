@@ -727,10 +727,9 @@ public partial class Main
         // is not unique down the column. See _footwayIds.
         ("footway", _footways, true, _footwayIds),
 
-        // ⚠ TWO KINDS OF ROW IN ONE LAYER, told apart by the `y` column and not by the name: a band
-        // sits at 0.15 m and a DROPPED kerb at 0.07 m. See Kerbs(). The id is the Segment's, as the
-        // footway's is, and for the same reason -- a drop's own id would be a Lot's.
+        // The id is the Segment's, as the footway's is.
         ("kerb", _kerbs, true, _kerbIds),
+        ("marking", _markings, true, _markingIds),
         ("cell", _cells, false, null),
         ("plot", _plots, true, _plotIds),
         ("carpark", _carParks, false, _carParkIds),
