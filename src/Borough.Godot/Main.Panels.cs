@@ -450,8 +450,16 @@ public partial class Main
         PolicyTool.Subsidy =>
             $"subsidy — pays {Aimed(policy)} every {policy.Interval:N0}, out of the treasury",
 
+        PolicyTool.Tariff =>
+            $"{TariffUtilityName(policy)} tariff · money per unit of {TariffUtilityName(policy)} "
+                + "received, paid by the drawing Household or Business",
+
         _ => $"transfer — sweeps {Aimed(policy)} every {policy.Interval:N0}",
     };
+
+    /// <summary>A tariff's billed Utility, named for the player.</summary>
+    private string TariffUtilityName(in PolicyDefinition policy) =>
+        _names.Resource(policy.Utility) ?? $"Resource {policy.Utility.Raw}";
 
     /// <summary>Who a Policy reaches, <b>naming the trade when it names one.</b></summary>
     /// <remarks>
@@ -476,6 +484,7 @@ public partial class Main
     {
         PolicyTool.Relief => "% of the bill",
         PolicyTool.Subsidy => "per worker",
+        PolicyTool.Tariff => "per unit",
         _ => string.Empty,
     };
 
@@ -822,9 +831,12 @@ public partial class Main
             return;
         }
 
+        bool tariff = _world.Rules.Policies[position].Tool == PolicyTool.Tariff;
+
         _policyStatus.Text =
             $"{_names.Policy(position) ?? $"policy {position}"} set to {amount:N0} "
-            + $"on Tick {_world.Tick.Raw + 1:N0}.";
+            + $"on Tick {_world.Tick.Raw + 1:N0}."
+            + (tariff ? " Bills from the next firing." : string.Empty);
     }
 
     /// <summary>Queues a <c>Fund</c> for one subsidy's daily ceiling, or says why it cannot.</summary>

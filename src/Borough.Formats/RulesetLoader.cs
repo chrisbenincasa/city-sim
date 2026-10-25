@@ -395,6 +395,7 @@ public static class RulesetLoader
             ZoneRuleDefinition[] zoneRules = ReadZoneRules();
             BandDefinition[] bands = ReadBands();
             PolicyDefinition[] policies = ReadPolicies(out ulong[] policyKeys);
+            RefuseTariffedPremises(rules, inputs, policies);
             HinterlandDefinition[] hinterlands = ReadHinterlands(
                 lifeStages,
                 out Money[] hinterlandPrices,
@@ -6587,6 +6588,72 @@ public static class RulesetLoader
 
         // ---- policies ---------------------------------------------------------------------------
 
+        private ResourceId ReadTariffUtility(
+            TableSyntaxBase table, string? name, PolicyTool tool, List<PolicyDefinition> policies)
+        {
+            bool stated = TryString(table, "utility", out string? utility, required: false, name);
+
+            if (tool != PolicyTool.Tariff)
+            {
+                if (stated)
+                {
+                    Refuse(LineOf(table), name, "utility is allowed only on a tariff Policy.");
+                }
+
+                return default;
+            }
+
+            foreach (string key in new[] { "sweeps", "interval", "apply", "trade" })
+            {
+                if (Find(table, key) is not null)
+                {
+                    Refuse(LineOf(table), name, $"a tariff cannot state {key}; it is read when a Rule fires.");
+                }
+            }
+
+            if (!stated)
+            {
+                Refuse(LineOf(table), name, "a tariff must name its delivered Utility with utility.");
+                return default;
+            }
+
+            if (utility is null || !_resources.TryGetValue(utility, out ushort id)
+                || _families[id - 1] != ResourceFamily.Utility || _links[id - 1] <= 0)
+            {
+                Refuse(LineOf(table), name, $"utility = '{utility}' must name a delivered Utility Resource.");
+                return default;
+            }
+
+            var resource = new ResourceId(id);
+
+            if (policies.Exists(policy => policy.Tool == PolicyTool.Tariff && policy.Utility == resource))
+            {
+                Refuse(LineOf(table), name, $"two tariffs name utility '{utility}'; each Utility has at most one tariff.");
+            }
+
+            return resource;
+        }
+
+        private void RefuseTariffedPremises(RuleDefinition[] rules, Term[] inputs, PolicyDefinition[] policies)
+        {
+            for (int r = 0; r < rules.Length; r++)
+            {
+                RuleDefinition rule = rules[r];
+                if (rule.Tenancy != BinTenancy.Premises) { continue; }
+
+                for (int t = rule.InputFirst; t < rule.InputFirst + rule.InputCount; t++)
+                {
+                    ResourceId resource = inputs[t].Bin.Resource;
+                    if (inputs[t].Bin.Scope == Scope.Pool
+                        && Array.Exists(policies, policy => policy.Tool == PolicyTool.Tariff && policy.Utility == resource))
+                    {
+                        Refuse(LineOf(_ruleTables[r]), NameOfRule(r),
+                            "a premises Rule draws a tariffed Utility but has no payer; a Household or Business must run it.");
+                    }
+                }
+            }
+        }
+
         /// <summary>
         /// Every <c>[[policy]]</c> table — refusals 60 to 68, and the catalogue's four keys beside
         /// them (<see cref="ReadTool"/>, <see cref="ReadTrade"/>, <see cref="ReadMovement"/>,
@@ -6628,17 +6695,19 @@ public static class RulesetLoader
 
                 _policyNames.Add(name);
 
-                PolicySubject subject = ReadSubject(table, name);
-                uint interval = ReadInterval(table, name);
-                ApplyCount apply = ReadApply(table, name, ScopeFor(subject));
                 PolicyTool tool = ReadTool(table, name);
-                byte trade = ReadTrade(table, name, subject);
+                ResourceId utility = ReadTariffUtility(table, name, tool, definitions);
+                bool tariff = tool == PolicyTool.Tariff;
+                PolicySubject subject = tariff ? PolicySubject.Household : ReadSubject(table, name);
+                uint interval = tariff ? 1 : ReadInterval(table, name);
+                ApplyCount apply = tariff ? default : ReadApply(table, name, ScopeFor(subject));
+                byte trade = tariff ? TradeKind.Any : ReadTrade(table, name, subject);
                 (Scope from, Scope to, ResourceId resource, int amount) =
                     ReadMovement(table, name, tool);
                 long ceiling = ReadCeiling(table, name, tool);
 
                 definitions.Add(new PolicyDefinition(
-                    subject, interval, apply, from, to, resource, amount, ceiling, tool, trade));
+                    subject, interval, apply, from, to, resource, amount, ceiling, tool, trade, utility));
             }
 
             keys = names;
@@ -6745,14 +6814,17 @@ public static class RulesetLoader
                 case "subsidy":
                     return PolicyTool.Subsidy;
 
+                case "tariff":
+                    return PolicyTool.Tariff;
+
                 default:
                     Refuse(LineOf((SyntaxNodeBase?)Find(table, "tool") ?? table), name,
-                        $"tool = \"{tool}\" is not one of the things a Policy does. The four are "
+                        $"tool = \"{tool}\" is not one of the things a Policy does. The tools are "
                         + "\"transfer\" -- the unconditional movement a [[policy]] has always been, "
                         + "and what omitting this key means; \"charge\", money from a liable payer "
                         + "to the treasury; \"relief\", a reduction of profit tax that moves no "
                         + "money at all; and \"subsidy\", money out of the treasury against a daily "
-                        + "ceiling.");
+                        + "ceiling; and \"tariff\", money per delivered Utility unit received.");
 
                     return PolicyTool.Transfer;
             }
@@ -6856,7 +6928,15 @@ public static class RulesetLoader
                 return (Scope.Local, Scope.Local, FirstMoneyResource(), relief);
             }
 
-            (Scope from, Scope to, ResourceId resource, int amount) = ReadTransfer(table, name);
+            (Scope from, Scope to, ResourceId resource, int amount) = ReadTransfer(table, name, tool == PolicyTool.Tariff);
+
+            if (tool == PolicyTool.Tariff
+                && (from != Scope.Local || to != Scope.Global
+                    || resource == default || _families[resource.Raw - 1] != ResourceFamily.Money))
+            {
+                Refuse(LineOf(table), name,
+                    "a tariff transfer must move money from local to global, from the Rule's owner to the treasury.");
+            }
 
             if (tool == PolicyTool.Subsidy && from != Scope.Global)
             {
@@ -7040,7 +7120,7 @@ public static class RulesetLoader
         /// </para>
         /// </remarks>
         private (Scope From, Scope To, ResourceId Resource, int Amount) ReadTransfer(
-            TableSyntaxBase table, string? name)
+            TableSyntaxBase table, string? name, bool tariff = false)
         {
             var fallback = (Scope.Local, Scope.Global, default(ResourceId), 1);
 
@@ -7076,7 +7156,7 @@ public static class RulesetLoader
             }
 
             ResourceId resource = ReadTransferResource(inline, name, entry);
-            int amount = ReadTransferAmount(inline, name, entry);
+            int amount = ReadTransferAmount(inline, name, entry, tariff);
 
             return (from, to, resource, amount);
         }
@@ -7146,17 +7226,17 @@ public static class RulesetLoader
         }
 
         /// <summary>How much one application moves — refusals 67 and 68.</summary>
-        private int ReadTransferAmount(InlineTableSyntax inline, string? name, KeyValueSyntax entry)
+        private int ReadTransferAmount(InlineTableSyntax inline, string? name, KeyValueSyntax entry, bool tariff)
         {
             if (!TryInteger(inline, "amount", out long amount, required: true, name))
             {
                 return 1;
             }
 
-            if (amount < 1 || amount > int.MaxValue)
+            if (amount < (tariff ? 0 : 1) || amount > int.MaxValue)
             {
                 Refuse(LineOf((SyntaxNodeBase?)Find(inline, "amount") ?? entry), name,
-                    $"amount = {amount} is not a quantity per application. It is at least 1 -- a "
+                    $"amount = {amount} is not a quantity per application. A tariff allows 0 to {int.MaxValue}; other transfers start at 1 -- a "
                     + "transfer of nothing is a Policy that cannot be observed to have run, and the "
                     + "way to move less is a smaller apply count.");
 

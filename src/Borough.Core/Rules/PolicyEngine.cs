@@ -235,7 +235,7 @@ public sealed class PolicyEngine
             // funding ceiling that has to be rationed across every claimant at once, which Move
             // cannot do because it pays each member in full or not at all. Sweeping either as a
             // transfer would pay out a rate as though it were an entitlement.
-            if (definition.Tool is PolicyTool.Relief or PolicyTool.Subsidy)
+            if (definition.Tool is PolicyTool.Relief or PolicyTool.Subsidy or PolicyTool.Tariff)
             {
                 continue;
             }
