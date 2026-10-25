@@ -244,10 +244,11 @@ resolves one; the rest honestly say `-`.
 per-Segment-per-side, so a Segment appears at least twice, and their capacities are 2× and 4× every
 other layer's for the same reason. ***Count Segments there with `sort -u`, or count double.***
 
-⚠ **`kerb` holds two different things and the NAME does not separate them**: a kerb **band** is
-`sx = 0.4` and `sy = 1`, and a **dropped** kerb — one per Address — is `sx = 1.4` and `sy = 0.467`,
-which is the band's height scaled down to the carriageway's. ***Filter on the width, and the drop
-count should equal the Lot count*** (`--zones` prints that).
+⚠ **`marking` is road paint**, one row per line per Segment plus one per stop bar. A row whose
+colour alpha is 0 is a dashed line; `road-marking.gdshader` cuts the dashes.
+
+⚠ **`kerb` draws no Addresses.** Each row is a band (`sx = 0.4`, `sy = 1`) or a dead-end cap. The
+dropped kerb at each Address was removed on October 24, 2026, as clutter at the game camera.
 
 ⚠ **A `footway` or `kerb` row's `sz` is NOT its Segment's length**, and a strip may be **longer** than
 the Segment it belongs to. Each end is mitred against whatever meets the Segment at that node — half a

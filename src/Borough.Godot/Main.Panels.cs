@@ -647,6 +647,8 @@ public partial class Main
             RefreshHinterlands();
         }
 
+        if (!_governing) _needsShown = false;
+
         _governing = !_governing;
         _policyPanel.Visible = _governing;
         _policiesButton.ButtonPressed = _governing;
@@ -757,7 +759,7 @@ public partial class Main
             return;
         }
 
-        status.Text = $"{Named(control)} set to {value:N0}, from the start of Day {Tomorrow():N0}.";
+        status.Text = $"{Named(control)} set to {value:N0}, from the start of Day {ClockDay(_world.Tick.Raw) + 1:N0}.";
     }
 
     /// <summary>A <see cref="TaxControl"/> in the player's words. <b>The shell owns every one.</b></summary>

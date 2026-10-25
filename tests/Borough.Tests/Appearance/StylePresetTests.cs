@@ -27,8 +27,110 @@ public class StylePresetTests
     }
 
     private static BuildingFacts Facts(ulong id, int storeys = 2, int frontage = 36, int depth = 20,
-        BlockPattern pattern = BlockPattern.Detached, ulong face = 0, long raisedDay = 0, string kind = "dwelling") =>
-        new(id, kind, frontage, depth, storeys, pattern, LotTable.Housing, raisedDay, face, StreetSide.Left);
+        BlockPattern pattern = BlockPattern.Detached, ulong face = 0, long raisedDay = 0, string kind = "dwelling",
+        int offset = 0, int parcel = 0) =>
+        new(id, kind, frontage, depth, storeys, pattern, LotTable.Housing, raisedDay, face, StreetSide.Left,
+            Offset: offset, ParcelFrontage: parcel);
+
+    private static string EightFamilies => string.Concat(Enumerable.Range(0, 8).Select(i => $"""
+        [[family]]
+        id = "f{i}"
+        kinds = ["dwelling"]
+        [family.body]
+        library = "l"
+        shape = "house"
+        variant = "hipped"
+        [[family.paint]]
+        wall = "aa0000"
+        [[family.paint]]
+        wall = "00aa00"
+        [[family.paint]]
+        wall = "0000aa"
+
+        """));
+
+    private static StylePreset RunPreset() => StylePresetReader.Read([("fixture.toml", """
+        [preset]
+        name = "fixture"
+        era_days = 30
+        attached = ["perimeter"]
+        runs = { alone = 3, matched = 5, copies = 2 }
+        run_houses = [2, 4]
+
+        """ + EightFamilies)]).Preset!;
+
+    [Fact]
+    public void Detached_houses_on_one_face_stand_in_runs_that_share_by_weight()
+    {
+        StylePreset preset = RunPreset();
+        var counts = new Dictionary<RunShare, int>();
+        bool aloneVaries = false;
+        for (ulong face = 1; face <= 300; face++)
+        {
+            BuildingFacts[] lots = [.. Enumerable.Range(0, 12).Select(i =>
+                Facts((face * 100) + (ulong)i, face: face, offset: (4 * i) + 2, parcel: 4))];
+            foreach (IGrouping<HouseRun, BuildingFacts> run in lots.GroupBy(f => FamilyPicker.RunOf(preset, World, f)))
+            {
+                BuildingFacts[] houses = [.. run];
+                int first = Array.IndexOf(lots, houses[0]);
+                Assert.Equal(lots[first..(first + houses.Length)], houses);
+                Assert.InRange(houses.Length, 1, 4);
+                if (first + houses.Length < lots.Length) Assert.InRange(houses.Length, 2, 4);
+
+                RunShare share = run.Key.Share;
+                counts[share] = counts.GetValueOrDefault(share) + 1;
+                string[] families = [.. houses.Select(f => FamilyPicker.Pick(preset, World, f).Family!.Id)];
+                (int House, int Pitch)[] draws = [.. houses.Select(f => FamilyPicker.House(preset, World, f))];
+                int[] paints = [.. houses.Select(f => FamilyPicker.Paint(FamilyPicker.Pick(preset, World, f).Family!, preset, World, f))];
+                switch (share)
+                {
+                    case RunShare.Copies:
+                        Assert.Single(families.Distinct());
+                        Assert.Single(draws.Distinct());
+                        Assert.Single(paints.Distinct());
+                        break;
+                    case RunShare.Matched:
+                        Assert.Single(families.Distinct());
+                        Assert.Single(draws.Select(d => d.Pitch).Distinct());
+                        break;
+                    default:
+                        Assert.All(draws, d => Assert.Equal(d.House, d.Pitch));
+                        aloneVaries |= families.Distinct().Count() > 1;
+                        break;
+                }
+            }
+        }
+
+        int runs = counts.Values.Sum();
+        Assert.InRange(counts[RunShare.Alone] * 10, runs * 2, runs * 4);
+        Assert.InRange(counts[RunShare.Matched] * 10, runs * 4, runs * 6);
+        Assert.InRange(counts[RunShare.Copies] * 10, runs * 1, runs * 3);
+        Assert.True(aloneVaries);
+    }
+
+    [Fact]
+    public void Runs_leave_attached_Buildings_and_presets_without_runs_alone()
+    {
+        StylePreset runs = RunPreset();
+        StylePreset none = Preset(EightFamilies);
+
+        Assert.Equal(new HouseRun(9, default, RunShare.Alone), FamilyPicker.RunOf(none, World, Facts(9, face: 5, offset: 2, parcel: 4)));
+        Assert.Equal(RunShare.Alone, FamilyPicker.RunOf(runs, World, Facts(9, pattern: BlockPattern.Perimeter, face: 5, offset: 2, parcel: 4)).Share);
+        Assert.Equal(RunShare.Alone, FamilyPicker.RunOf(runs, World, Facts(9, offset: 2, parcel: 4)).Share);
+    }
+
+    [Theory]
+    [InlineData("runs = { alone = 1 }\n", "'runs' needs 'run_houses'")]
+    [InlineData("run_houses = [2, 4]\n", "'run_houses' needs 'runs'")]
+    [InlineData("runs = { alone = 0 }\nrun_houses = [2, 4]\n", "at least one run a weight above 0")]
+    [InlineData("runs = { lonely = 1 }\nrun_houses = [2, 4]\n", "'runs.lonely' is not a run")]
+    [InlineData("runs = { alone = 1 }\nrun_houses = [0, 4]\n", "with low at least 1")]
+    public void A_bad_run_table_is_refused(string keys, string message)
+    {
+        StylePresetResult result = StylePresetReader.Read([("fixture.toml", "[preset]\nname = \"x\"\nera_days = 1\n" + keys)]);
+
+        Assert.Contains(result.Errors, e => e.Message.Contains(message, StringComparison.Ordinal));
+    }
 
     [Fact]
     public void The_shipped_test_street_preset_reads_clean()

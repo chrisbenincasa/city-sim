@@ -757,6 +757,8 @@ public partial class Main
         _categorical.SetShaderParameter("treatment", style);
         _muted.SetShaderParameter("treatment", style == 0 ? 0 : 1);
         _muted.SetShaderParameter("context_colour", style == 0 ? Muted : new Color(0.43f, 0.46f, 0.44f));
+        _mutedBody ??= BodyCopy(_muted);
+        _categoricalBody ??= BodyCopy(_categorical);
 
         foreach ((string name, InstanceLayer over, bool _, List<ulong>? _) in Layers())
         {
@@ -1392,61 +1394,10 @@ public partial class Main
         }
     }
 
-    /// <summary>
-    /// <b>Every Address in the city, on the ground</b> — the kerb band along each channel, broken
-    /// wherever a Lot steps onto it.
-    /// </summary>
+    /// <summary>The kerb band along each channel of every Segment that carries both feet and cars.</summary>
     /// <remarks>
-    /// <para>
-    /// 🔴 <b>A DROPPED KERB IS AN ADDRESS DRAWN, AND AN ADDRESS HAD NEVER BEEN DRAWN AT ALL.</b>
-    /// <c>CONTEXT.md</c> → Address: the word was chosen <i>"because a street address is literally
-    /// this triple — a distance along a street plus an odd or even side"</i>. Both halves are the
-    /// city's own: <see cref="LotTable.FrontageOffset"/> is the distance and
-    /// <see cref="LotTable.Side"/> is the side, one derived and one <c>(saved AND hashed)</c>. Until
-    /// this method there was nothing anywhere in the picture at the place a Lot actually meets its
-    /// Street — the Building was drawn on its <em>parcel</em>, and the parcel is a different
-    /// quantity.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>IT IS VISIBLE FROM THE HALF OF THE COMPASS THE DOOR IS NOT.</b> <c>plans/0049</c>
-    /// <b>F30</b> — the front door reaches the shader as the street face's outward normal, the
-    /// camera's pitch never moves, and <em>the fronts facing away are simply not in the frame</em>.
-    /// A mark on the ground has no facing. ***So the two marks say one thing and fail on opposite
-    /// halves of the city***, which is why this is worth drawing beside a door that already exists.
-    /// </para>
-    /// <para>
-    /// 🔴 <b>THE DROP AND THE DOOR DO NOT AGREE ABOUT WHERE ALONG THE FRONTAGE THE ENTRANCE IS, AND
-    /// THE DROP IS THE ONE THAT IS RIGHT.</b> <c>buildings.gdshader</c> puts the door on the middle
-    /// bay of the wall plus a draw of one bay; this puts the drop on the Address. They coincide only
-    /// where the Address happens to sit at the middle of its own parcel, and it generally does not —
-    /// a face's ground divides evenly among the Addresses <em>on it</em>
-    /// (<c>BlockPatterns.Carve</c>) while an offset is the midpoint of an equal share of the
-    /// <em>whole</em> face (<c>Frontage.OffsetOf</c>), and those are two different partitions.
-    /// ***The door's bay is the shell's invention and the drop's offset is the city's number***, so
-    /// nothing here moves to meet the shader. Measured and filed as <c>plans/0049</c> <b>F61</b>.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>THE SIDE IS READ FROM A CANONICAL DIRECTION AND NOT FROM THE NODE ORDER.</b>
-    /// <see cref="StreetSide"/> is <em>left of A→B</em>, and <c>BlockPatterns.SideOf</c> states it in
-    /// world terms — a horizontal Segment runs eastward so Left is its north side. The generator
-    /// happens to create every Street from its lower intersection, so A→B already runs east or
-    /// north; <b>relying on that would be relying on the generator's loop order</b>, and
-    /// <c>CommandKind.Connect</c> is a second writer. So the run is oriented here, and the two
-    /// strips <see cref="Footways"/> draws stay symmetric precisely so that they never had to care.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>Overlapping drops MERGE rather than stack.</b> <see cref="KerbDropLengthMetres"/> is
-    /// invented, so two Addresses closer together than it would otherwise draw two boxes on one patch
-    /// of stone — and a merged run is both cheaper and what a pair of adjacent driveways looks like.
-    /// ***The cost is that a drop is no longer one-to-one with an Address in the <c>draw</c> list***,
-    /// which is stated at <see cref="_kerbIds"/> rather than left for a reader to discover by
-    /// counting.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>Same <see cref="Mitre"/> as the pavement, one step nearer the road</b>, so a band never
-    /// runs across the junction it ends at, and a drop is clipped to the band rather than allowed to
-    /// escape it.
-    /// </para>
+    /// The band stops at each junction on the pavement's <see cref="Mitre"/>, one step nearer the road,
+    /// so it never runs across the junction it ends at.
     /// </remarks>
     private System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where, Color What)>
         Kerbs()
@@ -1455,27 +1406,8 @@ public partial class Main
         RoadSegmentTable segments = _world.Roads.Segments;
         RoadNodeTable nodes = _world.Roads.Nodes;
 
-        // Every Address in the city, in Segment order, so the walk below merges against the Segment
-        // loop rather than searching. Pave() takes it on a road edit and not on a frame, so a kerb
-        // written again for a moved camera shows the Addresses of the last repave.
-        List<(int Segment, byte Side, float Along)> addresses = _kerbAddresses;
-
-        int at = 0;
-
         for (int slot = 0; slot < segments.Rows.SlotCount; slot++)
         {
-            while (at < addresses.Count && addresses[at].Segment < slot)
-            {
-                at++;
-            }
-
-            int first = at;
-
-            while (at < addresses.Count && addresses[at].Segment == slot)
-            {
-                at++;
-            }
-
             if (!segments.Rows.IsLive(slot)
                 || !nodes.Rows.TryResolve(segments.NodeA[slot], out int a)
                 || !nodes.Rows.TryResolve(segments.NodeB[slot], out int b))
@@ -1502,7 +1434,7 @@ public partial class Main
 
             if (!_kerbPieces.TryGetValue(slot, out var pieces))
             {
-                _kerbPieces.Add(slot, pieces = [.. SegmentKerbs(slot, a, b, run, carriageway, addresses, first, at)]);
+                _kerbPieces.Add(slot, pieces = [.. SegmentKerbs(slot, a, b, run, carriageway)]);
             }
 
             foreach (var piece in pieces)
@@ -1513,8 +1445,7 @@ public partial class Main
     }
 
     private System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where, Color What)> SegmentKerbs(
-        int slot, int a, int b, Run run, float carriageway, List<(int Segment, byte Side, float Along)> addresses,
-        int first, int at)
+        int slot, int a, int b, Run run, float carriageway)
     {
         RoadSegmentTable segments = _world.Roads.Segments;
         float half = carriageway * 0.5f;
@@ -1539,8 +1470,8 @@ public partial class Main
                 continue;
             }
 
-            foreach ((Transform3D where, Color paint) in Kerb(
-                run, lateral, carriageway, low, high, addresses, first, at, side))
+            foreach ((Transform3D where, Color paint) in Piece(
+                run, low, high, KerbWidthMetres, lateral * (half + (KerbWidthMetres * 0.5f)), KerbTopMetres))
             {
                 yield return (id, where, paint);
             }
@@ -1560,6 +1491,108 @@ public partial class Main
         {
             yield return (id, Head(run.To, behind, carriageway, 0f, KerbWidthMetres, tall), stone);
         }
+    }
+
+    /// <summary>
+    /// Paint on every carriageway that carries cars: a yellow center line, white edge lines, and a
+    /// stop bar across the right-hand lane where it enters a junction.
+    /// </summary>
+    /// <remarks>
+    /// A Street's center line is dashed and an Arterial's is double and solid, with a dashed lane line
+    /// each side. <c>road-marking.gdshader</c> cuts the dashes, so a line is one instance per Segment.
+    /// </remarks>
+    private System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where, Color What)>
+        Markings()
+    {
+        RoadSegmentTable segments = _world.Roads.Segments;
+        RoadNodeTable nodes = _world.Roads.Nodes;
+        Color centre = CentrePaint.SrgbToLinear();
+        Color white = LinePaint.SrgbToLinear();
+        Color dashed = centre with { A = 0f };
+        const float Line = 0.15f;
+        const float tall = 1f;
+
+        for (int slot = 0; slot < segments.Rows.SlotCount; slot++)
+        {
+            if (!segments.Rows.IsLive(slot)
+                || !nodes.Rows.TryResolve(segments.NodeA[slot], out int a)
+                || !nodes.Rows.TryResolve(segments.NodeB[slot], out int b)
+                || (Modes(segments, slot) & TravelMode.Car) == 0)
+            {
+                continue;
+            }
+
+            var run = new Run(segments.Centerline[slot], NodeAt(nodes, a), NodeAt(nodes, b));
+            bool arterial = (RoadKind)segments.Kind[slot] == RoadKind.Arterial;
+            float half = (arterial ? ArterialWidthMetres : CarriagewayWidthMetres) * 0.5f;
+            float length = run.Length;
+            (Vector3 ahead, Vector3 behind) = (run.Ahead(0f), -run.Ahead(length));
+            ulong id = segments.Rows.IdAt(slot);
+
+            float Low(float lateral) => Trim(Mitre(a, slot, ahead, Left(ahead) * lateral, half, 0f, 0f), length);
+            float High(float lateral) => length - Trim(Mitre(b, slot, behind, -Left(behind) * lateral, half, 0f, 0f), length);
+
+            float low = Math.Max(Low(1f), Low(-1f)) + 1f;
+            float high = Math.Min(High(1f), High(-1f)) - 1f;
+            if (high <= low) continue;
+
+            if (arterial)
+            {
+                foreach (Transform3D box in Strip(run, low, high, Line, Line, tall)) yield return (id, box, centre);
+                foreach (Transform3D box in Strip(run, low, high, -Line, Line, tall)) yield return (id, box, centre);
+                foreach (Transform3D box in Strip(run, low, high, half * 0.5f, Line, tall)) yield return (id, box, white with { A = 0f });
+                foreach (Transform3D box in Strip(run, low, high, -half * 0.5f, Line, tall)) yield return (id, box, white with { A = 0f });
+            }
+            else
+            {
+                foreach (Transform3D box in Strip(run, low, high, 0f, Line, tall)) yield return (id, box, dashed);
+            }
+
+            for (float lateral = -1f; lateral <= 1f; lateral += 2f)
+            {
+                float edge = lateral * (half - 0.4f);
+                float from = Low(lateral) + 1f, to = High(lateral) - 1f;
+                if (to <= from) continue;
+                foreach (Transform3D box in Strip(run, from, to, edge, Line, tall)) yield return (id, box, white);
+            }
+
+            if (Junction(a, slot)) yield return (id, Bar(run, low, half, 1f), white);
+            if (Junction(b, slot)) yield return (id, Bar(run, high, half, -1f), white);
+        }
+    }
+
+    /// <summary>A bar across the right-hand lane at <paramref name="along"/>; <paramref name="side"/> is 1 for the A end.</summary>
+    private static Transform3D Bar(Run run, float along, float half, float side)
+    {
+        Vector3 forward = run.Ahead(along);
+        Vector3 centre = run.At(along) + (Left(forward) * side * half * 0.5f);
+        return Box(centre - (Left(forward) * half * 0.5f), centre + (Left(forward) * half * 0.5f), 0.4f);
+    }
+
+    /// <summary>Whether two or more other Segments carrying cars meet <paramref name="self"/> at a node.</summary>
+    private bool Junction(int node, int self)
+    {
+        RoadNodeTable nodes = _world.Roads.Nodes;
+        RoadArcs arcs = _world.Roads.Arcs;
+        RoadSegmentTable segments = _world.Roads.Segments;
+        int start = nodes.ArcStart[node];
+        int end = Math.Min(start + nodes.ArcCount[node], arcs.Count);
+        int others = 0;
+        int last = -1;
+        for (int arc = start; arc < end; arc++)
+        {
+            int other = arcs.Segment[arc];
+            if (other == self || other == last || arcs.Target[arc] == node
+                || (Modes(segments, other) & TravelMode.Car) == 0)
+            {
+                continue;
+            }
+
+            last = other;
+            others++;
+        }
+
+        return others >= 2;
     }
 
     /// <summary>
@@ -1815,79 +1848,6 @@ public partial class Main
     private static TravelMode Modes(RoadSegmentTable segments, int slot) =>
         (TravelMode)(segments.ModesForward[slot] | segments.ModesBackward[slot]);
 
-    /// <summary>
-    /// One side of one Segment's kerb — the band runs and the drops between them, in order along
-    /// the Street.
-    /// </summary>
-    /// <remarks>
-    /// <b>A cursor walk and not an interval library.</b> The Addresses arrive sorted, so the band is
-    /// whatever the cursor has not reached and a drop is whatever the next Address claims; a drop
-    /// starting behind the cursor extends the one already open, which is the merge.
-    /// </remarks>
-    private static System.Collections.Generic.IEnumerable<(Transform3D Where, Color What)> Kerb(
-        Run run, float lateral, float carriageway,
-        float low, float high,
-        List<(int Segment, byte Side, float Along)> addresses, int first, int last, byte side)
-    {
-        float cursor = low;
-        float half = KerbDropLengthMetres * 0.5f;
-
-        for (int index = first; index <= last; index++)
-        {
-            // The sentinel pass past the end closes the band off at `high`; every other pass opens
-            // a drop first. Written as one loop because the tail run is the same expression.
-            bool closing = index == last;
-
-            float start = high;
-            float end = high;
-
-            if (!closing)
-            {
-                if (addresses[index].Side != side)
-                {
-                    continue;
-                }
-
-                start = Mathf.Clamp(addresses[index].Along - half, low, high);
-                end = Mathf.Clamp(addresses[index].Along + half, low, high);
-
-                if (end <= cursor)
-                {
-                    continue;
-                }
-            }
-
-            if (start > cursor)
-            {
-                foreach (var piece in Piece(
-                    run, cursor, start, KerbWidthMetres,
-                    lateral * ((carriageway * 0.5f) + (KerbWidthMetres * 0.5f)), KerbTopMetres))
-                {
-                    yield return piece;
-                }
-
-                cursor = start;
-            }
-
-            if (closing)
-            {
-                yield break;
-            }
-
-            // THE DROP, and it is wider than the band it replaces because it reaches across the
-            // channel. Its centre therefore steps toward the road by half the bite.
-            foreach (var piece in Piece(
-                run, cursor, end, KerbWidthMetres + KerbDropBiteMetres,
-                lateral * ((carriageway * 0.5f) + (KerbWidthMetres * 0.5f) - (KerbDropBiteMetres * 0.5f)),
-                KerbDropTopMetres))
-            {
-                yield return piece;
-            }
-
-            cursor = end;
-        }
-    }
-
     /// <summary>One box of kerb, from <paramref name="start"/> to <paramref name="end"/> along a run.</summary>
     /// <remarks>
     /// ⚠ <b>The Y scale is a SHARE OF THE MESH and not a height in metres.</b> The kerb layer's box
@@ -1907,67 +1867,11 @@ public partial class Main
         }
     }
 
-    /// <summary>Every Lot's Address as a Segment, a side and a distance, sorted for one walk.</summary>
-    /// <remarks>
-    /// ⚠ <b><see cref="LotTable.FrontageOn"/> resolves the Lot's saved Segment handle</b> and answers
-    /// <c>Rows.NoSlot</c> where there is none, which is a Lot whose Street was demolished: it keeps
-    /// its Building and loses its Address (<c>adr/0079</c>). ⚠ <b>The offset is measured from the
-    /// Segment's A endpoint</b>, which is why <see cref="Kerbs"/> orients the run rather than trusting
-    /// the node order.
-    /// </remarks>
-    private List<(int Segment, byte Side, float Along)> Addresses()
-    {
-        LotTable lots = _world.Lots;
-        List<(int Segment, byte Side, float Along)> found = [];
-
-        for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
-        {
-            if (!lots.Rows.IsLive(slot))
-            {
-                continue;
-            }
-
-            int segment = lots.FrontageOn(slot);
-
-            if (segment == Borough.Core.Tables.Rows.NoSlot)
-            {
-                continue;
-            }
-
-            found.Add((
-                segment,
-                lots.Side[slot],
-                lots.FrontageOffset[slot].Raw * MetresPerTile));
-        }
-
-        found.Sort(static (one, other) =>
-        {
-            int by = one.Segment.CompareTo(other.Segment);
-
-            if (by != 0)
-            {
-                return by;
-            }
-
-            by = one.Side.CompareTo(other.Side);
-
-            return by != 0 ? by : one.Along.CompareTo(other.Along);
-        });
-
-        return found;
-    }
-
     /// <summary>The kerb layer's mesh height, in metres. <b>Read by <see cref="Piece"/>'s scale.</b></summary>
     private const float KerbBoxMetres = 0.3f;
 
     /// <summary>How high the kerb band's top is — <b>flush with the pavement behind it</b>.</summary>
     private const float KerbTopMetres = 0.15f;
-
-    /// <summary>
-    /// How high a <b>dropped</b> kerb's top is — the carriageway's <b>0.05 m</b>, plus two
-    /// centimetres so the two faces are not coplanar and the depth test has something to choose on.
-    /// </summary>
-    private const float KerbDropTopMetres = 0.07f;
 
     /// <summary>Writes the carriageway, the pavements and the kerbs into their three layers.</summary>
     /// <remarks>
@@ -1979,11 +1883,11 @@ public partial class Main
     /// </remarks>
     private void Pave()
     {
-        _kerbAddresses = Addresses();
         _kerbPieces.Clear();
         Fill(_roads, Paving(), _roadIds);
         Fill(_footways, Footways(), _footwayIds);
         Fill(_kerbs, Kerbs(), _kerbIds);
+        Fill(_markings, Markings(), _markingIds);
     }
 
     /// <summary>The Cell lattice, drawn over the ground the city stands on.</summary>

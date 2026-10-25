@@ -96,16 +96,16 @@ public partial class Main
     /// meshes.
     /// </summary>
     private readonly record struct BodyKey(
-        string Family, int Frontage, int Depth, int Storeys, AttachedSides Attached, int Paint, int House,
+        string Family, int Frontage, int Depth, int Storeys, AttachedSides Attached, int Paint, int House, int Pitch,
         int PodiumStoreys, int ShaftFrontage, int ShaftDepth, bool Ring, FamilyBodyDetail Detail);
 
     /// <summary>Everything a Building's body is placed from, read from the World.</summary>
     private readonly record struct BodyRequest(
         Massing One, AppearanceFamily Family, FamilyBody Body, float Frontage, float Depth, int Storeys,
-        AttachedSides Attached, int Paint, int House, float Turn, BodyNeighbours Neighbours, TowerSite? Site, Vector3 Origin, bool Ring)
+        AttachedSides Attached, int Paint, int House, int Pitch, float Turn, BodyNeighbours Neighbours, TowerSite? Site, Vector3 Origin, bool Ring)
     {
         public BodyKey Key(FamilyBodyDetail detail) => new(Family.Id, Mathf.RoundToInt(Frontage * 100f),
-            Mathf.RoundToInt(Depth * 100f), Storeys, Attached, Paint, House, Site?.PodiumStoreys ?? 0,
+            Mathf.RoundToInt(Depth * 100f), Storeys, Attached, Paint, House, Pitch, Site?.PodiumStoreys ?? 0,
             Mathf.RoundToInt((Site?.ShaftFrontage ?? 0f) * 100f),
             Mathf.RoundToInt((Site?.ShaftDepth ?? 0f) * 100f), Ring, detail);
     }
@@ -279,9 +279,10 @@ public partial class Main
 
         int storeys = site?.Storeys ?? Mathf.Max(1, Mathf.RoundToInt(size.Y / StoreyMetres));
         AttachedSides attached = Attached(slot, origin, turn, frontage, out BodyNeighbours neighbours);
-        int paint = FamilyPicker.Paint(family, _world.Key, one.Id);
-        int house = body.House is null ? 0 : FamilyPicker.House(_world.Key, one.Id);
-        return new BodyRequest(one, family, body, frontage, depth, storeys, attached, paint, house, turn, neighbours, site, origin, ring);
+        if (Preset() is not { } preset || !BuildingFacts.TryOf(_world, _names, slot, out BuildingFacts facts)) return null;
+        int paint = FamilyPicker.Paint(family, preset, _world.Key, facts);
+        (int house, int pitch) = body.House is null ? (0, 0) : FamilyPicker.House(preset, _world.Key, facts);
+        return new BodyRequest(one, family, body, frontage, depth, storeys, attached, paint, house, pitch, turn, neighbours, site, origin, ring);
     }
 
     private void PlaceBody(BodyRequest request)
@@ -416,7 +417,6 @@ public partial class Main
         layer.Multimesh.NearOnly = !far;
         if (fades) _fadingBodyLayers.Add(layer);
         BodyResidency(layer);
-        layer.InstanceParameters["body_ink"] = Colors.White;
         layer.MaterialOverride = BodyWash(layer);
         if (abandoned && _washing == Wash.None) layer.MaterialOverlay = DerelictBody(layer);
         AddChild(layer);
@@ -593,7 +593,7 @@ public partial class Main
             { Body.Midrise: not null } => FamilyBodyBuilder.BuildMidrise(request.Body, request.Frontage, request.Depth,
                 request.Storeys, request.Ring, request.Attached, detail),
             { Body.House: not null } => FamilyBodyBuilder.BuildHouse(request.Body, request.Frontage, request.Depth,
-                request.Storeys, request.House),
+                request.Storeys, request.House, request.Pitch),
             _ => FamilyBodyBuilder.Build(request.Body, request.Frontage, request.Depth, request.Storeys, request.Attached),
         };
         foreach ((string part, ShellMesh source) in built.Parts)

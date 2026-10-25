@@ -25,6 +25,23 @@
             "$ref": "#/$defs/pattern"
           },
           "uniqueItems": true
+        },
+        "runs": {
+          "description": "Weights of the runs detached houses on one block face and era stand in. A matched run shares its family and roof pitch; a run of copies shares its family, proportions, materials and paint.",
+          "type": "object",
+          "properties": {
+            "alone": { "type": "integer", "minimum": 0 },
+            "matched": { "type": "integer", "minimum": 0 },
+            "copies": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "run_houses": {
+          "description": "How many Lots one run spans, as [low, high]. Required with runs.",
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1 },
+          "minItems": 2,
+          "maxItems": 2
         }
       },
       "required": [
@@ -171,7 +188,7 @@
               },
               "variant": {
                 "description": "The tower layout, the mid-rise type or the house form. Required for a tower, mid-rise or house body and refused for a block.",
-                "enum": ["point", "stepped-point", "l", "h", "mansion", "panel-slab", "terrace", "front-gables", "villa"]
+                "enum": ["point", "stepped-point", "l", "h", "mansion", "panel-slab", "terrace", "front-gables", "villa", "hipped", "half-hip", "cross-gable", "saltbox", "gambrel", "l-plan", "rear-outshot", "side-wing"]
               },
               "module_metres": {
                 "description": "A mid-rise body's window module along a face, in metres. Defaults to 3.3 for a mansion and 3.6 for a panel slab.",
@@ -407,7 +424,7 @@
               },
               {
                 "if": { "properties": { "shape": { "const": "house" } }, "required": ["shape"] },
-                "then": { "properties": { "variant": { "enum": ["terrace", "front-gables", "villa"] } } }
+                "then": { "properties": { "variant": { "enum": ["terrace", "front-gables", "villa", "hipped", "half-hip", "cross-gable", "saltbox", "gambrel", "l-plan", "rear-outshot", "side-wing"] } } }
               },
               {
                 "if": { "properties": { "shape": { "const": "midrise" } }, "required": ["shape"] },

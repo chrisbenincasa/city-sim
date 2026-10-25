@@ -37,6 +37,11 @@ public partial class Main
         reservedCity.Disabled = true;
         reservedCity.TooltipText = "City view is not available yet";
         _dataLaunchers.AddChild(reservedCity);
+        _needsButton = ConsoleButton("Needs", () => Ui(_needsShown ? "needs off" : "needs on"));
+        _needsButton.ToggleMode = true;
+        _needsButton.TooltipText = "Who wants a home, a job or a shop, and why empty Lots stay empty";
+        UiIcons.Attach(_needsButton, "household");
+        _dataLaunchers.AddChild(_needsButton);
         _cityButton = ConsoleButton("Evidence", () => Ui(_cityShown ? "city off" : "city on"));
         _cityButton.ToggleMode = true;
         _cityButton.TooltipText = "Everything in the city that is stopped, grouped by why";

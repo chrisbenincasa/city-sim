@@ -1,0 +1,13 @@
+# Road paint and no dropped kerbs: pictured.toml, 5000 Citizens, --start-at 600, default test-street preset.
+601 pause
+601 ui family-bodies on
+601 focus 12783 4962 60
+601 tilt 22
+601 shoot plans/evidence/road-paint/paint-street.png
+601 speed 5
+602 pause
+602 focus 12783 4975 140
+602 tilt 45
+602 shoot plans/evidence/road-paint/paint-block.png
+602 speed 5
+604 quit
