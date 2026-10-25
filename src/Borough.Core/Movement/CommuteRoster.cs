@@ -61,6 +61,13 @@ public sealed class CommuteRoster
 
     private readonly int[] _homeTail = new int[Ticks.PerDay];
 
+    // Buckets are appended to and sorted into slot order when next walked.
+    private readonly bool[] _outUnsorted = new bool[Ticks.PerDay];
+
+    private readonly bool[] _homeUnsorted = new bool[Ticks.PerDay];
+
+    private int[] _scratch = new int[64];
+
     /// <summary>The outbound list. Composed at the call site, never stored.</summary>
     private IndexList Outbound(CitizenTable citizens) =>
         new(_outHead.AsSpan(), _outTail.AsSpan(), citizens.CommuteNext);
@@ -196,10 +203,9 @@ public sealed class CommuteRoster
 
     /// <summary>Rebuilds both partitions from saved state and the Ruleset in force.</summary>
     /// <remarks>
-    /// <b>Walked in slot order, which is what makes the result exact</b> — a rebuild has no other
-    /// order available, and <see cref="IndexList.InsertOrdered"/> puts each bucket in ascending slot
-    /// order however it was filled, so a rebuilt roster is byte-identical to a maintained one rather
-    /// than merely equivalent.
+    /// <b>Walked in slot order, so every bucket comes out sorted.</b> A maintained bucket is appended
+    /// to in hiring order and sorted when <see cref="Departing"/> or <see cref="Returning"/> next walks
+    /// it, so both rosters walk the same Citizens in the same order.
     /// </remarks>
     public void Rebuild(
         CitizenTable citizens,
@@ -214,6 +220,8 @@ public sealed class CommuteRoster
         Array.Clear(_outTail);
         Array.Clear(_homeHead);
         Array.Clear(_homeTail);
+        Array.Clear(_outUnsorted);
+        Array.Clear(_homeUnsorted);
         citizens.CommuteNext.Span.Clear();
         citizens.CommuteReturnNext.Span.Clear();
         citizens.CommuteBucket.Span.Clear();
@@ -228,8 +236,8 @@ public sealed class CommuteRoster
                     citizens, buildings, businesses, rules, key, slot,
                     out int outAt, out int homeAt))
             {
-                outbound.InsertOrdered(outAt, slot);
-                homeward.InsertOrdered(homeAt, slot);
+                outbound.Append(outAt, slot);
+                homeward.Append(homeAt, slot);
                 citizens.CommuteBucket[slot] = Pack(outAt, homeAt);
             }
         }
@@ -252,10 +260,17 @@ public sealed class CommuteRoster
     {
         ArgumentNullException.ThrowIfNull(citizens);
 
+        if (citizens.CommuteBucket[citizen] != 0)
+        {
+            throw new InvalidOperationException(
+                $"slot {citizen} is already rostered. Rostering it again would link it to itself, and every "
+                + "later walk of its bucket would never terminate. Remove it before its job changes.");
+        }
+
         if (TryPhasesOf(citizens, buildings, businesses, rules, key, citizen, out int outAt, out int homeAt))
         {
-            Outbound(citizens).InsertOrdered(outAt, citizen);
-            Homeward(citizens).InsertOrdered(homeAt, citizen);
+            Enter(Outbound(citizens), _outTail, _outUnsorted, outAt, citizen);
+            Enter(Homeward(citizens), _homeTail, _homeUnsorted, homeAt, citizen);
             citizens.CommuteBucket[citizen] = Pack(outAt, homeAt);
         }
     }
@@ -306,6 +321,7 @@ public sealed class CommuteRoster
     {
         ArgumentNullException.ThrowIfNull(citizens);
 
+        OrderBucket(citizens.CommuteNext.Span, _outHead, _outTail, _outUnsorted, phase);
         return Outbound(citizens).Walk(phase);
     }
 
@@ -314,7 +330,45 @@ public sealed class CommuteRoster
     {
         ArgumentNullException.ThrowIfNull(citizens);
 
+        OrderBucket(citizens.CommuteReturnNext.Span, _homeHead, _homeTail, _homeUnsorted, phase);
         return Homeward(citizens).Walk(phase);
+    }
+
+    private static void Enter(IndexList list, int[] tail, bool[] unsorted, int bucket, int citizen)
+    {
+        if (tail[bucket] > citizen + 1) { unsorted[bucket] = true; }
+        list.Append(bucket, citizen);
+    }
+
+    /// <summary>Sorts every bucket appended to out of slot order, so the links match a rebuild.</summary>
+    public void Order(CitizenTable citizens)
+    {
+        ArgumentNullException.ThrowIfNull(citizens);
+
+        for (int bucket = 0; bucket < Ticks.PerDay; bucket++)
+        {
+            OrderBucket(citizens.CommuteNext.Span, _outHead, _outTail, _outUnsorted, bucket);
+            OrderBucket(citizens.CommuteReturnNext.Span, _homeHead, _homeTail, _homeUnsorted, bucket);
+        }
+    }
+
+    private void OrderBucket(Span<int> next, int[] head, int[] tail, bool[] unsorted, int bucket)
+    {
+        if (!unsorted[bucket]) { return; }
+        unsorted[bucket] = false;
+
+        int count = 0;
+        for (int encoded = head[bucket]; encoded != 0; encoded = next[encoded - 1])
+        {
+            if (count == _scratch.Length) { Array.Resize(ref _scratch, checked(_scratch.Length * 2)); }
+            _scratch[count++] = encoded - 1;
+        }
+
+        Span<int> slots = _scratch.AsSpan(0, count);
+        slots.Sort();
+        for (int i = 0; i < count; i++) { next[slots[i]] = i + 1 < count ? slots[i + 1] + 1 : 0; }
+        head[bucket] = count == 0 ? 0 : slots[0] + 1;
+        tail[bucket] = count == 0 ? 0 : slots[count - 1] + 1;
     }
 
     /// <summary>How many Citizens leave home on one Tick of the Day.</summary>

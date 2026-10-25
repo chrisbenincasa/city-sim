@@ -284,6 +284,17 @@ public sealed class TreasuryFlowsExplainTheBalanceTests
         Assert.Equal(Opening, Sum(upkeep));
     }
 
+    [Fact]
+    public void Utility_tariffs_reach_the_census_income_column()
+    {
+        Simulation simulation = Borough.Tests.Utilities.UtilityBillingTests.Metered();
+        var census = new Census(simulation.World, 2);
+        census.Observe(simulation);
+        Assert.Equal(24, Sum(Read(census, Metric.Of(MoneyFlowCounter.Tariff, Aggregate.Sum))));
+        Assert.Equal(24, Read(census, Metric.Of(MoneyCounter.Treasury))[^1]);
+        Assert.Equal(24, Sum(Income(census)));
+    }
+
     // ---- the fixture ---------------------------------------------------------------------------
 
     /// <summary>Income at each reading: the four paths in, summed per reading.</summary>
@@ -300,7 +311,8 @@ public sealed class TreasuryFlowsExplainTheBalanceTests
             Read(census, Metric.Of(MoneyFlowCounter.Withheld, Aggregate.Sum)),
             Read(census, Metric.Of(MoneyFlowCounter.ToTreasury, Aggregate.Sum)),
             Read(census, Metric.Of(MoneyFlowCounter.RuleToTreasury, Aggregate.Sum)),
-            Read(census, Metric.Of(MoneyFlowCounter.ProfitTax, Aggregate.Sum)));
+            Read(census, Metric.Of(MoneyFlowCounter.ProfitTax, Aggregate.Sum)),
+            Read(census, Metric.Of(MoneyFlowCounter.Tariff, Aggregate.Sum)));
 
     /// <summary>Expenditure at each reading: the three paths out, summed per reading.</summary>
     /// <remarks>

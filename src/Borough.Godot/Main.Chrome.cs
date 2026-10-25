@@ -37,6 +37,11 @@ public partial class Main
         reservedCity.Disabled = true;
         reservedCity.TooltipText = "City view is not available yet";
         _dataLaunchers.AddChild(reservedCity);
+        _needsButton = ConsoleButton("Needs", () => Ui(_needsShown ? "needs off" : "needs on"));
+        _needsButton.ToggleMode = true;
+        _needsButton.TooltipText = "Who wants a home, a job or a shop, and why empty Lots stay empty";
+        UiIcons.Attach(_needsButton, "household");
+        _dataLaunchers.AddChild(_needsButton);
         _cityButton = ConsoleButton("Evidence", () => Ui(_cityShown ? "city off" : "city on"));
         _cityButton.ToggleMode = true;
         _cityButton.TooltipText = "Everything in the city that is stopped, grouped by why";
@@ -156,7 +161,8 @@ public partial class Main
     private static readonly (string Name, string Label)[] Washes =
     [
         ("off", "Off"), ("pollution", "Pollution"), ("value", "Land value"), ("sealing", "Sealing"),
-        ("health", "Health"), ("trouble", "Trouble"), ("rung", "Rung"), ("age", "Age"), ("family", "Family"),
+        ("health", "Health"), ("trouble", "Trouble"), ("utilities", "Utilities"),
+        ("rung", "Rung"), ("age", "Age"), ("family", "Family"),
     ];
 
     private static bool DebugWash(string name) => name is "rung" or "age" or "family";
@@ -170,6 +176,7 @@ public partial class Main
         Wash.Sealed => "sealing",
         Wash.Health => "health",
         Wash.Trouble => "trouble",
+        Wash.Utilities => "utilities",
         Wash.Rung => "rung",
         Wash.Family => "family",
         _ => "age",
@@ -219,7 +226,12 @@ public partial class Main
             if (_legendTitle.Text != title || _legendBody.Text != body) _chromeRebuilt = true;
             _legendTitle.Text = title;
             _legendBody.Text = body;
-            _legendRamp.Colours = _washing == Wash.Trouble ? TroubleBands : Bands;
+            _legendRamp.Colours = _washing switch
+            {
+                Wash.Trouble => TroubleBands,
+                Wash.Utilities => UtilityBands,
+                _ => Bands,
+            };
             _legendRamp.QueueRedraw();
         }
     }

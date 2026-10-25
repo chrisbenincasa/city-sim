@@ -1,6 +1,7 @@
 using Borough.Core;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
+using Borough.Core.Persistence;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
@@ -165,6 +166,7 @@ public sealed class DerivedRebuildAuditTests
             Run(PaintedGround()),
             Run(Borough.Tests.Rules.ExpiryTests.Spoiling()),
             Run(Borough.Tests.Rules.ServiceImportTests.Contracted()),
+            Run(Borough.Tests.Utilities.UtilityBillingTests.Billed()),
         ];
 
         string[] all = audits[0].Derived;
@@ -295,7 +297,10 @@ public sealed class DerivedRebuildAuditTests
         //
         // 54 -> 57: business.contract_head, business.contract_tail and service_contract.buyer_next,
         // each firm's list of service contracts (adr/0179). The serviced world exercises all three.
-        Assert.Equal(57, all.Length);
+        //
+        // 57 -> 59 adds building.utility_bill_head and utility_bill.next (10/20/2026).
+        // UtilityBillingTests.Billed populates the per-Building Utility billing lists.
+        Assert.Equal(59, all.Length);
         Assert.Single(ScratchColumns(Stepped(0)));
     }
 
@@ -357,6 +362,78 @@ public sealed class DerivedRebuildAuditTests
         presence.Rebuild(graph, range);
         Assert.False(presence.AnyTraffic);
         Assert.DoesNotContain(true, presence.Mask.ToArray());
+    }
+
+    /// <summary>
+    /// The Pool-to-network index rebuilds, over a load that starts without one.
+    /// </summary>
+    /// <remarks>
+    /// <b>This audit's standing corollary, which the Parking Shed earned</b>: a structure living
+    /// outside <c>Rows</c> is outside the column sweep however it is declared, so it needs a test
+    /// named for it. The index maps a District Pool row to its Utility network, it is rebuilt from
+    /// the networks' own saved handles, and <see cref="World.RebuildDerived"/> is the only thing that
+    /// builds it — so a load does the clearing this audit does by hand everywhere else.
+    /// </remarks>
+    [Fact]
+    public void The_pool_to_network_index_rebuilds_over_a_load()
+    {
+        World world = Borough.Tests.Utilities.PowerDeliveryTests.Delivering();
+        var file = new Borough.Tests.Persistence.MemorySave();
+
+        SaveFile.Write(world, 1, file);
+
+        World loaded = SaveFile.Read(file, world.Rules, out _);
+        int found = 0;
+
+        Assert.True(world.UtilityFlows.Rows.LiveCount > 0);
+
+        for (int pool = 0; pool < world.DistrictPools.Rows.SlotCount; pool++)
+        {
+            if (!world.DistrictPools.Rows.IsLive(pool))
+            {
+                continue;
+            }
+
+            int row = world.UtilityFlowOfPool(pool);
+
+            Assert.Equal(row, loaded.UtilityFlowOfPool(pool));
+
+            if (row != Rows.NoSlot)
+            {
+                found++;
+            }
+        }
+
+        Assert.Equal(world.UtilityFlows.Rows.LiveCount, found);
+        Assert.Equal(world.HashState(), loaded.HashState());
+    }
+
+    /// <summary>
+    /// A rebuild changes nothing a Utility settle then reads, so the Day's delivered fractions come
+    /// out the same either way.
+    /// </summary>
+    /// <remarks>
+    /// The sibling of <see cref="Rebuilding_writes_no_saved_state"/> for the one mechanism that reads
+    /// a derived index and then writes saved state through it. Both worlds are stopped on the Tick
+    /// their settle runs, so the single <c>Step</c> below is the settle and nothing else.
+    /// </remarks>
+    [Fact]
+    public void A_rebuild_does_not_change_what_the_next_settle_produces()
+    {
+        var plain = Borough.Tests.Utilities.PowerDeliveryTests.Settling();
+        var rebuilt = Borough.Tests.Utilities.PowerDeliveryTests.Settling();
+
+        Assert.True(plain.World.UtilityFlows.Rows.LiveCount > 0);
+        Assert.Equal(plain.World.HashState(), rebuilt.World.HashState());
+
+        rebuilt.World.RebuildDerived();
+
+        Assert.Equal(plain.World.HashState(), rebuilt.World.HashState());
+
+        plain.Simulation.Step(default);
+        rebuilt.Simulation.Step(default);
+
+        Assert.Equal(plain.World.HashState(), rebuilt.World.HashState());
     }
 
     /// <summary>

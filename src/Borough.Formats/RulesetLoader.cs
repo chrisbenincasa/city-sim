@@ -227,6 +227,16 @@ public static class RulesetLoader
         private readonly List<Need> _resourceNeeds = [];
         private readonly List<ShelfLife> _shelfLives = [];
         private readonly List<ServiceReach> _reaches = [];
+        private readonly List<int> _storage = [];
+        private readonly List<int> _links = [];
+        private readonly List<int> _losses = [];
+        private readonly List<int> _imports = [];
+
+        // Where to report an import_per_connection that does not pair with a [[hinterland]] price:
+        // the key's own line where it is stated, the [[resource]] table's where it is not. Parallel
+        // to _imports, because that refusal runs after the [[hinterland]] tables and the resource's
+        // own syntax node is out of reach by then.
+        private readonly List<int> _importLines = [];
         private int _labourLine;
         private readonly Dictionary<string, byte> _kinds = new(StringComparer.Ordinal);
 
@@ -385,6 +395,7 @@ public static class RulesetLoader
             ZoneRuleDefinition[] zoneRules = ReadZoneRules();
             BandDefinition[] bands = ReadBands();
             PolicyDefinition[] policies = ReadPolicies(out ulong[] policyKeys);
+            RefuseTariffedPremises(rules, inputs, policies);
             HinterlandDefinition[] hinterlands = ReadHinterlands(
                 lifeStages,
                 out Money[] hinterlandPrices,
@@ -451,6 +462,10 @@ public static class RulesetLoader
             // Pool to price, and adr/0050's anchor is the only thing bounding what that price
             // reaches. Neither table can see the defect alone.
             RefuseUnpricedGoods(districts, hinterlands, hinterlandPrices);
+
+            // Beside it, and a property of the pair for the same reason: an import needs a price
+            // and a capacity, and each key is in a table that cannot see the other.
+            RefuseHalfPricedUtilityImports(hinterlands, hinterlandPrices);
 
             // The same shape one table along: [capacity]'s ceiling on attendance can only bind on a
             // kind that serves something, and ReadCapacity runs before ReadKinds so it cannot ask.
@@ -554,6 +569,10 @@ public static class RulesetLoader
                 ResourceNeeds = [.. _resourceNeeds],
                 ResourceShelfLives = [.. _shelfLives],
                 ResourceReaches = [.. _reaches],
+                ResourceStorage = [.. _storage],
+                ResourceLinks = [.. _links],
+                ResourceLosses = [.. _losses],
+                ResourceImports = [.. _imports],
                 Founding = founding,
                 ResourceKeys = Keys(_resources),
                 KindKeys = Keys(_kinds),
@@ -588,8 +607,8 @@ public static class RulesetLoader
                         _resourceNeeds.Add(ReadNeed(table));
                         _shelfLives.Add(ReadShelfLife(table, _families[^1]));
                         _reaches.Add(ReadReach(table, _families[^1]));
+                        ReadUtilityDelivery(table, _families[^1]);
                         RefuseLabourThatKeeps(table);
-                        RefuseStorage(table);
                         break;
 
                     case "building":
@@ -1479,7 +1498,8 @@ public static class RulesetLoader
 
                 ResourceFamily family = _families[terms[i].Bin.Resource.Raw - 1];
 
-                if (family is ResourceFamily.Good or ResourceFamily.Service or ResourceFamily.None)
+                if (family is ResourceFamily.Good or ResourceFamily.Service or ResourceFamily.None
+                    || (family == ResourceFamily.Utility && _links[terms[i].Bin.Resource.Raw - 1] > 0))
                 {
                     continue;
                 }
@@ -1574,23 +1594,44 @@ public static class RulesetLoader
             }
         }
 
+        private void RefuseDeliveredUtilityLocalTerms(TableSyntaxBase table, string? name, List<Term> terms, int first, int end)
+        {
+            for (int i = first; i < end; i++)
+            {
+                ResourceId resource = terms[i].Bin.Resource;
+                if (_families[resource.Raw - 1] == ResourceFamily.Utility
+                    && _links[resource.Raw - 1] > 0 && terms[i].Bin.Scope != Scope.Pool)
+                {
+                    Refuse(LineOf(table), name, $"delivered Utility '{NameOfResource(resource)}' terms must use scope = \"pool\".");
+                }
+            }
+        }
+
         private void RefuseUnsupportedPoolTerms(
             TableSyntaxBase table, string? name,
             List<Term> inputs, int inputFirst, int inputEnd,
             List<Term> outputs, int outputFirst, int outputEnd, bool fillsPool)
         {
             bool hasPool = fillsPool;
+            bool needsMoney = fillsPool;
             bool hasMoney = _families.Contains(ResourceFamily.Money);
 
             for (int i = inputFirst; i < inputEnd; i++)
             {
                 hasPool |= inputs[i].Bin.Scope == Scope.Pool;
+                needsMoney |= inputs[i].Bin.Scope == Scope.Pool
+                    && _families[inputs[i].Bin.Resource.Raw - 1] != ResourceFamily.Utility;
             }
 
             for (int i = outputFirst; i < outputEnd; i++)
             {
                 hasPool |= outputs[i].Bin.Scope == Scope.Pool;
+                needsMoney |= outputs[i].Bin.Scope == Scope.Pool
+                    && _families[outputs[i].Bin.Resource.Raw - 1] != ResourceFamily.Utility;
             }
+
+            RefuseDeliveredUtilityLocalTerms(table, name, inputs, inputFirst, inputEnd);
+            RefuseDeliveredUtilityLocalTerms(table, name, outputs, outputFirst, outputEnd);
 
             if (!hasPool)
             {
@@ -1599,14 +1640,13 @@ public static class RulesetLoader
 
             RefusePoolTermsWithoutDelivery(table, name, inputs, inputFirst, inputEnd);
             RefusePoolTermsWithoutDelivery(table, name, outputs, outputFirst, outputEnd);
-
             if (_districtsTable is null)
             {
                 Refuse(LineOf(table), name,
                     "this Rule uses a pool term, but a pool term needs [districts].");
             }
 
-            if (!hasMoney)
+            if (needsMoney && !hasMoney)
             {
                 Refuse(LineOf(table), name,
                     "this Rule uses a pool term, but a pool term needs a Resource with family = \"money\".");
@@ -2724,13 +2764,73 @@ public static class RulesetLoader
         /// with none of them implemented an accepted-and-dropped <c>storage = 0</c> would give a
         /// designer a Power Resource that warehouses electricity for ever and reads as a balance bug.
         /// </remarks>
-        private void RefuseStorage(TableSyntaxBase table)
+        private void ReadUtilityDelivery(TableSyntaxBase table, ResourceFamily family)
         {
-            RefuseRetired(table, "storage", "storage",
-                "storage is not implemented. It is CONTEXT → Resource's second parameter — whether a "
-                + "Bin carries over between periods, zero for Power and filling for Waste — and "
-                + "nothing reads it yet, so accepting it would silently give every Resource the "
-                + "carry-over of a warehouse. Remove the key; the hole is named rather than hidden.");
+            bool hasStorage = Find(table, "storage") is not null;
+            bool hasLink = Find(table, "link_per_crossing") is not null;
+            bool hasLoss = Find(table, "loss_per_road_tile") is not null;
+            KeyValueSyntax? importKey = Find(table, "import_per_connection");
+            bool hasImport = importKey is not null;
+            string name = NameOfResource(new ResourceId((ushort)_families.Count));
+
+            _importLines.Add(hasImport ? LineOf(importKey!) : LineOf(table));
+
+            // Zero is the only accepted value, so the column carries zero for every Resource until
+            // the Water slice builds a store to put in it.
+            if (hasStorage
+                && TryInteger(table, "storage", out long storageValue, required: true)
+                && storageValue != 0)
+            {
+                Refuse(LineOf(table), null, "storage must be 0; stored Utilities arrive with Water.");
+            }
+
+            int link = hasLink ? CivicInt(table, "link_per_crossing", 1, int.MaxValue) : 0;
+            int loss = hasLoss ? CivicInt(table, "loss_per_road_tile", 0, int.MaxValue) : 0;
+            int import = hasImport ? CivicInt(table, "import_per_connection", 1, int.MaxValue) : 0;
+
+            if (family != ResourceFamily.Utility)
+            {
+                if (hasStorage || hasLink || hasLoss || hasImport)
+                {
+                    Refuse(LineOf(table), null,
+                        "storage, link_per_crossing, loss_per_road_tile and import_per_connection "
+                        + $"describe a delivered Utility, but '{name}' has family = "
+                        + $"{FamilyName(family)}.");
+                }
+
+                _storage.Add(0);
+                _links.Add(0);
+                _losses.Add(0);
+                _imports.Add(0);
+                return;
+            }
+
+            if (hasLink && !hasStorage)
+            {
+                Refuse(LineOf(table), null,
+                    "storage is required when link_per_crossing is present; stored Utilities arrive "
+                    + "with Water.");
+            }
+
+            if (hasLoss && !hasLink)
+            {
+                Refuse(LineOf(table), null, "loss_per_road_tile requires link_per_crossing.");
+            }
+
+            // An undelivered Utility has no network for an import to arrive on. Its Pool row is
+            // never opened, so a capacity here would be a number no settle ever reads.
+            if (hasImport && !hasLink)
+            {
+                Refuse(LineOf(table), null,
+                    $"import_per_connection on '{name}' requires link_per_crossing. An Outside "
+                    + "Connection imports onto the District network the key opens, and an "
+                    + "undelivered Utility has none.");
+            }
+
+            _storage.Add(0);
+            _links.Add(link);
+            _losses.Add(hasLink ? loss : 0);
+            _imports.Add(hasLink ? import : 0);
         }
 
         /// <summary>Spells the entities a Readout is readable against, for a refusal message.</summary>
@@ -3100,8 +3200,8 @@ public static class RulesetLoader
         /// </para>
         /// <para>
         /// <b><c>pool</c> is refused when its required world support is absent.</b> A pool term needs
-        /// the District Pool and a money Resource, so <see cref="RefuseUnsupportedPoolTerms"/> checks
-        /// both facts while the Rule still has its source line.
+        /// the District Pool. Goods and services also need a money Resource, so
+        /// <see cref="RefuseUnsupportedPoolTerms"/> checks both facts at the Rule's source line.
         /// </para>
         /// </remarks>
         private bool GlobalNamesAConservedResource(
@@ -4355,6 +4455,25 @@ public static class RulesetLoader
                     }
                 }
 
+                int leavingCosts = 0;
+
+                if (TryInteger(table, "leaving_costs_rent", out long leaving, required: false, name))
+                {
+                    if (leaving < 0 || leaving > int.MaxValue)
+                    {
+                        Refuse(
+                            LineOf((SyntaxNodeBase?)Find(table, "leaving_costs_rent") ?? table),
+                            name,
+                            $"leaving_costs_rent is {leaving}. It is the daily rent a jobless "
+                            + "Household in this stage would pay to stay in the city rather than "
+                            + "leave for a Hinterland, so it is zero or more.");
+                    }
+                    else
+                    {
+                        leavingCosts = (int)leaving;
+                    }
+                }
+
                 byte next = 0;
 
                 if (TryString(table, "next", out string? successor, required: false)
@@ -4524,6 +4643,7 @@ public static class RulesetLoader
                     CentralityBasePercent = centralityBase,
                     CentralitySpreadPercent = centralitySpread,
                     RentWeightPercent = rentWeight,
+                    LeavingCostsRent = leavingCosts,
                     SchoolLevel = schoolLevel,
                 };
             }
@@ -6468,6 +6588,72 @@ public static class RulesetLoader
 
         // ---- policies ---------------------------------------------------------------------------
 
+        private ResourceId ReadTariffUtility(
+            TableSyntaxBase table, string? name, PolicyTool tool, List<PolicyDefinition> policies)
+        {
+            bool stated = TryString(table, "utility", out string? utility, required: false, name);
+
+            if (tool != PolicyTool.Tariff)
+            {
+                if (stated)
+                {
+                    Refuse(LineOf(table), name, "utility is allowed only on a tariff Policy.");
+                }
+
+                return default;
+            }
+
+            foreach (string key in new[] { "sweeps", "interval", "apply", "trade" })
+            {
+                if (Find(table, key) is not null)
+                {
+                    Refuse(LineOf(table), name, $"a tariff cannot state {key}; it is read when a Rule fires.");
+                }
+            }
+
+            if (!stated)
+            {
+                Refuse(LineOf(table), name, "a tariff must name its delivered Utility with utility.");
+                return default;
+            }
+
+            if (utility is null || !_resources.TryGetValue(utility, out ushort id)
+                || _families[id - 1] != ResourceFamily.Utility || _links[id - 1] <= 0)
+            {
+                Refuse(LineOf(table), name, $"utility = '{utility}' must name a delivered Utility Resource.");
+                return default;
+            }
+
+            var resource = new ResourceId(id);
+
+            if (policies.Exists(policy => policy.Tool == PolicyTool.Tariff && policy.Utility == resource))
+            {
+                Refuse(LineOf(table), name, $"two tariffs name utility '{utility}'; each Utility has at most one tariff.");
+            }
+
+            return resource;
+        }
+
+        private void RefuseTariffedPremises(RuleDefinition[] rules, Term[] inputs, PolicyDefinition[] policies)
+        {
+            for (int r = 0; r < rules.Length; r++)
+            {
+                RuleDefinition rule = rules[r];
+                if (rule.Tenancy != BinTenancy.Premises) { continue; }
+
+                for (int t = rule.InputFirst; t < rule.InputFirst + rule.InputCount; t++)
+                {
+                    ResourceId resource = inputs[t].Bin.Resource;
+                    if (inputs[t].Bin.Scope == Scope.Pool
+                        && Array.Exists(policies, policy => policy.Tool == PolicyTool.Tariff && policy.Utility == resource))
+                    {
+                        Refuse(LineOf(_ruleTables[r]), NameOfRule(r),
+                            "a premises Rule draws a tariffed Utility but has no payer; a Household or Business must run it.");
+                    }
+                }
+            }
+        }
+
         /// <summary>
         /// Every <c>[[policy]]</c> table — refusals 60 to 68, and the catalogue's four keys beside
         /// them (<see cref="ReadTool"/>, <see cref="ReadTrade"/>, <see cref="ReadMovement"/>,
@@ -6509,17 +6695,19 @@ public static class RulesetLoader
 
                 _policyNames.Add(name);
 
-                PolicySubject subject = ReadSubject(table, name);
-                uint interval = ReadInterval(table, name);
-                ApplyCount apply = ReadApply(table, name, ScopeFor(subject));
                 PolicyTool tool = ReadTool(table, name);
-                byte trade = ReadTrade(table, name, subject);
+                ResourceId utility = ReadTariffUtility(table, name, tool, definitions);
+                bool tariff = tool == PolicyTool.Tariff;
+                PolicySubject subject = tariff ? PolicySubject.Household : ReadSubject(table, name);
+                uint interval = tariff ? 1 : ReadInterval(table, name);
+                ApplyCount apply = tariff ? default : ReadApply(table, name, ScopeFor(subject));
+                byte trade = tariff ? TradeKind.Any : ReadTrade(table, name, subject);
                 (Scope from, Scope to, ResourceId resource, int amount) =
                     ReadMovement(table, name, tool);
                 long ceiling = ReadCeiling(table, name, tool);
 
                 definitions.Add(new PolicyDefinition(
-                    subject, interval, apply, from, to, resource, amount, ceiling, tool, trade));
+                    subject, interval, apply, from, to, resource, amount, ceiling, tool, trade, utility));
             }
 
             keys = names;
@@ -6626,14 +6814,17 @@ public static class RulesetLoader
                 case "subsidy":
                     return PolicyTool.Subsidy;
 
+                case "tariff":
+                    return PolicyTool.Tariff;
+
                 default:
                     Refuse(LineOf((SyntaxNodeBase?)Find(table, "tool") ?? table), name,
-                        $"tool = \"{tool}\" is not one of the things a Policy does. The four are "
+                        $"tool = \"{tool}\" is not one of the things a Policy does. The tools are "
                         + "\"transfer\" -- the unconditional movement a [[policy]] has always been, "
                         + "and what omitting this key means; \"charge\", money from a liable payer "
                         + "to the treasury; \"relief\", a reduction of profit tax that moves no "
                         + "money at all; and \"subsidy\", money out of the treasury against a daily "
-                        + "ceiling.");
+                        + "ceiling; and \"tariff\", money per delivered Utility unit received.");
 
                     return PolicyTool.Transfer;
             }
@@ -6737,7 +6928,15 @@ public static class RulesetLoader
                 return (Scope.Local, Scope.Local, FirstMoneyResource(), relief);
             }
 
-            (Scope from, Scope to, ResourceId resource, int amount) = ReadTransfer(table, name);
+            (Scope from, Scope to, ResourceId resource, int amount) = ReadTransfer(table, name, tool == PolicyTool.Tariff);
+
+            if (tool == PolicyTool.Tariff
+                && (from != Scope.Local || to != Scope.Global
+                    || resource == default || _families[resource.Raw - 1] != ResourceFamily.Money))
+            {
+                Refuse(LineOf(table), name,
+                    "a tariff transfer must move money from local to global, from the Rule's owner to the treasury.");
+            }
 
             if (tool == PolicyTool.Subsidy && from != Scope.Global)
             {
@@ -6921,7 +7120,7 @@ public static class RulesetLoader
         /// </para>
         /// </remarks>
         private (Scope From, Scope To, ResourceId Resource, int Amount) ReadTransfer(
-            TableSyntaxBase table, string? name)
+            TableSyntaxBase table, string? name, bool tariff = false)
         {
             var fallback = (Scope.Local, Scope.Global, default(ResourceId), 1);
 
@@ -6957,7 +7156,7 @@ public static class RulesetLoader
             }
 
             ResourceId resource = ReadTransferResource(inline, name, entry);
-            int amount = ReadTransferAmount(inline, name, entry);
+            int amount = ReadTransferAmount(inline, name, entry, tariff);
 
             return (from, to, resource, amount);
         }
@@ -7027,17 +7226,17 @@ public static class RulesetLoader
         }
 
         /// <summary>How much one application moves — refusals 67 and 68.</summary>
-        private int ReadTransferAmount(InlineTableSyntax inline, string? name, KeyValueSyntax entry)
+        private int ReadTransferAmount(InlineTableSyntax inline, string? name, KeyValueSyntax entry, bool tariff)
         {
             if (!TryInteger(inline, "amount", out long amount, required: true, name))
             {
                 return 1;
             }
 
-            if (amount < 1 || amount > int.MaxValue)
+            if (amount < (tariff ? 0 : 1) || amount > int.MaxValue)
             {
                 Refuse(LineOf((SyntaxNodeBase?)Find(inline, "amount") ?? entry), name,
-                    $"amount = {amount} is not a quantity per application. It is at least 1 -- a "
+                    $"amount = {amount} is not a quantity per application. A tariff allows 0 to {int.MaxValue}; other transfers start at 1 -- a "
                     + "transfer of nothing is a Policy that cannot be observed to have run, and the "
                     + "way to move less is a smaller apply count.");
 
@@ -7294,17 +7493,22 @@ public static class RulesetLoader
                     continue;
                 }
 
-                // Only a Good. A utility is not stocked and a money Resource is the DENOMINATION of
-                // a price rather than a thing with one, so both would be a number the market never
-                // reads -- and a key the loader silently drops is a key a designer tunes and then
-                // wonders about, which is `bins`' capacity refusal one table over.
-                if (_families[resource.Raw - 1] is not (ResourceFamily.Good or ResourceFamily.Service))
+                // A Good, a Professional Service, or a DELIVERED Utility. An undelivered Utility
+                // reaches no network and a money Resource is the DENOMINATION of a price rather
+                // than a thing with one, so both would be a number the market never reads -- and a
+                // key the loader silently drops is a key a designer tunes and then wonders about,
+                // which is `bins`' capacity refusal one table over.
+                if (_families[resource.Raw - 1] is not (ResourceFamily.Good or ResourceFamily.Service)
+                    && !(_families[resource.Raw - 1] == ResourceFamily.Utility
+                        && _links[resource.Raw - 1] > 0))
                 {
                     Refuse(LineOf(inline), null,
-                        $"'{NameOfResource(resource)}' is not a good or a service, so it has no import "
-                        + "price. A Hinterland prices cargo and Professional Services: a utility is "
-                        + "not stocked and money is what a price is denominated IN rather than a "
-                        + "thing that has one.");
+                        $"prices names '{NameOfResource(resource)}', which is not a good, a service "
+                        + "or a delivered utility, so it has no import price. A Hinterland prices "
+                        + "cargo, Professional Services and a Utility that states "
+                        + "link_per_crossing: an undelivered utility reaches no District network to "
+                        + "be imported onto, and money is what a price is denominated IN rather than "
+                        + "a thing that has one.");
 
                     continue;
                 }
@@ -8686,6 +8890,22 @@ public static class RulesetLoader
                 return LotRuleset.None;
             }
 
+            var unbanded = Core.Space.BlockPattern.Detached;
+            if (TryString(_lotsTable, "block_pattern", out string? blockPattern, required: false))
+            {
+                switch (blockPattern)
+                {
+                    case "detached": unbanded = Core.Space.BlockPattern.Detached; break;
+                    case "perimeter": unbanded = Core.Space.BlockPattern.Perimeter; break;
+                    case "back_to_back": unbanded = Core.Space.BlockPattern.BackToBack; break;
+                    default:
+                        Refuse(LineOfLot("block_pattern"), null,
+                            $"block_pattern = \"{blockPattern}\" is not a block pattern. It is \"detached\", "
+                            + "\"perimeter\" or \"back_to_back\"; omit the key for \"detached\".");
+                        return LotRuleset.None;
+                }
+            }
+
             // min/max_tower_podium_storeys: the range a Tower's podium is drawn from, per Lot. OPTIONAL,
             // and absent means the fixed two-storey podium, which takes no draw, so a file that does
             // not state them raises exactly the Towers it raised before the keys existed.
@@ -8874,6 +9094,7 @@ public static class RulesetLoader
                 BuyerReservePerMember = reservesCapital ? new Money(reserve) : null,
                 CitySaleIntervalDays = sellsCityLots ? (int)saleInterval : null,
                 MinPlotDepthTiles = (int)minPlotDepth,
+                UnbandedPattern = unbanded,
             };
         }
 
@@ -11555,6 +11776,78 @@ public static class RulesetLoader
                     + "what that Pool can charge, so an unpriced good is not merely unanchored -- it "
                     + "is free everywhere, for ever. Add a prices entry for it to some [[hinterland]], "
                     + "or delete the [districts] table.");
+            }
+        }
+
+        /// <summary>
+        /// <b>A delivered Utility is importable with both halves of an import or with neither</b> —
+        /// a <c>[[hinterland]]</c> price and an <c>import_per_connection</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Half an import is a key that loads clean and moves nothing.</b> The settle takes a
+        /// gate's flow as <c>min(capacity, what the treasury can pay at the price)</c>, so a price
+        /// with no capacity imports nothing at a stated price and a capacity with no price has
+        /// nothing to charge for the units — neither reads as a missing key, both read as a city
+        /// whose Districts stay short beside an Outside Connection.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>It asks for a price at SOME Hinterland rather than at every one</b>, on
+        /// <see cref="RefuseUnpricedGoods"/>'s terms. Which edge a gate stands on is a property of
+        /// the world, so a file pricing one edge has authored an import route and the loader cannot
+        /// tell whether a Building will ever stand on it.
+        /// </para>
+        /// </remarks>
+        private void RefuseHalfPricedUtilityImports(
+            HinterlandDefinition[] hinterlands, Money[] prices)
+        {
+            int stride = _families.Count;
+
+            for (int resource = 0; resource < stride; resource++)
+            {
+                if (_links[resource] <= 0)
+                {
+                    // An undelivered Resource is refused where the key is written, in
+                    // ReadUtilityDelivery and ReadPrices. Naming it here as well would report one
+                    // mistake twice.
+                    continue;
+                }
+
+                bool priced = false;
+
+                for (int hinterland = 0; hinterland < hinterlands.Length; hinterland++)
+                {
+                    if (prices[(hinterland * stride) + resource].Raw > 0)
+                    {
+                        priced = true;
+                        break;
+                    }
+                }
+
+                if (priced == (_imports[resource] > 0))
+                {
+                    continue;
+                }
+
+                string name = NameOfResource(new ResourceId((ushort)(resource + 1)));
+
+                if (priced)
+                {
+                    Refuse(_importLines[resource], null,
+                        $"a [[hinterland]] prices the delivered Utility '{name}' and it states no "
+                        + "import_per_connection, so no Outside Connection can bring any of it in "
+                        + "and the price would be read by nobody. State import_per_connection, or "
+                        + "delete the prices entry.");
+
+                    continue;
+                }
+
+                Refuse(_importLines[resource], null,
+                    $"'{name}' states import_per_connection and no [[hinterland]] prices it, so an "
+                    + "Outside Connection has capacity to import at no price. The treasury pays the "
+                    + "Hinterland's price for every imported unit and there is nothing here to "
+                    + "charge it. Add a prices entry for it to some [[hinterland]], or delete the "
+                    + "capacity.");
             }
         }
 

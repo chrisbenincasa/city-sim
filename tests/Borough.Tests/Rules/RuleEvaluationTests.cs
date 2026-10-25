@@ -791,6 +791,16 @@ public sealed class RuleEvaluationTests
         kindRules: [new RuleId(1)],
         zoneRules: []);
 
+    private static Ruleset PerFloorArea() => new(
+        resources: [ResourceFamily.Good],
+        rules: [new RuleDefinition(
+            Bakery, Rate, ApplyCount.From(new ReadoutId((ushort)Readout.FloorArea), 100),
+            RuleId.None, false, default, ConditionId.None, 0, 1, 0, 0, 0, 0)],
+        kinds: [new KindDefinition(0, 1, 0, 1)],
+        inputs: [new Term(new BinRef(Scope.Local, Flour), 6)],
+        outputs: [], emissions: [], bins: [new BinDeclaration(Flour, BinCapacity.Of(60))],
+        kindRules: [new RuleId(1)], zoneRules: []);
+
     private static void House(World world, Handle<Building> building, int households)
     {
         for (int i = 0; i < households; i++)
@@ -799,7 +809,15 @@ public sealed class RuleEvaluationTests
         }
     }
 
-    /// <summary><c>02 §4.1</c>'s proportionality without an expression language.</summary>
+    [Fact]
+    public void A_floor_area_derived_apply_count_uses_floor_tiles()
+    {
+        (World world, Simulation simulation, Handle<Building> building) = Built(PerFloorArea());
+        world.Deposit(world.Bins.Rows.At(BinOf(world, building, Flour)), 60, Ticks.Zero);
+        StepToTheFiring(simulation);
+        Assert.Equal(60 - (world.FloorTilesOf(world.Buildings.Rows.Resolve(building)) * 6), Level(world, building, Flour));
+    }
+
     [Fact]
     public void A_derived_apply_count_applies_once_per_unit_of_its_readout()
     {

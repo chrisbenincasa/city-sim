@@ -1,0 +1,251 @@
+# A FIXTURE, not a city. It exists so that Power can be watched flowing between two Districts and
+# being paid for. Its rates are chosen to make an assertion legible and its money is chosen to hold
+# a small circuit level; neither is chosen to balance a city.
+#
+# WHAT IT DECLARES. One delivered Utility, `power`. `link_per_crossing` is what makes a Utility
+# delivered, so it gets a Pool row and a network in every District and may appear in `pool` terms.
+# Three kinds use it. A `plant` turns nothing into power and is the premises of a staffed trade, so a
+# test can watch a network run beside a payroll. A `dwelling` draws power per occupant, which is the
+# `apply = { derived = "occupancy" }` shape degrading rather than failing. A `works` draws power
+# greedily on a city contract, which is the shape that outruns a link.
+#
+# WHY THE LOSS IS 1 PER ROAD TILE. The road graph is the network, so a longer District loses more.
+# A ridge of eight 32-Tile blocks credits 256 Tiles between its two Districts, which is a few per
+# cent of a plant's Day -- visible in the delivered fraction, and nowhere near dominating it.
+#
+# WHY NOTHING DECLINES AND NOTHING IS ZONED. There is no `upkeep` Rule and no `[[zone_rule]]`, so no
+# Building is ever condemned and none is ever raised. A test builds the city it wants and the city
+# stays built, which is what makes a Day-to-Day comparison of one network a comparison of one city.
+#
+# ---------------------------------------------------------------------------------------------------
+# WHO PAYS FOR THE POWER.
+# ---------------------------------------------------------------------------------------------------
+# A tariff is charged on the units a firing received, so a drawing Rule needs an owner with a
+# balance; the loader refuses a premises Rule that draws a tariffed Utility, because nothing would
+# pay for it. Ownership follows the Bins a Rule's `local` terms address. The `lumens` Bin belongs to
+# the occupant, which makes `lighting` the HOUSEHOLD's Rule, and the works' money Bin belongs to the
+# business, which makes `machinery` the BUSINESS's.
+#
+# ⚠ THE WORKS MAKES NOTHING, AND THAT IS A LOADER RULE RATHER THAN A CHOICE. A Business Rule with a
+# Good among its outputs must spend labour -- production by a trade is bounded by the workers present
+# -- and a works whose output waited on a staffed shift would make the brownout a question about
+# commuting. So the works' Rule spends money instead of making a Good. `machinery` draws the power a
+# Day's work would have drawn, and the city pays its running cost per application.
+#
+# ⚠ THE CONTRACT IS THE BILL, so the yard's till is flat at every count it fires at. Both legs scale
+# with the applications that actually fired, so a browned-out Day is paid less and billed less by the
+# same fraction. Govern the tariff above 1 and the difference goes unpaid, which is what the unpaid
+# counter is for.
+#
+# ---------------------------------------------------------------------------------------------------
+# WHERE THE MONEY GOES ROUND.
+# ---------------------------------------------------------------------------------------------------
+# treasury -> plant -> Household -> treasury. `plant_funding` pays each plant per declared post, the
+# plant pays wages to whoever holds that post, and their Households pay the tariff on the light they
+# draw. Three numbers hold it level, and each is an equality rather than a taste:
+#
+#   tariff             1 money per unit received
+#   lighting draw      2 units an application x occupancy applications x 64 firings a Day
+#   wage_per_day     256 = one Household's Day of light in a dwelling of two Households
+#   funding per post 256 = the daily wage, so a plant whose post is filled holds a flat till
+#
+# A world of two such plants with both posts held, a dwelling of two earning Households and one
+# works therefore moves 4,608 money through the treasury each way per Day and ends every Day where
+# it started it. A plant holds ONE post on the one-Tile Lots these fixtures raise, so the count of
+# earning Households a city can support is the count of plants standing in it.
+#
+# ⚠ THE LIGHT IS QUADRATIC IN OCCUPANCY AND THE EQUALITY ABOVE IS NOT. Each Household runs its own
+# `lighting` Instance and each Instance applies the whole Building's occupancy, so a dwelling of two
+# draws four applications a firing and a dwelling of three draws nine. The wage covers a Household in
+# a dwelling of TWO, which is the occupancy every test here raises.
+#
+# WHAT THE HINTERLAND IS FOR. A file stating `[districts]` must price every Good at some Hinterland,
+# because a Pool's ceiling is the cheapest import price and an unpriced Good is free for ever. The
+# south Hinterland also prices `power`, which is what makes the Utility importable: a `gate` raised
+# on the south edge brings in `import_per_connection` units a Day and the treasury pays that price
+# for each of them. Nothing here buys or sells a Good; the Utility import is the only trade.
+#
+# WHY THERE IS A TREASURY AND A [placement] TABLE. The treasury is the importer's purse -- an empty
+# one imports nothing, so a fixture that demonstrates an import has to be founded with money. The
+# `[placement]` table is what `arrivals_per_day` obliges: a gate kind is a door into the Unplaced
+# Pool, and `adr/0006` requires that Pool to have a sink. Nothing arrives through the door in these
+# worlds, because no `[immigration]` table makes the Outside present anybody.
+
+[[resource]]
+name = "power"
+family = "utility"
+# 0 because a delivered Utility has no store in this slice. A Utility that carries over between
+# Days arrives with Water.
+storage = 0
+# What one road Segment crossing a District boundary carries in a Day. Deliberately short of what one
+# ridge's consumers draw, so a single crossing browns the far District out and a second one does not.
+link_per_crossing = 2560
+# What a District's network loses per Tile of road credited to it, in a Day.
+loss_per_road_tile = 1
+# What one Outside Connection brings in per Day. Equal to `link_per_crossing` on purpose, so one
+# gate on the far side of a boundary is worth exactly one more crossing road.
+import_per_connection = 2560
+
+[[resource]]
+name = "lumens"
+family = "good"
+
+[[resource]]
+name = "money"
+family = "money"
+
+[[hinterland]]
+edge = "south"
+emigrant_balance_min = 0
+emigrant_balance_max = 0
+prices = [
+    { resource = "lumens", price = 500 },
+    # Two per unit, so a Day of one gate's capacity costs 5,120 and the opening balance below buys
+    # several hundred Days of it. A short District's bill is legible without the treasury being the
+    # thing under test.
+    { resource = "power",  price = 2 },
+]
+
+# The plant's trade. It pays daily rather than weekly so that a Day's funding and a Day's payroll are
+# the same Day's money and the till is flat at steady state instead of sawtoothing over a week.
+[[business]]
+name = "generation"
+wage_per_day    = 256
+pay_period_days = 1
+goes_bankrupt_after_days_in_arrears = 14
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+# The works' trade. It pays no wage -- its Rule spends a contract rather than a shift -- and it holds
+# the money Bin that makes `machinery` a Business Rule and gives the draw a payer.
+[[business]]
+name = "fabrication"
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+# Kind 1, so the mass of Buildings a test raises to shape the watershed draws no power until it is
+# occupied. The `lumens` Bin belongs to the occupant, which makes `lighting` the Household's Rule and
+# the Household its payer; an empty dwelling runs no Instance of it at all.
+[[building]]
+name = "dwelling"
+bins = [ { resource = "lumens", capacity = 65536, owner = "occupant" } ]
+houses = true
+
+# Kind 2.
+[[building]]
+name = "plant"
+premises = true
+business = "generation"
+bins = [ { resource = "money", owner = "business" } ]
+
+# Kind 3.
+[[building]]
+name = "works"
+premises = true
+business = "fabrication"
+bins = [ { resource = "money", owner = "business" } ]
+
+# Kind 4, the Outside Connection. `arrivals_per_day` is the key that makes a kind one (adr/0088);
+# the number is a ceiling on Households and has nothing to do with the Utility it imports.
+[[building]]
+name = "gate"
+arrivals_per_day = 12
+
+[[rule]]
+name    = "generate"
+kind    = "plant"
+rate    = 8
+apply   = { min = 1, max = 1 }
+inputs  = []
+outputs = [ { scope = "pool", resource = "power", amount = 16 } ]
+
+# 2 units an application and not 4, because the Rule belongs to a Household and a dwelling of two
+# runs two Instances of it. Each Instance applies the Building's occupancy, so the dwelling draws the
+# same 8 units a firing one premises Instance applying twice would have drawn.
+[[rule]]
+name    = "lighting"
+kind    = "dwelling"
+rate    = 32
+apply   = { derived = "occupancy" }
+inputs  = [ { scope = "pool", resource = "power", amount = 2 } ]
+outputs = [ { scope = "local", resource = "lumens", amount = 1 } ]
+
+# 4 units an application, up to 4 applications, every 8 Ticks -- 4,096 units a Day, which is a whole
+# plant's Day and is what makes this kind the one that outruns the link. The money leg is the city's
+# running-cost contract, an ordinary balanced transfer of `global` money in and `local` money out,
+# and it is what gives the Rule a till to be billed against.
+[[rule]]
+name    = "machinery"
+kind    = "works"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = [
+    { scope = "pool",   resource = "power", amount = 4 },
+    { scope = "global", resource = "money", amount = 4 },
+]
+outputs = [ { scope = "local", resource = "money", amount = 4 } ]
+
+# 1 money per unit received. The charge is per unit and a brownout is in the units, so a browned-out
+# Day bills less with no key saying so. It is the governable number, so a test raises the price with
+# `Command.Govern` and reads the next Day's bill.
+[[policy]]
+name = "power_tariff"
+tool = "tariff"
+utility = "power"
+transfer = { from = "local", to = "global", resource = "money", amount = 1 }
+
+# school_funding's shape, which pays per DECLARED post, daily, out of the treasury. Per post rather
+# than per worker, so an understaffed plant draws its posts' funding and shows a rising till beside
+# an empty payroll -- which names the cause as hiring and not as money.
+[[policy]]
+name = "plant_funding"
+sweeps = "business"
+trade = "generation"
+interval = 2048
+apply = { derived = "jobs", percent = 100 }
+transfer = { from = "global", to = "local", resource = "money", amount = 256 }
+
+# The treasury is the importer's purse and the works' contract. A `global` money input joins the
+# affordability walk like any other input, so a dry treasury blocks `machinery` on Supply, the east's
+# greedy consumer draws nothing and the brownout every delivery test reads disappears; an empty one
+# also imports nothing. Nothing collects a tax or a levy here, so this and the tariff are all the
+# money the city will ever have.
+[treasury]
+opening_balance = 4194304
+
+# adr/0006's sink for the Pool the gate kind above opens a door into.
+[placement]
+interval            = 32
+revisit_ticks       = 1024
+candidates          = 3
+gives_up_after_days = 120
+
+[districts]
+prominence_percent = 50
+revisit_ticks      = 2048
+hysteresis_percent = 50
+migrate_cells      = 16
+
+[roads]
+block_tiles                    = 32
+arterial_count                 = 0
+arterial_junction_tiles        = 512
+foot_crossing_every            = 4
+foot_paths_per_thousand_blocks = 40
+street_speed_kph               = 50
+arterial_speed_kph             = 90
+walk_speed_kph                 = 5
+street_capacity_per_hour       = 3600
+arterial_capacity_per_hour     = 12000
+foot_path_capacity_per_hour    = 1000
+
+[lots]
+street_half_width_tiles = 1
+lots_per_segment        = 5
+setback_tiles           = 2
+
+[capacity]
+floor_tiles_per_occupant = 25
+# One post per floor Tile, which gives a plant on a one-Tile Lot exactly one post. A coarser rate
+# would floor it to no post at all, and a trade with no posts draws no funding and pays no wage.
+floor_tiles_per_job      = 1

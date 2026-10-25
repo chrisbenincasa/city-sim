@@ -177,7 +177,7 @@ public partial class Main
     private static string CareMoment(ulong tick)
     {
         int minute = Ticks.MinuteOfDay(tick);
-        return $"Day {tick / Ticks.PerDay} {minute / 60:00}:{minute % 60:00}";
+        return $"Day {ClockDay(tick)} {minute / 60:00}:{minute % 60:00}";
     }
     private static string ActivitySentence(CitizenActivity activity) => activity switch
     {

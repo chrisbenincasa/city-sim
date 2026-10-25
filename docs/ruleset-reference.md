@@ -27,7 +27,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-54 sections, 395 keys.
+54 sections, 402 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
@@ -40,15 +40,15 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[[hinterland]] prices`](#hinterland-prices) — 2 keys
 - [`[[housing_form]]`](#housing_form) — 11 keys
 - [`[[lattice]]`](#lattice) — 4 keys
-- [`[[life_stage]]`](#life_stage) — 16 keys
-- [`[[policy]]`](#policy) — 12 keys
+- [`[[life_stage]]`](#life_stage) — 17 keys
+- [`[[policy]]`](#policy) — 13 keys
 - [`[[policy]] apply`](#policy-apply) — 4 keys
 - [`[[policy]] transfer`](#policy-transfer) — 4 keys
 - [`[[recipe]]`](#recipe) — 5 keys
 - [`[[recipe]] inputs`](#recipe-inputs) — 3 keys
 - [`[[recipe]] outputs`](#recipe-outputs) — 3 keys
 - [`[[reserve]]`](#reserve) — 4 keys
-- [`[[resource]]`](#resource) — 9 keys
+- [`[[resource]]`](#resource) — 13 keys
 - [`[[rule]]`](#rule) — 14 keys
 - [`[[rule]] apply`](#rule-apply) — 4 keys
 - [`[[rule]] inputs`](#rule-inputs) — 3 keys
@@ -68,7 +68,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[jobs]`](#jobs) — 15 keys
 - [`[land_permissions]`](#land_permissions) — 1 key
 - [`[layers]`](#layers) — 20 keys
-- [`[lots]`](#lots) — 19 keys
+- [`[lots]`](#lots) — 20 keys
 - [`[lots] trade_form_weights`](#lots-trade_form_weights) — 7 keys
 - [`[market]`](#market) — 2 keys
 - [`[needs]`](#needs) — 9 keys
@@ -428,7 +428,7 @@ The import price, which becomes the ceiling on what that Good can cost inside th
 
 **`resource`** · *quoted string*
 
-Which Good or service is being priced, naming a [[resource]]. A utility is not stocked, and money is what a price is denominated in rather than a thing that has one, so neither may be.
+Which Good, service or delivered Utility is being priced, naming a [[resource]]. A Utility priced here is imported at an Outside Connection on this edge and states import_per_connection. An undelivered utility reaches no network, and money is what a price is denominated in rather than a thing that has one, so neither may be.
 
 ---
 
@@ -552,6 +552,10 @@ Identifies the declaration across the package. Other members refer to it by this
 
 The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.
 
+**`leaving_costs_rent`** · *whole number*
+
+The daily rent a Household in this stage will pay to stay in the city rather than leave for a Hinterland when an adult finds every job in reach full. It is added to the home's score in that comparison, on top of [placement] moving_costs_rent, so a stage with a larger figure leaves later. It is a preference and never a timer. Absent is zero. The comparison runs only when [placement] jobs_rent is stated.
+
 **`name`** · *quoted string*
 
 What this stage of a Household's life is called. next, childless and children_become name a stage by this.
@@ -616,7 +620,7 @@ Which population the Policy runs over: household or business. A third, building,
 
 **`tool`** · *quoted string*
 
-Which of the things a Policy does: transfer, charge, relief or subsidy. A charge takes money from a liable payer to the treasury; a relief takes a share off a Business's profit tax bill and moves no money anywhere; a subsidy pays out of the treasury against a daily funding bound. Absent means transfer -- the unconditional movement a Policy was before the catalogue, and what every Policy written without this key is.
+Which of the things a Policy does: transfer, charge, relief, subsidy or tariff. A tariff charges per delivered Utility unit received. A charge takes money from a liable payer to the treasury; a relief takes a share off a Business's profit tax bill and moves no money anywhere; a subsidy pays out of the treasury against a daily funding bound. Absent means transfer -- the unconditional movement a Policy was before the catalogue, and what every Policy written without this key is.
 
 **`trade`** · *quoted string*
 
@@ -625,6 +629,10 @@ Which [[business]] this Policy is aimed at, naming a declared trade. Absent mean
 **`transfer`** · *unasserted*
 
 The movement of money the Policy makes, stated as both ends at once. That is what makes it a transfer rather than a term list: the two sides balance inside one atomic Rule.
+
+**`utility`** · *quoted string*
+
+The delivered Utility a tariff bills. Only a tariff states this key. Each Utility has at most one tariff, paid per unit received by the drawing Household or Business.
 
 ---
 
@@ -656,7 +664,7 @@ How many applications one unit of that Readout is worth, as a percentage.
 
 **`amount`** · *whole number*
 
-How much moves per application.
+How much moves per application. For a tariff, money per Utility unit received; zero switches billing off.
 
 **`from`** · *quoted string*
 
@@ -768,9 +776,21 @@ Which of the five kinds of thing this is: a good moves as a Shipment on the Road
 
 Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.
 
+**`import_per_connection`** · *whole number*
+
+How much of this delivered Utility one Outside Connection brings into the city per Day, in the same units as link_per_crossing. The treasury pays the cheapest [[hinterland]] price on the gate's edge for what arrives, and imports cover only what the District networks are still short of. It requires link_per_crossing, and it is stated with a [[hinterland]] price for the same Utility or not at all.
+
 **`label`** · *quoted string*
 
 The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.
+
+**`link_per_crossing`** · *whole number*
+
+Positive Utility link capacity per crossing. Its presence marks the Utility as delivered.
+
+**`loss_per_road_tile`** · *whole number*
+
+Nonnegative delivered Utility loss per road tile. It requires link_per_crossing and defaults to zero.
 
 **`name`** · *quoted string*
 
@@ -795,6 +815,10 @@ How long one shelf-life cycle lasts, in in-world minutes, from 1 to a year. Each
 **`shelf_life_cycles`** · *whole number*
 
 How many cycles stock of this Resource stays good, from 1 to 4. At each of its own cycle boundaries, a Bin's stock ages by one cycle and stock older than this is discarded. Withdrawals take the oldest stock first. State it with shelf_life_cycle_minutes or not at all; absent means the Resource never spoils. Money may not spoil.
+
+**`storage`** · *whole number*
+
+Storage for a Utility. Only zero is accepted in this slice because stored Utilities arrive with Water.
 
 ---
 
@@ -1451,6 +1475,10 @@ How many Ticks between recomputations of the woodland field.
 ---
 
 ## `[lots]`
+
+**`block_pattern`** · *quoted string*
+
+How a block outside every density band is divided into Lots: "detached" leaves ground between the back fences, "perimeter" fills the block from all four Streets, and "back_to_back" fills it from two. Omitting it means "detached". It affects only blocks carved after it changes.
 
 **`buyer_reserve_per_member`** · *whole number*
 

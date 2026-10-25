@@ -540,7 +540,7 @@
                   "type": "integer"
                 },
                 "resource": {
-                  "description": "Which Good or service is being priced, naming a [[resource]]. A utility is not stocked, and money is what a price is denominated in rather than a thing that has one, so neither may be.",
+                  "description": "Which Good, service or delivered Utility is being priced, naming a [[resource]]. A Utility priced here is imported at an Outside Connection on this edge and states import_per_connection. An undelivered utility reaches no network, and money is what a price is denominated in rather than a thing that has one, so neither may be.",
                   "type": "string"
                 }
               }
@@ -959,6 +959,10 @@
             "description": "The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.",
             "type": "string"
           },
+          "leaving_costs_rent": {
+            "description": "The daily rent a Household in this stage will pay to stay in the city rather than leave for a Hinterland when an adult finds every job in reach full. It is added to the home's score in that comparison, on top of [placement] moving_costs_rent, so a stage with a larger figure leaves later. It is a preference and never a timer. Absent is zero. The comparison runs only when [placement] jobs_rent is stated.",
+            "type": "integer"
+          },
           "name": {
             "description": "What this stage of a Household's life is called. next, childless and children_become name a stage by this.",
             "type": "string"
@@ -985,6 +989,10 @@
     "lots": {
       "type": "object",
       "properties": {
+        "block_pattern": {
+          "description": "How a block outside every density band is divided into Lots: \"detached\" leaves ground between the back fences, \"perimeter\" fills the block from all four Streets, and \"back_to_back\" fills it from two. Omitting it means \"detached\". It affects only blocks carved after it changes.",
+          "type": "string"
+        },
         "buyer_reserve_per_member": {
           "description": "Money per Household member a buyer must keep after paying for land and construction. Only its own balance counts, never a Business's till. Either this key or construction_charge_per_floor_tile enables land sales, even at zero. Absent means no reserve. Requires a money Resource.",
           "type": "integer"
@@ -1281,7 +1289,7 @@
             "type": "string"
           },
           "tool": {
-            "description": "Which of the things a Policy does: transfer, charge, relief or subsidy. A charge takes money from a liable payer to the treasury; a relief takes a share off a Business's profit tax bill and moves no money anywhere; a subsidy pays out of the treasury against a daily funding bound. Absent means transfer -- the unconditional movement a Policy was before the catalogue, and what every Policy written without this key is.",
+            "description": "Which of the things a Policy does: transfer, charge, relief, subsidy or tariff. A tariff charges per delivered Utility unit received. A charge takes money from a liable payer to the treasury; a relief takes a share off a Business's profit tax bill and moves no money anywhere; a subsidy pays out of the treasury against a daily funding bound. Absent means transfer -- the unconditional movement a Policy was before the catalogue, and what every Policy written without this key is.",
             "type": "string"
           },
           "trade": {
@@ -1293,7 +1301,7 @@
             "type": "object",
             "properties": {
               "amount": {
-                "description": "How much moves per application.",
+                "description": "How much moves per application. For a tariff, money per Utility unit received; zero switches billing off.",
                 "type": "integer"
               },
               "from": {
@@ -1309,6 +1317,10 @@
                 "type": "string"
               }
             }
+          },
+          "utility": {
+            "description": "The delivered Utility a tariff bills. Only a tariff states this key. Each Utility has at most one tariff, paid per unit received by the drawing Household or Business.",
+            "type": "string"
           }
         }
       }
@@ -1421,9 +1433,21 @@
             "description": "Identifies the declaration across the package. Other members refer to it by this, and the resolver folds it into the identity key; it is matched exactly and never shown to a player. A package member states it where a single-file Ruleset states `name`, and stating both is refused.",
             "type": "string"
           },
+          "import_per_connection": {
+            "description": "How much of this delivered Utility one Outside Connection brings into the city per Day, in the same units as link_per_crossing. The treasury pays the cheapest [[hinterland]] price on the gate's edge for what arrives, and imports cover only what the District networks are still short of. It requires link_per_crossing, and it is stated with a [[hinterland]] price for the same Utility or not at all.",
+            "type": "integer"
+          },
           "label": {
             "description": "The display text for this declaration. It reaches the shell's names and nothing else, so changing it renames what a player reads without moving any reference. A package member states it; omitting it leaves the declaration with no display text of its own.",
             "type": "string"
+          },
+          "link_per_crossing": {
+            "description": "Positive Utility link capacity per crossing. Its presence marks the Utility as delivered.",
+            "type": "integer"
+          },
+          "loss_per_road_tile": {
+            "description": "Nonnegative delivered Utility loss per road tile. It requires link_per_crossing and defaults to zero.",
+            "type": "integer"
           },
           "name": {
             "description": "What this Resource is called. Every other table refers to it by this name, and the engine never sees the string.",
@@ -1447,6 +1471,10 @@
           },
           "shelf_life_cycles": {
             "description": "How many cycles stock of this Resource stays good, from 1 to 4. At each of its own cycle boundaries, a Bin's stock ages by one cycle and stock older than this is discarded. Withdrawals take the oldest stock first. State it with shelf_life_cycle_minutes or not at all; absent means the Resource never spoils. Money may not spoil.",
+            "type": "integer"
+          },
+          "storage": {
+            "description": "Storage for a Utility. Only zero is accepted in this slice because stored Utilities arrive with Water.",
             "type": "integer"
           }
         }

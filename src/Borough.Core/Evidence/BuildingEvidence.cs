@@ -150,8 +150,50 @@ public readonly record struct RuleEvidence(
 public readonly record struct WasteEvidence(
     ResourceId Resource, Handle<Business> Business, Handle<Household> Tenant, long Today, long Yesterday);
 
+/// <summary>
+/// One delivered Utility a Building's Rules draw through a <c>pool</c> term, and what its District's
+/// network is giving them.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>A brownout is a success and no other field here can report it.</b> A delivered-Utility term
+/// never blocks — <c>RuleEngine.Check</c> serves the Rule at <c>floor(count × delivered)</c> instead
+/// — so a Building running at a third is neither <see cref="RuleEvidence.Blocked"/> nor
+/// <see cref="RuleEvidence.Reported"/>, and until this type existed the only visible trace was a
+/// smaller output.
+/// </para>
+/// <para>
+/// <b>Read at evidence time off the District's network row</b>, like every other part of
+/// <see cref="BuildingEvidence"/>. Nothing is stored per Building: which network a term addresses is
+/// the premises' District, and that moves under a standing Building when the watershed runs.
+/// </para>
+/// </remarks>
+/// <param name="Utility">Which Utility, as the id the Ruleset gave it.</param>
+/// <param name="Delivered">
+/// The fraction of each draw the network delivers for the <b>current Day</b>, in <c>[0, 1]</c>. Zero
+/// where the premises stand in no District, which is what the firing does with them too.
+/// </param>
+/// <param name="Received">What the network served in that District <b>yesterday</b>.</param>
+/// <param name="Asked">What its consumers asked of it yesterday, uncapped.</param>
+/// <param name="Imported">Gross units imported for this District yesterday, including road loss.</param>
+/// <param name="ImportPaid">What the treasury paid for those imported units yesterday.</param>
+/// <param name="HasTariff">Whether this Utility has a tariff, including a zero price.</param>
+/// <param name="Paid">What this Building paid for this Utility yesterday.</param>
+/// <param name="Unpaid">What was waived for this Building and Utility yesterday.</param>
+public readonly record struct UtilityEvidence(
+    ResourceId Utility, Ratio Delivered, long Received, long Asked, long Imported, Money ImportPaid,
+    bool HasTariff = false, long Paid = 0, long Unpaid = 0);
+
+/// <summary>What is stopping a Building, or serving it short.</summary>
+/// <param name="Brownout">
+/// The <b>worst</b> delivered Utility these Rules draw that is below full delivery, or
+/// <c>default</c> — <c>Utility.Raw</c> of 0 — when none is. <b>One rather than all of them</b>: this
+/// reading is one line of a panel, and the whole list is <see cref="BuildingEvidence.Utilities"/>.
+/// A brownout belongs in the same sentence as a shortfall because it is the same question, and no
+/// other field here can carry it.
+/// </param>
 public readonly record struct SupplyEvidence(bool Available, int Shortfalls, int RoutineWaits,
-    int Unavailable, RuleEvidence Primary);
+    int Unavailable, RuleEvidence Primary, UtilityEvidence Brownout = default);
 
 /// <summary>
 /// <c>02 §9</c>'s Building answer: who is in it, what is in its Bins, what its Rules are doing, and
@@ -185,10 +227,12 @@ public readonly struct BuildingEvidence
         BinEvidence[] bins,
         RuleEvidence[] rules,
         WasteEvidence[] waste,
+        UtilityEvidence[] utilities,
         long pressure,
         long tenantPressure)
     {
         Waste = waste;
+        Utilities = utilities;
         Building = building;
         Kind = kind;
         Lot = lot;
@@ -245,6 +289,16 @@ public readonly struct BuildingEvidence
     /// Businesses'.
     /// </summary>
     public ReadOnlyMemory<WasteEvidence> Waste { get; }
+
+    /// <summary>
+    /// Each delivered Utility its Rules draw, and what its District's network delivers of it.
+    /// </summary>
+    /// <remarks>
+    /// One entry per Utility rather than per Rule — several Rules drawing Power share one network —
+    /// in the order the Rules name them. See <see cref="UtilityEvidence"/> for why a brownout needs
+    /// its own field.
+    /// </remarks>
+    public ReadOnlyMemory<UtilityEvidence> Utilities { get; }
 
     /// <summary>
     /// The <b>premises'</b> accumulated failure pressure, in missed firings — what condemns this

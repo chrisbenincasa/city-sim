@@ -1863,7 +1863,7 @@ internal sealed class Options
           --profile-reuse       count cross-Tick FIFO reuse at 65,536/1,048,576 entries; one worker only
           --profile-services    distribute schools, clinics and hospitals before ageing; needs school/care
           --profile-work        emit work, route reuse and table growth (instrumented timings)
-          --route-workers N     1..8 concurrent commute route workers including caller; profile only
+          --route-workers N     1..8 concurrent commute and hiring route workers including caller; profile only
           --profile-wait        after ageing, print ready/PID and wait for 'go' on stdin to attach a profiler
           --warmup-ticks N       unmeasured ageing before --profile (default 14336, seven Days)
           --shopping            shopping outings, carried Goods and weekly work; needs a [shopping] Ruleset
@@ -1964,24 +1964,25 @@ internal sealed class Options
                                 with no money says "conserved" and means nothing by it.
                                 rulesets/taxed.toml is the file written for it
           --income              dump the city's BUDGET: income against expenditure, one row a
-                                Day. Income is FIVE columns -- tax withheld at the payday,
+                                Day. Income is SIX columns -- tax withheld at the payday,
                                 profit tax collected off a Business's till at the Day
                                 boundary, money a [[policy]] moved to the treasury, money
-                                a [[rule]] paid in off a premises, and rent tenants of
-                                city-held Lots paid -- because the five are the
-                                same arrival through different levers, and none is netted
-                                against expenditure. Expenditure is FIVE: a [[policy]]
+                                a [[rule]] paid in off a premises, rent tenants of
+                                city-held Lots paid, and Utility tariffs paid by Rule owners.
+                                Each reaches the treasury without being netted
+                                against expenditure. Expenditure is SIX: a [[policy]]
                                 transfer, a [[rule]] drawing on the treasury, a
                                 tool = "subsidy" apportioned against its own ceiling, the
-                                price of a service Building placed by hand, and road Upkeep.
-                                The treasury column is their running total less the five
-                                expenditure columns, exactly. Profit-tax RELIEF is printed under the table and is
+                                price of a service Building placed by hand, road Upkeep,
+                                and what a District short of a delivered Utility bought at
+                                an Outside Connection. The treasury column is their
+                                running total less the six expenditure columns, exactly. Profit-tax RELIEF is printed under the table and is
                                 deliberately outside that arithmetic: it moves no money, so it
                                 is revenue forgone rather than spending. Prints the
                                 [income_tax] and [business_tax] bands and the [rent] rate
                                 above the table so every income column can be checked by hand.
-                                Steps its own world. Needs --ruleset stating [income_tax] or
-                                [rent]; rulesets/taxing.toml is written for it and is the one
+                                Steps its own world. Needs --ruleset stating [income_tax],
+                                [rent], or a tariff; rulesets/taxing.toml is written for it and is the one
                                 file stating [business_tax], and rulesets/renting.toml is the
                                 one charging rent
           --day                 follow ONE Citizen through one Day, Tick by Tick --

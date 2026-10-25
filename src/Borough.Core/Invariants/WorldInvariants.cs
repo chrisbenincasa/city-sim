@@ -1901,7 +1901,10 @@ public static class WorldInvariants
             {
                 var resource = new ResourceId((ushort)raw);
 
-                if (!world.Rules.IsTraded(resource))
+                // A delivered Utility opens a Pool row on the same terms a traded Resource does, so
+                // the completeness half has to ask about it too -- and only about the delivered
+                // ones, because an undelivered Utility gets no row.
+                if (!world.Rules.IsTraded(resource) && !world.Rules.IsDeliveredUtility(resource))
                 {
                     continue;
                 }

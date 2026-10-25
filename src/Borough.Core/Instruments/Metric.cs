@@ -843,6 +843,35 @@ public enum MoneyFlowCounter : byte
     /// </para>
     /// </remarks>
     Rent,
+
+    /// <summary>
+    /// Money the treasury paid the Outside for delivered Utility units imported at the Outside
+    /// Connections, summed over the interval.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Its own member rather than more <see cref="Upkeep"/></b>, on <see cref="Subsidy"/>'s
+    /// argument: the lever is a <c>[[resource]] import_per_connection</c> and a
+    /// <c>[[hinterland]]</c> price against a rate per Road Segment, and the act is a player siting
+    /// an Outside Connection instead of a plant.
+    /// </para>
+    /// <para>
+    /// <b>It leaves the money supply on <see cref="Placement"/>'s terms</b>, because the units come
+    /// from a Hinterland and a Hinterland holds no balance (<c>adr/0024</c>). ⚠ <b>It counts what
+    /// was PAID</b>: a gate's flow is capped at what the treasury could afford at that gate's
+    /// price, so there is no part-paid import and no debt for this to under-report.
+    /// </para>
+    /// <para>
+    /// The identity of the family becomes: over any interval, the change in
+    /// <c>MoneyCounter.Treasury</c> equals
+    /// <c>ToTreasury + Withheld + RuleToTreasury + ProfitTax + Rent − FromTreasury
+    /// − RuleFromTreasury − Subsidy − Placement − Upkeep − Compensation − Grant
+    /// − UtilityImport</c>.
+    /// </para>
+    /// </remarks>
+    UtilityImport,
+    /// <summary>Utility tariffs collected from drawing Households and Businesses.</summary>
+    Tariff,
 }
 
 /// <summary>Which family of thing a <see cref="Metric"/> names.</summary>

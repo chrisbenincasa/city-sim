@@ -714,7 +714,7 @@ A Household leaving the city permanently. **Three** channels, counted and surfac
 | **Housed departure** | Was living in the city and **chose** to leave — needs unmet, rent unaffordable, neighbourhood declined | A **quality** failure — the city accommodated them and then failed them. *Fix what you have.* |
 | **Destitute departure** | Could not work and could not afford to leave, until nothing was left | An **economic** failure — the city trapped them. *This is what Policy is for.* |
 
-**A housed Departure is a comparison, not a threshold** (`adr/0102`). The Household re-runs `02 §5.4`'s choice with the Hinterland as an ordinary row and leaves if the Hinterland scores better — which is what *"tolerance is emergent"* under **Terms we deliberately do not use** has always meant. It re-evaluates on an Event Wheel countdown, or immediately on a failed occasion; **what that cadence bounds is perception, not response** (`01 §6`), so it is never the duration in disguise. Only two things produce one: a degraded **Need**, and `adr/0095`'s **unsavoury** commute rung. A Citizen who cannot reach work at all is the **Destitute** channel's, per *Unemployment* below.
+**A housed Departure is a comparison, not a threshold** (`adr/0102`). The Household re-runs `02 §5.4`'s choice with the Hinterland as an ordinary row and leaves if the Hinterland scores better — which is what *"tolerance is emergent"* under **Terms we deliberately do not use** has always meant. It re-evaluates on an Event Wheel countdown, or immediately on a failed occasion; **what that cadence bounds is perception, not response** (`01 §6`), so it is never the duration in disguise. Three things produce one: a degraded **Need**, `adr/0095`'s **unsavoury** commute rung, and a jobless adult whose search found nothing in reach (export-base slice 5). A Citizen who cannot reach work at all is the **Destitute** channel's, per *Unemployment* below.
 
 **A channel names a remedy; a reason names a utility term.** So *housed departures* opens by reason without a fourth channel ever being added, and a new pressure adds a term rather than a row.
 
@@ -774,7 +774,7 @@ A Household or a Business. What fills a Building.
 ## Services
 
 **Service**
-A capability the city provides rather than sells: education, health, safety, waste, recreation, and the utilities. Delivered by a Building the player places — the design's one placement exception — staffed by Citizens, and paid for from the treasury. **A Service is never a Good**: it has no Bin, is not conserved, and is never shipped.
+A capability the city provides rather than sells: education, health, safety, waste, recreation, and the utilities. Delivered by a Building the player places — the design's one placement exception — staffed by Citizens, and paid for from the treasury. A Utility is the exception: the treasury runs the plants and bills each drawing Household or Business a per-unit tariff for what it receives. **A Service is never a Good**: it has no Bin, is not conserved, and is never shipped.
 
 **Delivery Mode**
 How a Service reaches the people who use it. Three modes, distinguished by **who makes the journey** — which is the axis that actually separates these systems, not what they provide.

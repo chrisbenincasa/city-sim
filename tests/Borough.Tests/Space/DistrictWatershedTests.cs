@@ -784,6 +784,7 @@ public sealed class DistrictWatershedTests
             // plans/0072 row 33 -- so it inherits both for that file's reason. It is the one shipped
             // world that both PAYS A WAGE and holds a treasury Bin, which is what withholding needs.
             // traded.toml IS pictured.toml with banded trade forms, so it inherits the table.
+            // employment.toml is an earlier pictured.toml frozen for an instrument, so it does too.
             // imported.toml's shops import through a District Pool, and a Pool needs Districts.
             // milled.toml's grocers buy flour through a District Pool for the same reason.
             // granted.toml IS shopping.toml with opening grants and a treasury, so it inherits the
@@ -794,10 +795,14 @@ public sealed class DistrictWatershedTests
             // for that file's reason.
             // offices.toml IS serviced.toml with an office that makes the service, and its clients
             // still buy through the Pool, so it inherits the table for that file's reason.
+            // powered.toml states [districts] because a delivered Utility's network IS a District --
+            // one Pool row and one network per District -- and the links between them are road
+            // crossings, so a world with no Districts has nothing for Power to flow across.
             bool expected = file is "twinned.toml" or "provisioned.toml" or "oversupplied.toml"
                 or "waged.toml" or "pictured.toml" or "shopping.toml" or "insolvent.toml" or "stress-shopping.toml" or "profile-services.toml"
                 or "schooling.toml" or "taxing.toml" or "traded.toml" or "imported.toml" or "milled.toml"
-                or "granted.toml" or "serviced.toml" or "exported.toml" or "offices.toml";
+                or "granted.toml" or "serviced.toml" or "exported.toml" or "offices.toml" or "employment.toml"
+                or "powered.toml";
 
             Assert.Equal(expected, states);
         }

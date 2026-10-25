@@ -34,6 +34,18 @@ public enum RulesetChange
     /// <summary>A Resource changed family — which changes whether it is conserved (<c>adr/0024</c>).</summary>
     ResourceFamily,
 
+    /// <summary>
+    /// A Utility started or stopped being delivered — it gained or lost <c>link_per_crossing</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>This file's stated test, met twice over.</b> A delivered Utility's District Pool row is
+    /// pointed at by a saved <c>UtilityFlowTable</c> row, and that network is the only thing that
+    /// knows what the Utility delivered — so a file that drops the delivery leaves rows describing a
+    /// network nothing settles, and one that adds it leaves the standing Districts with no network
+    /// until something fits them. <c>World.RetireUndeliveredNetworks</c> is the degradation.
+    /// </remarks>
+    ResourceDelivery,
+
     /// <summary>A Building kind was added or removed.</summary>
     KindCount,
 
@@ -187,6 +199,14 @@ public static class RulesetShape
             {
                 return RulesetChange.ResourceFamily;
             }
+
+            // Delivery is structure and the amount a link carries is a number, which is the Bin's
+            // Resource against its capacity one rung up. A saved network row points at the Pool row
+            // delivery opens, and nothing at all points at link_per_crossing.
+            if (current.IsDeliveredUtility(resource) != replacement.IsDeliveredUtility(resource))
+            {
+                return RulesetChange.ResourceDelivery;
+            }
         }
 
         if (current.RuleCount != replacement.RuleCount)
@@ -279,7 +299,9 @@ public static class RulesetShape
             // one moves money into Bins that hold something else -- and the two scopes, because
             // local->global and global->local are opposite cities and neither is a tuning of the
             // other. The subject is structure for the same reason a Rule's kind is.
-            if (was.Subject != now.Subject
+            if ((was.Utility == default ? 0 : current.ResourceKey(was.Utility))
+                    != (now.Utility == default ? 0 : replacement.ResourceKey(now.Utility))
+                || was.Subject != now.Subject
                 || was.From != now.From
                 || was.To != now.To
                 || current.ResourceKey(was.Resource) != replacement.ResourceKey(now.Resource))

@@ -245,6 +245,88 @@ public sealed class PoolPriceTests
         }
     }
 
+    /// <summary>
+    /// 🔴 A delivered Utility's Pool opens at NOTHING and stays there, and the Goods beside it open
+    /// at their ceiling.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The exception to the rule above, and it is about what the ceiling MEANS.</b> A Hinterland
+    /// pricing a delivered Utility prices a gate's import (<c>World.TryEdgeImportPrice</c>), not a
+    /// Pool; nothing buys in that row, because <c>RuleEngine</c> routes a delivered-Utility
+    /// <c>pool</c> term to <c>Draw</c> and <c>Feed</c> rather than to <c>Buy</c>. A row seeded at the
+    /// cheapest gate price would be a saved, hashed number that <c>--market</c> prints as a market
+    /// price and nothing can ever charge.
+    /// </para>
+    /// <para>
+    /// <b>The Goods are asserted in the same loop</b>, so this says the seed was made conditional
+    /// rather than dropped — a change that zeroed every Pool would pass half of this and fail the
+    /// other half.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_delivered_utilitys_pool_opens_at_nothing_and_no_reprice_moves_it()
+    {
+        Ruleset rules = Load("powered.toml");
+        var world = new World(2_000, rules, Key);
+
+        SyntheticCity.PopulateInto(world, Key, Ticks.Zero);
+
+        var power = new ResourceId(1);
+
+        Assert.True(rules.IsDeliveredUtility(power), "powered.toml's first Resource is the Utility.");
+        Assert.True(
+            rules.ImportCeiling(power) > Money.Zero,
+            "no Hinterland prices power any more, so a seed at the ceiling would be zero anyway and "
+            + "this test asserts nothing.");
+
+        int utilities = 0;
+        int goods = 0;
+
+        for (int slot = 0; slot < world.DistrictPools.Rows.SlotCount; slot++)
+        {
+            if (!world.DistrictPools.Rows.IsLive(slot)) continue;
+
+            int bin = world.Bins.Rows.Resolve(world.DistrictPools.Bin[slot]);
+            ResourceId resource = world.Bins.Resource[bin];
+
+            // A draw on every row, so the recompute has something to price against and the skip is
+            // what keeps the Utility's row where it opened.
+            world.DistrictPools.Consumed[slot] = 1_000;
+
+            if (rules.IsDeliveredUtility(resource))
+            {
+                Assert.Equal(Money.Zero, world.DistrictPools.Price[slot]);
+                utilities++;
+            }
+            else
+            {
+                Assert.Equal(rules.ImportCeiling(resource), world.DistrictPools.Price[slot]);
+                goods++;
+            }
+        }
+
+        Assert.True(utilities > 0, "no District holds a Pool row for power, so nothing was tested.");
+        Assert.True(goods > 0, "the file's two Goods have no Pool rows, so the rule is untested.");
+
+        for (int day = 0; day < 20; day++)
+        {
+            world.RepriceDistrictPools();
+        }
+
+        for (int slot = 0; slot < world.DistrictPools.Rows.SlotCount; slot++)
+        {
+            if (!world.DistrictPools.Rows.IsLive(slot)) continue;
+
+            int bin = world.Bins.Rows.Resolve(world.DistrictPools.Bin[slot]);
+
+            if (rules.IsDeliveredUtility(world.Bins.Resource[bin]))
+            {
+                Assert.Equal(Money.Zero, world.DistrictPools.Price[slot]);
+            }
+        }
+    }
+
     /// <summary>The recompute falls on a Day boundary and nowhere else.</summary>
     /// <remarks>
     /// ⚠ <b>Tick 0 is excluded because no Day has elapsed to consume anything in</b> — the first

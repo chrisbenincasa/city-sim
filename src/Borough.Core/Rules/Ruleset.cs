@@ -1529,6 +1529,15 @@ public readonly record struct LifeStageDefinition
     /// Scales preference for rent, not the affordability budget. Zero ignores rent in utility only.
     /// </remarks>
     public int RentWeightPercent { get; init; }
+
+    /// <summary>
+    /// The daily rent a jobless Household in this stage will pay to stay in the city rather than
+    /// leave for a Hinterland; zero adds no reluctance beyond the ordinary cost of moving.
+    /// </summary>
+    /// <remarks>
+    /// A utility term on the incumbent home, never a duration or a gate (<c>adr/0102</c>).
+    /// </remarks>
+    public int LeavingCostsRent { get; init; }
 }
 
 
@@ -1787,7 +1796,8 @@ public readonly record struct PolicyDefinition(
     int Amount,
     long Ceiling = 0,
     PolicyTool Tool = PolicyTool.Transfer,
-    byte Trade = TradeKind.Any);
+    byte Trade = TradeKind.Any,
+    ResourceId Utility = default);
 
 /// <summary>
 /// One <c>[[hinterland]]</c> table — <b>the economy behind one map edge</b> (<c>adr/0088</c>,
@@ -3213,6 +3223,9 @@ public readonly record struct LotRuleset(
 
     /// <summary>Days between the city's offers of the built Lots it holds. Null means the city never sells.</summary>
     public int? CitySaleIntervalDays { get; init; }
+
+    /// <summary>The pattern a block takes when no density band covers it — <c>block_pattern</c>.</summary>
+    public Space.BlockPattern UnbandedPattern { get; init; }
 
     /// <summary>Either authored key enables paid construction, including an explicit zero.</summary>
     public bool LandSales => ConstructionChargePerFloorTile.HasValue || BuyerReservePerMember.HasValue;
@@ -4789,10 +4802,16 @@ public sealed class Ruleset
     /// inside the item*** when the item is a struct.
     /// </para>
     /// <para>
-    /// <b>Two readers.</b> <see cref="ImportCeiling"/>, the minimum across every declared Hinterland,
-    /// caps District Pool prices. <c>World.TryImportPrice</c> is what a purchase pays the Outside: the
-    /// minimum across the edges that have a gate. Carriage is free, so every gated edge is equally
-    /// near (<c>adr/0135</c>); when <c>adr/0133</c>'s charge ships, both become a per-District
+    /// <b>Three readers, at three widths.</b> <see cref="ImportCeiling"/> takes the minimum across
+    /// every declared Hinterland and caps District Pool prices. <c>World.TryImportPrice</c> is what a
+    /// purchase pays the Outside, which is the minimum across the edges that have a gate.
+    /// <c>World.TryEdgeImportPrice</c> is what one gate pays for a delivered Utility, which is the
+    /// minimum over a <em>single</em> edge and applies no gate-presence test of its own — the caller
+    /// is already walking that edge's gates. ⚠ <b>Only the third acts on a delivered Utility's
+    /// price</b>: <c>World.CreateDistrictPoolBin</c> opens such a Pool row at zero rather than at the
+    /// ceiling, and every purchase path <c>TryImportPrice</c> feeds is gated on
+    /// <see cref="IsDeliveredUtility"/>. Carriage is free, so every gated edge is equally near
+    /// (<c>adr/0135</c>); when <c>adr/0133</c>'s charge ships, all three become a per-District
     /// <c>min(price + haul)</c>. ***Collapsing the four to their minimum at load would have thrown
     /// away the content that makes the Outside legible*** — <c>CONTEXT.md</c> → Hinterland's *four
     /// comparable markets are each other's referent.*
@@ -4929,6 +4948,47 @@ public sealed class Ruleset
 
     /// <summary>Each Resource's service reach, indexed by <c>resource - 1</c>.</summary>
     public ServiceReach[] ResourceReaches { get; init; } = [];
+
+    public int[] ResourceStorage { get; init; } = [];
+    public int[] ResourceLinks { get; init; } = [];
+    public int[] ResourceLosses { get; init; } = [];
+
+    /// <summary>
+    /// What one Outside Connection may import of each delivered Utility per Day, indexed by
+    /// <c>resource - 1</c>. Zero for a Utility no gate can import.
+    /// </summary>
+    /// <remarks>
+    /// <b>Per gate rather than per Hinterland</b>, on <c>arrivals_per_day</c>'s shape: an Outside
+    /// Connection is the thing a player sites, so a second one on the same edge doubles what the
+    /// edge can bring in. The price comes off the Hinterland behind the edge
+    /// (<see cref="ImportPrice"/>), and the loader refuses one without the other.
+    /// </remarks>
+    public int[] ResourceImports { get; init; } = [];
+
+    /// <summary>The tariff Policy for a Utility, or -1 when it is unbilled.</summary>
+    public int TariffOf(ResourceId resource)
+    {
+        for (int i = 0; i < Policies.Length; i++)
+        {
+            if (Policies[i].Tool == PolicyTool.Tariff && Policies[i].Utility == resource)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    public bool IsDeliveredUtility(ResourceId resource) => resource.Raw >= 1 && resource.Raw <= ResourceLinks.Length && ResourceLinks[resource.Raw - 1] > 0;
+    public int StorageOf(ResourceId resource) => resource.Raw >= 1 && resource.Raw <= ResourceStorage.Length ? ResourceStorage[resource.Raw - 1] : 0;
+    public int LinkPerCrossing(ResourceId resource) => resource.Raw >= 1 && resource.Raw <= ResourceLinks.Length ? ResourceLinks[resource.Raw - 1] : 0;
+    public int LossPerRoadTile(ResourceId resource) => resource.Raw >= 1 && resource.Raw <= ResourceLosses.Length ? ResourceLosses[resource.Raw - 1] : 0;
+
+    /// <inheritdoc cref="ResourceImports"/>
+    public int ImportPerConnection(ResourceId resource) =>
+        resource.Raw >= 1 && resource.Raw <= ResourceImports.Length
+            ? ResourceImports[resource.Raw - 1]
+            : 0;
 
     /// <summary>How far this service reaches, or <c>default</c> when it is not a service.</summary>
     public ServiceReach ReachOf(ResourceId resource) =>
@@ -5328,6 +5388,16 @@ public sealed class Ruleset
         ? RentNeutralPercent
         : LifeStages[stage - 1].RentWeightPercent;
 
+    /// <summary>
+    /// What staying in the city is worth to a Household in <paramref name="stage"/> against a
+    /// Hinterland, in Q16.16 utility units, beyond <see cref="PlacementRuleset.StayingPut"/>.
+    /// </summary>
+    public int LeavingCost(byte stage) =>
+        stage == 0 || stage > LifeStages.Length || Placement.RentPerUnit == 0
+            ? 0
+            : (int)IntegerMath.FloorDiv(
+                (long)LifeStages[stage - 1].LeavingCostsRent * Fixed.One, Placement.RentPerUnit);
+
     /// <summary>This Ruleset with different Map Layer data, and everything else shared.</summary>
     /// <remarks>
     /// <para>
@@ -5409,6 +5479,10 @@ public sealed class Ruleset
             ResourceNeeds = ResourceNeeds,
             ResourceShelfLives = ResourceShelfLives,
             ResourceReaches = ResourceReaches,
+            ResourceStorage = ResourceStorage,
+            ResourceLinks = ResourceLinks,
+            ResourceLosses = ResourceLosses,
+            ResourceImports = ResourceImports,
             LifeStages = LifeStages,
         };
 

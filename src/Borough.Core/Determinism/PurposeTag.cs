@@ -999,4 +999,22 @@ public enum PurposeTag : ulong
     /// Lot's id, never by a Tick, so it moves no State Hash.
     /// </summary>
     AppearanceGarden = 75,
+
+    /// <summary>
+    /// Whether a housed Household with an adult who found every job in reach full stays or leaves,
+    /// and for which Hinterland (<c>adr/0102</c>).
+    /// </summary>
+    JoblessDeparture = 76,
+
+    /// <summary>
+    /// How many houses a run of detached houses on one block face spans. Drawn by the shell and the
+    /// headless runner on the face and era, never by a Tick, so it moves no State Hash.
+    /// </summary>
+    AppearanceRun = 77,
+
+    /// <summary>
+    /// What the houses of one run share: nothing, their form and pitch, or everything. Drawn by the
+    /// shell and the headless runner on the run, never by a Tick, so it moves no State Hash.
+    /// </summary>
+    AppearanceRunShare = 78,
 }

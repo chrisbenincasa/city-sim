@@ -105,11 +105,20 @@ public sealed partial class World
 
     internal void RefreshPermissionSummaries(LandRectangle changed = default)
     {
-        for (int row = 0; row < Lots.Rows.SlotCount; row++)
+        if (!changed.IsValid)
         {
-            if (!Lots.Rows.IsLive(row)) { continue; }
-            if (changed.IsValid && !Overlaps(changed, Lots.Parcel(row))) { continue; }
-            Lots.Zone[row] = LandPermissions.ParcelSummary(Lots.Parcel(row)).CommonUses;
+            for (int row = 0; row < Lots.Rows.SlotCount; row++)
+            {
+                if (Lots.Rows.IsLive(row)) { Lots.Zone[row] = LandPermissions.ParcelSummary(Lots.Parcel(row)).CommonUses; }
+            }
+        }
+        else
+        {
+            foreach (int row in LotsInCells.Near(Lots, changed.X, changed.Y,
+                (long)changed.X + changed.Width, (long)changed.Y + changed.Height))
+            {
+                if (Overlaps(changed, Lots.Parcel(row))) { Lots.Zone[row] = LandPermissions.ParcelSummary(Lots.Parcel(row)).CommonUses; }
+            }
         }
         LotsAdmitting.Invalidate();
     }

@@ -163,8 +163,66 @@ public sealed class EmploymentEngine
     private RuleFlow _unsavouryFlow;
     private RuleFlow _boxWalksFlow;
 
+    private Handle<Household>[] _failedSearches = [];
+    private int _failedSearchCount;
+
+    /// <summary>
+    /// The Households of jobless Citizens whose search on the last <see cref="Assign"/> found no
+    /// job, in search order, with repeats.
+    /// </summary>
+    /// <remarks>Valid until the next <see cref="Assign"/>, which clears it.</remarks>
+    public ReadOnlySpan<Handle<Household>> FailedSearches =>
+        _failedSearches.AsSpan(0, _failedSearchCount);
+
     /// <summary>The members of <see cref="CommuteRung"/>.</summary>
     private const int RungCount = 3;
+
+    // Prepared hiring searches: host scratch, never saved or hashed. The coordinator draws each
+    // seeker's candidates and keeps those with an open post; workers only read the Road Graph to
+    // price them, one look per round, skipping seekers an earlier look already settled at the top
+    // rung. The serial pass uses a price only when every search input matches, so worker count
+    // cannot change a hire. Entries are indexed by sample draw times candidates, plus look.
+    private const int PreparedSeekerMinimum = 64;
+    private int _workers = 1;
+    private WalkScratch[] _workerWalks = [];
+    private ParallelOptions? _parallel;
+    private Action<int>? _priceSeekers;
+    private bool[] _candidate = [];
+    private bool[] _prepared = [];
+    private bool[] _settledFast = [];
+    private int _round;
+    private TravelMode[] _preparedMode = [];
+    private Address[] _preparedFrom = [];
+    private Address[] _preparedTo = [];
+    private TravelTime[] _preparedCost = [];
+    private int _preparedCount;
+    private int _preparedStride;
+    private int _preparedDraws;
+    private uint _preparedVersion;
+    private TravelTime _preparedCrossing;
+    private int _batchPrepared;
+    private int _batchUsed;
+    private int _batchFallback;
+
+    /// <summary>Hiring search concurrency limit, including the caller. Change only between Steps.</summary>
+    public int RouteWorkerCount
+    {
+        get => _workers;
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(value, 1);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(value, 8);
+            if (_workers == value) { return; }
+            _workers = value;
+            _workerWalks = new WalkScratch[value == 1 ? 0 : value];
+            for (int i = 0; i < _workerWalks.Length; i++) { _workerWalks[i] = new WalkScratch(); }
+            _parallel = value == 1 ? null : new ParallelOptions { MaxDegreeOfParallelism = value };
+            _priceSeekers = value == 1 ? null : PriceSeekers;
+        }
+    }
+
+    /// <summary>Prepared, used and synchronous hiring searches on the last <see cref="Assign"/>.</summary>
+    public RouteBatchReading LastBatch => new(_batchPrepared, _batchUsed, _batchFallback);
 
     /// <param name="world">The tables this writes, and the Ruleset it writes under. Not copied.</param>
     /// <param name="key">The world seed, as the draws' first coordinate.</param>
@@ -269,6 +327,8 @@ public sealed class EmploymentEngine
         // Citizen in the city from ever being promoted. Experience is denominated in Days and is
         // gated on the Day boundary alone.
         Progress(tick);
+        _failedSearchCount = 0;
+        _batchPrepared = _batchUsed = _batchFallback = 0;
 
         if (!jobs.Runs || tick.Raw % jobs.Interval != 0)
         {
@@ -312,12 +372,22 @@ public sealed class EmploymentEngine
         Cells radius = Radius(trips.CommuteBudget, _world.Rules.Roads.WalkSpeed);
         Span<int> into = Scratch(jobs.SampleFor(slots));
 
+        if (_failedSearches.Length < into.Length)
+        {
+            _failedSearches = new Handle<Household>[into.Length];
+        }
+
         for (int draw = 0; draw < into.Length; draw++)
         {
             ulong entity = Randomness.Mix((ulong)(uint)draw << 32);
             ulong value = Randomness.Draw(_key, entity, tick, PurposeTag.JobSeeker);
 
             into[draw] = (int)(value % (ulong)(uint)slots);
+        }
+
+        if (_priceSeekers is not null && into.Length >= PreparedSeekerMinimum)
+        {
+            Prepare(into, radius, trips, tick);
         }
 
         for (int i = 0; i < into.Length; i++)
@@ -373,13 +443,149 @@ public sealed class EmploymentEngine
 
             _tickSeeking++;
 
-            if (TryEmploy(slot, east, north, radius, door, mode, trips, tick))
+            if (TryEmploy(i, slot, east, north, radius, door, mode, trips, tick))
             {
                 _tickEmployed++;
             }
+            else if (_world.IsJobless(slot))
+            {
+                _failedSearches[_failedSearchCount++] = _world.Citizens.HouseholdOf[slot];
+            }
         }
 
+        _preparedCount = 0;
         CloseTick();
+    }
+
+    /// <summary>
+    /// Prices, on the route workers, the searches each sampled seeker would make if no vacancy
+    /// changed before their turn.
+    /// </summary>
+    private void Prepare(Span<int> into, Cells radius, TripRuleset trips, Ticks tick)
+    {
+        int stride = _world.Rules.Jobs.Candidates;
+        int length = into.Length * stride;
+        if (_prepared.Length < length)
+        {
+            _candidate = new bool[length];
+            _prepared = new bool[length];
+            _preparedMode = new TravelMode[length];
+            _preparedFrom = new Address[length];
+            _preparedTo = new Address[length];
+            _preparedCost = new TravelTime[length];
+        }
+
+        if (_settledFast.Length < into.Length) { _settledFast = new bool[into.Length]; }
+
+        _preparedCount = length;
+        _preparedStride = stride;
+        _preparedDraws = into.Length;
+        _preparedVersion = _world.Roads.Version;
+        _preparedCrossing = trips.CrossingCost;
+
+        bool any = false;
+        for (int i = 0; i < into.Length; i++) { any |= Speculate(i, into[i], radius, tick); }
+        if (!any) { return; }
+
+        for (_round = 0; _round < stride; _round++)
+        {
+            Parallel.For(0, _workerWalks.Length, _parallel!, _priceSeekers!);
+            for (int i = 0; i < into.Length; i++)
+            {
+                int at = i * stride + _round;
+                if (!_prepared[at]) { continue; }
+                _batchPrepared++;
+                _settledFast[i] |= trips.TryRung(_preparedCost[at], out CommuteRung rung) && rung == CommuteRung.Fast;
+            }
+        }
+    }
+
+    private void PriceSeekers(int worker)
+    {
+        WalkScratch walk = _workerWalks[worker];
+        for (int i = worker; i < _preparedDraws; i += _workerWalks.Length)
+        {
+            int at = i * _preparedStride + _round;
+            if (_candidate[at] && !_settledFast[i])
+            {
+                _preparedCost[at] = WalkRouting.Cost(
+                    _world.Roads, _preparedMode[at], _preparedFrom[at], _preparedTo[at], _preparedCrossing, walk);
+                _prepared[at] = true;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Marks the walks <see cref="TryEmploy"/> could search for this Citizen, read against the world
+    /// as it stands. It mirrors the gates in <see cref="Assign"/> and the draws in
+    /// <see cref="TryEmploy"/>; a disagreement costs a synchronous search and never changes a hire.
+    /// </summary>
+    private bool Speculate(int draw, int slot, Cells radius, Ticks tick)
+    {
+        int first = draw * _preparedStride;
+        _settledFast[draw] = false;
+        for (int look = 0; look < _preparedStride; look++) { _candidate[first + look] = _prepared[first + look] = false; }
+        bool any = false;
+
+        if (!_world.Citizens.Rows.IsLive(slot) || _world.IsStudying(slot) || !_world.IsOfWorkingAge(slot)
+            || _world.Businesses.Rows.IsValid(_world.Citizens.Workplace[slot]))
+        {
+            return false;
+        }
+
+        TravelMode mode = _world.ModeOf(slot);
+        if (!Home(slot, mode, out Cells east, out Cells north, out Address from)) { return false; }
+
+        CellRect box = CellRect.At(east, north).Dilate(radius).Clamp();
+        if (box.IsEmpty) { return false; }
+        int here = _world.BuildingsInCells.CountIn(box);
+        if (here == 0) { return false; }
+
+        ulong id = _world.Citizens.Rows.IdAt(slot);
+        byte tier = _world.Citizens.SkillTier[slot];
+
+        for (int look = 0; look < _preparedStride; look++)
+        {
+            ulong entity = Randomness.Mix(id ^ ((ulong)(uint)look << 32));
+            ulong value = Randomness.Draw(_key, entity, tick, PurposeTag.JobCandidate);
+            int building = _world.BuildingsInCells.NthIn(box, _world.Buildings, (int)(value % (ulong)(uint)here));
+            if (building == Rows.NoSlot) { continue; }
+
+            foreach (int tenant in _world.BuildingBusinesses.Walk(building))
+            {
+                if (_world.HasJob(tenant)
+                    && _world.Rules.BusinessKind(_world.Businesses.Kind[tenant]).RequiresTier <= tier)
+                {
+                    int at = first + look;
+                    _candidate[at] = true;
+                    _preparedMode[at] = mode;
+                    _preparedFrom[at] = from;
+                    _preparedTo[at] = _world.AccessPoint(building, mode);
+                    any = true;
+                    break;
+                }
+            }
+        }
+
+        return any;
+    }
+
+    private TravelTime HiringCost(int draw, int look, TravelMode mode, Address door, Address to, TravelTime crossing)
+    {
+        if (_preparedCount > 0)
+        {
+            int at = draw * _preparedStride + look;
+            if (_prepared[at] && _preparedVersion == _world.Roads.Version && _preparedMode[at] == mode
+                && _preparedFrom[at] == door && _preparedTo[at] == to && _preparedCrossing == crossing)
+            {
+                _batchUsed++;
+                return _preparedCost[at];
+            }
+
+            _batchFallback++;
+        }
+
+        return WalkRouting.Cost(_world.Roads, mode, door, to, crossing, _walk);
     }
 
     /// <summary>
@@ -443,7 +649,7 @@ public sealed class EmploymentEngine
     /// </para>
     /// </remarks>
     private bool TryEmploy(
-        int slot, Cells east, Cells north, Cells radius, Address door, TravelMode mode,
+        int draw, int slot, Cells east, Cells north, Cells radius, Address door, TravelMode mode,
         TripRuleset trips, Ticks tick)
     {
         CellRect box = CellRect.At(east, north).Dilate(radius).Clamp();
@@ -553,9 +759,7 @@ public sealed class EmploymentEngine
             // box that the Road Graph cannot deliver within the Budget is a *reachability* failure,
             // and it is counted separately because it is the only quantity in this pass that reports
             // the shape of the network rather than the state of the economy.
-            TravelTime cost = WalkRouting.Cost(
-                _world.Roads, mode, door, _world.AccessPoint(building, mode), trips.CrossingCost,
-                _walk);
+            TravelTime cost = HiringCost(draw, look, mode, door, _world.AccessPoint(building, mode), trips.CrossingCost);
 
             if (!trips.TryRung(cost, out CommuteRung rung))
             {

@@ -285,6 +285,16 @@ public sealed class Simulation
     /// <summary>What road Upkeep has cost the treasury since the last drain.</summary>
     private MoneyFlow _upkeepFlow;
 
+    /// <summary>
+    /// What importing delivered Utilities at the Outside Connections has cost the treasury since
+    /// the last drain.
+    /// </summary>
+    /// <remarks>
+    /// Folded once per Tick, on <see cref="_upkeepFlow"/>'s terms. The settle runs at the head of
+    /// each Day's first Tick, so at most one fold in a Day is ever non-zero.
+    /// </remarks>
+    private MoneyFlow _utilityImportFlow;
+
     /// <inheritdoc cref="Subsidies"/>
     internal MoneyFlow DrainPlacementSpend()
     {
@@ -311,6 +321,16 @@ public sealed class Simulation
         MoneyFlow flow = _upkeepFlow;
 
         _upkeepFlow = default;
+
+        return flow;
+    }
+
+    /// <inheritdoc cref="_utilityImportFlow"/>
+    internal MoneyFlow DrainUtilityImportSpend()
+    {
+        MoneyFlow flow = _utilityImportFlow;
+
+        _utilityImportFlow = default;
 
         return flow;
     }
@@ -352,7 +372,9 @@ public sealed class Simulation
             DrainPlacementSpend().Sum,
             DrainUpkeepSpend().Sum,
             DrainCompensation().Sum,
-            _zoning.DrainGrants().Sum);
+            _zoning.DrainGrants().Sum,
+            DrainUtilityImportSpend().Sum,
+            rules.Tariff.Sum);
     }
 
     /// <summary>What the most recent payday moved, or zeroes on a Tick that was not one.</summary>
@@ -400,8 +422,16 @@ public sealed class Simulation
     private readonly ShoppingEngine _shopping;
     public ShoppingEngine Shopping => _shopping;
     public TripEngine Trips => _trips;
-    /// <summary>Commute search concurrency limit; change only between Steps on the owning caller.</summary>
-    public int RouteWorkerCount { get => _commutes.RouteWorkerCount; set => _commutes.RouteWorkerCount = value; }
+    /// <summary>Commute and hiring search concurrency limit; change only between Steps on the owning caller.</summary>
+    public int RouteWorkerCount
+    {
+        get => _commutes.RouteWorkerCount;
+        set
+        {
+            _commutes.RouteWorkerCount = value;
+            _employment.RouteWorkerCount = value;
+        }
+    }
     public RouteBatchReading LastRouteBatch => _commutes.LastBatch;
 
     /// <summary>The world seed, as <see cref="Randomness.Draw"/>'s first coordinate.</summary>
@@ -485,6 +515,20 @@ public sealed class Simulation
         // Roll after a successful reload and before input, even on Days with no population flows.
         _world.RollPopulationDayFlows(tick);
 
+        // The Utility networks' own Day boundary, beside the roll above rather than in Growth: the
+        // delivered fraction governs every firing of the Day that is starting, so it has to be
+        // settled before Phase 3 runs for the first time in it. Tick 0 is excluded because nothing
+        // has produced anything yet and a settle there would only write the zeroes a row opens at.
+        if (tick.Raw % (ulong)Ticks.PerDay == 0 && tick.Raw > 0)
+        {
+            long imported = _world.SettleUtilityNetworks().Raw;
+
+            if (imported > 0)
+            {
+                _utilityImportFlow = _utilityImportFlow.Fold(imported);
+            }
+        }
+
         ApplyInput(input, tick);
         PhaseCompleted?.Invoke(TickPhase.Input);
         Wake(tick);
@@ -503,6 +547,8 @@ public sealed class Simulation
         PhaseCompleted?.Invoke(TickPhase.Commit);
 
         _world.TimeCutOffBuildings(tick);
+
+        _world.Commutes.Order(_world.Citizens);
 
         _world.Advance();
 
@@ -2237,6 +2283,10 @@ public sealed class Simulation
         // the Zone Rules for a second reason of its own -- a Building condemned this Tick should not
         // acquire a worker first, and taking a job in a doomed Building is a churn nothing reports.
         _employment.Assign(tick);
+
+        // A failed search is the occasion a jobless Household rechecks its home against a
+        // Hinterland (adr/0102), so it is noticed on this Tick rather than at the next sample.
+        _placement.ReconsiderJobless(_employment.FailedSearches, tick);
 
         _zoning.Sweep(tick);
 

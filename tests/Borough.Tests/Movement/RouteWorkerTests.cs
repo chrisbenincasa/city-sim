@@ -185,4 +185,32 @@ public sealed class RouteWorkerTests
         Assert.True(prepared > 0 && used > 0, $"Prepared {prepared}, consumed {used} routes.");
         serial.CheckEndOfRun(); parallel.CheckEndOfRun();
     }
+
+    [Theory]
+    [InlineData(2, 512)]
+    [InlineData(8, 1024)]
+    public void Parallel_hiring_searches_preserve_every_tick_and_are_actually_consumed(int workers, int ticks)
+    {
+        var loaded = RulesetLoader.Load(Path.Combine(AppContext.BaseDirectory, "Rulesets", "stress-shopping.toml"));
+        Assert.True(loaded.Ok, loaded.Describe());
+        var builder = new InputLogBuilder(0, new WorldConfiguration(4000), 0);
+        builder.Append(Ticks.Zero, new Command(CommandKind.Populate, default, default));
+        var log = builder.Build();
+        var serial = Replay.Start(log, loaded.Ruleset!);
+        var parallel = Replay.Start(log, loaded.Ruleset!);
+        parallel.RouteWorkerCount = workers;
+        long prepared = 0, used = 0;
+        for (int tick = 0; tick < ticks; tick++)
+        {
+            var now = new Ticks((ulong)tick);
+            var input = new TickInput(log.At(now), log.RulesetHashAt(now));
+            serial.Step(input); parallel.Step(input);
+            Assert.Equal(serial.World.HashState(), parallel.World.HashState());
+            Assert.Equal(default, serial.Employment.LastBatch);
+            prepared += parallel.Employment.LastBatch.Prepared;
+            used += parallel.Employment.LastBatch.Used;
+        }
+        Assert.True(prepared > 0 && used > 0, $"Prepared {prepared}, consumed {used} hiring searches.");
+        serial.CheckEndOfRun(); parallel.CheckEndOfRun();
+    }
 }
