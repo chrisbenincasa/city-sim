@@ -42,6 +42,13 @@
           "items": { "type": "integer", "minimum": 1 },
           "minItems": 2,
           "maxItems": 2
+        },
+        "terrace_houses": {
+          "description": "How many Lots one terrace of attached houses spans, as [low, high]. A terrace shares its family and pitch, and neighboring terraces differ in family. Needs attached.",
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1 },
+          "minItems": 2,
+          "maxItems": 2
         }
       },
       "required": [
@@ -287,8 +294,19 @@
                 "type": "number",
                 "minimum": 18
               },
+              "terrace": {
+                "description": "The attached house form the body draws: its roof and plan. It draws its own roof, so it takes no gable_degrees or parapet_metres.",
+                "enum": ["side-gable", "parapet", "mansard", "front-gable", "paired-gable", "bay-front"]
+              },
+              "pitch_degrees": {
+                "description": "The range a terrace draws its shared roof pitch from, as [low, high] within 18 to 45. Required by the pitched terrace forms; parapet and mansard take none.",
+                "type": "array",
+                "items": { "type": "integer", "minimum": 18, "maximum": 45 },
+                "minItems": 2,
+                "maxItems": 2
+              },
               "chimney": {
-                "description": "A chimney stands behind the ridge near the right-hand end. Needs gable_degrees.",
+                "description": "A chimney stands behind the ridge near the right-hand end. Needs gable_degrees or terrace.",
                 "type": "boolean"
               },
               "steps": {
@@ -407,7 +425,9 @@
                       { "required": ["plant"] },
                       { "required": ["vents"] },
                       { "required": ["roof_hatch"] },
-                      { "required": ["parapet_metres"] }
+                      { "required": ["parapet_metres"] },
+                      { "required": ["terrace"] },
+                      { "required": ["pitch_degrees"] }
                     ]
                   }
                 },

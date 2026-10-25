@@ -88,7 +88,7 @@ public static class StylePresetReader
     private static readonly string[] LowRiseBodyKeys =
     [
         "bay_metres", .. Rows, "openings", "gable_degrees", "chimney", "steps", "pilasters", "party_line", "shopfront",
-        "panels", "rooflights", "receiving_canopy", "plant", "vents", "roof_hatch", "parapet_metres",
+        "panels", "rooflights", "receiving_canopy", "plant", "vents", "roof_hatch", "parapet_metres", "terrace", "pitch_degrees",
     ];
 
     internal static IReadOnlyList<string> BlockOnlyBodyKeys => LowRiseBodyKeys;
@@ -117,7 +117,7 @@ public static class StylePresetReader
         ArgumentNullException.ThrowIfNull(sources);
         var errors = new List<AppearanceDiagnostic>();
         var families = new List<AppearanceFamily>();
-        (string Name, int EraDays, BlockPattern[] Attached, HouseRuns? Runs)? preset = null;
+        (string Name, int EraDays, BlockPattern[] Attached, HouseRuns? Runs, Bounds? Terraces)? preset = null;
         string? presetAt = null;
 
         foreach ((string file, string text) in sources)
@@ -220,7 +220,7 @@ public static class StylePresetReader
         CheckFamilies(families, errors);
         return errors.Count > 0 || preset is not { } found
             ? new StylePresetResult(null, errors)
-            : new StylePresetResult(new StylePreset(found.Name, found.EraDays, found.Attached, [.. families], found.Runs), errors);
+            : new StylePresetResult(new StylePreset(found.Name, found.EraDays, found.Attached, [.. families], found.Runs, found.Terraces), errors);
     }
 
     /// <summary>
@@ -301,15 +301,18 @@ public static class StylePresetReader
 
         public void Refuse(int line, string message) => errors.Add(new AppearanceDiagnostic(file, line, message));
 
-        public (string, int, BlockPattern[], HouseRuns?)? Preset()
+        public (string, int, BlockPattern[], HouseRuns?, Bounds?)? Preset()
         {
             int before = errors.Count;
-            Collect(["name", "era_days", "attached", "runs", "run_houses"]);
+            Collect(["name", "era_days", "attached", "runs", "run_houses", "terrace_houses"]);
             string? name = Text("name", required: true);
             long? era = Integer("era_days", required: true, least: 1);
             BlockPattern[] attached = Names("attached", PatternNames) ?? [];
             HouseRuns? runs = Runs();
-            return errors.Count > before || name is null || era is null ? null : (name, (int)era, attached, runs);
+            Bounds? terraces = Range("terrace_houses");
+            if (terraces is { Low: < 1 }) Refuse(LineOf(_keys["terrace_houses"]), "'terrace_houses' must be [low, high], with low at least 1.");
+            if (terraces is not null && attached.Length == 0) Refuse(LineOf(_keys["terrace_houses"]), "'terrace_houses' needs 'attached' patterns to split into terraces.");
+            return errors.Count > before || name is null || era is null ? null : (name, (int)era, attached, runs, terraces);
         }
 
         private HouseRuns? Runs()
@@ -406,7 +409,7 @@ public static class StylePresetReader
         public FamilyBody? Body()
         {
             int before = errors.Count;
-            Collect(["library", "shape", "variant", "tile_metres", "materials", "bay_metres", "parapet_metres", "pilasters", "plant", "roof_hatch", "vents", "openings", "gable_degrees", "chimney", "steps", "party_line", "shopfront", "panels", "rooflights", "receiving_canopy", .. MidriseBodyKeys, .. Rows]);
+            Collect(["library", "shape", "variant", "tile_metres", "materials", "bay_metres", "parapet_metres", "pilasters", "plant", "roof_hatch", "vents", "openings", "gable_degrees", "chimney", "steps", "party_line", "shopfront", "panels", "rooflights", "receiving_canopy", "terrace", "pitch_degrees", .. MidriseBodyKeys, .. Rows]);
             string? library = Text("library", required: true);
             Dictionary<string, (float, float)> tiles = Tiles("tile_metres");
             Dictionary<string, string> materials = Materials("materials");
@@ -532,6 +535,7 @@ public static class StylePresetReader
             bool rooflights = false;
             bool receiving = false;
             BayRow[] rows = [BayRow.Blank, BayRow.Blank, BayRow.Blank, BayRow.Blank, BayRow.Blank, BayRow.Blank];
+            TerraceBody? terrace = null;
             if (blockShape)
             {
                 bay = Metres("bay_metres", required: true, least: 1f) ?? 0f;
@@ -550,7 +554,12 @@ public static class StylePresetReader
                 rooflights = Boolean("rooflights") ?? false;
                 receiving = Boolean("receiving_canopy") ?? false;
                 if (gable > 0f && parapet > 0f) Refuse(LineOf(_keys["gable_degrees"]), "a gable roof takes no parapet: give 'gable_degrees' or 'parapet_metres', not both.");
-                if (chimney && gable == 0f) Refuse(LineOf(_keys["chimney"]), "a chimney stands on a gable roof: 'chimney' needs 'gable_degrees'.");
+                terrace = Terrace();
+                if (chimney && gable == 0f && terrace is null) Refuse(LineOf(_keys["chimney"]), "a chimney stands on a gable roof: 'chimney' needs 'gable_degrees'.");
+
+                // The far box takes its cap from these, so a terrace form gives them its own roof's.
+                if (terrace is { PitchDegrees: { } pitch }) gable = (pitch.Low + pitch.High) / 2f;
+                else if (terrace?.Form == TerraceForm.Parapet) parapet = FamilyBodyBuilder.TerraceParapetMetres;
                 rows = [.. Rows.Select(Row)];
             }
 
@@ -558,7 +567,54 @@ public static class StylePresetReader
                 ? null
                 : new FamilyBody(library, tiles, materials, bay, parapet, pilasters, (int)plant,
                     new WallRule(rows[0], rows[1]), new WallRule(rows[2], rows[3]), new WallRule(rows[4], rows[5]),
-                    hatch, (int)vents, openings, gable, chimney, steps, partyLine, shopfront, panels, rooflights, receiving, tower, midrise, house);
+                    hatch, (int)vents, openings, gable, chimney, steps, partyLine, shopfront, panels, rooflights, receiving, tower, midrise, house, terrace);
+        }
+
+        private TerraceBody? Terrace()
+        {
+            string? name = Text("terrace", required: false);
+            Bounds? pitch = Range("pitch_degrees");
+            TerraceForm? form = name switch
+            {
+                "side-gable" => TerraceForm.SideGable,
+                "parapet" => TerraceForm.Parapet,
+                "mansard" => TerraceForm.Mansard,
+                "front-gable" => TerraceForm.FrontGable,
+                "paired-gable" => TerraceForm.PairedGable,
+                "bay-front" => TerraceForm.BayFront,
+                _ => null,
+            };
+            if (name is null)
+            {
+                if (pitch is not null) Refuse(LineOf(_keys["pitch_degrees"]), "'pitch_degrees' needs 'terrace'.");
+                return null;
+            }
+
+            if (form is not { } found)
+            {
+                Refuse(LineOf(_keys["terrace"]), "'terrace' must be \"side-gable\", \"parapet\", \"mansard\", \"front-gable\", \"paired-gable\" or \"bay-front\".");
+                return null;
+            }
+
+            foreach (string own in (ReadOnlySpan<string>)["gable_degrees", "parapet_metres"])
+            {
+                if (_keys.TryGetValue(own, out KeyValueSyntax? refused)) Refuse(LineOf(refused), $"a terrace form draws its own roof, so it takes no '{own}'.");
+            }
+
+            bool pitched = found is not (TerraceForm.Parapet or TerraceForm.Mansard);
+            if (pitched && pitch is not { Low: >= 18, High: <= 45 })
+            {
+                Refuse(LineOf(_keys["terrace"]), "a pitched terrace form needs 'pitch_degrees' = [low, high] within 18 to 45 degrees.");
+                return null;
+            }
+
+            if (!pitched && pitch is not null)
+            {
+                Refuse(LineOf(_keys["pitch_degrees"]), $"a {name} roof has no pitch, so it takes no 'pitch_degrees'.");
+                return null;
+            }
+
+            return new TerraceBody(found, pitch);
         }
 
         private MidriseBody Midrise(MidriseVariant variant)

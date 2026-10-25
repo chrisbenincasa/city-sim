@@ -74,6 +74,43 @@ and 358 in copies. 734 of 1,476 neighboring house pairs on one face share a fami
 family weights alone would give about one in eight. `runs-h3-*.png` from `runs-h3.drive` show the
 same blocks as `forms-h2`.
 
+Rowhouses meet the bar with six forms, chosen by the user on October 24, 2026 from Blender renders:
+side gable, parapet, mansard, front gable, paired gable and bay front. Each form is a family
+(`rowhouses`, `rowhouses-<form>`) whose body names it with `terrace` and draws its pitch from
+`pitch_degrees` (`FamilyBodyBuilder.Terrace.cs`, `scripts/art/rowhouse-forms.py`). Paired gable
+admits frontages up to 11 m, so the 12 m band draws five forms.
+
+Every form keeps Painted Bricks 088 walls and the shared paints. Pitched forms keep Clay Roof Tiles
+02. The mansard roofs in Roofing Tiles 003 slate. The parapet deck is a `membrane` part in Clean
+Asphalt, and its coping and cornice keep the trim paint. The user chose these on October 25, 2026
+from Blender renders over flat paint, bitumen, asphalt and cast-stone alternatives.
+
+Attached houses stand in terraces. The preset's `terrace_houses = [3, 6]` gives a terrace's length
+in Lots, drawn once per face and era. A terrace shares its family and pitch, each house draws its
+own paint, and odd houses lay their bays from the right. An even terrace takes its first-ranked
+family and an odd one passes over its two neighbors' picks, so neighboring terraces never share a
+form where their Lots admit the same families.
+
+| Ruleset, 600 Ticks | Forms by band | Neighbor pairs across terraces with one form and pitch within 5° |
+|---|---|---|
+| `rowhouses.toml`, 10,000 Citizens | 8 m: 6 | 0 of 134 |
+| `traded.toml`, 10,000 Citizens | 4 m: 6, 8 m: 6, 12 m: 5 | 0 of 68 |
+| `traded.toml`, 3,000 Citizens | 4 m: 6, 8 m: 6, 12 m: 5 | 1 of 17 |
+
+The headless `--appearance` report prints these counts. Its one match joins a 12 m house to an 8 m
+house, outside the bar's single band. The two Lots report different parcel frontages, so the face
+splits into terraces differently for each.
+
+Driven on `rowhouses.toml` at 1,000 Citizens, Tick 600, Tile row 18 from Tile 34 to 62 is a street
+of 14 houses: four mansards, three front gables at 39°, five paired gables at 28° and two
+mansards, with one empty Lot. `terraces-rowhouses-*.png` from `terraces-rowhouses.drive`.
+`traded.toml` raises no rowhouses at 1,000 Citizens. At 5,000 they stand singly or in short runs
+among other kinds, so it has no 14-house street to drive. `terraces-traded.png` from
+`terraces-traded.drive` shows lone houses closing on both sides.
+
+Each form is written twice, in Python for Blender and in C#, and no test checks that the two agree.
+The C# is the reference and the script's docstring says so.
+
 ## What the demonstration showed
 
 - 33 of 50 dwellings fall back to `box`. The test street covers only a few size bands, so this

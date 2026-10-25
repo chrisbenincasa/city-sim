@@ -82,7 +82,12 @@ public sealed record PaintScheme(IReadOnlyDictionary<string, Paint> Parts, int W
 /// </param>
 /// <param name="Attached">The block patterns whose Buildings stand in attached runs.</param>
 /// <param name="Runs">How detached houses on one block face group into runs, or <c>null</c> where each draws alone.</param>
-public sealed record StylePreset(string Name, int EraDays, BlockPattern[] Attached, AppearanceFamily[] Families, HouseRuns? Runs = null);
+/// <param name="Terraces">
+/// How many Lots one terrace of attached houses spans, drawn per face and era, or <c>null</c> where a
+/// whole face draws together. Only Buildings that terrace families alone admit stand in terraces.
+/// </param>
+public sealed record StylePreset(string Name, int EraDays, BlockPattern[] Attached, AppearanceFamily[] Families,
+    HouseRuns? Runs = null, Bounds? Terraces = null);
 
 /// <summary>
 /// Runs of neighboring detached houses on one block face and era. Each run draws what its houses
@@ -231,7 +236,34 @@ public sealed record FamilyBody(
     bool ReceivingCanopy = false,
     TowerBody? Tower = null,
     MidriseBody? Midrise = null,
-    HouseBody? House = null);
+    HouseBody? House = null,
+    TerraceBody? Terrace = null);
+
+/// <summary>An attached house's roof and plan. Every house of one terrace shares them and its pitch.</summary>
+/// <param name="PitchDegrees">The range a terrace's pitch is drawn from, or <c>null</c> for a flat or mansard roof.</param>
+public sealed record TerraceBody(TerraceForm Form, Bounds? PitchDegrees);
+
+/// <summary>The roofs and plans an attached house can take.</summary>
+public enum TerraceForm : byte
+{
+    /// <summary>A ridge along the street, stopping at each shared wall.</summary>
+    SideGable,
+
+    /// <summary>A flat roof behind a street parapet over a bracketed cornice.</summary>
+    Parapet,
+
+    /// <summary>Walls one storey short of the Building, with its top storey inside a mansard lit by dormers.</summary>
+    Mansard,
+
+    /// <summary>A ridge running back from the street, so each house shows a gable.</summary>
+    FrontGable,
+
+    /// <summary>Two houses under one street gable whose ridge stands on their shared wall.</summary>
+    PairedGable,
+
+    /// <summary>A side gable over a front wall set back behind a bay window that reaches the Lot line.</summary>
+    BayFront,
+}
 
 /// <summary>A tower body's authored layout.</summary>
 public sealed record TowerBody(TowerVariant Variant);

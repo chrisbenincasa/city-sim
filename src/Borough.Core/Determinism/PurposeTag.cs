@@ -1017,4 +1017,16 @@ public enum PurposeTag : ulong
     /// shell and the headless runner on the run, never by a Tick, so it moves no State Hash.
     /// </summary>
     AppearanceRunShare = 78,
+
+    /// <summary>
+    /// How many Lots a terrace of attached houses on one block face spans. Drawn by the shell and the
+    /// headless runner on the face and era, never by a Tick, so it moves no State Hash.
+    /// </summary>
+    AppearanceTerrace = 79,
+
+    /// <summary>
+    /// The roof pitch every house of one terrace shares. Drawn by the shell on the terrace, never by
+    /// a Tick, so it moves no State Hash.
+    /// </summary>
+    AppearanceTerracePitch = 80,
 }

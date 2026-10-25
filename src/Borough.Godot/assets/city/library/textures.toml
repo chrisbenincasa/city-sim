@@ -99,6 +99,17 @@ paint = false
 detile_cycles = 4.0
 
 [[texture]]
+name = "clean-asphalt"
+asset = "Clean Asphalt"
+publisher = "Poly Haven"
+id = "clean_asphalt"
+slots = ["R03"]
+tile_metres = [2.1, 2.1]
+measured = "Poly Haven states 2.1 x 2.1 m"
+paint = false
+detile_cycles = 4.0
+
+[[texture]]
 name = "gravel-road"
 asset = "Gravel Road"
 publisher = "Poly Haven"
@@ -172,6 +183,17 @@ id = "clay_roof_tiles_02"
 slots = ["W03"]
 tile_metres = [2.5, 2.5]
 measured = "Poly Haven states 2.5 x 2.5 m"
+paint = false
+detile_cycles = 4.0
+
+[[texture]]
+name = "roofing-tiles-003"
+asset = "Roofing Tiles 003"
+publisher = "ambientCG"
+id = "RoofingTiles003"
+slots = ["R08"]
+tile_metres = [2.4, 2.4]
+measured = "Assumed. 8 slates across at 300 mm"
 paint = false
 detile_cycles = 4.0
 

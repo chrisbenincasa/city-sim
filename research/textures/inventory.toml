@@ -258,6 +258,16 @@ any = ["moss", "mossy"]
 not = []
 notes = "A regional signature. Use as a mask over R01, keyed to age"
 
+[[item]]
+id = "R08"
+group = "Roofs"
+item = "Natural slate roof"
+serves = "Mansard rowhouses in the test-street preset"
+priority = 2
+any = ["slate", "roofing"]
+not = ["floor", "red"]
+notes = "Dark blue-grey rectangular slates. Coursed, not hexagonal or round"
+
 # Openings and trim
 
 [[item]]

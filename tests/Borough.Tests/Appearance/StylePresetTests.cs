@@ -119,6 +119,97 @@ public class StylePresetTests
         Assert.Equal(RunShare.Alone, FamilyPicker.RunOf(runs, World, Facts(9, offset: 2, parcel: 4)).Share);
     }
 
+    private static string TerraceFamilies(params (string Form, string Pitch, int High)[] forms) => string.Concat(forms.Select((f, i) => $"""
+        [[family]]
+        id = "t{i}"
+        kinds = ["dwelling"]
+        frontage_metres = [4, {f.High}]
+        patterns = ["perimeter"]
+        [family.body]
+        library = "l"
+        bay_metres = 3.5
+        terrace = "{f.Form}"
+        {f.Pitch}
+
+        """));
+
+    private static StylePreset TerracePreset() => Preset("terrace_houses = [3, 6]\n" + TerraceFamilies(
+        ("side-gable", "pitch_degrees = [20, 40]", 12), ("parapet", "", 12), ("mansard", "", 12),
+        ("front-gable", "pitch_degrees = [30, 45]", 12), ("paired-gable", "pitch_degrees = [25, 35]", 11),
+        ("bay-front", "pitch_degrees = [20, 40]", 12)));
+
+    [Fact]
+    public void Attached_houses_stand_in_terraces_that_share_a_form_and_pitch_and_differ_from_their_neighbors()
+    {
+        StylePreset preset = TerracePreset();
+        var seen = new HashSet<string>();
+        for (ulong face = 1; face <= 200; face++)
+        {
+            BuildingFacts[] lots = [.. Enumerable.Range(0, 14).Select(i =>
+                Facts((face * 100) + (ulong)i, frontage: 8, depth: 12, pattern: BlockPattern.Perimeter, face: face, offset: (2 * i) + 1, parcel: 2))];
+            (string Family, int Pitch, Terrace Terrace)[] houses = [.. lots.Select(f =>
+            {
+                AppearanceFamily family = FamilyPicker.Pick(preset, World, f).Family!;
+                Terrace terrace = FamilyPicker.TerraceOf(preset, World, f)!.Value;
+                return (family.Id, FamilyPicker.TerracePitch(family, World, terrace), terrace);
+            })];
+
+            for (int i = 0; i < houses.Length; i++)
+            {
+                Assert.Equal(i % houses[i].Terrace.Houses, houses[i].Terrace.Index);
+                Assert.InRange(houses[i].Terrace.Houses, 3, 6);
+                seen.Add(houses[i].Family);
+                if (i == 0) continue;
+                bool inside = houses[i].Terrace.Cell == houses[i - 1].Terrace.Cell;
+                Assert.Equal(inside, houses[i].Family == houses[i - 1].Family);
+                if (inside) Assert.Equal(houses[i - 1].Pitch, houses[i].Pitch);
+            }
+        }
+
+        Assert.Equal(6, seen.Count);
+    }
+
+    [Fact]
+    public void A_terrace_keeps_its_form_where_a_neighbor_admits_one_family_fewer()
+    {
+        StylePreset preset = TerracePreset();
+        int pairs = 0, alike = 0;
+        for (ulong face = 1; face <= 200; face++)
+        {
+            BuildingFacts[] lots = [.. Enumerable.Range(0, 14).Select(i =>
+                Facts((face * 100) + (ulong)i, frontage: i % 2 == 0 ? 8 : 12, depth: 12, pattern: BlockPattern.Perimeter, face: face, offset: (3 * i) + 1, parcel: 3))];
+            for (int i = 1; i < lots.Length; i++)
+            {
+                if (FamilyPicker.TerraceOf(preset, World, lots[i])!.Value.Cell == FamilyPicker.TerraceOf(preset, World, lots[i - 1])!.Value.Cell) continue;
+                pairs++;
+                if (FamilyPicker.Pick(preset, World, lots[i]).Family == FamilyPicker.Pick(preset, World, lots[i - 1]).Family) alike++;
+            }
+        }
+
+        Assert.InRange(alike * 20, 0, pairs);
+    }
+
+    [Theory]
+    [InlineData("terrace_houses = [0, 4]\n", "with low at least 1")]
+    [InlineData("[[family]]\nid = \"a\"\nkinds = [\"dwelling\"]\n[family.body]\nlibrary = \"l\"\nbay_metres = 3.5\nterrace = \"gambrel\"\n", "'terrace' must be")]
+    [InlineData("[[family]]\nid = \"a\"\nkinds = [\"dwelling\"]\n[family.body]\nlibrary = \"l\"\nbay_metres = 3.5\nterrace = \"side-gable\"\n", "needs 'pitch_degrees'")]
+    [InlineData("[[family]]\nid = \"a\"\nkinds = [\"dwelling\"]\n[family.body]\nlibrary = \"l\"\nbay_metres = 3.5\nterrace = \"side-gable\"\npitch_degrees = [10, 30]\n", "within 18 to 45")]
+    [InlineData("[[family]]\nid = \"a\"\nkinds = [\"dwelling\"]\n[family.body]\nlibrary = \"l\"\nbay_metres = 3.5\nterrace = \"parapet\"\npitch_degrees = [20, 30]\n", "takes no 'pitch_degrees'")]
+    [InlineData("[[family]]\nid = \"a\"\nkinds = [\"dwelling\"]\n[family.body]\nlibrary = \"l\"\nbay_metres = 3.5\nterrace = \"mansard\"\ngable_degrees = 30\n", "takes no 'gable_degrees'")]
+    [InlineData("[[family]]\nid = \"a\"\nkinds = [\"dwelling\"]\n[family.body]\nlibrary = \"l\"\nbay_metres = 3.5\npitch_degrees = [20, 30]\n", "'pitch_degrees' needs 'terrace'")]
+    public void A_bad_terrace_is_refused(string text, string message)
+    {
+        Assert.Contains(Read(text).Errors, e => e.Message.Contains(message, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Terraces_need_attached_patterns()
+    {
+        StylePresetResult result = StylePresetReader.Read([("fixture.toml", "[preset]\nname = \"x\"\nera_days = 1\nterrace_houses = [3, 6]\n")]);
+
+        Assert.Contains(result.Errors, e => e.Message.Contains("needs 'attached'", StringComparison.Ordinal));
+    }
+
     [Theory]
     [InlineData("runs = { alone = 1 }\n", "'runs' needs 'run_houses'")]
     [InlineData("run_houses = [2, 4]\n", "'run_houses' needs 'runs'")]
