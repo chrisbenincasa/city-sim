@@ -62,6 +62,8 @@ internal static class AppearanceDump
         var unclaimed = new SortedDictionary<(string Kind, BlockPattern Pattern, int Storeys, int Frontage, int Depth), int>();
         var shares = new SortedDictionary<RunShare, int>();
         var street = new List<(ulong Face, StreetSide Side, int Offset, string Family)>();
+        var bands = new SortedDictionary<(int Frontage, string Family), int>();
+        var terraces = new List<(ulong Face, StreetSide Side, int Offset, string Family, ulong Cell, int Pitch)>();
         for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
         {
             if (!BuildingFacts.TryOf(world, names, slot, out BuildingFacts facts)) continue;
@@ -77,6 +79,13 @@ internal static class AppearanceDump
                 RunShare share = FamilyPicker.RunOf(preset, key, facts).Share;
                 shares[share] = shares.GetValueOrDefault(share) + 1;
                 street.Add((facts.Face, facts.Side, facts.Offset, family));
+            }
+
+            if (pick.Choice == FamilyChoice.Eligible && pick.Family is { Body.Terrace: not null } terraced
+                && FamilyPicker.TerraceOf(preset, key, facts) is { } terrace)
+            {
+                bands[(facts.FrontageMetres, family)] = bands.GetValueOrDefault((facts.FrontageMetres, family)) + 1;
+                terraces.Add((facts.Face, facts.Side, facts.Offset, family, terrace.Cell, FamilyPicker.TerracePitch(terraced, key, terrace)));
             }
 
             if (pick.Choice == FamilyChoice.Eligible) continue;
@@ -129,6 +138,29 @@ internal static class AppearanceDump
 
         output.WriteLine(string.Create(CultureInfo.InvariantCulture,
             $"  {same} of {pairs} neighboring house pairs on one face share a family."));
+
+        output.WriteLine();
+        output.WriteLine("## Attached houses by frontage and form");
+        output.WriteLine("  frontage m  family                    buildings");
+        foreach (((int frontage, string family), int count) in bands)
+        {
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  {frontage,10}  {family,-24}  {count,9}"));
+        }
+
+        // A form is a family here, and the bar lets neighbors share one only inside a terrace.
+        terraces.Sort();
+        int neighbors = 0, inside = 0, alike = 0;
+        for (int i = 1; i < terraces.Count; i++)
+        {
+            var (a, b) = (terraces[i - 1], terraces[i]);
+            if (a.Face != b.Face || a.Side != b.Side) continue;
+            neighbors++;
+            if (a.Cell == b.Cell) inside++;
+            else if (a.Family == b.Family && Math.Abs(a.Pitch - b.Pitch) <= 5) alike++;
+        }
+
+        output.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"  {neighbors} neighboring attached pairs on one face: {inside} inside a terrace, {alike} across terraces with one form and a pitch within 5 degrees."));
         return 0;
     }
 }

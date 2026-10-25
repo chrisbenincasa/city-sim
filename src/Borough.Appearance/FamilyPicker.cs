@@ -22,6 +22,12 @@ public readonly record struct FamilyPick(AppearanceFamily? Family, FamilyChoice 
 public readonly record struct HouseRun(ulong Entity, Ticks Era, RunShare Share);
 
 /// <summary>
+/// The terrace an attached house stands in: the coordinates its shared draws use, the house's place
+/// in it counted from the face's start, and how many Lots it spans.
+/// </summary>
+public readonly record struct Terrace(ulong Entity, Ticks Era, ulong Cell, int Index, int Houses);
+
+/// <summary>
 /// Chooses one Appearance Family per Building by a weighted draw over the families that admit it.
 /// </summary>
 /// <remarks>
@@ -29,12 +35,15 @@ public readonly record struct HouseRun(ulong Entity, Ticks Era, RunShare Share);
 /// change it (adr/0173). Attached Buildings on one block face raised in the same era draw with a
 /// shared seed, and a shared eligible set then gives them the same family. Detached houses on one
 /// block face and era fall into runs of neighboring Lots by their position along the face, so a run
-/// is a function of each Building's own facts too.
+/// is a function of each Building's own facts too. Attached houses that only terrace families admit
+/// fall into terraces the same way, and a terrace never shares its family with the terraces either
+/// side of it.
 /// </remarks>
 public static class FamilyPicker
 {
     private const ulong FaceSpace = 1UL << 63;
     private const ulong RunSpace = FaceSpace | (1UL << 62);
+    private const ulong TerraceSpace = FaceSpace | (1UL << 61);
     private const int RunFaceShift = 20;
 
     public static FamilyPick Pick(StylePreset preset, WorldKey world, in BuildingFacts facts)
@@ -42,9 +51,17 @@ public static class FamilyPicker
         ArgumentNullException.ThrowIfNull(preset);
 
         long total = 0;
+        bool terraced = true;
         foreach (AppearanceFamily family in preset.Families)
         {
-            if (!family.Fallback && family.Admits(facts)) total += family.Weight;
+            if (family.Fallback || !family.Admits(facts)) continue;
+            total += family.Weight;
+            terraced &= family.Body?.Terrace is not null;
+        }
+
+        if (total > 0 && terraced && TerraceOf(preset, world, facts) is { } terrace)
+        {
+            return new FamilyPick(TerraceFamily(preset, world, facts, terrace), FamilyChoice.Eligible);
         }
 
         if (total > 0)
@@ -117,6 +134,96 @@ public static class FamilyPicker
             : at < runs.Alone + runs.Matched ? RunShare.Matched
             : RunShare.Copies;
         return new HouseRun(entity, era, share);
+    }
+
+    /// <summary>
+    /// The terrace an attached Building stands in, or <c>null</c> where the preset has no terraces or
+    /// the Building stands on no attached face.
+    /// </summary>
+    /// <remarks>
+    /// A face draws one terrace length in Lots for each era, and a terrace is that many parcels of the
+    /// face, as a run of detached houses is.
+    /// </remarks>
+    public static Terrace? TerraceOf(StylePreset preset, WorldKey world, in BuildingFacts facts)
+    {
+        ArgumentNullException.ThrowIfNull(preset);
+        if (preset.Terraces is not { } span || facts.Face == 0 || facts.ParcelFrontage <= 0
+            || Array.IndexOf(preset.Attached, facts.Pattern) < 0)
+        {
+            return null;
+        }
+
+        Ticks era = EraOf(preset, facts);
+        ulong lengths = (ulong)(span.High - span.Low + 1);
+        int houses = (int)(span.Low + (long)(Randomness.Draw(world, FaceSpace | facts.Face, era, PurposeTag.AppearanceTerrace) % lengths));
+        int parcel = facts.Offset / facts.ParcelFrontage;
+        ulong cell = (ulong)(parcel / houses);
+        return new Terrace(TerraceSpace | (facts.Face << RunFaceShift) | cell, era, cell, parcel % houses, houses);
+    }
+
+    /// <summary>The roof pitch in degrees a terrace's houses share, or 0 for a form without one.</summary>
+    public static int TerracePitch(AppearanceFamily family, WorldKey world, Terrace terrace)
+    {
+        ArgumentNullException.ThrowIfNull(family);
+        if (family.Body?.Terrace?.PitchDegrees is not { } pitch) return 0;
+        ulong draw = Randomness.Draw(world, terrace.Entity, terrace.Era, PurposeTag.AppearanceTerracePitch);
+        return (int)(pitch.Low + (long)(draw % (ulong)(pitch.High - pitch.Low + 1)));
+    }
+
+    /// <summary>
+    /// A terrace's family. An even terrace takes its first-ranked family; an odd one passes over the
+    /// families its two neighbors took, so no two neighboring terraces share a family.
+    /// </summary>
+    /// <remarks>
+    /// Each terrace ranks every family once, so two Buildings that admit different families still
+    /// agree on a terrace's pick unless the pick admits only one of them. A neighbor whose Lot admits
+    /// a family this Building does not can therefore still match it.
+    /// </remarks>
+    private static AppearanceFamily TerraceFamily(StylePreset preset, WorldKey world, in BuildingFacts facts, Terrace terrace)
+    {
+        ulong Seed(ulong cell) => Randomness.Draw(world, (terrace.Entity & ~CellMask) | cell, terrace.Era, PurposeTag.AppearanceFamily);
+
+        if (terrace.Cell % 2 == 0) return Ranked(preset, facts, Seed(terrace.Cell));
+        AppearanceFamily before = Ranked(preset, facts, Seed(terrace.Cell - 1));
+        AppearanceFamily after = Ranked(preset, facts, Seed(terrace.Cell + 1));
+        return Ranked(preset, facts, Seed(terrace.Cell), before, after);
+    }
+
+    private const ulong CellMask = (1UL << RunFaceShift) - 1;
+
+    /// <summary>
+    /// The lowest-scoring family that admits the Building, leaving out up to two of them while any
+    /// other remains. A family's score is its lowest of one hashed ticket per unit of weight, so each
+    /// family ranks first in proportion to its weight.
+    /// </summary>
+    private static AppearanceFamily Ranked(StylePreset preset, in BuildingFacts facts, ulong seed,
+        AppearanceFamily? skip = null, AppearanceFamily? also = null)
+    {
+        AppearanceFamily? best = null, first = null;
+        ulong bestScore = ulong.MaxValue, firstScore = ulong.MaxValue;
+        for (int i = 0; i < preset.Families.Length; i++)
+        {
+            AppearanceFamily family = preset.Families[i];
+            if (family.Fallback || !family.Admits(facts)) continue;
+            ulong score = ulong.MaxValue;
+            for (int ticket = 0; ticket < family.Weight; ticket++)
+            {
+                score = Math.Min(score, Mix(seed ^ ((ulong)i << 32) ^ (ulong)ticket));
+            }
+
+            if (first is null || score < firstScore) (first, firstScore) = (family, score);
+            if (ReferenceEquals(family, skip) || ReferenceEquals(family, also)) continue;
+            if (best is null || score < bestScore) (best, bestScore) = (family, score);
+        }
+
+        return best ?? first!;
+    }
+
+    private static ulong Mix(ulong z)
+    {
+        z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9UL;
+        z = (z ^ (z >> 27)) * 0x94d049bb133111ebUL;
+        return z ^ (z >> 31);
     }
 
     private static int House(WorldKey world, ulong entity, Ticks era) =>

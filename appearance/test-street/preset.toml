@@ -16,6 +16,10 @@ attached = ["perimeter", "back-to-back"]
 runs = { alone = 3, matched = 5, copies = 2 }
 run_houses = [2, 4]
 
+# Attached houses on one block face and era stand in terraces of 3 to 6 Lots. A terrace shares its
+# family and roof pitch; neighboring terraces differ in family. Each house draws its own paint.
+terrace_houses = [3, 6]
+
 [[family]]
 id = "box"
 fallback = true
@@ -37,7 +41,8 @@ patterns = ["perimeter", "back-to-back"]
 library = "test-street/rowhouses"
 materials = { wall = "bricks-088", wall-end = "bricks-088", roof = "clay-roof-tiles-02" }
 bay_metres = 3.5
-gable_degrees = 18
+terrace = "side-gable"
+pitch_degrees = [20, 40]
 chimney = true
 steps = true
 openings = { window = [2.2, 1.6, 0.9], door = [1.0, 2.3] }
@@ -50,6 +55,374 @@ side_upper = ["blank*", "window", "blank*"]
 
 # Each house draws one scheme by its own id, so a terrace is painted house by house. The brick takes
 # the paint; the clay roof keeps its photograph's colour.
+[[family.paint]]
+wall = "b9ad97"
+wall-end = "a39985"
+trim = "f0efe9"
+door = "4f5253"
+
+[[family.paint]]
+wall = "8e9b86"
+wall-end = "7e8a77"
+trim = "ece9df"
+door = "3e4a3c"
+
+[[family.paint]]
+wall = "6f8290"
+wall-end = "627380"
+trim = "eeeeea"
+door = "7a2f2a"
+
+[[family.paint]]
+wall = "4a4f52"
+wall-end = "414548"
+trim = "e6e2d6"
+door = "b5832f"
+
+[[family.paint]]
+wall = "7c3b33"
+wall-end = "6d342d"
+trim = "ede6d6"
+door = "2f3a3f"
+
+[[family.paint]]
+wall = "a9b4b8"
+wall-end = "96a0a4"
+trim = "f3f1ea"
+door = "2d4a5a"
+
+[[family.paint]]
+wall = "d6ccb4"
+wall-end = "bfb6a0"
+trim = "f5f2ea"
+door = "3d5a4a"
+
+[[family.paint]]
+wall = "7a7a5c"
+wall-end = "6c6c52"
+trim = "ebe6d8"
+door = "5a3325"
+
+# A flat roof behind a street parapet and a bracketed cornice.
+[[family]]
+id = "rowhouses-parapet"
+model = "test-street/rowhouses"
+kinds = ["dwelling"]
+storeys = [2, 3]
+frontage_metres = [4, 12]
+depth_metres = [8, 16]
+patterns = ["perimeter", "back-to-back"]
+
+[family.body]
+library = "test-street/rowhouses"
+materials = { wall = "bricks-088", wall-end = "bricks-088", roof = "clay-roof-tiles-02" }
+bay_metres = 3.5
+terrace = "parapet"
+chimney = true
+steps = true
+openings = { window = [2.2, 1.6, 0.9], door = [1.0, 2.3] }
+street_ground = ["door", "window*"]
+street_upper = ["window*"]
+back_ground = ["door", "window*"]
+back_upper = ["window*"]
+side_ground = ["blank*", "window", "blank*"]
+side_upper = ["blank*", "window", "blank*"]
+
+[[family.paint]]
+wall = "b9ad97"
+wall-end = "a39985"
+trim = "f0efe9"
+door = "4f5253"
+
+[[family.paint]]
+wall = "8e9b86"
+wall-end = "7e8a77"
+trim = "ece9df"
+door = "3e4a3c"
+
+[[family.paint]]
+wall = "6f8290"
+wall-end = "627380"
+trim = "eeeeea"
+door = "7a2f2a"
+
+[[family.paint]]
+wall = "4a4f52"
+wall-end = "414548"
+trim = "e6e2d6"
+door = "b5832f"
+
+[[family.paint]]
+wall = "7c3b33"
+wall-end = "6d342d"
+trim = "ede6d6"
+door = "2f3a3f"
+
+[[family.paint]]
+wall = "a9b4b8"
+wall-end = "96a0a4"
+trim = "f3f1ea"
+door = "2d4a5a"
+
+[[family.paint]]
+wall = "d6ccb4"
+wall-end = "bfb6a0"
+trim = "f5f2ea"
+door = "3d5a4a"
+
+[[family.paint]]
+wall = "7a7a5c"
+wall-end = "6c6c52"
+trim = "ebe6d8"
+door = "5a3325"
+
+# The top storey inside a steep mansard, with a dormer a bay.
+[[family]]
+id = "rowhouses-mansard"
+model = "test-street/rowhouses"
+kinds = ["dwelling"]
+storeys = [2, 3]
+frontage_metres = [4, 12]
+depth_metres = [8, 16]
+patterns = ["perimeter", "back-to-back"]
+
+[family.body]
+library = "test-street/rowhouses"
+materials = { wall = "bricks-088", wall-end = "bricks-088", roof = "clay-roof-tiles-02" }
+bay_metres = 3.5
+terrace = "mansard"
+chimney = true
+steps = true
+openings = { window = [2.2, 1.6, 0.9], door = [1.0, 2.3] }
+street_ground = ["door", "window*"]
+street_upper = ["window*"]
+back_ground = ["door", "window*"]
+back_upper = ["window*"]
+side_ground = ["blank*", "window", "blank*"]
+side_upper = ["blank*", "window", "blank*"]
+
+[[family.paint]]
+wall = "b9ad97"
+wall-end = "a39985"
+trim = "f0efe9"
+door = "4f5253"
+
+[[family.paint]]
+wall = "8e9b86"
+wall-end = "7e8a77"
+trim = "ece9df"
+door = "3e4a3c"
+
+[[family.paint]]
+wall = "6f8290"
+wall-end = "627380"
+trim = "eeeeea"
+door = "7a2f2a"
+
+[[family.paint]]
+wall = "4a4f52"
+wall-end = "414548"
+trim = "e6e2d6"
+door = "b5832f"
+
+[[family.paint]]
+wall = "7c3b33"
+wall-end = "6d342d"
+trim = "ede6d6"
+door = "2f3a3f"
+
+[[family.paint]]
+wall = "a9b4b8"
+wall-end = "96a0a4"
+trim = "f3f1ea"
+door = "2d4a5a"
+
+[[family.paint]]
+wall = "d6ccb4"
+wall-end = "bfb6a0"
+trim = "f5f2ea"
+door = "3d5a4a"
+
+[[family.paint]]
+wall = "7a7a5c"
+wall-end = "6c6c52"
+trim = "ebe6d8"
+door = "5a3325"
+
+# A ridge running back from the street, its gable to the street.
+[[family]]
+id = "rowhouses-front-gable"
+model = "test-street/rowhouses"
+kinds = ["dwelling"]
+storeys = [2, 3]
+frontage_metres = [4, 12]
+depth_metres = [8, 16]
+patterns = ["perimeter", "back-to-back"]
+
+[family.body]
+library = "test-street/rowhouses"
+materials = { wall = "bricks-088", wall-end = "bricks-088", roof = "clay-roof-tiles-02" }
+bay_metres = 3.5
+terrace = "front-gable"
+pitch_degrees = [30, 45]
+chimney = true
+steps = true
+openings = { window = [2.2, 1.6, 0.9], door = [1.0, 2.3] }
+street_ground = ["door", "window*"]
+street_upper = ["window*"]
+back_ground = ["door", "window*"]
+back_upper = ["window*"]
+side_ground = ["blank*", "window", "blank*"]
+side_upper = ["blank*", "window", "blank*"]
+
+[[family.paint]]
+wall = "b9ad97"
+wall-end = "a39985"
+trim = "f0efe9"
+door = "4f5253"
+
+[[family.paint]]
+wall = "8e9b86"
+wall-end = "7e8a77"
+trim = "ece9df"
+door = "3e4a3c"
+
+[[family.paint]]
+wall = "6f8290"
+wall-end = "627380"
+trim = "eeeeea"
+door = "7a2f2a"
+
+[[family.paint]]
+wall = "4a4f52"
+wall-end = "414548"
+trim = "e6e2d6"
+door = "b5832f"
+
+[[family.paint]]
+wall = "7c3b33"
+wall-end = "6d342d"
+trim = "ede6d6"
+door = "2f3a3f"
+
+[[family.paint]]
+wall = "a9b4b8"
+wall-end = "96a0a4"
+trim = "f3f1ea"
+door = "2d4a5a"
+
+[[family.paint]]
+wall = "d6ccb4"
+wall-end = "bfb6a0"
+trim = "f5f2ea"
+door = "3d5a4a"
+
+[[family.paint]]
+wall = "7a7a5c"
+wall-end = "6c6c52"
+trim = "ebe6d8"
+door = "5a3325"
+
+# Two houses under one front gable, its ridge on their shared wall.
+[[family]]
+id = "rowhouses-paired-gable"
+model = "test-street/rowhouses"
+kinds = ["dwelling"]
+storeys = [2, 3]
+frontage_metres = [4, 11]
+depth_metres = [8, 16]
+patterns = ["perimeter", "back-to-back"]
+
+[family.body]
+library = "test-street/rowhouses"
+materials = { wall = "bricks-088", wall-end = "bricks-088", roof = "clay-roof-tiles-02" }
+bay_metres = 3.5
+terrace = "paired-gable"
+pitch_degrees = [25, 35]
+chimney = true
+steps = true
+openings = { window = [2.2, 1.6, 0.9], door = [1.0, 2.3] }
+street_ground = ["door", "window*"]
+street_upper = ["window*"]
+back_ground = ["door", "window*"]
+back_upper = ["window*"]
+side_ground = ["blank*", "window", "blank*"]
+side_upper = ["blank*", "window", "blank*"]
+
+[[family.paint]]
+wall = "b9ad97"
+wall-end = "a39985"
+trim = "f0efe9"
+door = "4f5253"
+
+[[family.paint]]
+wall = "8e9b86"
+wall-end = "7e8a77"
+trim = "ece9df"
+door = "3e4a3c"
+
+[[family.paint]]
+wall = "6f8290"
+wall-end = "627380"
+trim = "eeeeea"
+door = "7a2f2a"
+
+[[family.paint]]
+wall = "4a4f52"
+wall-end = "414548"
+trim = "e6e2d6"
+door = "b5832f"
+
+[[family.paint]]
+wall = "7c3b33"
+wall-end = "6d342d"
+trim = "ede6d6"
+door = "2f3a3f"
+
+[[family.paint]]
+wall = "a9b4b8"
+wall-end = "96a0a4"
+trim = "f3f1ea"
+door = "2d4a5a"
+
+[[family.paint]]
+wall = "d6ccb4"
+wall-end = "bfb6a0"
+trim = "f5f2ea"
+door = "3d5a4a"
+
+[[family.paint]]
+wall = "7a7a5c"
+wall-end = "6c6c52"
+trim = "ebe6d8"
+door = "5a3325"
+
+# A side gable over a wall set back 0.9 m, with a two-storey canted bay.
+[[family]]
+id = "rowhouses-bay-front"
+model = "test-street/rowhouses"
+kinds = ["dwelling"]
+storeys = [2, 3]
+frontage_metres = [4, 12]
+depth_metres = [8, 16]
+patterns = ["perimeter", "back-to-back"]
+
+[family.body]
+library = "test-street/rowhouses"
+materials = { wall = "bricks-088", wall-end = "bricks-088", roof = "clay-roof-tiles-02" }
+bay_metres = 3.5
+terrace = "bay-front"
+pitch_degrees = [20, 40]
+chimney = true
+steps = true
+openings = { window = [2.2, 1.6, 0.9], door = [1.0, 2.3] }
+street_ground = ["door", "window*"]
+street_upper = ["window*"]
+back_ground = ["door", "window*"]
+back_upper = ["window*"]
+side_ground = ["blank*", "window", "blank*"]
+side_upper = ["blank*", "window", "blank*"]
+
 [[family.paint]]
 wall = "b9ad97"
 wall-end = "a39985"
