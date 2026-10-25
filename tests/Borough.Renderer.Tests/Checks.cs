@@ -16,6 +16,7 @@ public partial class Checks : Node
             CheckNearBand();
             CheckGate();
             CheckOwners();
+            CheckResidency();
             CheckPreparation();
             CheckPreparedInputs();
             var layer = new InstanceLayer();
@@ -107,7 +108,7 @@ public partial class Checks : Node
             b.Flush(maxBytes: 1280, allowOversize: false);
             Require(b.PendingBatches == 0 && b.ResidentInstances == 2, "deferred uploads finish on subsequent frames");
             b.VisibleInstanceCount = 0; b.Flush();
-            GD.Print("Renderer checks passed: capacity, retention, identity, removal, migration, bounds, bulk buffers, near band, gate, owners, preparation, prepared inputs.");
+            GD.Print("Renderer checks passed: capacity, retention, identity, removal, migration, bounds, bulk buffers, near band, gate, owners, residency, preparation, prepared inputs.");
             GetTree().Quit();
         }
         catch (Exception error) { GD.PrintErr(error); GetTree().Quit(1); }
@@ -217,6 +218,33 @@ public partial class Checks : Node
         b.Remove(2);
         b.Flush();
         Require(b.BatchCount == 0, "an emptied owner layer releases all buffers");
+        layer.QueueFree();
+    }
+
+    private void CheckResidency()
+    {
+        var layer = new InstanceLayer();
+        AddChild(layer);
+        InstanceBuffer b = layer.Multimesh;
+        b.Mesh = new BoxMesh();
+        b.UseColors = true;
+        static InstanceValue At(float east) => new(new Transform3D(Basis.Identity, new Vector3(east, 0, 0)), Colors.White);
+        Vector3 eye = Vector3.Zero;
+
+        // One chunk, written in two frames at a still eye: a far owner beyond the 15% margin, then a
+        // near one inside it. Written whole, the chunk is resident.
+        b.Flush(eye, 2000);
+        b.Write(1, [At(2350)], [11]);
+        b.Flush(eye, 2000);
+        Require(b.ResidentInstances == 0, "a new chunk beyond the margin is not resident");
+        b.Write(2, [At(2200)], [21]);
+        b.Flush(eye, 2000);
+        Require(b.ResidentInstances == 2, "a chunk's residency at a still eye does not depend on how its writes were spread");
+
+        b.Flush(new Vector3(-200, 0, 0), 2000);
+        Require(b.ResidentInstances == 0, "a receding eye drops the chunk beyond the margin");
+        b.Flush(eye, 2000);
+        Require(b.ResidentInstances == 0, "a returning eye restores a dropped chunk only within the detail distance");
         layer.QueueFree();
     }
 

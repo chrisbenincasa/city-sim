@@ -1,7 +1,7 @@
 # Chunked scene preparation
 
 Owns the board row *Bounded scene preparation and uploads*. State: design. Worktree
-`chunk-preparation`, based on `lot-index` at `f049ab4e`. Steps 1 to 3 are implemented.
+`chunk-preparation`, based on `lot-index` at `f049ab4e`. Steps 1 to 4 are implemented.
 
 ## Outcome
 
@@ -70,6 +70,8 @@ exists is empty. The first frame's `FlushInstances` takes 231–233 ms of upload
 
 `PlanGardens` deduplicated 37,922 fence keys within a block and 4,132 across blocks. Every
 cross-block case was a block meeting the key already drawn by its west neighbor, `(column − 1, row)`.
+The 25,000-Citizen city breaks that pattern: block (500, 510) shares a key with an earlier block
+that is neither its west nor its south neighbor. The owner rule below does not rely on adjacency.
 
 ### Edits
 
@@ -123,7 +125,7 @@ inputs, and it lists its pieces in the order the whole-city walk writes them tod
 
 | Dependency | Rule | Why it reproduces today's drawing |
 |---|---|---|
-| Fences across blocks | Block `(c, r)` drops a `Boundary` key that block `(c − 1, r)` or `(c, r − 1)` attempts. A `Railing` always draws and still claims its key. | `PlanGardens` visits blocks in `(column, row)` order, so the earlier block wins. A block's set of attempted keys depends only on its own layout, never on what an earlier block suppressed. Only edge neighbors can share a key, by the geometry, and every measured case is `(c − 1, r)`. The byte-identical draws check the claim. |
+| Fences across blocks | The global layout walks blocks in `(column, row)` order and records, for each block, the attempted keys that an earlier block attempted first. The block's dressing drops a `Boundary` with one of those keys. A `Railing` always draws and still claims its key. | The earlier block wins, as in the whole-city walk. A block's set of attempted keys depends only on its own layout, never on what an earlier block suppressed. The rule needs no claim about which blocks can share a key. |
 | Fences within a block | Unchanged. The block plans as one unit. | Lot order inside a block is untouched. |
 | Garden ground clears wild trees | Split gardens into a layout and a dressing. The layout holds member Lots, garden areas, ground rectangles and attempted fence keys, and it draws no random numbers. A Cell's scatter reads the ground rectangles of blocks whose land, grown by 8 m, overlaps the Cell. | Clearance is a point-in-any-rectangle test, which does not depend on order. Ground rectangles come from the layout alone, before any `GardenDraw`. |
 | Building footprints clear wild trees | Keep a footprint index by Cell, updated per Building, in place of rebuilding it on every `Scatter`. | The same test over the same rectangles. |
@@ -176,6 +178,9 @@ Absent ──enters plan reach──▶ Queued ──budget──▶ Planned ─
 - An invalidated owner keeps its old instances until the replacement is written, so nothing flickers.
 - `draw` drains the queue before writing, as it already drains uploads. Budget deferral therefore
   never changes a draw list.
+- A chunk keeps its 15% residency margin only if it was resident when the eye last moved
+  (`InstanceBuffer.Batch.Held`). Without that, a chunk first uploaded while it held only far owners
+  lost the margin, and stayed hidden at a still camera after nearer owners arrived.
 
 ### 5. Invalidation
 
@@ -360,6 +365,30 @@ Each step lands alone. Each must pass the equivalence checks below before the ne
   lattice.
 - The renderer checks cover an owner order set on the layer, re-planning only the owner whose
   inputs changed, and `Refresh`.
+
+### Step 4 result, 2026-10-25
+
+- Each block keeps a layout (`GardenBlock`) for the whole city: garden areas, the green, ground
+  rectangles, attempted boundary keys, the keys earlier blocks claim, and a stamp. A block whose land
+  and Lots are unchanged keeps its layout. The layout draws no garden stream.
+- Garden ground and hedges are dressed for every block on each garden pass (D1).
+- The ten gated layers are `ScenePreparation` components: garden trees, seven modules, fence panels
+  and railing panels. The owner is the block, keyed `column << 32 | row`, so default owner order is
+  walk order. One dressing serves a block's ten components through a one-block cache.
+- Fence and railing panels are plan pieces. `PanelRun` is gone.
+- A component's inputs are the block's stamp. A garden pass resets the components when the list of
+  block owners or their bounds changes, and otherwise refreshes them.
+- The running-city check exposed the residency defect described under Lifecycle. The renderer
+  checks now cover it.
+- Against step 3 (`7b578ca7`), `traveller` and `car` rows removed, draw lists match byte for byte
+  at all four cameras on the 1M save, for the running city at Tick 600, and for the 25,000-Citizen
+  city at `focus 120 120 900`. The verify run on that city, with four camera moves and a Street,
+  found no difference.
+- Counts on the 1M save: 10,868 block owners among 12,499 laid-out blocks. The descent planned
+  4,894 blocks for garden trees and 1,414 for props. Plans at the descent: gardens 34.2 MB, all
+  components 47.3 MB. At 300 m: gardens 41.3 MB, all components 56.3 MB, against the 64 MB cap.
+- Optimized shell, i5-10400, load 2.9–3.9. This is a busy machine, so no timing is recorded. D3
+  still needs a quiet-machine measurement.
 
 ## Decisions settled, 2026-10-22
 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using Q16 = Borough.Core.Arithmetic.Fixed;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
@@ -16,6 +17,10 @@ namespace Borough.Shell;
 /// Furniture comes from the Blender modules in <c>assets/garden</c>, which
 /// <c>scripts/art/garden.py</c> authors.
 /// </summary>
+/// <remarks>
+/// Every block keeps a layout, and a dressing is planned from it. Ground and hedges are dressed for
+/// the whole city. Trees, furniture, fences and railings are prepared per block near the camera.
+/// </remarks>
 public partial class Main
 {
     private const int GreenPercent = 40;
@@ -47,20 +52,14 @@ public partial class Main
     private readonly List<ulong>[] _gardenIds = new List<ulong>[12];
     private readonly List<(ulong Id, Transform3D Where, Color What)>[] _gardenPieces = new List<(ulong, Transform3D, Color)>[12];
     private readonly List<Transform3D> _gardenGround = [];
-    private readonly List<PanelRun>[] _gardenRuns = [[], []];
-
-    /// <summary>A straight fence or railing, split into its panels only where a camera reaches it.</summary>
-    private readonly record struct PanelRun(ulong Id, float X0, float Y0, float X1, float Y1, int Panels, Basis Turn)
-    {
-        public Vector3 Middle => new((X0 + X1) * .5f, 0f, -(Y0 + Y1) * .5f);
-        public float Extent => 32f + (.5f * MathF.Max(MathF.Abs(X1 - X0), MathF.Abs(Y1 - Y0)));
-
-        public Transform3D Panel(int k)
-        {
-            float t = (k + .5f) / Panels;
-            return new Transform3D(Turn, new Vector3(X0 + ((X1 - X0) * t), 0f, -(Y0 + ((Y1 - Y0) * t))));
-        }
-    }
+    private readonly int[] _gardenComponents = new int[12];
+    private readonly PreparedPiece[][] _dressed = new PreparedPiece[12][];
+    private List<GardenBlock> _gardenBlocks = [];
+    private Dictionary<long, GardenBlock> _gardenBlockAt = [];
+    private List<PreparedOwner> _gardenOwners = [];
+    private long _gardenStamps;
+    private long _dressedBlock = -1;
+    private bool _dressingGlobal;
 
     private enum House { South, North, West, East }
 
@@ -72,6 +71,48 @@ public partial class Main
     }
 
     private readonly record struct GardenLot(int Slot, ulong Id, BlockFace Face, Area Parcel, Area Footprint, bool Occupied);
+
+    private readonly record struct GardenArea(ulong Lot, Area Ground, House House, bool FarFence);
+
+    /// <summary>A garden boundary from (X0, Y0) to (X1, Y1), in east and north metres.</summary>
+    private readonly record struct GardenEdge(float X0, float Y0, float X1, float Y1)
+    {
+        public float Length => MathF.Sqrt(((X1 - X0) * (X1 - X0)) + ((Y1 - Y0) * (Y1 - Y0)));
+
+        /// <summary>The same key whichever way round the edge runs, so a shared edge is drawn once.</summary>
+        public (int, int, int, int) Key => X0 < X1 || (X0 == X1 && Y0 <= Y1)
+            ? (Quarter(X0), Quarter(Y0), Quarter(X1), Quarter(Y1))
+            : (Quarter(X1), Quarter(Y1), Quarter(X0), Quarter(Y0));
+
+        private static int Quarter(float metres) => (int)MathF.Round(metres * 4f);
+    }
+
+    /// <summary>
+    /// A block's gardens worked out from its land and Lots alone: the garden areas, the green, the
+    /// ground they clear of wild trees and every boundary key they attempt. Making it draws no
+    /// garden stream.
+    /// </summary>
+    private sealed class GardenBlock(WorldKey world, int column, int row, Area land, GardenLot[] members)
+    {
+        public readonly int Column = column, Row = row;
+        public readonly List<GardenArea> Gardens = [];
+        public readonly List<Transform3D> Ground = [];
+        public readonly HashSet<(int, int, int, int)> Attempted = [];
+        public Area Green;
+        public bool Greened;
+        public ulong Draw;
+
+        /// <summary>The attempted keys an earlier block attempts first, and so draws. Null when there are none.</summary>
+        public HashSet<(int, int, int, int)>? Claimed;
+
+        /// <summary>Changes whenever the layout or <see cref="Claimed"/> does, which are all the dressing reads.</summary>
+        public long Stamp;
+
+        public ulong Key => (1UL << 63) | ((ulong)(uint)Column << 32) | (uint)Row;
+
+        public bool LaidFrom(WorldKey key, Area interior, List<GardenLot> lots) =>
+            world.Equals(key) && land == interior && members.AsSpan().SequenceEqual(CollectionsMarshal.AsSpan(lots));
+    }
 
     private static Color Hex(int rgb) =>
         new Color(((rgb >> 16) & 0xFF) / 255f, ((rgb >> 8) & 0xFF) / 255f, (rgb & 0xFF) / 255f).SrgbToLinear();
@@ -95,22 +136,33 @@ public partial class Main
             _gardenLayers[(int)GardenLayer.Shed + i].Gated = true;
         }
 
-        for (int i = 0; i < _gardenIds.Length; i++)
+        for (int i = 0; i < _gardenPieces.Length; i++)
         {
             _gardenIds[i] = [];
             _gardenPieces[i] = [];
         }
+
+        for (int i = (int)GardenLayer.Tree; i < _gardenLayers.Length; i++)
+        {
+            var layer = (GardenLayer)i;
+            _gardenComponents[i] = _scene.Register(GardenLayerName(i), _gardenLayers[i], GardenOwners,
+                owner => GardenPlan(layer, owner), GardenInputs);
+        }
     }
+
+    private static string GardenLayerName(int layer) => (GardenLayer)layer switch
+    {
+        GardenLayer.Ground => "garden-ground",
+        GardenLayer.Hedge => "garden-hedge",
+        GardenLayer.Tree => "garden-tree",
+        _ => $"garden-{GardenModules[layer - (int)GardenLayer.Shed]}",
+    };
 
     private IEnumerable<(string Name, InstanceLayer Layer, bool Colours, List<ulong>? Ids)> GardenLayers()
     {
-        yield return ("garden-ground", _gardenLayers[(int)GardenLayer.Ground], true, _gardenIds[(int)GardenLayer.Ground]);
-        yield return ("garden-hedge", _gardenLayers[(int)GardenLayer.Hedge], true, _gardenIds[(int)GardenLayer.Hedge]);
-        yield return ("garden-tree", _gardenLayers[(int)GardenLayer.Tree], true, _gardenIds[(int)GardenLayer.Tree]);
-        for (int i = 0; i < GardenModules.Length; i++)
+        for (int i = 0; i < _gardenLayers.Length; i++)
         {
-            int layer = (int)GardenLayer.Shed + i;
-            yield return ($"garden-{GardenModules[i]}", _gardenLayers[layer], true, _gardenIds[layer]);
+            yield return (GardenLayerName(i), _gardenLayers[i], true, _gardenIds[i]);
         }
     }
 
@@ -135,63 +187,81 @@ public partial class Main
         new(tiles.X * MetresPerTile, tiles.Y * MetresPerTile,
             (tiles.X + tiles.Width) * MetresPerTile, (tiles.Y + tiles.Height) * MetresPerTile);
 
-    /// <summary>Works out every garden and green, and the ground they clear of wild trees.</summary>
+    /// <summary>Lays out every block's gardens and green, and the ground they clear of wild trees.</summary>
+    /// <remarks>
+    /// A block whose land and Lots are unchanged keeps its layout. Blocks are walked by column, then
+    /// row, and a boundary key belongs to the first block that attempts it. If the set of blocks with
+    /// gardens is unchanged, the next regate re-plans only blocks whose stamp moved.
+    /// </remarks>
     private void PlanGardens()
     {
-        foreach (var pieces in _gardenPieces) pieces.Clear();
-        foreach (var runs in _gardenRuns) runs.Clear();
-        _gardenGround.Clear();
-
-        var blocks = new SortedDictionary<(int Column, int Row), List<GardenLot>>();
+        var gathered = new SortedDictionary<(int Column, int Row), List<GardenLot>>();
         LotTable lots = _world.Lots;
         for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
         {
             if (GardenLotAt(slot) is not { } lot) continue;
             Frontage.BlockOf(_world.Roads.Streets, lots.East[slot], lots.North[slot], (StreetSide)lots.Side[slot],
                 out int column, out int row);
-            if (!blocks.TryGetValue((column, row), out var members)) blocks[(column, row)] = members = [];
+            if (!gathered.TryGetValue((column, row), out var members)) gathered[(column, row)] = members = [];
             members.Add(lot);
         }
 
-        var fences = new HashSet<(int, int, int, int)>();
-        foreach (var ((column, row), members) in blocks)
+        var blocks = new List<GardenBlock>(gathered.Count);
+        var at = new Dictionary<long, GardenBlock>(gathered.Count);
+        var owners = new List<PreparedOwner>();
+        var attempted = new HashSet<(int, int, int, int)>();
+        _gardenGround.Clear();
+        foreach (var ((column, row), members) in gathered)
         {
-            if (ZoneInterior(column, row) is not { } land) continue;
-            PlanBlock(column, row, BlockLand(land), members, fences);
+            if (ZoneInterior(column, row) is not { } interior) continue;
+            Area land = BlockLand(interior);
+            long owner = GardenOwner(column, row);
+            if (!_gardenBlockAt.TryGetValue(owner, out GardenBlock? block) || !block.LaidFrom(_world.Key, land, members))
+            {
+                block = LayBlock(column, row, land, members);
+            }
+
+            HashSet<(int, int, int, int)>? claimed = null;
+            foreach (var key in block.Attempted)
+            {
+                if (!attempted.Add(key)) (claimed ??= []).Add(key);
+            }
+            if (block.Stamp == 0 || !SameKeys(claimed, block.Claimed))
+            {
+                block.Claimed = claimed;
+                block.Stamp = ++_gardenStamps;
+            }
+
+            blocks.Add(block);
+            at.Add(owner, block);
+            _gardenGround.AddRange(block.Ground);
+            if (block.Ground.Count > 0) owners.Add(GardenBounds(owner, block));
+        }
+
+        bool relisted = !CollectionsMarshal.AsSpan(owners).SequenceEqual(CollectionsMarshal.AsSpan(_gardenOwners));
+        _gardenBlocks = blocks;
+        _gardenBlockAt = at;
+        _gardenOwners = owners;
+        _dressedBlock = -1;
+        for (int i = (int)GardenLayer.Tree; i < _gardenLayers.Length; i++)
+        {
+            if (relisted) _scene.Reset(_gardenComponents[i]);
+            else _scene.Refresh(_gardenComponents[i]);
         }
     }
 
+    /// <summary>Dresses every block and writes its ground and hedges, which are drawn at any distance.</summary>
     private void FillGardens()
     {
-        for (int i = 0; i < _gardenLayers.Length; i++)
+        foreach (var pieces in _gardenPieces) pieces.Clear();
+        _dressingGlobal = true;
+        foreach (GardenBlock block in _gardenBlocks) DressBlock(block);
+        _dressingGlobal = false;
+        for (int i = (int)GardenLayer.Ground; i <= (int)GardenLayer.Hedge; i++)
         {
-            FillGarden(i);
+            Fill(_gardenLayers[i], _gardenPieces[i], _gardenIds[i]);
+            _gardenPieces[i].Clear();
         }
-    }
-
-    private void FillGarden(int layer)
-    {
-        if (layer < (int)GardenLayer.Fence) Fill(_gardenLayers[layer], _gardenPieces[layer], _gardenIds[layer]);
-        else FillPanels(_gardenLayers[layer], Runs((GardenLayer)layer), _gardenIds[layer]);
-    }
-
-    private List<PanelRun> Runs(GardenLayer layer) => _gardenRuns[layer - GardenLayer.Fence];
-
-    private static void FillPanels(InstanceLayer into, List<PanelRun> runs, List<ulong> ids)
-    {
-        int painted = 0;
-        ids.Clear();
-        into.BuildFrom();
-        foreach (ref readonly PanelRun run in System.Runtime.InteropServices.CollectionsMarshal.AsSpan(runs))
-        {
-            if (!into.Reaches(run.Middle, run.Extent)) continue;
-            for (int k = 0; k < run.Panels; k++)
-            {
-                Transform3D where = run.Panel(k);
-                if (into.Reaches(where)) Paint(into, ids, painted++, run.Id, where, Colors.White);
-            }
-        }
-        into.Multimesh.VisibleInstanceCount = painted;
     }
 
     /// <summary>Writes again each gated layer whose camera has moved beyond what it was built for.</summary>
@@ -206,17 +276,58 @@ public partial class Main
             wrote = true;
         }
         wrote |= _scene.Regate(eye);
-        for (int i = 0; i < _gardenLayers.Length; i++)
-        {
-            if (!_gardenLayers[i].Stale(eye)) continue;
-            FillGarden(i);
-            wrote = true;
-        }
         if (!wrote) return;
         double elapsed = System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds;
         _regates++;
         _regateMilliseconds += elapsed;
         _regateMaximum = Math.Max(_regateMaximum, elapsed);
+    }
+
+    private static long GardenOwner(int column, int row) => ((long)column << 32) | (uint)row;
+
+    private void GardenOwners(List<PreparedOwner> into) => into.AddRange(_gardenOwners);
+
+    /// <summary>A cube that holds every gated piece: each stands within a garden area and is tested at extent 32.</summary>
+    private static PreparedOwner GardenBounds(long owner, GardenBlock block)
+    {
+        float west = float.MaxValue, south = float.MaxValue, east = float.MinValue, north = float.MinValue;
+        foreach (GardenArea garden in block.Gardens) Grow(garden.Ground);
+        if (block.Greened) Grow(block.Green);
+        return new PreparedOwner(owner, new Vector3((west + east) * .5f, 0f, -(south + north) * .5f),
+            (.5f * MathF.Max(east - west, north - south)) + 32f);
+
+        void Grow(Area g)
+        {
+            west = MathF.Min(west, g.West);
+            south = MathF.Min(south, g.South);
+            east = MathF.Max(east, g.East);
+            north = MathF.Max(north, g.North);
+        }
+    }
+
+    private long GardenInputs(long owner) => _gardenBlockAt[owner].Stamp;
+
+    private static bool SameKeys(HashSet<(int, int, int, int)>? a, HashSet<(int, int, int, int)>? b) =>
+        a is null ? b is null : b is not null && a.SetEquals(b);
+
+    /// <summary>One block's pieces for one gated layer. The block's other layers are kept for the next call.</summary>
+    private PreparedPiece[] GardenPlan(GardenLayer layer, long owner)
+    {
+        if (owner != _dressedBlock)
+        {
+            foreach (var pieces in _gardenPieces) pieces.Clear();
+            DressBlock(_gardenBlockAt[owner]);
+            for (int i = (int)GardenLayer.Tree; i < _gardenPieces.Length; i++)
+            {
+                var pieces = _gardenPieces[i];
+                var plan = new PreparedPiece[pieces.Count];
+                for (int k = 0; k < plan.Length; k++) plan[k] = new PreparedPiece(pieces[k].Id, pieces[k].Where, pieces[k].What);
+                _dressed[i] = plan;
+                pieces.Clear();
+            }
+            _dressedBlock = owner;
+        }
+        return _dressed[(int)layer];
     }
 
     private static Area BlockLand(Transform3D interior)
@@ -226,8 +337,9 @@ public partial class Main
             interior.Origin.X + half.X, -interior.Origin.Z + half.Z);
     }
 
-    private void PlanBlock(int column, int row, Area land, List<GardenLot> members, HashSet<(int, int, int, int)> fences)
+    private GardenBlock LayBlock(int column, int row, Area land, List<GardenLot> members)
     {
+        var block = new GardenBlock(_world.Key, column, row, land, [.. members]);
         float west = land.West, east = land.East, south = land.South, north = land.North;
         bool anyWest = false, anyEast = false, anySouth = false, anyNorth = false;
         foreach (GardenLot lot in members)
@@ -243,8 +355,7 @@ public partial class Main
 
         var interior = new Area(west, south, east, north);
         bool open = interior.Usable;
-        ulong blockKey = (1UL << 63) | ((ulong)(uint)column << 32) | (uint)row;
-        ulong draw = Randomness.Draw(_world.Key, blockKey, Ticks.Zero, PurposeTag.AppearanceInterior);
+        ulong draw = Randomness.Draw(_world.Key, block.Key, Ticks.Zero, PurposeTag.AppearanceInterior);
         bool lived = members.Exists(m => m.Occupied);
         bool green = lived && open && interior.Wide >= GreenLeast && interior.Deep >= GreenLeast && (int)(draw % 100) < GreenPercent;
         var shared = green
@@ -262,7 +373,6 @@ public partial class Main
         foreach (GardenLot lot in members)
         {
             if (!lot.Occupied) continue;
-            var draws = new GardenDraw(Randomness.Draw(_world.Key, lot.Id, Ticks.Zero, PurposeTag.AppearanceGarden));
             Area p = lot.Parcel, f = lot.Footprint;
             (Area back, Area share, House house) = lot.Face switch
             {
@@ -294,22 +404,74 @@ public partial class Main
                 : share.South <= back.South + .01f && share.North >= back.North - .01f);
             if (whole)
             {
-                Garden(lot.Id, Join(back, share), house, draws, fences, farFence: !green);
+                LayGarden(block, lot.Id, Join(back, share), house, farFence: !green);
                 continue;
             }
 
-            Garden(lot.Id, back, house, draws, fences);
-            if (share.Usable) Garden(lot.Id, share, house, draws, fences, farFence: !green);
+            LayGarden(block, lot.Id, back, house, farFence: true);
+            if (share.Usable) LayGarden(block, lot.Id, share, house, farFence: !green);
         }
 
-        if (green && shared.Usable) Green(blockKey, shared, new GardenDraw(draw), fences);
+        if (green && shared.Usable)
+        {
+            block.Greened = true;
+            block.Green = shared;
+            block.Draw = draw;
+            block.Ground.Add(GroundOf(shared));
+            foreach (GardenEdge edge in Railings(shared)) block.Attempted.Add(edge.Key);
+        }
+        return block;
+    }
+
+    private static void LayGarden(GardenBlock block, ulong lot, Area g, House house, bool farFence)
+    {
+        if (!g.Usable) return;
+        block.Gardens.Add(new GardenArea(lot, g, house, farFence));
+        block.Ground.Add(GroundOf(g));
+        var (left, right, far) = Boundaries(g, house);
+        Attempt(left);
+        Attempt(right);
+        if (farFence) Attempt(far);
+
+        void Attempt(GardenEdge edge)
+        {
+            if (edge.Length >= .5f) block.Attempted.Add(edge.Key);
+        }
+    }
+
+    private static Transform3D GroundOf(Area g) =>
+        new(Basis.FromScale(new Vector3(g.Wide, 1f, g.Deep)), new Vector3((g.West + g.East) * .5f, 0f, -(g.South + g.North) * .5f));
+
+    /// <summary>Dresses one block into the garden piece lists, in the order the whole-city walk writes them.</summary>
+    /// <remarks>A boundary key an earlier block attempts is drawn by that block, as it was when one walk dressed the city.</remarks>
+    private void DressBlock(GardenBlock block)
+    {
+        HashSet<(int, int, int, int)> fences = block.Claimed is null ? [] : [.. block.Claimed];
+
+        GardenDraw? draws = null;
+        ulong lot = 0;
+        foreach (GardenArea garden in block.Gardens)
+        {
+            if (draws is null || garden.Lot != lot)
+            {
+                lot = garden.Lot;
+                draws = new GardenDraw(Randomness.Draw(_world.Key, lot, Ticks.Zero, PurposeTag.AppearanceGarden));
+            }
+            Garden(lot, garden.Ground, garden.House, draws, fences, garden.FarFence);
+        }
+
+        if (block.Greened) Green(block.Key, block.Green, new GardenDraw(block.Draw), fences);
     }
 
     private static Area Join(Area a, Area b) =>
         new(Math.Min(a.West, b.West), Math.Min(a.South, b.South), Math.Max(a.East, b.East), Math.Max(a.North, b.North));
 
-    private void Put(GardenLayer layer, ulong id, Transform3D where, Color paint) =>
+    // A pass dresses either the global layers or the gated ones and drops the other's pieces.
+    private void Put(GardenLayer layer, ulong id, Transform3D where, Color paint)
+    {
+        if ((layer <= GardenLayer.Hedge) != _dressingGlobal) return;
         _gardenPieces[(int)layer].Add((id, where, paint));
+    }
 
     private void Slab(GardenLayer layer, ulong id, Area area, float bottom, float top, Color paint)
     {
@@ -345,13 +507,30 @@ public partial class Main
         return new Area(Math.Min(ax, bx), Math.Min(ay, by), Math.Max(ax, bx), Math.Max(ay, by));
     }
 
-    // A garden backing onto a shared green leaves its far edge to the green's railing.
-    private void Garden(ulong id, Area g, House house, GardenDraw r, HashSet<(int, int, int, int)> fences, bool farFence = true)
+    /// <summary>A garden's two side boundaries, running away from the house, and its far boundary.</summary>
+    private static (GardenEdge Left, GardenEdge Right, GardenEdge Far) Boundaries(Area g, House house)
     {
-        if (!g.Usable) return;
-        _gardenGround.Add(new Transform3D(Basis.FromScale(new Vector3(g.Wide, 1f, g.Deep)),
-            new Vector3((g.West + g.East) * .5f, 0f, -(g.South + g.North) * .5f)));
+        bool across = house is House.South or House.North;
+        float depth = across ? g.Deep : g.Wide;
+        float width = across ? g.Wide : g.Deep;
+        var (ax0, ay0) = Toward(g, house, 0f, 0f);
+        var (ax1, ay1) = Toward(g, house, depth, 0f);
+        var (bx0, by0) = Toward(g, house, 0f, width);
+        var (bx1, by1) = Toward(g, house, depth, width);
+        return (new GardenEdge(ax0, ay0, ax1, ay1), new GardenEdge(bx0, by0, bx1, by1), new GardenEdge(ax1, ay1, bx1, by1));
+    }
 
+    private static GardenEdge[] Railings(Area g) =>
+    [
+        new(g.West, g.South, g.East, g.South),
+        new(g.West, g.North, g.East, g.North),
+        new(g.West, g.South, g.West, g.North),
+        new(g.East, g.South, g.East, g.North),
+    ];
+
+    // A garden backing onto a shared green leaves its far edge to the green's railing.
+    private void Garden(ulong id, Area g, House house, GardenDraw r, HashSet<(int, int, int, int)> fences, bool farFence)
+    {
         bool across = house is House.South or House.North;
         float depth = across ? g.Deep : g.Wide;
         float width = across ? g.Wide : g.Deep;
@@ -413,13 +592,10 @@ public partial class Main
         }
 
         int kind = r.Below(8);
-        var (ax0, ay0) = Toward(g, house, 0f, 0f);
-        var (ax1, ay1) = Toward(g, house, depth, 0f);
-        var (bx0, by0) = Toward(g, house, 0f, width);
-        var (bx1, by1) = Toward(g, house, depth, width);
-        Boundary(id, ax0, ay0, ax1, ay1, kind, fences);
-        Boundary(id, bx0, by0, bx1, by1, kind, fences);
-        if (farFence) Boundary(id, ax1, ay1, bx1, by1, kind, fences);
+        var (left, right, far) = Boundaries(g, house);
+        Boundary(id, left, kind, fences);
+        Boundary(id, right, kind, fences);
+        if (farFence) Boundary(id, far, kind, fences);
     }
 
     private void Tree(ulong id, float east, float north, float scale, GardenDraw r)
@@ -433,38 +609,42 @@ public partial class Main
     }
 
     /// <summary>A boundary between two gardens: timber fence, hedge or wall. A shared edge is drawn once.</summary>
-    private void Boundary(ulong id, float x0, float y0, float x1, float y1, int kind, HashSet<(int, int, int, int)> fences)
+    private void Boundary(ulong id, GardenEdge edge, int kind, HashSet<(int, int, int, int)> fences)
     {
-        float length = MathF.Sqrt(((x1 - x0) * (x1 - x0)) + ((y1 - y0) * (y1 - y0)));
+        float length = edge.Length;
         if (length < .5f) return;
-        var key = x0 < x1 || (x0 == x1 && y0 <= y1)
-            ? ((int)MathF.Round(x0 * 4f), (int)MathF.Round(y0 * 4f), (int)MathF.Round(x1 * 4f), (int)MathF.Round(y1 * 4f))
-            : ((int)MathF.Round(x1 * 4f), (int)MathF.Round(y1 * 4f), (int)MathF.Round(x0 * 4f), (int)MathF.Round(y0 * 4f));
-        if (!fences.Add(key)) return;
+        if (!fences.Add(edge.Key)) return;
 
-        bool eastward = MathF.Abs(x1 - x0) >= MathF.Abs(y1 - y0);
+        bool eastward = MathF.Abs(edge.X1 - edge.X0) >= MathF.Abs(edge.Y1 - edge.Y0);
         if (kind < 5)
         {
             int panels = Math.Max(1, (int)MathF.Ceiling(length / FencePanel));
             float stretch = length / (panels * FencePanel);
-            Runs(GardenLayer.Fence).Add(new PanelRun(id, x0, y0, x1, y1, panels,
-                YawScaled(eastward ? 0f : Mathf.Pi / 2f, new Vector3(stretch, 1f, 1f))));
+            Panels(GardenLayer.Fence, id, edge, panels, YawScaled(eastward ? 0f : Mathf.Pi / 2f, new Vector3(stretch, 1f, 1f)));
             return;
         }
 
         float thick = kind < 7 ? .6f : .25f;
         float high = kind < 7 ? 1.5f : 1.4f;
         var area = eastward
-            ? new Area(Math.Min(x0, x1), y0 - (thick * .5f), Math.Max(x0, x1), y0 + (thick * .5f))
-            : new Area(x0 - (thick * .5f), Math.Min(y0, y1), x0 + (thick * .5f), Math.Max(y0, y1));
+            ? new Area(Math.Min(edge.X0, edge.X1), edge.Y0 - (thick * .5f), Math.Max(edge.X0, edge.X1), edge.Y0 + (thick * .5f))
+            : new Area(edge.X0 - (thick * .5f), Math.Min(edge.Y0, edge.Y1), edge.X0 + (thick * .5f), Math.Max(edge.Y0, edge.Y1));
         Slab(GardenLayer.Hedge, id, area, 0f, high, kind < 7 ? HedgeTone : WallTone);
+    }
+
+    private void Panels(GardenLayer layer, ulong id, GardenEdge edge, int panels, Basis turn)
+    {
+        for (int k = 0; k < panels; k++)
+        {
+            float t = (k + .5f) / panels;
+            Put(layer, id, new Transform3D(turn,
+                new Vector3(edge.X0 + ((edge.X1 - edge.X0) * t), 0f, -(edge.Y0 + ((edge.Y1 - edge.Y0) * t)))), Colors.White);
+        }
     }
 
     /// <summary>A shared green: lawn, cross paths, a planted centre, edge trees, a play corner and benches, behind railings.</summary>
     private void Green(ulong id, Area g, GardenDraw r, HashSet<(int, int, int, int)> fences)
     {
-        _gardenGround.Add(new Transform3D(Basis.FromScale(new Vector3(g.Wide, 1f, g.Deep)),
-            new Vector3((g.West + g.East) * .5f, 0f, -(g.South + g.North) * .5f)));
         float cx = (g.West + g.East) * .5f, cy = (g.South + g.North) * .5f;
         Color stone = StoneTones[2];
         Slab(GardenLayer.Ground, id, g, 0f, .06f, GreenLawn);
@@ -500,21 +680,17 @@ public partial class Main
             }
         }
 
-        Railing(id, g.West, g.South, g.East, g.South, fences);
-        Railing(id, g.West, g.North, g.East, g.North, fences);
-        Railing(id, g.West, g.South, g.West, g.North, fences);
-        Railing(id, g.East, g.South, g.East, g.North, fences);
+        foreach (GardenEdge edge in Railings(g)) Railing(id, edge, fences);
     }
 
-    private void Railing(ulong id, float x0, float y0, float x1, float y1, HashSet<(int, int, int, int)> fences)
+    private void Railing(ulong id, GardenEdge edge, HashSet<(int, int, int, int)> fences)
     {
-        float length = MathF.Abs(x1 - x0) + MathF.Abs(y1 - y0);
-        fences.Add(((int)MathF.Round(x0 * 4f), (int)MathF.Round(y0 * 4f), (int)MathF.Round(x1 * 4f), (int)MathF.Round(y1 * 4f)));
-        bool eastward = MathF.Abs(x1 - x0) >= MathF.Abs(y1 - y0);
+        float length = MathF.Abs(edge.X1 - edge.X0) + MathF.Abs(edge.Y1 - edge.Y0);
+        fences.Add(edge.Key);
+        bool eastward = MathF.Abs(edge.X1 - edge.X0) >= MathF.Abs(edge.Y1 - edge.Y0);
         int panels = Math.Max(1, (int)MathF.Ceiling(length / FencePanel));
         float stretch = length / (panels * FencePanel);
-        Runs(GardenLayer.Railing).Add(new PanelRun(id, x0, y0, x1, y1, panels,
-            YawScaled(eastward ? 0f : Mathf.Pi / 2f, new Vector3(stretch, 1f, 1f))));
+        Panels(GardenLayer.Railing, id, edge, panels, YawScaled(eastward ? 0f : Mathf.Pi / 2f, new Vector3(stretch, 1f, 1f)));
     }
 
     /// <summary>SplitMix64 over one appearance draw, so a garden's furniture is fixed by its Lot's id.</summary>

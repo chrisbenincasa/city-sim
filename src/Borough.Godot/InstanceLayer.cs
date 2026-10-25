@@ -179,6 +179,14 @@ public sealed class InstanceBuffer
         internal int Visible;
         public MultiMeshInstance3D Node { get; internal set; } = null!;
         public bool Resident { get; internal set; } = true;
+
+        /// <summary>
+        /// Whether the batch was resident when the eye last moved. Only a held batch keeps the
+        /// margin beyond the detail distance, so a change of contents at a still eye is judged as
+        /// the last move judged it, however its owners' writes were spread over frames.
+        /// </summary>
+        internal bool Held = true;
+
         /// <summary>The index into <see cref="InstanceLayer.Details"/> drawn, or -1 for the buffer's mesh.</summary>
         public int Detail { get; internal set; } = -1;
         public Aabb Bounds { get; internal set; }
@@ -523,6 +531,7 @@ public sealed class InstanceBuffer
             if (partitioned)
                 foreach (Batch batch in _batches.Values)
                 {
+                    batch.Held = batch.Resident;
                     if (Wants(batch) != batch.Resident || Hides(batch) != batch.Near) _dirty.Add(batch);
                 }
             foreach (Batch batch in _batches.Values) Choose(batch);
@@ -637,7 +646,7 @@ public sealed class InstanceBuffer
         if (Needed is not null && !Needed(batch)) return false;
         if (_eye is not { } eye || _detailDistance <= 0) return true;
         Vector3 nearest = eye.Clamp(batch.Bounds.Position, batch.Bounds.End);
-        float distance = _detailDistance * (batch.Resident ? Hysteresis : 1f);
+        float distance = _detailDistance * (batch.Held ? Hysteresis : 1f);
         return eye.DistanceSquaredTo(nearest) <= distance * distance;
     }
 
