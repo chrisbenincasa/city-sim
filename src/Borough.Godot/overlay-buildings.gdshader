@@ -8,9 +8,11 @@ uniform int treatment = 2;
 uniform bool context_only = false;
 uniform vec3 context_colour : source_color = vec3(0.08, 0.10, 0.095);
 
-// Set on a family body's MultiMesh, whose INSTANCE_CUSTOM is the body's overlay colour. Its alpha
-// is zero on the massing, which is a unit box the edge test can read.
-instance uniform vec4 body_ink = vec4(0.0);
+// Set on a family body's material, whose INSTANCE_CUSTOM is the body's overlay colour. False on the
+// massing, which is a unit box the edge test can read.
+// An instance uniform here would reserve a global-buffer block for every chunk node of every layer
+// the overlay dresses, which overflows Godot's buffer on a full map.
+uniform bool body = false;
 
 varying vec3 local_position;
 varying vec3 world_normal;
@@ -36,7 +38,6 @@ void fragment() {
         discard;
     }
 
-    bool body = body_ink.a > 0.0;
     vec3 paint = body ? instance_ink : COLOR.rgb;
     vec3 ink = context_only ? context_colour : paint;
     if (treatment > 0) {

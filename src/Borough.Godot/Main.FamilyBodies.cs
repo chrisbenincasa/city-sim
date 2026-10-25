@@ -416,7 +416,6 @@ public partial class Main
         layer.Multimesh.NearOnly = !far;
         if (fades) _fadingBodyLayers.Add(layer);
         BodyResidency(layer);
-        layer.InstanceParameters["body_ink"] = Colors.White;
         layer.MaterialOverride = BodyWash(layer);
         if (abandoned && _washing == Wash.None) layer.MaterialOverlay = DerelictBody(layer);
         AddChild(layer);
