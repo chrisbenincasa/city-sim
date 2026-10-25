@@ -171,7 +171,7 @@ public partial class Main
     {
         Vector3 eye = _camera.GlobalPosition;
         float inner = Mathf.Max(0f, _bodyNearMetres - FarFadeRingMetres);
-        foreach (InstanceBuffer.Entry instance in batch.Instances)
+        foreach (InstanceBuffer.Instance instance in batch.Instances)
         {
             if (eye.DistanceSquaredTo(instance.Transform.Origin) > inner * inner) return true;
         }
@@ -192,7 +192,7 @@ public partial class Main
     private bool NearBatchNeeded(InstanceBuffer.Batch batch)
     {
         Vector3 eye = _camera.GlobalPosition;
-        foreach (InstanceBuffer.Entry instance in batch.Instances)
+        foreach (InstanceBuffer.Instance instance in batch.Instances)
         {
             if (eye.DistanceSquaredTo(instance.Transform.Origin) <= _bodyNearMetres * _bodyNearMetres) return true;
         }

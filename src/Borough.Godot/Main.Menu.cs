@@ -73,7 +73,7 @@ public partial class Main
     private void OpenMenu()
     {
         if (_menuOpen) return;
-        if (_queued.Count > 0) StepAccounting(Ordered());
+        if (_queued.Count > 0 && LoadChecked(wait: true)) StepAccounting(Ordered());
         _menuPace = _rung;
         _rung = 0;
         _owed = 0;

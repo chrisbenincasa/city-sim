@@ -421,8 +421,16 @@ public sealed class Simulation
     private readonly ShoppingEngine _shopping;
     public ShoppingEngine Shopping => _shopping;
     public TripEngine Trips => _trips;
-    /// <summary>Commute search concurrency limit; change only between Steps on the owning caller.</summary>
-    public int RouteWorkerCount { get => _commutes.RouteWorkerCount; set => _commutes.RouteWorkerCount = value; }
+    /// <summary>Commute and hiring search concurrency limit; change only between Steps on the owning caller.</summary>
+    public int RouteWorkerCount
+    {
+        get => _commutes.RouteWorkerCount;
+        set
+        {
+            _commutes.RouteWorkerCount = value;
+            _employment.RouteWorkerCount = value;
+        }
+    }
     public RouteBatchReading LastRouteBatch => _commutes.LastBatch;
 
     /// <summary>The world seed, as <see cref="Randomness.Draw"/>'s first coordinate.</summary>
@@ -538,6 +546,8 @@ public sealed class Simulation
         PhaseCompleted?.Invoke(TickPhase.Commit);
 
         _world.TimeCutOffBuildings(tick);
+
+        _world.Commutes.Order(_world.Citizens);
 
         _world.Advance();
 

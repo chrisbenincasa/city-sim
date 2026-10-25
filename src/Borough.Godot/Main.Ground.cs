@@ -472,11 +472,25 @@ public partial class Main
     /// </remarks>
     private void Scatter()
     {
-        IndexFoliageBuildings();
         int block = _world.Roads.Streets.BlockTiles;
         int lots = _world.Rules.Lots.LotsPerSegment;
         float reach = Mathf.Max(_span * 1.6f, 2_048f);
         Rect2 window = _laid.Grow(reach);
+        _trees.BuildFrom();
+        _rocks.BuildFrom();
+        if (_trees.Ground() is { } woods && _rocks.Ground() is { } stony)
+            window = window.Intersection(woods.Merge(stony));
+        int fromEast = Mathf.Max(0, (int)(window.Position.X / CellGrid.MetresPerCell));
+        int fromNorth = Mathf.Max(0, (int)(window.Position.Y / CellGrid.MetresPerCell));
+        int toEast = Mathf.Min(CellGrid.WorldCells - 1, (int)(window.End.X / CellGrid.MetresPerCell));
+        int toNorth = Mathf.Min(CellGrid.WorldCells - 1, (int)(window.End.Y / CellGrid.MetresPerCell));
+        if (!window.HasArea() || toEast < fromEast || toNorth < fromNorth)
+        {
+            _trees.Multimesh.VisibleInstanceCount = 0;
+            _rocks.Multimesh.VisibleInstanceCount = 0;
+            return;
+        }
+        IndexFoliageBuildings(window);
 
         // ⚠ THE YARD TEST FOLLOWS THE PAVING AND NOT THE LOTS. `SyntheticCity` lays a lattice larger
         // than it subdivides (`plans/0049` F8), so a rectangle drawn round the Lots leaves paved
@@ -495,11 +509,6 @@ public partial class Main
             if (water.Rows.IsLive(slot)) submerged.Add(new Vector2I(water.East[slot].Raw, water.North[slot].Raw));
         int crowns = 0;
         int stones = 0;
-
-        int fromEast = Mathf.Max(0, (int)(window.Position.X / CellGrid.MetresPerCell));
-        int fromNorth = Mathf.Max(0, (int)(window.Position.Y / CellGrid.MetresPerCell));
-        int toEast = Mathf.Min(CellGrid.WorldCells - 1, (int)(window.End.X / CellGrid.MetresPerCell));
-        int toNorth = Mathf.Min(CellGrid.WorldCells - 1, (int)(window.End.Y / CellGrid.MetresPerCell));
 
         // Stable city-centred order; residency and upload priority belong to InstanceBuffer.
         Vector2 anchor = CityAnchor(paved);
@@ -547,6 +556,8 @@ public partial class Main
                     float x = (east * CellGrid.MetresPerCell) + ((draw & 0xFFFu) / 4095f * CellGrid.MetresPerCell);
                     float z = (north * CellGrid.MetresPerCell) + (((draw >> 12) & 0xFFFu) / 4095f * CellGrid.MetresPerCell);
 
+                    if (!(i < wants ? _trees : _rocks).Reaches(new Vector3(x, 0f, -z))) continue;
+
                     if (BuildingExcludesFoliage(new Vector2(x, z))
                         || (paved.HasPoint(new Vector2(x, z)) && !InAYard(x, z, lots)))
                     {
@@ -561,9 +572,7 @@ public partial class Main
                         _trees.Multimesh.Identity(crowns, identity);
                         _trees.Multimesh.SetInstanceTransform(
                             crowns,
-                            new Transform3D(
-                                Basis.FromEuler(new Vector3(0f, (draw & 255) / 255f * Mathf.Tau, 0f))
-                                    * Basis.FromScale(new Vector3(broad, tall, broad)),
+                            new Transform3D(YawScaled((draw & 255) / 255f * Mathf.Tau, new Vector3(broad, tall, broad)),
                                 new Vector3(x, 0.05f, -z)));
                         float shade = 0.88f + ((draw >> 40) & 255) / 255f * 0.24f;
                         _trees.Multimesh.SetInstanceColor(crowns++, new Color(shade, shade, shade));
@@ -585,6 +594,15 @@ public partial class Main
 
         _trees.Multimesh.VisibleInstanceCount = crowns;
         _rocks.Multimesh.VisibleInstanceCount = stones;
+    }
+
+    // Equal to `Basis.FromEuler(new(0, yaw, 0)) * Basis.FromScale(scale)`, which composes three
+    // rotations through indexers and costs seconds across a city's trees.
+    private static Basis YawScaled(float yaw, Vector3 scale)
+    {
+        float sin = Mathf.Sin(yaw), cos = Mathf.Cos(yaw);
+        return new Basis(new Vector3(cos * scale.X, 0f, -sin * scale.X), new Vector3(0f, scale.Y, 0f),
+            new Vector3(sin * scale.Z, 0f, cos * scale.Z));
     }
 
     /// <summary>Where the standing city is, in metres, as the point a scatter should work out from.</summary>
@@ -1384,6 +1402,7 @@ public partial class Main
     private System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where, Color What)>
         Kerbs()
     {
+        if (_kerbs.Ground() is { } reached && !reached.HasArea()) yield break;
         RoadSegmentTable segments = _world.Roads.Segments;
         RoadNodeTable nodes = _world.Roads.Nodes;
 
@@ -1408,48 +1427,69 @@ public partial class Main
                 ? ArterialWidthMetres
                 : CarriagewayWidthMetres;
 
-            float half = carriageway * 0.5f;
             float length = run.Length;
-            (Vector3 ahead, Vector3 behind) = (run.Ahead(0f), -run.Ahead(length));
-            ulong id = segments.Rows.IdAt(slot);
 
-            for (byte side = 0; side <= 1; side++)
+            // Every point of a Segment lies within half its length of its chord's midpoint.
+            if (!_kerbs.Reaches((run.From + run.To) * 0.5f, length * 0.5f + carriageway)) continue;
+
+            if (!_kerbPieces.TryGetValue(slot, out var pieces))
             {
-                // Left is left of A→B, the direction StreetSide and every Address are stated in.
-                float lateral = side == (byte)StreetSide.Left ? 1f : -1f;
-
-                // The band's own two edges: it starts at the channel and is KerbWidthMetres deep.
-                float low = Trim(
-                    Mitre(a, slot, ahead, Left(ahead) * lateral, half, 0f, KerbWidthMetres), length);
-                float high = length - Trim(
-                    Mitre(b, slot, behind, -Left(behind) * lateral, half, 0f, KerbWidthMetres), length);
-
-                if (high <= low)
-                {
-                    continue;
-                }
-
-                foreach ((Transform3D where, Color paint) in Piece(
-                    run, low, high, KerbWidthMetres, lateral * (half + (KerbWidthMetres * 0.5f)), KerbTopMetres))
-                {
-                    yield return (id, where, paint);
-                }
+                _kerbPieces.Add(slot, pieces = [.. SegmentKerbs(slot, a, b, run, carriageway)]);
             }
 
-            // The kerb's own U round the head of a dead end, inside the pavement's. The band ran
-            // back by KerbWidthMetres above, so this bar spans the asphalt exactly.
-            Color stone = Kerbstone.SrgbToLinear();
-            float tall = KerbTopMetres / (KerbBoxMetres * 0.5f);
-
-            if (DeadEnd(a, slot))
+            foreach (var piece in pieces)
             {
-                yield return (id, Head(run.From, ahead, carriageway, 0f, KerbWidthMetres, tall), stone);
+                yield return piece;
+            }
+        }
+    }
+
+    private System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where, Color What)> SegmentKerbs(
+        int slot, int a, int b, Run run, float carriageway)
+    {
+        RoadSegmentTable segments = _world.Roads.Segments;
+        float half = carriageway * 0.5f;
+        float length = run.Length;
+
+        (Vector3 ahead, Vector3 behind) = (run.Ahead(0f), -run.Ahead(length));
+        ulong id = segments.Rows.IdAt(slot);
+
+        for (byte side = 0; side <= 1; side++)
+        {
+            // Left is left of A→B, the direction StreetSide and every Address are stated in.
+            float lateral = side == (byte)StreetSide.Left ? 1f : -1f;
+
+            // The band's own two edges: it starts at the channel and is KerbWidthMetres deep.
+            float low = Trim(
+                Mitre(a, slot, ahead, Left(ahead) * lateral, half, 0f, KerbWidthMetres), length);
+            float high = length - Trim(
+                Mitre(b, slot, behind, -Left(behind) * lateral, half, 0f, KerbWidthMetres), length);
+
+            if (high <= low)
+            {
+                continue;
             }
 
-            if (DeadEnd(b, slot))
+            foreach ((Transform3D where, Color paint) in Piece(
+                run, low, high, KerbWidthMetres, lateral * (half + (KerbWidthMetres * 0.5f)), KerbTopMetres))
             {
-                yield return (id, Head(run.To, behind, carriageway, 0f, KerbWidthMetres, tall), stone);
+                yield return (id, where, paint);
             }
+        }
+
+        // The kerb's own U round the head of a dead end, inside the pavement's. The band ran
+        // back by KerbWidthMetres above, so this bar spans the asphalt exactly.
+        Color stone = Kerbstone.SrgbToLinear();
+        float tall = KerbTopMetres / (KerbBoxMetres * 0.5f);
+
+        if (DeadEnd(a, slot))
+        {
+            yield return (id, Head(run.From, ahead, carriageway, 0f, KerbWidthMetres, tall), stone);
+        }
+
+        if (DeadEnd(b, slot))
+        {
+            yield return (id, Head(run.To, behind, carriageway, 0f, KerbWidthMetres, tall), stone);
         }
     }
 
@@ -1843,6 +1883,7 @@ public partial class Main
     /// </remarks>
     private void Pave()
     {
+        _kerbPieces.Clear();
         Fill(_roads, Paving(), _roadIds);
         Fill(_footways, Footways(), _footwayIds);
         Fill(_kerbs, Kerbs(), _kerbIds);

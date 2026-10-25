@@ -993,6 +993,7 @@ public partial class Main : Node3D
 
     /// <summary>Which Segment each kerb instance runs along, so a Segment appears once per side and once per cap.</summary>
     private readonly List<ulong> _kerbIds = [];
+    private readonly Dictionary<int, (ulong Id, Transform3D Where, Color What)[]> _kerbPieces = [];
 
     /// <summary>Which vacant Lot each drawn pad is, in instance order.</summary>
     private readonly List<ulong> _plotIds = [];
@@ -1090,6 +1091,8 @@ public partial class Main : Node3D
 
             return;
         }
+
+        Textures.Prefetch();
 
         if (load is not null)
         {
@@ -1260,9 +1263,9 @@ public partial class Main : Node3D
         // to update when one is replaced -- along with the shader's `MASONRY_MEAN`, which is a
         // property of the file and which nothing checks.
         _paint.SetShaderParameter(
-            "masonry_albedo", GD.Load<Texture2D>("res://assets/city/brick-wall-diffuse.jpg"));
+            "masonry_albedo", Textures.Load("res://assets/city/brick-wall-diffuse.jpg"));
         _paint.SetShaderParameter(
-            "masonry_normal", GD.Load<Texture2D>("res://assets/city/brick-wall-normal.jpg"));
+            "masonry_normal", Textures.Load("res://assets/city/brick-wall-normal.jpg"));
 
         // Shared roof families: one mesh per family, transforms per Building.
         _roofs = Layer(Roofing, RoofMeshes.Create(0), perInstance: true);
@@ -1290,6 +1293,7 @@ public partial class Main : Node3D
         _kerbs.DetailDistance = 5000f;
         _travellers.DetailDistance = 3000f;
         _cars.DetailDistance = 5000f;
+        _trees.Gated = _rocks.Gated = _kerbs.Gated = true;
         DressSurfaces();
 
         Ground();
@@ -1413,7 +1417,7 @@ public partial class Main : Node3D
 
         // Submit only after every shell reader has finished. Captures and Drive barriers keep
         // the published Tick stable until their frame has been observed.
-        if (_stopping || _preparation is not null || _pendingShot is not null || _menuOpen) return;
+        if (_stopping || _preparation is not null || _pendingShot is not null || _menuOpen || !LoadChecked()) return;
         if (_queued.Count > 0 && _owed < 1) _owed = 1;
         ulong until = _next < _drive.Length ? _drive[_next].At : ulong.MaxValue;
         int ticks = (int)Math.Min((ulong)Math.Min(_batchTicks, (int)_owed), until > _world.Tick.Raw ? until - _world.Tick.Raw : 0);
@@ -1879,6 +1883,7 @@ public partial class Main : Node3D
         int under = _underWater;
 
         Cursor();
+        Regate();
         FlushInstances();
 
         ulong tick = _world.Tick.Raw;
@@ -2115,7 +2120,7 @@ public partial class Main : Node3D
             Record();
         }
 
-        Stop(0);
+        if (LoadChecked(wait: true)) Stop(0);
 
         return _rung;
     }

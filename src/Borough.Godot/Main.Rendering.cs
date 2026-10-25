@@ -13,6 +13,8 @@ public partial class Main
     private long _fullBuildingPasses, _buildingEdits, _movementQueries, _movementIndexVisits;
     private long _frameCount;
     private double _frameMilliseconds, _frameMaximum;
+    private long _regates;
+    private double _regateMilliseconds, _regateMaximum;
     private readonly bool _verifyRendering = System.Environment.GetEnvironmentVariable("BOROUGH_RENDER_VERIFY") is not null;
 
     private void UpdateBuildings()
@@ -175,6 +177,7 @@ public partial class Main
         text.Append($"render_probe\t{_renderProbe}\n");
         text.Append(CultureInfo.InvariantCulture, $"render_work\t{_fullBuildingPasses}\t{_buildingEdits}\t{_movementIndexVisits}\t{_movementQueries}\n");
         text.Append(CultureInfo.InvariantCulture, $"render_frames\t{_frameCount}\t{_frameMilliseconds:F3}\t{_frameMaximum:F3}\n");
+        text.Append(CultureInfo.InvariantCulture, $"render_regate\t{_regates}\t{_regateMilliseconds:F3}\t{_regateMaximum:F3}\n");
         Godot.Rid viewport = GetViewport().GetViewportRid();
         text.Append(CultureInfo.InvariantCulture, $"render_times\t{Godot.RenderingServer.ViewportGetMeasuredRenderTimeCpu(viewport):F3}\t{Godot.RenderingServer.ViewportGetMeasuredRenderTimeGpu(viewport):F3}\n");
         long Info(Godot.RenderingServer.ViewportRenderInfoType pass, Godot.RenderingServer.ViewportRenderInfo what) =>
