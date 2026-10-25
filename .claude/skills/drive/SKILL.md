@@ -309,6 +309,11 @@ Segment is 8 long and 128 wide fails a test.
 
 ## 6 — Recipes
 
+**Show a shell change draws exactly what it drew before.** `scripts/compare-draws.sh record DIR`
+on the baseline build and again on the changed build, then `scripts/compare-draws.sh diff BASE NEW`.
+Pass `--save` with a large save for the far and running cameras, and `--verify` to add a run with
+`BOROUGH_RENDER_VERIFY=1`. The script's header lists the cameras.
+
 **Photograph the city from two angles.** Give each `shoot` its own Tick:
 
 ```
