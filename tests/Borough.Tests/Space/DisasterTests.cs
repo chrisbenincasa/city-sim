@@ -235,7 +235,7 @@ public sealed class DisasterTests
         // vacated its Lot and a ruined one is standing and abandoned.
         Assert.True(ruined + swept >= 0);
         Assert.True(Abandoned(world) > 0, "no Building was ruined by five floods on a city with "
-            + "240 of 420 Lots on the floodplain. Both verbs are supposed to be reachable.");
+            + "132 of 224 Lots on the floodplain. Both verbs are supposed to be reachable.");
         Assert.True(
             world.Buildings.Rows.LiveCount < world.Lots.Rows.LiveCount,
             "every Lot is still built on after five floods, so nothing was ever swept away.");

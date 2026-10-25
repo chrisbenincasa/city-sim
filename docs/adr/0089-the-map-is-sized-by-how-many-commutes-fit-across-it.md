@@ -1,5 +1,10 @@
 # The map is sized by how many commutes fit across it
 
+**Update, October 22, 2026.** The built value is now **`WorldCells = 256`, an 8192² Tile map, 32.8 km
+a side**. Playtesting found the player stays in one corner of an empty map, which is the revisit
+trigger below, and 256 is a rung it offers. The change moved State Hashes, because terrain and water
+generation now span the whole map. The rest of this ADR records the 512-Cell decision.
+
 **`WorldCells = 512` — a 16384² Tile map, 65.5 km on a side, 4,295 km².** A Tile stays ~4 m and
 `TilesPerCell` stays 32; the only constant that moves is the Cell count. The map is sized by **how many
 Commute Budgets fit across it** — 3.7–5.2 at a 30-minute Budget — because that ratio, and not area, is

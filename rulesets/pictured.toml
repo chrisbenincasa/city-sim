@@ -56,7 +56,7 @@
 # paydays and large enough to keep Households housed.
 #
 # 🔴 ⚠ THE LATTICE IS SITED ON THE WATER AND THAT IS NOT DECORATION. `coastal.toml`'s header carries
-# the finding -- the synthetic city is ~1.4 km across on a 65.5 km map, so it CANNOT MEET A COAST BY
+# the finding -- the synthetic city is ~1.4 km across on a 32.8 km map, so it CANNOT MEET A COAST BY
 # ACCIDENT, and 0 of 420 Lots were exposed until the origin moved. A city to photograph that is not
 # on its water is a city with the water off-screen. The two origins here are `flooded.toml`'s.
 #
@@ -624,7 +624,7 @@ fertility_pollution_percent = 4
 woodland_regrowth_days = 512
 
 # 🔴 ON THE WATER'S EDGE, AND THE SECOND ONE IS THE SKYLINE. See the header: a corner city cannot
-# meet a coast by accident on a 65.5 km map.
+# meet a coast by accident on a 32.8 km map.
 #
 # 🔴 ⚠ 1,024 TILES APART AND NOT `twinned.toml`'S 2,048, AND THE GAP IS THE ONE NUMBER THAT HAD TO
 # CHANGE WHEN IT WAS COPIED. `twinned.toml` exists to author a SADDLE -- adr/0134's watershed needs
@@ -635,12 +635,12 @@ woodland_regrowth_days = 512
 # two quarters of one conurbation. ⚠ IT IS STILL A COMPOSITION CHOICE AND NOT A DESIGN ONE, and
 # plans/0002 §D1 gains no row for it: this file ratifies nothing.
 [[lattice]]
-origin_east_tiles  = 11520
-origin_north_tiles = 4800
+origin_east_tiles  = 4672
+origin_north_tiles = 4608
 
 [[lattice]]
-origin_east_tiles  = 12544
-origin_north_tiles = 4800
+origin_east_tiles  = 5696
+origin_north_tiles = 4608
 
 [districts]
 prominence_percent = 50

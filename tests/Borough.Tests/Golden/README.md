@@ -969,3 +969,11 @@ Both traces were regenerated with the commands above; `world-hash.txt` was copie
 world test's failure output. Baseline Ruleset content hashes and the hash seed are unchanged.
 `UtilityBillingTests` covers Household and Business payments, brownouts, short purses, governed
 prices, money conservation, demolition, and saved counter equivalence.
+
+### Map at 256 Cells (10/22/2026)
+
+`CellGrid.WorldCells` went from 512 to 256 (`adr/0089`). All three artifacts moved, because terrain,
+water and woodland generation span the whole map. Both traces and `world-hash.txt` were regenerated
+with the commands above. Baseline Ruleset content hashes, the save format version and the hash seed
+are unchanged. The save header records `WorldCells`, so a save written at 512 Cells is refused.
+Merging it after utility billing re-recorded all three again over save format 28.

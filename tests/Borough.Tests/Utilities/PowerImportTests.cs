@@ -145,11 +145,11 @@ public sealed class PowerImportTests
     /// <remarks>
     /// <b>On the south edge, which is the edge that prices Power</b>, so a gate here is skipped for
     /// want of a District and not for want of a price. The ridge occupies the first 256 Tiles and
-    /// its two Districts cover only the Cells it built, so 8,192 is an empty Cell with no road
+    /// its two Districts cover only the Cells it built, so 4,096 is an empty Cell with no road
     /// frontage — a Cell the next watershed would make a third District of, which is why the gate
     /// is raised after that has run and the premise is asserted rather than assumed.
     /// </remarks>
-    private const int Stranded = 8_192;
+    private const int Stranded = 4_096;
 
     private sealed class City
     {
