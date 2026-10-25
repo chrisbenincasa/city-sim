@@ -33,7 +33,7 @@ public sealed class BaseFoundingPackageTests
     private const int ActionDay = 45;
     private const int RecoveryDays = 15;
     private const int ShortageDays = 70;
-    private const int GovernedRebate = 384;
+    private const int GovernedRebate = 256;
 
     /// <summary>The Tick the shell opens a new city on, so a driven founding lays the same commands.</summary>
     private static readonly ulong Opens = (ulong)Ticks.AtClock(8);

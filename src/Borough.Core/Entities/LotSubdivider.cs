@@ -170,7 +170,8 @@ public static class LotSubdivider
             ? BlockPatterns.TradeForm(
                 band, world.Rules.Bands.Length, world.Rules.Lots.TradeFormWeights, world.Key, patch)
             : BlockPatterns.ForBand(band, world.Rules.Bands.Length, PatternTiles(world, ground),
-                world.Rules.Lots.LotsPerSegment, world.Key, patch, world.Rules.Lots.PatternSpread);
+                world.Rules.Lots.LotsPerSegment, world.Key, patch, world.Rules.Lots.PatternSpread,
+                world.Rules.Lots.UnbandedPattern);
     }
 
     // Painted ground can lie beside a freeform Street, whose sides otherwise carve only on a Street edit.
@@ -610,7 +611,8 @@ public static class LotSubdivider
         BlockGround block = Block(world, column, row, sides, out _);
         int tiles = PatternTiles(world, block);
         BlockPattern wanted = BlockPatterns.ForBand(permission.Band, world.Rules.Bands.Length, tiles,
-            world.Rules.Lots.LotsPerSegment, world.Key, block.Patch, world.Rules.Lots.PatternSpread);
+            world.Rules.Lots.LotsPerSegment, world.Key, block.Patch, world.Rules.Lots.PatternSpread,
+            world.Rules.Lots.UnbandedPattern);
         if (BlockPatterns.Rung(wanted, tiles, world.Rules.Lots.LotsPerSegment)
             <= BlockPatterns.Rung(old, tiles, world.Rules.Lots.LotsPerSegment)) { return 0; }
         for (int lot = 0; lot < world.Lots.Rows.SlotCount; lot++)
@@ -729,7 +731,8 @@ public static class LotSubdivider
             patch = Patch(roads.Segments.Rows.IdAt(segment), sideBit);
         }
         BlockPattern form = BlockPatterns.ForBand(permission.MixedIntensity ? (byte)0 : permission.Band,
-            world.Rules.Bands.Length, blockTiles, rules.LotsPerSegment, world.Key, patch, rules.PatternSpread);
+            world.Rules.Bands.Length, blockTiles, rules.LotsPerSegment, world.Key, patch, rules.PatternSpread,
+            rules.UnbandedPattern);
         if (form is not (BlockPattern.Detached or BlockPattern.BackToBack or BlockPattern.Perimeter)) { form = BlockPattern.Perimeter; }
         bool housing = rules.Plots.Applies(form);
         if (housing) { width = rules.Plots.FrontageTiles; }

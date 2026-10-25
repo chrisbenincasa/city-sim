@@ -8890,6 +8890,22 @@ public static class RulesetLoader
                 return LotRuleset.None;
             }
 
+            var unbanded = Core.Space.BlockPattern.Detached;
+            if (TryString(_lotsTable, "block_pattern", out string? blockPattern, required: false))
+            {
+                switch (blockPattern)
+                {
+                    case "detached": unbanded = Core.Space.BlockPattern.Detached; break;
+                    case "perimeter": unbanded = Core.Space.BlockPattern.Perimeter; break;
+                    case "back_to_back": unbanded = Core.Space.BlockPattern.BackToBack; break;
+                    default:
+                        Refuse(LineOfLot("block_pattern"), null,
+                            $"block_pattern = \"{blockPattern}\" is not a block pattern. It is \"detached\", "
+                            + "\"perimeter\" or \"back_to_back\"; omit the key for \"detached\".");
+                        return LotRuleset.None;
+                }
+            }
+
             // min/max_tower_podium_storeys: the range a Tower's podium is drawn from, per Lot. OPTIONAL,
             // and absent means the fixed two-storey podium, which takes no draw, so a file that does
             // not state them raises exactly the Towers it raised before the keys existed.
@@ -9078,6 +9094,7 @@ public static class RulesetLoader
                 BuyerReservePerMember = reservesCapital ? new Money(reserve) : null,
                 CitySaleIntervalDays = sellsCityLots ? (int)saleInterval : null,
                 MinPlotDepthTiles = (int)minPlotDepth,
+                UnbandedPattern = unbanded,
             };
         }
 

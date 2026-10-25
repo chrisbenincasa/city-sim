@@ -1147,6 +1147,12 @@ public static class RulesetKeyNotes
             + "dropped. Otherwise it is more than twice setback_tiles and at most half the block. "
             + "It affects only Lots carved after it changes.",
 
+        ["[lots] block_pattern"] =
+            "How a block outside every density band is divided into Lots: \"detached\" leaves "
+            + "ground between the back fences, \"perimeter\" fills the block from all four Streets, "
+            + "and \"back_to_back\" fills it from two. Omitting it means \"detached\". It affects "
+            + "only blocks carved after it changes.",
+
         ["[lots] pattern_spread"] =
             "How many rungs either side of its band's own rung a block's pattern may be drawn, so a "
             + "density is a mix of forms rather than one form. The band's rung stays the centre of "

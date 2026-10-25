@@ -27,7 +27,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 
 ## The sections
 
-54 sections, 401 keys.
+54 sections, 402 keys.
 
 - [`[[band]]`](#band) — 4 keys
 - [`[[basket]]`](#basket) — 5 keys
@@ -68,7 +68,7 @@ Each array-of-tables section also lists `id`, `label` and, for the three ordered
 - [`[jobs]`](#jobs) — 15 keys
 - [`[land_permissions]`](#land_permissions) — 1 key
 - [`[layers]`](#layers) — 20 keys
-- [`[lots]`](#lots) — 19 keys
+- [`[lots]`](#lots) — 20 keys
 - [`[lots] trade_form_weights`](#lots-trade_form_weights) — 7 keys
 - [`[market]`](#market) — 2 keys
 - [`[needs]`](#needs) — 9 keys
@@ -1475,6 +1475,10 @@ How many Ticks between recomputations of the woodland field.
 ---
 
 ## `[lots]`
+
+**`block_pattern`** · *quoted string*
+
+How a block outside every density band is divided into Lots: "detached" leaves ground between the back fences, "perimeter" fills the block from all four Streets, and "back_to_back" fills it from two. Omitting it means "detached". It affects only blocks carved after it changes.
 
 **`buyer_reserve_per_member`** · *whole number*
 

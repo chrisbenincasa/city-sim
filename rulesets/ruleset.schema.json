@@ -989,6 +989,10 @@
     "lots": {
       "type": "object",
       "properties": {
+        "block_pattern": {
+          "description": "How a block outside every density band is divided into Lots: \"detached\" leaves ground between the back fences, \"perimeter\" fills the block from all four Streets, and \"back_to_back\" fills it from two. Omitting it means \"detached\". It affects only blocks carved after it changes.",
+          "type": "string"
+        },
         "buyer_reserve_per_member": {
           "description": "Money per Household member a buyer must keep after paying for land and construction. Only its own balance counts, never a Business's till. Either this key or construction_charge_per_floor_tile enables land sales, even at zero. Absent means no reserve. Requires a money Resource.",
           "type": "integer"
