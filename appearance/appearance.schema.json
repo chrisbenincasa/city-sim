@@ -49,6 +49,13 @@
           "items": { "type": "integer", "minimum": 1 },
           "minItems": 2,
           "maxItems": 2
+        },
+        "apartment_lots": {
+          "description": "How many Lots one run of apartments spans, as [low, high]. A run shares its form and pitch, and neighboring runs differ in form.",
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1 },
+          "minItems": 2,
+          "maxItems": 2
         }
       },
       "required": [
@@ -298,8 +305,12 @@
                 "description": "The attached house form the body draws: its roof and plan. It draws its own roof, so it takes no gable_degrees or parapet_metres.",
                 "enum": ["side-gable", "parapet", "mansard", "front-gable", "paired-gable", "bay-front"]
               },
+              "apartment": {
+                "description": "The apartment form the body draws: its roof and plan. It draws its own roof, so it takes no gable_degrees, and only the parapet, bay-front, forecourt and setback forms take parapet_metres.",
+                "enum": ["parapet", "hipped", "side-gable", "mansard", "centre-gable", "bay-front", "forecourt", "setback"]
+              },
               "pitch_degrees": {
-                "description": "The range a terrace draws its shared roof pitch from, as [low, high] within 18 to 45. Required by the pitched terrace forms; parapet and mansard take none.",
+                "description": "The range a terrace or apartment run draws its shared roof pitch from, as [low, high] within 18 to 45. Required by the pitched forms; flat forms take none.",
                 "type": "array",
                 "items": { "type": "integer", "minimum": 18, "maximum": 45 },
                 "minItems": 2,
@@ -427,6 +438,7 @@
                       { "required": ["roof_hatch"] },
                       { "required": ["parapet_metres"] },
                       { "required": ["terrace"] },
+                      { "required": ["apartment"] },
                       { "required": ["pitch_degrees"] }
                     ]
                   }

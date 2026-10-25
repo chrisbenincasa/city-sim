@@ -86,8 +86,13 @@ public sealed record PaintScheme(IReadOnlyDictionary<string, Paint> Parts, int W
 /// How many Lots one terrace of attached houses spans, drawn per face and era, or <c>null</c> where a
 /// whole face draws together. Only Buildings that terrace families alone admit stand in terraces.
 /// </param>
+/// <param name="ApartmentRuns">
+/// How many Lots one run of apartment Buildings spans, drawn per face side, or <c>null</c> where
+/// apartments draw as any other Building does. A Building whose draw falls to an apartment family
+/// stands in a run, on attached and detached faces alike, and takes its run's form.
+/// </param>
 public sealed record StylePreset(string Name, int EraDays, BlockPattern[] Attached, AppearanceFamily[] Families,
-    HouseRuns? Runs = null, Bounds? Terraces = null);
+    HouseRuns? Runs = null, Bounds? Terraces = null, Bounds? ApartmentRuns = null);
 
 /// <summary>
 /// Runs of neighboring detached houses on one block face and era. Each run draws what its houses
@@ -237,7 +242,8 @@ public sealed record FamilyBody(
     TowerBody? Tower = null,
     MidriseBody? Midrise = null,
     HouseBody? House = null,
-    TerraceBody? Terrace = null);
+    TerraceBody? Terrace = null,
+    ApartmentBody? Apartment = null);
 
 /// <summary>An attached house's roof and plan. Every house of one terrace shares them and its pitch.</summary>
 /// <param name="PitchDegrees">The range a terrace's pitch is drawn from, or <c>null</c> for a flat or mansard roof.</param>
@@ -263,6 +269,38 @@ public enum TerraceForm : byte
 
     /// <summary>A side gable over a front wall set back behind a bay window that reaches the Lot line.</summary>
     BayFront,
+}
+
+/// <summary>An apartment Building's roof and plan. Every Building of one run shares them and its pitch.</summary>
+/// <param name="PitchDegrees">The range a run's pitch is drawn from, or <c>null</c> for a form without a pitched roof.</param>
+public sealed record ApartmentBody(ApartmentForm Form, Bounds? PitchDegrees);
+
+/// <summary>The roofs and plans an apartment Building can take. Each draws the Building's whole frontage.</summary>
+public enum ApartmentForm : byte
+{
+    /// <summary>A flat roof behind a parapet on all four walls.</summary>
+    Parapet,
+
+    /// <summary>A ridge along the street, hipped at each free end and stopping at each shared wall.</summary>
+    Hipped,
+
+    /// <summary>A ridge along the street, gabled at each free end and stopping at each shared wall.</summary>
+    SideGable,
+
+    /// <summary>Walls one storey short of the Building, with its top storey inside a mansard lit by dormers.</summary>
+    Mansard,
+
+    /// <summary>A hipped range whose middle third steps forward to the Lot line under a front gable.</summary>
+    CentreGable,
+
+    /// <summary>A parapet range set back behind full-height canted bays that reach the Lot line.</summary>
+    BayFront,
+
+    /// <summary>Two end wings on the Lot line and the middle set back around a forecourt, under parapets.</summary>
+    Forecourt,
+
+    /// <summary>A parapet range whose top storey stands back from the street behind a railed roof terrace.</summary>
+    Setback,
 }
 
 /// <summary>A tower body's authored layout.</summary>
