@@ -103,6 +103,7 @@ public partial class Main
                 // already agree between themselves.
                 if (_outsideShown && _governing) Govern();
                 if (_outsideShown && _cityShown) { _cityShown = false; RefreshCityEvidence(); }
+                if (_outsideShown) _needsShown = false;
                 if (_outsideShown) _hud.MoveChild(_outsidePanel, -1);
 
                 return true;
