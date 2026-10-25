@@ -37,7 +37,7 @@ namespace Borough.Formats;
 /// </para>
 /// <para>
 /// ⚠ <b>The retired keys are deliberately absent</b> — <c>condemn_after</c>, <c>sample</c>,
-/// <c>wage</c>, <c>storage</c>, <c>sealing_decay_tau</c> in <c>[layers]</c>, the three
+/// <c>wage</c>, <c>sealing_decay_tau</c> in <c>[layers]</c>, the three
 /// <c>adr/0148</c> moved to <c>[[business]]</c>, <c>occupants</c>/<c>jobs</c>/<c>parking</c>/
 /// <c>footprint_tiles</c> from <c>plans/0052</c> and <c>plans/0053</c>, and <c>tenanted</c> from
 /// <c>plans/0054</c>. They are known to the loader only so it can refuse them by name with a
@@ -137,6 +137,19 @@ public static class RulesetKeyNotes
             + "ages on its own boundary within the cycle, offset from other Bins so a city's stock "
             + "does not all age on one Tick. Stock deposited just before its Bin's boundary ages a "
             + "full cycle at once.",
+
+        ["[[resource]] storage"] =
+            "Storage for a Utility. Only zero is accepted in this slice because stored Utilities arrive with Water.",
+        ["[[resource]] link_per_crossing"] =
+            "Positive Utility link capacity per crossing. Its presence marks the Utility as delivered.",
+        ["[[resource]] loss_per_road_tile"] =
+            "Nonnegative delivered Utility loss per road tile. It requires link_per_crossing and defaults to zero.",
+        ["[[resource]] import_per_connection"] =
+            "How much of this delivered Utility one Outside Connection brings into the city per Day, "
+            + "in the same units as link_per_crossing. The treasury pays the cheapest [[hinterland]] "
+            + "price on the gate's edge for what arrives, and imports cover only what the District "
+            + "networks are still short of. It requires link_per_crossing, and it is stated with a "
+            + "[[hinterland]] price for the same Utility or not at all.",
 
         ["[[resource]] reach_minutes"] =
             "How far a buyer may stand from a provider of this service, in free-flow travel "
@@ -515,6 +528,12 @@ public static class RulesetKeyNotes
             + "this build had before stages could disagree about price; a world stating "
             + "[immigration] is refused without it, because who presents themselves at a gate turns "
             + "on what they mind paying.",
+        ["[[life_stage]] leaving_costs_rent"] =
+            "The daily rent a Household in this stage will pay to stay in the city rather than leave "
+            + "for a Hinterland when an adult finds every job in reach full. It is added to the "
+            + "home's score in that comparison, on top of [placement] moving_costs_rent, so a stage "
+            + "with a larger figure leaves later. It is a preference and never a timer. Absent is "
+            + "zero. The comparison runs only when [placement] jobs_rent is stated.",
         ["[[life_stage]] centrality_spread_percent"] =
             "The width of the band a Household of this stage draws its own position from, so that a "
             + "stage is a distribution rather than one opinion. Zero means the stage agrees with "
@@ -561,13 +580,17 @@ public static class RulesetKeyNotes
             "Which Resource moves, naming a [[resource]]. The treasury holds conserved Resources "
             + "only, so a global end means money.",
         ["[[policy]] transfer amount"] =
-            "How much moves per application.",
+            "How much moves per application. For a tariff, money per Utility unit received; "
+            + "zero switches billing off.",
         ["[[policy]] tool"] =
-            "Which of the things a Policy does: transfer, charge, relief or subsidy. A charge takes "
+            "Which of the things a Policy does: transfer, charge, relief, subsidy or tariff. A tariff charges per delivered Utility unit received. A charge takes "
             + "money from a liable payer to the treasury; a relief takes a share off a Business's "
             + "profit tax bill and moves no money anywhere; a subsidy pays out of the treasury "
             + "against a daily funding bound. Absent means transfer -- the unconditional movement a "
             + "Policy was before the catalogue, and what every Policy written without this key is.",
+        ["[[policy]] utility"] =
+            "The delivered Utility a tariff bills. Only a tariff states this key. Each Utility has "
+            + "at most one tariff, paid per unit received by the drawing Household or Business.",
         ["[[policy]] trade"] =
             "Which [[business]] this Policy is aimed at, naming a declared trade. Absent means every "
             + "member of the swept population. It narrows a business sweep, so it is refused beside "
@@ -630,9 +653,10 @@ public static class RulesetKeyNotes
             + "authored anchor under every price in the design: a District's Pool may charge up to "
             + "the cheapest declared Hinterland price and no more.",
         ["[[hinterland]] prices resource"] =
-            "Which Good or service is being priced, naming a [[resource]]. A utility is not "
-            + "stocked, and money is what a price is denominated in rather than a thing that has "
-            + "one, so neither may be.",
+            "Which Good, service or delivered Utility is being priced, naming a [[resource]]. A "
+            + "Utility priced here is imported at an Outside Connection on this edge and states "
+            + "import_per_connection. An undelivered utility reaches no network, and money is what "
+            + "a price is denominated in rather than a thing that has one, so neither may be.",
         // ---- [[hinterland.population]] --------------------------------------------------------
         ["[[hinterland.population]] stage"] =
             "Which Life Stage every Household of this composition is in, naming a [[life_stage]]. "

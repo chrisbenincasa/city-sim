@@ -73,7 +73,7 @@ public partial class Main
     private void OpenMenu()
     {
         if (_menuOpen) return;
-        if (_queued.Count > 0) StepAccounting(Ordered());
+        if (_queued.Count > 0 && LoadChecked(wait: true)) StepAccounting(Ordered());
         _menuPace = _rung;
         _rung = 0;
         _owed = 0;
@@ -249,7 +249,7 @@ public partial class Main
         _queued.Clear();
         install();
         _verb = Verb.Look;
-        _toolsShown = _governing = _layersShown = _cityShown = _budgetShown = false;
+        _toolsShown = _governing = _layersShown = _cityShown = _budgetShown = _needsShown = false;
         _cityRead = false;
         _cityGroup = -1;
         _cityCause = null;

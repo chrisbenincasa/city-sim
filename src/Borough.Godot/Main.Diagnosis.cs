@@ -13,17 +13,27 @@ public partial class Main
     private Handle<Business> _selectedBusiness;
     private int _businessScroll;
 
+    /// <remarks>
+    /// ⚠ <b>A brownout is in this sentence and in no other field of the reading.</b> A delivered
+    /// Utility never blocks a Rule — the Building succeeds at a reduced count — so a city running at
+    /// a third reports no shortfall at all, and the line would say <em>no supply shortfalls
+    /// reported</em> under every darkened window in it.
+    /// </remarks>
     private string SupplySummary(SupplyEvidence reading)
     {
         if (!reading.Available) return "Supply explanation unavailable";
+        string brownout = reading.Brownout.Utility.Raw == 0
+            ? string.Empty : UtilitySentence(reading.Brownout);
         if (reading.Shortfalls > 0)
         {
             string cause = reading.Primary.WaitingBin.IsNone ? "Supply explanation unavailable"
                 : $"Waiting for {_names.Resource(reading.Primary.WaitingFor) ?? "an unnamed Resource"}";
             return cause + (reading.Shortfalls > 1 ? $" · +{reading.Shortfalls - 1} other shortfalls" : "")
+                + (brownout.Length > 0 ? " · " + brownout : "")
                 + (reading.Unavailable > 0 ? " · incomplete evidence" : "");
         }
         if (reading.Unavailable > 0) return "Supply explanation unavailable";
+        if (brownout.Length > 0) return brownout + " · no supply shortfalls reported";
         return reading.RoutineWaits > 0 ? "Routine waiting · no supply shortfalls reported" : "No supply shortfalls reported";
     }
 

@@ -268,6 +268,10 @@ public sealed partial class World
         // rather than because nobody worked it out.
         DistrictPools = new Space.DistrictPoolTable(64, Districts, Bins);
 
+        // One row per delivered Utility per District, which is a subset of the line above's product.
+        UtilityFlows = new Space.UtilityFlowTable(8, DistrictPools);
+        UtilityBills = new UtilityBillTable(Buildings);
+
         // Water is sized from the MAP and never from the population, which is the one capacity hint
         // in this constructor that has nothing to do with how many Citizens there are: a coastline is
         // a property of the ground, and an empty world on a wet key has every wet Cell that a
@@ -512,6 +516,12 @@ public sealed partial class World
             // derived because a Day's production is history -- nothing in the world records which
             // Ticks an office's Rule fired on, so a reload could not recompute what it had left.
             ServiceAllowances.Rows,
+
+            // Appended: each District's network for each delivered Utility. Saved for the allowance
+            // table's reason -- a Day's production is history, and nothing records which Ticks a
+            // plant's Rule fired on, so a reload could not recompute what the network carried.
+            UtilityFlows.Rows,
+            UtilityBills.Rows,
         ];
 
         // The same list minus the tables no Tick phase can write, for the Decide guard alone. See
@@ -913,6 +923,9 @@ public sealed partial class World
     /// </remarks>
     public BuildingResidency BuildingsInCells { get; } = new();
 
+    /// <summary>Which Lots stand near a box of Tiles, for the subdivider's free-ground test.</summary>
+    public LotResidency LotsInCells { get; } = new();
+
     /// <summary>Which Cells are in the Hazard Region, and how deep a flood stands on each.</summary>
     /// <remarks>
     /// <b><c>(derived AND rebuilt)</c> from <see cref="Flood"/>'s own saved coordinates</b>, on
@@ -958,6 +971,15 @@ public sealed partial class World
 
     /// <summary>Which Bins are in which District's Pool. Saved, and the only thing that knows.</summary>
     public Space.DistrictPoolTable DistrictPools { get; }
+
+    /// <summary>
+    /// Each District's network for each delivered Utility: what it made, what it was asked for, and
+    /// the fraction it delivers today.
+    /// </summary>
+    public Space.UtilityFlowTable UtilityFlows { get; }
+
+    /// <summary>Per-Building daily Utility payment evidence.</summary>
+    public UtilityBillTable UtilityBills { get; }
 
     /// <summary>
     /// Where a purchase looks — a District's market row for a Good, and the sellers standing in it.
@@ -1467,6 +1489,12 @@ public sealed partial class World
         // that was fitted only at world creation would never acquire the Bin. It adds and never
         // removes -- see FitTreasury.
         FitTreasury();
+
+        // Before the Pools are fitted, so one swap both closes what the incoming file stopped
+        // delivering and opens what it starts delivering. A Utility that loses link_per_crossing
+        // loses its networks and the Pool rows addressing them, and a re-delivered one opens a new
+        // network at nothing delivered.
+        RetireUndeliveredNetworks();
 
         // The Pools, for the same reason one rung down: a Ruleset that adds a Good must reach the
         // Districts that already exist, and the watershed is the only other thing that fits them --
@@ -3621,6 +3649,20 @@ public sealed partial class World
     public bool IsOfWorkingAge(int citizenSlot) =>
         !Rules.DeclaresLifeStages || Citizens.Age[citizenSlot] != 0;
 
+    /// <summary>
+    /// Whether a working-age Citizen has no job, is not studying, and was not last refused for
+    /// reach or credentials.
+    /// </summary>
+    /// <remarks>
+    /// A reach refusal is the destitute channel's and a credential refusal names a missing school
+    /// (<c>adr/0102</c>), so neither makes a Household compare its home against a Hinterland.
+    /// </remarks>
+    public bool IsJobless(int citizenSlot) =>
+        IsOfWorkingAge(citizenSlot)
+        && !Businesses.Rows.IsValid(Citizens.Workplace[citizenSlot])
+        && (EmploymentState)Citizens.Employment[citizenSlot]
+            is EmploymentState.None or EmploymentState.NoVacancy;
+
     /// <summary>Whether <paramref name="node"/> is already in <paramref name="owner"/>'s list.</summary>
     private static bool Lists(IndexList list, int owner, int node)
     {
@@ -4019,7 +4061,7 @@ public sealed partial class World
     /// both its endpoints exist — a gate to leave from and a dwelling to arrive at. An <em>unhoused</em>
     /// Household has no dwelling by definition, so there is no origin Address to travel from, and a
     /// Trip from the gate to the gate is not a journey. ***The housed Departure is the one with a
-    /// journey in it***, and that channel is milestone 16's with the comparison (<c>adr/0128</c>).
+    /// journey in it***, and <see cref="Leave"/> does not make that journey yet.
     /// </para>
     /// </remarks>
     /// <param name="household">The Household leaving. It must be in the Pool.</param>
@@ -4029,9 +4071,7 @@ public sealed partial class World
 
         if (Buildings.Rows.TryResolve(Households.Dwelling[slot], out _))
         {
-            // A housed Household leaving is the other channel, it is a comparison rather than a
-            // threshold (adr/0102), and it ships at 16. Reaching here with a dwelling means somebody
-            // wired the wrong channel to this door.
+            // A housed Household leaves through Leave, after a comparison (adr/0102).
             Invariants.Report(Invariant.OnlyAnUnhousedHouseholdGivesUp, slot);
             return;
         }
@@ -4044,6 +4084,38 @@ public sealed partial class World
             return;
         }
 
+        // The Pool membership goes first, because DestroyHousehold frees the Household row and the
+        // membership holds a handle to it -- a Pool left holding a freed row is what
+        // Invariant.ThePoolIsDenseAndAgreesWithTheHouseholds exists to catch, and it would catch it
+        // at the end of the run rather than here.
+        UnplacedPool.Leave(Households, position);
+
+        Emigrate(household, slot, Rules.Immigration.Stated ? DepartureEdge(slot) : MapEdge.None);
+    }
+
+    /// <summary>
+    /// Sends a housed Household out of the city to <paramref name="destination"/>, the Hinterland
+    /// it chose over its home (<c>adr/0102</c>).
+    /// </summary>
+    /// <remarks>
+    /// The housed channel's door. It shares the unhoused channel's sale, money sink and ledger, and
+    /// ends the tenancy through <see cref="RetireHousehold"/>. No leaving Trip is made yet.
+    /// </remarks>
+    public void Leave(Handle<Household> household, MapEdge destination)
+    {
+        int slot = Households.Rows.Resolve(household);
+
+        if (!Buildings.Rows.TryResolve(Households.Dwelling[slot], out _))
+        {
+            Invariants.Report(Invariant.OnlyAnUnhousedHouseholdGivesUp, slot);
+            return;
+        }
+
+        Emigrate(household, slot, destination);
+    }
+
+    private void Emigrate(Handle<Household> household, int slot, MapEdge destination)
+    {
         // The sale proceeds land in the balance, so they leave the city with it.
         SellOnDeparture(slot, Tick);
 
@@ -4057,26 +4129,15 @@ public sealed partial class World
             MoneySupply.Issued[MoneySupplyTable.Slot] -= new Money(Bins.LevelAt(balance));
         }
 
-        // The Pool membership goes first, because DestroyHousehold frees the Household row and the
-        // membership holds a handle to it -- a Pool left holding a freed row is what
-        // Invariant.ThePoolIsDenseAndAgreesWithTheHouseholds exists to catch, and it would catch it
-        // at the end of the run rather than here.
-        UnplacedPool.Leave(Households, position);
-
         // The emigration, counted where the money leaves and for the same reason it is written there.
         Record(PopulationLedger.Departures, Members.Length(slot));
         Record(PopulationLedger.HouseholdsDeparted, 1);
 
         // Count and return the actual composition before retiring its Citizens.
-        if (Rules.Immigration.Stated)
+        if (destination != MapEdge.None
+            && Rules.TryHinterland(destination, out HinterlandDefinition outside))
         {
-            MapEdge destination = DepartureEdge(slot);
-
-            if (destination != MapEdge.None
-                && Rules.TryHinterland(destination, out HinterlandDefinition outside))
-            {
-                ReturnToHinterland(destination, CompositionOf(household, outside));
-            }
+            ReturnToHinterland(destination, CompositionOf(household, outside));
         }
 
         RetireHousehold(household);
@@ -5164,6 +5225,7 @@ public sealed partial class World
         // clears its own arrays and CellNext rather than being cleared with the block at the top,
         // because its head and tail are not columns and the block above is a list of columns.
         BuildingsInCells.Rebuild(Buildings, Lots);
+        LotsInCells.Rebuild(Lots);
 
         // The Hazard Region's index, from the Flood rows' own saved coordinates. A load does not
         // re-run the generator (FloodCellTable's own remark on why it is Saved), so this is the one
@@ -5182,6 +5244,11 @@ public sealed partial class World
         // Districts the world had rather than the ones its field would support today. That
         // distinction is the whole of why DistrictCellTable is Saved and this is not.
         DistrictsInCells.Rebuild(DistrictCells);
+
+        // The Pool-to-network index, from the flow rows' own saved handles. The flow columns are all
+        // saved, so there is nothing here a rebuild could recompute wrongly -- only the address.
+        RebuildUtilityFlows();
+        UtilityBills.Rebuild(Buildings);
 
         // Not rebuilt here, invalidated. It reads Businesses, Buildings, Lots and the Cell index --
         // the last of which is the line above -- and the Rule Instance threading below has not run
@@ -6371,6 +6438,14 @@ public sealed partial class World
     /// here with a zero ceiling has a Pool that is free for ever, which is <c>adr/0050</c>'s runaway
     /// arriving from below.
     /// </para>
+    /// <para>
+    /// ⚠ <b>A delivered Utility opens at zero instead, because its ceiling is not a Pool price.</b> A
+    /// Hinterland pricing a delivered Utility prices a <em>gate's import</em>
+    /// (<c>World.TryEdgeImportPrice</c>), and nothing buys in the Pool row — <c>RuleEngine</c> routes
+    /// such a term to <c>Draw</c>/<c>Feed</c> and never to <c>Buy</c>. Seeding it at the cheapest gate
+    /// price would hash and print a market price nothing can ever charge, which is what
+    /// <c>--market</c>'s per-District table would have shown.
+    /// </para>
     /// </remarks>
     public Handle<Bin> CreateDistrictPoolBin(Handle<District> district, ResourceId resource)
     {
@@ -6382,7 +6457,11 @@ public sealed partial class World
 
         Handle<Bin> handle = Bins.Create(BinOwnerKind.District, resource, long.MaxValue);
 
-        DistrictPools.Create(district, handle, Rules.ImportCeiling(resource));
+        Money opening = Rules.IsDeliveredUtility(resource)
+            ? Money.Zero
+            : Rules.ImportCeiling(resource);
+
+        DistrictPools.Create(district, handle, opening);
 
         Markets.Invalidate();
 
@@ -6643,25 +6722,34 @@ public sealed partial class World
     }
 
     /// <summary>
-    /// Gives every live District one Pool Bin per <see cref="ResourceFamily.Good"/> the Ruleset in
-    /// force declares.
+    /// Gives every live District one Pool Bin per traded Resource and per delivered Utility the
+    /// Ruleset in force declares.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Goods and not every Resource</b>, which is the narrowest thing <c>04 §2</c> supports. Money
-    /// is refused because <c>plans/0037</c> decision 10 is open — <em>who holds the Pool's money
-    /// between a Provider's deposit and a consumer's draw</em> — and a Bin opened before that is
-    /// answered would be the answer, written by whoever needed a column. A Utility is refused because
-    /// <c>ResourceFamily.Utility</c> <em>"flows along the District adjacency graph"</em>, which is a
-    /// different mechanism with no milestone.
+    /// <b>Not every Resource.</b> Money is refused because <c>plans/0037</c> decision 10 is open —
+    /// <em>who holds the Pool's money between a Provider's deposit and a consumer's draw</em> — and a
+    /// Bin opened before that is answered would be the answer, written by whoever needed a column.
+    /// </para>
+    /// <para>
+    /// <b>A Utility is opened only where its <c>[[resource]]</c> declares <c>link_per_crossing</c></b>,
+    /// which is what makes it <em>delivered</em>: it flows along the District adjacency graph, so the
+    /// row is the network's address and <see cref="Space.UtilityFlowTable"/> is its state. Its Bin
+    /// stays empty — <c>storage</c> is 0 in this slice — and an undelivered Utility such as a Water
+    /// Body's sewage gets no row at all.
     /// </para>
     /// <para>
     /// <b>It adds and never removes</b>, which is <see cref="FitTreasury"/>'s rule and here it is
     /// load-bearing rather than tidy: a Good leaving the Ruleset must not destroy the stock standing
     /// in its Pool, and <c>04 §2</c>'s audit — <em>"if a hundred units of Food entered the District, a
-    /// hundred units must be accounted for"</em> — is what a removal would break. A District's Pool
+    /// hundred units must be accounted for"</em> — is what a removal would break. A Good's Pool
     /// closes when the <em>District</em> does, in <see cref="RetirePool"/>, and never because a file
     /// was edited.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A delivered Utility is the exception, in <see cref="RetireUndeliveredNetworks"/>.</b> Its
+    /// row holds no stock to audit, so a file that stops delivering it closes the row rather than
+    /// leaving a network nothing can settle and a price nothing can bound.
     /// </para>
     /// <para>
     /// <b>Asked rather than assumed, on <see cref="FitTreasury"/>'s reasoning</b>: it runs at world
@@ -6684,13 +6772,39 @@ public sealed partial class World
             {
                 var resource = new ResourceId((ushort)raw);
 
-                if (Rules.IsTraded(resource)
+                if ((Rules.IsTraded(resource) || Rules.IsDeliveredUtility(resource))
                     && FindDistrictPoolBin(slot, resource) == Rows.NoSlot)
                 {
                     CreateDistrictPoolBin(district, resource);
                 }
             }
         }
+
+        // After the Pool rows, because a network names one. A delivered Utility gets a row here on
+        // the same terms a Good does -- the Resource declares `link_per_crossing`, so it flows along
+        // the District adjacency graph and every District is a node of it.
+        FitUtilityFlows();
+        for (int row = 0; row < UtilityBills.Rows.SlotCount; row++)
+        {
+            if (!UtilityBills.Rows.IsLive(row)) { continue; }
+            bool keep = false;
+            for (int resource = 1; resource <= Rules.ResourceCount; resource++)
+            {
+                var utility = new ResourceId((ushort)resource);
+                if (Rules.IsDeliveredUtility(utility) && Rules.ResourceKey(utility) == UtilityBills.UtilityKey[row])
+                {
+                    keep = true;
+                    break;
+                }
+            }
+
+            if (!keep || !Buildings.Rows.TryResolve(UtilityBills.Building[row], out _))
+            {
+                UtilityBills.Rows.Free(UtilityBills.Rows.At(row));
+            }
+        }
+
+        UtilityBills.Rebuild(Buildings);
     }
 
     /// <summary>
@@ -6783,6 +6897,10 @@ public sealed partial class World
                 Bins.Rows.Free(Bins.Rows.At(bin));
             }
 
+            // A delivered Utility's network dies with its Pool row. Nothing is handed to the heir:
+            // there is no stock in this slice, and what the row holds is one Day's flow.
+            RetireUtilityFlow(row);
+
             DistrictPools.Rows.Free(DistrictPools.Rows.At(row));
         }
     }
@@ -6839,6 +6957,15 @@ public sealed partial class World
         {
             if (!DistrictPools.Rows.IsLive(row)
                 || !Bins.Rows.TryResolve(DistrictPools.Bin[row], out int bin))
+            {
+                continue;
+            }
+
+            // A delivered Utility is not traded, so nobody buys in its Pool row. A Hinterland's
+            // price for one is a gate's import price (World.TryEdgeImportPrice) rather than a Pool
+            // ceiling, so repricing this row would move a number nothing ever charges. The row
+            // opens at zero in CreateDistrictPoolBin and this skip is what keeps it there.
+            if (Rules.IsDeliveredUtility(Bins.Resource[bin]))
             {
                 continue;
             }
@@ -9442,6 +9569,7 @@ public sealed partial class World
         }
 
         Changes?.Building(slot);
+        UtilityBills.Retire(Buildings, slot);
         Buildings.Rows.Free(building);
     }
 

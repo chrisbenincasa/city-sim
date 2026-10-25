@@ -1,0 +1,117 @@
+# Utilities slice 4 — a District with no plant buys its Power at an Outside Connection.
+#
+#   godot --path src/Borough.Godot -- --load plans/evidence/utilities-slice-1/ridge.borough \
+#     --drive plans/evidence/utilities-slice-4/import.drive
+#
+# The world is slice 1's ridge, opened on Day 2 and fully delivered: a plant in the west District,
+# an occupied dwelling in the east, and one Street crossing the boundary. The east District has no
+# plant of its own, so cutting that Street leaves it with nothing. An Outside Connection raised in
+# the east is then its only supply, and the treasury buys the Day.
+#
+# ⚠ THE RIDGE HAS NO VACANT LOT, so a filler dwelling is demolished to free one. All 44 of its Lots
+# are built on and a gate stands on a vacant edge Lot. Lot 44 at east 253 is in the east District's
+# Cell 7, on the south edge, and the south Hinterland is the one that prices Power.
+#
+# ⚠ EVERY SHOT RE-OPENS THE TWO SECTIONS FIRST. `RefreshInspection` re-reads at most every 250 ms,
+# which is 8 Ticks at rung 8, so a panel photographed straight after a pause can be a read from
+# before the settle the shot is about. `ui section` forces the read; `ui building` does not, because
+# re-selecting the Building already selected returns early.
+#
+# ⚠ ONE `shoot` PER TICK, AND THE CAMERA MOVES ON THE TICK IT SHOOTS. `_pendingShot` holds one path
+# and the picture is taken on the NEXT frame, so a second `shoot` on the same Tick throws the first
+# away and a camera moved after a `shoot` lands in that shot. Hence the gaps.
+4097 pause
+4097 overlay utilities
+4097 ui building 37
+4097 ui section utilities on
+4097 ui section attention on
+4097 turn left
+4097 tilt 40
+4097 focus 128 2 560
+4097 shoot plans/evidence/utilities-slice-4/01-day2-linked.png
+4097 speed 8
+
+# The trigger: the one crossing Street goes, and the east District is left with no plant, no
+# neighbor and no gate. Day 2's fraction was fixed by the settle at Tick 4,096, so the reading does
+# not move until the next one.
+4101 pause
+4101 hold street
+4101 click 191 0 shift
+4101 ui section utilities on
+4101 ui section attention on
+4101 shoot plans/evidence/utilities-slice-4/02-crossing-cut.png
+4101 speed 8
+
+# The settle at Tick 6,144 reads a road graph with no crossing and no import source. The east
+# delivers nothing.
+6150 pause
+6150 hold look
+6150 ui section utilities on
+6150 ui section attention on
+6150 shoot plans/evidence/utilities-slice-4/03-day3-short.png
+6150 speed 8
+
+# The response: clear a filler dwelling's Lot in Cell 7 and open an Outside Connection on it.
+6152 pause
+6152 hold demolish
+6152 click 253 0
+6152 speed 8
+6154 pause
+6154 hold gate
+6154 click 253 0
+6154 speed 8
+6156 pause
+6156 hold look
+6156 tilt 45
+6156 focus 240 3 120
+6156 ui section utilities on
+6156 ui section attention on
+6156 shoot plans/evidence/utilities-slice-4/04-gate-raised.png
+6156 speed 8
+
+# The settle at Tick 8,192 finds the gate, buys the whole shortfall and pays for it. Day 4 runs at
+# 100% on imported Power: 512 units of demand and 64 Tiles of road loss, bought gross at 2 each.
+8200 pause
+8200 tilt 40
+8200 focus 128 2 560
+8200 ui section utilities on
+8200 ui section attention on
+8200 shoot plans/evidence/utilities-slice-4/05-day4-imported.png
+8200 speed 8
+8202 pause
+8202 tilt 45
+8202 focus 240 3 120
+8202 ui section utilities on
+8202 ui section attention on
+8202 shoot plans/evidence/utilities-slice-4/06-day4-imported-close.png
+8202 speed 8
+
+# The city budget. A Control is invisible to a caption, so the panel's own text comes from `ui read`
+# beside the picture. ⚠ The inspector is closed first: it is anchored over the budget panel's figure
+# columns and hides them.
+8204 pause
+8204 ui close
+8204 ui budget on
+8204 shoot plans/evidence/utilities-slice-4/07-day4-budget.png
+8204 ui read plans/evidence/utilities-slice-4/07-day4-budget.json
+8204 speed 8
+
+# The settle at Tick 10,240 buys the same Day again. The bill recurs and the treasury keeps falling.
+10248 pause
+10248 shoot plans/evidence/utilities-slice-4/08-day5-budget.png
+10248 ui read plans/evidence/utilities-slice-4/08-day5-budget.json
+10248 speed 8
+
+# The end state, saved through the menu.
+#
+# ⚠ THE WINDOW IS FIXED FIRST, because the picker's Save button is pressed at a coordinate and the
+# dialog is centered on the viewport. ⚠ The menu stops the clock, so nothing may need a later Tick
+# after this point. ⚠ `ui file-path` resolves a relative path against the GODOT PROJECT directory,
+# unlike `shoot` and `readout`, which resolve against the repository root.
+10250 pause
+10250 ui size 1440 960
+10250 ui menu on
+10250 ui menu save
+10250 ui file-path ../../plans/evidence/utilities-slice-4/importing.borough-city
+10250 ui press 314 769
+10250 quit

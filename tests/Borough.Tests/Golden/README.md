@@ -948,3 +948,24 @@ to **26**. All three artifacts moved on the new declarations. Both traces and `w
 regenerated with the commands above. Baseline Ruleset content hashes and the hash seed are
 unchanged. No baseline Ruleset declares a Service, so neither table holds rows here.
 `LocalServiceTests` covers the allowance, the sale, the provider draw and save/reload.
+
+### Utility networks (10/20/2026)
+
+A new saved `utility_flow` table records each District's network for each delivered Utility — what it
+produced and was asked for today, and what it supplied, was asked for and received yesterday, with
+the fraction its consumers get. Core save format goes to **27**. All three artifacts moved on the new
+table's declaration. Both traces and `world-hash.txt` were regenerated with the commands above.
+Baseline Ruleset content hashes and the hash seed are unchanged. No baseline Ruleset declares a
+delivered Utility — `link_per_crossing` is what makes one, and only `powered.toml` states it — so the
+table holds no rows in any artifact here. `PowerDeliveryTests` covers production, transmission over a
+road crossing, the brownout, the loss, replay, save/reload and the thread count.
+
+### Utility billing (10/20/2026)
+
+A new saved `utility_bill` table records each Building's daily paid and waived unpaid amounts per
+delivered Utility. Core save format goes to **28**. The table declaration moves all three artifacts,
+even though no baseline Ruleset bills a Utility and the table has no live rows in these fixtures.
+Both traces were regenerated with the commands above; `world-hash.txt` was copied from the golden
+world test's failure output. Baseline Ruleset content hashes and the hash seed are unchanged.
+`UtilityBillingTests` covers Household and Business payments, brownouts, short purses, governed
+prices, money conservation, demolition, and saved counter equivalence.

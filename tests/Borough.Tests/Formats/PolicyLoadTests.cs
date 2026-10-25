@@ -252,6 +252,25 @@ public sealed class PolicyLoadTests
         Assert.Contains("Readable against: Building", refusal.Reason, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void A_policy_naming_floor_area_is_refused_for_households()
+    {
+        RulesetRefusal refusal = Refused(Currency + Levy.Replace(
+            "derived = \"balance\"", "derived = \"floor_area\"", StringComparison.Ordinal));
+
+        Assert.Contains("not readable against a Household", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_business_policy_naming_floor_area_is_refused()
+    {
+        RulesetRefusal refusal = Refused(Currency + Levy
+            .Replace("sweeps = \"household\"", "sweeps = \"business\"", StringComparison.Ordinal)
+            .Replace("derived = \"balance\"", "derived = \"floor_area\"", StringComparison.Ordinal));
+
+        Assert.Contains("not readable against a Business", refusal.Reason, StringComparison.Ordinal);
+    }
+
     /// <inheritdoc cref="A_policy_naming_a_building_scoped_readout_is_refused"/>
     [Fact]
     public void A_bin_rule_naming_a_household_scoped_readout_is_refused()

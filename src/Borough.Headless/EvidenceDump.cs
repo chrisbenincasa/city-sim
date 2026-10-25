@@ -2,6 +2,7 @@ namespace Borough.Headless;
 
 using System.Globalization;
 using Borough.Core;
+using Borough.Core.Arithmetic;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Evidence;
@@ -685,6 +686,8 @@ internal static class EvidenceDump
                 + $"{WaitingOn(rules, names, rule),-22}"));
         }
 
+        Utilities(output, names, evidence);
+
         // TWO THRESHOLDS SINCE MILESTONE 17, and printing one against both readings was wrong in a
         // way nobody could see: the tenant line said "against the same" and meant it.
         KindDefinition declared = evidence.IsDeclared ? rules.Kind(evidence.Kind) : default;
@@ -744,6 +747,66 @@ internal static class EvidenceDump
             + "Tick minus its rate and a sleeping one at its due Tick. The one case this cannot tell "
             + "apart is a Rule that has never run, because a Building has no creation Tick.");
     }
+
+    /// <summary>
+    /// What each delivered Utility the Building draws is giving it, and nothing when it draws none.
+    /// </summary>
+    /// <remarks>
+    /// <b>The one shortage no other table here can show.</b> A delivered-Utility term never blocks,
+    /// so a Building served a third is <c>armed</c> in the <c>state</c> column with empty
+    /// <c>reports</c> and <c>waiting on</c> columns beside it — the whole trace of a brownout is a
+    /// smaller output, and this is where the cause is written down.
+    /// </remarks>
+    internal static void Utilities(
+        TextWriter output, RulesetNames names, BuildingEvidence evidence)
+    {
+        ArgumentNullException.ThrowIfNull(output);
+        ArgumentNullException.ThrowIfNull(names);
+
+        if (evidence.Utilities.Length == 0)
+        {
+            return;
+        }
+
+        output.WriteLine();
+        output.WriteLine("  utility         delivered  served yesterday  asked yesterday  paid yesterday  unpaid yesterday");
+        output.WriteLine("  --------------  ---------  ----------------  ---------------  --------------  ----------------");
+
+        foreach (UtilityEvidence drawn in evidence.Utilities.Span)
+        {
+            output.WriteLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"  {Name(names.Resource(drawn.Utility)),-14}  "
+                + $"{Percent(drawn.Delivered),8}%  {drawn.Received,16}  {drawn.Asked,15}  "
+                + $"{(drawn.HasTariff ? drawn.Paid.ToString(CultureInfo.InvariantCulture) : "unbilled"),14}  "
+                + $"{(drawn.HasTariff ? drawn.Unpaid.ToString(CultureInfo.InvariantCulture) : "unbilled"),16}"));
+
+            if (drawn.Imported != 0 || drawn.ImportPaid.Raw != 0)
+            {
+                output.WriteLine(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"    imported yesterday {drawn.Imported} gross units (including road loss); "
+                    + $"treasury paid {drawn.ImportPaid.Raw} money units"));
+            }
+        }
+
+        output.WriteLine(
+            "⚠ `delivered` governs the WHOLE of the current Day and the served and asked columns are "
+            + "YESTERDAY's. One settle a Day fixes the fraction every firing runs at, from what the "
+            + "District's plants made, what its road length lost and what crossed its boundaries.");
+
+        output.WriteLine(
+            "Paid and unpaid are this Building's money totals yesterday; unbilled means no tariff.");
+
+        output.WriteLine(
+            "⚠ A Utility below 100% stops nothing. The Rules drawing it apply "
+            + "floor(count × delivered) times and stay armed, so a browned-out Building reports no "
+            + "shortfall and accrues no failure pressure — read this table beside the output, not "
+            + "beside the `reports` column.");
+    }
+
+    /// <summary>A delivered fraction as whole per cent, floored the way a firing floors it.</summary>
+    private static int Percent(Ratio delivered) => delivered.Raw * 100 / Fixed.One;
 
     /// <summary>Counts vacancy reasons using one shared Household capital pass.</summary>
     private static void Vacancy(TextWriter output, World world)

@@ -1,7 +1,7 @@
 namespace Borough.Core.Rules;
 
 /// <summary>
-/// Which of the three things a <c>[[policy]]</c> does — <c>plans/0072</c> D10.
+/// Which action a <c>[[policy]]</c> performs.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -32,4 +32,7 @@ public enum PolicyTool : byte
 
     /// <summary>Money from the treasury to an eligible recipient, rationed by a daily ceiling.</summary>
     Subsidy = 3,
+
+    /// <summary>Money per delivered Utility unit received by a drawing Rule.</summary>
+    Tariff = 4,
 }

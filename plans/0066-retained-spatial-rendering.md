@@ -134,3 +134,186 @@ For Release captures, build with `dotnet build src/Borough.Godot -c Release
 loads is the one measured. Restore the normal Debug build afterwards with `dotnet build
 src/Borough.Godot -t:Rebuild`. Godot's GPU counters were unavailable, Metal log timing fields were
 redacted, and Screen Recording permission was absent; no native GPU-time comparison was obtained.
+
+## Garden prop draw distance, 2026-10-21
+
+Garden props are hidden beyond 2,000 m (`GardenPropDistance` in `Main.Gardens.cs`). The garden
+tree layer keeps its own 4,000 m limit, and garden ground and hedges have none. Before the limit,
+the opening camera of a 1,000,000-Citizen `stress-shopping.toml` city drew every fence and railing
+in the city.
+
+| Layer | Triangles per mesh | Instances | Triangles per frame |
+|---|---:|---:|---:|
+| fence-panel | 60 | 1,811,608 | 108.7 M |
+| railing-panel | 144 | 374,264 | 53.9 M |
+| seven other props | | | 14.1 M |
+
+Conditions: i5-10400, GTX 1080, Godot 4.7.2 Vulkan Forward+, shell built with
+`scripts/build-shell.sh --optimized`, `scripts/measure-shell.py`, 15 s per phase, load 1.65–1.95.
+
+| Limit | GPU per frame | FPS | Primitives | Draw calls |
+|---|---:|---:|---:|---:|
+| None | 156–157 ms | 6.4 | 186.7 M | 5,059 |
+| 1,500 m | 21.6–21.9 ms | 45 | 9.9 M | 2,899 |
+
+The opening camera stands about 14.6 km above the ground, so any limit under that gives the same
+opening figure. GPU time climbed to 157 ms over the first 10 s whether the city ran or paused, as
+the 8 MB per-frame upload allowance made the garden batches resident ([#217](https://github.com/chrisbenincasa/city-sim/issues/217)).
+The 2,000 m value was chosen from shots at 700 m and 2,000 m camera distances, where it matched
+the unlimited picture.
+
+With the limit, render probes at the paused opening camera split the remaining 21.8 ms of GPU time.
+Load fell from 5.3 to 1.9 during the run, so the savings are rough.
+
+| Probe | GPU per frame | Saving |
+|---|---:|---:|
+| `hide-building,roof,paired-roof,parapet,hip` | 14.9 ms | 6.9 ms |
+| `scale50` | 15.6 ms | 6.2 ms |
+| `hide-garden-ground,garden-hedge` | 17.3 ms | 4.6 ms |
+| `hide-road,footway,kerb,plot,zone,cell` | 17.9 ms | 4.0 ms |
+| `ssao-off` | 20.6 ms | 1.3 ms |
+
+No single layer dominates. Garden ground and hedges still draw at any distance.
+
+## Loading a million-Citizen save, 2026-10-21
+
+A headless `--save-city` of `stress-shopping.toml` at 1,000,000 Citizens and Tick 256 (55 MB)
+opens with `--load` and reaches its first frame in 14.8 s, of which the first frame takes 8.2 s.
+Conditions: optimized shell, i5-10400, GTX 1080, load 1.3–2.0, five runs within 0.2 s.
+
+A sampled trace of the main thread before the first frame:
+
+| Work | Seconds |
+|---|---:|
+| `UpdateBuildings`: `Massings` and foliage `Scatter` | 2.7 |
+| `UpdateBuildings`: garden `Fill` | 1.9 |
+| `UpdateBuildings`: `PlanGardens` | 0.7 |
+| `FinishReady`: `Pave`, facade materials, texture loads, surfaces | 2.9 |
+| `FlushInstances`, mostly batch bounds | 1.5 |
+| Suspended for garbage collection, within the rows above | 1.5 |
+
+`InstanceBuffer` now keeps its instances in one array of structs addressed by handle, and mirrors
+each batch's MultiMesh counts. GC suspension fell to 0.38 s and the load to 14.2–14.5 s. The
+25,000-Citizen draw list is unchanged apart from Traveller rows, which follow frame timing.
+`DOTNET_gcServer=1` took the old load to 13.9 s; its memory cost is unmeasured.
+
+At the opening camera every foliage, kerb and garden prop chunk lies beyond its draw distance. Much
+of the 4.9 s in `Scatter`, garden `Fill` and `PlanGardens` therefore builds instances the first
+frame does not draw. Garden ground and hedges have no limit and are drawn.
+
+### Gated layers
+
+Trees, rocks, kerbs, garden trees and garden props are now built only where the camera could draw
+them. Each such `InstanceLayer` is `Gated`:
+
+- A producer calls `BuildFrom()`, which records the camera position, and skips anything
+  `Reaches()` rejects.
+- Reach is the detail distance plus its 15% hysteresis plus a slack of a quarter of the detail
+  distance. An instance counts by its nearest point, so a long kerb band reaches by its near end.
+- `Regate()` runs each frame before the flush. It writes a layer again once the camera is more
+  than the slack from where that layer was built, or its detail distance has changed.
+- A gated build before the camera exists is empty and stale, so the first frame builds it.
+- `Scatter` clips its cell window to the reached ground. `Kerbs()` skips Segments out of reach and
+  caches each Segment's pieces until the next `Pave()`, which also snapshots the Addresses.
+
+Results on the same save, machine and conditions (load 1.2–1.5, three runs each):
+
+| Measure | Before | Gated |
+|---|---:|---:|
+| First frame row after launch | 14.2–14.5 s | 8.8–9.0 s |
+| First frame | about 8.2 s | 3.07–3.11 s |
+| Rebuild on descending to `focus 1875 1875 700` | none | 730–755 ms |
+| Rebuild on panning 4,500 m east at 700 m | none | 311–315 ms |
+
+The descent pays for building about 137,000 kerbs and the nearby trees and garden props for the
+first time, work the ungated shell did for the whole city at load. The render profile's
+`render_regate` row gives the count, total and worst rebuild in milliseconds.
+
+The 25,000-Citizen draw list at `focus 120 120 900` keeps every row it had. It gains 7,212 trees
+and 16 kerbs 7–11 km out, because a freshly built chunk starts resident and keeps the 15%
+hysteresis, where the ungated chunks had been dropped at the opening camera. Retained trees on
+that city fell from 863,726 to 45,353.
+
+While the simulation runs, a frame whose Buildings change runs `Scatter` and the garden `Fill`
+again. Both now cover only the camera's reach rather than the whole city.
+
+### Where the load time goes, 2026-10-22
+
+Wall-clock probes on the optimized shell, same save and machine, load 0.9–1.4, three runs. The
+spread between runs is under 0.2 s per phase. A `dotnet-trace` sample of one run splits each phase.
+
+| Phase | Thread | Time | Main parts |
+|---|---|---:|---|
+| Godot and .NET start, scene load to `Main._Ready` | main | 0.85–0.96 s | Engine native |
+| `CitySave.Read` | loader | 1.93–1.95 s | `RebuildDerived` 0.68 s, `VerifyRestoredHandles` 0.41 s, `Rows.Restore` 0.37 s, `HashState` 0.23 s |
+| `Simulation.CheckEndOfRun` | loader | 0.88–0.99 s | Every end-of-run invariant, led by `EveryHandleResolves` and the queue checks |
+| `FinishReady` | main | 2.08–2.12 s | `GD.Load` textures about 1.06 s, `Pave` 0.56 s (road `Fill` 0.50 s), `Readout` 0.17 s |
+| Native Godot frame before the first `_Process` | main | 0.77–0.79 s | Not visible to the managed sampler |
+| First `Draw` | main | 2.17–2.19 s | `PlanGardens` 0.69 s, `Massings` 0.41 s, `FillGardens` 0.34 s, `Flush` 0.25 s, `Fill` 0.20 s, GC 0.15 s |
+| First frame row after launch | | 8.76–9.06 s | |
+
+- The main thread idles in `PollPreparation` for the whole save read and invariant check, about 2.9 s.
+- `FinishReady` and the first `Draw` run only after both finish.
+- The textures in `FacadeMaterials`, `RoofMaterials` and `FinishReady` are 2048×2048 JPEGs imported
+  lossless (`compress/mode=0`). Each load decodes a lossless image with its mipmaps on the main thread.
+- The headless runner checks end-of-run invariants at the end of a run. The shell also checks them
+  on every save load, after `CitySave.Read` has already matched the saved State Hash.
+- The native frame likely uploads the textures and meshes `FinishReady` created and compiles their
+  pipelines. `perf` could confirm it, but `kernel.perf_event_paranoid` is 4 on this machine.
+
+`Textures.Prefetch` now requests the ten city textures from Godot's worker threads in `_Ready`, so
+they decode during the save read. `FacadeMaterials`, `RoofMaterials` and `FinishReady` collect them
+through `Textures.Load`. The first frame row arrives 7.9–8.0 s after launch, down from 8.8–9.0 s
+(load 1.46–1.47, three runs). Close views of plaster, brick and shingle roofs differ from the
+unprefetched shell by no more than two runs of the same build differ from each other.
+
+A save that is not stepped on load now runs its end-of-run invariant check on a pool thread while
+`FinishReady` and the first frames run. The check writes one shared cache, `DistrictMarkets`, which
+it rebuilds on first use, so the loader rebuilds it before starting the check. `Main` steps no Tick
+until the check finishes, and `Quit` waits for it. A failed check still stops the shell with exit
+code 1. A load with `--start-at` beyond the saved Tick checks before stepping, as before.
+
+- First frame row: 7.2–7.3 s after launch, down from 7.9–8.0 s (load 1.48–1.77, three runs).
+- The saving is 0.7 s of the check's 0.9 s, because the market rebuild stays on the loader thread.
+- State Hash at Ticks 258 and 270 matches the serial check (`973AE3309C1C70F1` at Tick 270).
+
+### The first `Draw` on that save, 2026-10-22
+
+A `dotnet-trace` sample of one load (proportions only; the machine was at load 2.6) splits the
+2.25 s first `Draw`:
+
+| Part | Time | Main cost |
+|---|---:|---|
+| `PlanGardens` | 0.69 s | `Garden` 0.41 s, of which `Boundary` 0.26 s builds fence and railing panels |
+| `Massings` | 0.44 s | Spread across the per-Building `Buildings` walk |
+| `FillGardens` | 0.38 s | The loop over every planned piece and its `Reaches` test |
+| `InstanceBuffer.Flush` | 0.27 s | `MultiMesh` instance counts, AABBs and transforms |
+| `Fill` (Buildings) | 0.20 s | |
+| `CheckBodyKitAtStartup` | 0.13 s | Style preset read and material property walk |
+
+`PlanGardens` plans every block in the city, 12,499 blocks, and holds 3.17 M pieces:
+
+| Layer | Pieces | Gated |
+|---|---:|---|
+| Fence | 1,811,608 | 2,000 m |
+| Railing | 374,264 | 2,000 m |
+| Tree | 366,533 | 4,000 m |
+| Ground | 320,269 | No |
+| Hedge | 112,293 | No |
+| Other props | 180,980 | 2,000 m |
+
+Each piece is a `(ulong, Transform3D, Color)` of 72 bytes, so the plan holds about 228 MB before
+list slack. Fence and railing panels are 69% of the pieces, and the opening camera draws none of them.
+
+`PlanGardens` now records each fence and railing as one `PanelRun`. `FillPanels` tests a run at its
+middle with its half-length added to the extent, then splits a reached run into the same panels in
+the same order. The draw lists at `focus 1875 1875 700`, after the 4,500 m pan and at 300 m match
+the per-panel plan byte for byte.
+
+- First frame row: 6.9–7.0 s after launch, down from 7.2–7.3 s (load 1.32–1.45, three runs).
+- Descent rebuild: 719–721 ms, down from 730–755 ms; pan rebuild about 300 ms.
+- The plan no longer holds 2.19 M panel pieces, about 157 MB by the 72-byte count. Process memory
+  was not measured.
+
+The board's *Bounded scene preparation and uploads* row owns planning only within reach for every
+component.

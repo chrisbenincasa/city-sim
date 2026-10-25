@@ -25,9 +25,25 @@
 #   [needs] and the `school` kind                                                       schooled
 #   [[policy]]                                                                          levied
 #   [founding]                                                                          founded
+#   [care], clinics, hospitals, health, the [school] timetable                          care
+#   office services, the `office` kind and the `audit` and `advise` Rules               offices
+#   export budgets                                                                      exported
 # ***Read the source file's header before reading anything into what a mechanism does here***, and
 # expect the interaction to be different: none of those headers was written about a world with the
-# other nine turned on.
+# others turned on.
+#
+# ⚠ NOT HERE: the base package's flour chain, rent, taxes and opening grants, and Utilities.
+# Carried in together they stopped all hiring for a week at 10,000 Citizens (#207). Power has only
+# a fixture (`powered.toml`), whose plant no Zone Rule raises.
+#
+# ⚠ LAUNCH AT 5,000 CITIZENS. Both centres then stand. At 10,000 the district view drew at 2 FPS
+# against 14 at 2,000, on a loaded machine (#209):
+#   godot --path src/Borough.Godot -- --ruleset rulesets/pictured.toml --citizens 5000
+#
+# 🔴 SERVICES NEED PLACING, AND THE GENERATED CITY LEAVES NO VACANT LOT FOR THEM. Demolish a
+# Building, then place a school, clinics and a hospital with the Service tool. Until clinics stand,
+# ill Citizens search for care that does not exist: their trips run over budget and Ticks cost
+# several times more.
 #
 # 🔴 THE TRADES PAY A WAGE AND THE SHOPFRONT PAYS NO RATES, WHICH IS WHERE THIS FILE LEAVES
 # `oversupplied.toml`. That file has no wage bill and a `rates` Rule because it demonstrates shops
@@ -69,6 +85,17 @@ family = "good"
 name = "money"
 family = "money"
 
+# Office services (`offices.toml`). Accounting is reached within 30 minutes; insurance is remote.
+[[resource]]
+name = "accounting"
+family = "service"
+reach_minutes = 30
+
+[[resource]]
+name = "insurance"
+family = "service"
+remote = true
+
 # ⚠ WHAT THE WATER CARRIES, and it must be declared here before `[water] carries` may name it -- a
 # Water Body holds a Resource the Ruleset declared, not a name it invented. `utility` rather than
 # `good`, because nobody buys it.
@@ -95,6 +122,14 @@ shift_start_latest_hour   = 10
 
 [[business]]
 name = "grocer"
+wage_per_day    = 256
+pay_period_days = 1
+goes_bankrupt_after_days_in_arrears = 8
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+[[business]]
+name = "accountant"
 wage_per_day    = 256
 pay_period_days = 1
 goes_bankrupt_after_days_in_arrears = 8
@@ -137,12 +172,38 @@ houses   = true
 premises = true
 business = "grocer"
 
-# ⚠ NOTHING IN THE WORLD PLACES THIS. `Service` is 01 §5's placement exception, so a run with no
-# `--schools` builds none and every child's Education falls at the declared rate for ever. Pass
-# `--schools 4` when photographing this file, or the school is a kind that never appears.
+# ⚠ NOTHING IN THE WORLD PLACES THIS. `Service` is 01 §5's placement exception, so until one is
+# placed every child's Education falls at the declared rate. Headless runs take `--schools N`.
 [[building]]
 name = "school"
 serves = "education"
+
+# Care (`care.toml`). Like the school, nothing places these: use the shell's Service tool.
+[[building]]
+name = "clinic"
+serves = "health"
+care_days = 127
+care_opens_hour = 7
+care_closes_hour = 20
+bed_percent = 0
+
+[[building]]
+name = "hospital"
+serves = "health"
+care_days = 127
+care_opens_hour = 0
+care_closes_hour = 24
+bed_percent = 60
+
+[[building]]
+name = "office"
+bins = [
+    { resource = "money",  owner = "business" },
+    { resource = "labour", owner = "business" },
+]
+premises = true
+parked   = true
+business = "accountant"
 
 # 🔴 THERE IS NO GATE IN THIS FILE AND THAT IS A REFUSAL RATHER THAN AN OVERSIGHT. A `port` kind was
 # written here and the loader threw it out: a gate stands on a map edge, so a world with a door paves
@@ -199,6 +260,30 @@ apply   = { min = 1, max = 4 }
 inputs  = [ { scope = "local", resource = "labour", amount = 1 } ]
 outputs = [ { scope = "local", resource = "sundries", amount = 8 } ]
 
+# Shops buy office services; offices make them from labour (`offices.toml`).
+[[rule]]
+name    = "audit"
+kind    = "shopfront"
+rate    = 64
+apply   = { min = 1, max = 1 }
+inputs  = [
+    { scope = "local", resource = "labour", amount = 1 },
+    { scope = "pool",  resource = "accounting", amount = 1 },
+    { scope = "pool",  resource = "insurance", amount = 1 },
+]
+outputs = []
+
+[[rule]]
+name    = "advise"
+kind    = "office"
+rate    = 64
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "labour", amount = 1 } ]
+outputs = [
+    { scope = "local", resource = "accounting", amount = 64 },
+    { scope = "local", resource = "insurance",  amount = 64 },
+]
+
 # 🔴 THE ONE RULE IN THIS FILE THAT EXISTS FOR THE PICTURE, and it is here because an overlay of
 # nothing is a blank screen. `scope = "map"` is the only write-only scope `02 §4.1` grants, pollution
 # is the only emittable Layer, and THE ONLY THING IN THE BUILD THAT GIVES A CELL A ROW AT ALL IS AN
@@ -241,7 +326,7 @@ interval      = 32
 revisit_ticks = 2048
 
 [[zone_rule]]
-name                 = "trade"
+name                 = "commerce"
 kind                 = "shopfront"
 zone                 = 1
 interval             = 32
@@ -251,6 +336,17 @@ cooldown_days        = 8
 # PROVISIONAL: Citizen-Days of waiting by those who found every post full. Thresholds 2 to 16
 # behaved alike after a mass bankruptcy at 2,000 Citizens (plans/employment-feedback.md).
 jobless_threshold_days = 4
+
+# Zone 0, because car-park centres fill every trade Lot at world creation and the Zone Rule engine
+# cannot build on a trade form.
+[[zone_rule]]
+name                 = "offices"
+kind                 = "office"
+zone                 = 0
+interval             = 32
+revisit_ticks        = 2048
+build_threshold_days = 4
+cooldown_days        = 8
 
 [placement]
 interval      = 32
@@ -320,7 +416,46 @@ satisfaction_degrade = 1
 satisfaction_recover = 1
 education_degrade    = 2
 education_recover    = 2
+health_degrade       = 2
+health_recover       = 2
 floor = -1000
+
+# Weekday school stays and illness, appointments and beds (`care.toml`).
+[school]
+days = 31
+bell_earliest_minute = 480
+bell_latest_minute = 540
+dismiss_earliest_minute = 900
+dismiss_latest_minute = 960
+retry_ticks = 32
+history_keeps = 1024
+
+[care]
+interval = 32
+routine_days = 14
+illness_per_thousand = 30
+health_risk_per_thousand = 1
+initial_severity = 20
+serious_severity = 40
+admission_severity = 60
+recovery_per_day = 4
+treated_recovery_per_day = 16
+deterioration_per_day = 15
+deterioration_percent = 35
+death_severity = 90
+death_per_thousand = 10
+visit_minutes = 30
+wait_days = 3
+urgent_wait_days = 1
+priority_every_days = 1
+switch_after_waits = 3
+known_clinics = 8
+search_candidates = 256
+history_keeps = 2048
+booking_days = 7
+floor_tiles_per_treatment = 12
+floor_tiles_per_bed = 8
+report_days = 28
 
 [households]
 # ⚠ 100%, which is `congested.toml`'s. A Citizen drives everywhere or walks everywhere (adr/0098),
@@ -446,6 +581,7 @@ trade_form = "car_park_centre"
 floor_tiles_per_occupant      = 25
 floor_tiles_per_job           = 1
 floor_tiles_per_parking_space = 12
+floor_tiles_per_place         = 3
 
 [parking]
 radius_metres = 400
@@ -522,18 +658,24 @@ migrate_cells = 16
 edge = "north"
 emigrant_balance_min = 300
 emigrant_balance_max = 2000
+export_budget = 64000
 prices = [
   { resource = "sundries", price = 100 },
   { resource = "repairs",  price = 250 },
+  { resource = "accounting", price = 90 },
+  { resource = "insurance",  price = 30 },
 ]
 
 [[hinterland]]
 edge = "east"
 emigrant_balance_min = 200
 emigrant_balance_max = 1400
+export_budget = 16000
 prices = [
   { resource = "sundries", price = 120 },
   { resource = "repairs",  price = 200 },
+  { resource = "accounting", price = 110 },
+  { resource = "insurance",  price = 40 },
 ]
 
 [[hinterland]]
@@ -543,6 +685,8 @@ emigrant_balance_max = 400
 prices = [
   { resource = "sundries", price = 140 },
   { resource = "repairs",  price = 260 },
+  { resource = "accounting", price = 160 },
+  { resource = "insurance",  price = 80 },
 ]
 
 [[hinterland]]
@@ -552,6 +696,8 @@ emigrant_balance_max = 900
 prices = [
   { resource = "sundries", price = 130 },
   { resource = "repairs",  price = 240 },
+  { resource = "accounting", price = 140 },
+  { resource = "insurance",  price = 60 },
 ]
 
 [market]

@@ -122,12 +122,14 @@ public readonly record struct RuleFlow(long Sum, int Peak)
 /// than netted, for <c>MoneyFlowCounter.FromTreasury</c>'s reason: a net cannot distinguish a city
 /// that taxed nothing and paid nothing from one that taxed heavily and paid it all back.
 /// </param>
+/// <param name="Tariff">Utility tariffs paid to the treasury at firing.</param>
 public readonly record struct RuleActivity(
     RuleFlow Due,
     RuleFlow Evaluations,
     RuleFlow ChainRungs,
     MoneyFlow ToTreasury = default,
-    MoneyFlow FromTreasury = default);
+    MoneyFlow FromTreasury = default,
+    MoneyFlow Tariff = default);
 
 /// <summary>
 /// Bin Rule evaluation and application: Phase 2 decides, Phase 3 applies, and nothing is partial.
@@ -267,6 +269,31 @@ public sealed class RuleEngine
     private int _madeBusiness;
     private int _madeCount;
 
+    // The delivered-Utility draws of the Rule currently being checked, per application: which
+    // network row and how much. Held rather than written because Phase 2 writes nothing
+    // (adr/0037). Fire posts them as DEMAND, which is a term fact the netted deltas never see --
+    // a delivered Utility touches no Bin at all.
+    private int[] _drawnNetwork = new int[2];
+    private ResourceId[] _drawnUtility = new ResourceId[2];
+    private long[] _drawnAmount = new long[2];
+    private int _drawnCount;
+
+    // The delivered Utility this firing FEEDS, per application, and which network. A plant's output
+    // is bounded by nothing: there is no Bin to run out of headroom, so these are output terms the
+    // affordability walk cannot see -- _madeService's position, one family over.
+    private int[] _fedNetwork = new int[2];
+    private long[] _fedAmount = new long[2];
+    private int _fedCount;
+
+    // The count the Rule would have applied at with its delivered Utilities whole. Demand is posted
+    // at this rather than at what fired, so a brownout does not erase the demand that caused it.
+    private long _drawnFull;
+
+    // The least fraction any delivered Utility this Rule draws is delivering, One when it draws
+    // none. The LEAST and not the product: a Rule short of two Utilities runs at the worse-supplied
+    // one's rate and draws proportionately less of both, and multiplying would charge it twice.
+    private Ratio _delivered;
+
     // What a provider's remaining allowance allows this firing, which Check clamps its ceiling to.
     // Read immediately after Retain returns, like Export's return value.
     private long _retainCeiling;
@@ -301,6 +328,8 @@ public sealed class RuleEngine
     // The same shape in Money's width, and PolicyEngine's fields exactly. Accumulated in Fire --
     // where the deposit and the withdrawal actually happen -- and never in Check, because a Rule that
     // is evaluated and then blocked has moved nothing and must appear in no flow.
+    private long _tickTariff;
+    private MoneyFlow _tariffFlow;
     private long _tickToTreasury;
     private long _tickFromTreasury;
 
@@ -343,13 +372,14 @@ public sealed class RuleEngine
     public RuleActivity Drain()
     {
         var activity = new RuleActivity(
-            _dueFlow, _evaluationFlow, _rungFlow, _toTreasuryFlow, _fromTreasuryFlow);
+            _dueFlow, _evaluationFlow, _rungFlow, _toTreasuryFlow, _fromTreasuryFlow, _tariffFlow);
 
         _dueFlow = default;
         _evaluationFlow = default;
         _rungFlow = default;
         _toTreasuryFlow = default;
         _fromTreasuryFlow = default;
+        _tariffFlow = default;
 
         return activity;
     }
@@ -507,6 +537,9 @@ public sealed class RuleEngine
         _toTreasuryFlow = _toTreasuryFlow.Fold(_tickToTreasury);
         _fromTreasuryFlow = _fromTreasuryFlow.Fold(_tickFromTreasury);
 
+        _tariffFlow = _tariffFlow.Fold(_tickTariff);
+        _tickTariff = 0;
+
         _tickDue = 0;
         _tickEvaluations = 0;
         _tickRungs = 0;
@@ -608,12 +641,11 @@ public sealed class RuleEngine
         RuleDefinition definition = _world.Rules.Rule(rule);
         int building = _world.Buildings.Rows.Resolve(_world.RuleInstances.Building[instance]);
 
+        // The band bounds the count the Rule's inputs are measured against; `ceiling` bounds the
+        // count that actually FIRES. The two were one number until a delivered Utility could serve
+        // a Rule short -- a cap applied to a count that is already capped would discount twice,
+        // because Phase 3 re-checks at the count Phase 2 settled on.
         (long floor, long band) = Band(_world, definition, building);
-
-        if (band < ceiling)
-        {
-            ceiling = band;
-        }
 
         _touchedCount = 0;
         _boughtCount = 0;
@@ -622,7 +654,15 @@ public sealed class RuleEngine
         _accruedCount = 0;
         _soldCount = 0;
         _madeCount = 0;
+        _drawnCount = 0;
+        _fedCount = 0;
+        _drawnFull = 0;
+        _delivered = Ratio.One;
         _exportHinterland = -1;
+
+        // What the Rule's own max, its inputs and its providers allow. Lowered by every supply
+        // bound below; the delivered-Utility cap and `ceiling` are applied to it at the end.
+        long allowed = band;
 
         foreach (Term term in _world.Rules.Inputs(rule))
         {
@@ -638,6 +678,12 @@ public sealed class RuleEngine
                         + "because the loader has no such check yet.");
                 }
 
+                if (_world.Rules.IsDeliveredUtility(term.Bin.Resource))
+                {
+                    Draw(instance, term);
+                    continue;
+                }
+
                 // A purchase is one term and three deltas, so it cannot go through Touch(Bin(...)).
                 // It also fails BEFORE the affordability walk when no seller can cover a batch, which
                 // is a district-wide shortage rather than one Bin being short.
@@ -650,9 +696,9 @@ public sealed class RuleEngine
                     // A provider's remaining allowance caps the count the way a Hinterland's budget
                     // caps an export's, and it comes down HERE rather than through the affordability
                     // walk because a service moves no Bin that could have carried the bound.
-                    if (_retainCeiling < ceiling)
+                    if (_retainCeiling < allowed)
                     {
-                        ceiling = _retainCeiling;
+                        allowed = _retainCeiling;
                     }
                 }
                 else
@@ -695,6 +741,12 @@ public sealed class RuleEngine
                     + "with a file and a line; it is here because the loader has no such check yet.");
             }
 
+            if (_world.Rules.IsDeliveredUtility(term.Bin.Resource))
+            {
+                Feed(instance, term);
+                continue;
+            }
+
             if (_world.Rules.Family(term.Bin.Resource) == ResourceFamily.Service)
             {
                 // No Bin holds a service, so this term bounds nothing: it cannot run out of
@@ -724,7 +776,7 @@ public sealed class RuleEngine
             Touch(Bin(_world, instance, term.Bin, rule), term.Amount, IsTreasuryMoney(term.Bin));
         }
 
-        long applications = ceiling;
+        long applications = allowed;
         int shortOfLabour = Rows.NoSlot;
 
         for (int i = 0; i < _touchedCount; i++)
@@ -790,12 +842,104 @@ public sealed class RuleEngine
             return RuleVerdict.Stopped(instance, rule, shortOfLabour, Blocking.Supply);
         }
 
+        // The count the Rule would have run at with its delivered Utilities whole. Demand is posted
+        // at this, which is what makes a brownout visible rather than self-concealing: a consumer
+        // served a third asks for the same amount again tomorrow.
+        _drawnFull = applications;
+
+        // ⚠ The band's FLOOR is deliberately not re-applied below it. A Rule whose share rounds to
+        // nothing fires at zero rather than stopping: the floor says what the Rule's own inputs must
+        // cover, and a brownout is the District failing to deliver rather than the Building failing
+        // to be viable. Firing at zero also keeps the demand above posted and re-arms the Rule on
+        // its own rate, which is why nothing has to wake it when the network recovers.
+        if (_delivered != Ratio.One)
+        {
+            applications = IntegerMath.MulDivFloor(applications, _delivered.Raw, Fixed.One);
+        }
+
+        // Phase 3 may lower the count Phase 2 decided and may never raise it (adr/0049). It bounds
+        // the count that FIRES rather than the one measured above, so a re-check does not apply the
+        // delivered fraction a second time.
+        if (applications > ceiling)
+        {
+            applications = ceiling;
+        }
+
         for (int i = 0; i < _touchedCount; i++)
         {
             _touchedDelta[i] *= applications;
         }
 
         return RuleVerdict.Fire(instance, rule, applications);
+    }
+
+    /// <summary>
+    /// Records a delivered Utility this firing draws, and lowers the fraction the Rule will run at.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>It never blocks and it is not a purchase.</b> A delivered Utility has no stock and no
+    /// price in this slice: the Pool row is the network's address, the Bin behind it stays empty, and
+    /// what the term asks of the District is <em>a share of a Day's throughput</em>. So there is no
+    /// Bin that could be short and nothing a waiter could usefully sleep on — a consumer under a
+    /// brownout succeeds at a reduced count, which is what makes the shortage a visible degradation
+    /// rather than a stopped Building.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Premises in no District deliver nothing.</b> That is the <see cref="Marketless"/> case
+    /// arrived at from the other side — the network row the term addresses has not been opened — and
+    /// the Rule fires at zero applications rather than subscribing, bounded by
+    /// <c>[districts] revisit_ticks</c> exactly as a purchase is.
+    /// </para>
+    /// </remarks>
+    private void Draw(int instance, in Term term)
+    {
+        int network = _world.UtilityFlowOf(instance, term.Bin.Resource);
+
+        if (network == Rows.NoSlot)
+        {
+            _delivered = Ratio.Zero;
+            return;
+        }
+
+        Grow(ref _drawnNetwork, _drawnCount + 1);
+        Grow(ref _drawnAmount, _drawnCount + 1);
+        Grow(ref _drawnUtility, _drawnCount + 1);
+
+        _drawnNetwork[_drawnCount] = network;
+        _drawnUtility[_drawnCount] = term.Bin.Resource;
+        _drawnAmount[_drawnCount] = term.Amount;
+        _drawnCount++;
+
+        Ratio fraction = _world.UtilityFlows.Delivered[network];
+
+        if (fraction < _delivered)
+        {
+            _delivered = fraction;
+        }
+    }
+
+    /// <summary>Records a delivered Utility this firing feeds into its District's network.</summary>
+    /// <remarks>
+    /// A plant's output bounds nothing. There is no Bin to run out of headroom and no Hinterland to
+    /// export to, so the count comes from the plant's own inputs and its <c>max</c>. A plant standing
+    /// in no District feeds nothing and is not thereby stopped.
+    /// </remarks>
+    private void Feed(int instance, in Term term)
+    {
+        int network = _world.UtilityFlowOf(instance, term.Bin.Resource);
+
+        if (network == Rows.NoSlot)
+        {
+            return;
+        }
+
+        Grow(ref _fedNetwork, _fedCount + 1);
+        Grow(ref _fedAmount, _fedCount + 1);
+
+        _fedNetwork[_fedCount] = network;
+        _fedAmount[_fedCount] = term.Amount;
+        _fedCount++;
     }
 
     /// <summary>
@@ -1705,6 +1849,26 @@ public sealed class RuleEngine
             _world.DistrictPools.Consumed[_boughtRow[i]] += _boughtAmount[i] * verdict.Applications;
         }
 
+        // A delivered Utility's two columns, and they are scaled by DIFFERENT counts. Demand is what
+        // the Rule would have drawn with the network whole, so a Day of brownout still states the
+        // load that caused it; production is what the plant's own inputs actually bought, which is
+        // the count that fired. Posted here rather than in Check because Phase 2 writes nothing
+        // (adr/0037), and from the term list because no Bin carries either figure.
+        //
+        // Both posts saturate at UtilityFlowTable.Bound. An amount and an apply count may each be
+        // int.MaxValue, so an unbounded accumulator wraps negative on the third firing of a Ruleset
+        // the loader accepts.
+        for (int i = 0; i < _drawnCount; i++)
+        {
+            _world.UtilityFlows.Demand(_drawnNetwork[i], _drawnAmount[i], _drawnFull);
+            BillUtility(instance, _drawnUtility[i], _drawnAmount[i], verdict.Applications, tick);
+        }
+
+        for (int i = 0; i < _fedCount; i++)
+        {
+            _world.UtilityFlows.Produce(_fedNetwork[i], _fedAmount[i], verdict.Applications);
+        }
+
         int building = _world.Buildings.Rows.Resolve(_world.RuleInstances.Building[instance]);
 
         foreach (MapEmission emission in _world.Rules.Emissions(rule))
@@ -1713,6 +1877,36 @@ public sealed class RuleEngine
         }
 
         _world.Wheel.Arm(instance, tick, definition.Rate);
+    }
+
+    private void BillUtility(int instance, ResourceId utility, long amount, long applications, Ticks tick)
+    {
+        int tariff = _world.Rules.TariffOf(utility);
+        if (tariff < 0 || applications == 0) { return; }
+
+        PolicyDefinition policy = _world.Rules.Policies[tariff];
+        long price = long.Max(0, _world.Policies.AmountOf(tariff, policy));
+        long units = (long)Int128.Min(long.MaxValue, (Int128)amount * applications);
+        long bill = (long)Int128.Min(long.MaxValue, (Int128)units * price);
+        int business = _world.Businesses.Rows.TryResolve(_world.RuleInstances.Business[instance], out int firm)
+            ? firm : Rows.NoSlot;
+        Handle<Bin> purse = _world.Households.Rows.TryResolve(_world.RuleInstances.Household[instance], out int household)
+            ? _world.Households.Balance[household]
+            : _world.Businesses.Balance[business];
+        int payer = _world.Bins.Rows.Resolve(purse);
+        long paid = long.Min(bill, _world.Bins.LevelAt(payer));
+        if (paid > 0)
+        {
+            _world.Withdraw(purse, paid, tick);
+            int treasury = _world.FindTreasuryBin(policy.Resource);
+            _world.Deposit(_world.Bins.Rows.At(treasury), paid, tick);
+            BusinessAccounts.Consume(_world, business, paid, tick);
+            _tickTariff = checked(_tickTariff + paid);
+        }
+
+        int building = _world.Buildings.Rows.Resolve(_world.RuleInstances.Building[instance]);
+        _world.UtilityBills.Record(_world.Buildings, building, _world.Rules.ResourceKey(utility),
+            BusinessAccounts.DayOf(tick), paid, bill - paid);
     }
 
     /// <summary>
@@ -2145,8 +2339,11 @@ public sealed class RuleEngine
         foreach (Term term in world.Rules.Outputs(rule))
         {
             // A service output is not a deposit into anything: the units go into the office's daily
-            // allowance, which is not a Bin, so no Bin can be short of space for it.
-            if (world.Rules.Family(term.Bin.Resource) == ResourceFamily.Service)
+            // allowance, which is not a Bin, so no Bin can be short of space for it. A delivered
+            // Utility's output is the same shape one family over -- it feeds a network, and the Pool
+            // row's Bin stays empty.
+            if (world.Rules.Family(term.Bin.Resource) == ResourceFamily.Service
+                || world.Rules.IsDeliveredUtility(term.Bin.Resource))
             {
                 continue;
             }
@@ -2205,6 +2402,13 @@ public sealed class RuleEngine
     /// </remarks>
     private static long PoolDraw(World world, int instance, in Term term, RuleId rule, int binSlot)
     {
+        // A delivered Utility draws no stock Bin. Check serves it short instead of
+        // stopping on it, so there is no Bin a waiter could sleep on and no requirement to price.
+        if (world.Rules.IsDeliveredUtility(term.Bin.Resource))
+        {
+            return 0;
+        }
+
         // The Good leg. Bin() resolves a pool term to the MARKET ROW's Bin for every caller but
         // Check, which is adr/0139's wake target and what a blocked buyer actually sleeps on.
         if (Bin(world, instance, term.Bin, rule) == binSlot)
@@ -2262,6 +2466,15 @@ public sealed class RuleEngine
         // A service a Rule MAKES names no Bin at all -- the units go into the office's allowance for
         // the Day -- so there is nothing here to drain or to claim against. A service a Rule BUYS is
         // a pool term and still resolves to the market row, which is where its buyer sleeps.
+        //
+        // A delivered Utility names no Bin on EITHER side, and that is stronger than the service
+        // case: it neither blocks nor stores, so a claim against the Pool row's empty Bin would be
+        // a claim nothing can ever satisfy and a drain there would wake nobody.
+        if (world.Rules.IsDeliveredUtility(addressed.Resource))
+        {
+            return Rows.NoSlot;
+        }
+
         return addressed.Scope == Scope.Local
             && world.Rules.Family(addressed.Resource) == ResourceFamily.Service
                 ? Rows.NoSlot

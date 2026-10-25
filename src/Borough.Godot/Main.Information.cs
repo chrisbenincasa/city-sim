@@ -74,6 +74,7 @@ public partial class Main
         Chrome();
         BudgetPanel(_hud);
         HinterlandPanel(_hud);
+        NeedsPanel(_hud);
 
         _inspector = InformationPanel();
         _inspector.Size = new Vector2(406, 600);
@@ -223,7 +224,7 @@ public partial class Main
         _palette?.AddThemeStyleboxOverride("panel",
             InformationUi.Box(paper, line, 16, 12, InformationUi.PanelRadius, shadow));
         foreach (Control panel in _informationPanels
-            .Concat(new Control?[] { _policyPanel, _cityPanel, _budgetPanel, _outsidePanel, _tuner })
+            .Concat(new Control?[] { _policyPanel, _cityPanel, _budgetPanel, _outsidePanel, _needsPanel, _tuner })
             .Where(p => p is not null).Select(p => p!))
         {
             panel.AddThemeStyleboxOverride("panel", InformationUi.Box(paper, line,
@@ -345,6 +346,14 @@ public partial class Main
             FitPanel(_outsidePanel, outsideScroll, outsideBody, margin, margin, outsideWidth, 100,
                 Math.Max(100, consoleTop - _cameraPanel.GetCombinedMinimumSize().Y - 8 - margin * 2), true);
         }
+        if (_needsPanel is not null && _needsShown)
+        {
+            var needsScroll = _needsPanel.GetChildren().OfType<ScrollContainer>().First();
+            var needsBody = needsScroll.GetChild<Control>(0);
+            float needsWidth = Math.Min(560, size.X - width - margin * 3);
+            FitPanel(_needsPanel, needsScroll, needsBody, margin, margin, needsWidth, 100,
+                Math.Max(100, consoleTop - _cameraPanel.GetCombinedMinimumSize().Y - 8 - margin * 2), true);
+        }
         if (_budgetPanel is not null && _budgetShown)
         {
             // 🔴 THE RIGHT OF THE SCREEN, AND IT IS THE ONE PANEL THAT IS. Government holds the
@@ -374,6 +383,11 @@ public partial class Main
             if (_outsidePanel is not null && _outsideShown)
             {
                 budgetLeft = Math.Max(budgetLeft, _outsidePanel.GetGlobalRect().End.X + margin);
+            }
+
+            if (_needsPanel is not null && _needsShown)
+            {
+                budgetLeft = Math.Max(budgetLeft, _needsPanel.GetGlobalRect().End.X + margin);
             }
 
             float budgetWidth = Math.Clamp(size.X - budgetLeft - margin, 1, 620);
@@ -513,7 +527,9 @@ public partial class Main
         || _budgetPanel is not null && _budgetPanel.Visible
             && _budgetPanel.GetGlobalRect().HasPoint(at)
         || _outsidePanel is not null && _outsidePanel.Visible
-            && _outsidePanel.GetGlobalRect().HasPoint(at));
+            && _outsidePanel.GetGlobalRect().HasPoint(at)
+        || _needsPanel is not null && _needsPanel.Visible
+            && _needsPanel.GetGlobalRect().HasPoint(at));
 
     private void Ui(string action) => AtBoundary(() => Apply(new DriveCommand(_world.Tick.Raw, DriveVerb.Ui, 0, action)));
 
@@ -540,6 +556,7 @@ public partial class Main
         if (BudgetAction(words)) return;
         if (GovernAction(words)) return;
         if (HinterlandAction(words)) return;
+        if (NeedsAction(words)) { LayoutInformation(); return; }
         switch (words[0])
         {
             case "help" when words.Length == 2 && words[1] is "on" or "off":
@@ -851,7 +868,7 @@ public partial class Main
                 GetWindow().Mode = Window.ModeEnum.Windowed;
                 GetWindow().Size = new Vector2I(w, h);
                 break;
-            default: _refused = "ui: use health, close, back, govern POLICY AMOUNT, theme light|dark, debug on|off, tools on|off, layers on|off, building ID, road ID, frontage ID, household ID, section KEY on|off, point EAST NORTH, scroll PIXELS, read PATH, press X Y, or size WIDTH HEIGHT (minimum 1280 × 800)."; break;
+            default: _refused = "ui: use health, close, back, govern POLICY AMOUNT, theme light|dark, debug on|off, tools on|off, layers on|off, needs on|off|refresh, building ID, road ID, frontage ID, household ID, section KEY on|off, point EAST NORTH, scroll PIXELS, read PATH, press X Y, or size WIDTH HEIGHT (minimum 1280 × 800)."; break;
         }
         LayoutInformation();
     }
@@ -1046,7 +1063,7 @@ public partial class Main
                 "activities" => "waiting",
                 "households" => "household",
                 "businesses" => "trade",
-                "stocks" => "resource",
+                "stocks" or "utilities" => "resource",
                 "health" or "care" => "clinic",
                 "citizens" or "workers" => "household",
                 _ => null,
@@ -1105,6 +1122,7 @@ public partial class Main
         if (CutOffSummary(_selectedBuilding) is { } cutOff) sections[0].Rows.Insert(1, new(cutOff));
         sections.Add(Attention(evidence, default, false));
         sections.Add(Attention(evidence, default, false, true));
+        if (evidence.Utilities.Length > 0) sections.Add(UtilitiesSection(evidence));
         AddLandholding(sections, evidence.Lot);
         AddFacilityHealth(sections, slot);
         AddFacilitySchooling(sections, slot);
@@ -1156,6 +1174,31 @@ public partial class Main
     private InformationSection Attention(BuildingEvidence evidence, Handle<Household> household, bool onlyHousehold, bool routine = false, Handle<Business> business = default)
     {
         var rows = new List<InformationRow>();
+        // Utility shortages and import costs belong to the Building's District, so tenant panels
+        // show them too. A delivered Utility never blocks a Rule.
+        if (!routine)
+        {
+            foreach (UtilityEvidence drawn in evidence.Utilities.Span)
+            {
+                bool shortSupply = drawn.Delivered < Ratio.One;
+                if (!shortSupply && drawn.Imported == 0) continue;
+                string detail = shortSupply
+                    ? "Every activity drawing it runs at that share and none of them is stopped. "
+                        + $"Yesterday the District's network served {drawn.Received:N0} of "
+                        + $"{drawn.Asked:N0} units asked."
+                    : "The District relies on imports for full delivery.";
+                // Two totals, printed apart. "N units at M" reads as M apiece, which invites a
+                // reader to multiply one total by the other; the Utilities panel words it the same
+                // way for the same reason.
+                string imports = drawn.Imported > 0
+                    ? $" · imported {drawn.Imported:N0} gross units yesterday; the treasury paid "
+                        + $"{drawn.ImportPaid.Raw:N0} money units"
+                    : string.Empty;
+                rows.Add(new($"Building supply · {UtilitySentence(drawn)}{imports}\n{detail}",
+                    Icon: UiIcons.Resource(_names.Resource(drawn.Utility))));
+            }
+        }
+
         foreach (RuleEvidence rule in evidence.Rules.Span)
         {
             if (onlyHousehold && rule.Tenant != household) continue;

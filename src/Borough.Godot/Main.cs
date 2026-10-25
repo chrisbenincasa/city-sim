@@ -102,27 +102,6 @@ public partial class Main : Node3D
     /// <summary>What is left of the foot half once the kerb has taken its band. <b>Derived.</b></summary>
     private const float PavementWidthMetres = FootwayWidthMetres - KerbWidthMetres;
 
-    /// <summary>
-    /// How far a <b>dropped</b> kerb bites into the carriageway beyond the kerb line.
-    /// </summary>
-    /// <remarks>
-    /// 🔴 <b>THE DROP HAS TO READ AS A SHAPE, BECAUSE ITS REAL CUE IS A HEIGHT NOBODY CAN SEE.</b> A
-    /// dropped kerb is the same stone at the road's level, and the difference is <b>0.1 m</b> on a
-    /// city drawn from hundreds of metres up — invisible, at every zoom this camera offers. Giving it
-    /// a colour of its own would have been inventing a material to stand in for a height. **Giving it
-    /// an apron across the channel is the thing a dropped kerb actually has**, and it is legible
-    /// because it changes the *outline* of the kerb rather than its tone.
-    /// </remarks>
-    private const float KerbDropBiteMetres = 1.0f;
-
-    /// <summary>How long one <b>dropped</b> kerb is drawn, along the Street.</summary>
-    /// <remarks>
-    /// ⚠ <b>One Tile, and that is the only thing recommending it.</b> A real drop is 1.2 m at a door
-    /// and 3–4 m at a driveway, and the city holds neither — an Address is a point
-    /// (<c>adr/0074</c>), so ***the length is pure invention where the POSITION is not***. Adjacent
-    /// drops that would overlap are merged rather than drawn twice; see <see cref="Kerbs"/>.
-    /// </remarks>
-    private const float KerbDropLengthMetres = 4f;
 
     /// <summary>The same as <see cref="StreetWidthMetres"/>, for an <see cref="RoadKind.Arterial"/>.</summary>
     /// <remarks>
@@ -171,17 +150,16 @@ public partial class Main : Node3D
     private static readonly Color Flagstone = new(0.52f, 0.50f, 0.46f);
 
     /// <summary>
-    /// <b>Kerbstone — the band against the channel, and the dropped one at an Address.</b> Paler and
-    /// cooler than <see cref="Flagstone"/>, because a kerb is a different stone from the paving.
+    /// Kerbstone, the band against the channel. Paler and cooler than <see cref="Flagstone"/>,
+    /// because a kerb is a different stone from the paving.
     /// </summary>
-    /// <remarks>
-    /// ⚠ <b>ONE colour for the band AND the drop, deliberately.</b> A dropped kerb is the same stone
-    /// laid lower — ***so tinting the drop would be inventing a material to say a height with***, and
-    /// what says it instead is <see cref="KerbDropBiteMetres"/>'s apron. The two are told apart in a
-    /// <c>draw</c> list by their height and their width, which is where a machine should be reading
-    /// them from anyway.
-    /// </remarks>
     private static readonly Color Kerbstone = new(0.62f, 0.62f, 0.60f);
+
+    /// <summary>White road paint. <b>sRGB.</b></summary>
+    private static readonly Color LinePaint = new(0.86f, 0.86f, 0.82f);
+
+    /// <summary>Yellow road paint. <b>sRGB.</b></summary>
+    private static readonly Color CentrePaint = new(0.88f, 0.70f, 0.18f);
 
     // 🔴 BuildingFillLow/High AND DepthFillLow/High STOOD HERE AND ARE NOW `[lots] setback_tiles`.
     // Four drawing constants -- 0.55-1.00 of the frontage and 0.45-0.85 of the depth -- deciding how
@@ -488,6 +466,18 @@ public partial class Main : Node3D
         Trouble,
 
         /// <summary>
+        /// What each Building's District network delivers of the first Utility it draws — the
+        /// brownout view.
+        /// </summary>
+        /// <remarks>
+        /// ⚠ <b>A Building drawing no delivered Utility has no reading and stays neutral</b>, which
+        /// includes every Building in a Ruleset that declares none. A delivered Utility never blocks
+        /// a Rule, so a browned-out city shows up nowhere in <see cref="Trouble"/> — ***this is the
+        /// only wash that can see a shortage nothing complains about.***
+        /// </remarks>
+        Utilities,
+
+        /// <summary>
         /// A Building's rung on <c>BlockPatterns.Ladder</c>. <b>A DEBUG VIEW AND NOT A SHIPPING
         /// ONE.</b>
         /// </summary>
@@ -661,6 +651,10 @@ public partial class Main : Node3D
     private InstanceLayer _roads = null!;
     private InstanceLayer _footways = null!;
     private InstanceLayer _kerbs = null!;
+    private InstanceLayer _markings = null!;
+
+    /// <summary>Which Segment each road-marking instance paints.</summary>
+    private readonly List<ulong> _markingIds = [];
     private InstanceLayer _plots = null!;
     private PanelContainer _tuner = null!;
 
@@ -739,6 +733,9 @@ public partial class Main : Node3D
 
     /// <inheritdoc cref="_wash"/>
     private ShaderMaterial? _categorical;
+
+    /// <summary>The copies of <see cref="_muted"/> and <see cref="_categorical"/> a family body wears.</summary>
+    private ShaderMaterial? _mutedBody, _categoricalBody;
 
     /// <summary>The ground's ordinary material, kept so an overlay can be taken off again.</summary>
     private Material _skinned = null!;
@@ -994,18 +991,9 @@ public partial class Main : Node3D
     /// </summary>
     private readonly List<ulong> _footwayIds = [];
 
-    /// <summary>
-    /// Which <b>Segment</b> each kerb instance runs along — <b>bands and drops alike</b>.
-    /// </summary>
-    /// <remarks>
-    /// 🔴 <b>A DROP IS AN ADDRESS AND THIS COLUMN NAMES ITS SEGMENT INSTEAD</b>, which is a real loss
-    /// and is recorded rather than papered over: the Lot is what a reader would want to join on, and
-    /// one list cannot carry two kinds of id. ⚠ **Recover the Lot by matching the drop's centre to
-    /// `LotTable.FrontageOffset` on the Segment named here** — one join rather than none, and see
-    /// <see cref="Kerbs"/> for why merging makes even that approximate where two Addresses are closer
-    /// together than <see cref="KerbDropLengthMetres"/>.
-    /// </remarks>
+    /// <summary>Which Segment each kerb instance runs along, so a Segment appears once per side and once per cap.</summary>
     private readonly List<ulong> _kerbIds = [];
+    private readonly Dictionary<int, (ulong Id, Transform3D Where, Color What)[]> _kerbPieces = [];
 
     /// <summary>Which vacant Lot each drawn pad is, in instance order.</summary>
     private readonly List<ulong> _plotIds = [];
@@ -1104,6 +1092,8 @@ public partial class Main : Node3D
             return;
         }
 
+        Textures.Prefetch();
+
         if (load is not null)
         {
             string city = Globalize(load);
@@ -1199,16 +1189,13 @@ public partial class Main : Node3D
         // foot half: the kerb took its band out of it, at the same top, so the two are flush.
         _footways = Layer(Flagstone, new Vector3(1f, 0.3f, 1f), perInstance: true, casts: false);
 
-        // THE KERB, AND IT IS ONE MESH FOR TWO THINGS AT TWO HEIGHTS. A band is drawn with its top
-        // flush with the pavement -- 0.15 m, so the only step in the street is at the channel -- and
-        // a DROP is drawn with its top at 0.07 m, two centimetres over the asphalt. The instance
-        // transform carries the difference, which is why one 0.3 m box serves both: a drop is scaled
-        // to 0.07/0.15 of it and sits lower.
-        //
-        // ⚠ TWO CENTIMETRES AND NOT ZERO, because a drop flush with the carriageway is two coplanar
-        // faces and the depth test picks between them per pixel. ***A dropped kerb that z-fights
-        // reads as a rendering fault and not as a kerb.***
+        // The kerb band's top is flush with the pavement at 0.15 m, so the only step in the street
+        // is at the channel.
         _kerbs = Layer(Kerbstone, new Vector3(1f, 0.3f, 1f), perInstance: true, casts: false);
+
+        // The paint box is 0.12 m tall at y = 0, so its top stands 1 cm over the asphalt's.
+        _markings = Layer(LinePaint, new Vector3(1f, 0.12f, 1f), perInstance: true, casts: false);
+        ((BoxMesh)_markings.Multimesh.Mesh).Material = new ShaderMaterial { Shader = GD.Load<Shader>("res://road-marking.gdshader") };
 
         // 🔴 A VACANT LOT DREW NOTHING AT ALL, so Zone -- which creates Lots and never a Building --
         // had NO visible result on any world. Buildings() walks the Building table, and a Lot with
@@ -1276,9 +1263,9 @@ public partial class Main : Node3D
         // to update when one is replaced -- along with the shader's `MASONRY_MEAN`, which is a
         // property of the file and which nothing checks.
         _paint.SetShaderParameter(
-            "masonry_albedo", GD.Load<Texture2D>("res://assets/city/brick-wall-diffuse.jpg"));
+            "masonry_albedo", Textures.Load("res://assets/city/brick-wall-diffuse.jpg"));
         _paint.SetShaderParameter(
-            "masonry_normal", GD.Load<Texture2D>("res://assets/city/brick-wall-normal.jpg"));
+            "masonry_normal", Textures.Load("res://assets/city/brick-wall-normal.jpg"));
 
         // Shared roof families: one mesh per family, transforms per Building.
         _roofs = Layer(Roofing, RoofMeshes.Create(0), perInstance: true);
@@ -1306,6 +1293,7 @@ public partial class Main : Node3D
         _kerbs.DetailDistance = 5000f;
         _travellers.DetailDistance = 3000f;
         _cars.DetailDistance = 5000f;
+        _trees.Gated = _rocks.Gated = _kerbs.Gated = true;
         DressSurfaces();
 
         Ground();
@@ -1429,7 +1417,7 @@ public partial class Main : Node3D
 
         // Submit only after every shell reader has finished. Captures and Drive barriers keep
         // the published Tick stable until their frame has been observed.
-        if (_stopping || _preparation is not null || _pendingShot is not null || _menuOpen) return;
+        if (_stopping || _preparation is not null || _pendingShot is not null || _menuOpen || !LoadChecked()) return;
         if (_queued.Count > 0 && _owed < 1) _owed = 1;
         ulong until = _next < _drive.Length ? _drive[_next].At : ulong.MaxValue;
         int ticks = (int)Math.Min((ulong)Math.Min(_batchTicks, (int)_owed), until > _world.Tick.Raw ? until - _world.Tick.Raw : 0);
@@ -1895,6 +1883,7 @@ public partial class Main : Node3D
         int under = _underWater;
 
         Cursor();
+        Regate();
         FlushInstances();
 
         ulong tick = _world.Tick.Raw;
@@ -1928,6 +1917,16 @@ public partial class Main : Node3D
             ReadCity();
         }
 
+        // ⚠ THE UTILITIES WASH REPAINTS ON THE DAY AND NOT ON THE LAYER CADENCE. One settle fixes
+        // every network's delivered fraction for the whole Day, so repainting faster would re-read
+        // an unchanged number off every Building in the city -- the massing pass this triggers is
+        // the expensive half.
+        if (_washing == Wash.Utilities && tick / (ulong)Ticks.PerDay != _utilityDay)
+        {
+            _utilityDay = tick / (ulong)Ticks.PerDay;
+            _utilityRepaint = true;
+        }
+
         // ⚠ THE MINUTE COMES FROM Ticks AND IS NO LONGER DERIVED HERE. A Day begins at 05:00, so
         // `ofDay * 24 / PerDay` is off by five hours -- and this was one of four copies of that
         // expression, which is exactly why it now lives in one place.
@@ -1935,7 +1934,7 @@ public partial class Main : Node3D
 
         _readout.Text =
             $"{RulesetName()}   Tick {tick:N0}   "
-            + $"Day {tick / (ulong)Ticks.PerDay}   {Weekday(tick)}   "
+            + $"Day {ClockDay(tick)}   {Weekday(tick)}   "
             + $"{minute / 60:00}:{minute % 60:00}\n"
             + $"Citizens {_world.Citizens.Rows.LiveCount:N0}   Buildings {Counted(drawn)}   "
             + $"vacant Lots {vacant:N0}   "
@@ -1954,6 +1953,7 @@ public partial class Main : Node3D
         RefreshCityEvidence();
         RefreshBudget();
         RefreshHinterlands();
+        RefreshNeeds();
     }
 
     /// <summary>
@@ -2120,7 +2120,7 @@ public partial class Main : Node3D
             Record();
         }
 
-        Stop(0);
+        if (LoadChecked(wait: true)) Stop(0);
 
         return _rung;
     }

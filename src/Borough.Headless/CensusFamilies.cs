@@ -236,6 +236,10 @@ internal static class CensusFamilies
         (MoneyFlowCounter.Grant, Aggregate.Peak, "opening grant peak"),
         (MoneyFlowCounter.Rent, Aggregate.Sum, "rent"),
         (MoneyFlowCounter.Rent, Aggregate.Peak, "rent peak"),
+        (MoneyFlowCounter.Tariff, Aggregate.Sum, "utility tariff"),
+        (MoneyFlowCounter.Tariff, Aggregate.Peak, "utility tariff peak"),
+        (MoneyFlowCounter.UtilityImport, Aggregate.Sum, "utility import"),
+        (MoneyFlowCounter.UtilityImport, Aggregate.Peak, "utility import peak"),
     ];
 
     /// <summary>

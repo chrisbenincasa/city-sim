@@ -164,6 +164,11 @@ public enum Readout : ushort
     /// unhoused Household may emigrate, and money paid to it leaves the city with it.
     /// </remarks>
     Housed = 5,
+
+    /// <summary>
+    /// The floor area of this Building, in floor tiles.
+    /// </summary>
+    FloorArea = 6,
 }
 
 /// <summary>
@@ -220,7 +225,7 @@ public enum ReadoutScope : byte
 public static class Readouts
 {
     private static readonly Readout[] DeclaredSet =
-        [Readout.Occupancy, Readout.Balance, Readout.Emission, Readout.Jobs, Readout.Housed];
+        [Readout.Occupancy, Readout.Balance, Readout.Emission, Readout.Jobs, Readout.Housed, Readout.FloorArea];
 
     /// <summary>
     /// Every declared Readout, which is the set a shell may enumerate to build an inspector.
@@ -286,6 +291,7 @@ public static class Readouts
             // Household holds no post.
             Readout.Jobs => scope is ReadoutScope.Business,
             Readout.Housed => scope is ReadoutScope.Household,
+            Readout.FloorArea => scope is ReadoutScope.Building,
             _ => false,
         };
 
@@ -340,6 +346,7 @@ public static class Readouts
                 return world.DeclaredJobs(business);
 
             case Readout.Occupancy:
+            case Readout.FloorArea:
             case Readout.None:
             default:
                 throw new InvalidOperationException(
@@ -373,6 +380,7 @@ public static class Readouts
                 return world.Buildings.Rows.IsValid(world.Households.Dwelling[household]) ? 1 : 0;
 
             case Readout.Occupancy:
+            case Readout.FloorArea:
             case Readout.Emission:
             case Readout.Jobs:
             case Readout.None:
@@ -414,6 +422,9 @@ public static class Readouts
             // choice, which is a Readout that answers differently depending on who asked.
             case Readout.Emission:
                 return world.Buildings.PriorEmissionOn(building, BusinessAccounts.DayOf(world.Tick));
+
+            case Readout.FloorArea:
+                return world.FloorTilesOf(building);
 
             case Readout.Balance:
             case Readout.Housed:

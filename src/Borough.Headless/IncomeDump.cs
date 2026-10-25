@@ -22,7 +22,7 @@ using Borough.Formats;
 /// so the report has to say which of the two brought the money in.
 /// </para>
 /// <para>
-/// 🔴 <b>Income is printed in five columns and expenditure in five, and none of the ten is netted
+/// 🔴 <b>Income is printed in six columns and expenditure in six, and none of the twelve is netted
 /// against another.</b> <c>MoneyFlowCounter.FromTreasury</c>'s own remark carries the argument: a net
 /// is the one figure that cannot say whether a city taxed nothing and paid nothing or taxed heavily
 /// and paid it all back. The split within income is the same argument one level down — money an
@@ -346,11 +346,11 @@ internal static class IncomeDump
     }
 
     /// <summary>
-    /// The budget, with income in five columns, expenditure in five, and the two levels they moved.
+    /// The budget, with income in six columns, expenditure in six, and the two levels they moved.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Twelve columns and no thirteenth that adds any of them up.</b> The treasury column is
+    /// <b>Thirteen columns and no fourteenth that adds any of them up.</b> The treasury column is
     /// already the running consequence of the flows, so a net column would be its first difference and
     /// would carry nothing the table does not have — while costing the reader the one distinction
     /// the table exists to make. <b>The households column is the counterparty</b>: a budget that
@@ -388,6 +388,10 @@ internal static class IncomeDump
             census.Series(Metric.Of(MoneyFlowCounter.Upkeep, Aggregate.Sum), window);
         Series rented =
             census.Series(Metric.Of(MoneyFlowCounter.Rent, Aggregate.Sum), window);
+        Series bought =
+            census.Series(Metric.Of(MoneyFlowCounter.UtilityImport, Aggregate.Sum), window);
+
+        Series tariffs = census.Series(Metric.Of(MoneyFlowCounter.Tariff, Aggregate.Sum), window);
 
         ReadOnlySpan<CensusSample> levels = treasury.Samples.Span;
         var columns = new Columns(
@@ -401,14 +405,17 @@ internal static class IncomeDump
             drawn.Samples.Span,
             granted.Samples.Span,
             placed.Samples.Span,
-            kept.Samples.Span);
+            kept.Samples.Span,
+            bought.Samples.Span,
+            tariffs.Samples.Span);
 
         output.WriteLine(F($"Income and expenditure — one row per {cadence:N0} Ticks, which is a Day"));
         output.WriteLine();
 
         string header = Row(
             "tick", "withheld", "profit tax", "policy in", "rule in", "rent in", "policy out",
-            "rule out", "subsidy out", "placement out", "upkeep out", "treasury", "households");
+            "rule out", "subsidy out", "placement out", "upkeep out", "import out", "tariff in",
+            "treasury", "households");
         output.WriteLine(header);
         output.WriteLine(new string('-', header.Length));
 
@@ -447,15 +454,17 @@ internal static class IncomeDump
         long grantedOut = Total(columns.Granted);
         long placedOut = Total(columns.Placed);
         long keptOut = Total(columns.Kept);
+        long boughtOut = Total(columns.Bought);
+        long tariffIn = Total(columns.Tariffs);
 
         output.WriteLine();
         output.WriteLine(F(
-            $"  Into the treasury: {income:N0} withheld from wages, {profit:N0} in profit tax, {moved:N0} by a Policy, {paidIn:N0} by a Bin Rule, {rentIn:N0} in rent on city Lots."));
+            $"  Into the treasury: {income:N0} withheld from wages, {profit:N0} in profit tax, {moved:N0} by a Policy, {paidIn:N0} by a Bin Rule, {rentIn:N0} in rent on city Lots, {tariffIn:N0} in Utility tariffs."));
         output.WriteLine(F(
-            $"  Out of it: {out_:N0} by a Policy, {drawnOut:N0} by a Bin Rule, {grantedOut:N0} in subsidy, {placedOut:N0} on placements, {keptOut:N0} on road Upkeep."));
+            $"  Out of it: {out_:N0} by a Policy, {drawnOut:N0} by a Bin Rule, {grantedOut:N0} in subsidy, {placedOut:N0} on placements, {keptOut:N0} on road Upkeep, {boughtOut:N0} on Utility imports."));
         Catalogued(output, catalogue);
         output.WriteLine(
-            "  The ten are printed apart and never netted. A net cannot say whether a city taxed");
+            "  The twelve are printed apart and never netted. A net cannot say whether a city taxed");
         output.WriteLine(
             "  nothing and paid nothing or taxed heavily and paid it all back; and within the");
         output.WriteLine(
@@ -470,7 +479,7 @@ internal static class IncomeDump
             "  on its way to a purse, the other leaves a till that was already holding it.");
         output.WriteLine();
         output.WriteLine(
-            "  ⚠ `policy in` is every Policy that pays INTO the treasury, a plain transfer and a");
+            "  ⚠ `policy in` is every swept Policy that pays INTO the treasury, a plain transfer and a");
         output.WriteLine(
             "  tool = \"charge\" alike: PolicyEngine folds both into one accumulator, so on a file");
         output.WriteLine(
@@ -485,15 +494,19 @@ internal static class IncomeDump
             "  flow here could name.");
         output.WriteLine();
         output.WriteLine(
-            "  ⚠ `placement out` and `upkeep out` pay NOBODY. A service Building placed by hand");
+            "  ⚠ `placement out`, `upkeep out` and `import out` pay NOBODY IN THE CITY. A service");
         output.WriteLine(
-            "  costs its kind's placement_cost, and each Day every Road Segment costs [roads]");
+            "  Building placed by hand costs its kind's placement_cost, each Day every Road Segment");
         output.WriteLine(
-            "  upkeep_per_segment_per_day. Both buy imported Materials, so the money leaves the");
+            "  costs [roads] upkeep_per_segment_per_day, and a District short of a delivered Utility");
         output.WriteLine(
-            "  money supply rather than arriving in another Bin. They are expenditure because the");
+            "  buys the shortfall at an Outside Connection for what the Hinterland behind that edge");
         output.WriteLine(
-            "  balance fell by them, and columns because nothing else would name them.");
+            "  charges. All three pay the Outside, so the money leaves the money supply rather than");
+        output.WriteLine(
+            "  arriving in another Bin. They are expenditure because the balance fell by them, and");
+        output.WriteLine(
+            "  columns because nothing else would name them.");
         output.WriteLine();
         output.WriteLine(
             "  ⚠ `rent in` is only the rent that REACHED THE TREASURY, which is the rent charged on");
@@ -505,7 +518,7 @@ internal static class IncomeDump
             "  arrears panel's collected figure is the larger number and is not this column.");
         output.WriteLine();
         output.WriteLine(
-            "  The treasury column is these ten columns' running total, and nothing else reaches");
+            "  The treasury column is these twelve columns' running total, and nothing else reaches");
         output.WriteLine(
             "  it: every unit of the balance is explained by the flows printed beside it.");
     }
@@ -514,7 +527,7 @@ internal static class IncomeDump
     /// Every column of the budget but the tick and the treasury, which the caller already holds.
     /// </summary>
     /// <remarks>
-    /// <b>A carrier so that a row writer takes three arguments rather than eleven.</b> A <c>ref
+    /// <b>A carrier so that a row writer takes three arguments rather than twelve.</b> A <c>ref
     /// struct</c> because every member is a <see cref="ReadOnlySpan{T}"/> over the census's own
     /// storage — nothing is copied, and nothing outlives the reading it was taken from.
     /// </remarks>
@@ -529,7 +542,9 @@ internal static class IncomeDump
         ReadOnlySpan<CensusSample> drawn,
         ReadOnlySpan<CensusSample> granted,
         ReadOnlySpan<CensusSample> placed,
-        ReadOnlySpan<CensusSample> kept)
+        ReadOnlySpan<CensusSample> kept,
+        ReadOnlySpan<CensusSample> bought,
+        ReadOnlySpan<CensusSample> tariffs)
     {
         public ReadOnlySpan<CensusSample> Homes { get; } = homes;
 
@@ -582,6 +597,22 @@ internal static class IncomeDump
 
         /// <summary>What the city paid to keep its Road Segments. It reaches nobody, like <see cref="Placed"/>.</summary>
         public ReadOnlySpan<CensusSample> Kept { get; } = kept;
+
+        /// <summary>
+        /// What the treasury paid the Outside for a delivered Utility a District was short of.
+        /// </summary>
+        /// <remarks>
+        /// ⚠ <b>A city with a gate and no plant pays this every Day, and before this column the
+        /// balance fell by money no flow here could name.</b> The purchase settles at the Day
+        /// boundary and the money leaves the supply through <c>World.PayOutside</c>, so it reaches
+        /// nobody in the city, exactly as <see cref="Placed"/> and <see cref="Kept"/> do. It is a
+        /// column of its own for their reason too, because the lever behind it is a
+        /// <c>[[hinterland]]</c> price against an Outside Connection rather than a
+        /// <c>[[policy]]</c>'s amount.
+        /// </remarks>
+        public ReadOnlySpan<CensusSample> Bought { get; } = bought;
+
+        public ReadOnlySpan<CensusSample> Tariffs { get; } = tariffs;
     }
 
     /// <summary>
@@ -626,6 +657,8 @@ internal static class IncomeDump
             Cell(columns.Granted, i),
             Cell(columns.Placed, i),
             Cell(columns.Kept, i),
+            Cell(columns.Bought, i),
+            Cell(columns.Tariffs, i),
             Count(levels[i].Value),
             Cell(columns.Homes, i)));
     }
@@ -666,7 +699,8 @@ internal static class IncomeDump
     /// </remarks>
     private static int? Refuse(Ruleset rules, TextWriter output)
     {
-        if (rules.IncomeTax.Levies || rules.Rent.Collects)
+        if (rules.IncomeTax.Levies || rules.Rent.Collects
+            || Array.Exists(rules.Policies, policy => policy.Tool == PolicyTool.Tariff))
         {
             return null;
         }
@@ -685,8 +719,8 @@ internal static class IncomeDump
 
     private static string Row(
         string label, string a, string b, string c, string d, string e, string f, string g,
-        string h, string i, string j, string k, string l) =>
-        F($"{label,-10}  {a,11}  {b,11}  {c,11}  {d,11}  {e,11}  {f,11}  {g,11}  {h,11}  {i,13}  {j,11}  {k,14}  {l,14}");
+        string h, string i, string j, string k, string l, string m, string n) =>
+        F($"{label,-10}  {a,11}  {b,11}  {c,11}  {d,11}  {e,11}  {f,11}  {g,11}  {h,11}  {i,13}  {j,11}  {k,11}  {l,11}  {m,14}  {n,14}");
 
     private static string Count(long value) => F($"{value:N0}");
 

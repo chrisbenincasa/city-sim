@@ -7,27 +7,49 @@ reaches the Citizens and Businesses inside it as a graded consequence they can e
 plant is a spatial decision with a cost, an emission and a labour demand. The alternative is to
 import at an Outside Connection for a price.
 
-## Current behaviour (checked 10/14/2026 at `9fdb118b`)
+## Current behaviour (checked 10/20/2026 on `utilities-5`)
 
 | Piece | Built | Where |
 |---|---|---|
-| `ResourceFamily.Utility` | Declared. Used only by the Water Body Bin | `Ruleset.cs` `ResourceFamily` |
-| Water Body Bin | One Utility Resource per body, filled by runoff, drained downstream | `WaterBodyTable`, `World.RunoffIntoWater`, `World.DrainWaterBodies` |
-| `storage` on a Resource | Refused at load | `RulesetLoader.RefuseStorage` |
-| Networked Service (`serves = "power"`, `"water"` or `"sewage"`) | Refused at load. These are Resources, not Needs | `RulesetLoader`, `adr/0032`, `adr/0103` |
+| Delivered Utility | A Utility Resource stating `link_per_crossing` is delivered. `storage`, `link_per_crossing` and `loss_per_road_tile` load | `RulesetLoader`, `Ruleset.IsDeliveredUtility` |
 | District | Derived by watershed. Holds one Pool Bin per Good | `DistrictWatershed`, `World.FitDistrictPools` |
-| District adjacency graph | No | — |
-| Utility Pool Bin | No. `FitDistrictPools` skips non-Goods | `World.FitDistrictPools` |
-| Utility import price | No. Import prices are Good-only | `RulesetLoader` import-price check |
-| Plants, consumers, outage, billing, overlay | No | Shell tool browser lists "Utilities" as disabled |
+| District adjacency graph | Derived. Crossing counts per District pair, and road Tiles credited per District | `DistrictAdjacency.Compute` |
+| Utility network row | One saved row per District per delivered Utility, holding the Pool, today's fraction and yesterday's supplied/asked/received/imported and what the treasury paid | `UtilityFlowTable`, `World.FitUtilityFlows` |
+| Daily settle | Road loss added to local demand, local production first, then integer max-flow across the links, then imports over the residual network. Runs at the head of the Day's first Tick | `World.SettleUtilityNetworks`, `Simulation.Step` |
+| Import at an Outside Connection | A gate is a source attached to the District holding its Lot, worth `import_per_connection` a Day. Cheapest gate first, then the gate's Building id. Fills only what the links left short | `World.Import`, `World.ListImportGates` |
+| Import price and payment | A `[[hinterland]]` price on a delivered Utility; a gate charges the cheapest price on its own edge. The treasury pays at the settle and the money leaves the city | `Ruleset.ImportPrice`, `World.PayOutside`, `adr/0024` |
+| Degraded firing | A pool Utility input caps the application count at `floor(count × delivered)`. It never blocks a Rule | `RuleEngine.Check` |
+| Floor-area Readout | Built, Building-scoped | `Readouts.FloorArea` |
+| Evidence | Each drawn Utility with today's delivered Ratio and yesterday's received/asked, gross imported units and the money paid for them, and, when tariffed, what the Building paid and left unpaid yesterday | `BuildingEvidence.Utilities`, `Evidence.OfBuilding` |
+| Shell | Building panel Utilities section with the import line, the brownout clause in the condition line, attention for a shortfall and for import dependence, a Utilities Building wash, the city budget's `Utility imports · out` and `utility tariffs · in` rows, and the paid line | `Main.Utilities.cs`, `Main.Information.cs`, `Main.Budget.cs`, `Main.Diagnosis.cs` |
+| Headless | The evidence dump prints a per-Utility delivered/served/asked table and the imports beneath it | `EvidenceDump.Utilities` |
+| Water Body Bin | One Utility Resource per body, filled by runoff, drained downstream | `WaterBodyTable`, `World.RunoffIntoWater`, `World.DrainWaterBodies` |
+| Networked Service (`serves = "power"`, `"water"` or `"sewage"`) | Refused at load. These are Resources, not Needs | `RulesetLoader`, `adr/0032`, `adr/0103` |
+| Tariff Policy | `[[policy]]` with `tool = "tariff"` and `utility`. `transfer.amount` is money per unit received, local to global, and Govern sets it. One per delivered Utility. Absent means no billing | `RulesetLoader`, `PolicyTool.Tariff`, `Ruleset.TariffOf` |
+| Billing | When a Rule drawing a tariffed Utility fires, its Household or Business pays `units per application × fired applications × tariff` to the treasury. A brownout fires fewer applications and bills less. A short payer pays its balance and the rest is waived, never owed. A Business books the payment as expense. A premises Rule drawing a tariffed Utility is refused at load | `RuleEngine.Fire` |
+| Billing evidence | One saved row per Building per delivered Utility, holding today's and yesterday's paid and unpaid. Rows retire with the Building | `UtilityBillTable`, `BuildingEvidence.Utilities` |
+| Tariff treasury flow | `Tariff` income column, in the Budget panel as `utility tariffs · in` | `TreasuryFlows`, `Main.Budget.cs` |
+| Base content | No. `powered.toml` is the only file declaring a Utility, and the shell's tool browser still lists "Utilities" as disabled | slice 7 |
 
-- No shipped Ruleset declares `power` or `water`. Only `sewage` exists, and only as the Water Body
-  Resource in `coastal`, `flooded`, `traded` and `pictured`.
 - A Building can hold a Local Utility Bin, and a Rule can consume from it. Nothing fills that Bin
   from outside the Building.
-- A Pool term naming a Utility loads without refusal. At runtime it finds no market row and fires
-  at zero applications, so it does nothing without reporting why (`RuleEngine` `Marketless`
-  branch). This is from reading, not from a test.
+- A pool term naming a Utility that states no `link_per_crossing` is refused at load, so the
+  silent zero `RuleEngine`'s `Marketless` branch used to produce can no longer happen.
+- Delivery is structure rather than tuning on a hot reload (`RulesetChange.ResourceDelivery`). A
+  Utility that stops being delivered loses its networks and its District Pool rows
+  (`World.RetireUndeliveredNetworks`); what a crossing carries and what a Tile loses stay numbers.
+- ⚠ `--evidence` refuses a Ruleset with no `[[zone_rule]]`, so `powered.toml` cannot be run through
+  the runner. The dump's table is covered by calling `EvidenceDump.Utilities` from a test instead.
+  A Ruleset that both declares a Utility and condemns something would close this.
+- A Utility is importable only where a Hinterland prices it. A gate on an edge whose Hinterland
+  states no price for the Utility imports nothing. Imported units travel the links like a plant's,
+  so a District with no gate of its own is served over the network; one the links cannot carry a
+  priced gate's units to stays short.
+- An import is capped at what the treasury can pay at that gate's price, `floor(balance / price)`
+  units. Nothing is owed later, so a short treasury imports part of the shortfall and an empty one
+  imports none of it.
+- Imported units are gross. A District served only by import buys its road loss as well, so its
+  `Imported` exceeds what its consumers receive.
 
 ## Decided
 
@@ -79,6 +101,11 @@ import at an Outside Connection for a price.
   - ⚠ A per-Tick settle, or a cadence between the two, would be more dynamic. Within-Day demand is
     lumpy because only the Rules firing in a Tick ask for anything, so a finer cadence needs
     demand smoothed over a window. Revisit if the one-Day lag reads as unresponsive in play.
+- An imported Utility pays its import price only, and no haulage charge (D7, 10/20/2026). The
+  price covers delivery to the city's edge. Inside the city, the treasury owns the network and
+  already pays for distance through street upkeep and `loss_per_road_tile`. A haulage fee would
+  have the treasury pay itself, or need a network owner Borough lacks. Good imports pay no
+  haulage either (`adr/0135`). Revisit when the `adr/0133` haulage charge ships for Goods.
 - Telecommunications is refused (`0074`). District heating is deferred. Gravity-fed sewage is
   deferred until plant siting proves to be decided by land price alone (`docs/deferred.md`).
 
@@ -86,30 +113,94 @@ import at an Outside Connection for a price.
 
 | # | Question | Candidates | Blocks |
 |---|---|---|---|
-| D7 | Does an import pay the haulage charge (`adr/0133`) | Yes; no | Import slice |
 | D8 | Does treatment discharge into a Water Body | Yes, joining the existing `[water] carries = "sewage"`; or a separate Bin | Sewage slice |
 | D9 | Does a sustained brownout feed decline | No; or after a Ruleset duration below a Ruleset fraction | After slice 1 |
 
 ## Slices
 
-1. **Power in one test world.**
-   - Derive the District adjacency graph from road segments that cross a District boundary.
-   - Add a Utility Pool Bin per District, accept `storage = 0`, and add the link capacity and
-     network loss keys.
-   - Add a plant kind whose Rule makes Power, and a floor-area Readout for premises demand.
-   - Settle daily: supply from yesterday's output, demand from yesterday's draws, one flow solve.
-   - Cap a Rule's application count at its Utility term's delivered fraction.
-   - Add the delivered-fraction Readout, an explanation naming the short Utility, and the
-     coverage overlay.
-   - Refuse a Pool term whose Resource has no supported delivery, so the silent zero cannot
-     happen.
+1. **Power in one test world. Built on `utilities-1`, 10/20/2026.**
+   - Ruleset keys: `storage`, `link_per_crossing` and `loss_per_road_tile` on a Utility Resource.
+     Stating `link_per_crossing` is what makes the Utility delivered. The fixture is
+     `rulesets/powered.toml` — a plant, a per-occupant dwelling draw and a greedy works draw.
+   - The settle runs at the head of each Day's first Tick and fixes one fraction per District for
+     the whole Day, so a cut road or a new plant reads from the next Day.
+   - A short Utility degrades rather than blocks, which is why no field a stopped Rule fills can
+     report a brownout. The explanation carries it in its own field.
+   - A Utility an `on_fail` link draws counts as drawn. A link holds no Rule Instance of its own
+     and runs against the head's, so the readers walk the chain from each Instance's head.
+   - A District that has a consumer or a plant owes `loss_per_road_tile × road Tiles` before
+     anybody in it is served, and local production covers that total before the links do. So the
+     loss falls on an importing District as much as on a producing one.
+   - Tests: `DistrictAdjacencyTests`, `UtilityRulesetLoadTests`, `PowerDeliveryTests`,
+     `UtilityEvidenceTests`. Driven demonstration in `evidence/utilities-slice-1/`.
+   - Gap found: a Lot built in code gets one Tile of ground, so the shell draws no massing for it
+     and a wash over a hand-built fixture is invisible. The fixture states its ground.
+   - **Known gaps accepted for slice 1.**
+     - A District with neither demand nor production pays no road loss, so a pure relay forwards
+       what crosses it for nothing.
+     - `DistrictAdjacency` gives each pair touching one component of district-less road
+       `min(n_A, n_B)` crossings, taken per pair. One District facing a 3-Segment boundary onto a
+       component with two neighbors behind it therefore gets 2 + 2 crossings of outbound capacity
+       over that 3-Segment boundary, which overstates it.
+     - The max-flow picks one optimal split when total supply is short, with no fairness between
+       Districts.
+     - Dropping `link_per_crossing` on a hot reload closes the Utility's networks and Pool rows;
+       restoring it opens new ones at nothing delivered. A Day's production does not survive the
+       edit either way.
+     - A Day's `produced` and `demanded` saturate at `UtilityFlowTable.Bound` — 10¹⁸, which a
+       Ruleset only reaches by stating absurd amounts — rather than wrapping.
 2. **Water.** Storage that carries over between Days. A water tower is a Bin with large storage.
    Leakage scales with road length.
 3. **Sewage.** Storage that fills, generated as an output of Water-drawing Rules. Inflow grows
    with road length. Overflow raises the pollution layer, which lowers Fertility. Resolve D8.
-4. **Import at an Outside Connection.** Price, gate and payer. Resolve D7.
-5. **Billing.** A per-unit tariff charge on delivered Utility terms, paid to the treasury, and
-   the tariff Policy lever. Update the [money circulation](money-circulation.md) Utilities row.
+4. **Import at an Outside Connection. Built on `utilities-4`, 10/20/2026.**
+   - Ruleset keys: `import_per_connection` on a delivered Utility `[[resource]]`, and a
+     `[[hinterland]] prices` entry naming that Utility. The loader refuses either without the
+     other, and refuses both on an undelivered Utility.
+   - A second pass over the residual network the link solve leaves. Each gate is a source attached
+     to the District holding its Lot, so imported units travel the links like a plant's. Gates are
+     bought cheapest first, then by the gate's monotonic Building id — not its slot, which is
+     recycled.
+   - The treasury pays at the settle for what that settle bought, and the money leaves the city to
+     the Outside (`adr/0024`). It is a treasury expense beside street upkeep, not a charge on the
+     drawing Rules; slice 5's tariff is what recovers it.
+   - Imports fill only the deficit the plants and the links left, so a plant's unit is never
+     displaced by a bought one.
+   - A Hinterland's price for a delivered Utility is a gate's import price and nothing else. The
+     District Pool row for one opens at zero rather than at `ImportCeiling`, so `--market` prints
+     no price for a market nobody buys in and the number stays out of the State Hash.
+   - Saved state: `Imported` and `ImportPaid` per District per Utility. Save format 27 → 28. No
+     golden moved, because the golden session runs `declining.toml` and only `powered.toml`
+     declares a delivered Utility, so the two new columns hash over an empty table.
+   - Tests: `PowerImportTests`, `UtilityRulesetLoadTests`, `UtilityEvidenceTests`,
+     `CityBudgetTests`. Driven demonstration in `evidence/utilities-slice-4/`.
+   - **Known gaps accepted for slice 4.**
+     - A short treasury caps the import at `floor(balance / price)` units and an empty one imports
+       nothing. There is no debt, so the District goes short instead, and nothing in the shell
+       warns that the balance is what is rationing it.
+     - Gates are augmented one at a time in price order rather than solved as a min-cost flow, and
+       they share the links. A cheap gate's flow can saturate a link a dearer gate needed, so
+       neither the cheapest bill nor the largest total import is guaranteed.
+     - A Ruleset may price a Utility on an edge that holds no gate. Nothing refuses that and
+       nothing ever charges the price.
+5. **Billing. Built on `utilities-5`, 10/20/2026.**
+   - The charge happens at firing, on what the Rule received, so a brownout bills less without a
+     second rule. It never blocks: a Utility term still never stops a Rule.
+   - A payer short of the bill pays its balance and the rest is waived and reported as unpaid.
+     Blocking would contradict D4, and carrying it as debt would be an automatic overdraft.
+   - The tariff recovers from the drawing Rules what slice 4's imports cost the treasury.
+   - The tariff is a `[[policy]]` with `tool = "tariff"`, read at firing rather than swept. The
+     player sets it with Govern; the Ruleset's amount is the default. Save format 29.
+   - `rulesets/powered.toml` circulates money: the dwelling's Households and the works' Business
+     pay the tariff, and the plant is a staffed `generation` Business funded by a `plant_funding`
+     transfer on `school_funding`'s shape.
+   - Tests: `UtilityTariffLoadTests`, `UtilityBillingTests`, `PowerTariffTests`. Driven
+     demonstration in `evidence/utilities-slice-5/`.
+   - **Known gaps accepted for slice 5.**
+     - The Building panel's network line reports the settle that fixed today's fraction as
+       "yesterday", so on the Day after a cut it reads `served 0` above a full bill for that Day.
+     - No verb closes the Building panel, so a driven run cannot photograph the Budget panel's
+       amounts with a Building selected.
 6. **Critical loads.** A Ruleset flag on a Building kind serves it in full before the rest share
    the remainder, as real load shedding protects hospitals and pumping. Take this up once a
    critical kind draws a Utility. Water pumping that draws Power makes a power shortage cascade
@@ -119,6 +210,9 @@ import at an Outside Connection for a price.
 
 ## Acceptance for slice 1
 
+Met on `utilities-1`. `PowerDeliveryTests` carries the first six lines, `FactorioTests` and the
+Golden fixtures carry the equivalences, and `evidence/utilities-slice-1/` carries the last.
+
 - A headless test world has two Districts joined by one road, one plant and consumers in both.
   Power reaches the far District through adjacency.
 - Removing the joining road leaves the far District short from the next Day. Its consumers run at
@@ -127,7 +221,11 @@ import at an Outside Connection for a price.
 - With link capacity below the far District's demand, adding a second crossing road raises its
   delivered fraction.
 - Restoring the road, or placing a second plant there, restores full delivery the next Day.
-- Unused Power does not carry over, and network loss grows with road length.
-- Replay, save/reload and thread-count equivalence hold, and `DerivedRebuildAuditTests` covers
-  the adjacency graph.
+- Unused Power does not carry over, and network loss grows with road length — in the District that
+  generates the Power and in the one that imports it.
+- Replay, save/reload and thread-count equivalence hold. `DerivedRebuildAuditTests` covers the
+  Pool-to-network index and that a rebuild does not change the next settle's output; the adjacency
+  graph's rebuild stability is held by
+  `DistrictAdjacencyTests.Results_are_sorted_unique_and_unchanged_by_derived_rebuild`, since
+  `Compute` rebuilds the graph whole at every settle and nothing else reads it.
 - A driven demonstration shows the outage and the recovery in the shell.

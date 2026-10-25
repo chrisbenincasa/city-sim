@@ -1104,17 +1104,16 @@ public sealed class RulesetLoaderTests
     /// electricity — the hole hidden inside a plausible number rather than reported.
     /// </summary>
     [Fact]
-    public void The_storage_axis_is_refused_rather_than_silently_dropped()
+    public void Utility_storage_zero_is_accepted()
     {
-        RulesetRefusal refusal = Refused("""
+        Ruleset ruleset = Accepted("""
             [[resource]]
             name = "power"
             family = "utility"
             storage = 0
             """);
 
-        Assert.Contains("storage is not implemented", refusal.Reason, StringComparison.Ordinal);
-        Assert.Equal(4, refusal.Line);
+        Assert.Equal(0, ruleset.StorageOf(new ResourceId(1)));
     }
 
     /// <summary><c>map</c> is write-only, so it cannot be an input and cannot be waited on.</summary>
