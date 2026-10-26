@@ -1035,4 +1035,10 @@ public enum PurposeTag : ulong
     /// headless runner on the face and era, never by a Tick, so it moves no State Hash.
     /// </summary>
     AppearanceApartmentRun = 81,
+
+    /// <summary>
+    /// How many Lots a parade of shop Buildings on one block face spans. Drawn by the shell and the
+    /// headless runner on the face side, never by a Tick, so it moves no State Hash.
+    /// </summary>
+    AppearanceShopRun = 82,
 }

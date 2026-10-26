@@ -223,16 +223,16 @@ public static partial class FamilyBodyBuilder
     /// roof free at both ends and deeper than it is wide turns its ridge to run back from the street.
     /// </summary>
     private static void Pitched(Writer w, float x, float front, float back, float height, float degrees, bool hip,
-        AttachedSides attached, CrossGable? gable)
+        AttachedSides attached, CrossGable? gable, float eaves = ApartmentEaves)
     {
-        const float E = ApartmentEaves;
+        float E = eaves;
         float t = MathF.Tan(degrees * MathF.PI / 180f);
         float half = (back - front) / 2f, cy = (front + back) / 2f, top = height + (half * t), low = height - (E * t);
         float ya = front - E, yb = back + E;
         bool left = attached.HasFlag(AttachedSides.Left), right = attached.HasFlag(AttachedSides.Right);
         if (hip && !left && !right && half > x)
         {
-            TurnedHip(w, x, front, back, height, t, gable);
+            TurnedHip(w, x, front, back, height, t, gable, E);
             return;
         }
 
@@ -247,7 +247,7 @@ public static partial class FamilyBodyBuilder
             float xe0 = g.Centre - g.Half - E, xe1 = g.Centre + g.Half + E;
             Outward(w, "roof", forward, [new(xa, ya, low), new(xe0, ya, low), apex, new(g.Centre, cy, top), new(ra, cy, top)]);
             Outward(w, "roof", forward, [new(xe1, ya, low), new(xb, ya, low), new(rb, cy, top), new(g.Centre, cy, top), apex]);
-            FrontGableOn(w, g, front, height, low, t);
+            FrontGableOn(w, g, front, height, low, t, E);
         }
         else
         {
@@ -283,9 +283,9 @@ public static partial class FamilyBodyBuilder
     }
 
     /// <summary>A hipped roof whose ridge runs back from the street, over a Building free at both ends.</summary>
-    private static void TurnedHip(Writer w, float x, float front, float back, float height, float t, CrossGable? gable)
+    private static void TurnedHip(Writer w, float x, float front, float back, float height, float t, CrossGable? gable,
+        float E = ApartmentEaves)
     {
-        const float E = ApartmentEaves;
         float top = height + (x * t), low = height - (E * t);
         float xa = -x - E, xb = x + E, ya = front - E, yb = back + E, r0 = front + x, r1 = back - x;
         Outward(w, "roof", new Vector3(-1f, 0f, 1f), [new(xa, yb, low), new(xa, ya, low), new(0f, r0, top), new(0f, r1, top)]);
@@ -297,7 +297,7 @@ public static partial class FamilyBodyBuilder
             var apex = new Vector3(g.Centre, front + g.Half, height + (g.Half * t));
             Outward(w, "roof", forward, [new(xa, ya, low), new(g.Centre - g.Half - E, ya, low), apex, new(0f, r0, top)]);
             Outward(w, "roof", forward, [new(g.Centre + g.Half + E, ya, low), new(xb, ya, low), new(0f, r0, top), apex]);
-            FrontGableOn(w, g, front, height, low, t);
+            FrontGableOn(w, g, front, height, low, t, E);
         }
         else
         {
@@ -309,9 +309,8 @@ public static partial class FamilyBodyBuilder
     }
 
     /// <summary>A front gable whose ridge runs back into the main roof's front slope, with an attic window where it is tall enough.</summary>
-    private static void FrontGableOn(Writer w, CrossGable g, float front, float height, float low, float t)
+    private static void FrontGableOn(Writer w, CrossGable g, float front, float height, float low, float t, float E = ApartmentEaves)
     {
-        const float E = ApartmentEaves;
         float gt = height + (g.Half * t), ye = g.Front - E, ya = front - E;
         float xe0 = g.Centre - g.Half - E, xe1 = g.Centre + g.Half + E;
         var ridge = new Vector3(g.Centre, front + g.Half, gt);
@@ -350,9 +349,30 @@ public static partial class FamilyBodyBuilder
     /// <summary>The top storey inside a slate mansard lit by a dormer a bay, over walls a storey lower.</summary>
     private static void ApartmentMansard(Writer w, FamilyBody body, float x, float y, int storeys, AttachedSides attached, int bays, float bay)
     {
-        const float K = MansardInset;
-        float eaves = (storeys - 1) * Storey, crown = eaves + Storey;
+        float eaves = (storeys - 1) * Storey;
         ApartmentWalls(w, body, x, y, [new(0f, 2f * x, 0f)], storeys - 1, attached);
+        BayKind[] upper = body.Street.Upper.Over(bays);
+        var front = new List<float>();
+        var back = new List<float>();
+        for (int i = 0; i < bays; i++)
+        {
+            float c = -x + ((i + .5f) * bay);
+            back.Add(c);
+            if (upper[i] != BayKind.Blank) front.Add(c);
+        }
+
+        MansardRoof(w, x, y, eaves, attached, [.. front], [.. back], MathF.Min(.75f, (bay / 2f) - .45f));
+    }
+
+    /// <summary>
+    /// A slate mansard from <paramref name="eaves"/> up a storey, hipped at each free end and closed by
+    /// an upstand at each shared one, with a dormer at each centre given for the street and back slopes.
+    /// </summary>
+    private static void MansardRoof(Writer w, float x, float y, float eaves, AttachedSides attached,
+        ReadOnlySpan<float> front, ReadOnlySpan<float> back, float dw)
+    {
+        const float K = MansardInset;
+        float crown = eaves + Storey;
         bool left = attached.HasFlag(AttachedSides.Left), right = attached.HasFlag(AttachedSides.Right);
         float ka = left ? 0f : K, kb = right ? 0f : K;
         float xa = left ? -x : -x - .08f, xb = right ? x : x + .08f;
@@ -385,14 +405,10 @@ public static partial class FamilyBodyBuilder
         w.Box(new Vector3(-x, -y - .45f, eaves - .35f), new Vector3(x, -y, eaves), "trim");
         w.Box(new Vector3(-x, y, eaves - .25f), new Vector3(x, y + .3f, eaves), "trim");
 
-        BayKind[] upper = body.Street.Upper.Over(bays);
-        float dw = MathF.Min(.75f, (bay / 2f) - .45f);
         foreach ((float face, float sign) in (ReadOnlySpan<(float, float)>)[(-y, 1f), (y, -1f)])
         {
-            for (int i = 0; i < bays; i++)
+            foreach (float c in sign > 0f ? front : back)
             {
-                if (sign > 0f && upper[i] == BayKind.Blank) continue;
-                float c = -x + ((i + .5f) * bay);
                 float glass = face + (sign * .35f), behind = face + (sign * (K + .3f));
                 float lo = MathF.Min(glass, behind), hi = MathF.Max(glass, behind);
                 w.Box(new Vector3(c - dw, lo, eaves + .25f), new Vector3(c + dw, hi, eaves + 2.5f), "trim");

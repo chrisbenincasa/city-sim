@@ -1,0 +1,16 @@
+tick 605
+traded.toml   Tick 605   Day 0   Monday   12:05
+Citizens 10,000   Buildings 1,500 (1,329 drawn)   vacant Lots 8   travelling 0   no flood
+speed paused   mode look   [ ] speed, space pause, w write log, g roads, c cells, tab tune, ctrl-z undo
+click acts   right-drag or two-finger scroll pans   edge of screen pans   pinch or -/= zooms   q/e turns   r/f tilts   l lens   o overlay
+hover —
+Outside the map
+debug —
+— pointing off the map —
+inspector —
+closed
+ui theme=dark debug=False visible=False scroll=0
+inspector (3410, 104), (406, 177) min=(125, 177)
+body (3410, 104), (0, 0) min=(0, 0)
+scroll (3410, 104), (0, 0) min=(0, 0)
+hover (40, 2084), (962, 40) debug (24, 264), (840, 36) console (24, 2008), (994, 128)

@@ -29,9 +29,12 @@ public sealed class StylePresetSchemaTests
             .GetProperty("family").GetProperty("items").GetProperty("properties").GetProperty("body");
         JsonElement forbidden = body.GetProperty("allOf")[0].GetProperty("then")
             .GetProperty("not").GetProperty("anyOf");
+        // A shop body takes 'pitch_degrees', so a rule of its own refuses it to the other shapes.
+        JsonElement pitch = body.GetProperty("allOf")[1].GetProperty("then").GetProperty("not");
         string[] schemaKeys =
         [
             .. forbidden.EnumerateArray().Select(rule => rule.GetProperty("required")[0].GetString()!)
+                .Append(pitch.GetProperty("required")[0].GetString()!)
                 .Order(StringComparer.Ordinal),
         ];
 
