@@ -1,6 +1,8 @@
 namespace Borough.Core.Entities;
 
 // Optional, disposable observation at World mutation boundaries; never saved or hashed.
+// The journals keep recording while Full is set, so a consumer with its own baseline can still
+// read what changed since that baseline.
 public sealed class WorldChanges
 {
     private readonly Journal _buildings = new(), _lots = new(), _segments = new(), _rectangles = new();
@@ -12,13 +14,13 @@ public sealed class WorldChanges
 
     public void Invalidate() => Full = true;
 
-    internal void Building(int slot) { if (!Full) _buildings.Mark(slot); }
+    internal void Building(int slot) => _buildings.Mark(slot);
 
-    internal void Lot(int slot) { if (!Full) _lots.Mark(slot); }
+    internal void Lot(int slot) => _lots.Mark(slot);
 
-    internal void Segment(int slot) { if (!Full) _segments.Mark(slot); }
+    internal void Segment(int slot) => _segments.Mark(slot);
 
-    internal void PermissionRectangle(int slot) { if (!Full) _rectangles.Mark(slot); }
+    internal void PermissionRectangle(int slot) => _rectangles.Mark(slot);
 
     public void Clear()
     {

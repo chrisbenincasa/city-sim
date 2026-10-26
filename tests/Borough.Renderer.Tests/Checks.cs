@@ -19,6 +19,7 @@ public partial class Checks : Node
             CheckResidency();
             CheckPreparation();
             CheckPreparedInputs();
+            CheckPreparedEdits();
             var layer = new InstanceLayer();
             AddChild(layer);
             InstanceBuffer b = layer.Multimesh;
@@ -108,7 +109,7 @@ public partial class Checks : Node
             b.Flush(maxBytes: 1280, allowOversize: false);
             Require(b.PendingBatches == 0 && b.ResidentInstances == 2, "deferred uploads finish on subsequent frames");
             b.VisibleInstanceCount = 0; b.Flush();
-            GD.Print("Renderer checks passed: capacity, retention, identity, removal, migration, bounds, bulk buffers, near band, gate, owners, residency, preparation, prepared inputs.");
+            GD.Print("Renderer checks passed: capacity, retention, identity, removal, migration, bounds, bulk buffers, near band, gate, owners, residency, preparation, prepared inputs, prepared edits.");
             GetTree().Quit();
         }
         catch (Exception error) { GD.PrintErr(error); GetTree().Quit(1); }
@@ -352,6 +353,58 @@ public partial class Checks : Node
         Require(scene.Regate(camera.Position) && scene.Queued == 1, "a refresh queues only the owner whose inputs changed");
         scene.Drain();
         Require(Drawn().SequenceEqual<ulong>([20, 15, 0]) && Plans() == 4, "an owner with changed inputs is planned again");
+
+        camera.QueueFree();
+        layer.QueueFree();
+    }
+
+    private void CheckPreparedEdits()
+    {
+        var layer = new InstanceLayer { Gated = true, DetailDistance = 1000f };
+        AddChild(layer);
+        layer.Multimesh.Mesh = new BoxMesh();
+        var camera = new Camera3D { Position = new Vector3(0, 100, 0) };
+        AddChild(camera);
+        camera.MakeCurrent();
+
+        // Owners and where each stands, east in metres. Each piece's id carries its owner's version.
+        var east = new Dictionary<long, float> { [0] = 0f, [1] = 100f, [2] = 200f };
+        var version = new Dictionary<long, long> { [0] = 0, [1] = 0, [2] = 0 };
+        void List(List<PreparedOwner> into)
+        {
+            foreach (long owner in east.Keys.Order()) into.Add(Where(owner));
+        }
+        PreparedOwner Where(long owner) => new(owner, new Vector3(east[owner], 0, 0), 20f);
+        PreparedPiece[] Plan(long owner) =>
+            [new((ulong)((owner * 10) + version[owner]), new Transform3D(Basis.Identity, new Vector3(east[owner], 0, 0)), Colors.White)];
+        ulong[] Drawn() => [.. layer.Multimesh.Canonical().Select(layer.Multimesh.IdAt)];
+
+        var scene = new ScenePreparation(verify: true);
+        int component = scene.Register("edits", layer, List, Plan);
+        scene.Reset(component);
+        scene.Regate(camera.Position);
+        scene.Drain();
+        Require(Drawn().SequenceEqual<ulong>([0, 10, 20]), "edited owners start drawn");
+
+        version[1] = 1;
+        scene.Touch(component, 1);
+        Require(Drawn().SequenceEqual<ulong>([0, 10, 20]), "a touched owner keeps its instances until rewritten");
+        Require(scene.Regate(camera.Position) && scene.Queued == 1, "a touch queues only its owner");
+        scene.Drain();
+        Require(Drawn().SequenceEqual<ulong>([0, 11, 20]), "a touched owner is planned again");
+
+        east[3] = 300f;
+        version[3] = 0;
+        scene.Relist(component, 3, Where(3));
+        east[2] = 600f;
+        version[2] = 1;
+        scene.Relist(component, 2, Where(2));
+        east.Remove(0);
+        scene.Relist(component, 0, null);
+        Require(Drawn().SequenceEqual<ulong>([11, 20]), "a relisted vanished owner loses its instances at once");
+        Require(scene.Regate(camera.Position) && scene.Queued == 2, "relisting queues only new and moved owners");
+        scene.Drain();
+        Require(Drawn().SequenceEqual<ulong>([11, 21, 30]), "new and moved owners are planned where they now stand");
 
         camera.QueueFree();
         layer.QueueFree();

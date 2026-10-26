@@ -40,6 +40,17 @@ public sealed class WorldChangesTests
     }
 
     [Fact]
+    public void An_invalidated_journal_keeps_recording()
+    {
+        var world = new World(32) { Changes = new WorldChanges() };
+        world.Changes.Clear();
+        world.Changes.Invalidate();
+        int slot = world.Buildings.Rows.Resolve(Build(world));
+        Assert.True(world.Changes.Full);
+        Assert.Equal(new[] { slot }, world.Changes.Buildings.ToArray());
+    }
+
+    [Fact]
     public void Occupancy_and_abandonment_report_the_building_with_no_population_scan()
     {
         var world = new World(32) { Changes = new WorldChanges() };

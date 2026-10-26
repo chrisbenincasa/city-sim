@@ -996,13 +996,15 @@ public partial class Main : Node3D
     /// <summary>Which Citizen each drawn Traveller is, in instance order.</summary>
     private readonly List<ulong> _travellerIds = [];
 
-    /// <summary>Which Segment each road instance is, so the <c>draw</c> list can be joined to the
-    /// Road Graph. <b>Monotonic row ids, never slots.</b></summary>
+    /// <summary>
+    /// Marks the road layer's ids as named. Each instance's id is its Segment's monotonic row id,
+    /// never its slot, so the <c>draw</c> list can be joined to the Road Graph.
+    /// </summary>
     private readonly List<ulong> _roadIds = [];
 
     /// <summary>
-    /// Which Segment each pavement instance is. ⚠ <b>Every id appears TWICE</b> — a Segment gets a
-    /// strip on each side — so a reader counting distinct Segments here must say so.
+    /// Marks the pavement layer's ids as named. ⚠ <b>Every id appears at least TWICE</b> — a Segment
+    /// gets a strip on each side — so a reader counting distinct Segments here must say so.
     /// </summary>
     private readonly List<ulong> _footwayIds = [];
 
@@ -1030,7 +1032,6 @@ public partial class Main : Node3D
     private int _rockComponent;
     private ScatterBasis _scatterBasis;
     private readonly HashSet<Vector2I> _submerged = [];
-    private int _paves;
 
     /// <summary>Which vacant Lot each drawn pad is, in instance order.</summary>
     private readonly List<ulong> _plotIds = [];
@@ -1429,16 +1430,6 @@ public partial class Main : Node3D
         _presentedTick = _world.Tick.Raw;
         ReportPhaseZeroRefusal();
         _alpha = new Ratio((int)(Math.Min(_owed, 0.999_99) * 65_536));
-
-        // After collecting the batch: a frame that steps many Ticks may lay many
-        // Streets and the Road Graph only has to be correct once a frame. Pave() is O(Segments) and
-        // bordered.toml has 535,817 of them, so this is a walk worth doing on the frames that
-        // earned it rather than on all of them.
-        if (_repave)
-        {
-            Pave();
-            _repave = false;
-        }
 
         // A MACHINE WITH NO HANDS HAS ITS CURSOR AT (0,0), which is the sky or a corner of the map,
         // so every photograph would show the pick refusing rather than the pick working. Warping to
@@ -1915,6 +1906,9 @@ public partial class Main : Node3D
         if (key != _built || _world.Changes!.Full)
         {
             _built = key;
+
+            // Before UpdateBuildings, which clears the Segment journal Repave reads.
+            if (_repave) Repave(_world.Changes!.Segments);
             UpdateBuildings();
             _underWater = Fill(_flood, Inundated());
             TravellerHeadings();

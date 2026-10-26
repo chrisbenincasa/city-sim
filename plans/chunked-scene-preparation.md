@@ -188,7 +188,7 @@ Absent ──enters plan reach──▶ Queued ──budget──▶ Planned ─
 |---|---|---|
 | Building created, destroyed, occupied, vacated, abandoned, let | `WorldChanges.Buildings` | The Building; its block's layout and dressing (occupancy decides gardens); footprint Cells within 8 m; car park and module owners |
 | Lot created, removed, resubdivided, fronted, occupied or vacated | Lot journal in `WorldChanges` | Block layout and dressing; plots; zones over it; kerbs on its Segment at the next `Pave` |
-| Segment laid, changed or demolished | Segment journal in `WorldChanges` | Its kerbs, roads and footways; neighbors at both Nodes (mitres); the up to two blocks whose land it bounds |
+| Segment laid, changed or demolished | Segment journal in `WorldChanges` | Its kerbs, roads and footways; neighbors at both Nodes, before and after (mitres, dead ends); the up to two blocks whose land it bounds; tree and rock Cells within `StreetGrid.SpanLimit` + 1 blocks of its ends (`InAYard` merges blocks across missing Streets) |
 | Permission rectangle painted or erased | Permission rectangle journal in `WorldChanges` | That rectangle's zone |
 | Woodland count of a Cell | None. Each Cell plan stores the count it used. | That Cell, found stale when its plan is next written |
 | Wash change | Shell | Building colors only, through a recolor pass |
@@ -196,6 +196,8 @@ Absent ──enters plan reach──▶ Queued ──budget──▶ Planned ─
 
 - Player Commands stop calling `Invalidate()`. The journals carry what those Commands change.
   The journals stay unsaved and unhashed, so no State Hash moves.
+- The journals keep recording while `Full` is set. A consumer with its own baseline, such as
+  `Repave`, reads them on a Tick that also runs a full Building pass.
 - Each journal is fed by its table's `Rows`. `Rows` reports every allocation and free to an optional
   observer, and a table method that writes a drawn field calls `Rows.Report`. `World.Changes`
   attaches the observers. A table may hold only declared columns (`BOR0901`), so the observer lives
@@ -397,6 +399,32 @@ Each step lands alone. Each must pass the equivalence checks below before the ne
   components 47.3 MB. At 300 m: gardens 41.3 MB, all components 56.3 MB, against the 64 MB cap.
 - Optimized shell, i5-10400, load 2.9–3.9. This is a busy machine, so no timing is recorded. D3
   still needs a quiet-machine measurement.
+
+### Step 5, slice 1 result, 2026-10-26
+
+- Roads and footways are written by owner, one owner per Segment slot. Owner order is slot order,
+  which is the whole-city walk's order.
+- A full `Pave` runs only at load and on a rebuild. A Street, Connect or Street demolition runs
+  `Repave` on the Segment journal instead. It rewrites the changed Segments and every Segment that
+  meets one at a Node, before or after the change. It relists their kerb owners and discards
+  their kerb plans.
+- `Repave` still retakes the whole Address snapshot. Kerbs re-plan each Segment whose run of
+  Addresses changed.
+- The scatter basis holds the `BlockLattice` in place of the count of `Pave` runs. The lattice is
+  re-laid only on Ruleset adoption. A road edit discards the tree and rock plans of the Cells within
+  `StreetGrid.SpanLimit` + 1 blocks of the Segment's ends, before and after.
+- `ScenePreparation.Touch` discards one owner's plan. `Relist` moves, adds or removes one owner.
+  The renderer checks cover both.
+- Commands still force a full Building pass (slice 3). The journals now record while `Full` is set,
+  so `Repave` sees the Segments a Command changed.
+- Against `41a3c23c`, `traveller` and `car` rows removed, the 25,000-Citizen city matches byte for
+  byte at `focus 120 120 900` and through the verify script's Street. A second script lays a Street,
+  removes it, then removes two generated Streets, drawing after each. All four draws match, and the
+  `BOROUGH_RENDER_VERIFY=1` run found no difference.
+- On the 1M save, a full `Pave` took 883 ms and a one-Segment `Repave` took 51 ms cold and 18 ms
+  warm. Optimized shell, i5-10400, load 4.9 with other shells running, one run. These figures show
+  the scale of the change, not a quiet-machine timing. Most of the `Repave` time is the Address
+  snapshot.
 
 ## Decisions settled, 2026-10-22
 

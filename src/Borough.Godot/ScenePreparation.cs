@@ -123,13 +123,7 @@ public sealed class ScenePreparation(bool verify = false)
             owner.Where = where;
             owner.Complete = owner.Queued = false;
             live.Add(where.Owner, owner);
-
-            var key = new Vector2I(Mathf.FloorToInt(where.Middle.X / SquareMetres), Mathf.FloorToInt(where.Middle.Z / SquareMetres));
-            if (!c.Squares.TryGetValue(key, out Square? square)) c.Squares.Add(key, square = new Square());
-            square.Owners.Add(owner);
-            var extent = new Vector3(where.Extent, where.Extent, where.Extent);
-            square.Low = square.Low.Min(where.Middle - extent);
-            square.High = square.High.Max(where.Middle + extent);
+            Place(c, owner);
         }
         foreach ((long key, Owner gone) in c.Owners)
         {
@@ -138,6 +132,58 @@ public sealed class ScenePreparation(bool verify = false)
         }
         c.Owners = live;
         c.Pending = true;
+    }
+
+    /// <summary>Discards one owner's plan. The owner keeps its instances until the next <see cref="Regate"/> rewrites them.</summary>
+    public void Touch(int component, long owner)
+    {
+        Component c = _components[component];
+        if (!c.Owners.TryGetValue(owner, out Owner? state)) return;
+        Drop(c, state);
+        state.Complete = false;
+        c.Pending = true;
+    }
+
+    /// <summary>
+    /// Lists one owner anew and discards its plan, or removes it and its instances when
+    /// <paramref name="where"/> is null.
+    /// </summary>
+    public void Relist(int component, long owner, PreparedOwner? where)
+    {
+        Component c = _components[component];
+        c.Pending = true;
+        if (c.Owners.TryGetValue(owner, out Owner? state))
+        {
+            Drop(c, state);
+            state.Complete = state.Queued = false;
+            Vector2I from = SquareOf(state.Where);
+            if (where is { } moved && SquareOf(moved) == from)
+            {
+                state.Where = moved;
+                Grow(c.Squares[from], moved);
+                return;
+            }
+            Square old = c.Squares[from];
+            old.Owners.Remove(state);
+            if (old.Owners.Count == 0) c.Squares.Remove(from);
+            if (where is null)
+            {
+                Unwrite(c, state);
+                c.Owners.Remove(owner);
+                return;
+            }
+        }
+        else if (where is null)
+        {
+            return;
+        }
+        else
+        {
+            state = new Owner();
+            c.Owners.Add(owner, state);
+        }
+        state.Where = where.Value;
+        Place(c, state);
     }
 
     /// <summary>
@@ -278,6 +324,25 @@ public sealed class ScenePreparation(bool verify = false)
         owner.Complete = _values.Count == owner.Pieces;
         c.Writes++;
         c.WriteMilliseconds += Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+    }
+
+    private static Vector2I SquareOf(in PreparedOwner where) =>
+        new(Mathf.FloorToInt(where.Middle.X / SquareMetres), Mathf.FloorToInt(where.Middle.Z / SquareMetres));
+
+    private static void Place(Component c, Owner owner)
+    {
+        Vector2I key = SquareOf(owner.Where);
+        if (!c.Squares.TryGetValue(key, out Square? square)) c.Squares.Add(key, square = new Square());
+        square.Owners.Add(owner);
+        Grow(square, owner.Where);
+    }
+
+    // A square's bounds only grow until the next Reset. Larger bounds queue more squares, never fewer.
+    private static void Grow(Square square, in PreparedOwner where)
+    {
+        var extent = new Vector3(where.Extent, where.Extent, where.Extent);
+        square.Low = square.Low.Min(where.Middle - extent);
+        square.High = square.High.Max(where.Middle + extent);
     }
 
     private static void Unwrite(Component c, Owner owner)

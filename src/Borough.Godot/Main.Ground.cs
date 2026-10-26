@@ -500,7 +500,7 @@ public partial class Main
         // kept because a Node is a centreline and a carriageway has width.
         var basis = new ScatterBasis(
             _world, fromEast, fromNorth, toEast, toNorth, _paved.Grow(block * MetresPerTile),
-            _world.Rules.Lots.LotsPerSegment, _paves);
+            _world.Rules.Lots.LotsPerSegment, _world.Roads.Streets.Lattice);
 
         if (basis != _scatterBasis)
         {
@@ -516,9 +516,13 @@ public partial class Main
     }
 
     /// <summary>What every Cell's scatter reads besides its own Cell. A change re-lists and re-plans every Cell.</summary>
-    /// <remarks>The lattice <see cref="InAYard"/> reads changes only through <see cref="Pave"/>, which counts in <c>Paves</c> and scatters.</remarks>
+    /// <remarks>
+    /// <see cref="InAYard"/> also reads which lattice edges hold Streets. A road edit re-plans only
+    /// the Cells near it, through <see cref="Repave"/>.
+    /// </remarks>
     private readonly record struct ScatterBasis(
-        Borough.Core.Entities.World? World, int FromEast, int FromNorth, int ToEast, int ToNorth, Rect2 Paved, int Lots, int Paves);
+        Borough.Core.Entities.World? World, int FromEast, int FromNorth, int ToEast, int ToNorth, Rect2 Paved, int Lots,
+        BlockLattice? Lattice);
 
     private static long CellOwner(int east, int north) => ((long)north * CellGrid.WorldCells) + east;
 
@@ -1169,43 +1173,40 @@ public partial class Main
     /// in <c>plans/0012</c>.
     /// </para>
     /// </remarks>
-    private System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where, Color What)> Paving()
+    private System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where, Color What)> Paving(int slot)
     {
         RoadSegmentTable segments = _world.Roads.Segments;
         RoadNodeTable nodes = _world.Roads.Nodes;
 
-        for (int slot = 0; slot < segments.Rows.SlotCount; slot++)
+        if (!segments.Rows.IsLive(slot)
+            || !nodes.Rows.TryResolve(segments.NodeA[slot], out int a)
+            || !nodes.Rows.TryResolve(segments.NodeB[slot], out int b))
         {
-            if (!segments.Rows.IsLive(slot)
-                || !nodes.Rows.TryResolve(segments.NodeA[slot], out int a)
-                || !nodes.Rows.TryResolve(segments.NodeB[slot], out int b))
-            {
-                continue;
-            }
+            yield break;
+        }
 
-            var from = new Vector3(
-                nodes.East[a].Raw * MetresPerTile, 0f, -nodes.North[a].Raw * MetresPerTile);
-            var to = new Vector3(
-                nodes.East[b].Raw * MetresPerTile, 0f, -nodes.North[b].Raw * MetresPerTile);
+        var from = new Vector3(
+            nodes.East[a].Raw * MetresPerTile, 0f, -nodes.North[a].Raw * MetresPerTile);
+        var to = new Vector3(
+            nodes.East[b].Raw * MetresPerTile, 0f, -nodes.North[b].Raw * MetresPerTile);
 
-            if (from.IsEqualApprox(to))
-            {
-                continue;
-            }
+        if (from.IsEqualApprox(to))
+        {
+            yield break;
+        }
 
-            (float wide, Color paint) = (RoadKind)segments.Kind[slot] switch
-            {
-                RoadKind.Arterial => (ArterialWidthMetres, Arterial),
-                RoadKind.FootPath => (FootPathWidthMetres, Flagstone),
-                _ => (CarriagewayWidthMetres, Carriageway),
-            };
+        (float wide, Color paint) = (RoadKind)segments.Kind[slot] switch
+        {
+            RoadKind.Arterial => (ArterialWidthMetres, Arterial),
+            RoadKind.FootPath => (FootPathWidthMetres, Flagstone),
+            _ => (CarriagewayWidthMetres, Carriageway),
+        };
 
-            foreach (Transform3D chord in Chords(segments.Centerline[slot], from, to, wide))
-            {
-                // ⚠ LINEAR, because a MultiMesh instance colour is multiplied into albedo in linear
-                // space and the constants above are stated in sRGB like every other palette entry here.
-                yield return (segments.Rows.IdAt(slot), chord, paint.SrgbToLinear());
-            }
+        foreach (Transform3D chord in Chords(segments.Centerline[slot], from, to, wide))
+        {
+            // ⚠ LINEAR, because a MultiMesh instance colour is multiplied into albedo in linear
+            // space and the constants above are stated in sRGB like every other palette entry here.
+            yield return (segments.Rows.IdAt(slot), chord, paint.SrgbToLinear());
         }
     }
 
@@ -1384,71 +1385,68 @@ public partial class Main
     /// </para>
     /// </remarks>
     private System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where, Color What)>
-        Footways()
+        Footways(int slot)
     {
         RoadSegmentTable segments = _world.Roads.Segments;
         RoadNodeTable nodes = _world.Roads.Nodes;
 
-        for (int slot = 0; slot < segments.Rows.SlotCount; slot++)
+        if (!segments.Rows.IsLive(slot)
+            || !nodes.Rows.TryResolve(segments.NodeA[slot], out int a)
+            || !nodes.Rows.TryResolve(segments.NodeB[slot], out int b))
         {
-            if (!segments.Rows.IsLive(slot)
-                || !nodes.Rows.TryResolve(segments.NodeA[slot], out int a)
-                || !nodes.Rows.TryResolve(segments.NodeB[slot], out int b))
+            yield break;
+        }
+
+        if ((Modes(segments, slot) & (TravelMode.Foot | TravelMode.Car))
+            != (TravelMode.Foot | TravelMode.Car))
+        {
+            yield break;
+        }
+
+        var run = new Run(segments.Centerline[slot], NodeAt(nodes, a), NodeAt(nodes, b));
+
+        float half = ((RoadKind)segments.Kind[slot] == RoadKind.Arterial
+            ? ArterialWidthMetres
+            : CarriagewayWidthMetres) * 0.5f;
+
+        float length = run.Length;
+        (Vector3 ahead, Vector3 behind) = (run.Ahead(0f), -run.Ahead(length));
+        Color paint = Flagstone.SrgbToLinear();
+        ulong id = segments.Rows.IdAt(slot);
+
+        for (int lateral = 1; lateral >= -1; lateral -= 2)
+        {
+            // The pavement's own two edges, measured out from the carriageway: it begins where
+            // the kerb band ends and ends at the whole footway's width.
+            float low = Trim(Mitre(a, slot, ahead, Left(ahead) * lateral, half,
+                KerbWidthMetres, FootwayWidthMetres), length);
+            float high = length - Trim(Mitre(b, slot, behind, -Left(behind) * lateral, half,
+                KerbWidthMetres, FootwayWidthMetres), length);
+
+            if (high <= low)
             {
                 continue;
             }
 
-            if ((Modes(segments, slot) & (TravelMode.Foot | TravelMode.Car))
-                != (TravelMode.Foot | TravelMode.Car))
+            foreach (Transform3D piece in Strip(run, low, high,
+                lateral * (half + KerbWidthMetres + (PavementWidthMetres * 0.5f)), PavementWidthMetres, 1f))
             {
-                continue;
+                yield return (id, piece, paint);
             }
+        }
 
-            var run = new Run(segments.Centerline[slot], NodeAt(nodes, a), NodeAt(nodes, b));
+        // The head of a dead end, at either end or both. The strips above already ran back past
+        // the node by FootwayWidthMetres, so this closes the U between them.
+        float span = 2f * (half + KerbWidthMetres);
 
-            float half = ((RoadKind)segments.Kind[slot] == RoadKind.Arterial
-                ? ArterialWidthMetres
-                : CarriagewayWidthMetres) * 0.5f;
+        if (DeadEnd(a, slot))
+        {
+            yield return (id, Head(run.From, ahead, span, KerbWidthMetres, FootwayWidthMetres, 1f), paint);
+        }
 
-            float length = run.Length;
-            (Vector3 ahead, Vector3 behind) = (run.Ahead(0f), -run.Ahead(length));
-            Color paint = Flagstone.SrgbToLinear();
-            ulong id = segments.Rows.IdAt(slot);
-
-            for (int lateral = 1; lateral >= -1; lateral -= 2)
-            {
-                // The pavement's own two edges, measured out from the carriageway: it begins where
-                // the kerb band ends and ends at the whole footway's width.
-                float low = Trim(Mitre(a, slot, ahead, Left(ahead) * lateral, half,
-                    KerbWidthMetres, FootwayWidthMetres), length);
-                float high = length - Trim(Mitre(b, slot, behind, -Left(behind) * lateral, half,
-                    KerbWidthMetres, FootwayWidthMetres), length);
-
-                if (high <= low)
-                {
-                    continue;
-                }
-
-                foreach (Transform3D piece in Strip(run, low, high,
-                    lateral * (half + KerbWidthMetres + (PavementWidthMetres * 0.5f)), PavementWidthMetres, 1f))
-                {
-                    yield return (id, piece, paint);
-                }
-            }
-
-            // The head of a dead end, at either end or both. The strips above already ran back past
-            // the node by FootwayWidthMetres, so this closes the U between them.
-            float span = 2f * (half + KerbWidthMetres);
-
-            if (DeadEnd(a, slot))
-            {
-                yield return (id, Head(run.From, ahead, span, KerbWidthMetres, FootwayWidthMetres, 1f), paint);
-            }
-
-            if (DeadEnd(b, slot))
-            {
-                yield return (id, Head(run.To, behind, span, KerbWidthMetres, FootwayWidthMetres, 1f), paint);
-            }
+        if (DeadEnd(b, slot))
+        {
+            yield return (id, Head(run.To, behind, span, KerbWidthMetres, FootwayWidthMetres, 1f), paint);
         }
     }
 
@@ -1532,12 +1530,15 @@ public partial class Main
     {
         for (int slot = 0; slot < _world.Roads.Segments.Rows.SlotCount; slot++)
         {
-            if (!KerbRun(slot, out _, out _, out Run run, out float carriageway)) continue;
-
-            // Every point of a Segment lies within half its length of its chord's midpoint.
-            into.Add(new PreparedOwner(slot, (run.From + run.To) * 0.5f, run.Length * 0.5f + carriageway));
+            if (KerbOwner(slot) is { } owner) into.Add(owner);
         }
     }
+
+    // Every point of a Segment lies within half its length of its chord's midpoint.
+    private PreparedOwner? KerbOwner(int slot) =>
+        KerbRun(slot, out _, out _, out Run run, out float carriageway)
+            ? new PreparedOwner(slot, (run.From + run.To) * 0.5f, run.Length * 0.5f + carriageway)
+            : null;
 
     /// <summary>Whether the Segment carries both feet and cars, and so has a kerb.</summary>
     private bool KerbRun(int slot, out int a, out int b, out Run run, out float carriageway)
@@ -2050,12 +2051,165 @@ public partial class Main
     /// </remarks>
     private void Pave()
     {
+        _repave = false;
         _kerbAddresses = Addresses();
-        _paves++;
-        Fill(_roads, Paving(), _roadIds);
-        Fill(_footways, Footways(), _footwayIds);
+        int written = _pavedSegments.Length;
+        _pavedSegments = new PavedSegment[_world.Roads.Segments.Rows.SlotCount];
+        for (int slot = 0; slot < Math.Max(written, _pavedSegments.Length); slot++) PaveSegment(slot);
         _scene.Reset(_kerbComponent);
         Scatter();
+    }
+
+    /// <summary>
+    /// Repaves the changed Segments and every Segment that meets one at a Node, before or after
+    /// the change, since a mitre and a dead end read the other arms at a Node.
+    /// </summary>
+    /// <remarks>
+    /// Kerbs re-plan the same Segments and those whose Addresses differ from the last snapshot.
+    /// Trees and rocks re-plan the Cells whose blocks a changed Street could merge or split.
+    /// </remarks>
+    private void Repave(ReadOnlySpan<int> changed)
+    {
+        _repave = false;
+        RoadSegmentTable segments = _world.Roads.Segments;
+        if (_pavedSegments.Length < segments.Rows.SlotCount) Array.Resize(ref _pavedSegments, segments.Rows.SlotCount);
+
+        var touched = new SortedSet<int>();
+        foreach (int slot in changed)
+        {
+            touched.Add(slot);
+            PavedSegment before = _pavedSegments[slot];
+            if (before.Live)
+            {
+                Meet(before.A, touched);
+                Meet(before.B, touched);
+                TouchScatter(before);
+            }
+            if (Ends(slot) is { } after)
+            {
+                Meet(after.A, touched);
+                Meet(after.B, touched);
+                TouchScatter(after);
+            }
+        }
+
+        List<(int Segment, byte Side, float Along)> addresses = Addresses();
+        var readdressed = new SortedSet<int>();
+        AddressChanges(_kerbAddresses, addresses, readdressed);
+        _kerbAddresses = addresses;
+
+        foreach (int slot in touched)
+        {
+            PaveSegment(slot);
+            _scene.Relist(_kerbComponent, slot, KerbOwner(slot));
+        }
+        foreach (int slot in readdressed)
+        {
+            if (!touched.Contains(slot)) _scene.Touch(_kerbComponent, slot);
+        }
+        Scatter();
+    }
+
+    /// <summary>What a Segment slot was paved with, so a later edit can find its old Nodes and ground.</summary>
+    private readonly record struct PavedSegment(bool Live, int A, int B, Vector2I From, Vector2I To);
+
+    private PavedSegment[] _pavedSegments = [];
+    private readonly List<InstanceValue> _paveValues = [];
+    private readonly List<ulong> _paveIds = [];
+
+    private PavedSegment? Ends(int slot)
+    {
+        RoadSegmentTable segments = _world.Roads.Segments;
+        RoadNodeTable nodes = _world.Roads.Nodes;
+        if (slot >= segments.Rows.SlotCount
+            || !segments.Rows.IsLive(slot)
+            || !nodes.Rows.TryResolve(segments.NodeA[slot], out int a)
+            || !nodes.Rows.TryResolve(segments.NodeB[slot], out int b))
+        {
+            return null;
+        }
+        return new PavedSegment(true, a, b,
+            new Vector2I(nodes.East[a].Raw, nodes.North[a].Raw), new Vector2I(nodes.East[b].Raw, nodes.North[b].Raw));
+    }
+
+    /// <summary>Writes one Segment slot's carriageway and pavements, or removes them.</summary>
+    private void PaveSegment(int slot)
+    {
+        bool listed = slot < _world.Roads.Segments.Rows.SlotCount;
+        Write(_roads, slot, listed ? Paving(slot) : []);
+        Write(_footways, slot, listed ? Footways(slot) : []);
+        if (slot < _pavedSegments.Length) _pavedSegments[slot] = Ends(slot) ?? default;
+
+        void Write(InstanceLayer layer, int owner, IEnumerable<(ulong Id, Transform3D Where, Color What)> pieces)
+        {
+            _paveValues.Clear();
+            _paveIds.Clear();
+            foreach ((ulong id, Transform3D where, Color what) in pieces)
+            {
+                _paveValues.Add(new InstanceValue(where, what));
+                _paveIds.Add(id);
+            }
+            layer.Multimesh.Write(owner, _paveValues, _paveIds);
+        }
+    }
+
+    /// <summary>Adds every Segment with an end at the Node slot.</summary>
+    private void Meet(int node, SortedSet<int> into)
+    {
+        RoadNodeTable nodes = _world.Roads.Nodes;
+        if (node >= nodes.Rows.SlotCount || !nodes.Rows.IsLive(node)) return;
+        RoadArcs arcs = _world.Roads.Arcs;
+        int start = nodes.ArcStart[node];
+        int end = Math.Min(start + nodes.ArcCount[node], arcs.Count);
+        for (int arc = start; arc < end; arc++) into.Add(arcs.Segment[arc]);
+    }
+
+    /// <summary>Adds each Segment whose run of Addresses differs between two snapshots.</summary>
+    private static void AddressChanges(
+        List<(int Segment, byte Side, float Along)> before, List<(int Segment, byte Side, float Along)> after, SortedSet<int> into)
+    {
+        var old = System.Runtime.InteropServices.CollectionsMarshal.AsSpan(before);
+        var now = System.Runtime.InteropServices.CollectionsMarshal.AsSpan(after);
+        int i = 0, j = 0;
+        while (i < old.Length || j < now.Length)
+        {
+            int segment = Math.Min(i < old.Length ? old[i].Segment : int.MaxValue, j < now.Length ? now[j].Segment : int.MaxValue);
+            int oldEnd = i, nowEnd = j;
+            while (oldEnd < old.Length && old[oldEnd].Segment == segment) oldEnd++;
+            while (nowEnd < now.Length && now[nowEnd].Segment == segment) nowEnd++;
+            if (!old[i..oldEnd].SequenceEqual(now[j..nowEnd])) into.Add(segment);
+            i = oldEnd;
+            j = nowEnd;
+        }
+    }
+
+    /// <summary>
+    /// Discards the tree and rock plans of every Cell whose yard test a Street between these ends
+    /// could change. <see cref="StreetGrid.Block"/> merges blocks across missing Streets up to
+    /// <see cref="StreetGrid.SpanLimit"/> blocks, so the reach is one more block than that.
+    /// </summary>
+    private void TouchScatter(PavedSegment ends)
+    {
+        BlockLattice lattice = _world.Roads.Streets.Lattice;
+        if (_world.Roads.Streets.BlockTiles <= 0) return;
+        const int reach = StreetGrid.SpanLimit + 1;
+        int west = Math.Min(lattice.LineAt(ends.From.X), lattice.LineAt(ends.To.X)) - reach;
+        int east = Math.Max(lattice.LineAt(ends.From.X), lattice.LineAt(ends.To.X)) + reach + 1;
+        int south = Math.Min(lattice.LineAt(ends.From.Y), lattice.LineAt(ends.To.Y)) - reach;
+        int north = Math.Max(lattice.LineAt(ends.From.Y), lattice.LineAt(ends.To.Y)) + reach + 1;
+        int last = CellGrid.WorldCells - 1;
+        int fromEast = Math.Clamp(Mathf.FloorToInt(lattice.EdgeOf(west) * MetresPerTile / CellGrid.MetresPerCell), 0, last);
+        int toEast = Math.Clamp(Mathf.FloorToInt(lattice.EdgeOf(east) * MetresPerTile / CellGrid.MetresPerCell), 0, last);
+        int fromNorth = Math.Clamp(Mathf.FloorToInt(lattice.EdgeOf(south) * MetresPerTile / CellGrid.MetresPerCell), 0, last);
+        int toNorth = Math.Clamp(Mathf.FloorToInt(lattice.EdgeOf(north) * MetresPerTile / CellGrid.MetresPerCell), 0, last);
+        for (int cellNorth = fromNorth; cellNorth <= toNorth; cellNorth++)
+        {
+            for (int cellEast = fromEast; cellEast <= toEast; cellEast++)
+            {
+                _scene.Touch(_treeComponent, CellOwner(cellEast, cellNorth));
+                _scene.Touch(_rockComponent, CellOwner(cellEast, cellNorth));
+            }
+        }
     }
 
     /// <summary>The Cell lattice, drawn over the ground the city stands on.</summary>
