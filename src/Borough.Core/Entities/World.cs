@@ -35,7 +35,19 @@ using Borough.Core.Tables;
 /// </remarks>
 public sealed partial class World
 {
-    public WorldChanges? Changes { get; set; }
+    public WorldChanges? Changes
+    {
+        get => _changes;
+        set
+        {
+            _changes = value;
+            Lots.Rows.Observer = value is null ? null : value.Lot;
+            Roads.Segments.Rows.Observer = value is null ? null : value.Segment;
+            PermissionRectangles.Rows.Observer = value is null ? null : value.PermissionRectangle;
+        }
+    }
+
+    private WorldChanges? _changes;
 
     /// <summary>
     /// The State Hash's starting value: <c>"Borough"</c> in ASCII, with a version byte.

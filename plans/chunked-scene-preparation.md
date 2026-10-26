@@ -187,14 +187,22 @@ Absent ──enters plan reach──▶ Queued ──budget──▶ Planned ─
 | Change | Source | Owners touched |
 |---|---|---|
 | Building created, destroyed, occupied, vacated, abandoned, let | `WorldChanges.Buildings` | The Building; its block's layout and dressing (occupancy decides gardens); footprint Cells within 8 m; car park and module owners |
-| Lot created, removed or resubdivided | New Lot journal in `WorldChanges` | Block layout and dressing; plots; zones over it; kerbs on its Segment at the next `Pave` |
-| Segment laid, changed or demolished | New Segment journal in `WorldChanges` | Its kerbs, roads and footways; neighbors at both Nodes (mitres); the up to two blocks whose land it bounds |
+| Lot created, removed, resubdivided, fronted, occupied or vacated | Lot journal in `WorldChanges` | Block layout and dressing; plots; zones over it; kerbs on its Segment at the next `Pave` |
+| Segment laid, changed or demolished | Segment journal in `WorldChanges` | Its kerbs, roads and footways; neighbors at both Nodes (mitres); the up to two blocks whose land it bounds |
+| Permission rectangle painted or erased | Permission rectangle journal in `WorldChanges` | That rectangle's zone |
 | Woodland count of a Cell | None. Each Cell plan stores the count it used. | That Cell, found stale when its plan is next written |
 | Wash change | Shell | Building colors only, through a recolor pass |
 | Ruleset adoption, tuner rebuild, study toggles | `Invalidate()` | Everything (unchanged) |
 
-- Player Commands stop calling `Invalidate()`. The two new journals carry what those Commands change.
+- Player Commands stop calling `Invalidate()`. The journals carry what those Commands change.
   The journals stay unsaved and unhashed, so no State Hash moves.
+- Each journal is fed by its table's `Rows`. `Rows` reports every allocation and free to an optional
+  observer, and a table method that writes a drawn field calls `Rows.Report`. `World.Changes`
+  attaches the observers. A table may hold only declared columns (`BOR0901`), so the observer lives
+  on `Rows`.
+- `WorldChangesTests` steps a city through a Street, a demolition, a Service placement, a Zone and
+  a Street demolition, then 120 quiet Ticks. It fails if any Lot, Segment or rectangle field the
+  shell draws changes without its slot in the journal.
 - A changed owner bumps its epoch. A plan or written result tagged with an older epoch is discarded.
 
 ### 6. Budgets

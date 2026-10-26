@@ -117,7 +117,11 @@ public sealed partial class World
             foreach (int row in LotsInCells.Near(Lots, changed.X, changed.Y,
                 (long)changed.X + changed.Width, (long)changed.Y + changed.Height))
             {
-                if (Overlaps(changed, Lots.Parcel(row))) { Lots.Zone[row] = LandPermissions.ParcelSummary(Lots.Parcel(row)).CommonUses; }
+                if (Overlaps(changed, Lots.Parcel(row)))
+                {
+                    Lots.Zone[row] = LandPermissions.ParcelSummary(Lots.Parcel(row)).CommonUses;
+                    Changes?.Lot(row);
+                }
             }
         }
         LotsAdmitting.Invalidate();

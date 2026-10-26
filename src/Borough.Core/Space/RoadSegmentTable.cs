@@ -267,6 +267,8 @@ public sealed class RoadSegmentTable
     /// </remarks>
     public void Edited(int slot)
     {
+        _rows.Report(slot);
+
         if (Epoch[slot] != uint.MaxValue)
         {
             Epoch[slot]++;

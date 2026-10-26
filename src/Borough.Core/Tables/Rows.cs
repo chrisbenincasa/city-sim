@@ -58,6 +58,12 @@ public abstract class Rows
     private int _freeHead = NoSlot;
     private ulong _nextId = 1;
 
+    /// <summary>Told each slot that is allocated, freed or touched. Observation only; never saved or hashed.</summary>
+    internal Action<int>? Observer { get; set; }
+
+    /// <summary>Reports a write to a live row's fields to <see cref="Observer"/>.</summary>
+    internal void Report(int slot) => Observer?.Invoke(slot);
+
     private protected Rows(string name, int capacity, Buffering buffering, bool amortizeRestore)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(capacity);
@@ -449,12 +455,15 @@ public abstract class Rows
         _generation[slot] = generation;
         _id[slot] = _nextId++;
         _liveCount++;
+        Observer?.Invoke(slot);
 
         return slot;
     }
 
     private protected void FreeSlot(int slot)
     {
+        Observer?.Invoke(slot);
+
         // Read the generation before the clear, not after: the generation column is a column like
         // any other and the loop below zeroes it too. Bumping the zero would hand the slot an odd
         // generation — which is this file's encoding for *live* — so a freed row would read as

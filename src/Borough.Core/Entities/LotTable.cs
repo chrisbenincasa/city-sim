@@ -399,6 +399,7 @@ public sealed class LotTable
     {
         FrontageSegment[slot] = segment;
         FrontageOffset[slot] = offset;
+        _rows.Report(slot);
     }
 
     /// <summary>Records that this Lot fronts nothing. It keeps its ground and its Building.</summary>
@@ -406,6 +407,7 @@ public sealed class LotTable
     {
         FrontageSegment[slot] = default;
         FrontageOffset[slot] = Tiles.Zero;
+        _rows.Report(slot);
     }
 
     /// <summary>
@@ -434,10 +436,18 @@ public sealed class LotTable
     public int BuildingOn(int slot) => BuildingSlot[slot] - 1;
 
     /// <summary>Records that a Building now stands here.</summary>
-    public void Occupy(int slot, int buildingSlot) => BuildingSlot[slot] = buildingSlot + 1;
+    public void Occupy(int slot, int buildingSlot)
+    {
+        BuildingSlot[slot] = buildingSlot + 1;
+        _rows.Report(slot);
+    }
 
     /// <summary>Records that the Lot is clear again.</summary>
-    public void Vacate(int slot) => BuildingSlot[slot] = 0;
+    public void Vacate(int slot)
+    {
+        BuildingSlot[slot] = 0;
+        _rows.Report(slot);
+    }
 
     /// <summary>
     /// Allocates a Lot at a position, on a given side of the Street it fronts, standing on
