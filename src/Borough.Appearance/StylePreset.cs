@@ -91,8 +91,12 @@ public sealed record PaintScheme(IReadOnlyDictionary<string, Paint> Parts, int W
 /// apartments draw as any other Building does. A Building whose draw falls to an apartment family
 /// stands in a run, on attached and detached faces alike, and takes its run's form.
 /// </param>
+/// <param name="ShopRuns">
+/// How many Lots one parade of shop Buildings spans, drawn per face side, or <c>null</c> where shops
+/// draw as any other Building does. A parade shares its form, pitch and walls, as an apartment run does.
+/// </param>
 public sealed record StylePreset(string Name, int EraDays, BlockPattern[] Attached, AppearanceFamily[] Families,
-    HouseRuns? Runs = null, Bounds? Terraces = null, Bounds? ApartmentRuns = null);
+    HouseRuns? Runs = null, Bounds? Terraces = null, Bounds? ApartmentRuns = null, Bounds? ShopRuns = null);
 
 /// <summary>
 /// Runs of neighboring detached houses on one block face and era. Each run draws what its houses
@@ -243,7 +247,8 @@ public sealed record FamilyBody(
     MidriseBody? Midrise = null,
     HouseBody? House = null,
     TerraceBody? Terrace = null,
-    ApartmentBody? Apartment = null);
+    ApartmentBody? Apartment = null,
+    ShopBody? Shop = null);
 
 /// <summary>An attached house's roof and plan. Every house of one terrace shares them and its pitch.</summary>
 /// <param name="PitchDegrees">The range a terrace's pitch is drawn from, or <c>null</c> for a flat or mansard roof.</param>
@@ -301,6 +306,44 @@ public enum ApartmentForm : byte
 
     /// <summary>A parapet range whose top storey stands back from the street behind a railed roof terrace.</summary>
     Setback,
+}
+
+/// <summary>
+/// A shop-house body: shops on the ground storey with flats above. A parade shares its form, pitch and
+/// walls, and each shop unit draws its own shopfront style, paint, awning and sign.
+/// </summary>
+/// <param name="PitchDegrees">The range a parade's pitch is drawn from, or <c>null</c> for a form without a pitched roof.</param>
+public sealed record ShopBody(ShopForm Form, Bounds? PitchDegrees);
+
+/// <summary>The period roofs and plans a shop-house Building can take.</summary>
+public enum ShopForm : byte
+{
+    /// <summary>A slate side gable, sash windows, a splayed corner door and a gable end to the side street.</summary>
+    VictorianGable,
+
+    /// <summary>A front gable and a first-floor oriel over each shop, under clay tiles.</summary>
+    GabledOriel,
+
+    /// <summary>A hipped slate roof over a splayed corner that rises into an octagonal turret.</summary>
+    TurretCorner,
+
+    /// <summary>A flat roof behind a corbelled cornice and name panels, with a column under a cut-back corner.</summary>
+    MainStreet,
+
+    /// <summary>Stucco walls a storey short of the Building, with its top storey in a slate mansard.</summary>
+    Mansard,
+
+    /// <summary>A flat roof behind a parapet, render bands, steel windows and a rounded corner.</summary>
+    InterwarCurve,
+
+    /// <summary>A thin flat roof, a concrete canopy over the shops and ribbon windows over panels.</summary>
+    SixtiesCanopy,
+
+    /// <summary>A brick base and a zinc-clad top storey set back behind a glazed terrace.</summary>
+    SetbackModern,
+
+    /// <summary>Render under a deep-eaved hipped pantile roof, with shutters and balconettes.</summary>
+    PantileHipped,
 }
 
 /// <summary>A tower body's authored layout.</summary>

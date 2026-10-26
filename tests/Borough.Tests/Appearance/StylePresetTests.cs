@@ -283,6 +283,62 @@ public class StylePresetTests
         Assert.Contains(Read(text).Errors, e => e.Message.Contains(message, StringComparison.Ordinal));
     }
 
+    private static readonly (string Form, string Pitch)[] ShopForms =
+        [("victorian-gable", "pitch_degrees = [34, 42]"), ("main-street", ""), ("sixties-canopy", ""), ("pantile-hipped", "pitch_degrees = [20, 28]")];
+
+    private static StylePreset ShopPreset() => Preset("shop_lots = [2, 4]\n" + string.Concat(ShopForms.Select(f => $"""
+        [[family]]
+        id = "shop-{f.Form}"
+        kinds = ["shopfront"]
+        [family.body]
+        library = "l"
+        shape = "shop"
+        variant = "{f.Form}"
+        {f.Pitch}
+
+        """)));
+
+    [Fact]
+    public void Shops_stand_in_parades_that_share_a_form_and_pitch_and_differ_from_their_neighbors()
+    {
+        StylePreset preset = ShopPreset();
+        var forms = new HashSet<ShopForm>();
+        for (ulong face = 1; face <= 200; face++)
+        {
+            (AppearanceFamily Family, int Pitch, Terrace Run)[] shops = [.. Enumerable.Range(0, 14).Select(i =>
+            {
+                BuildingFacts facts = Facts((face * 100) + (ulong)i, storeys: 3, frontage: 8, depth: 14, pattern: BlockPattern.ShopHouseParade,
+                    face: face, raisedDay: 40 * i, kind: "shopfront", offset: (2 * i) + 1, parcel: 2);
+                AppearanceFamily family = FamilyPicker.Pick(preset, World, facts).Family!;
+                Terrace run = FamilyPicker.ShopRunOf(preset, World, facts)!.Value;
+                return (family, FamilyPicker.TerracePitch(family, World, run), run);
+            })];
+
+            for (int i = 0; i < shops.Length; i++)
+            {
+                Assert.InRange(shops[i].Run.Houses, 2, 4);
+                forms.Add(shops[i].Family.Body!.Shop!.Form);
+                if (i == 0) continue;
+                bool inside = shops[i].Run.Cell == shops[i - 1].Run.Cell;
+                Assert.Equal(inside, shops[i].Family.Body!.Shop!.Form == shops[i - 1].Family.Body!.Shop!.Form);
+                if (inside) Assert.Equal(shops[i - 1].Pitch, shops[i].Pitch);
+            }
+        }
+
+        Assert.Equal(4, forms.Count);
+    }
+
+    [Theory]
+    [InlineData("shop_lots = [0, 2]\n", "'shop_lots' must be")]
+    [InlineData("[[family]]\nid = \"a\"\nkinds = [\"shopfront\"]\n[family.body]\nlibrary = \"l\"\nshape = \"shop\"\nvariant = \"arcade\"\n", "a shop 'variant' must be")]
+    [InlineData("[[family]]\nid = \"a\"\nkinds = [\"shopfront\"]\n[family.body]\nlibrary = \"l\"\nshape = \"shop\"\nvariant = \"turret-corner\"\n", "needs 'pitch_degrees'")]
+    [InlineData("[[family]]\nid = \"a\"\nkinds = [\"shopfront\"]\n[family.body]\nlibrary = \"l\"\nshape = \"shop\"\nvariant = \"mansard\"\npitch_degrees = [20, 30]\n", "takes no 'pitch_degrees'")]
+    [InlineData("[[family]]\nid = \"a\"\nkinds = [\"shopfront\"]\n[family.body]\nlibrary = \"l\"\nshape = \"shop\"\nvariant = \"main-street\"\nbay_metres = 3\n", "only valid for a block body")]
+    public void A_bad_shop_is_refused(string text, string message)
+    {
+        Assert.Contains(Read(text).Errors, e => e.Message.Contains(message, StringComparison.Ordinal));
+    }
+
     [Theory]
     [InlineData("terrace_houses = [0, 4]\n", "with low at least 1")]
     [InlineData("[[family]]\nid = \"a\"\nkinds = [\"dwelling\"]\n[family.body]\nlibrary = \"l\"\nbay_metres = 3.5\nterrace = \"gambrel\"\n", "'terrace' must be")]

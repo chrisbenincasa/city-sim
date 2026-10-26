@@ -170,8 +170,9 @@ C# massing as the authoring workflow. Existing zoning, parcel and simulation geo
    A low-rise house may draw up to about 20% more or less floor than its Building holds, so a
    house can vary its plan: an L-plan, a rear outshot or a side wing into its garden. A low-rise
    apartment Building has the same allowance, so a mansard, a set-back top storey, a forecourt or
-   bay fronts may draw less floor than the Building holds. Street access and parking still agree
-   with the simulation.
+   bay fronts may draw less floor than the Building holds. A shop house has it too, so a mansard
+   or set-back top storey over its flats may draw less floor. Street access and parking still
+   agree with the simulation.
 5. Use the rudimentary roster for gameplay debugging; iterate on detailed visual design in a
    separate session. A blockout is a foundation, not finished art.
 

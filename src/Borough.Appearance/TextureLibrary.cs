@@ -60,12 +60,15 @@ public sealed record TextureLibrary(
                 }
             }
 
-            foreach (string texture in body.House is null ? [] : FamilyBodyBuilder.HouseTextures)
+            string[] drawn = body.House is not null ? FamilyBodyBuilder.HouseTextures
+                : body.Shop is not null ? FamilyBodyBuilder.ShopTextures
+                : [];
+            foreach (string texture in drawn)
             {
                 if (!TileMetres.TryGetValue(texture, out (float, float) size))
                 {
                     errors.Add(new AppearanceDiagnostic(family.File, family.Line,
-                        $"family '{family.Id}' is a house, which draws '{texture}', and the texture library does not hold it."));
+                        $"family '{family.Id}' draws '{texture}', and the texture library does not hold it."));
                 }
                 else
                 {

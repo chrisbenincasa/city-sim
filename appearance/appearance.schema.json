@@ -56,6 +56,13 @@
           "items": { "type": "integer", "minimum": 1 },
           "minItems": 2,
           "maxItems": 2
+        },
+        "shop_lots": {
+          "description": "How many Lots one parade of shops spans, as [low, high]. A parade shares its form, pitch and walls, and neighboring parades differ in form.",
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1 },
+          "minItems": 2,
+          "maxItems": 2
         }
       },
       "required": [
@@ -198,11 +205,11 @@
               },
               "shape": {
                 "description": "The body's geometry. Defaults to block.",
-                "enum": ["block", "house", "midrise", "tower"]
+                "enum": ["block", "house", "shop", "midrise", "tower"]
               },
               "variant": {
-                "description": "The tower layout, the mid-rise type or the house form. Required for a tower, mid-rise or house body and refused for a block.",
-                "enum": ["point", "stepped-point", "l", "h", "mansion", "panel-slab", "terrace", "front-gables", "villa", "hipped", "half-hip", "cross-gable", "saltbox", "gambrel", "l-plan", "rear-outshot", "side-wing"]
+                "description": "The tower layout, the mid-rise type, the house form or the shop form. Required for a tower, mid-rise, house or shop body and refused for a block.",
+                "enum": ["point", "stepped-point", "l", "h", "mansion", "panel-slab", "terrace", "front-gables", "villa", "hipped", "half-hip", "cross-gable", "saltbox", "gambrel", "l-plan", "rear-outshot", "side-wing", "victorian-gable", "gabled-oriel", "turret-corner", "main-street", "mansard", "interwar-curve", "sixties-canopy", "setback-modern", "pantile-hipped"]
               },
               "module_metres": {
                 "description": "A mid-rise body's window module along a face, in metres. Defaults to 3.3 for a mansion and 3.6 for a panel slab.",
@@ -310,7 +317,7 @@
                 "enum": ["parapet", "hipped", "side-gable", "mansard", "centre-gable", "bay-front", "forecourt", "setback"]
               },
               "pitch_degrees": {
-                "description": "The range a terrace or apartment run draws its shared roof pitch from, as [low, high] within 18 to 45. Required by the pitched forms; flat forms take none.",
+                "description": "The range a terrace, apartment run or shop parade draws its shared roof pitch from, as [low, high] within 18 to 45. Required by the pitched forms; flat forms take none.",
                 "type": "array",
                 "items": { "type": "integer", "minimum": 18, "maximum": 45 },
                 "minItems": 2,
@@ -407,7 +414,7 @@
                 "if": {
                   "properties": {
                     "shape": {
-                      "enum": ["tower", "midrise", "house"]
+                      "enum": ["tower", "midrise", "house", "shop"]
                     }
                   },
                   "required": ["shape"]
@@ -438,8 +445,7 @@
                       { "required": ["roof_hatch"] },
                       { "required": ["parapet_metres"] },
                       { "required": ["terrace"] },
-                      { "required": ["apartment"] },
-                      { "required": ["pitch_degrees"] }
+                      { "required": ["apartment"] }
                     ]
                   }
                 },
@@ -449,6 +455,14 @@
                     "required": ["variant"]
                   }
                 }
+              },
+              {
+                "if": { "properties": { "shape": { "enum": ["tower", "midrise", "house"] } }, "required": ["shape"] },
+                "then": { "not": { "required": ["pitch_degrees"] } }
+              },
+              {
+                "if": { "properties": { "shape": { "const": "shop" } }, "required": ["shape"] },
+                "then": { "properties": { "variant": { "enum": ["victorian-gable", "gabled-oriel", "turret-corner", "main-street", "mansard", "interwar-curve", "sixties-canopy", "setback-modern", "pantile-hipped"] } } }
               },
               {
                 "if": { "properties": { "shape": { "const": "tower" } }, "required": ["shape"] },

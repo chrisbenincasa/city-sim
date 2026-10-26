@@ -97,18 +97,18 @@ public partial class Main
     /// </summary>
     private readonly record struct BodyKey(
         string Family, int Frontage, int Depth, int Storeys, AttachedSides Attached, int Paint, int House, int Pitch,
-        int PodiumStoreys, int ShaftFrontage, int ShaftDepth, bool Ring, TerracePlace Terrace, FamilyBodyDetail Detail);
+        int PodiumStoreys, int ShaftFrontage, int ShaftDepth, bool Ring, TerracePlace Terrace, bool Corner, FamilyBodyDetail Detail);
 
     /// <summary>Everything a Building's body is placed from, read from the World.</summary>
     private readonly record struct BodyRequest(
         Massing One, AppearanceFamily Family, FamilyBody Body, float Frontage, float Depth, int Storeys,
         AttachedSides Attached, int Paint, int House, int Pitch, float Turn, BodyNeighbours Neighbours, TowerSite? Site, Vector3 Origin, bool Ring,
-        TerracePlace Terrace)
+        TerracePlace Terrace, bool Corner)
     {
         public BodyKey Key(FamilyBodyDetail detail) => new(Family.Id, Mathf.RoundToInt(Frontage * 100f),
             Mathf.RoundToInt(Depth * 100f), Storeys, Attached, Paint, House, Pitch, Site?.PodiumStoreys ?? 0,
             Mathf.RoundToInt((Site?.ShaftFrontage ?? 0f) * 100f),
-            Mathf.RoundToInt((Site?.ShaftDepth ?? 0f) * 100f), Ring, Terrace, detail);
+            Mathf.RoundToInt((Site?.ShaftDepth ?? 0f) * 100f), Ring, Terrace, Corner, detail);
     }
 
     /// <summary><c>ui family-bodies on|off [NEAR]</c>; NEAR is the body band's reach in metres.</summary>
@@ -283,10 +283,18 @@ public partial class Main
         if (Preset() is not { } preset || !BuildingFacts.TryOf(_world, _names, slot, out BuildingFacts facts)) return null;
         int paint = FamilyPicker.Paint(family, preset, _world.Key, facts);
         (int house, int pitch) = body.House is null ? (0, 0) : FamilyPicker.House(preset, _world.Key, facts);
-        TerracePlace terrace = FamilyPicker.FormRunOf(family, preset, _world.Key, facts) is { } span
+        Terrace? run = FamilyPicker.FormRunOf(family, preset, _world.Key, facts);
+        TerracePlace terrace = run is { } span
             ? new TerracePlace(FamilyPicker.TerracePitch(family, _world.Key, span), span.Index, span.Houses)
             : default;
-        return new BodyRequest(one, family, body, frontage, depth, storeys, attached, paint, house, pitch, turn, neighbours, site, origin, ring, terrace);
+        if (body.Shop is not null)
+        {
+            house = FamilyPicker.House(_world.Key, facts.Id);
+            pitch = run is { } parade ? FamilyPicker.RunSeed(_world.Key, parade) : house;
+        }
+
+        return new BodyRequest(one, family, body, frontage, depth, storeys, attached, paint, house, pitch, turn, neighbours, site, origin, ring,
+            terrace, body.Shop is not null && facts.Corner);
     }
 
     private void PlaceBody(BodyRequest request)
@@ -317,6 +325,7 @@ public partial class Main
                 + (request.Site is { } t ? $"\tpodium {t.PodiumStoreys}\tshaft {t.ShaftFrontage}x{t.ShaftDepth} m" : "")
                 + (request.Ring ? "\tring" : "")
                 + (request.Body.Terrace is { } form ? $"\tterrace {form.Form} {request.Terrace.PitchDegrees}° house {request.Terrace.Index + 1} of {request.Terrace.Houses}" : "")
+                + (request.Body.Shop is { } shop ? $"\tshop {FamilyBodyBuilder.Drawn(shop, request.Storeys)} {request.Terrace.PitchDegrees}° lot {request.Terrace.Index + 1} of {request.Terrace.Houses}{(request.Corner ? " corner" : "")}" : "")
                 + (request.Body.Apartment is { } block ? $"\tapartment {block.Form} {request.Terrace.PitchDegrees}° lot {request.Terrace.Index + 1} of {request.Terrace.Houses}" : "")
                 + (one.Abandoned ? "\tabandoned" : ""));
         }
@@ -601,6 +610,8 @@ public partial class Main
                 request.Storeys, request.Ring, request.Attached, detail),
             { Body.House: not null } => FamilyBodyBuilder.BuildHouse(request.Body, request.Frontage, request.Depth,
                 request.Storeys, request.House, request.Pitch),
+            { Body.Shop: not null } => FamilyBodyBuilder.BuildShop(request.Body, request.Frontage, request.Depth, request.Storeys,
+                request.Attached, request.Corner, request.House, request.Pitch, request.Terrace),
             _ => FamilyBodyBuilder.Build(request.Body, request.Frontage, request.Depth, request.Storeys, request.Attached, request.Terrace),
         };
         foreach ((string part, ShellMesh source) in built.Parts)
@@ -624,7 +635,7 @@ public partial class Main
             arrays[(int)Mesh.ArrayType.Normal] = normals;
             arrays[(int)Mesh.ArrayType.TexUV] = uvs;
             arrays[(int)Mesh.ArrayType.TexUV2] = uv2s;
-            if (request.Body.House is not null)
+            if (request.Body.House is not null || request.Body.Shop is not null)
             {
                 var colors = new Color[source.VertexCount];
                 for (int i = 0; i < colors.Length; i++)
@@ -688,7 +699,7 @@ public partial class Main
                 continue;
             }
 
-            if (body.House is not null)
+            if (body.House is not null || body.Shop is not null)
             {
                 HouseSurface(mesh, part, arrays, library, family.Id, reads);
                 continue;

@@ -25,6 +25,11 @@ terrace_houses = [3, 6]
 # families share one place in the draw, so their eight forms take no more Lots than one would.
 apartment_lots = [1, 3]
 
+# A shop Building stands in a parade of 2 to 4 Lots. A parade shares its form, roof pitch and walls;
+# neighboring parades differ in form. Each shop unit draws its own shopfront, paint, awning and sign.
+# The shop families share one place in the draw, as the apartment families do.
+shop_lots = [2, 4]
+
 [[family]]
 id = "box"
 fallback = true
@@ -3683,3 +3688,133 @@ library = "test-street/rowhouses"
 shape = "house"
 variant = "side-wing"
 tile_metres = { roof = [4.0, 4.0] }
+
+# A Victorian brick parade under a slate gable, sashes over timber shopfronts. A corner splays its ground storey under a corbel.
+[[family]]
+id = "shop-house-victorian-gable"
+patterns = ["shop-house-parade", "high-street-block"]
+kinds = ["shopfront"]
+storeys = [2, 4]
+frontage_metres = [4, 24]
+depth_metres = [8, 24]
+
+[family.body]
+library = "test-street/corner-shops-with-flats"
+shape = "shop"
+variant = "victorian-gable"
+pitch_degrees = [34, 42]
+
+# A gable over each shop with a canted oriel on the first floor, under clay tiles.
+[[family]]
+id = "shop-house-gabled-oriel"
+patterns = ["shop-house-parade", "high-street-block"]
+kinds = ["shopfront"]
+storeys = [2, 4]
+frontage_metres = [4, 24]
+depth_metres = [8, 24]
+
+[family.body]
+library = "test-street/corner-shops-with-flats"
+shape = "shop"
+variant = "gabled-oriel"
+pitch_degrees = [36, 44]
+
+# A hipped slate roof; a corner splays all the way up and carries an octagonal turret under a spire.
+[[family]]
+id = "shop-house-turret-corner"
+patterns = ["shop-house-parade", "high-street-block"]
+kinds = ["shopfront"]
+storeys = [2, 4]
+frontage_metres = [4, 24]
+depth_metres = [8, 24]
+
+[family.body]
+library = "test-street/corner-shops-with-flats"
+shape = "shop"
+variant = "turret-corner"
+pitch_degrees = [30, 38]
+
+# A flat roof behind a corbelled cornice and a name pediment, arched windows above. A corner splays its ground storey round an iron column.
+[[family]]
+id = "shop-house-main-street"
+patterns = ["shop-house-parade", "high-street-block"]
+kinds = ["shopfront"]
+storeys = [2, 4]
+frontage_metres = [4, 24]
+depth_metres = [8, 24]
+
+[family.body]
+library = "test-street/corner-shops-with-flats"
+shape = "shop"
+variant = "main-street"
+
+# Rendered walls under a slate mansard with a dormer over each window.
+[[family]]
+id = "shop-house-mansard"
+patterns = ["shop-house-parade", "high-street-block"]
+kinds = ["shopfront"]
+storeys = [2, 4]
+frontage_metres = [4, 24]
+depth_metres = [8, 24]
+
+[family.body]
+library = "test-street/corner-shops-with-flats"
+shape = "shop"
+variant = "mansard"
+
+# Interwar brick with steel windows and string courses; a corner rounds and rises into a flagpole tower.
+[[family]]
+id = "shop-house-interwar-curve"
+patterns = ["shop-house-parade", "high-street-block"]
+kinds = ["shopfront"]
+storeys = [2, 4]
+frontage_metres = [4, 24]
+depth_metres = [8, 24]
+
+[family.body]
+library = "test-street/corner-shops-with-flats"
+shape = "shop"
+variant = "interwar-curve"
+
+# A 1960s flat roof with ribbon windows over colored panels and a deep canopy over the shops.
+[[family]]
+id = "shop-house-sixties-canopy"
+patterns = ["shop-house-parade", "high-street-block"]
+kinds = ["shopfront"]
+storeys = [2, 4]
+frontage_metres = [4, 24]
+depth_metres = [8, 24]
+
+[family.body]
+library = "test-street/corner-shops-with-flats"
+shape = "shop"
+variant = "sixties-canopy"
+
+# Contemporary infill; the top storey sets back behind a glazed terrace and is clad in zinc.
+[[family]]
+id = "shop-house-setback-modern"
+patterns = ["shop-house-parade", "high-street-block"]
+kinds = ["shopfront"]
+storeys = [2, 4]
+frontage_metres = [4, 24]
+depth_metres = [8, 24]
+
+[family.body]
+library = "test-street/corner-shops-with-flats"
+shape = "shop"
+variant = "setback-modern"
+
+# Rendered walls with shuttered windows and balconettes under a deep-eaved pantile hip.
+[[family]]
+id = "shop-house-pantile-hipped"
+patterns = ["shop-house-parade", "high-street-block"]
+kinds = ["shopfront"]
+storeys = [2, 4]
+frontage_metres = [4, 24]
+depth_metres = [8, 24]
+
+[family.body]
+library = "test-street/corner-shops-with-flats"
+shape = "shop"
+variant = "pantile-hipped"
+pitch_degrees = [20, 28]
