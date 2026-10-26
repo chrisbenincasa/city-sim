@@ -68,6 +68,8 @@ internal static class AppearanceDump
         var runs = new List<(ulong Face, StreetSide Side, int Offset, string Form, ulong Cell, int Pitch, int Parcel)>();
         var shopBlocks = new SortedDictionary<(string Band, string Form), int>();
         var parades = new List<(ulong Face, StreetSide Side, int Offset, string Form, ulong Cell, int Pitch, int Parcel)>();
+        var workshopBlocks = new SortedDictionary<(string Band, string Form), int>();
+        var workshopRuns = new List<(ulong Face, StreetSide Side, int Offset, string Form, ulong Cell, int Pitch, int Parcel)>();
         for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
         {
             if (!BuildingFacts.TryOf(world, names, slot, out BuildingFacts facts)) continue;
@@ -109,6 +111,15 @@ internal static class AppearanceDump
                 string form = FamilyBodyBuilder.Drawn(shop, facts.Storeys).ToString();
                 shopBlocks[(band, form)] = shopBlocks.GetValueOrDefault((band, form)) + 1;
                 parades.Add((facts.Face, facts.Side, facts.Offset, form, parade.Cell, FamilyPicker.TerracePitch(shops, key, parade), facts.Offset / facts.ParcelFrontage));
+            }
+
+            if (pick.Choice == FamilyChoice.Eligible && pick.Family is { Body.Workshop: { } works } workshops
+                && FamilyPicker.WorkshopRunOf(preset, key, facts) is { } yard)
+            {
+                string band = string.Create(CultureInfo.InvariantCulture, $"{facts.FrontageMetres} m, {facts.Storeys} storeys");
+                string form = works.Form.ToString();
+                workshopBlocks[(band, form)] = workshopBlocks.GetValueOrDefault((band, form)) + 1;
+                workshopRuns.Add((facts.Face, facts.Side, facts.Offset, form, yard.Cell, FamilyPicker.TerracePitch(workshops, key, yard), facts.Offset / facts.ParcelFrontage));
             }
 
             if (pick.Choice == FamilyChoice.Eligible) continue;
@@ -189,6 +200,7 @@ internal static class AppearanceDump
         // Apartments with a house between them are not neighbors.
         Forms(output, "Apartments", "apartment", "run", blocks, runs);
         Forms(output, "Shops", "shop", "parade", shopBlocks, parades);
+        Forms(output, "Workshops", "workshop", "run", workshopBlocks, workshopRuns);
         return 0;
     }
 

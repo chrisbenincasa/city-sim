@@ -48,6 +48,7 @@ public static class FamilyPicker
     private const ulong TerraceSpace = FaceSpace | (1UL << 61);
     private const ulong ApartmentSpace = FaceSpace | (1UL << 60);
     private const ulong ShopSpace = FaceSpace | (1UL << 59);
+    private const ulong WorkshopSpace = FaceSpace | (1UL << 58);
     private const int RunFaceShift = 20;
 
     /// <remarks>
@@ -140,14 +141,16 @@ public static class FamilyPicker
     {
         Apartment,
         Shop,
+        Workshop,
     }
 
-    private const int Groups = 2;
+    private const int Groups = 3;
 
     private static FormGroup? GroupOf(AppearanceFamily family) => family.Body switch
     {
         { Apartment: not null } => FormGroup.Apartment,
         { Shop: not null } => FormGroup.Shop,
+        { Workshop: not null } => FormGroup.Workshop,
         _ => null,
     };
 
@@ -155,6 +158,7 @@ public static class FamilyPicker
     {
         { Apartment: { } a } => (int)a.Form,
         { Shop: { } s } => (int)s.Form,
+        { Workshop: { } w } => (int)w.Form,
         _ => 0,
     };
 
@@ -254,16 +258,31 @@ public static class FamilyPicker
     public static Terrace? ShopRunOf(StylePreset preset, WorldKey world, in BuildingFacts facts) =>
         GroupRunOf(FormGroup.Shop, preset, world, facts);
 
+    /// <summary>
+    /// The run of workshop Buildings a Building stands in, or <c>null</c> where the preset has no
+    /// workshop runs or the Building stands on no block face.
+    /// </summary>
+    public static Terrace? WorkshopRunOf(StylePreset preset, WorldKey world, in BuildingFacts facts) =>
+        GroupRunOf(FormGroup.Workshop, preset, world, facts);
+
     private static Terrace? GroupRunOf(FormGroup group, StylePreset preset, WorldKey world, in BuildingFacts facts)
     {
         ArgumentNullException.ThrowIfNull(preset);
-        Bounds? lengths = group == FormGroup.Shop ? preset.ShopRuns : preset.ApartmentRuns;
+        Bounds? lengths = group switch
+        {
+            FormGroup.Shop => preset.ShopRuns,
+            FormGroup.Workshop => preset.WorkshopRuns,
+            _ => preset.ApartmentRuns,
+        };
         if (lengths is not { } span || facts.Face == 0 || facts.ParcelFrontage <= 0) return null;
 
         var era = new Ticks((ulong)facts.Side);
-        (ulong space, PurposeTag tag) = group == FormGroup.Shop
-            ? (ShopSpace, PurposeTag.AppearanceShopRun)
-            : (ApartmentSpace, PurposeTag.AppearanceApartmentRun);
+        (ulong space, PurposeTag tag) = group switch
+        {
+            FormGroup.Shop => (ShopSpace, PurposeTag.AppearanceShopRun),
+            FormGroup.Workshop => (WorkshopSpace, PurposeTag.AppearanceWorkshopRun),
+            _ => (ApartmentSpace, PurposeTag.AppearanceApartmentRun),
+        };
         ulong choices = (ulong)(span.High - span.Low + 1);
         int lots = (int)(span.Low + (long)(Randomness.Draw(world, FaceSpace | facts.Face, era, tag) % choices));
         int parcel = facts.Offset / facts.ParcelFrontage;
@@ -283,6 +302,7 @@ public static class FamilyPicker
             { Terrace: not null } => TerraceOf(preset, world, facts),
             { Apartment: not null } => ApartmentRunOf(preset, world, facts),
             { Shop: not null } => ShopRunOf(preset, world, facts),
+            { Workshop: not null } => WorkshopRunOf(preset, world, facts),
             _ => null,
         };
     }
@@ -291,7 +311,7 @@ public static class FamilyPicker
     public static int TerracePitch(AppearanceFamily family, WorldKey world, Terrace terrace)
     {
         ArgumentNullException.ThrowIfNull(family);
-        if ((family.Body?.Terrace?.PitchDegrees ?? family.Body?.Apartment?.PitchDegrees ?? family.Body?.Shop?.PitchDegrees) is not { } pitch) return 0;
+        if ((family.Body?.Terrace?.PitchDegrees ?? family.Body?.Apartment?.PitchDegrees ?? family.Body?.Shop?.PitchDegrees ?? family.Body?.Workshop?.PitchDegrees) is not { } pitch) return 0;
         ulong draw = Randomness.Draw(world, terrace.Entity, terrace.Era, PurposeTag.AppearanceTerracePitch);
         return (int)(pitch.Low + (long)(draw % (ulong)(pitch.High - pitch.Low + 1)));
     }
@@ -352,7 +372,8 @@ public static class FamilyPicker
         && (ReferenceEquals(family, other)
             || family.Body?.Terrace is { } t && t.Form == other.Body?.Terrace?.Form
             || family.Body?.Apartment is { } a && a.Form == other.Body?.Apartment?.Form
-            || family.Body?.Shop is { } s && s.Form == other.Body?.Shop?.Form);
+            || family.Body?.Shop is { } s && s.Form == other.Body?.Shop?.Form
+            || family.Body?.Workshop is { } w && w.Form == other.Body?.Workshop?.Form);
 
     private static ulong Mix(ulong z)
     {

@@ -287,7 +287,7 @@ public partial class Main
         TerracePlace terrace = run is { } span
             ? new TerracePlace(FamilyPicker.TerracePitch(family, _world.Key, span), span.Index, span.Houses)
             : default;
-        if (body.Shop is not null)
+        if (body.Shop is not null || Dressed(body))
         {
             house = FamilyPicker.House(_world.Key, facts.Id);
             pitch = run is { } parade ? FamilyPicker.RunSeed(_world.Key, parade) : house;
@@ -326,6 +326,7 @@ public partial class Main
                 + (request.Ring ? "\tring" : "")
                 + (request.Body.Terrace is { } form ? $"\tterrace {form.Form} {request.Terrace.PitchDegrees}° house {request.Terrace.Index + 1} of {request.Terrace.Houses}" : "")
                 + (request.Body.Shop is { } shop ? $"\tshop {FamilyBodyBuilder.Drawn(shop, request.Storeys)} {request.Terrace.PitchDegrees}° lot {request.Terrace.Index + 1} of {request.Terrace.Houses}{(request.Corner ? " corner" : "")}" : "")
+                + (request.Body.Workshop is { } works ? $"\tworkshop {works.Form} {request.Terrace.PitchDegrees}° lot {request.Terrace.Index + 1} of {request.Terrace.Houses}" : "")
                 + (request.Body.Apartment is { } block ? $"\tapartment {block.Form} {request.Terrace.PitchDegrees}° lot {request.Terrace.Index + 1} of {request.Terrace.Houses}" : "")
                 + (one.Abandoned ? "\tabandoned" : ""));
         }
@@ -612,6 +613,8 @@ public partial class Main
                 request.Storeys, request.House, request.Pitch),
             { Body.Shop: not null } => FamilyBodyBuilder.BuildShop(request.Body, request.Frontage, request.Depth, request.Storeys,
                 request.Attached, request.Corner, request.House, request.Pitch, request.Terrace),
+            { Body.Workshop: { Form: not WorkshopForm.PanelShed } } => FamilyBodyBuilder.BuildWorkshop(request.Body, request.Frontage,
+                request.Depth, request.Storeys, request.Attached, request.House, request.Pitch, request.Terrace),
             _ => FamilyBodyBuilder.Build(request.Body, request.Frontage, request.Depth, request.Storeys, request.Attached, request.Terrace),
         };
         foreach ((string part, ShellMesh source) in built.Parts)
@@ -635,7 +638,7 @@ public partial class Main
             arrays[(int)Mesh.ArrayType.Normal] = normals;
             arrays[(int)Mesh.ArrayType.TexUV] = uvs;
             arrays[(int)Mesh.ArrayType.TexUV2] = uv2s;
-            if (request.Body.House is not null || request.Body.Shop is not null)
+            if (request.Body.House is not null || request.Body.Shop is not null || Dressed(request.Body))
             {
                 var colors = new Color[source.VertexCount];
                 for (int i = 0; i < colors.Length; i++)
@@ -699,7 +702,7 @@ public partial class Main
                 continue;
             }
 
-            if (body.House is not null || body.Shop is not null)
+            if (body.House is not null || body.Shop is not null || Dressed(body))
             {
                 HouseSurface(mesh, part, arrays, library, family.Id, reads);
                 continue;
@@ -745,6 +748,9 @@ public partial class Main
         _familyBodyMeshes[key] = shape;
         return shape;
     }
+
+    /// <summary>Whether a body draws its own dressed surfaces, as a workshop form other than the panel shed does.</summary>
+    private static bool Dressed(FamilyBody body) => body.Workshop is { Form: not WorkshopForm.PanelShed };
 
     /// <summary>
     /// A house surface. Its part is <c>part@texture</c> for a library texture or a bare part for the

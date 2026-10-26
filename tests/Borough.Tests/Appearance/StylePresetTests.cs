@@ -339,6 +339,73 @@ public class StylePresetTests
         Assert.Contains(Read(text).Errors, e => e.Message.Contains(message, StringComparison.Ordinal));
     }
 
+    private static readonly (string Form, string Pitch)[] WorkshopForms =
+        [("builders-yard", "pitch_degrees = [22, 30]"), ("monitor", "pitch_degrees = [14, 22]"), ("parapet-roller", ""), ("portal-shed", "pitch_degrees = [6, 10]")];
+
+    private static StylePreset WorkshopPreset() => Preset("workshop_lots = [2, 4]\n" + string.Concat(WorkshopForms.Select(f => $"""
+        [[family]]
+        id = "workshop-{f.Form}"
+        kinds = ["shopfront"]
+        [family.body]
+        library = "l"
+        shape = "workshop"
+        variant = "{f.Form}"
+        {f.Pitch}
+
+        """)) + """
+        [[family]]
+        id = "workshop"
+        kinds = ["shopfront"]
+        [family.body]
+        library = "l"
+        bay_metres = 8
+        workshop = "panel-shed"
+
+        """);
+
+    [Fact]
+    public void Workshops_stand_in_runs_that_share_a_form_and_pitch_and_differ_from_their_neighbors()
+    {
+        StylePreset preset = WorkshopPreset();
+        var forms = new HashSet<WorkshopForm>();
+        for (ulong face = 1; face <= 200; face++)
+        {
+            (AppearanceFamily Family, int Pitch, Terrace Run)[] works = [.. Enumerable.Range(0, 14).Select(i =>
+            {
+                BuildingFacts facts = Facts((face * 100) + (ulong)i, storeys: 2, frontage: 32, depth: 16, pattern: BlockPattern.Perimeter,
+                    face: face, raisedDay: 40 * i, kind: "shopfront", offset: (32 * i) + 1, parcel: 32);
+                AppearanceFamily family = FamilyPicker.Pick(preset, World, facts).Family!;
+                Terrace run = FamilyPicker.WorkshopRunOf(preset, World, facts)!.Value;
+                return (family, FamilyPicker.TerracePitch(family, World, run), run);
+            })];
+
+            for (int i = 0; i < works.Length; i++)
+            {
+                Assert.InRange(works[i].Run.Houses, 2, 4);
+                forms.Add(works[i].Family.Body!.Workshop!.Form);
+                if (i == 0) continue;
+                bool inside = works[i].Run.Cell == works[i - 1].Run.Cell;
+                Assert.Equal(inside, works[i].Family.Body!.Workshop!.Form == works[i - 1].Family.Body!.Workshop!.Form);
+                if (inside) Assert.Equal(works[i - 1].Pitch, works[i].Pitch);
+            }
+        }
+
+        Assert.Equal(5, forms.Count);
+    }
+
+    [Theory]
+    [InlineData("workshop_lots = [0, 2]\n", "'workshop_lots' must be")]
+    [InlineData("[[family]]\nid = \"a\"\nkinds = [\"shopfront\"]\n[family.body]\nlibrary = \"l\"\nshape = \"workshop\"\nvariant = \"sawtooth\"\n", "a workshop 'variant' must be")]
+    [InlineData("[[family]]\nid = \"a\"\nkinds = [\"shopfront\"]\n[family.body]\nlibrary = \"l\"\nshape = \"workshop\"\nvariant = \"monitor\"\n", "needs 'pitch_degrees'")]
+    [InlineData("[[family]]\nid = \"a\"\nkinds = [\"shopfront\"]\n[family.body]\nlibrary = \"l\"\nshape = \"workshop\"\nvariant = \"portal-shed\"\npitch_degrees = [2, 10]\n", "within 5 to 45")]
+    [InlineData("[[family]]\nid = \"a\"\nkinds = [\"shopfront\"]\n[family.body]\nlibrary = \"l\"\nshape = \"workshop\"\nvariant = \"parapet-roller\"\npitch_degrees = [20, 30]\n", "takes no 'pitch_degrees'")]
+    [InlineData("[[family]]\nid = \"a\"\nkinds = [\"shopfront\"]\n[family.body]\nlibrary = \"l\"\nshape = \"workshop\"\nvariant = \"monitor\"\npitch_degrees = [14, 22]\nworkshop = \"panel-shed\"\n", "only valid for a block body")]
+    [InlineData("[[family]]\nid = \"a\"\nkinds = [\"shopfront\"]\n[family.body]\nlibrary = \"l\"\nbay_metres = 8\nworkshop = \"monitor\"\n", "must be \"panel-shed\"")]
+    public void A_bad_workshop_is_refused(string text, string message)
+    {
+        Assert.Contains(Read(text).Errors, e => e.Message.Contains(message, StringComparison.Ordinal));
+    }
+
     [Theory]
     [InlineData("terrace_houses = [0, 4]\n", "with low at least 1")]
     [InlineData("[[family]]\nid = \"a\"\nkinds = [\"dwelling\"]\n[family.body]\nlibrary = \"l\"\nbay_metres = 3.5\nterrace = \"gambrel\"\n", "'terrace' must be")]
