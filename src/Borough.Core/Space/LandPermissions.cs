@@ -381,6 +381,34 @@ public sealed class LandPermissions
         return PermissionRefusal.None;
     }
 
+    /// <summary>Adds the slot of each rectangle that shares a Tile with the area.</summary>
+    public void Overlapping(LandRectangle area, ICollection<int> into)
+    {
+        ArgumentNullException.ThrowIfNull(into);
+        if (area.Width <= 0 || area.Height <= 0) { return; }
+        long east = (long)area.X + area.Width, north = (long)area.Y + area.Height;
+        const int lastTile = CellGrid.WorldTiles - 1;
+        if (east <= 0 || north <= 0 || area.X > lastTile || area.Y > lastTile) { return; }
+        int fromX = PageAxis(Max(area.X, 0)), fromY = PageAxis(Max(area.Y, 0));
+        int toX = PageAxis(east - 1 > lastTile ? lastTile : (int)(east - 1));
+        int toY = PageAxis(north - 1 > lastTile ? lastTile : (int)(north - 1));
+        for (int py = fromY; py <= toY; py++)
+        {
+            for (int px = fromX; px <= toX; px++)
+            {
+                for (int link = _heads[py * PagesAcross + px]; link != 0; link = _table.Next[link - 1])
+                {
+                    int row = link - 1;
+                    if (_table.X[row] < east && area.X < _table.X[row] + _table.Width[row]
+                        && _table.Y[row] < north && area.Y < _table.Y[row] + _table.Height[row])
+                    {
+                        into.Add(row);
+                    }
+                }
+            }
+        }
+    }
+
     /// <summary>Reconstructs Cell lists in ascending slot order; validates saved geographic state.</summary>
     public void Rebuild()
     {

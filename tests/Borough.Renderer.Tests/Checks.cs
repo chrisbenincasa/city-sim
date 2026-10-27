@@ -408,6 +408,7 @@ public partial class Checks : Node
 
         camera.QueueFree();
         layer.QueueFree();
+        CheckPlotTouches();
     }
 
     private static bool Throws(Action action)

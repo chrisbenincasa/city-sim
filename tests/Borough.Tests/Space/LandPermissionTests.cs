@@ -40,6 +40,26 @@ public sealed class LandPermissionTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void Overlapping_finds_each_rectangle_sharing_a_tile_across_pages()
+    {
+        var table = new LandPermissionTable();
+        var land = new LandPermissions(table);
+        land.Paint(new(30, 30, 5, 5), Housing, 128);
+        land.Paint(new(100, 100, 2, 2), Trade, 128);
+        var found = new SortedSet<int>();
+        land.Overlapping(new(31, 31, 2, 2), found);
+        Assert.Equal(4, found.Count);
+        found.Clear();
+        land.Overlapping(new(33, 33, 10, 10), found);
+        Assert.Single(found);
+        found.Clear();
+        land.Overlapping(new(35, 35, 65, 65), found);
+        Assert.Empty(found);
+        land.Overlapping(new(-5, -5, 10_000, 10_000), found);
+        Assert.Equal(table.Rows.LiveCount, found.Count);
+    }
+
+    [Fact]
     public void Form_paint_preserves_use_and_band_and_empty_is_not_unrestricted()
     {
         var land = new LandPermissions(new LandPermissionTable());

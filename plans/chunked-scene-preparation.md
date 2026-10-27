@@ -187,8 +187,8 @@ Absent ──enters plan reach──▶ Queued ──budget──▶ Planned ─
 | Change | Source | Owners touched |
 |---|---|---|
 | Building created, destroyed, occupied, vacated, abandoned, let | `WorldChanges.Buildings` | The Building; its block's layout and dressing (occupancy decides gardens); footprint Cells within 8 m; car park and module owners |
-| Lot created, removed, resubdivided, fronted, occupied or vacated | Lot journal in `WorldChanges` | Block layout and dressing; plots; zones over it; kerbs on its Segment at the next `Pave` |
-| Segment laid, changed or demolished | Segment journal in `WorldChanges` | Its kerbs, roads and footways; neighbors at both Nodes, before and after (mitres, dead ends); the up to two blocks whose land it bounds; tree and rock Cells within `StreetGrid.SpanLimit` + 1 blocks of its ends (`InAYard` merges blocks across missing Streets) |
+| Lot created, removed, resubdivided, fronted, occupied or vacated | Lot journal in `WorldChanges` | Block layout and dressing; its plot; zones over its occupied ground, before and after; kerbs on its Segment at the next `Pave` |
+| Segment laid, changed or demolished | Segment journal in `WorldChanges` | Its kerbs, roads and footways; neighbors at both Nodes, before and after (mitres, dead ends); the up to two blocks whose land it bounds; tree and rock Cells and plots of Lots within `StreetGrid.SpanLimit` + 1 blocks of its ends (`InAYard` and `ZoneInterior` read merged blocks) |
 | Permission rectangle painted or erased | Permission rectangle journal in `WorldChanges` | That rectangle's zone |
 | Woodland count of a Cell | None. Each Cell plan stores the count it used. | That Cell, found stale when its plan is next written |
 | Wash change | Shell | Building colors only, through a recolor pass |
@@ -425,6 +425,35 @@ Each step lands alone. Each must pass the equivalence checks below before the ne
   warm. Optimized shell, i5-10400, load 4.9 with other shells running, one run. These figures show
   the scale of the change, not a quiet-machine timing. Most of the `Repave` time is the Address
   snapshot.
+
+### Step 5, slice 2 result, 2026-10-27
+
+- Plots and zones are written by owner. A plot's owner is its Lot slot and a zone's owner is its
+  permission rectangle slot. Owner order is slot order, which is the whole-city walk's order.
+- A plot reads its Lot and the kinds of the Segments on its block's edges (`ZoneInterior`). A zone
+  reads its rectangle and every occupied Lot over it (`Built`).
+- Every Building pass, `Full` or not, rewrites the plots and zones the journals reach.
+  `PlotTouches` finds them. They are the changed Lots and rectangles, the Lots near ground that
+  `Repave` recorded, and the rectangles under each changed Lot's occupied ground, before and after.
+  `LandPermissions.Overlapping` finds rectangles through the per-Cell lists, since no rectangle
+  crosses a Cell.
+- A new World or `BlockLattice` replots every owner.
+- The `geometry` branch no longer refills plots or zones. The Lot journal carries the occupancy
+  change that made it necessary.
+- `BOROUGH_RENDER_VERIFY=1` compares both layers and the vacant count with a whole-city plan after
+  each Building pass. The renderer checks drive `PlotTouches` through a zoning edit, a vacated and
+  re-occupied Lot, and a road edit's ground.
+- `scripts/compare-draws.sh` gains a `zone` drive. It zones blocks as trade at Tick 300 and erases
+  them at Tick 340, drawing after each. On the 25,000-Citizen city it added 188 plots and 16 zones,
+  then removed 19 zones.
+- Against `78d0e58b`, `traveller` and `car` rows removed, the small, verify and zone draws match
+  byte for byte. The verify script and the zone drive ran with `BOROUGH_RENDER_VERIFY=1` and found
+  no difference.
+- On the 1M save (99,992 Lot slots, 12,499 rectangle slots), the first full replot took 201 ms cold
+  and a forced full replot 31.8 ms warm. A zoning edit that touched 4 Lots and 6 rectangles took
+  2.9 ms. Optimized shell, i5-10400, load 2.7–3.2, one run. These figures show the scale of the
+  change, not a quiet-machine timing.
+- Commands still force a full Building pass (slice 3).
 
 ## Decisions settled, 2026-10-22
 

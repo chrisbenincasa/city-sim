@@ -59,68 +59,158 @@ public partial class Main
     /// neither of them is deciding.</b>
     /// </para>
     /// </remarks>
-    private System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where, Color What)>
-        Plots()
+    private (ulong Id, Transform3D Where, Color What)? Plot(int slot)
     {
         LotTable lots = _world.Lots;
-
-        for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
+        if (slot >= lots.Rows.SlotCount || !lots.Rows.IsLive(slot) || !lots.IsVacant(slot))
         {
-            if (!lots.Rows.IsLive(slot) || !lots.IsVacant(slot))
+            return null;
+        }
+
+        OrientedRectangle parcel = lots.Parcel(slot);
+        if (parcel.AxisEastQ16 != Q16.One || parcel.AxisNorthQ16 != 0)
+        {
+            float wide = parcel.Wide * MetresPerTile, deep = parcel.Deep * MetresPerTile;
+            if (Mathf.Min(wide, deep) < MinFrontageMetres) return null;
+            return (lots.Rows.IdAt(slot),
+                new Transform3D(RectangleBasis(parcel) * Basis.FromScale(new Vector3(wide, .01f, deep)),
+                    RectanglePoint(parcel, parcel.Wide * .5f, .02f, parcel.Deep * .5f)),
+                new Color(.42f, .52f, .30f).SrgbToLinear());
+        }
+
+        // ⚠ THE PAD IS THE LOT'S PARCEL, which is what a vacant Lot has always been trying
+        // to draw -- the ground the city would build on. Before plans/0052 stage 1 the shell
+        // had to invent it, and it invented a DIFFERENT rectangle here than Buildings() did.
+        LandRectangle frame = ParcelFrame(slot);
+        int wideTiles = frame.Width;
+        int deepTiles = frame.Height;
+
+        if (wideTiles <= 0 || deepTiles <= 0)
+        {
+            return null;
+        }
+
+        float west = frame.X * MetresPerTile;
+        float south = frame.Y * MetresPerTile;
+        float eastEdge = west + wideTiles * MetresPerTile;
+        float northEdge = south + deepTiles * MetresPerTile;
+        if (lots.AxisEastQ16[slot] == Q16.One && lots.AxisNorthQ16[slot] == 0
+            && Frontage.BlockOf(_world.Roads.Streets, lots.East[slot], lots.North[slot],
+            (StreetSide)lots.Side[slot], out int column, out int row)
+            && ZoneInterior(column, row) is { } interior)
+        {
+            var half = interior.Basis.Scale * .5f;
+            west = Math.Max(west, interior.Origin.X - half.X);
+            eastEdge = Math.Min(eastEdge, interior.Origin.X + half.X);
+            south = Math.Max(south, -interior.Origin.Z - half.Z);
+            northEdge = Math.Min(northEdge, -interior.Origin.Z + half.Z);
+        }
+        float parcelWide = eastEdge - west, parcelDeep = northEdge - south;
+        if (Mathf.Min(parcelWide, parcelDeep) < MinFrontageMetres) return null;
+        float east = (west + eastEdge) * .5f, north = (south + northEdge) * .5f;
+
+        // Keep road and path surfaces above the vacant parcel.
+        Vector3 plan = new(parcelWide, 0.01f, parcelDeep);
+
+        return (
+            lots.Rows.IdAt(slot),
+            OnLot(slot, new Transform3D(Basis.FromScale(plan), new Vector3(east, 0.02f, -north))),
+            new Color(0.42f, 0.52f, 0.30f).SrgbToLinear());
+    }
+
+    /// <summary>What every plot and zone was written against. A change replots the whole city.</summary>
+    private readonly record struct PlotBasis(Borough.Core.Entities.World? World, BlockLattice? Lattice);
+
+    private PlotBasis _plotBasis;
+    private readonly PlotTouches _plotTouches = new();
+    private bool[] _plotDrawn = [];
+    private int _zonedSlots;
+    private readonly List<(long West, long South, long East, long North)> _replotGround = [];
+    private readonly List<InstanceValue> _plotValues = [];
+    private readonly List<ulong> _plotPieceIds = [];
+
+    /// <summary>
+    /// Rewrites the plots and zones that the Tick's Lot and rectangle changes reach, and the plots
+    /// on the ground <see cref="Repave"/> recorded.
+    /// </summary>
+    private void Replot(WorldChanges changes)
+    {
+        var basis = new PlotBasis(_world, _world.Roads.Streets.Lattice);
+        if (basis != _plotBasis)
+        {
+            _plotBasis = basis;
+            _replotGround.Clear();
+            PlotAll();
+            return;
+        }
+        if (changes.Lots.IsEmpty && changes.PermissionRectangles.IsEmpty && _replotGround.Count == 0) return;
+
+        var lots = new SortedSet<int>();
+        var zones = new SortedSet<int>();
+        _plotTouches.Find(_world, changes.Lots, changes.PermissionRectangles, _replotGround, lots, zones);
+        _replotGround.Clear();
+        foreach (int slot in lots) WritePlot(slot);
+        _zonedSlots = Math.Max(_zonedSlots, _world.PermissionRectangles.Rows.SlotCount);
+        foreach (int slot in zones) WriteOwner(_zones, slot, ZonedBlock(slot));
+    }
+
+    private void PlotAll()
+    {
+        _plotTouches.Reset(_world);
+        int lots = Math.Max(_plotDrawn.Length, _world.Lots.Rows.SlotCount);
+        _plotDrawn = new bool[_world.Lots.Rows.SlotCount];
+        _vacantLots = 0;
+        for (int slot = 0; slot < lots; slot++) WritePlot(slot);
+
+        int zones = Math.Max(_zonedSlots, _world.PermissionRectangles.Rows.SlotCount);
+        _zonedSlots = _world.PermissionRectangles.Rows.SlotCount;
+        for (int slot = 0; slot < zones; slot++) WriteOwner(_zones, slot, ZonedBlock(slot));
+    }
+
+    private void WritePlot(int slot)
+    {
+        int slots = _world.Lots.Rows.SlotCount;
+        if (slot >= _plotDrawn.Length && slot < slots) Array.Resize(ref _plotDrawn, slots);
+        var piece = Plot(slot);
+        WriteOwner(_plots, slot, piece);
+        if (slot >= _plotDrawn.Length) return;
+        if (_plotDrawn[slot]) _vacantLots--;
+        if (piece is not null) _vacantLots++;
+        _plotDrawn[slot] = piece is not null;
+    }
+
+    private void WriteOwner(InstanceLayer layer, long owner, (ulong Id, Transform3D Where, Color What)? piece)
+    {
+        _plotValues.Clear();
+        _plotPieceIds.Clear();
+        if (piece is { } one)
+        {
+            _plotValues.Add(new InstanceValue(one.Where, one.What));
+            _plotPieceIds.Add(one.Id);
+        }
+        layer.Multimesh.Write(owner, _plotValues, _plotPieceIds);
+    }
+
+    /// <summary>Checks every plot and zone, and the count of vacant Lots drawn, against a whole-city plan.</summary>
+    private void VerifyPlots()
+    {
+        int vacant = 0;
+        Compare(_plots, _world.Lots.Rows.SlotCount, Plot, ref vacant);
+        if (vacant != _vacantLots) throw new InvalidOperationException("Incremental plot count differs from a full rebuild.");
+        int zones = 0;
+        Compare(_zones, _world.PermissionRectangles.Rows.SlotCount, ZonedBlock, ref zones);
+
+        void Compare(InstanceLayer layer, int slots, Func<int, (ulong Id, Transform3D Where, Color What)?> plan, ref int count)
+        {
+            var held = layer.Multimesh.Snapshot();
+            for (int slot = 0; slot < slots; slot++)
             {
-                continue;
+                if (plan(slot) is not { } piece) continue;
+                count++;
+                if (!held.TryGetValue((piece.Id, 0), out var value) || value != new InstanceValue(piece.Where, piece.What))
+                    throw new InvalidOperationException($"Incremental {layer.Name} owner {slot} differs from a full rebuild at Tick {_world.Tick.Raw}.");
             }
-
-            OrientedRectangle parcel = lots.Parcel(slot);
-            if (parcel.AxisEastQ16 != Q16.One || parcel.AxisNorthQ16 != 0)
-            {
-                float wide = parcel.Wide * MetresPerTile, deep = parcel.Deep * MetresPerTile;
-                if (Mathf.Min(wide, deep) < MinFrontageMetres) continue;
-                yield return (lots.Rows.IdAt(slot),
-                    new Transform3D(RectangleBasis(parcel) * Basis.FromScale(new Vector3(wide, .01f, deep)),
-                        RectanglePoint(parcel, parcel.Wide * .5f, .02f, parcel.Deep * .5f)),
-                    new Color(.42f, .52f, .30f).SrgbToLinear());
-                continue;
-            }
-
-            // ⚠ THE PAD IS THE LOT'S PARCEL, which is what a vacant Lot has always been trying
-            // to draw -- the ground the city would build on. Before plans/0052 stage 1 the shell
-            // had to invent it, and it invented a DIFFERENT rectangle here than Buildings() did.
-            LandRectangle frame = ParcelFrame(slot);
-            int wideTiles = frame.Width;
-            int deepTiles = frame.Height;
-
-            if (wideTiles <= 0 || deepTiles <= 0)
-            {
-                continue;
-            }
-
-            float west = frame.X * MetresPerTile;
-            float south = frame.Y * MetresPerTile;
-            float eastEdge = west + wideTiles * MetresPerTile;
-            float northEdge = south + deepTiles * MetresPerTile;
-            if (lots.AxisEastQ16[slot] == Q16.One && lots.AxisNorthQ16[slot] == 0
-                && Frontage.BlockOf(_world.Roads.Streets, lots.East[slot], lots.North[slot],
-                (StreetSide)lots.Side[slot], out int column, out int row)
-                && ZoneInterior(column, row) is { } interior)
-            {
-                var half = interior.Basis.Scale * .5f;
-                west = Math.Max(west, interior.Origin.X - half.X);
-                eastEdge = Math.Min(eastEdge, interior.Origin.X + half.X);
-                south = Math.Max(south, -interior.Origin.Z - half.Z);
-                northEdge = Math.Min(northEdge, -interior.Origin.Z + half.Z);
-            }
-            float parcelWide = eastEdge - west, parcelDeep = northEdge - south;
-            if (Mathf.Min(parcelWide, parcelDeep) < MinFrontageMetres) continue;
-            float east = (west + eastEdge) * .5f, north = (south + northEdge) * .5f;
-
-            // Keep road and path surfaces above the vacant parcel.
-            Vector3 plan = new(parcelWide, 0.01f, parcelDeep);
-
-            yield return (
-                lots.Rows.IdAt(slot),
-                OnLot(slot, new Transform3D(Basis.FromScale(plan), new Vector3(east, 0.02f, -north))),
-                new Color(0.42f, 0.52f, 0.30f).SrgbToLinear());
+            if (held.Count != count) throw new InvalidOperationException($"Incremental {layer.Name} count differs from a full rebuild.");
         }
     }
 
@@ -2084,12 +2174,14 @@ public partial class Main
                 Meet(before.A, touched);
                 Meet(before.B, touched);
                 TouchScatter(before);
+                _replotGround.Add(NearBlocks(before));
             }
             if (Ends(slot) is { } after)
             {
                 Meet(after.A, touched);
                 Meet(after.B, touched);
                 TouchScatter(after);
+                _replotGround.Add(NearBlocks(after));
             }
         }
 
@@ -2184,24 +2276,36 @@ public partial class Main
     }
 
     /// <summary>
-    /// Discards the tree and rock plans of every Cell whose yard test a Street between these ends
-    /// could change. <see cref="StreetGrid.Block"/> merges blocks across missing Streets up to
-    /// <see cref="StreetGrid.SpanLimit"/> blocks, so the reach is one more block than that.
+    /// The Tiles within <see cref="StreetGrid.SpanLimit"/> + 1 blocks of a Segment's ends. A
+    /// changed Street there could merge or split a block, because <see cref="StreetGrid.Block"/>
+    /// merges blocks across missing Streets up to <see cref="StreetGrid.SpanLimit"/> blocks.
+    /// Empty without a lattice.
     /// </summary>
-    private void TouchScatter(PavedSegment ends)
+    private (long West, long South, long East, long North) NearBlocks(PavedSegment ends)
     {
         BlockLattice lattice = _world.Roads.Streets.Lattice;
-        if (_world.Roads.Streets.BlockTiles <= 0) return;
+        if (_world.Roads.Streets.BlockTiles <= 0) return (0, 0, -1, -1);
         const int reach = StreetGrid.SpanLimit + 1;
         int west = Math.Min(lattice.LineAt(ends.From.X), lattice.LineAt(ends.To.X)) - reach;
         int east = Math.Max(lattice.LineAt(ends.From.X), lattice.LineAt(ends.To.X)) + reach + 1;
         int south = Math.Min(lattice.LineAt(ends.From.Y), lattice.LineAt(ends.To.Y)) - reach;
         int north = Math.Max(lattice.LineAt(ends.From.Y), lattice.LineAt(ends.To.Y)) + reach + 1;
+        return (lattice.EdgeOf(west), lattice.EdgeOf(south), lattice.EdgeOf(east), lattice.EdgeOf(north));
+    }
+
+    /// <summary>
+    /// Discards the tree and rock plans of every Cell whose yard test a Street between these ends
+    /// could change, which is every Cell over <see cref="NearBlocks"/>.
+    /// </summary>
+    private void TouchScatter(PavedSegment ends)
+    {
+        if (_world.Roads.Streets.BlockTiles <= 0) return;
+        (long west, long south, long east, long north) = NearBlocks(ends);
         int last = CellGrid.WorldCells - 1;
-        int fromEast = Math.Clamp(Mathf.FloorToInt(lattice.EdgeOf(west) * MetresPerTile / CellGrid.MetresPerCell), 0, last);
-        int toEast = Math.Clamp(Mathf.FloorToInt(lattice.EdgeOf(east) * MetresPerTile / CellGrid.MetresPerCell), 0, last);
-        int fromNorth = Math.Clamp(Mathf.FloorToInt(lattice.EdgeOf(south) * MetresPerTile / CellGrid.MetresPerCell), 0, last);
-        int toNorth = Math.Clamp(Mathf.FloorToInt(lattice.EdgeOf(north) * MetresPerTile / CellGrid.MetresPerCell), 0, last);
+        int fromEast = Math.Clamp(Mathf.FloorToInt(west * MetresPerTile / CellGrid.MetresPerCell), 0, last);
+        int toEast = Math.Clamp(Mathf.FloorToInt(east * MetresPerTile / CellGrid.MetresPerCell), 0, last);
+        int fromNorth = Math.Clamp(Mathf.FloorToInt(south * MetresPerTile / CellGrid.MetresPerCell), 0, last);
+        int toNorth = Math.Clamp(Mathf.FloorToInt(north * MetresPerTile / CellGrid.MetresPerCell), 0, last);
         for (int cellNorth = fromNorth; cellNorth <= toNorth; cellNorth++)
         {
             for (int cellEast = fromEast; cellEast <= toEast; cellEast++)

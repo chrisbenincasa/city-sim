@@ -33,8 +33,6 @@ public partial class Main
             else RefreshFamilyBodies(changes.Buildings);
             PlanGardens();
             _drawnBuildings = Massings(Buildings());
-            _vacantLots = Fill(_plots, Plots(), _plotIds);
-            Fill(_zones, ZonedBlocks());
             FillCarParks();
             FillGardens();
             _renderedBuildings.Clear();
@@ -108,8 +106,6 @@ public partial class Main
                 foreach ((_, var surface) in CarParkSurfaces()) FoliageFootprint(surface, at++);
                 foreach (var garden in _gardenGround) FoliageFootprint(garden, at++);
                 RefreshFoliage(at);
-                _vacantLots = Fill(_plots, Plots(), _plotIds);
-                Fill(_zones, ZonedBlocks());
                 FillCarParks();
                 FillGardens();
             }
@@ -118,8 +114,13 @@ public partial class Main
                 FillCarParks();
             }
         }
+        Replot(changes);
         changes.Clear();
-        if (_verifyRendering) VerifyBuildingDrawing();
+        if (_verifyRendering)
+        {
+            VerifyBuildingDrawing();
+            VerifyPlots();
+        }
     }
 
     private void VerifyBuildingDrawing()

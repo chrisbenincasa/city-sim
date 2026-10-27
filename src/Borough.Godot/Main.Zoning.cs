@@ -27,18 +27,15 @@ public partial class Main
     /// Each zoned rectangle nothing has been built on yet, drawn whole, the block's unlotted middle
     /// included. The first built Lot on it clears the rectangle's wash.
     /// </summary>
-    private System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where, Color What)> ZonedBlocks()
+    private (ulong Id, Transform3D Where, Color What)? ZonedBlock(int slot)
     {
         var paint = _world.PermissionRectangles;
-        for (int slot = 0; slot < paint.Rows.SlotCount; slot++)
-        {
-            if (!paint.Rows.IsLive(slot)) continue;
-            ushort uses = GroundPermissions.Unpack(paint.Permission[slot]).Uses;
-            if (uses == 0) continue;
-            if (Built(new LandRectangle(paint.X[slot], paint.Y[slot], paint.Width[slot], paint.Height[slot]))) continue;
-            yield return (paint.Rows.IdAt(slot), ParcelTransform(paint.X[slot], paint.Y[slot],
-                paint.Width[slot], paint.Height[slot]), ZoneColour(uses).SrgbToLinear());
-        }
+        if (slot >= paint.Rows.SlotCount || !paint.Rows.IsLive(slot)) return null;
+        ushort uses = GroundPermissions.Unpack(paint.Permission[slot]).Uses;
+        if (uses == 0) return null;
+        if (Built(new LandRectangle(paint.X[slot], paint.Y[slot], paint.Width[slot], paint.Height[slot]))) return null;
+        return (paint.Rows.IdAt(slot), ParcelTransform(paint.X[slot], paint.Y[slot],
+            paint.Width[slot], paint.Height[slot]), ZoneColour(uses).SrgbToLinear());
     }
 
     private bool Built(LandRectangle zoned)

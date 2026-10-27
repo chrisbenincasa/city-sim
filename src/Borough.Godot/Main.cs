@@ -1033,7 +1033,7 @@ public partial class Main : Node3D
     private ScatterBasis _scatterBasis;
     private readonly HashSet<Vector2I> _submerged = [];
 
-    /// <summary>Which vacant Lot each drawn pad is, in instance order.</summary>
+    /// <summary>Marks the plot layer's ids as named. Each pad's id is its vacant Lot's row id.</summary>
     private readonly List<ulong> _plotIds = [];
 
     /// <summary>Lines that have arrived over the socket and not yet been applied.</summary>
