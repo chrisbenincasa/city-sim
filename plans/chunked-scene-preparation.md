@@ -449,6 +449,10 @@ Each step lands alone. Each must pass the equivalence checks below before the ne
 - Against `78d0e58b`, `traveller` and `car` rows removed, the small, verify and zone draws match
   byte for byte. The verify script and the zone drive ran with `BOROUGH_RENDER_VERIFY=1` and found
   no difference.
+- On the 1M save, the four cameras and the running city at Tick 600 match `78d0e58b` byte for
+  byte, with no exceptions. Both draws hold 13,063 plots. This save is quiet at speed 8, so the
+  running-city draw shows that steady running writes nothing wrong, not that busy Lot churn does.
+  Optimized shells, i5-10400, load 4.8–8.8, both builds recorded one after the other.
 - On the 1M save (99,992 Lot slots, 12,499 rectangle slots), the first full replot took 201 ms cold
   and a forced full replot 31.8 ms warm. A zoning edit that touched 4 Lots and 6 rectangles took
   2.9 ms. Optimized shell, i5-10400, load 2.7–3.2, one run. These figures show the scale of the
