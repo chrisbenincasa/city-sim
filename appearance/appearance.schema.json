@@ -216,7 +216,7 @@
               },
               "variant": {
                 "description": "The tower layout, the mid-rise type, the house form, the shop form or the workshop form. Required for a tower, mid-rise, house, shop or workshop body and refused for a block.",
-                "enum": ["point", "stepped-point", "l", "h", "mansion", "panel-slab", "terrace", "front-gables", "villa", "hipped", "half-hip", "cross-gable", "saltbox", "gambrel", "l-plan", "rear-outshot", "side-wing", "victorian-gable", "gabled-oriel", "turret-corner", "main-street", "mansard", "interwar-curve", "sixties-canopy", "setback-modern", "pantile-hipped", "builders-yard", "monitor", "interwar-garage", "parapet-roller", "portal-shed"]
+                "enum": ["point", "stepped-point", "l", "h", "mansion", "panel-slab", "terrace", "front-gables", "villa", "hipped", "half-hip", "cross-gable", "saltbox", "gambrel", "l-plan", "rear-outshot", "side-wing", "staggered-gables", "flat-setback", "sawtooth", "pavilions", "span", "butterfly", "monopitch", "low-hip", "deep-flat", "deep-gables", "deep-sawtooth", "deep-span", "victorian-gable", "gabled-oriel", "turret-corner", "main-street", "mansard", "interwar-curve", "sixties-canopy", "setback-modern", "pantile-hipped", "builders-yard", "monitor", "interwar-garage", "parapet-roller", "portal-shed"]
               },
               "module_metres": {
                 "description": "A mid-rise body's window module along a face, in metres. Defaults to 3.3 for a mansion and 3.6 for a panel slab.",
@@ -362,6 +362,10 @@
                 "description": "A canopy shelters each roller door on the back wall.",
                 "type": "boolean"
               },
+              "wide": {
+                "description": "A terrace, front-gables or villa house stands among the wide house forms and ranks its form on each run of detached houses. The other wide forms always do.",
+                "type": "boolean"
+              },
               "street_ground": {
                 "description": "The bays of the street wall's ground storey, left to right seen from outside. A token ending in '*' repeats to fill the bays the others leave; kinds joined by '+' take turns.",
                 "type": "array",
@@ -486,7 +490,7 @@
               },
               {
                 "if": { "properties": { "shape": { "const": "house" } }, "required": ["shape"] },
-                "then": { "properties": { "variant": { "enum": ["terrace", "front-gables", "villa", "hipped", "half-hip", "cross-gable", "saltbox", "gambrel", "l-plan", "rear-outshot", "side-wing"] } } }
+                "then": { "properties": { "variant": { "enum": ["terrace", "front-gables", "villa", "hipped", "half-hip", "cross-gable", "saltbox", "gambrel", "l-plan", "rear-outshot", "side-wing", "staggered-gables", "flat-setback", "sawtooth", "pavilions", "span", "butterfly", "monopitch", "low-hip", "deep-flat", "deep-gables", "deep-sawtooth", "deep-span"] } } }
               },
               {
                 "if": { "properties": { "shape": { "const": "midrise" } }, "required": ["shape"] },

@@ -1,0 +1,36 @@
+# gridded.toml, 10,000 Citizens, seed 1, --start-at 600, --appearance appearance/test-street.
+# The street at north 284 holds staggered gables, pavilions, span and flat setback rows; the deep
+# street at north 389 holds deep flat, deep sawtooth and deep span rows. Both are seen from the north.
+# "turn" is relative, so the second shot keeps the first shot's heading.
+601 pause
+601 ui family-bodies on 600
+601 speed 5
+602 pause
+602 focus 440 284 110
+602 tilt 24
+602 turn left
+602 turn left
+602 speed 5
+603 pause
+603 focus 440 284 110
+603 tilt 24
+603 speed 5
+604 pause
+604 focus 440 284 110
+604 tilt 24
+604 shoot plans/evidence/appearance-families/wide-house-street.png
+604 speed 5
+605 pause
+605 focus 451 389 110
+605 tilt 24
+605 speed 5
+606 pause
+606 focus 451 389 110
+606 tilt 24
+606 speed 5
+607 pause
+607 focus 451 389 110
+607 tilt 24
+607 shoot plans/evidence/appearance-families/wide-house-deep.png
+607 speed 5
+608 quit

@@ -415,7 +415,7 @@ public static class StylePresetReader
         public FamilyBody? Body()
         {
             int before = errors.Count;
-            Collect(["library", "shape", "variant", "tile_metres", "materials", "bay_metres", "parapet_metres", "pilasters", "plant", "roof_hatch", "vents", "openings", "gable_degrees", "chimney", "steps", "party_line", "shopfront", "panels", "rooflights", "receiving_canopy", "terrace", "apartment", "workshop", "pitch_degrees", .. MidriseBodyKeys, .. Rows]);
+            Collect(["library", "shape", "variant", "tile_metres", "materials", "bay_metres", "parapet_metres", "pilasters", "plant", "roof_hatch", "vents", "openings", "gable_degrees", "chimney", "steps", "party_line", "shopfront", "panels", "rooflights", "receiving_canopy", "terrace", "apartment", "workshop", "pitch_degrees", "wide", .. MidriseBodyKeys, .. Rows]);
             string? library = Text("library", required: true);
             Dictionary<string, (float, float)> tiles = Tiles("tile_metres");
             Dictionary<string, string> materials = Materials("materials");
@@ -491,15 +491,36 @@ public static class StylePresetReader
                     "l-plan" => HouseVariant.LPlan,
                     "rear-outshot" => HouseVariant.RearOutshot,
                     "side-wing" => HouseVariant.SideWing,
+                    "staggered-gables" => HouseVariant.StaggeredGables,
+                    "flat-setback" => HouseVariant.FlatSetback,
+                    "sawtooth" => HouseVariant.Sawtooth,
+                    "pavilions" => HouseVariant.Pavilions,
+                    "span" => HouseVariant.Span,
+                    "butterfly" => HouseVariant.Butterfly,
+                    "monopitch" => HouseVariant.Monopitch,
+                    "low-hip" => HouseVariant.LowHip,
+                    "deep-flat" => HouseVariant.DeepFlat,
+                    "deep-gables" => HouseVariant.DeepGables,
+                    "deep-sawtooth" => HouseVariant.DeepSawtooth,
+                    "deep-span" => HouseVariant.DeepSpan,
                     _ => null,
                 };
+                bool? wide = Boolean("wide");
                 if (variant is not null && parsed is null)
                 {
-                    Refuse(LineOf(_keys["variant"]), "'variant' must be \"terrace\", \"front-gables\", \"villa\", \"hipped\", \"half-hip\", \"cross-gable\", \"saltbox\", \"gambrel\", \"l-plan\", \"rear-outshot\" or \"side-wing\".");
+                    Refuse(LineOf(_keys["variant"]), "'variant' must be \"terrace\", \"front-gables\", \"villa\", \"hipped\", \"half-hip\", \"cross-gable\", \"saltbox\", \"gambrel\", \"l-plan\", \"rear-outshot\", \"side-wing\", \"staggered-gables\", \"flat-setback\", \"sawtooth\", \"pavilions\", \"span\", \"butterfly\", \"monopitch\", \"low-hip\", \"deep-flat\", \"deep-gables\", \"deep-sawtooth\" or \"deep-span\".");
                 }
                 else if (parsed is { } found)
                 {
-                    house = new HouseBody(found);
+                    bool old = found is HouseVariant.Terrace or HouseVariant.FrontGables or HouseVariant.Villa;
+                    if (wide is not null && !old)
+                    {
+                        Refuse(LineOf(_keys["wide"]), FamilyBodyBuilder.IsWideForm(found)
+                            ? "a wide house form is always wide: drop 'wide'."
+                            : "'wide' is only valid on a \"terrace\", \"front-gables\" or \"villa\" house.");
+                    }
+
+                    house = new HouseBody(found, FamilyBodyBuilder.IsWideForm(found) || (old && wide == true));
                 }
             }
             else if (shopShape)
@@ -513,6 +534,11 @@ public static class StylePresetReader
             else if (_keys.TryGetValue("variant", out KeyValueSyntax? strayVariant))
             {
                 Refuse(LineOf(strayVariant), "'variant' is only valid when 'shape' is \"tower\", \"midrise\", \"house\", \"shop\" or \"workshop\".");
+            }
+
+            if (!houseShape && _keys.TryGetValue("wide", out KeyValueSyntax? strayWide))
+            {
+                Refuse(LineOf(strayWide), "'wide' is only valid for a house body.");
             }
 
             if (!midriseShape)

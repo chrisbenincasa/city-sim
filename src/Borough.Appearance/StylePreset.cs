@@ -398,7 +398,11 @@ public sealed record MidriseBody(
     bool Galleries = true);
 
 /// <summary>A house body's form. Every proportion, material and paint is drawn per Building.</summary>
-public sealed record HouseBody(HouseVariant Variant);
+/// <param name="Wide">
+/// The form stands among the wide house forms, which share one place in the draw and rank their forms
+/// on each run of detached houses so neighboring runs differ in form.
+/// </param>
+public sealed record HouseBody(HouseVariant Variant, bool Wide = false);
 
 /// <summary>The house forms a body can build.</summary>
 public enum HouseVariant
@@ -435,6 +439,42 @@ public enum HouseVariant
 
     /// <summary>One house with a single-storey wing standing into its side garden.</summary>
     SideWing,
+
+    /// <summary>A row of steep front gables without eaves, every other house set back from the street.</summary>
+    StaggeredGables,
+
+    /// <summary>A flat-roofed row whose top storey stands back behind a roof terrace at three storeys.</summary>
+    FlatSetback,
+
+    /// <summary>A row with a mono-pitch to each house, all rising the same way, a clerestory in each step.</summary>
+    Sawtooth,
+
+    /// <summary>Front-gabled pavilions joined by flat-roofed links set back from the street.</summary>
+    Pavilions,
+
+    /// <summary>A shallow side gable over narrow houses between brick cross walls, panels under ribbon windows.</summary>
+    Span,
+
+    /// <summary>A row with an inverted roof to each house, falling to a valley on its center line.</summary>
+    Butterfly,
+
+    /// <summary>One low mono-pitch over the row rising toward the street, a clerestory band under its high edge.</summary>
+    Monopitch,
+
+    /// <summary>A low hipped roof with deep eaves over the row, the upper storey hung with tiles or boards.</summary>
+    LowHip,
+
+    /// <summary>The flat set-back row over a double-pile front, flat-roofed outriggers behind.</summary>
+    DeepFlat,
+
+    /// <summary>The staggered gables over a double-pile front, flat-roofed outriggers behind.</summary>
+    DeepGables,
+
+    /// <summary>The sawtooth row over a double-pile front, flat-roofed outriggers behind.</summary>
+    DeepSawtooth,
+
+    /// <summary>The span row over a double-pile front, flat-roofed outriggers behind.</summary>
+    DeepSpan,
 }
 
 /// <summary>What a mid-rise body's upper street storeys open with.</summary>
