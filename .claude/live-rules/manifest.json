@@ -55,6 +55,17 @@
       "priority": 40,
       "enabled": true,
       "include": []
+    },
+    {
+      "path": "rules/visual-comparison-page.md",
+      "hash": "31fe21391717ff07174f7027635a10233f860a01dd62e5a9e238719b28e55910",
+      "description": "Show rendered visual options on one comparison page that updates each round",
+      "globs": [],
+      "dirs": [],
+      "prompt": [],
+      "priority": 40,
+      "enabled": true,
+      "include": []
     }
   ]
 }
