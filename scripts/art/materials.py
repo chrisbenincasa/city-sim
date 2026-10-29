@@ -7,7 +7,8 @@
 
 Each texture keeps its 1K colour, OpenGL normal and roughness maps. The colour map is flattened and,
 for a painted texture, made greyscale at PAINT_MEAN. Every map is re-encoded at JPEG quality 90,
-and roughness as greyscale. Downloads are cached under ~/.cache/borough-textures/sources.
+and roughness as greyscale. Downloads are cached under ~/.cache/borough-textures/sources. A texture
+whose publisher is Borough was baked in Blender, and its maps are read from art/materials/.
 
     uv run scripts/art/materials.py [NAME ...]
 """
@@ -25,6 +26,7 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / 'src/Borough.Godot/assets/city/library'
+AUTHORED = ROOT / 'art/materials'
 CACHE = Path.home() / '.cache/borough-textures/sources'
 AGENT = {'User-Agent': 'borough-materials'}
 PAINT_MEAN = .7
@@ -44,6 +46,9 @@ def fetch(url):
 
 def sources(texture):
     """Maps each of albedo, normal and roughness to (url, bytes)."""
+    if texture['publisher'] == 'Borough':
+        paths = {key: AUTHORED / f"{texture['id']}-{key}.png" for key in POLY_HAVEN_MAPS}
+        return {key: (str(path.relative_to(ROOT)), path.read_bytes()) for key, path in paths.items()}
     if texture['publisher'] == 'Poly Haven':
         files = json.loads(fetch(f"https://api.polyhaven.com/files/{texture['id']}"))
         urls = {key: files[name]['1k']['jpg']['url'] for key, name in POLY_HAVEN_MAPS.items()}
@@ -111,7 +116,8 @@ def build(texture):
         entry['sha256'] = sha256(path.read_bytes())
         files[key] = entry
     return {
-        'asset': texture['asset'], 'publisher': texture['publisher'], 'id': texture['id'], 'license': 'CC0-1.0',
+        'asset': texture['asset'], 'publisher': texture['publisher'], 'id': texture['id'],
+        'license': 'Authored for Borough' if texture['publisher'] == 'Borough' else 'CC0-1.0',
         'slots': texture['slots'], 'tile_metres': texture['tile_metres'], 'measured': texture['measured'],
         'paint': texture['paint'], 'detile_cycles': texture['detile_cycles'],
         'albedo_linear_mean_luminance': round(mean, 4), 'files': files,
@@ -137,7 +143,7 @@ def main(names):
         built[texture['name']] = build(texture)
         print('TEXTURE', texture['name'], texture['tile_metres'], built[texture['name']]['albedo_linear_mean_luminance'])
     manifest = {
-        'what_this_is': 'The CC0 texture library for Building bodies.',
+        'what_this_is': 'The texture library for Building bodies: CC0 photographs and textures baked for Borough.',
         'authority': 'scripts/art/materials.py',
         'paint_mean_linear_luminance': PAINT_MEAN,
         'textures': {name: built[name] for name in sorted(built)},

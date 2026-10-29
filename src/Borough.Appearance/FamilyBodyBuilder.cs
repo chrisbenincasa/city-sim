@@ -576,6 +576,18 @@ public static partial class FamilyBodyBuilder
             Solid(corners, part);
         }
 
+        /// <summary>A box from <paramref name="a"/> to <paramref name="b"/> whose cross-section spans ±<paramref name="u"/> and ±<paramref name="v"/>.</summary>
+        public void Beam(Vector3 a, Vector3 b, Vector3 u, Vector3 v, string part)
+        {
+            if (Vector3.Dot(Vector3.Cross(u, v), b - a) < 0f) v = -v;
+            Span<Vector3> corners =
+            [
+                a - u - v, a + u - v, a + u + v, a - u + v,
+                b - u - v, b + u - v, b + u + v, b - u + v,
+            ];
+            Solid(corners, part);
+        }
+
         /// <summary>Eight corners in the order the script's <c>BOX_FACES</c> reads them.</summary>
         private void Solid(ReadOnlySpan<Vector3> corners, string part)
         {

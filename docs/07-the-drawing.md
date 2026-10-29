@@ -108,6 +108,7 @@ Decided by the player on 2026-08-31, 09-01 and 10-17, and recorded rather than a
 | **Light follows the clock** | A lit city at night is wanted, and the windows are lit from **occupancy** |
 | **Not diagrammatic** | *This needs to look "city like", not just shallow, drab nothingness* — pillar 1.1 |
 | **Variation, never repetition** | *Uniformity would be the death of the game, visually* — §2.1 |
+| **Contemporary first, with some mid-century** | Decided 10/27/2026. Old forms are expected in a city but must not dominate the design language — §2.2 |
 
 ### 2.1 Variation is the look
 
@@ -129,9 +130,11 @@ section says variety is required.
 | Building | Proportions, materials and the set of details | Roof pitch, module width, roof tile, wall material, window spacing |
 | House within a Building | Paint, door side, bay windows, door canopy | Each house in a terrace painted on its own |
 
-- More detail is better by default. Lintels, glazing bars, string courses, door canopies, gutters,
-  downpipes, dormers and front boundaries all belong on a house. Cut a detail only when it costs
-  legibility at the default camera or measured frame time.
+- More detail is better by default, and the detail suits the form's period (§2.2). A traditional
+  house carries lintels, glazing bars, string courses and dormers. A contemporary one carries deep
+  reveals, cladding joints, recessed entrances and balcony rails. Gutters, downpipes and front
+  boundaries belong on every house. Cut a detail only when it costs legibility at the default camera
+  or measured frame time.
 - Variation stays inside a kind's identity. A house varies as a house, and a school still reads as
   a school.
 - Coherence comes from a shared material palette and module. Families in one district draw from the
@@ -146,6 +149,40 @@ section says variety is required.
 - Look for the repeat at the default camera. Two identical neighbours mean the ranges are too narrow.
 - Every visual choice goes to the player as rendered options first. An agent proposes forms, ranges,
   materials and details with samples, and does not choose among them alone.
+
+### 2.2 Contemporary first
+
+The game is set in one modern era (`00-vision.md`), and the player founds every city from empty
+Ground. Most of what the city draws therefore reads as built in the present. Mid-century forms add
+range, and traditional forms appear as character. Decided with the user on 10/27/2026, after the
+shipped families drifted toward traditional forms.
+
+**Periods**
+
+| Period | Built | Markers |
+|---|---|---|
+| Contemporary | 2000 on | Flat roofs and parapets, plain steep gables with no eaves or bargeboards, standing-seam metal, timber or fiber-cement cladding, full-height glazing, deep reveals, recessed balconies, set-back top storeys |
+| Mid-century | 1945–1980 | Low pitches, mono-pitch and butterfly roofs, thin fascias, horizontal window bands, tile hanging, panels, canopies, carports, staggered plans |
+| Traditional | before 1945 | Pitched roofs with eaves and bargeboards, sashes with glazing bars, bays, dormers, chimneys, mansards, ornament |
+
+**Principles**
+
+- Every form names its period. A family's options page labels each candidate's period and shows the
+  mix its band would draw.
+- Provisional target, as a share of the Buildings that draw a family body on a shipped Ruleset:
+  contemporary at least half, mid-century about a quarter, traditional at most a fifth.
+- Each size band offers contemporary forms first. A band needs at least one contemporary and one
+  mid-century form among its four or more (§2.1 and the variety bar).
+- Traditional forms carry low weights, so they read as exceptions on a street rather than its rule.
+- A period is a look and not a date. It is not tied to a Building's raised Day or the preset's era.
+- A form drawn from a historic type is fine where it is reinterpreted with the contemporary markers.
+  A gabled row with no eaves, flush windows and a metal roof is contemporary.
+
+**Where it stands**
+
+On `base/ruleset.toml`, `gridded.toml` and `traded.toml` at 10,000 Citizens and 600 Ticks, 95–96%
+of the Buildings that draw a family body draw a traditional form. Bringing the shipped families to
+this mix is the board row "Period mix in the shipped families".
 
 ---
 
@@ -168,7 +205,8 @@ C# massing as the authoring workflow. Existing zoning, parcel and simulation geo
    in Blender, including ground uses such as car parks, stalls and parking decks. The simulation
    supplies positions and counts, and Godot places the authored modules there.
    A low-rise house may draw up to about 20% more or less floor than its Building holds, so a
-   house can vary its plan: an L-plan, a rear outshot or a side wing into its garden. A low-rise
+   house can vary its plan: an L-plan, a rear outshot, a side wing into its garden, or a row of
+   houses on a deep Lot that stops short of the back behind a double-pile front. A low-rise
    apartment Building has the same allowance, so a mansard, a set-back top storey, a forecourt or
    bay fronts may draw less floor than the Building holds. A shop house has it too, so a mansard
    or set-back top storey over its flats may draw less floor. Street access and parking still
