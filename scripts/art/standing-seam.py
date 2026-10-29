@@ -8,6 +8,9 @@ The tile is 4.8768 m (192 in) square and holds twelve 16 in (406.4 mm) pans. Eac
 and each pan bows up to 3.5 mm between its seams. Seams run along Blender Y, which is up-slope and the
 image's vertical. Each pan takes its own tone and gloss, as sheets from different coils do.
 
+A soft shadow SHADOW_WIDTH meters wide darkens each seam by up to SHADOW_DEPTH. Ambient occlusion
+alone leaves a band a few centimeters wide, and the game's distant mipmaps average that away.
+
 The maps go to art/materials/, and scripts/art/materials.py adds them to the texture library.
 """
 import math
@@ -32,6 +35,8 @@ PAINT_MEAN = .7
 PAN_TONE = (1.0, .96, 1.04, .985, 1.02, .955, 1.03, .99, .965, 1.045, 1.0, .975)
 PAN_GLOSS = (.36, .44, .32, .40, .47, .34, .42, .38, .45, .33, .41, .37)
 CAN = .0035
+SHADOW_DEPTH = .50
+SHADOW_WIDTH = .08
 STEP = .04
 
 
@@ -165,7 +170,9 @@ def main():
     x = (np.arange(PIXELS) + .5) / PIXELS * TILE
     pan = np.clip((x / PAN).astype(int), 0, PANS - 1)
     tone = np.array(PAN_TONE)[pan][None, :]
-    albedo = (.30 + .70 * ao ** 1.5) * tone
+    off = np.abs((x + PAN / 2) % PAN - PAN / 2)[None, :]
+    shadow = 1 - SHADOW_DEPTH * np.exp(-(off / SHADOW_WIDTH) ** 2)
+    albedo = (.30 + .70 * ao ** 1.5) * tone * shadow
     albedo = albedo * PAINT_MEAN / albedo.mean()
     OUT.mkdir(parents=True, exist_ok=True)
     write(OUT / 'standing-seam-albedo.png', srgb(np.repeat(albedo[..., None], 3, axis=2)))

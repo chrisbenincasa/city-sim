@@ -260,7 +260,8 @@ staggered gables, flat setback, pavilions and span rows at Tile row 284, and `wi
 shows deep flat, deep sawtooth and deep span rows at Tile row 389, from `wide-houses.drive`. Every
 roof seen from above shows its face; `WideHouseBodyTests` asserts the same from vertical rays.
 Both frames show standing-seam roofs and seam or concrete-tile panels on contemporary rows. Close
-shots at 45 m show ridge caps and verges clearly, and the seams only faintly.
+shots at 45 m show ridge caps, verges and seams clearly. At 110 m the seams are one or two pixels
+apart and do not resolve.
 Wide houses stand detached by design, so #243 does not apply to them.
 
 ## What the demonstration showed

@@ -1550,9 +1550,9 @@
         "albedo": {
           "file": "src/Borough.Godot/assets/city/library/standing-seam-albedo.jpg",
           "from": "art/materials/standing-seam-albedo.png",
-          "source_sha256": "a2fca2e5c57aebf9bc9b27f30ae252c302ffe74d963b2d7dd9ae2dd72996fde4",
+          "source_sha256": "556f6eb754b81809a30a38c28125a69331059a2a0500560dc852e967080b1eb5",
           "transform": "flattened below 4.0 cycles per tile, greyscale at linear mean luminance 0.7",
-          "sha256": "238c95d49f683752e6fedbc00042f0fd670055e5264a200bd017a2f5ee9d61ad"
+          "sha256": "2596715cd2d71d2d915553377fc53467557b40a514da808fc92719fb685d0521"
         },
         "normal": {
           "file": "src/Borough.Godot/assets/city/library/standing-seam-normal.jpg",
