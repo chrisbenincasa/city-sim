@@ -233,7 +233,9 @@ on October 27, 2026 from Blender renders, and capped span at two storeys. Each f
   and mid-century colored panels are painted `white-planks-clean`. The user chose these from
   rendered options on October 28, 2026.
 - Every pitched roof carries ridge and hip caps, verges and eaves gutters. Metal roofs draw them in
-  the roof's paint. Tiled roofs cap in tile and trim in white.
+  the roof's paint. Tiled roofs cap in tile. Their trim is white, charcoal or bronze, drawn per
+  house with white at half the weight. The user chose the mix from rendered options on October 29,
+  2026.
 - Pitch ranges are fixed per form in the builder and stop at 45 degrees.
 - A deep form stands its street form on a double-pile front with flat-roofed outriggers behind, and
   draws about 80% of the floor its Lot holds, inside the low-rise allowance.

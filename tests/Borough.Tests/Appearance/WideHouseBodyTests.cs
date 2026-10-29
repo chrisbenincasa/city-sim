@@ -141,6 +141,22 @@ public sealed class WideHouseBodyTests
     }
 
     [Theory]
+    [InlineData("span")]
+    [InlineData("low-hip")]
+    public void Mid_century_trim_is_white_charcoal_or_bronze_by_house(string form)
+    {
+        FamilyBody body = House(form);
+        (float frontage, float depth) = Lot(form);
+        string[] trims = [.. Enumerable.Range(0, 64).Select(seed =>
+        {
+            Vector4 c = FamilyBodyBuilder.BuildHouse(body, frontage, depth, 2, seed).Parts.First(p => p.Part == "trim").Mesh.Colors[0];
+            return $"{c.X:F2},{c.Y:F2},{c.Z:F2}";
+        }).Distinct()];
+
+        Assert.Equal(3, trims.Length);
+    }
+
+    [Theory]
     [InlineData("staggered-gables")]
     [InlineData("sawtooth")]
     [InlineData("pavilions")]

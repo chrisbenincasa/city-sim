@@ -20,6 +20,7 @@ public static partial class FamilyBodyBuilder
     private static readonly string[] ContemporaryDoors = ["c9a227", "2f4a5c", "b4472f", "2b2e31", "6b8f71", "d9d4c8"];
     private static readonly string[] MidCenturyDoors = ["c45a3b", "d8c27a", "2f4a5c", "6f8f7a", "eeeeea", "2b2e31"];
     private static readonly string[] MidCenturyPanels = ["a9c3cf", "d8c27a", "c45a3b", "d8d6d0", "6f8f7a"];
+    private static readonly string[] MidCenturyTrims = ["eeeeea", "eeeeea", "2b2e31", "5a4632"];
     private static readonly string WidePlinth = Dressed("plinth", null, "6f6d68");
     private static readonly string Deck = Dressed("membrane", "bitumen", null);
     private static readonly (float Width, float Height) CapSize = (.18f, .05f), VergeSize = (.035f, .09f), GutterSize = (.07f, .065f);
@@ -191,7 +192,7 @@ public static partial class FamilyBodyBuilder
                     _ => Dressed("wall", "white-planks-clean", r.Pick(MidCenturyPanels)),
                 };
                 frame = Dressed("frame", null, r.Pick(["eeeeea", "eeeeea", "2b2e31"]));
-                trim = Dressed("trim", null, "eeeeea");
+                trim = Dressed("trim", null, new HouseDraw(((ulong)seed << 8) | 4).Pick(MidCenturyTrims));
                 edges = new RoofEdges(roof, trim, trim);
                 doors = Sample(ref r, MidCenturyDoors, 3);
             }

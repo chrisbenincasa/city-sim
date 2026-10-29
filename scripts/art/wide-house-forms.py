@@ -376,7 +376,8 @@ def deep(s, roof):
 
 # ---------------------------------------------------------------------------------------------
 # Contemporary and mid-century forms. Every pitched roof carries ridge and hip caps, verges and eaves
-# gutters. Metal roofs draw them in the roof's paint; tiled roofs cap in tile and trim in white.
+# gutters. Metal roofs draw them in the roof's paint; tiled roofs cap in tile and trim
+# in white, charcoal or bronze, drawn per house.
 
 for _name, _metres, _paint in (('sheet-metal-004', [2.0, 2.0], True), ('wood-siding-011', [1.4, 1.4], False),
                                ('hinoki-planks', [1.89, 1.89], False), ('wood-siding-005', [2.4, 2.4], False),
@@ -399,6 +400,7 @@ WHITE = ['d8d6d0', 'd6d2c8', 'cfcac0']
 C_DOORS = ['c9a227', '2f4a5c', 'b4472f', '2b2e31', '6b8f71', 'd9d4c8']
 M_DOORS = ['c45a3b', 'd8c27a', '2f4a5c', '6f8f7a', 'eeeeea', '2b2e31']
 M_PANELS = ['a9c3cf', 'd8c27a', 'c45a3b', 'd8d6d0', '6f8f7a']
+M_TRIMS = ['eeeeea', 'eeeeea', '2b2e31', '5a4632']
 
 
 def new_look(seed, W, D, storeys, form):
@@ -430,7 +432,7 @@ def new_look(seed, W, D, storeys, form):
         s['accent'] = r.choice([hf.textured('clay-roof-tiles-02'), hf.textured('wood-siding-005'),
                                 hf.textured('white-planks-clean', r.choice(M_PANELS))])
         s['frame'] = hf.flat(r.choice(['eeeeea', 'eeeeea', '2b2e31']), .5)
-        s['trim'] = hf.flat('eeeeea')
+        s['trim'] = hf.flat(random.Random(seed + 4).choice(M_TRIMS))
         s['doors'] = [hf.flat(c, .6) for c in r.sample(M_DOORS, 3)]
         s['eaves'] = .45
         s['panels'] = True
