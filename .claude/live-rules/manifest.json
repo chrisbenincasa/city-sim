@@ -2,6 +2,26 @@
   "version": 1,
   "rules": [
     {
+      "path": "rules/appearance-test-gate.md",
+      "hash": "591718508cf6f87e139dfb9995f7cb3d17587f58021c90113a4c5702b7438f7c",
+      "description": "Gate appearance and shell-drawing commits on the appearance tests, not the full lane",
+      "globs": [
+        "src/Borough.Appearance/**",
+        "src/Borough.Godot/**",
+        "scripts/art/**",
+        "art/**",
+        "appearance/**",
+        "tests/Borough.Tests/Appearance/**"
+      ],
+      "dirs": [],
+      "prompt": [
+        "/\\\\b(commit|push|gate|test lane)\\\\b/i"
+      ],
+      "priority": 30,
+      "enabled": true,
+      "include": []
+    },
+    {
       "path": "rules/delegate-read-many.md",
       "hash": "382a6700d1931049344c46b10d2db2e79177fbb137f061f4645b88feef97008f",
       "description": "Delegate the read-many questions; keep symbol reads in the main loop",
