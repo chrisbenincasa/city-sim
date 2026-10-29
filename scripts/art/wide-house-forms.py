@@ -375,11 +375,14 @@ def deep(s, roof):
 
 
 # ---------------------------------------------------------------------------------------------
-# Contemporary and mid-century forms. Flat colors stand in for standing-seam metal and fiber-cement panels.
+# Contemporary and mid-century forms. Every pitched roof carries ridge and hip caps, verges and eaves
+# gutters. Metal roofs draw them in the roof's paint; tiled roofs cap in tile and trim in white.
 
 for _name, _metres, _paint in (('sheet-metal-004', [2.0, 2.0], True), ('wood-siding-011', [1.4, 1.4], False),
                                ('hinoki-planks', [1.89, 1.89], False), ('wood-siding-005', [2.4, 2.4], False),
-                               ('bitumen', [20, 20], False)):
+                               ('bitumen', [20, 20], False),
+                               ('standing-seam', [4.8768, 4.8768], True), ('concrete-tile-facade', [2.09, 2.09], True),
+                               ('white-planks-clean', [1.8, 1.8], True)):
     ts.SURFACES[_name] = {'metres': _metres, 'mean': .7 if _paint else None,
                           'maps': {k: hf.LIB / f'{_name}-{k}.jpg' for k in ('albedo', 'normal', 'roughness')
                                    if (hf.LIB / f'{_name}-{k}.jpg').exists()}}
@@ -395,7 +398,7 @@ PANEL = ['3a3e41', '5b6064', '8a8d86', 'c8c3b8']
 WHITE = ['d8d6d0', 'd6d2c8', 'cfcac0']
 C_DOORS = ['c9a227', '2f4a5c', 'b4472f', '2b2e31', '6b8f71', 'd9d4c8']
 M_DOORS = ['c45a3b', 'd8c27a', '2f4a5c', '6f8f7a', 'eeeeea', '2b2e31']
-M_PANELS = ['a9c3cf', 'd8c27a', 'c45a3b', 'eeeeea', '6f8f7a']
+M_PANELS = ['a9c3cf', 'd8c27a', 'c45a3b', 'd8d6d0', '6f8f7a']
 
 
 def new_look(seed, W, D, storeys, form):
@@ -405,10 +408,14 @@ def new_look(seed, W, D, storeys, form):
     s['pitch'] = random.Random(seed + 9).uniform(low, high) if high else 0
     brick = hf.textured(r.choice(['bricks-051', 'bricks-066', 'bricks-085']))
     if s['period'] == 'contemporary':
-        s['roof'] = hf.flat(r.choice(METAL), .45)
+        metal = r.choice(METAL)
+        s['roof'] = hf.textured('standing-seam', metal)
+        edge = hf.flat(metal, .4)
+        s['edges'] = {'cap': edge, 'verge': edge, 'gutter': edge}
         timber = hf.textured(r.choice(['wood-siding-011', 'hinoki-planks']))
         render = hf.textured('painted-plaster-wall', r.choice(WHITE))
-        panel = hf.flat(r.choice(PANEL), .7)
+        cladding = 'standing-seam' if random.Random(seed + 3).random() < .5 else 'concrete-tile-facade'
+        panel = hf.textured(cladding, r.choice(PANEL))
         ground, upper = r.choice([(brick, brick), (render, render), (timber, timber), (brick, timber), (render, panel), (brick, panel)])
         s['frame'] = hf.flat(r.choice(['2b2e31', '2b2e31', 'eeeeea', '6b5a45']), .5)
         s['trim'] = hf.flat('3a3d40', .5)
@@ -420,12 +427,14 @@ def new_look(seed, W, D, storeys, form):
         s['roof'] = hf.textured(r.choice(['roofing-tiles-007', 'roofing-tiles-008']))
         render = hf.textured('painted-plaster-wall', 'd8d6d0')
         ground = upper = brick if r.random() < .75 else render
-        s['accent'] = r.choice([hf.textured('clay-roof-tiles-02'), hf.textured('wood-siding-005'), hf.flat(r.choice(M_PANELS), .7)])
+        s['accent'] = r.choice([hf.textured('clay-roof-tiles-02'), hf.textured('wood-siding-005'),
+                                hf.textured('white-planks-clean', r.choice(M_PANELS))])
         s['frame'] = hf.flat(r.choice(['eeeeea', 'eeeeea', '2b2e31']), .5)
         s['trim'] = hf.flat('eeeeea')
         s['doors'] = [hf.flat(c, .6) for c in r.sample(M_DOORS, 3)]
         s['eaves'] = .45
         s['panels'] = True
+        s['edges'] = {'cap': s['roof'], 'verge': s['trim'], 'gutter': s['trim']}
     s['fin'] = brick
     s['ground'], s['upper'], s['end'] = ground, upper, upper
     s['flat'] = hf.textured('bitumen')
@@ -555,6 +564,106 @@ def gable_glass(s, cx, y, H, half, pitch):
             ts.box('gable frame', (x0, y - .06, z0), (x1, y - .03, z1), 'frame')
 
 
+CAP, VERGE, GUTTER = (.18, .05), (.035, .09), (.07, .065)
+
+
+def beam(name, p0, p1, u, v, material):
+    """A box from p0 to p1 whose cross-section spans ±u and ±v."""
+    corners = [tuple(p[k] + a * u[k] + b * v[k] for k in range(3))
+               for p in (p0, p1) for a, b in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+    ts.mesh(name, corners, [(0, 3, 2, 1), (4, 5, 6, 7), (0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7)], material)
+
+
+def unit(v):
+    n = math.sqrt(sum(c * c for c in v))
+    return tuple(c / n for c in v)
+
+
+def scaled(v, k):
+    return tuple(c * k for c in v)
+
+
+def plus(p, *vs):
+    return tuple(p[i] + sum(v[i] for v in vs) for i in range(3))
+
+
+def cross(a, b):
+    return (a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0])
+
+
+def ridge_cap(material, p0, p1):
+    """A cap sitting on a ridge or hip line from p0 to p1."""
+    w, h = CAP
+    d = unit(tuple(b - a for a, b in zip(p0, p1)))
+    u = unit(cross(d, (0, 0, 1)))
+    v = unit(cross(u, d))
+    if v[2] < 0:
+        v = scaled(v, -1)
+    lift = scaled(v, h / 2)
+    beam('ridge cap', plus(p0, lift), plus(p1, lift), scaled(u, w), lift, material)
+
+
+def eave_gutter(material, a, b, outward):
+    """A gutter under the eave from a to b, hung on its outward side and running past each verge."""
+    w, h = GUTTER
+    along = scaled(unit(tuple(q - p for p, q in zip(a, b))), VERGE[0] * 2)
+    drop = plus(scaled(outward, w), (0, 0, -h * .9))
+    beam('gutter', plus(a, drop, scaled(along, -1)), plus(b, drop, along), scaled(outward, w), (0, 0, h), material)
+
+
+def slope_edges(s, low_a, low_b, high_a, high_b, ridge=True, gutter=True):
+    """Trim round one roof slope, from its eave corners (low_a, low_b) to its top corners (high_a, high_b).
+    A cap runs along the top, a verge along each sloping side and a gutter under the eave."""
+    edges = s.get('edges')
+    if edges is None:
+        return
+    along = unit(tuple(b - a for a, b in zip(low_a, low_b)))
+    up_slope = unit(tuple(h - l for l, h in zip(low_a, high_a)))
+    normal = unit(cross(along, up_slope))
+    if normal[2] < 0:
+        normal = scaled(normal, -1)
+    if ridge:
+        ridge_cap(edges['cap'], high_a, high_b)
+    t, h = VERGE
+    for corner_low, corner_high, side in ((low_a, high_a, -1), (low_b, high_b, 1)):
+        out = plus(scaled(along, side * t), scaled(normal, -h * .4))
+        beam('verge', plus(corner_low, out), plus(corner_high, out), scaled(along, t), scaled(normal, h), edges['verge'])
+    if gutter:
+        eave_gutter(edges['gutter'], low_a, low_b, unit((-up_slope[0], -up_slope[1], 0.0)))
+
+
+def gable_edges(s, axis, cx, cy, A, L, H, pitch, eaves):
+    """Trim round a gable that hfm.hipgable drew with the same arguments and k = 0."""
+    P = hfm.mapper(axis, cx, cy)
+    t = math.tan(math.radians(pitch))
+    top, low = H + A * t, H - eaves * t
+    Ae, Le = A + eaves, L + eaves
+    for side in (-1, 1):
+        slope_edges(s, P(side * Ae, -Le, low), P(side * Ae, Le, low), P(0, -Le, top), P(0, Le, top), ridge=side > 0)
+
+
+def hip_edges(s, axis, cx, cy, A, L, H, pitch, eaves):
+    """Caps and gutters round a full hip that hfm.hipgable drew with the same arguments and k = 1."""
+    edges = s.get('edges')
+    if edges is None:
+        return
+    P = hfm.mapper(axis, cx, cy)
+    t = math.tan(math.radians(pitch))
+    top, low = H + A * t, H - eaves * t
+    Ae, Le = A + eaves, L + eaves
+    ry = max(0.0, Le - Ae)
+    if ry > 0:
+        ridge_cap(edges['cap'], P(0, -ry, top), P(0, ry, top))
+    origin = P(0, 0, 0)
+    for f in (-1, 1):
+        for side in (-1, 1):
+            ridge_cap(edges['cap'], P(0, f * ry, top), P(side * Ae, f * Le, low))
+        side_out = tuple(c - o for c, o in zip(P(f, 0, 0), origin))
+        end_out = tuple(c - o for c, o in zip(P(0, f, 0), origin))
+        eave_gutter(edges['gutter'], P(f * Ae, -Le, low), P(f * Ae, Le, low), side_out)
+        eave_gutter(edges['gutter'], P(-Ae, f * Le, low), P(Ae, f * Le, low), end_out)
+
+
 def staggered_gables(s):
     """One steep front gable to each house, no eaves, every other house set back from the street."""
     W, D, st = s['W'], s['D'], s['storeys']
@@ -569,6 +678,7 @@ def staggered_gables(s):
         sides = tuple(sd for sd in (-1, 1) if not back or (sd < 0 and i == 0) or (sd > 0 and i == n - 1))
         doors += mrow(s, 1, w, x0, y0, D / 2, st, ends=sides, first=i)
         hipgable(s, 'y', x0 + w / 2, (y0 + D / 2) / 2, w / 2, (D / 2 - y0) / 2, H, s['pitch'], eaves=s['eaves'])
+        gable_edges(s, 'y', x0 + w / 2, (y0 + D / 2) / 2, w / 2, (D / 2 - y0) / 2, H, s['pitch'], s['eaves'])
         gable_glass(s, x0 + w / 2, y0, H, w / 2, s['pitch'])
     return doors
 
@@ -618,6 +728,7 @@ def sawtooth(s):
         a, b = -W / 2 + i * w, -W / 2 + (i + 1) * w
         lo, hi = (a, b) if d > 0 else (b, a)
         poly('mono', [(lo, -D / 2 - e, H), (hi, -D / 2 - e, H + rise), (hi, D / 2 + e, H + rise), (lo, D / 2 + e, H)], 'roof')
+        slope_edges(s, (lo, -D / 2 - e, H), (lo, D / 2 + e, H), (hi, -D / 2 - e, H + rise), (hi, D / 2 + e, H + rise))
         for y in (-D / 2, D / 2):
             poly('mono end', [(lo, y, H), (hi, y, H), (hi, y, H + rise)], 'wall')
         poly('step', [(hi, -D / 2, H), (hi, D / 2, H), (hi, D / 2, H + rise), (hi, -D / 2, H + rise)], 'wall')
@@ -645,6 +756,7 @@ def pavilions(s):
         if kind == 'pavilion':
             doors += mrow(s, 1, width, x, -D / 2, D / 2, st, door=k == 0 and count > 1, first=k)
             hipgable(s, 'y', x + width / 2, 0, width / 2, D / 2, H, s['pitch'], eaves=s['eaves'])
+            gable_edges(s, 'y', x + width / 2, 0, width / 2, D / 2, H, s['pitch'], s['eaves'])
             gable_glass(s, x + width / 2, -D / 2, H, width / 2, s['pitch'])
         else:
             keep = s['ground'], s['upper'], s['variant']
@@ -666,6 +778,7 @@ def span(s):
     doors = mrow(s, n, w, -W / 2, -D / 2, D / 2, st)
     e, t = s['eaves'], math.tan(math.radians(s['pitch']))
     hipgable(s, 'x', 0, 0, D / 2, W / 2, H, s['pitch'], eaves=e)
+    gable_edges(s, 'x', 0, 0, D / 2, W / 2, H, s['pitch'], e)
     for y, f in ((-D / 2, -1), (D / 2, 1)):
         ts.box('fascia', (-W / 2 - e, y + f * e - .03, H - e * t - .28), (W / 2 + e, y + f * e + .03, H - e * t + .02), 'trim')
         for i in range(n + 1):
@@ -688,6 +801,10 @@ def butterfly(s):
         ea, eb = (e if i == 0 else 0), (e if i == n - 1 else 0)
         poly('butterfly', [(a - ea, -D / 2 - e, H + rise + ea * t), (c, -D / 2 - e, H), (c, D / 2 + e, H), (a - ea, D / 2 + e, H + rise + ea * t)], 'roof')
         poly('butterfly', [(c, -D / 2 - e, H), (b + eb, -D / 2 - e, H + rise + eb * t), (b + eb, D / 2 + e, H + rise + eb * t), (c, D / 2 + e, H)], 'roof')
+        za, zb = H + rise + ea * t, H + rise + eb * t
+        slope_edges(s, (c, -D / 2 - e, H), (c, D / 2 + e, H), (a - ea, -D / 2 - e, za), (a - ea, D / 2 + e, za), gutter=False)
+        slope_edges(s, (c, -D / 2 - e, H), (c, D / 2 + e, H), (b + eb, -D / 2 - e, zb), (b + eb, D / 2 + e, zb),
+                    ridge=i == n - 1, gutter=False)
         for y in (-D / 2, D / 2):
             poly('butterfly wall', [(a, y, H), (c, y, H), (a, y, H + rise)], 'wall')
             poly('butterfly wall', [(c, y, H), (b, y, H), (b, y, H + rise)], 'wall')
@@ -714,6 +831,8 @@ def monopitch(s):
     ef, eb = .7, .35
     poly('mono', [(-W / 2 - .3, -D / 2 - ef, H + rise + ef * t), (W / 2 + .3, -D / 2 - ef, H + rise + ef * t),
                   (W / 2 + .3, D / 2 + eb, H - eb * t), (-W / 2 - .3, D / 2 + eb, H - eb * t)], 'roof')
+    slope_edges(s, (-W / 2 - .3, D / 2 + eb, H - eb * t), (W / 2 + .3, D / 2 + eb, H - eb * t),
+                (-W / 2 - .3, -D / 2 - ef, H + rise + ef * t), (W / 2 + .3, -D / 2 - ef, H + rise + ef * t), ridge=False)
     ts.box('fascia', (-W / 2 - .3, -D / 2 - ef - .04, H + rise + ef * t - .3), (W / 2 + .3, -D / 2 - ef, H + rise + ef * t + .02), 'trim')
     for i in range(n + 1):
         x = -W / 2 + i * w
@@ -732,6 +851,7 @@ def low_hip(s):
     doors = mrow(s, n, w, -W / 2, -D / 2, D / 2, st)
     s['upper'], s['panels'] = keep
     hipgable(s, 'x', 0, 0, D / 2, W / 2, H, s['pitch'], k=1, eaves=.75)
+    hip_edges(s, 'x', 0, 0, D / 2, W / 2, H, s['pitch'], .75)
     ts.box('canopy', (-W / 2 + .2, -D / 2 - 1.0, 2.55), (W / 2 - .2, -D / 2, 2.67), 'trim')
     return doors
 

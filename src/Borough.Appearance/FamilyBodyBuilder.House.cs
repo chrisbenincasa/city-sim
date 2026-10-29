@@ -24,7 +24,7 @@ public static partial class FamilyBodyBuilder
     [
         "bricks-088", "bricks-051", "bricks-066", "bricks-085", "painted-plaster-wall", "plaster-001",
         "clay-roof-tiles-02", "roofing-tiles-007", "roofing-tiles-008", "wood-siding-011", "hinoki-planks", "wood-siding-005",
-        "bitumen",
+        "bitumen", "standing-seam", "concrete-tile-facade", "white-planks-clean",
     ];
 
     private static readonly string[] HouseWalls = ["d6cfbf", "c9b79c", "b9ad97", "8e9b86", "a7aeb0", "c4a48a", "d3c6a0", "9aa7b4", "b48f7a", "cfd3c6"];

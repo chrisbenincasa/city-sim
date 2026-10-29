@@ -1,6 +1,6 @@
 # The CC0 texture library for Building bodies. scripts/art/materials.py reads this list, fetches each
 # texture's 1K colour, OpenGL normal and roughness maps, and writes them beside this file with
-# materials.json.
+# materials.json. A texture published by Borough was baked in Blender by the script its id names.
 #
 # slots          Rows in research/textures/inventory.toml that the texture was kept for.
 # tile_metres    Width and height of one tile of the image, in metres.
@@ -504,3 +504,36 @@ tile_metres = [1.0, 1.0]
 measured = "Assumed. Strands about a tenth of the width, taken as 100 mm OSB flakes"
 paint = false
 detile_cycles = 7.2
+
+[[texture]]
+name = "standing-seam"
+asset = "Standing Seam"
+publisher = "Borough"
+id = "standing-seam"
+slots = ["R02", "W11"]
+tile_metres = [4.8768, 4.8768]
+measured = "scripts/art/standing-seam.py models twelve 406.4 mm pans to a tile"
+paint = true
+detile_cycles = 4.0
+
+[[texture]]
+name = "concrete-tile-facade"
+asset = "Concrete Tile Facade"
+publisher = "Poly Haven"
+id = "concrete_tile_facade"
+slots = ["W04"]
+tile_metres = [2.09, 2.09]
+measured = "Poly Haven states 2.09 x 2.09 m"
+paint = true
+detile_cycles = 4.0
+
+[[texture]]
+name = "white-planks-clean"
+asset = "White Planks Clean"
+publisher = "Poly Haven"
+id = "white_planks_clean"
+slots = ["W02"]
+tile_metres = [1.8, 1.8]
+measured = "Poly Haven states 1.8 x 1.8 m"
+paint = true
+detile_cycles = 4.0

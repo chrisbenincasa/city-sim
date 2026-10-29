@@ -81,4 +81,3 @@ the Lots a player makes. A founding run's Lots have not been counted.
 1. Count the Lots a founding run makes, to decide whether the base game's shallow Lots need a family.
 2. Add pad-site stores, the largest shopfront gap.
 3. Add school and port bodies, the two service kinds in the base game.
-4. Replace the wide houses' painted metal roofs and panels with library textures.

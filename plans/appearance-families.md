@@ -228,7 +228,12 @@ on October 27, 2026 from Blender renders, and capped span at two storeys. Each f
 | Traditional | terrace, front gables, villa (24 m and up, 12–28 m deep) | none | 2 |
 
 - `FamilyBodyBuilder.Wide.cs` is the reference; `scripts/art/wide-house-forms.py` drew the options.
-- Metal roofs and wall panels are flat paint standing in for library textures.
+- Contemporary roofs are painted `standing-seam`, baked in Blender by `scripts/art/standing-seam.py`
+  because no CC0 library has one. Their panels are painted `standing-seam` or `concrete-tile-facade`,
+  and mid-century colored panels are painted `white-planks-clean`. The user chose these from
+  rendered options on October 28, 2026.
+- Every pitched roof carries ridge and hip caps, verges and eaves gutters. Metal roofs draw them in
+  the roof's paint. Tiled roofs cap in tile and trim in white.
 - Pitch ranges are fixed per form in the builder and stop at 45 degrees.
 - A deep form stands its street form on a double-pile front with flat-roofed outriggers behind, and
   draws about 80% of the floor its Lot holds, inside the low-rise allowance.
@@ -254,6 +259,8 @@ Driven on `gridded.toml` at 10,000 Citizens, seed 1, from Tick 600, `wide-house-
 staggered gables, flat setback, pavilions and span rows at Tile row 284, and `wide-house-deep.png`
 shows deep flat, deep sawtooth and deep span rows at Tile row 389, from `wide-houses.drive`. Every
 roof seen from above shows its face; `WideHouseBodyTests` asserts the same from vertical rays.
+Both frames show standing-seam roofs and seam or concrete-tile panels on contemporary rows. Close
+shots at 45 m show ridge caps and verges clearly, and the seams only faintly.
 Wide houses stand detached by design, so #243 does not apply to them.
 
 ## What the demonstration showed

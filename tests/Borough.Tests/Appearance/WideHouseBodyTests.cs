@@ -54,7 +54,7 @@ public sealed class WideHouseBodyTests
             != FamilyBodyBuilder.HousePitchDegrees(Variant(body), 17, 40f, depth, 2));
     }
 
-    /// <remarks>Door canopies stand 1 m out from the street wall, and the low hip's eaves 0.75 m past its ends.</remarks>
+    /// <remarks>Door canopies stand 1 m out from the street wall, and the low hip's gutters 0.89 m past its ends.</remarks>
     [Theory]
     [MemberData(nameof(Forms))]
     public void Every_draw_stays_on_its_lot_and_faces_the_way_it_is_wound(string form)
@@ -71,7 +71,7 @@ public sealed class WideHouseBodyTests
                     ReadOnlySpan<Vector3> positions = shell.Positions;
                     foreach (Vector3 p in positions)
                     {
-                        Assert.True(MathF.Abs(p.X) <= (frontage / 2f) + .8f, at);
+                        Assert.True(MathF.Abs(p.X) <= (frontage / 2f) + .9f, at);
                         Assert.True(MathF.Abs(p.Z) <= (depth / 2f) + 1.1f, at);
                         Assert.True(p.Y >= 0f && p.Y < (storeys * ShellBuilder.StoreyMetres) + 12f, at);
                     }
@@ -109,6 +109,80 @@ public sealed class WideHouseBodyTests
                 }
             }
         }
+    }
+
+    [Theory]
+    [InlineData("staggered-gables")]
+    [InlineData("flat-setback")]
+    [InlineData("pavilions")]
+    [InlineData("deep-sawtooth")]
+    public void Contemporary_rows_roof_in_standing_seam_and_clad_their_panels_in_seam_or_tile(string form)
+    {
+        FamilyBody body = House(form);
+        (float frontage, float depth) = Lot(form);
+        string[][] parts = [.. Enumerable.Range(0, 64).Select(seed => FamilyBodyBuilder.BuildHouse(body, frontage, depth, 3, seed).Parts.Select(p => p.Part).ToArray())];
+
+        if (form != "flat-setback") Assert.All(parts, p => Assert.Contains("roof@standing-seam", p));
+        Assert.All(parts, p => Assert.DoesNotContain(p, part => part.StartsWith("roof", StringComparison.Ordinal) && part != "roof@standing-seam"));
+        Assert.Contains(parts, p => p.Contains("wall@concrete-tile-facade"));
+        Assert.Contains(parts, p => p.Contains("wall@standing-seam"));
+    }
+
+    [Theory]
+    [InlineData("span")]
+    [InlineData("butterfly")]
+    public void Mid_century_colored_panels_are_painted_boards(string form)
+    {
+        FamilyBody body = House(form);
+        (float frontage, float depth) = Lot(form);
+
+        Assert.Contains(Enumerable.Range(0, 64), seed =>
+            FamilyBodyBuilder.BuildHouse(body, frontage, depth, 2, seed).Parts.Any(p => p.Part == "wall@white-planks-clean"));
+    }
+
+    [Theory]
+    [InlineData("staggered-gables")]
+    [InlineData("sawtooth")]
+    [InlineData("pavilions")]
+    [InlineData("deep-gables")]
+    public void A_metal_roof_s_ridge_cap_stands_on_its_ridge(string form)
+    {
+        FamilyBody body = House(form);
+        for (int seed = 0; seed < FamilyBodyBuilder.HouseSeeds; seed += 37)
+        {
+            FamilyBodyMesh mesh = FamilyBodyBuilder.BuildHouse(body, 40f, form.StartsWith("deep", StringComparison.Ordinal) ? 34f : 16f, 2, seed);
+            float cap = Top(mesh, "trim") - Top(mesh, "roof@standing-seam");
+
+            Assert.True(MathF.Abs(cap - .05f) < .005f, $"{form} seed {seed}: the cap stands {cap:F3} m above the ridge");
+        }
+    }
+
+    [Theory]
+    [InlineData("span")]
+    [InlineData("butterfly")]
+    [InlineData("monopitch")]
+    [InlineData("deep-span")]
+    public void A_tiled_roof_s_verges_rise_to_its_top_edge(string form)
+    {
+        FamilyBody body = House(form);
+        for (int seed = 0; seed < FamilyBodyBuilder.HouseSeeds; seed += 37)
+        {
+            FamilyBodyMesh mesh = FamilyBodyBuilder.BuildHouse(body, 40f, form.StartsWith("deep", StringComparison.Ordinal) ? 34f : 16f, 2, seed);
+            float roof = mesh.Parts.Where(p => p.Part.StartsWith("roof@roofing-tiles", StringComparison.Ordinal)).Max(p => Top(mesh, p.Part));
+
+            Assert.True(Top(mesh, "trim") > roof - .1f, $"{form} seed {seed}: the trim stops {roof - Top(mesh, "trim"):F2} m below the roof's top");
+        }
+    }
+
+    [Fact]
+    public void A_low_hip_hangs_its_gutters_outside_its_eaves_on_every_side()
+    {
+        FamilyBodyMesh mesh = FamilyBodyBuilder.BuildHouse(House("low-hip"), 40f, 16f, 2, 5);
+        Vector3[] roof = [.. mesh.Parts.Where(p => p.Part.StartsWith("roof@", StringComparison.Ordinal)).SelectMany(p => p.Mesh.Positions.ToArray())];
+        Vector3[] trim = [.. mesh.Parts.Single(p => p.Part == "trim").Mesh.Positions.ToArray()];
+
+        Assert.True(trim.Min(p => p.X) < roof.Min(p => p.X) && trim.Max(p => p.X) > roof.Max(p => p.X));
+        Assert.True(trim.Min(p => p.Z) < roof.Min(p => p.Z) && trim.Max(p => p.Z) > roof.Max(p => p.Z));
     }
 
     [Fact]
@@ -232,6 +306,8 @@ public sealed class WideHouseBodyTests
 
         return float.IsNegativeInfinity(top) || up;
     }
+
+    private static float Top(FamilyBodyMesh mesh, string part) => mesh.Parts.Single(p => p.Part == part).Mesh.Positions.ToArray().Max(p => p.Y);
 
     private static (float Frontage, float Depth) Lot(string form) => form.StartsWith("deep", StringComparison.Ordinal) ? (40f, 34f) : (40f, 24f);
 

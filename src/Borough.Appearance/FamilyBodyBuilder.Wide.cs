@@ -8,8 +8,8 @@ namespace Borough.Appearance;
 /// with flat-roofed outriggers running back to the end.
 /// </summary>
 /// <remarks>
-/// <c>scripts/art/wide-house-forms.py</c> drew the options; this file is the reference. The metal roofs and
-/// panels are flat paint standing in for library textures. The deep plan draws about 80% of the floor its
+/// <c>scripts/art/wide-house-forms.py</c> drew the options; this file is the reference. Every pitched roof
+/// carries ridge and hip caps, verges and eaves gutters. The deep plan draws about 80% of the floor its
 /// footprint and storeys hold, within the drawing's allowance (<c>docs/07-the-drawing.md</c>).
 /// </remarks>
 public static partial class FamilyBodyBuilder
@@ -19,9 +19,10 @@ public static partial class FamilyBodyBuilder
     private static readonly string[] Whites = ["d8d6d0", "d6d2c8", "cfcac0"];
     private static readonly string[] ContemporaryDoors = ["c9a227", "2f4a5c", "b4472f", "2b2e31", "6b8f71", "d9d4c8"];
     private static readonly string[] MidCenturyDoors = ["c45a3b", "d8c27a", "2f4a5c", "6f8f7a", "eeeeea", "2b2e31"];
-    private static readonly string[] MidCenturyPanels = ["a9c3cf", "d8c27a", "c45a3b", "eeeeea", "6f8f7a"];
+    private static readonly string[] MidCenturyPanels = ["a9c3cf", "d8c27a", "c45a3b", "d8d6d0", "6f8f7a"];
     private static readonly string WidePlinth = Dressed("plinth", null, "6f6d68");
     private static readonly string Deck = Dressed("membrane", "bitumen", null);
+    private static readonly (float Width, float Height) CapSize = (.18f, .05f), VergeSize = (.035f, .09f), GutterSize = (.07f, .065f);
 
     internal static bool IsWideForm(HouseVariant variant) => variant is HouseVariant.StaggeredGables
         or HouseVariant.FlatSetback or HouseVariant.Sawtooth or HouseVariant.Pavilions or HouseVariant.Span
@@ -117,6 +118,9 @@ public static partial class FamilyBodyBuilder
         Full,
     }
 
+    /// <summary>The parts a roof's ridge and hip caps, its verges and its gutters are drawn in.</summary>
+    private sealed record RoofEdges(string Cap, string Verge, string Gutter);
+
     /// <summary>One wide house draw. <see cref="Y0"/> and <see cref="Y1"/> bound the street form, which a deep plan stops short of the Lot's back.</summary>
     private sealed record WideLook
     {
@@ -128,6 +132,7 @@ public static partial class FamilyBodyBuilder
         public required int Storeys { get; init; }
         public required bool Contemporary { get; init; }
         public required string Roof { get; init; }
+        public required RoofEdges Edges { get; init; }
         public required string Trim { get; init; }
         public required string Frame { get; init; }
         public required string Ground { get; init; }
@@ -149,13 +154,18 @@ public static partial class FamilyBodyBuilder
             string brick = Dressed("wall", r.Pick(NaturalBricks), null);
             bool contemporary = IsContemporary(form);
             string roof, trim, frame, ground, upper, accent;
+            RoofEdges edges;
             string[] doors;
             if (contemporary)
             {
-                roof = Dressed("trim", null, r.Pick(Metals));
+                string metal = r.Pick(Metals);
+                roof = Dressed("roof", "standing-seam", metal);
+                string edge = Dressed("trim", null, metal);
+                edges = new RoofEdges(edge, edge, edge);
                 string timber = Dressed("wall", r.Chance(.5f) ? "wood-siding-011" : "hinoki-planks", null);
                 string render = Dressed("wall", "painted-plaster-wall", r.Pick(Whites));
-                string panel = Dressed("trim", null, r.Pick(WidePanels));
+                string cladding = new HouseDraw(((ulong)seed << 8) | 3).Chance(.5f) ? "standing-seam" : "concrete-tile-facade";
+                string panel = Dressed("wall", cladding, r.Pick(WidePanels));
                 (ground, upper) = r.Pick(6) switch
                 {
                     0 => (brick, brick),
@@ -178,10 +188,11 @@ public static partial class FamilyBodyBuilder
                 {
                     0 => Dressed("wall", "clay-roof-tiles-02", null),
                     1 => Dressed("wall", "wood-siding-005", null),
-                    _ => Dressed("trim", null, r.Pick(MidCenturyPanels)),
+                    _ => Dressed("wall", "white-planks-clean", r.Pick(MidCenturyPanels)),
                 };
                 frame = Dressed("frame", null, r.Pick(["eeeeea", "eeeeea", "2b2e31"]));
                 trim = Dressed("trim", null, "eeeeea");
+                edges = new RoofEdges(roof, trim, trim);
                 doors = Sample(ref r, MidCenturyDoors, 3);
             }
 
@@ -195,6 +206,7 @@ public static partial class FamilyBodyBuilder
                 Storeys = storeys,
                 Contemporary = contemporary,
                 Roof = roof,
+                Edges = edges,
                 Trim = trim,
                 Frame = frame,
                 Ground = ground,
@@ -407,6 +419,74 @@ public static partial class FamilyBodyBuilder
         w.Box(new Vector3(cx + .68f, y - .06f, low), new Vector3(cx + .75f, y - .03f, top), s.Frame);
     }
 
+    /// <summary>A cap sitting on a ridge or hip line from <paramref name="a"/> to <paramref name="b"/>.</summary>
+    private static void RidgeCap(Writer w, string part, Vector3 a, Vector3 b)
+    {
+        Vector3 d = Vector3.Normalize(b - a);
+        Vector3 u = Vector3.Normalize(Vector3.Cross(d, Vector3.UnitZ));
+        Vector3 v = Vector3.Normalize(Vector3.Cross(u, d));
+        if (v.Z < 0f) v = -v;
+        Vector3 lift = v * (CapSize.Height / 2f);
+        w.Beam(a + lift, b + lift, u * CapSize.Width, lift, part);
+    }
+
+    /// <summary>A gutter under the eave from <paramref name="a"/> to <paramref name="b"/>, hung on its outward side and running past each verge.</summary>
+    private static void EaveGutter(Writer w, string part, Vector3 a, Vector3 b, Vector3 outward)
+    {
+        Vector3 past = Vector3.Normalize(b - a) * (VergeSize.Width * 2f);
+        Vector3 drop = (outward * GutterSize.Width) - new Vector3(0f, 0f, GutterSize.Height * .9f);
+        w.Beam(a + drop - past, b + drop + past, outward * GutterSize.Width, new Vector3(0f, 0f, GutterSize.Height), part);
+    }
+
+    /// <summary>
+    /// Trim round one roof slope from its eave corners to its top corners: a cap along the top, a verge
+    /// down each sloping side and a gutter under the eave.
+    /// </summary>
+    private static void SlopeEdges(Writer w, RoofEdges e, Vector3 lowA, Vector3 lowB, Vector3 highA, Vector3 highB,
+        bool ridge = true, bool gutter = true)
+    {
+        Vector3 along = Vector3.Normalize(lowB - lowA), upSlope = Vector3.Normalize(highA - lowA);
+        Vector3 normal = Vector3.Normalize(Vector3.Cross(along, upSlope));
+        if (normal.Z < 0f) normal = -normal;
+        if (ridge) RidgeCap(w, e.Cap, highA, highB);
+        foreach ((Vector3 low, Vector3 high, float side) in (ReadOnlySpan<(Vector3, Vector3, float)>)[(lowA, highA, -1f), (lowB, highB, 1f)])
+        {
+            Vector3 offset = (along * (side * VergeSize.Width)) - (normal * (VergeSize.Height * .4f));
+            w.Beam(low + offset, high + offset, along * VergeSize.Width, normal * VergeSize.Height, e.Verge);
+        }
+
+        if (gutter) EaveGutter(w, e.Gutter, lowA, lowB, Vector3.Normalize(new Vector3(-upSlope.X, -upSlope.Y, 0f)));
+    }
+
+    /// <summary>Trim round a gable that <see cref="HipGable(Writer, string, string, bool, float, float, float, float, float, float, float, bool, bool, float)"/> drew with the same arguments and no hip.</summary>
+    private static void GableEdges(Writer w, RoofEdges e, bool alongY, float cx, float cy, float A, float L, float H, float pitch, float eaves)
+    {
+        Vector3 P(float a, float l, float z) => alongY ? new Vector3(cx + a, cy + l, z) : new Vector3(cx + l, cy + a, z);
+        float t = MathF.Tan(pitch * MathF.PI / 180f);
+        float top = H + (A * t), low = H - (eaves * t), ae = A + eaves, le = L + eaves;
+        foreach (float side in (ReadOnlySpan<float>)[-1f, 1f])
+        {
+            SlopeEdges(w, e, P(side * ae, -le, low), P(side * ae, le, low), P(0f, -le, top), P(0f, le, top), ridge: side > 0f);
+        }
+    }
+
+    /// <summary>Caps and gutters round a full hip that <see cref="HipGable(Writer, string, string, bool, float, float, float, float, float, float, float, bool, bool, float)"/> drew with the same arguments.</summary>
+    private static void HipEdges(Writer w, RoofEdges e, bool alongY, float cx, float cy, float A, float L, float H, float pitch, float eaves)
+    {
+        Vector3 P(float a, float l, float z) => alongY ? new Vector3(cx + a, cy + l, z) : new Vector3(cx + l, cy + a, z);
+        Vector3 Dir(float a, float l) => alongY ? new Vector3(a, l, 0f) : new Vector3(l, a, 0f);
+        float t = MathF.Tan(pitch * MathF.PI / 180f);
+        float top = H + (A * t), low = H - (eaves * t), ae = A + eaves, le = L + eaves, ry = MathF.Max(0f, le - ae);
+        if (ry > 0f) RidgeCap(w, e.Cap, P(0f, -ry, top), P(0f, ry, top));
+        foreach (float f in (ReadOnlySpan<float>)[-1f, 1f])
+        {
+            RidgeCap(w, e.Cap, P(0f, f * ry, top), P(-ae, f * le, low));
+            RidgeCap(w, e.Cap, P(0f, f * ry, top), P(ae, f * le, low));
+            EaveGutter(w, e.Gutter, P(f * ae, -le, low), P(f * ae, le, low), Dir(f, 0f));
+            EaveGutter(w, e.Gutter, P(-ae, f * le, low), P(ae, f * le, low), Dir(0f, f));
+        }
+    }
+
     /// <summary>One steep front gable to each house, no eaves, every other house set back from the street.</summary>
     private static void StaggeredGables(Writer w, WideLook s)
     {
@@ -422,6 +502,7 @@ public static partial class FamilyBodyBuilder
             WideRow(w, s, 1, width, x0, y0, s.Y1, s.Storeys, left: !back || i == 0, right: !back || i == n - 1, first: i);
             HipGable(w, s.Roof, s.End, alongY: true, x0 + (width / 2f), (y0 + s.Y1) / 2f, width / 2f, (s.Y1 - y0) / 2f, s.H, s.Pitch, 0f,
                 front: true, back: true, s.Eaves);
+            GableEdges(w, s.Edges, alongY: true, x0 + (width / 2f), (y0 + s.Y1) / 2f, width / 2f, (s.Y1 - y0) / 2f, s.H, s.Pitch, s.Eaves);
             GableGlass(w, s, x0 + (width / 2f), y0, width / 2f);
         }
     }
@@ -484,6 +565,7 @@ public static partial class FamilyBodyBuilder
             float a = (-s.W / 2f) + (i * width), b = a + width;
             (float lo, float hi) = d > 0f ? (a, b) : (b, a);
             Sheet(w, s.Roof, [new(lo, y0 - e, H), new(hi, y0 - e, H + rise), new(hi, y1 + e, H + rise), new(lo, y1 + e, H)], Vector3.UnitZ);
+            SlopeEdges(w, s.Edges, new(lo, y0 - e, H), new(lo, y1 + e, H), new(hi, y0 - e, H + rise), new(hi, y1 + e, H + rise));
             Shape(w, s.End, [new(lo, y0, H), new(hi, y0, H), new(hi, y0, H + rise)], -Vector3.UnitY);
             Shape(w, s.End, [new(lo, y1, H), new(hi, y1, H), new(hi, y1, H + rise)], Vector3.UnitY);
             Shape(w, s.End, [new(hi, y0, H), new(hi, y1, H), new(hi, y1, H + rise), new(hi, y0, H + rise)], new Vector3(d, 0f, 0f));
@@ -512,6 +594,7 @@ public static partial class FamilyBodyBuilder
             WideRow(w, s, 1, pavilion, x, s.Y0, s.Y1, s.Storeys, door: k == 0 && count > 1, first: k);
             HipGable(w, s.Roof, s.End, alongY: true, x + (pavilion / 2f), (s.Y0 + s.Y1) / 2f, pavilion / 2f, (s.Y1 - s.Y0) / 2f, s.H,
                 s.Pitch, 0f, front: true, back: true, s.Eaves);
+            GableEdges(w, s.Edges, alongY: true, x + (pavilion / 2f), (s.Y0 + s.Y1) / 2f, pavilion / 2f, (s.Y1 - s.Y0) / 2f, s.H, s.Pitch, s.Eaves);
             GableGlass(w, s, x + (pavilion / 2f), s.Y0, pavilion / 2f);
             x += pavilion;
             k++;
@@ -532,6 +615,7 @@ public static partial class FamilyBodyBuilder
         float X = s.W / 2f, e = s.Eaves, H = s.H, t = MathF.Tan(s.Pitch * MathF.PI / 180f);
         WideRow(w, s, n, width, -X, s.Y0, s.Y1, s.Storeys);
         HipGable(w, s.Roof, s.End, alongY: false, 0f, (s.Y0 + s.Y1) / 2f, (s.Y1 - s.Y0) / 2f, X, H, s.Pitch, 0f, front: true, back: true, e);
+        GableEdges(w, s.Edges, alongY: false, 0f, (s.Y0 + s.Y1) / 2f, (s.Y1 - s.Y0) / 2f, X, H, s.Pitch, e);
         foreach ((float y, float f) in (ReadOnlySpan<(float, float)>)[(s.Y0, -1f), (s.Y1, 1f)])
         {
             float face = y + (f * e);
@@ -559,6 +643,9 @@ public static partial class FamilyBodyBuilder
             float za = H + rise + (ea * t), zb = H + rise + (eb * t);
             Sheet(w, s.Roof, [new(a - ea, y0 - E, za), new(c, y0 - E, H), new(c, y1 + E, H), new(a - ea, y1 + E, za)], Vector3.UnitZ);
             Sheet(w, s.Roof, [new(c, y0 - E, H), new(b + eb, y0 - E, zb), new(b + eb, y1 + E, zb), new(c, y1 + E, H)], Vector3.UnitZ);
+            SlopeEdges(w, s.Edges, new(c, y0 - E, H), new(c, y1 + E, H), new(a - ea, y0 - E, za), new(a - ea, y1 + E, za), gutter: false);
+            SlopeEdges(w, s.Edges, new(c, y0 - E, H), new(c, y1 + E, H), new(b + eb, y0 - E, zb), new(b + eb, y1 + E, zb),
+                ridge: i == n - 1, gutter: false);
             foreach (float y in (ReadOnlySpan<float>)[y0, y1])
             {
                 var outward = new Vector3(0f, MathF.Sign(y - ((y0 + y1) / 2f)), 0f);
@@ -599,6 +686,8 @@ public static partial class FamilyBodyBuilder
         float high = H + rise + (Fore * t);
         Sheet(w, s.Roof, [new(-X - .3f, y0 - Fore, high), new(X + .3f, y0 - Fore, high), new(X + .3f, y1 + Aft, H - (Aft * t)),
             new(-X - .3f, y1 + Aft, H - (Aft * t))], Vector3.UnitZ);
+        SlopeEdges(w, s.Edges, new(-X - .3f, y1 + Aft, H - (Aft * t)), new(X + .3f, y1 + Aft, H - (Aft * t)),
+            new(-X - .3f, y0 - Fore, high), new(X + .3f, y0 - Fore, high), ridge: false);
         w.Box(new Vector3(-X - .3f, y0 - Fore - .04f, high - .3f), new Vector3(X + .3f, y0 - Fore, high + .02f), s.Trim);
         for (int i = 0; i <= n; i++)
         {
@@ -615,6 +704,7 @@ public static partial class FamilyBodyBuilder
         float X = s.W / 2f;
         WideRow(w, s with { Upper = s.Accent, Panels = false }, n, width, -X, s.Y0, s.Y1, s.Storeys);
         HipGable(w, s.Roof, s.End, alongY: false, 0f, (s.Y0 + s.Y1) / 2f, (s.Y1 - s.Y0) / 2f, X, s.H, s.Pitch, 1f, front: true, back: true, .75f);
+        HipEdges(w, s.Edges, alongY: false, 0f, (s.Y0 + s.Y1) / 2f, (s.Y1 - s.Y0) / 2f, X, s.H, s.Pitch, .75f);
         w.Box(new Vector3(-X + .2f, s.Y0 - 1f, 2.55f), new Vector3(X - .2f, s.Y0, 2.67f), s.Trim);
     }
 

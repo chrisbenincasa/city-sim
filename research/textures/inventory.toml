@@ -204,6 +204,7 @@ priority = 2
 any = ["standing seam", "metal roof", "roof metal", "sheet metal"]
 not = ["floor", "diamond"]
 notes = "Seams every 300 to 450 mm"
+gap = "No CC0 library has standing seam. scripts/art/standing-seam.py bakes 406 mm snap-lock pans into the library as standing-seam"
 
 [[item]]
 id = "R03"
