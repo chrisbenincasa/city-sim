@@ -149,11 +149,13 @@ public static partial class FamilyBodyBuilder
 
         public float H => Storeys * Storey;
 
-        public static WideLook Draw(HouseVariant form, int seed, float frontage, float depth, int storeys)
+        public static WideLook Draw(HouseVariant form, int seed, float frontage, float depth, int storeys) =>
+            Draw(IsContemporary(form), seed, frontage, depth, storeys);
+
+        public static WideLook Draw(bool contemporary, int seed, float frontage, float depth, int storeys)
         {
             var r = new HouseDraw(((ulong)seed << 8) | 1);
             string brick = Dressed("wall", r.Pick(NaturalBricks), null);
-            bool contemporary = IsContemporary(form);
             string roof, trim, frame, ground, upper, accent;
             RoofEdges edges;
             string[] doors;
@@ -392,16 +394,17 @@ public static partial class FamilyBodyBuilder
         if (right) WideFace(w, s, new Face(new Vector3(x0 + (n * width), y0, z0), Vector3.UnitY, Vector3.UnitX), d, H, windows, s.Doors[0]);
     }
 
-    private static void Parapet(Writer w, WideLook s, float x0, float x1, float y0, float y1, float z, string? material = null)
+    private static void Parapet(Writer w, WideLook s, float x0, float x1, float y0, float y1, float z, string? material = null,
+        float height = .45f)
     {
-        const float Height = .45f, Wall = .25f, Over = .03f;
+        const float Wall = .25f, Over = .03f;
         string wall = material ?? s.Upper;
         w.Box(new Vector3(x0, y0, z - .05f), new Vector3(x1, y1, z + .02f), Deck);
-        w.Box(new Vector3(x0, y0, z), new Vector3(x1, y0 + Wall, z + Height), wall);
-        w.Box(new Vector3(x0, y1 - Wall, z), new Vector3(x1, y1, z + Height), wall);
-        w.Box(new Vector3(x0, y0, z), new Vector3(x0 + Wall, y1, z + Height), wall);
-        w.Box(new Vector3(x1 - Wall, y0, z), new Vector3(x1, y1, z + Height), wall);
-        float top = z + Height, coping = top + .06f;
+        w.Box(new Vector3(x0, y0, z), new Vector3(x1, y0 + Wall, z + height), wall);
+        w.Box(new Vector3(x0, y1 - Wall, z), new Vector3(x1, y1, z + height), wall);
+        w.Box(new Vector3(x0, y0, z), new Vector3(x0 + Wall, y1, z + height), wall);
+        w.Box(new Vector3(x1 - Wall, y0, z), new Vector3(x1, y1, z + height), wall);
+        float top = z + height, coping = top + .06f;
         w.Box(new Vector3(x0 - Over, y0 - Over, top), new Vector3(x1 + Over, y0 + Wall + Over, coping), s.Trim);
         w.Box(new Vector3(x0 - Over, y1 - Wall - Over, top), new Vector3(x1 + Over, y1 + Over, coping), s.Trim);
         w.Box(new Vector3(x0 - Over, y0 - Over, top), new Vector3(x0 + Wall + Over, y1 + Over, coping), s.Trim);

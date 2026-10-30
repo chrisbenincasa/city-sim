@@ -349,6 +349,27 @@ public enum ShopForm : byte
 
     /// <summary>Render under a deep-eaved hipped pantile roof, with shutters and balconettes.</summary>
     PantileHipped,
+
+    /// <summary>A detached store glazed between piers under flats, whose top storey of three stands back behind a roof terrace.</summary>
+    GlassBase,
+
+    /// <summary>A detached store under steep metal gables across the frontage, glass up each gable end.</summary>
+    GabledHall,
+
+    /// <summary>A detached store set back behind square piers, with the flats flush with the street above.</summary>
+    Colonnade,
+
+    /// <summary>A detached store under one low mono-pitch rising to the street over a clerestory.</summary>
+    MonoPitch,
+
+    /// <summary>A detached store under a deep canopy that turns both corners, ribbon windows over panels above.</summary>
+    Canopy,
+
+    /// <summary>A detached store under a folded-plate roof with glass in each fold's front.</summary>
+    FoldedPlate,
+
+    /// <summary>A detached brick block: a timber shopfront, sash windows and a corbelled cornice under a name panel.</summary>
+    CommercialBlock,
 }
 
 /// <summary>

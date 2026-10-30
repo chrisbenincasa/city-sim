@@ -1,0 +1,23 @@
+tick 92807
+ruleset.toml   Tick 92,807   Day 45   Thursday   12:34
+Citizens 1,997   Buildings 125   vacant Lots 3   travelling 2
+At work 805   Shopping 5 Households   Goods being carried 0
+speed paused   mode look   [ ] speed, space pause, w write log, g roads, c cells, tab tune, ctrl-z undo
+click acts   right-drag or two-finger scroll pans   edge of screen pans   pinch or -/= zooms   q/e turns   r/f tilts   l lens   o overlay
+hover —
+Terraced house · 8 Households · 1 Business · Waiting for repairs · +5 other shortfalls
+debug —
+Tile (3, 40)    Cell (0, 1)
+Terraced house — 4 of 5 occupied, 3 Tiles off
+    mill
+Lot 14, future uses 0x0001 across the whole site
+ground: rock
+pollution 0    land value -11,353    sealing 485
+District 1
+inspector —
+closed
+ui theme=dark debug=False visible=False scroll=0
+inspector (3410, 104), (406, 177) min=(125, 177)
+body (3410, 104), (0, 0) min=(0, 0)
+scroll (3410, 104), (0, 0) min=(0, 0)
+hover (40, 2049), (1025, 75) debug (24, 264), (840, 36) console (24, 1973), (1057, 163)
