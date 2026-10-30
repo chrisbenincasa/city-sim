@@ -3,7 +3,7 @@ using Borough.Appearance;
 
 namespace Borough.Tests.Appearance;
 
-/// <summary>The shop-house forms of the test-street shop families.</summary>
+/// <summary>The shop-house forms of the test-street shop families. Detached stores have their own tests.</summary>
 public sealed class ShopBodyTests
 {
     private static readonly AttachedSides[] Sides =
@@ -15,7 +15,7 @@ public sealed class ShopBodyTests
     {
         StylePresetResult read = StylePresetReader.Read(Path.Combine(AppContext.BaseDirectory, "Appearance", "test-street"));
         Assert.Empty(read.Errors);
-        return [.. read.Preset!.Families.Where(f => f.Body?.Shop is not null)];
+        return [.. read.Preset!.Families.Where(f => f.Body?.Shop is { } shop && !FamilyBodyBuilder.IsDetachedShop(shop.Form))];
     });
 
     private static AppearanceFamily Family(string id) => Families.Value.Single(f => f.Id == id);
