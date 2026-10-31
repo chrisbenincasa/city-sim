@@ -17,7 +17,7 @@ accumulates it.
 | Profit to an owner | `WageEngine.Draw` | Founding Household, or a housed Household drawn at random |
 | Rent | No | — |
 | Premises upkeep | No | — |
-| Utilities | No. The treasury buys the import and nothing bills a drawing Rule | — |
+| Utilities | `RuleEngine` at firing, by the tariff Policy | Treasury |
 
 - Households pay for shopping, tuition, income tax and content levies. Nothing else leaves a
   Household.
@@ -59,7 +59,7 @@ The founding loop's base city, run with `quits_after_days_unpaid` and the M2 con
 | Housed-only rebate | Built and in base (`housed` Readout) | Decide whether base keeps it after the slice 7 run |
 | Land ownership and rent | Decided (L1–L18) | Build [slices 1–7](#land-and-rent-slices) |
 | Premises upkeep | Scoping | Decide whether upkeep is Money only or consumes repairs |
-| Utility billing | Scoping; the treasury already pays for imports (utilities slice 4) | Waits on the Power, Water and Sewage delivery row. Slice 5's tariff is what recovers the import cost from the drawing Rules |
+| Utility billing | Built on `utilities-5` in `powered.toml` ([utilities](utilities.md) slice 5); the tariff recovers what slice 4's imports cost the treasury | Base adopts it with the Utilities in slice 7 |
 
 ## Decisions
 

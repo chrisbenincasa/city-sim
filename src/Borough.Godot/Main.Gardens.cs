@@ -23,6 +23,9 @@ public partial class Main
     private const float GreenLeast = 36f;
     private const float FencePanel = 2f;
 
+    // A 1 m fence is under a pixel beyond this, and a whole city of them costs over 100 ms of GPU time a frame.
+    private const float GardenPropDistance = 2000f;
+
     private enum GardenLayer
     {
         Ground, Hedge, Tree, Shed, Greenhouse, VegBed, Table, Bench, Play, Flowerbed, Fence, Railing,
@@ -44,6 +47,20 @@ public partial class Main
     private readonly List<ulong>[] _gardenIds = new List<ulong>[12];
     private readonly List<(ulong Id, Transform3D Where, Color What)>[] _gardenPieces = new List<(ulong, Transform3D, Color)>[12];
     private readonly List<Transform3D> _gardenGround = [];
+    private readonly List<PanelRun>[] _gardenRuns = [[], []];
+
+    /// <summary>A straight fence or railing, split into its panels only where a camera reaches it.</summary>
+    private readonly record struct PanelRun(ulong Id, float X0, float Y0, float X1, float Y1, int Panels, Basis Turn)
+    {
+        public Vector3 Middle => new((X0 + X1) * .5f, 0f, -(Y0 + Y1) * .5f);
+        public float Extent => 32f + (.5f * MathF.Max(MathF.Abs(X1 - X0), MathF.Abs(Y1 - Y0)));
+
+        public Transform3D Panel(int k)
+        {
+            float t = (k + .5f) / Panels;
+            return new Transform3D(Turn, new Vector3(X0 + ((X1 - X0) * t), 0f, -(Y0 + ((Y1 - Y0) * t))));
+        }
+    }
 
     private enum House { South, North, West, East }
 
@@ -68,11 +85,14 @@ public partial class Main
         near.SurfaceSetMaterial(0, far.SurfaceGetMaterial(0));
         middle.SurfaceSetMaterial(0, far.SurfaceGetMaterial(0));
         _gardenLayers[(int)GardenLayer.Tree].DetailDistance = 4000f;
+        _gardenLayers[(int)GardenLayer.Tree].Gated = true;
         _gardenLayers[(int)GardenLayer.Tree].Details = [(400f, near), (1500f, middle)];
 
         for (int i = 0; i < GardenModules.Length; i++)
         {
             _gardenLayers[(int)GardenLayer.Shed + i] = Layer(Colors.White, Commit(Load($"garden/{GardenModules[i]}").Corners), perInstance: true);
+            _gardenLayers[(int)GardenLayer.Shed + i].DetailDistance = GardenPropDistance;
+            _gardenLayers[(int)GardenLayer.Shed + i].Gated = true;
         }
 
         for (int i = 0; i < _gardenIds.Length; i++)
@@ -119,6 +139,7 @@ public partial class Main
     private void PlanGardens()
     {
         foreach (var pieces in _gardenPieces) pieces.Clear();
+        foreach (var runs in _gardenRuns) runs.Clear();
         _gardenGround.Clear();
 
         var blocks = new SortedDictionary<(int Column, int Row), List<GardenLot>>();
@@ -144,8 +165,62 @@ public partial class Main
     {
         for (int i = 0; i < _gardenLayers.Length; i++)
         {
-            Fill(_gardenLayers[i], _gardenPieces[i], _gardenIds[i]);
+            FillGarden(i);
         }
+    }
+
+    private void FillGarden(int layer)
+    {
+        if (layer < (int)GardenLayer.Fence) Fill(_gardenLayers[layer], _gardenPieces[layer], _gardenIds[layer]);
+        else FillPanels(_gardenLayers[layer], Runs((GardenLayer)layer), _gardenIds[layer]);
+    }
+
+    private List<PanelRun> Runs(GardenLayer layer) => _gardenRuns[layer - GardenLayer.Fence];
+
+    private static void FillPanels(InstanceLayer into, List<PanelRun> runs, List<ulong> ids)
+    {
+        int painted = 0;
+        ids.Clear();
+        into.BuildFrom();
+        foreach (ref readonly PanelRun run in System.Runtime.InteropServices.CollectionsMarshal.AsSpan(runs))
+        {
+            if (!into.Reaches(run.Middle, run.Extent)) continue;
+            for (int k = 0; k < run.Panels; k++)
+            {
+                Transform3D where = run.Panel(k);
+                if (into.Reaches(where)) Paint(into, ids, painted++, run.Id, where, Colors.White);
+            }
+        }
+        into.Multimesh.VisibleInstanceCount = painted;
+    }
+
+    /// <summary>Writes again each gated layer whose camera has moved beyond what it was built for.</summary>
+    private void Regate()
+    {
+        long started = System.Diagnostics.Stopwatch.GetTimestamp();
+        bool wrote = false;
+        Vector3 eye = _camera.GlobalPosition;
+        if (_trees.Stale(eye) || _rocks.Stale(eye))
+        {
+            Scatter();
+            wrote = true;
+        }
+        if (_kerbs.Stale(eye))
+        {
+            Fill(_kerbs, Kerbs(), _kerbIds);
+            wrote = true;
+        }
+        for (int i = 0; i < _gardenLayers.Length; i++)
+        {
+            if (!_gardenLayers[i].Stale(eye)) continue;
+            FillGarden(i);
+            wrote = true;
+        }
+        if (!wrote) return;
+        double elapsed = System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+        _regates++;
+        _regateMilliseconds += elapsed;
+        _regateMaximum = Math.Max(_regateMaximum, elapsed);
     }
 
     private static Area BlockLand(Transform3D interior)
@@ -248,7 +323,7 @@ public partial class Main
     }
 
     private void Module(GardenLayer layer, ulong id, float east, float north, float turn) =>
-        Put(layer, id, new Transform3D(Basis.FromEuler(new Vector3(0f, turn, 0f)), new Vector3(east, 0f, -north)), Colors.White);
+        Put(layer, id, new Transform3D(YawScaled(turn, Vector3.One), new Vector3(east, 0f, -north)), Colors.White);
 
     private static float Facing(House house) => house switch
     {
@@ -357,7 +432,7 @@ public partial class Main
         float broad = tall * r.Range(.5f, .7f);
         float shade = .88f + r.Range(0f, .24f);
         Put(GardenLayer.Tree, id, new Transform3D(
-            Basis.FromEuler(new Vector3(0f, r.Range(0f, Mathf.Tau), 0f)) * Basis.FromScale(new Vector3(broad, tall, broad)),
+            YawScaled(r.Range(0f, Mathf.Tau), new Vector3(broad, tall, broad)),
             new Vector3(east, .05f, -north)), new Color(shade, shade, shade));
     }
 
@@ -376,12 +451,8 @@ public partial class Main
         {
             int panels = Math.Max(1, (int)MathF.Ceiling(length / FencePanel));
             float stretch = length / (panels * FencePanel);
-            Basis turn = Basis.FromEuler(new Vector3(0f, eastward ? 0f : Mathf.Pi / 2f, 0f)) * Basis.FromScale(new Vector3(stretch, 1f, 1f));
-            for (int k = 0; k < panels; k++)
-            {
-                float t = (k + .5f) / panels;
-                Put(GardenLayer.Fence, id, new Transform3D(turn, new Vector3(x0 + ((x1 - x0) * t), 0f, -(y0 + ((y1 - y0) * t)))), Colors.White);
-            }
+            Runs(GardenLayer.Fence).Add(new PanelRun(id, x0, y0, x1, y1, panels,
+                YawScaled(eastward ? 0f : Mathf.Pi / 2f, new Vector3(stretch, 1f, 1f))));
             return;
         }
 
@@ -446,12 +517,8 @@ public partial class Main
         bool eastward = MathF.Abs(x1 - x0) >= MathF.Abs(y1 - y0);
         int panels = Math.Max(1, (int)MathF.Ceiling(length / FencePanel));
         float stretch = length / (panels * FencePanel);
-        Basis turn = Basis.FromEuler(new Vector3(0f, eastward ? 0f : Mathf.Pi / 2f, 0f)) * Basis.FromScale(new Vector3(stretch, 1f, 1f));
-        for (int k = 0; k < panels; k++)
-        {
-            float t = (k + .5f) / panels;
-            Put(GardenLayer.Railing, id, new Transform3D(turn, new Vector3(x0 + ((x1 - x0) * t), 0f, -(y0 + ((y1 - y0) * t)))), Colors.White);
-        }
+        Runs(GardenLayer.Railing).Add(new PanelRun(id, x0, y0, x1, y1, panels,
+            YawScaled(eastward ? 0f : Mathf.Pi / 2f, new Vector3(stretch, 1f, 1f))));
     }
 
     /// <summary>SplitMix64 over one appearance draw, so a garden's furniture is fixed by its Lot's id.</summary>

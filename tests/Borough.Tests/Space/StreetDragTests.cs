@@ -36,8 +36,8 @@ public sealed class StreetDragTests
     /// </remarks>
     private const int Block = 32;
 
-    /// <summary>A block well inside the map, so no clamp is in play. Its south-west Tile.</summary>
-    private const int Origin = 8_192;
+    /// <summary>The map's centre block, so no clamp is in play. Its south-west Tile.</summary>
+    private const int Origin = CellGrid.WorldTiles / 2;
 
     /// <summary>The column and row that <see cref="Origin"/> stands at.</summary>
     private const int At = Origin / Block;
@@ -218,7 +218,7 @@ public sealed class StreetDragTests
 public sealed class StreetDiagonalTests
 {
     /// <summary>
-    /// The extent these lay over, in Tiles. <b>A quarter of the map, which is enough blocks for the
+    /// The extent these lay over, in Tiles. <b>Half the map's edge, which is enough blocks for the
     /// per-thousand rate to draw some.</b>
     /// </summary>
     private const int ExtentTiles = 4_096;

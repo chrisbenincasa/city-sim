@@ -329,8 +329,8 @@ public partial class Main
     private static readonly string[] BudgetRows =
     [
         "withheld · in", "profit tax · in", "policy · in", "rule · in", "rent · in",
-        "policy · out", "rule · out", "subsidy · out", "placement · out", "upkeep · out",
-        "Utility imports · out", "compensation · out", "opening grant · out",
+        "utility tariffs · in", "policy · out", "rule · out", "subsidy · out", "placement · out",
+        "upkeep · out", "Utility imports · out", "compensation · out", "opening grant · out",
     ];
 
     /// <summary>
@@ -363,14 +363,15 @@ public partial class Main
         Line(2, today.PolicyIn, day.PolicyIn, running.PolicyIn);
         Line(3, today.RuleIn, day.RuleIn, running.RuleIn);
         Line(4, today.Rent, day.Rent, running.Rent);
-        Line(5, today.PolicyOut, day.PolicyOut, running.PolicyOut);
-        Line(6, today.RuleOut, day.RuleOut, running.RuleOut);
-        Line(7, today.Subsidy, day.Subsidy, running.Subsidy);
-        Line(8, today.Placement, day.Placement, running.Placement);
-        Line(9, today.Upkeep, day.Upkeep, running.Upkeep);
-        Line(10, today.UtilityImport, day.UtilityImport, running.UtilityImport);
-        Line(11, today.Compensation, day.Compensation, running.Compensation);
-        Line(12, today.Grant, day.Grant, running.Grant);
+        Line(5, today.Tariff, day.Tariff, running.Tariff);
+        Line(6, today.PolicyOut, day.PolicyOut, running.PolicyOut);
+        Line(7, today.RuleOut, day.RuleOut, running.RuleOut);
+        Line(8, today.Subsidy, day.Subsidy, running.Subsidy);
+        Line(9, today.Placement, day.Placement, running.Placement);
+        Line(10, today.Upkeep, day.Upkeep, running.Upkeep);
+        Line(11, today.UtilityImport, day.UtilityImport, running.UtilityImport);
+        Line(12, today.Compensation, day.Compensation, running.Compensation);
+        Line(13, today.Grant, day.Grant, running.Grant);
 
         long residual = budget.Residual(held);
         long explained = budget.Opening + running.Income - running.Expenditure;

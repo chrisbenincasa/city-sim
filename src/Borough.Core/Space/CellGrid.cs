@@ -49,22 +49,15 @@ public static class CellGrid
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>✅ 512 Cells — a 16384² Tile map, 65.5 km a side. Settled 2026-08-12, flipped
-    /// 2026-08-13.</b> Session J closed this in <c>adr/0089</c> — <em>the map is sized by how many
-    /// commutes fit across it</em>. A map is sized by the number of Commute Budgets that fit across it,
-    /// which was <b>0.9</b> at the old 128 and is <b>3.7–5.2</b> here; at 0.9 no Trip on the map could
-    /// exceed the Budget, so the decline mechanism the Budget exists to drive was inert everywhere. The
-    /// old 2048² fallback is struck.
+    /// <b>256 Cells — an 8192² Tile map, 32.8 km a side</b> (<c>adr/0089</c>). A map is sized by the
+    /// number of Commute Budgets that fit across it, which is <b>1.9–2.6</b> here. At 128 Cells it was
+    /// 0.9, so no Trip on the map could exceed the Budget and the decline the Budget drives was inert.
+    /// Playtesting found 512 Cells left the player in one corner of an empty map, which is the revisit
+    /// trigger <c>adr/0089</c> names.
     /// </para>
     /// <para>
-    /// <b>⚠ The flip moved no State Hash, and that is worth stopping on.</b> All three golden baselines
-    /// reproduced unchanged. <c>05 §4</c> says <em>a change is an optimisation if the State Hash is
-    /// unchanged, and a design change otherwise, however it was motivated</em> — and by that test this
-    /// reads as an optimisation, which it plainly is not: it decides whether the player can build
-    /// separate towns or only one blob. <b>The rule tests whether a change moves <em>this</em> city; a
-    /// map size is a bound on the cities that are <em>reachable</em>, and a fixture in one corner never
-    /// approaches it.</b> It is hash-neutral <em>because</em> queue item 6 landed first — before that,
-    /// the generator paved the map and this would have moved every hash in the project.
+    /// Changing <see cref="WorldCells"/> moves State Hashes, because terrain, water and woodland
+    /// generation span the map.
     /// </para>
     /// <para>
     /// <b>⚠ It cost 11.6 MB at 1M, not the 4 MB <c>adr/0089</c> accounted for</b> — 192,780 KB resident
@@ -101,8 +94,8 @@ public static class CellGrid
     /// <b>2,626,560 Lots</b> against the 225,000 <see cref="Entities.World"/> allocates for a 1M city.
     /// <see cref="RoadGenerator.LayInto"/> now takes an extent and
     /// <see cref="Entities.SyntheticCity"/> derives it from the Lot count the population asks for, so a
-    /// 1M city paves a 4,800-Tile lattice — <b>8.6% of a 512-Cell map</b>, which is the buildable
-    /// fraction <c>adr/0089</c> reasoned about — and the map's own size stops being an input to it.
+    /// 1M city paves a 4,800-Tile lattice, about a third of a 256-Cell map, and the map's own size
+    /// stops being an input to it.
     /// </para>
     /// <para>
     /// <b>⚠ The sentence this comment used to carry is the reason the gate existed, and it was never
@@ -117,13 +110,6 @@ public static class CellGrid
     /// one grep.
     /// </para>
     /// <para>
-    /// ~~Changing this moves every State Hash and re-records all three golden baselines, so it is one
-    /// commit of its own.~~ <b>Measured false on the day it was acted on:</b> it moved none of them, for
-    /// the reason two paragraphs up. It was still one commit of its own, which was the useful half of
-    /// the advice. Nothing else in the grid arithmetic cares — it is a shift either way — which is why
-    /// this is a named constant with one reader rather than a number scattered through the diffusion.
-    /// </para>
-    /// <para>
     /// <b>Derived from the Cell count rather than the other way round, and the direction is
     /// load-bearing.</b> Stating the map in Tiles and dividing would admit a map that is not a whole
     /// number of Cells — 4,097 Tiles gives a fractional Cell at the north and east edges, which is a
@@ -135,10 +121,10 @@ public static class CellGrid
     public const int WorldTiles = WorldCells * TilesPerCell;
 
     /// <summary>
-    /// The map's edge, in Cells. <b>512, which is a 16384² Tile map, 65.5 km a side.</b> See
+    /// The map's edge, in Cells. <b>256, which is an 8192² Tile map, 32.8 km a side.</b> See
     /// <see cref="WorldTiles"/>.
     /// </summary>
-    public const int WorldCells = 512;
+    public const int WorldCells = 256;
 
     /// <summary>Every Cell on the map. The residency index's length, and nothing else's.</summary>
     public const int WorldCellCount = WorldCells * WorldCells;

@@ -870,6 +870,8 @@ public enum MoneyFlowCounter : byte
     /// </para>
     /// </remarks>
     UtilityImport,
+    /// <summary>Utility tariffs collected from drawing Households and Businesses.</summary>
+    Tariff,
 }
 
 /// <summary>Which family of thing a <see cref="Metric"/> names.</summary>

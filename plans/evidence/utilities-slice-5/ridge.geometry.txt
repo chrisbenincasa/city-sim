@@ -1,0 +1,9 @@
+saved tick           4097
+districts            2
+buildings            44
+boundary cells       5 | 6
+crossing demolish    east 191 north 0
+crossing relay from  east 160 north 0
+crossing relay to    east 192 north 0
+occupied dwelling    building 37 at east 225 north 0
+plant                building 1 at east 1 north 0

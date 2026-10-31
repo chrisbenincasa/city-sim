@@ -295,7 +295,7 @@ public partial class Main
         if (_skyArc.Minute != minute)
         {
             _skyArc.Minute = minute;
-            ulong day = _world.Tick.Raw / (ulong)Ticks.PerDay + 1;
+            long day = ClockDay(_world.Tick.Raw);
             _clockLabel.Text = $"Day {day} · {minute / 60:00}:{minute % 60:00}";
             _clockLabel.TooltipText = _skyArc.TooltipText = $"Day {day}, {minute / 60:00}:{minute % 60:00}"
                 + $" — {PhaseOfDay(minute)}.\nDawn left, noon above, dusk right, midnight below.";

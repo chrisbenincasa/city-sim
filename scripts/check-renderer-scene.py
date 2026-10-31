@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check retained large-world counts and camera-independent Building uploads (build Godot first)."""
+"""Check retained large-world counts, camera-independent Building uploads and gated layers (build Godot first)."""
 import os
 from pathlib import Path
 import subprocess
@@ -37,10 +37,10 @@ def main():
     run(folder, 'bordered', 100, ['256 pause', f'256 draw {large}', f'256 draw {repeated}', '256 quit'])
     assert large.read_bytes() == repeated.read_bytes(), 'paused geometry changed'
     retained = rows(large, 'retained')
-    for name in ['road', 'tree']:
-        assert int(retained[name][0]) > 65536, (name, retained[name])
-    for name in ['footway', 'kerb']:
-        assert int(retained[name][0]) > 262144, (name, retained[name])
+    assert int(retained['road'][0]) > 65536, retained['road']
+    assert int(retained['footway'][0]) > 262144, retained['footway']
+    for name in ['tree', 'rock', 'kerb']:
+        assert int(retained[name][0]) == 0, (name, 'gated layer built beyond its reach', retained[name])
     initial = rows(Path(str(large) + '.profile.tsv'), 'render')
     again = rows(Path(str(repeated) + '.profile.tsv'), 'render')
     assert initial == again, 'paused draw uploaded unchanged geometry'
@@ -55,8 +55,11 @@ def main():
         for name in ['building', 'roof', 'hip', 'paired-roof', 'yard', 'road']:
             assert original[name] == current[name], (name, 'camera movement uploaded standing geometry')
     assert int(rows(far, 'layer')['tree'][0]) == 0, 'far detail buffers remained resident'
+    assert int(rows(far, 'retained')['tree'][0]) == 0, 'far camera kept foliage built'
     assert int(rows(after, 'layer')['tree'][0]) > 0, 'returning camera lost foliage'
-    print('PASS: old caps exceeded, paused drawing stable, camera does not rebuild standing geometry, detail returns.')
+    assert int(rows(after, 'retained')['kerb'][0]) > 0, 'returning camera lost kerbs'
+    print('PASS: old caps exceeded, paused drawing stable, camera does not rebuild standing geometry, '
+          'gated layers build only within reach, detail returns.')
 
 
 if __name__ == '__main__':

@@ -391,6 +391,7 @@ public partial class Main
                 _cityShown = words[1] == "on";
                 if (_cityShown && _governing) Govern();
                 if (_cityShown && _outsideShown) { _outsideShown = false; RefreshHinterlands(); }
+                if (_cityShown) _needsShown = false;
                 if (_cityShown) _hud.MoveChild(_cityPanel, -1);
                 if (_cityShown && !_cityRead) ReadCity();
                 return true;

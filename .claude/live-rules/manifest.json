@@ -33,6 +33,21 @@
       "include": []
     },
     {
+      "path": "rules/orchestrate-test-budget.md",
+      "hash": "13847081319a584303461ed88a3bc8c4fda410c9ad617ed91c1c1c14c93a7cf6",
+      "description": "Orchestrated runs spend the full test lane once",
+      "globs": [
+        ".orchestra/**"
+      ],
+      "dirs": [],
+      "prompt": [
+        "/orchestrat/i"
+      ],
+      "priority": 5,
+      "enabled": true,
+      "include": []
+    },
+    {
       "path": "rules/present-options-in-prose.md",
       "hash": "703bd02e10fb9ccb5679023e589529233641f101241e659af214337243ffc3d7",
       "description": "Put a decision to the user as prose with costs and trade-offs",
@@ -84,6 +99,17 @@
       "dirs": [],
       "prompt": [],
       "priority": 40,
+      "enabled": true,
+      "include": []
+    },
+    {
+      "path": "rules/worktree-code-edits.md",
+      "hash": "12b368a4c85980ca1b68502f2d1abde2222b357fdd6835a8c837915170973b61",
+      "description": "Read and edit worktree code directly; Serena serves the main checkout",
+      "globs": [],
+      "dirs": [],
+      "prompt": [],
+      "priority": 45,
       "enabled": true,
       "include": []
     }

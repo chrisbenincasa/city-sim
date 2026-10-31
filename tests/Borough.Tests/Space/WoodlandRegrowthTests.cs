@@ -33,7 +33,7 @@ public sealed class WoodlandRegrowthTests
         World world = Built();
         int compared = 0;
 
-        for (int cell = 0; cell < CellGrid.WorldCellCount; cell += 997)
+        for (int cell = 0; cell < CellGrid.WorldCellCount; cell += 397)
         {
             Assert.Equal(world.Layers.Woodland.Potential[cell], world.Layers.Woodland.Tiles[cell]);
             compared++;
