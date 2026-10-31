@@ -16,6 +16,7 @@ internal sealed class CityPreparation : IDisposable
 {
     private readonly CancellationTokenSource _cancel = new();
     private readonly Task<Simulation> _work;
+    private Task _checked = Task.CompletedTask;
     private long _tick;
     private volatile bool _reading;
     private bool _disposed;
@@ -50,7 +51,17 @@ internal sealed class CityPreparation : IDisposable
                     $"--start-at {until} is before Tick {saved}, where the saved city begins.");
             var simulation = new Simulation(city.World, city.Header.Key)
             { VerifyDecideWritesNothing = false, RouteWorkerCount = routeWorkers };
-            simulation.CheckEndOfRun();
+            if ((until ?? saved) == saved)
+            {
+                // The market rows are the one cache the checks fill lazily. Built here, the check
+                // only reads, so the shell can build its scene from the same World meanwhile.
+                city.World.Markets.Rebuild(city.World);
+                _checked = Task.Run(simulation.CheckEndOfRun);
+            }
+            else
+            {
+                simulation.CheckEndOfRun();
+            }
             city.World.Changes = new WorldChanges();
             City = city;
             SavedTick = saved;
@@ -61,6 +72,12 @@ internal sealed class CityPreparation : IDisposable
             return simulation;
         });
     }
+
+    /// <summary>
+    /// The end-of-run invariant check of a saved city that is not stepped on load. It may still be
+    /// running when <see cref="Complete"/> returns, and no Tick may be stepped until it finishes.
+    /// </summary>
+    public Task Checked => _checked;
 
     /// <summary>True while a saved city is still being read.</summary>
     public bool Reading => _reading;

@@ -121,7 +121,7 @@ position, so nothing has to be laid out: the diagram is what the map looks like 
 *game state*, which is the thing [`adr/0020`](adr/0020-one-live-world-and-settlements-are-derived.md)
 decided against when it made one world live at all times — and a screen the player switches *to* invites
 reading the diagram as a menu of places, when the whole property that makes it honest is that nobody chose
-what is on it. Under `adr/0089` the map is 65.5 km across and a 1M city occupies 6.3% of it, so this is not
+what is on it. Under `adr/0089` the map is 32.8 km across and a 1M city occupies about a quarter of it, so this is not
 a convenience: **the thing the player navigates by cannot be the ground.**
 
 Overlays follow the camera rather than stopping at it. At map zoom an overlay tints Cells; at region zoom

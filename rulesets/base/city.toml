@@ -21,6 +21,8 @@ upkeep_per_segment_per_day     = 128
 [lots]
 lots_per_segment = 5
 setback_tiles = 2
+# Zoned ground is built on edge to edge, so a painted block holds no unbuilt middle.
+block_pattern = "perimeter"
 # PROVISIONAL: a 60-Tile house on neutral ground costs about a quarter of the school's placement.
 demolition_price_per_tile = 1024
 

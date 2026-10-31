@@ -586,11 +586,12 @@ public static class BlockPatterns
         int lotsPerSegment,
         Determinism.WorldKey key,
         ulong patch,
-        int spread)
+        int spread,
+        BlockPattern unbanded = BlockPattern.Detached)
     {
         if (band == 0 || bandCount <= 0)
         {
-            return BlockPattern.Detached;
+            return unbanded;
         }
 
         // Bands are one-based, and both ladders are indexed from their TOP end down rather than from

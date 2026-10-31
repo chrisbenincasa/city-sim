@@ -33,8 +33,8 @@ public sealed class StreetAimTests
     /// </remarks>
     private const int Block = 32;
 
-    /// <summary>A block well inside the map, so no clamp is in play. Its south-west Tile.</summary>
-    private const int Origin = 8_192;
+    /// <summary>The map's centre block, so no clamp is in play. Its south-west Tile.</summary>
+    private const int Origin = CellGrid.WorldTiles / 2;
 
     /// <summary>The column and row that <see cref="Origin"/> stands at.</summary>
     private const int At = Origin / Block;

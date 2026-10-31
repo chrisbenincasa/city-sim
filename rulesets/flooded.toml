@@ -12,10 +12,12 @@
 # second copy that drifts, which is plans/0012 Cause 1 by construction.
 #
 # 🔴 THIS HEADER SAID "AND IT IS ONE TABLE" UNTIL 2026-09-01 AND THE DIFF WAS ALWAYS TWO. The
-# `[[lattice]]` origin below is 11520/4800 against coastal.toml's 8192/8192, and it is the change
-# WITHOUT WHICH THE FILE DEMONSTRATES NOTHING: measured at 0 of 420 Lots exposed before the origin
-# moved and 240 of 420 after. A file whose header undercounts its own diff by the load-bearing half
-# is what a reader trusts instead of running the diff, and this one was believed for a week.
+# `[[lattice]]` origin below is 4672/4608 against coastal.toml's 4096/4096, and it is the change
+# WITHOUT WHICH THE FILE DEMONSTRATES NOTHING. With 2,000 Citizens on seed 0 and five floods, a city
+# at coastal.toml's origin has 134 of 216 Lots on the floodplain and no Building ruined. Here 132 of
+# 224 are exposed and 48 Buildings are ruined. A file whose header undercounts its own diff by the
+# load-bearing half is what a reader trusts instead of running the diff, and this one was believed
+# for a week.
 #
 # ⚠ THREE DURATIONS AND NO MAGNITUDE, WHICH IS 01 §5.2 TAKEN LITERALLY: "No severity constant is
 # authored anywhere; the only constants are a frequency interval and a spread rate, both durations,
@@ -191,8 +193,8 @@ outflow_per_exit_per_day = 100
 runoff_per_sealed_cell_per_day = 50
 
 [[lattice]]
-origin_east_tiles  = 11520
-origin_north_tiles = 4800
+origin_east_tiles  = 4672
+origin_north_tiles = 4608
 
 [disasters]
 flood_every_days       = 2
