@@ -19,8 +19,9 @@ public static partial class FamilyBodyBuilder
     /// <summary>The library textures a shop body can be drawn in.</summary>
     public static readonly string[] ShopTextures =
     [
-        "brick-wall-001", "bricks-051", "bricks-085", "bricks-088", "painted-plaster-wall", "sheet-metal-004",
-        "roofing-tiles-003", "clay-roof-tiles-02", "bitumen",
+        "brick-wall-001", "bricks-051", "bricks-066", "bricks-085", "bricks-088", "painted-plaster-wall", "sheet-metal-004",
+        "roofing-tiles-003", "roofing-tiles-007", "roofing-tiles-008", "clay-roof-tiles-02", "bitumen", "standing-seam",
+        "concrete-tile-facade", "wood-siding-011", "wood-siding-005", "hinoki-planks", "white-planks-clean",
     ];
 
     /// <summary>How wide one shop unit is drawn, near enough. A frontage holds whole units.</summary>
@@ -39,7 +40,8 @@ public static partial class FamilyBodyBuilder
 
     /// <summary>Whether a shop form draws a pitched roof, and so takes a pitch.</summary>
     internal static bool ShopPitched(ShopForm form) =>
-        form is ShopForm.VictorianGable or ShopForm.GabledOriel or ShopForm.TurretCorner or ShopForm.PantileHipped;
+        form is ShopForm.VictorianGable or ShopForm.GabledOriel or ShopForm.TurretCorner or ShopForm.PantileHipped
+            or ShopForm.GabledHall or ShopForm.MonoPitch or ShopForm.FoldedPlate;
 
     /// <summary>The form a Building draws. A Building of one storey has no top storey to roof over or set back.</summary>
     public static ShopForm Drawn(ShopBody shop, int storeys) =>
@@ -121,6 +123,9 @@ public static partial class FamilyBodyBuilder
     {
         ArgumentNullException.ThrowIfNull(body);
         if (body.Shop is not { } shop) throw new ArgumentException("Only a shop body is built with BuildShop().", nameof(body));
+        float drawnPitch = place.PitchDegrees > 0 ? place.PitchDegrees
+            : shop.PitchDegrees is { } bounds ? (bounds.Low + bounds.High) / 2f : 30f;
+        if (IsDetachedShop(shop.Form)) return BuildDetachedShop(body, shop.Form, frontage, depth, storeys, seed, drawnPitch);
 
         ShopForm form = Drawn(shop, storeys);
         ShopPeriod period = Periods[form];
@@ -147,8 +152,7 @@ public static partial class FamilyBodyBuilder
         var mesh = new FamilyBodyMesh();
         var w = new Writer(mesh, body) { Look = look };
         var s = new ShopSite(w, form, period, frontage / 2f, depth / 2f, storeys, attached, corner, new HouseDraw((ulong)seed), panel, shutter, zinc);
-        float pitch = place.PitchDegrees > 0 ? place.PitchDegrees
-            : shop.PitchDegrees is { } range ? (range.Low + range.High) / 2f : 30f;
+        float pitch = drawnPitch;
         s.Walls();
         float height = storeys * Storey;
         if (ShopPitched(form)) s.RearDeck(height);

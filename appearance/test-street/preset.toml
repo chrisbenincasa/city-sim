@@ -3833,6 +3833,118 @@ variant = "pantile-hipped"
 pitch_degrees = [20, 28]
 
 # ---------------------------------------------------------------------------------------------
+# The detached shop forms: one store across the ground storey of a shopfront standing alone on a
+# detached Lot, flats above. Contemporary forms weigh 55%, mid-century 25% and traditional 20%.
+
+# A store glazed between slim piers under flats. At three storeys the top storey stands back behind a roof terrace.
+[[family]]
+id = "detached-shop-glass-base"
+patterns = ["detached"]
+kinds = ["shopfront"]
+storeys = [2, 3]
+frontage_metres = [16, 60]
+depth_metres = [12, 28]
+weight = 11
+
+[family.body]
+library = "test-street/corner-shops-with-flats"
+shape = "shop"
+variant = "glass-base"
+
+# Steep metal gables across the frontage without eaves, glass up each gable end.
+[[family]]
+id = "detached-shop-gabled-hall"
+patterns = ["detached"]
+kinds = ["shopfront"]
+storeys = [2, 3]
+frontage_metres = [16, 60]
+depth_metres = [12, 28]
+weight = 11
+
+[family.body]
+library = "test-street/corner-shops-with-flats"
+shape = "shop"
+variant = "gabled-hall"
+pitch_degrees = [38, 45]
+
+# The store set back behind square piers, the flats flush with the street above them.
+[[family]]
+id = "detached-shop-colonnade"
+patterns = ["detached"]
+kinds = ["shopfront"]
+storeys = [2, 3]
+frontage_metres = [16, 60]
+depth_metres = [12, 28]
+weight = 11
+
+[family.body]
+library = "test-street/corner-shops-with-flats"
+shape = "shop"
+variant = "colonnade"
+
+# One low metal mono-pitch rising toward the street over a clerestory of timber and glass.
+[[family]]
+id = "detached-shop-mono-pitch"
+patterns = ["detached"]
+kinds = ["shopfront"]
+storeys = [2, 3]
+frontage_metres = [16, 60]
+depth_metres = [12, 28]
+weight = 11
+
+[family.body]
+library = "test-street/corner-shops-with-flats"
+shape = "shop"
+variant = "mono-pitch"
+pitch_degrees = [8, 12]
+
+# A thin flat roof, ribbon windows over colored panels, and a deep canopy that turns both corners.
+[[family]]
+id = "detached-shop-canopy"
+patterns = ["detached"]
+kinds = ["shopfront"]
+storeys = [2, 3]
+frontage_metres = [16, 60]
+depth_metres = [12, 28]
+weight = 10
+
+[family.body]
+library = "test-street/corner-shops-with-flats"
+shape = "shop"
+variant = "canopy"
+
+# Shallow tiled folds across the frontage, glass in each fold's front, a canopy over the store.
+[[family]]
+id = "detached-shop-folded-plate"
+patterns = ["detached"]
+kinds = ["shopfront"]
+storeys = [2, 3]
+frontage_metres = [16, 60]
+depth_metres = [12, 28]
+weight = 10
+
+[family.body]
+library = "test-street/corner-shops-with-flats"
+shape = "shop"
+variant = "folded-plate"
+pitch_degrees = [14, 20]
+
+# Brick flats over one timber shopfront, sash windows, a corbelled cornice and a name panel.
+[[family]]
+id = "detached-shop-commercial-block"
+patterns = ["detached"]
+kinds = ["shopfront"]
+storeys = [2, 3]
+frontage_metres = [16, 60]
+depth_metres = [12, 28]
+weight = 16
+
+[family.body]
+library = "test-street/corner-shops-with-flats"
+shape = "shop"
+variant = "commercial-block"
+
+# ---------------------------------------------------------------------------------------------
 # The dressed workshop forms. They share one place in the draw with the panel-shed workshop above.
 
 # A hipped brick yard house beside a boarded cart shed, open on posts with a loft and hoist above, under pantiles.

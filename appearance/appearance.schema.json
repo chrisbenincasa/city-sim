@@ -216,7 +216,7 @@
               },
               "variant": {
                 "description": "The tower layout, the mid-rise type, the house form, the shop form or the workshop form. Required for a tower, mid-rise, house, shop or workshop body and refused for a block.",
-                "enum": ["point", "stepped-point", "l", "h", "mansion", "panel-slab", "terrace", "front-gables", "villa", "hipped", "half-hip", "cross-gable", "saltbox", "gambrel", "l-plan", "rear-outshot", "side-wing", "staggered-gables", "flat-setback", "sawtooth", "pavilions", "span", "butterfly", "monopitch", "low-hip", "deep-flat", "deep-gables", "deep-sawtooth", "deep-span", "victorian-gable", "gabled-oriel", "turret-corner", "main-street", "mansard", "interwar-curve", "sixties-canopy", "setback-modern", "pantile-hipped", "builders-yard", "monitor", "interwar-garage", "parapet-roller", "portal-shed"]
+                "enum": ["point", "stepped-point", "l", "h", "mansion", "panel-slab", "terrace", "front-gables", "villa", "hipped", "half-hip", "cross-gable", "saltbox", "gambrel", "l-plan", "rear-outshot", "side-wing", "staggered-gables", "flat-setback", "sawtooth", "pavilions", "span", "butterfly", "monopitch", "low-hip", "deep-flat", "deep-gables", "deep-sawtooth", "deep-span", "victorian-gable", "gabled-oriel", "turret-corner", "main-street", "mansard", "interwar-curve", "sixties-canopy", "setback-modern", "pantile-hipped", "glass-base", "gabled-hall", "colonnade", "mono-pitch", "canopy", "folded-plate", "commercial-block", "builders-yard", "monitor", "interwar-garage", "parapet-roller", "portal-shed"]
               },
               "module_metres": {
                 "description": "A mid-rise body's window module along a face, in metres. Defaults to 3.3 for a mansion and 3.6 for a panel slab.",
@@ -478,7 +478,7 @@
               },
               {
                 "if": { "properties": { "shape": { "const": "shop" } }, "required": ["shape"] },
-                "then": { "properties": { "variant": { "enum": ["victorian-gable", "gabled-oriel", "turret-corner", "main-street", "mansard", "interwar-curve", "sixties-canopy", "setback-modern", "pantile-hipped"] } } }
+                "then": { "properties": { "variant": { "enum": ["victorian-gable", "gabled-oriel", "turret-corner", "main-street", "mansard", "interwar-curve", "sixties-canopy", "setback-modern", "pantile-hipped", "glass-base", "gabled-hall", "colonnade", "mono-pitch", "canopy", "folded-plate", "commercial-block"] } } }
               },
               {
                 "if": { "properties": { "shape": { "const": "workshop" } }, "required": ["shape"] },

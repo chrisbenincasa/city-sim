@@ -684,20 +684,28 @@ public static class StylePresetReader
                 "sixties-canopy" => ShopForm.SixtiesCanopy,
                 "setback-modern" => ShopForm.SetbackModern,
                 "pantile-hipped" => ShopForm.PantileHipped,
+                "glass-base" => ShopForm.GlassBase,
+                "gabled-hall" => ShopForm.GabledHall,
+                "colonnade" => ShopForm.Colonnade,
+                "mono-pitch" => ShopForm.MonoPitch,
+                "canopy" => ShopForm.Canopy,
+                "folded-plate" => ShopForm.FoldedPlate,
+                "commercial-block" => ShopForm.CommercialBlock,
                 _ => null,
             };
             if (name is null) return null;
             if (form is not { } found)
             {
-                Refuse(LineOf(_keys["variant"]), "a shop 'variant' must be \"victorian-gable\", \"gabled-oriel\", \"turret-corner\", \"main-street\", \"mansard\", \"interwar-curve\", \"sixties-canopy\", \"setback-modern\" or \"pantile-hipped\".");
+                Refuse(LineOf(_keys["variant"]), "a shop 'variant' must be \"victorian-gable\", \"gabled-oriel\", \"turret-corner\", \"main-street\", \"mansard\", \"interwar-curve\", \"sixties-canopy\", \"setback-modern\", \"pantile-hipped\", \"glass-base\", \"gabled-hall\", \"colonnade\", \"mono-pitch\", \"canopy\", \"folded-plate\" or \"commercial-block\".");
                 return null;
             }
 
             bool pitched = FamilyBodyBuilder.ShopPitched(found);
             Bounds? pitch = Range("pitch_degrees");
-            if (pitched && pitch is not { Low: >= 18, High: <= 45 })
+            int least = FamilyBodyBuilder.IsDetachedShop(found) ? 5 : 18;
+            if (pitched && (pitch is not { } given || given.Low < least || given.High > 45))
             {
-                Refuse(LineOf(_keys["variant"]), "a pitched shop form needs 'pitch_degrees' = [low, high] within 18 to 45 degrees.");
+                Refuse(LineOf(_keys["variant"]), $"a pitched shop form needs 'pitch_degrees' = [low, high] within {least} to 45 degrees.");
                 return null;
             }
 
