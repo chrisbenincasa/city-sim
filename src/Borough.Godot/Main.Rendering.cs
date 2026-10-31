@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Collections.Generic;
+using System.Linq;
 using Borough.Core.Entities;
 using System.Text;
 
@@ -64,7 +65,11 @@ public partial class Main
 
                     // A bodied Building writes no massing box, so a gone one is news only here.
                     // A body under the same id is left standing for PlaceFamilyBody to compare with.
-                    if (old.Id != id) geometry |= ReplaceBuilding(old.Id) | RemoveFamilyBody(old.Id);
+                    if (old.Id != id)
+                    {
+                        geometry |= ReplaceBuilding(old.Id) | RemoveFamilyBody(old.Id);
+                        fronts |= _moduleDrawnIds.Contains(old.Id);
+                    }
                     changedIds.Add(old.Id);
                 }
                 if (!live) continue;
@@ -94,6 +99,10 @@ public partial class Main
                 if (drawn) _drawnBuildings++;
             }
             if (_familyBodies) RefreshNeighbourBodies(changedIds, placed);
+
+            // Gardens read every Lot, vacant ones included, and the Streets that bound each block.
+            // Their ground also clears wild trees.
+            geometry |= changes.Lots.Length > 0 || changes.Segments.Length > 0;
             if (geometry)
             {
                 PlanGardens();
@@ -120,6 +129,23 @@ public partial class Main
         {
             VerifyBuildingDrawing();
             VerifyPlots();
+            VerifyBlockFill();
+        }
+    }
+
+    private void VerifyBlockFill()
+    {
+        var layers = FixedLayers();
+        var before = new Dictionary<(ulong Id, int Part), InstanceValue>[layers.Length];
+        for (int i = 0; i < layers.Length; i++) before[i] = layers[i].Layer.Multimesh.Snapshot();
+        PlanGardens();
+        FillCarParks();
+        FillGardens();
+        for (int i = 0; i < layers.Length; i++)
+        {
+            var after = layers[i].Layer.Multimesh.Snapshot();
+            if (after.Count != before[i].Count || before[i].Any(entry => !after.TryGetValue(entry.Key, out var value) || value != entry.Value))
+                throw new System.InvalidOperationException($"Incremental {layers[i].Name} layer differs from a full fill at Tick {_world.Tick.Raw}.");
         }
     }
 

@@ -14,6 +14,7 @@
 #   small   25,000 Citizens, one camera, Tick 300
 #   verify  25,000 Citizens with BOROUGH_RENDER_VERIFY=1: camera moves, a Street, two draws
 #   zone    25,000 Citizens: zone blocks as trade, let Lots form, erase the zoning, a draw after each
+#   commands  25,000 Citizens: a Street, housing zoning, a Policy, erased zoning, the Street removed
 #   cams    the save, four cameras from far to near (needs --save)
 #   run     the save running at speed 8 until Tick 600 (needs --save)
 #
@@ -70,6 +71,28 @@ EOF
 380 draw $out/zone-b.tsv
 380 quit
 EOF
+  cat > "$out/commands.drive" <<EOF
+262 focus 600 400 700
+300 hold street
+300 click 600 416
+300 click 600 448
+310 draw $out/commands-a.tsv
+310 hold zone 0
+310 ui zone-size blocks
+310 ui zone-begin 560 380
+310 ui zone-end 660 460
+330 draw $out/commands-b.tsv
+330 ui govern 0 1
+340 draw $out/commands-c.tsv
+340 hold erase
+340 ui zone-begin 560 380
+340 ui zone-end 660 460
+350 draw $out/commands-d.tsv
+350 hold street
+350 click 600 432 shift
+360 draw $out/commands-e.tsv
+360 quit
+EOF
   cat > "$out/cams.drive" <<EOF
 257 draw $out/cams-a.tsv
 262 focus 1875 1875 700
@@ -93,6 +116,7 @@ EOF
   local shell=("$godot" --path src/Borough.Godot --)
   timeout 900 "${shell[@]}" --citizens 25000 --drive "$out/small.drive" > "$out/small.log" 2>&1 &
   timeout 900 "${shell[@]}" --citizens 25000 --drive "$out/zone.drive" > "$out/zone.log" 2>&1 &
+  timeout 900 "${shell[@]}" --citizens 25000 --drive "$out/commands.drive" > "$out/commands.log" 2>&1 &
   if [ "$verify" = 1 ]; then
     BOROUGH_RENDER_VERIFY=1 timeout 900 "${shell[@]}" --citizens 25000 --drive "$out/verify.drive" \
       > "$out/verify.log" 2>&1 &

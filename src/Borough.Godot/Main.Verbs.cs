@@ -45,14 +45,12 @@ public partial class Main
 
         Command[] raised = [.. _queued];
         SubmitGestures();
-        _world.Changes?.Invalidate();
 
-        // 🔴 THE ROAD GRAPH IS LAID ONCE AND A PLAYER CAN CHANGE IT, WHICH IS THE WHOLE DEFECT.
-        // Pave() ran in _Ready and on a tuner rebuild and nowhere else, so a Street laid by Connect
-        // existed in the world, routed Trips, carried Lots -- and was never drawn. ***The verb
-        // looked broken while working perfectly***, which is the worst way for a verb to fail.
-        // Flagged rather than re-paved here because nothing has stepped yet: the Command applies at
-        // the top of the next Tick, so the Segment does not exist until Step returns.
+        // A Command forces no full redraw. The WorldChanges journals carry the Buildings, Lots,
+        // Segments and permission rectangles it changes, and UpdateBuildings redraws from them.
+        // A road edit also flags Repave, which reads the Segment journal. It is flagged rather
+        // than run here because the Command applies at the top of the next Tick, so the Segment
+        // does not exist until Step returns.
         foreach (Command command in raised)
         {
             if (command.Kind is CommandKind.Connect or CommandKind.Street
