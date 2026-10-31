@@ -63,6 +63,13 @@
           "items": { "type": "integer", "minimum": 1 },
           "minItems": 2,
           "maxItems": 2
+        },
+        "workshop_lots": {
+          "description": "How many Lots one run of workshops spans, as [low, high]. A run shares its form, pitch and walls, and neighboring runs differ in form.",
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1 },
+          "minItems": 2,
+          "maxItems": 2
         }
       },
       "required": [
@@ -205,11 +212,11 @@
               },
               "shape": {
                 "description": "The body's geometry. Defaults to block.",
-                "enum": ["block", "house", "shop", "midrise", "tower"]
+                "enum": ["block", "house", "shop", "workshop", "midrise", "tower"]
               },
               "variant": {
-                "description": "The tower layout, the mid-rise type, the house form or the shop form. Required for a tower, mid-rise, house or shop body and refused for a block.",
-                "enum": ["point", "stepped-point", "l", "h", "mansion", "panel-slab", "terrace", "front-gables", "villa", "hipped", "half-hip", "cross-gable", "saltbox", "gambrel", "l-plan", "rear-outshot", "side-wing", "victorian-gable", "gabled-oriel", "turret-corner", "main-street", "mansard", "interwar-curve", "sixties-canopy", "setback-modern", "pantile-hipped"]
+                "description": "The tower layout, the mid-rise type, the house form, the shop form or the workshop form. Required for a tower, mid-rise, house, shop or workshop body and refused for a block.",
+                "enum": ["point", "stepped-point", "l", "h", "mansion", "panel-slab", "terrace", "front-gables", "villa", "hipped", "half-hip", "cross-gable", "saltbox", "gambrel", "l-plan", "rear-outshot", "side-wing", "victorian-gable", "gabled-oriel", "turret-corner", "main-street", "mansard", "interwar-curve", "sixties-canopy", "setback-modern", "pantile-hipped", "builders-yard", "monitor", "interwar-garage", "parapet-roller", "portal-shed"]
               },
               "module_metres": {
                 "description": "A mid-rise body's window module along a face, in metres. Defaults to 3.3 for a mansion and 3.6 for a panel slab.",
@@ -316,10 +323,14 @@
                 "description": "The apartment form the body draws: its roof and plan. It draws its own roof, so it takes no gable_degrees, and only the parapet, bay-front, forecourt and setback forms take parapet_metres.",
                 "enum": ["parapet", "hipped", "side-gable", "mansard", "centre-gable", "bay-front", "forecourt", "setback"]
               },
+              "workshop": {
+                "description": "Puts a block body among the workshop forms as the panel shed, so its runs differ in form from their neighbors. The other workshop forms are 'shape = \"workshop\"'.",
+                "enum": ["panel-shed"]
+              },
               "pitch_degrees": {
-                "description": "The range a terrace, apartment run or shop parade draws its shared roof pitch from, as [low, high] within 18 to 45. Required by the pitched forms; flat forms take none.",
+                "description": "The range a terrace, apartment run, shop parade or workshop run draws its shared roof pitch from, as [low, high]. Terraces, apartments and shops take 18 to 45; workshops take 5 to 45. Required by the pitched forms; flat forms take none.",
                 "type": "array",
-                "items": { "type": "integer", "minimum": 18, "maximum": 45 },
+                "items": { "type": "integer", "minimum": 5, "maximum": 45 },
                 "minItems": 2,
                 "maxItems": 2
               },
@@ -414,7 +425,7 @@
                 "if": {
                   "properties": {
                     "shape": {
-                      "enum": ["tower", "midrise", "house", "shop"]
+                      "enum": ["tower", "midrise", "house", "shop", "workshop"]
                     }
                   },
                   "required": ["shape"]
@@ -445,7 +456,8 @@
                       { "required": ["roof_hatch"] },
                       { "required": ["parapet_metres"] },
                       { "required": ["terrace"] },
-                      { "required": ["apartment"] }
+                      { "required": ["apartment"] },
+                      { "required": ["workshop"] }
                     ]
                   }
                 },
@@ -463,6 +475,10 @@
               {
                 "if": { "properties": { "shape": { "const": "shop" } }, "required": ["shape"] },
                 "then": { "properties": { "variant": { "enum": ["victorian-gable", "gabled-oriel", "turret-corner", "main-street", "mansard", "interwar-curve", "sixties-canopy", "setback-modern", "pantile-hipped"] } } }
+              },
+              {
+                "if": { "properties": { "shape": { "const": "workshop" } }, "required": ["shape"] },
+                "then": { "properties": { "variant": { "enum": ["builders-yard", "monitor", "interwar-garage", "parapet-roller", "portal-shed"] } } }
               },
               {
                 "if": { "properties": { "shape": { "const": "tower" } }, "required": ["shape"] },

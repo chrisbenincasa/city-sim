@@ -1,0 +1,37 @@
+# traded.toml, 10,000 Citizens, --start-at 600, seed 0, --appearance on a fixture copy of appearance/test-street.
+# The fixture widens the six workshop families to kinds ["shopfront", "officeblock", "dwelling"], storeys [2, 3],
+# frontage_metres [12, 36] and depth_metres [8, 24], because no shipped Ruleset raises a workshop Lot.
+# "turn" is relative, so each shot turns only by the change of heading from the shot before.
+601 pause
+601 ui family-bodies on 600
+601 speed 5
+602 pause
+602 focus 11691 4933 45
+602 tilt 9
+602 speed 5
+603 pause
+603 focus 11691 4933 45
+603 tilt 9
+603 speed 5
+604 pause
+604 focus 11691 4933 45
+604 tilt 9
+604 shoot plans/evidence/appearance-families/workshop-parapet-roller.png
+604 speed 5
+605 pause
+605 focus 11768 4956 45
+605 tilt 9
+605 turn left
+605 turn left
+605 turn left
+605 speed 5
+606 pause
+606 focus 11768 4956 45
+606 tilt 9
+606 speed 5
+607 pause
+607 focus 11768 4956 45
+607 tilt 9
+607 shoot plans/evidence/appearance-families/workshop-interwar-garage.png
+607 speed 5
+608 quit

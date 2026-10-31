@@ -95,8 +95,12 @@ public sealed record PaintScheme(IReadOnlyDictionary<string, Paint> Parts, int W
 /// How many Lots one parade of shop Buildings spans, drawn per face side, or <c>null</c> where shops
 /// draw as any other Building does. A parade shares its form, pitch and walls, as an apartment run does.
 /// </param>
+/// <param name="WorkshopRuns">
+/// How many Lots one run of workshop Buildings spans, drawn per face side, or <c>null</c> where workshops
+/// draw as any other Building does. A run shares its form, pitch and walls, as a shop parade does.
+/// </param>
 public sealed record StylePreset(string Name, int EraDays, BlockPattern[] Attached, AppearanceFamily[] Families,
-    HouseRuns? Runs = null, Bounds? Terraces = null, Bounds? ApartmentRuns = null, Bounds? ShopRuns = null);
+    HouseRuns? Runs = null, Bounds? Terraces = null, Bounds? ApartmentRuns = null, Bounds? ShopRuns = null, Bounds? WorkshopRuns = null);
 
 /// <summary>
 /// Runs of neighboring detached houses on one block face and era. Each run draws what its houses
@@ -248,7 +252,8 @@ public sealed record FamilyBody(
     HouseBody? House = null,
     TerraceBody? Terrace = null,
     ApartmentBody? Apartment = null,
-    ShopBody? Shop = null);
+    ShopBody? Shop = null,
+    WorkshopBody? Workshop = null);
 
 /// <summary>An attached house's roof and plan. Every house of one terrace shares them and its pitch.</summary>
 /// <param name="PitchDegrees">The range a terrace's pitch is drawn from, or <c>null</c> for a flat or mansard roof.</param>
@@ -344,6 +349,35 @@ public enum ShopForm : byte
 
     /// <summary>Render under a deep-eaved hipped pantile roof, with shutters and balconettes.</summary>
     PantileHipped,
+}
+
+/// <summary>
+/// A workshop body. A run shares its form, pitch and walls, and each Building draws its own doors,
+/// their paint and its signs.
+/// </summary>
+/// <param name="PitchDegrees">The range a run's pitch is drawn from, or <c>null</c> for a form without a pitched roof.</param>
+public sealed record WorkshopBody(WorkshopForm Form, Bounds? PitchDegrees);
+
+/// <summary>The period roofs and plans a workshop Building can take.</summary>
+public enum WorkshopForm : byte
+{
+    /// <summary>The block body's sheet-panel shed under a flat parapet, drawn from its bay rules.</summary>
+    PanelShed,
+
+    /// <summary>A hipped brick yard house beside a boarded cart shed on posts, under pantiles.</summary>
+    BuildersYard,
+
+    /// <summary>A low side gable with a glazed clerestory monitor along the ridge, between brick piers.</summary>
+    Monitor,
+
+    /// <summary>A Belfast-truss bow roof behind a stepped rendered parapet and name panel.</summary>
+    InterwarGarage,
+
+    /// <summary>Brown brick under a flat parapet with roller doors and a high strip window.</summary>
+    ParapetRoller,
+
+    /// <summary>A low-pitch gable front in profiled sheet over a block dado, with sectional doors and a trade counter.</summary>
+    PortalShed,
 }
 
 /// <summary>A tower body's authored layout.</summary>

@@ -88,7 +88,7 @@ public static class StylePresetReader
     private static readonly string[] LowRiseBodyKeys =
     [
         "bay_metres", .. Rows, "openings", "gable_degrees", "chimney", "steps", "pilasters", "party_line", "shopfront",
-        "panels", "rooflights", "receiving_canopy", "plant", "vents", "roof_hatch", "parapet_metres", "terrace", "apartment", "pitch_degrees",
+        "panels", "rooflights", "receiving_canopy", "plant", "vents", "roof_hatch", "parapet_metres", "terrace", "apartment", "workshop", "pitch_degrees",
     ];
 
     internal static IReadOnlyList<string> BlockOnlyBodyKeys => LowRiseBodyKeys;
@@ -117,7 +117,7 @@ public static class StylePresetReader
         ArgumentNullException.ThrowIfNull(sources);
         var errors = new List<AppearanceDiagnostic>();
         var families = new List<AppearanceFamily>();
-        (string Name, int EraDays, BlockPattern[] Attached, HouseRuns? Runs, Bounds? Terraces, Bounds? ApartmentRuns, Bounds? ShopRuns)? preset = null;
+        (string Name, int EraDays, BlockPattern[] Attached, HouseRuns? Runs, Bounds? Terraces, Bounds? ApartmentRuns, Bounds? ShopRuns, Bounds? WorkshopRuns)? preset = null;
         string? presetAt = null;
 
         foreach ((string file, string text) in sources)
@@ -220,7 +220,7 @@ public static class StylePresetReader
         CheckFamilies(families, errors);
         return errors.Count > 0 || preset is not { } found
             ? new StylePresetResult(null, errors)
-            : new StylePresetResult(new StylePreset(found.Name, found.EraDays, found.Attached, [.. families], found.Runs, found.Terraces, found.ApartmentRuns, found.ShopRuns), errors);
+            : new StylePresetResult(new StylePreset(found.Name, found.EraDays, found.Attached, [.. families], found.Runs, found.Terraces, found.ApartmentRuns, found.ShopRuns, found.WorkshopRuns), errors);
     }
 
     /// <summary>
@@ -301,10 +301,10 @@ public static class StylePresetReader
 
         public void Refuse(int line, string message) => errors.Add(new AppearanceDiagnostic(file, line, message));
 
-        public (string, int, BlockPattern[], HouseRuns?, Bounds?, Bounds?, Bounds?)? Preset()
+        public (string, int, BlockPattern[], HouseRuns?, Bounds?, Bounds?, Bounds?, Bounds?)? Preset()
         {
             int before = errors.Count;
-            Collect(["name", "era_days", "attached", "runs", "run_houses", "terrace_houses", "apartment_lots", "shop_lots"]);
+            Collect(["name", "era_days", "attached", "runs", "run_houses", "terrace_houses", "apartment_lots", "shop_lots", "workshop_lots"]);
             string? name = Text("name", required: true);
             long? era = Integer("era_days", required: true, least: 1);
             BlockPattern[] attached = Names("attached", PatternNames) ?? [];
@@ -316,7 +316,9 @@ public static class StylePresetReader
             if (apartments is { Low: < 1 }) Refuse(LineOf(_keys["apartment_lots"]), "'apartment_lots' must be [low, high], with low at least 1.");
             Bounds? shops = Range("shop_lots");
             if (shops is { Low: < 1 }) Refuse(LineOf(_keys["shop_lots"]), "'shop_lots' must be [low, high], with low at least 1.");
-            return errors.Count > before || name is null || era is null ? null : (name, (int)era, attached, runs, terraces, apartments, shops);
+            Bounds? workshops = Range("workshop_lots");
+            if (workshops is { Low: < 1 }) Refuse(LineOf(_keys["workshop_lots"]), "'workshop_lots' must be [low, high], with low at least 1.");
+            return errors.Count > before || name is null || era is null ? null : (name, (int)era, attached, runs, terraces, apartments, shops, workshops);
         }
 
         private HouseRuns? Runs()
@@ -413,7 +415,7 @@ public static class StylePresetReader
         public FamilyBody? Body()
         {
             int before = errors.Count;
-            Collect(["library", "shape", "variant", "tile_metres", "materials", "bay_metres", "parapet_metres", "pilasters", "plant", "roof_hatch", "vents", "openings", "gable_degrees", "chimney", "steps", "party_line", "shopfront", "panels", "rooflights", "receiving_canopy", "terrace", "apartment", "pitch_degrees", .. MidriseBodyKeys, .. Rows]);
+            Collect(["library", "shape", "variant", "tile_metres", "materials", "bay_metres", "parapet_metres", "pilasters", "plant", "roof_hatch", "vents", "openings", "gable_degrees", "chimney", "steps", "party_line", "shopfront", "panels", "rooflights", "receiving_canopy", "terrace", "apartment", "workshop", "pitch_degrees", .. MidriseBodyKeys, .. Rows]);
             string? library = Text("library", required: true);
             Dictionary<string, (float, float)> tiles = Tiles("tile_metres");
             Dictionary<string, string> materials = Materials("materials");
@@ -424,15 +426,17 @@ public static class StylePresetReader
             bool blockShape = shape == "block";
             bool houseShape = shape == "house";
             bool shopShape = shape == "shop";
-            if (!towerShape && !midriseShape && !blockShape && !houseShape && !shopShape && authoredShape is not null)
+            bool workshopShape = shape == "workshop";
+            if (!towerShape && !midriseShape && !blockShape && !houseShape && !shopShape && !workshopShape && authoredShape is not null)
             {
-                Refuse(LineOf(_keys["shape"]), "'shape' must be \"block\", \"house\", \"shop\", \"midrise\" or \"tower\".");
+                Refuse(LineOf(_keys["shape"]), "'shape' must be \"block\", \"house\", \"shop\", \"workshop\", \"midrise\" or \"tower\".");
             }
 
             TowerBody? tower = null;
             MidriseBody? midrise = null;
             HouseBody? house = null;
             ShopBody? shop = null;
+            WorkshopBody? workshop = null;
             if (towerShape)
             {
                 string? variant = Text("variant", required: true);
@@ -502,9 +506,13 @@ public static class StylePresetReader
             {
                 shop = Shop();
             }
+            else if (workshopShape)
+            {
+                workshop = Workshop();
+            }
             else if (_keys.TryGetValue("variant", out KeyValueSyntax? strayVariant))
             {
-                Refuse(LineOf(strayVariant), "'variant' is only valid when 'shape' is \"tower\", \"midrise\", \"house\" or \"shop\".");
+                Refuse(LineOf(strayVariant), "'variant' is only valid when 'shape' is \"tower\", \"midrise\", \"house\", \"shop\" or \"workshop\".");
             }
 
             if (!midriseShape)
@@ -518,11 +526,11 @@ public static class StylePresetReader
                 }
             }
 
-            if (towerShape || midriseShape || houseShape || shopShape)
+            if (towerShape || midriseShape || houseShape || shopShape || workshopShape)
             {
                 foreach (string key in LowRiseBodyKeys)
                 {
-                    if (shopShape && key == "pitch_degrees") continue;
+                    if ((shopShape || workshopShape) && key == "pitch_degrees") continue;
                     if (_keys.TryGetValue(key, out KeyValueSyntax? refused))
                     {
                         Refuse(LineOf(refused), $"'{key}' is only valid for a block body.");
@@ -569,6 +577,7 @@ public static class StylePresetReader
                 terrace = Terrace();
                 apartment = terrace is null ? Apartment() : null;
                 if (terrace is not null && _keys.TryGetValue("apartment", out KeyValueSyntax? both)) Refuse(LineOf(both), "a body takes 'terrace' or 'apartment', not both.");
+                workshop = PanelShed();
                 if (chimney && gable == 0f && terrace is null) Refuse(LineOf(_keys["chimney"]), "a chimney stands on a gable roof: 'chimney' needs 'gable_degrees'.");
 
                 // The far box takes its cap from these, so a terrace or apartment form gives them its own roof's.
@@ -577,11 +586,11 @@ public static class StylePresetReader
                 rows = [.. Rows.Select(Row)];
             }
 
-            return errors.Count > before || library is null || !blockShape && tower is null && midrise is null && house is null && shop is null
+            return errors.Count > before || library is null || !blockShape && tower is null && midrise is null && house is null && shop is null && workshop is null
                 ? null
                 : new FamilyBody(library, tiles, materials, bay, parapet, pilasters, (int)plant,
                     new WallRule(rows[0], rows[1]), new WallRule(rows[2], rows[3]), new WallRule(rows[4], rows[5]),
-                    hatch, (int)vents, openings, gable, chimney, steps, partyLine, shopfront, panels, rooflights, receiving, tower, midrise, house, terrace, apartment, shop);
+                    hatch, (int)vents, openings, gable, chimney, steps, partyLine, shopfront, panels, rooflights, receiving, tower, midrise, house, terrace, apartment, shop, workshop);
         }
 
         private TerraceBody? Terrace()
@@ -673,6 +682,62 @@ public static class StylePresetReader
             }
 
             return new ShopBody(found, pitch);
+        }
+
+        /// <summary>A block body tagged as the panel shed among the workshop forms.</summary>
+        private WorkshopBody? PanelShed()
+        {
+            string? name = Text("workshop", required: false);
+            if (name is null) return null;
+            if (name != "panel-shed")
+            {
+                Refuse(LineOf(_keys["workshop"]), "a block body's 'workshop' must be \"panel-shed\"; the other workshop forms are 'shape = \"workshop\"'.");
+                return null;
+            }
+
+            if (_keys.ContainsKey("terrace") || _keys.ContainsKey("apartment"))
+            {
+                Refuse(LineOf(_keys["workshop"]), "a body takes one of 'terrace', 'apartment' and 'workshop'.");
+                return null;
+            }
+
+            return new WorkshopBody(WorkshopForm.PanelShed, null);
+        }
+
+        private WorkshopBody? Workshop()
+        {
+            string? name = Text("variant", required: true);
+            WorkshopForm? form = name switch
+            {
+                "builders-yard" => WorkshopForm.BuildersYard,
+                "monitor" => WorkshopForm.Monitor,
+                "interwar-garage" => WorkshopForm.InterwarGarage,
+                "parapet-roller" => WorkshopForm.ParapetRoller,
+                "portal-shed" => WorkshopForm.PortalShed,
+                _ => null,
+            };
+            if (name is null) return null;
+            if (form is not { } found)
+            {
+                Refuse(LineOf(_keys["variant"]), "a workshop 'variant' must be \"builders-yard\", \"monitor\", \"interwar-garage\", \"parapet-roller\" or \"portal-shed\".");
+                return null;
+            }
+
+            bool pitched = FamilyBodyBuilder.WorkshopPitched(found);
+            Bounds? pitch = Range("pitch_degrees");
+            if (pitched && pitch is not { Low: >= 5, High: <= 45 })
+            {
+                Refuse(LineOf(_keys["variant"]), "a pitched workshop form needs 'pitch_degrees' = [low, high] within 5 to 45 degrees.");
+                return null;
+            }
+
+            if (!pitched && pitch is not null)
+            {
+                Refuse(LineOf(_keys["pitch_degrees"]), $"a workshop {name} has no pitch, so it takes no 'pitch_degrees'.");
+                return null;
+            }
+
+            return new WorkshopBody(found, pitch);
         }
 
         private ApartmentBody? Apartment()

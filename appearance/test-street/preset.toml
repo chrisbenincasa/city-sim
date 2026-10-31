@@ -30,6 +30,11 @@ apartment_lots = [1, 3]
 # The shop families share one place in the draw, as the apartment families do.
 shop_lots = [2, 4]
 
+# A workshop Building stands in a run of 2 to 4 Lots. A run shares its form, roof pitch, walls and
+# trim; neighboring runs differ in form. Each workshop draws its own doors, their paint, its sign and
+# its layout. The workshop families share one place in the draw, as the shop families do.
+workshop_lots = [2, 4]
+
 [[family]]
 id = "box"
 fallback = true
@@ -1847,8 +1852,10 @@ frontage_metres = [28, 36]
 depth_metres = [12, 20]
 
 # An 8 m grid of panels. A receiving door and a door on the street; long windows above and behind.
+# It is the panel shed among the workshop forms.
 [family.body]
 library = "test-street/workshop"
+workshop = "panel-shed"
 tile_metres = { wall = [2.0, 2.0], membrane = [20.0, 20.0] }
 bay_metres = 8.0
 parapet_metres = 0.8
@@ -3818,3 +3825,74 @@ library = "test-street/corner-shops-with-flats"
 shape = "shop"
 variant = "pantile-hipped"
 pitch_degrees = [20, 28]
+
+# ---------------------------------------------------------------------------------------------
+# The dressed workshop forms. They share one place in the draw with the panel-shed workshop above.
+
+# A hipped brick yard house beside a boarded cart shed, open on posts with a loft and hoist above, under pantiles.
+[[family]]
+id = "workshop-builders-yard"
+kinds = ["shopfront", "officeblock"]
+storeys = [2, 2]
+frontage_metres = [28, 36]
+depth_metres = [12, 20]
+
+[family.body]
+library = "test-street/workshop"
+shape = "workshop"
+variant = "builders-yard"
+pitch_degrees = [22, 30]
+
+# A low side gable with a glazed clerestory monitor along its ridge, brick piers, steel windows and sometimes a works chimney.
+[[family]]
+id = "workshop-monitor"
+kinds = ["shopfront", "officeblock"]
+storeys = [2, 2]
+frontage_metres = [28, 36]
+depth_metres = [12, 20]
+
+[family.body]
+library = "test-street/workshop"
+shape = "workshop"
+variant = "monitor"
+pitch_degrees = [14, 22]
+
+# A bow roof behind a stepped rendered parapet with a name panel, speed lines and a canopied vehicle door.
+[[family]]
+id = "workshop-interwar-garage"
+kinds = ["shopfront", "officeblock"]
+storeys = [2, 2]
+frontage_metres = [28, 36]
+depth_metres = [12, 20]
+
+[family.body]
+library = "test-street/workshop"
+shape = "workshop"
+variant = "interwar-garage"
+
+# Brown brick under a flat parapet, with roller doors, an office door under a canopy and a high strip window.
+[[family]]
+id = "workshop-parapet-roller"
+kinds = ["shopfront", "officeblock"]
+storeys = [2, 2]
+frontage_metres = [28, 36]
+depth_metres = [12, 20]
+
+[family.body]
+library = "test-street/workshop"
+shape = "workshop"
+variant = "parapet-roller"
+
+# A low-pitch gable front in profiled sheet over a block dado, with sectional doors and a trade counter.
+[[family]]
+id = "workshop-portal-shed"
+kinds = ["shopfront", "officeblock"]
+storeys = [2, 2]
+frontage_metres = [28, 36]
+depth_metres = [12, 20]
+
+[family.body]
+library = "test-street/workshop"
+shape = "workshop"
+variant = "portal-shed"
+pitch_degrees = [6, 10]

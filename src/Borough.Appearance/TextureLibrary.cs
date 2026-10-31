@@ -62,6 +62,7 @@ public sealed record TextureLibrary(
 
             string[] drawn = body.House is not null ? FamilyBodyBuilder.HouseTextures
                 : body.Shop is not null ? FamilyBodyBuilder.ShopTextures
+                : body.Workshop is { Form: not WorkshopForm.PanelShed } ? FamilyBodyBuilder.WorkshopTextures
                 : [];
             foreach (string texture in drawn)
             {

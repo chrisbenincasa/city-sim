@@ -178,6 +178,45 @@ only by `ShopBodyTests` and the Blender renders.
 Each form is written twice, in Python for Blender and in C#, and no test checks that the two agree.
 The C# is the reference and the script's docstring says so.
 
+Workshops have six forms. The user chose five dressed forms on October 26, 2026 from Blender renders
+of nine: builder's yard, monitor roof, interwar garage, parapet roller-door and steel portal shed.
+The panel-shed block body is the sixth. Each dressed form is a family (`workshop-<form>`) whose body
+names it with `shape = "workshop"` (`FamilyBodyBuilder.Workshop.cs`, `scripts/art/workshop-forms.py`).
+The panel shed's block body carries `workshop = "panel-shed"`, so it joins the same group in the
+draw. The builder's yard, monitor and portal shed draw their pitch from `pitch_degrees`, which a
+workshop may set as low as 5 degrees.
+
+- A run shares form, pitch, walls, roof and trim. The preset's `workshop_lots = [2, 4]` gives its
+  length in Lots.
+- Each Building draws its own door paint, sign paint and layout: which side the yard house stands,
+  how many roller or sectional doors, where the vehicle door and works chimney go.
+- The builder's yard leaves its cart shed open 2.4 m deep on the ground storey. That is about 5% of
+  a two-storey Building's floor, inside the drawing's 20%.
+
+No shipped Ruleset raises a workshop Lot. The family admits only shopfront and officeblock Lots of
+two storeys, 28 to 36 m frontage and 12 to 20 m depth, and a 600-Tick run of every Ruleset at
+10,000 Citizens drew none. The figures below come from a fixture copy of the test-street preset
+whose six workshop families also take dwelling Lots of two or three storeys, 12 to 36 m frontage
+and 8 to 24 m depth.
+
+| Run, 600 Ticks | Forms by band | Neighbor pairs across runs with one form and pitch within 5° |
+|---|---|---|
+| `traded.toml`, 10,000 Citizens, fixture preset | 12 m: 6, 16 m: 6, 20 m: 6 (all three storeys) | 0 of 9 |
+
+On that run, 7 of 16 neighboring workshop pairs stand in one run. Dwelling box fallbacks fell from
+266 to 125 and shopfront box fallbacks stayed at 31. On the shipped preset every existing pick is
+unchanged, because the new families come last in the file and the picker ranks families by their
+place in it.
+
+Driven on the fixture at 10,000 Citizens from Tick 600, `workshop-parapet-roller.png` and
+`workshop-interwar-garage.png` from `workshops.drive` show the two flat-roofed forms from the street.
+The monitor, portal shed and builder's yard have no street capture yet. Each attempt put the camera
+inside a neighboring Building or framed a different one. `workshop-blender-forms.jpg` is the five
+Blender renders.
+
+Workshop runs stand detached as shop parades do. Of 190 workshop bodies the shell drew on the
+fixture, 135 touch no neighbor ([#243](https://github.com/chrisbenincasa/city-sim/issues/243)).
+
 ## What the demonstration showed
 
 - 33 of 50 dwellings fall back to `box`. The test street covers only a few size bands, so this
