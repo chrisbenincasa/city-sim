@@ -283,7 +283,7 @@ public partial class Main
         if (Preset() is not { } preset || !BuildingFacts.TryOf(_world, _names, slot, out BuildingFacts facts)) return null;
         int paint = FamilyPicker.Paint(family, preset, _world.Key, facts);
         (int house, int pitch) = body.House is null ? (0, 0) : FamilyPicker.House(preset, _world.Key, facts);
-        TerracePlace terrace = body.Terrace is not null && FamilyPicker.TerraceOf(preset, _world.Key, facts) is { } span
+        TerracePlace terrace = FamilyPicker.FormRunOf(family, preset, _world.Key, facts) is { } span
             ? new TerracePlace(FamilyPicker.TerracePitch(family, _world.Key, span), span.Index, span.Houses)
             : default;
         return new BodyRequest(one, family, body, frontage, depth, storeys, attached, paint, house, pitch, turn, neighbours, site, origin, ring, terrace);
@@ -317,6 +317,7 @@ public partial class Main
                 + (request.Site is { } t ? $"\tpodium {t.PodiumStoreys}\tshaft {t.ShaftFrontage}x{t.ShaftDepth} m" : "")
                 + (request.Ring ? "\tring" : "")
                 + (request.Body.Terrace is { } form ? $"\tterrace {form.Form} {request.Terrace.PitchDegrees}° house {request.Terrace.Index + 1} of {request.Terrace.Houses}" : "")
+                + (request.Body.Apartment is { } block ? $"\tapartment {block.Form} {request.Terrace.PitchDegrees}° lot {request.Terrace.Index + 1} of {request.Terrace.Houses}" : "")
                 + (one.Abandoned ? "\tabandoned" : ""));
         }
     }
