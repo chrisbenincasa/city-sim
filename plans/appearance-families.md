@@ -217,6 +217,55 @@ Blender renders.
 Workshop runs stand detached as shop parades do. Of 190 workshop bodies the shell drew on the
 fixture, 135 touch no neighbor ([#243](https://github.com/chrisbenincasa/city-sim/issues/243)).
 
+Wide houses meet the bar with fifteen forms. The user chose the contemporary and mid-century forms
+on October 27, 2026 from Blender renders, and capped span at two storeys. Each form is a family
+(`house-<form>`) whose house body names it with `variant`.
+
+| Period | Street forms, 8–28 m deep | Deep forms, 32–36 m deep | Weight |
+|---|---|---|---|
+| Contemporary | staggered gables, flat setback, sawtooth, pavilions | deep flat, deep gables, deep sawtooth | 5 |
+| Mid-century | span, butterfly, monopitch, low hip | deep span | 2 |
+| Traditional | terrace, front gables, villa (24 m and up, 12–28 m deep) | none | 2 |
+
+- `FamilyBodyBuilder.Wide.cs` is the reference; `scripts/art/wide-house-forms.py` drew the options.
+- Contemporary roofs are painted `standing-seam`, baked in Blender by `scripts/art/standing-seam.py`
+  because no CC0 library has one. Their panels are painted `standing-seam` or `concrete-tile-facade`,
+  and mid-century colored panels are painted `white-planks-clean`. The user chose these from
+  rendered options on October 28, 2026.
+- Every pitched roof carries ridge and hip caps, verges and eaves gutters. Metal roofs draw them in
+  the roof's paint. Tiled roofs cap in tile. Their trim is white, charcoal or bronze, drawn per
+  house with white at half the weight. The user chose the mix from rendered options on October 29,
+  2026.
+- Pitch ranges are fixed per form in the builder and stop at 45 degrees.
+- A deep form stands its street form on a double-pile front with flat-roofed outriggers behind, and
+  draws about 80% of the floor its Lot holds, inside the low-rise allowance.
+- The wide families share one place in the draw, as apartments do. The terrace, front-gables and
+  villa families join it with `wide = true`, which only those three variants accept.
+- A wide house ranks its form on its run of detached houses. Neighboring runs of one era pass over
+  each other's forms, and every house in a run takes the run's form. A house in an alone run still
+  draws its own pitch and paint.
+- Narrow detached houses admit 8–11 m frontage and never compete with the wide families, so their
+  picks are unchanged.
+
+| Ruleset, 10,000 Citizens, 600 Ticks | Forms by band | Neighbor pairs across runs with one form and pitch within 5° |
+|---|---|---|
+| `base/ruleset.toml` | 12–20 m: 10, 24–36 m: 11, 40–84 m: 11 | 0 of 117 |
+| `gridded.toml` | 12–20 m: 10, 24–36 m: 11, 40–84 m: 11, deep: 4 | 0 of 320 |
+| `platted.toml` | 12–20 m: 4, 24–36 m: 4, 40–84 m: 8 | 0 of 7 |
+
+The headless report keys a run by era as well as cell, so neighbors raised in different eras count
+as across runs. None of them clash either. Dwelling box fallbacks fell from 926 to 658 on the base
+game and from 204 to 9 on `gridded`. `traded.toml` raises no wide houses.
+
+Driven on `gridded.toml` at 10,000 Citizens, seed 1, from Tick 600, `wide-house-street.png` shows
+staggered gables, flat setback, pavilions and span rows at Tile row 284, and `wide-house-deep.png`
+shows deep flat, deep sawtooth and deep span rows at Tile row 389, from `wide-houses.drive`. Every
+roof seen from above shows its face; `WideHouseBodyTests` asserts the same from vertical rays.
+Both frames show standing-seam roofs and seam or concrete-tile panels on contemporary rows. Close
+shots at 45 m show ridge caps, verges and seams clearly. At 110 m the seams are one or two pixels
+apart and do not resolve.
+Wide houses stand detached by design, so #243 does not apply to them.
+
 ## What the demonstration showed
 
 - 33 of 50 dwellings fall back to `box`. The test street covers only a few size bands, so this

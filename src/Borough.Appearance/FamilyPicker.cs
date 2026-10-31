@@ -49,6 +49,7 @@ public static class FamilyPicker
     private const ulong ApartmentSpace = FaceSpace | (1UL << 60);
     private const ulong ShopSpace = FaceSpace | (1UL << 59);
     private const ulong WorkshopSpace = FaceSpace | (1UL << 58);
+    private const ulong WideSpace = FaceSpace | (1UL << 57);
     private const int RunFaceShift = 20;
 
     /// <remarks>
@@ -142,15 +143,17 @@ public static class FamilyPicker
         Apartment,
         Shop,
         Workshop,
+        WideHouse,
     }
 
-    private const int Groups = 3;
+    private const int Groups = 4;
 
     private static FormGroup? GroupOf(AppearanceFamily family) => family.Body switch
     {
         { Apartment: not null } => FormGroup.Apartment,
         { Shop: not null } => FormGroup.Shop,
         { Workshop: not null } => FormGroup.Workshop,
+        { House.Wide: true } => FormGroup.WideHouse,
         _ => null,
     };
 
@@ -159,6 +162,7 @@ public static class FamilyPicker
         { Apartment: { } a } => (int)a.Form,
         { Shop: { } s } => (int)s.Form,
         { Workshop: { } w } => (int)w.Form,
+        { House: { } h } => (int)h.Variant,
         _ => 0,
     };
 
@@ -194,16 +198,12 @@ public static class FamilyPicker
     public static HouseRun RunOf(StylePreset preset, WorldKey world, in BuildingFacts facts)
     {
         ArgumentNullException.ThrowIfNull(preset);
-        if (preset.Runs is not { } runs || facts.Face == 0 || facts.ParcelFrontage <= 0
-            || facts.Pattern != BlockPattern.Detached || Array.IndexOf(preset.Attached, facts.Pattern) >= 0)
+        if (preset.Runs is not { } runs || RunSpan(preset, world, facts) is not { } span)
         {
             return new HouseRun(facts.Id, Ticks.Zero, RunShare.Alone);
         }
 
-        Ticks era = EraOf(preset, facts);
-        ulong lengths = (ulong)(runs.Houses.High - runs.Houses.Low + 1);
-        long houses = runs.Houses.Low + (long)(Randomness.Draw(world, FaceSpace | facts.Face, era, PurposeTag.AppearanceRun) % lengths);
-        ulong cell = (ulong)(facts.Offset / (facts.ParcelFrontage * houses));
+        (Ticks era, _, ulong cell) = span;
         ulong entity = RunSpace | (facts.Face << RunFaceShift) | cell;
 
         long total = runs.Alone + runs.Matched + runs.Copies;
@@ -212,6 +212,21 @@ public static class FamilyPicker
             : at < runs.Alone + runs.Matched ? RunShare.Matched
             : RunShare.Copies;
         return new HouseRun(entity, era, share);
+    }
+
+    /// <summary>The era, length in Lots and cell of the run of detached houses a Building stands in.</summary>
+    private static (Ticks Era, int Houses, ulong Cell)? RunSpan(StylePreset preset, WorldKey world, in BuildingFacts facts)
+    {
+        if (preset.Runs is not { } runs || facts.Face == 0 || facts.ParcelFrontage <= 0
+            || facts.Pattern != BlockPattern.Detached || Array.IndexOf(preset.Attached, facts.Pattern) >= 0)
+        {
+            return null;
+        }
+
+        Ticks era = EraOf(preset, facts);
+        ulong lengths = (ulong)(runs.Houses.High - runs.Houses.Low + 1);
+        int houses = (int)(runs.Houses.Low + (long)(Randomness.Draw(world, FaceSpace | facts.Face, era, PurposeTag.AppearanceRun) % lengths));
+        return (era, houses, (ulong)(facts.Offset / (facts.ParcelFrontage * houses)));
     }
 
     /// <summary>
@@ -265,9 +280,23 @@ public static class FamilyPicker
     public static Terrace? WorkshopRunOf(StylePreset preset, WorldKey world, in BuildingFacts facts) =>
         GroupRunOf(FormGroup.Workshop, preset, world, facts);
 
+    /// <summary>
+    /// The run of detached houses a wide house ranks its form on, or <c>null</c> where the Building
+    /// stands in no run. Neighboring runs of one era differ in form.
+    /// </summary>
+    public static Terrace? WideHouseRunOf(StylePreset preset, WorldKey world, in BuildingFacts facts) =>
+        GroupRunOf(FormGroup.WideHouse, preset, world, facts);
+
     private static Terrace? GroupRunOf(FormGroup group, StylePreset preset, WorldKey world, in BuildingFacts facts)
     {
         ArgumentNullException.ThrowIfNull(preset);
+        if (group == FormGroup.WideHouse)
+        {
+            if (RunSpan(preset, world, facts) is not { } run) return null;
+            int place = facts.Offset / facts.ParcelFrontage % run.Houses;
+            return new Terrace(WideSpace | (facts.Face << RunFaceShift) | run.Cell, run.Era, run.Cell, place, run.Houses);
+        }
+
         Bounds? lengths = group switch
         {
             FormGroup.Shop => preset.ShopRuns,
@@ -373,7 +402,8 @@ public static class FamilyPicker
             || family.Body?.Terrace is { } t && t.Form == other.Body?.Terrace?.Form
             || family.Body?.Apartment is { } a && a.Form == other.Body?.Apartment?.Form
             || family.Body?.Shop is { } s && s.Form == other.Body?.Shop?.Form
-            || family.Body?.Workshop is { } w && w.Form == other.Body?.Workshop?.Form);
+            || family.Body?.Workshop is { } w && w.Form == other.Body?.Workshop?.Form
+            || family.Body?.House is { Wide: true } h && h.Variant == other.Body?.House?.Variant);
 
     private static ulong Mix(ulong z)
     {

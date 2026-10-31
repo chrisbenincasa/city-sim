@@ -3503,13 +3503,15 @@ id = "house-terrace"
 patterns = ["detached"]
 kinds = ["dwelling"]
 storeys = [1, 3]
-frontage_metres = [12, 64]
+frontage_metres = [12, 84]
 depth_metres = [12, 28]
+weight = 2
 
 [family.body]
 library = "test-street/rowhouses"
 shape = "house"
 variant = "terrace"
+wide = true
 tile_metres = { roof = [4.0, 4.0] }
 
 [[family]]
@@ -3517,13 +3519,15 @@ id = "house-front-gables"
 patterns = ["detached"]
 kinds = ["dwelling"]
 storeys = [1, 3]
-frontage_metres = [12, 64]
+frontage_metres = [12, 84]
 depth_metres = [12, 28]
+weight = 2
 
 [family.body]
 library = "test-street/rowhouses"
 shape = "house"
 variant = "front-gables"
+wide = true
 tile_metres = { roof = [4.0, 4.0] }
 
 # The bays need 24 m of frontage.
@@ -3532,13 +3536,15 @@ id = "house-villa"
 patterns = ["detached"]
 kinds = ["dwelling"]
 storeys = [1, 3]
-frontage_metres = [24, 64]
+frontage_metres = [24, 84]
 depth_metres = [12, 28]
+weight = 2
 
 [family.body]
 library = "test-street/rowhouses"
 shape = "house"
 variant = "villa"
+wide = true
 tile_metres = { roof = [4.0, 4.0] }
 
 # One house on a narrow detached Lot, drawn in one of ten forms. scripts/art/house-forms.py is the
@@ -3896,3 +3902,190 @@ library = "test-street/workshop"
 shape = "workshop"
 variant = "portal-shed"
 pitch_degrees = [6, 10]
+
+# A row of houses on a wide detached Lot in a contemporary or mid-century form. These and the three
+# traditional wide forms above share one place in the draw and rank their forms on each run of
+# detached houses, so neighboring runs differ in form. The weights favor contemporary forms 5 to 2
+# over mid-century and traditional ones. FamilyBodyBuilder.Wide.cs is the reference; metal roofs and
+# panels are painted stand-ins. The deep forms draw about 80% of the floor their Lot holds
+# (docs/07-the-drawing.md).
+
+# One steep front gable to each house without eaves, every other house set back from the street.
+[[family]]
+id = "house-staggered-gables"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [1, 3]
+frontage_metres = [12, 84]
+depth_metres = [8, 28]
+weight = 5
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "staggered-gables"
+
+# Flat roofed behind a parapet. At three storeys the top storey stands back behind a roof terrace.
+[[family]]
+id = "house-flat-setback"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [1, 3]
+frontage_metres = [12, 84]
+depth_metres = [8, 28]
+weight = 5
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "flat-setback"
+
+# A mono-pitch to each house, all rising the same way, with a clerestory in each step.
+[[family]]
+id = "house-sawtooth"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [1, 3]
+frontage_metres = [12, 84]
+depth_metres = [8, 28]
+weight = 5
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "sawtooth"
+
+# Front-gabled pavilions joined by flat-roofed links set back from the street.
+[[family]]
+id = "house-pavilions"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [1, 3]
+frontage_metres = [12, 84]
+depth_metres = [8, 28]
+weight = 5
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "pavilions"
+
+# A shallow side gable over narrow houses, with brick cross walls and panels under ribbon windows.
+[[family]]
+id = "house-span"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [1, 2]
+frontage_metres = [12, 84]
+depth_metres = [8, 28]
+weight = 2
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "span"
+
+# An inverted roof to each house, falling to a valley on its center line.
+[[family]]
+id = "house-butterfly"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [1, 3]
+frontage_metres = [12, 84]
+depth_metres = [8, 28]
+weight = 2
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "butterfly"
+
+# One low mono-pitch rising toward the street over a clerestory band.
+[[family]]
+id = "house-monopitch"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [1, 3]
+frontage_metres = [12, 84]
+depth_metres = [8, 28]
+weight = 2
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "monopitch"
+
+# A low hipped roof with deep eaves, the upper storey hung with tiles or boards.
+[[family]]
+id = "house-low-hip"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [1, 3]
+frontage_metres = [12, 84]
+depth_metres = [8, 28]
+weight = 2
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "low-hip"
+
+# The flat-setback row on a double-pile front, with flat-roofed outriggers to the back of the Lot.
+[[family]]
+id = "house-deep-flat"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [1, 3]
+frontage_metres = [12, 84]
+depth_metres = [32, 36]
+weight = 5
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "deep-flat"
+
+# The staggered gables on a double-pile front, with flat-roofed outriggers.
+[[family]]
+id = "house-deep-gables"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [1, 3]
+frontage_metres = [12, 84]
+depth_metres = [32, 36]
+weight = 5
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "deep-gables"
+
+# The sawtooth row on a double-pile front, with flat-roofed outriggers.
+[[family]]
+id = "house-deep-sawtooth"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [1, 3]
+frontage_metres = [12, 84]
+depth_metres = [32, 36]
+weight = 5
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "deep-sawtooth"
+
+# The span row on a double-pile front, with flat-roofed outriggers.
+[[family]]
+id = "house-deep-span"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [1, 2]
+frontage_metres = [12, 84]
+depth_metres = [32, 36]
+weight = 2
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "deep-span"

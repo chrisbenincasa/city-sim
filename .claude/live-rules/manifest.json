@@ -2,6 +2,26 @@
   "version": 1,
   "rules": [
     {
+      "path": "rules/appearance-test-gate.md",
+      "hash": "591718508cf6f87e139dfb9995f7cb3d17587f58021c90113a4c5702b7438f7c",
+      "description": "Gate appearance and shell-drawing commits on the appearance tests, not the full lane",
+      "globs": [
+        "src/Borough.Appearance/**",
+        "src/Borough.Godot/**",
+        "scripts/art/**",
+        "art/**",
+        "appearance/**",
+        "tests/Borough.Tests/Appearance/**"
+      ],
+      "dirs": [],
+      "prompt": [
+        "/\\\\b(commit|push|gate|test lane)\\\\b/i"
+      ],
+      "priority": 30,
+      "enabled": true,
+      "include": []
+    },
+    {
       "path": "rules/delegate-read-many.md",
       "hash": "382a6700d1931049344c46b10d2db2e79177fbb137f061f4645b88feef97008f",
       "description": "Delegate the read-many questions; keep symbol reads in the main loop",
@@ -64,6 +84,17 @@
       "path": "rules/self-improvement.md",
       "hash": "13aae896352cfbebbc19efdd55471a9d022c67672889ff7af029c12f8d0a0f7f",
       "description": "Self-improvement: build the capability that makes the next goal cheaper",
+      "globs": [],
+      "dirs": [],
+      "prompt": [],
+      "priority": 40,
+      "enabled": true,
+      "include": []
+    },
+    {
+      "path": "rules/visual-comparison-page.md",
+      "hash": "31fe21391717ff07174f7027635a10233f860a01dd62e5a9e238719b28e55910",
+      "description": "Show rendered visual options on one comparison page that updates each round",
       "globs": [],
       "dirs": [],
       "prompt": [],

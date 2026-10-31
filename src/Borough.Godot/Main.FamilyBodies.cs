@@ -327,6 +327,7 @@ public partial class Main
                 + (request.Body.Terrace is { } form ? $"\tterrace {form.Form} {request.Terrace.PitchDegrees}° house {request.Terrace.Index + 1} of {request.Terrace.Houses}" : "")
                 + (request.Body.Shop is { } shop ? $"\tshop {FamilyBodyBuilder.Drawn(shop, request.Storeys)} {request.Terrace.PitchDegrees}° lot {request.Terrace.Index + 1} of {request.Terrace.Houses}{(request.Corner ? " corner" : "")}" : "")
                 + (request.Body.Workshop is { } works ? $"\tworkshop {works.Form} {request.Terrace.PitchDegrees}° lot {request.Terrace.Index + 1} of {request.Terrace.Houses}" : "")
+                + (request.Body.House is { Wide: true } home ? $"\thouse {home.Variant} {FamilyBodyBuilder.HousePitchDegrees(home.Variant, request.Pitch, request.Frontage, request.Depth, request.Storeys)}° draw {request.House}" : "")
                 + (request.Body.Apartment is { } block ? $"\tapartment {block.Form} {request.Terrace.PitchDegrees}° lot {request.Terrace.Index + 1} of {request.Terrace.Houses}" : "")
                 + (one.Abandoned ? "\tabandoned" : ""));
         }

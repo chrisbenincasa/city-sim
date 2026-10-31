@@ -85,6 +85,8 @@ dotnet run --project src/Borough.Headless -- --help
 For Markdown-only documentation changes, run `scripts/test.sh Corpus` and `git diff --check`;
 do not run the simulation test lane. Changes to code, Rulesets, generated schemas, Input Logs or
 golden fixtures still need the relevant checks and `scripts/test.sh` before a commit.
+A commit confined to appearance or shell-drawing code uses the narrower gate in
+`.claude/live-rules/rules/appearance-test-gate.md`.
 
 Read the log printed by `scripts/test.sh`; do not repeat a run just to recover its results.
 The default simulation lane is `tier!=instrument`. An unannotated test is an assertion.

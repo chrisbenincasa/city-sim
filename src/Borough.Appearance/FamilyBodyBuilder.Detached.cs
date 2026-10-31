@@ -117,27 +117,32 @@ public static partial class FamilyBodyBuilder
     /// wall rectangle 2A across and 2L along. k = 0 is a gable, 1 a full hip, and between is a half-hip.
     /// </summary>
     private static void HipGable(Writer w, HouseLook s, string wall, bool alongY, float cx, float cy, float A, float L, float H,
-        float pitch, float k, bool front, bool back)
+        float pitch, float k, bool front, bool back) =>
+        HipGable(w, s.Roof, wall, alongY, cx, cy, A, L, H, pitch, k, front, back, HouseEaves);
+
+    /// <param name="eaves">How far the roof oversails the walls on every side.</param>
+    private static void HipGable(Writer w, string roof, string wall, bool alongY, float cx, float cy, float A, float L, float H,
+        float pitch, float k, bool front, bool back, float eaves)
     {
         Vector3 P(float a, float l, float z) => alongY ? new Vector3(cx + a, cy + l, z) : new Vector3(cx + l, cy + a, z);
         Vector3 Dir(float a, float l, float z) => alongY ? new Vector3(a, l, z) : new Vector3(l, a, z);
 
         float t = MathF.Tan(pitch * MathF.PI / 180f);
-        float top = H + (A * t), low = H - (HouseEaves * t);
-        float ae = A + HouseEaves, le = L + HouseEaves;
+        float top = H + (A * t), low = H - (eaves * t);
+        float ae = A + eaves, le = L + eaves;
         float zk = k >= 1f ? low : top - (k * (top - low));
         float ak = k >= 1f ? ae : (top - zk) / t;
         float ry = MathF.Max(0f, le - ak);
 
         foreach (float side in (ReadOnlySpan<float>)[-1f, 1f])
         {
-            Sheet(w, s.Roof, [P(side * ae, -le, low), P(side * ak, -le, zk), P(0f, -ry, top), P(0f, ry, top), P(side * ak, le, zk), P(side * ae, le, low)],
+            Sheet(w, roof, [P(side * ae, -le, low), P(side * ak, -le, zk), P(0f, -ry, top), P(0f, ry, top), P(side * ak, le, zk), P(side * ae, le, low)],
                 Dir(side, 0f, 1f));
         }
 
         foreach (float end in (ReadOnlySpan<float>)[-1f, 1f])
         {
-            if (ak > 1e-3f) Sheet(w, s.Roof, [P(-ak, end * le, zk), P(ak, end * le, zk), P(0f, end * ry, top)], Dir(0f, end, 1f));
+            if (ak > 1e-3f) Sheet(w, roof, [P(-ak, end * le, zk), P(ak, end * le, zk), P(0f, end * ry, top)], Dir(0f, end, 1f));
             bool wanted = alongY ? (end < 0f ? front : back) : true;
             if (!wanted || zk <= H + 1e-3f) continue;
             float aw = MathF.Min(A, (top - zk) / t);

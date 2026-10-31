@@ -70,6 +70,8 @@ internal static class AppearanceDump
         var parades = new List<(ulong Face, StreetSide Side, int Offset, string Form, ulong Cell, int Pitch, int Parcel)>();
         var workshopBlocks = new SortedDictionary<(string Band, string Form), int>();
         var workshopRuns = new List<(ulong Face, StreetSide Side, int Offset, string Form, ulong Cell, int Pitch, int Parcel)>();
+        var wideBlocks = new SortedDictionary<(string Band, string Form), int>();
+        var wideRuns = new List<(ulong Face, StreetSide Side, int Offset, string Form, ulong Cell, int Pitch, int Parcel)>();
         for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
         {
             if (!BuildingFacts.TryOf(world, names, slot, out BuildingFacts facts)) continue;
@@ -120,6 +122,21 @@ internal static class AppearanceDump
                 string form = works.Form.ToString();
                 workshopBlocks[(band, form)] = workshopBlocks.GetValueOrDefault((band, form)) + 1;
                 workshopRuns.Add((facts.Face, facts.Side, facts.Offset, form, yard.Cell, FamilyPicker.TerracePitch(workshops, key, yard), facts.Offset / facts.ParcelFrontage));
+            }
+
+            if (pick.Choice == FamilyChoice.Eligible && pick.Family is { Body.House: { Wide: true } home }
+                && FamilyPicker.WideHouseRunOf(preset, key, facts) is { } houses)
+            {
+                string band = facts.DepthMetres >= 32 ? "deep 32-36 m"
+                    : facts.FrontageMetres < 24 ? "12-20 m"
+                    : facts.FrontageMetres < 40 ? "24-36 m"
+                    : "40-84 m";
+                string form = home.Variant.ToString();
+                wideBlocks[(band, form)] = wideBlocks.GetValueOrDefault((band, form)) + 1;
+                int pitch = FamilyBodyBuilder.HousePitchDegrees(home.Variant, FamilyPicker.House(preset, key, facts).Pitch,
+                    facts.FrontageMetres, facts.DepthMetres, facts.Storeys);
+                ulong era = (ulong)(facts.RaisedDay / preset.EraDays);
+                wideRuns.Add((facts.Face, facts.Side, facts.Offset, form, (era << 40) | houses.Cell, pitch, facts.Offset / facts.ParcelFrontage));
             }
 
             if (pick.Choice == FamilyChoice.Eligible) continue;
@@ -201,6 +218,18 @@ internal static class AppearanceDump
         Forms(output, "Apartments", "apartment", "run", blocks, runs);
         Forms(output, "Shops", "shop", "parade", shopBlocks, parades);
         Forms(output, "Workshops", "workshop", "run", workshopBlocks, workshopRuns);
+
+        // A run of detached houses is cut per era, so neighbors raised in different eras rank their forms apart.
+        Forms(output, "Wide houses", "wide house", "run", wideBlocks, wideRuns);
+        int eras = 0;
+        for (int i = 1; i < wideRuns.Count; i++)
+        {
+            var (a, b) = (wideRuns[i - 1], wideRuns[i]);
+            if (a.Face != b.Face || a.Side != b.Side || b.Parcel - a.Parcel != 1 || a.Cell >> 40 == b.Cell >> 40) continue;
+            if (a.Form == b.Form && Math.Abs(a.Pitch - b.Pitch) <= 5) eras++;
+        }
+
+        output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  {eras} of those alike pairs stand in runs of different eras."));
         return 0;
     }
 
