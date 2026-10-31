@@ -47,28 +47,31 @@ public static class FamilyPicker
     private const ulong RunSpace = FaceSpace | (1UL << 62);
     private const ulong TerraceSpace = FaceSpace | (1UL << 61);
     private const ulong ApartmentSpace = FaceSpace | (1UL << 60);
+    private const ulong ShopSpace = FaceSpace | (1UL << 59);
     private const int RunFaceShift = 20;
 
     /// <remarks>
     /// The apartment families share one place in the draw, weighted by their total over the number of
-    /// forms the Lot admits, so adding forms does not crowd out other families. An apartment then takes
-    /// its run's form, or a weighted draw among the apartment families where it stands in no run.
+    /// forms the Lot admits, so adding forms does not crowd out other families. The shop families share
+    /// another the same way. An apartment or shop then takes its run's form, or a weighted draw among
+    /// its group's families where it stands in no run.
     /// </remarks>
     public static FamilyPick Pick(StylePreset preset, WorldKey world, in BuildingFacts facts)
     {
         ArgumentNullException.ThrowIfNull(preset);
 
-        long total = 0, apartments = 0;
-        ulong forms = 0;
+        long total = 0;
+        Span<long> weights = stackalloc long[Groups];
+        Span<ulong> forms = stackalloc ulong[Groups];
         bool terraced = true;
         foreach (AppearanceFamily family in preset.Families)
         {
             if (family.Fallback || !family.Admits(facts)) continue;
             terraced &= family.Body?.Terrace is not null;
-            if (family.Body?.Apartment is { } apartment)
+            if (GroupOf(family) is { } group)
             {
-                apartments += family.Weight;
-                forms |= 1UL << (int)apartment.Form;
+                weights[(int)group] += family.Weight;
+                forms[(int)group] |= 1UL << FormOf(family);
             }
             else
             {
@@ -81,32 +84,45 @@ public static class FamilyPicker
             return new FamilyPick(TerraceFamily(preset, world, facts, terrace), FamilyChoice.Eligible);
         }
 
-        long pool = apartments > 0 ? Math.Max(1L, apartments / BitOperations.PopCount(forms)) : 0;
-        if (total + pool > 0)
+        Span<long> pools = stackalloc long[Groups];
+        long pooled = 0;
+        for (int g = 0; g < Groups; g++)
+        {
+            pools[g] = weights[g] > 0 ? Math.Max(1L, weights[g] / BitOperations.PopCount(forms[g])) : 0;
+            pooled += pools[g];
+        }
+
+        if (total + pooled > 0)
         {
             (ulong entity, Ticks era) = SeedOf(preset, world, facts);
             ulong draw = Randomness.Draw(world, entity, era, PurposeTag.AppearanceFamily);
-            long at = (long)(draw % (ulong)(total + pool));
-            if (at < pool)
+            long at = (long)(draw % (ulong)(total + pooled));
+            for (int g = 0; g < Groups; g++)
             {
-                if (ApartmentRunOf(preset, world, facts) is { } run)
+                if (at >= pools[g])
                 {
-                    return new FamilyPick(TerraceFamily(preset, world, facts, run, apartments: true), FamilyChoice.Eligible);
+                    at -= pools[g];
+                    continue;
                 }
 
-                at = (long)(draw / (ulong)(total + pool) % (ulong)apartments);
+                var group = (FormGroup)g;
+                if (GroupRunOf(group, preset, world, facts) is { } run)
+                {
+                    return new FamilyPick(TerraceFamily(preset, world, facts, run, group), FamilyChoice.Eligible);
+                }
+
+                long within = (long)(draw / (ulong)(total + pooled) % (ulong)weights[g]);
                 foreach (AppearanceFamily family in preset.Families)
                 {
-                    if (family.Fallback || !family.Admits(facts) || family.Body?.Apartment is null) continue;
-                    at -= family.Weight;
-                    if (at < 0) return new FamilyPick(family, FamilyChoice.Eligible);
+                    if (family.Fallback || !family.Admits(facts) || GroupOf(family) != group) continue;
+                    within -= family.Weight;
+                    if (within < 0) return new FamilyPick(family, FamilyChoice.Eligible);
                 }
             }
 
-            at -= pool;
             foreach (AppearanceFamily family in preset.Families)
             {
-                if (family.Fallback || !family.Admits(facts) || family.Body?.Apartment is not null) continue;
+                if (family.Fallback || !family.Admits(facts) || GroupOf(family) is not null) continue;
                 at -= family.Weight;
                 if (at < 0) return new FamilyPick(family, FamilyChoice.Eligible);
             }
@@ -118,6 +134,29 @@ public static class FamilyPicker
             ? new FamilyPick(null, FamilyChoice.Missing)
             : new FamilyPick(fallback, FamilyChoice.Fallback);
     }
+
+    /// <summary>The families whose forms share one place in the draw and stand in runs that differ in form.</summary>
+    private enum FormGroup
+    {
+        Apartment,
+        Shop,
+    }
+
+    private const int Groups = 2;
+
+    private static FormGroup? GroupOf(AppearanceFamily family) => family.Body switch
+    {
+        { Apartment: not null } => FormGroup.Apartment,
+        { Shop: not null } => FormGroup.Shop,
+        _ => null,
+    };
+
+    private static int FormOf(AppearanceFamily family) => family.Body switch
+    {
+        { Apartment: { } a } => (int)a.Form,
+        { Shop: { } s } => (int)s.Form,
+        _ => 0,
+    };
 
     /// <summary>Which of <see cref="FamilyBodyBuilder.HouseSeeds"/> draws a Building's house body is built from.</summary>
     public static int House(WorldKey world, ulong building) => House(world, building, Ticks.Zero);
@@ -204,18 +243,36 @@ public static class FamilyPicker
     /// A face side draws one run length in Lots and splits into runs as it does into terraces, but
     /// not by era, so neighbors raised years apart still stand in neighboring runs and differ in form.
     /// </remarks>
-    public static Terrace? ApartmentRunOf(StylePreset preset, WorldKey world, in BuildingFacts facts)
+    public static Terrace? ApartmentRunOf(StylePreset preset, WorldKey world, in BuildingFacts facts) =>
+        GroupRunOf(FormGroup.Apartment, preset, world, facts);
+
+    /// <summary>
+    /// The parade of shop Buildings a Building stands in, or <c>null</c> where the preset has no shop
+    /// runs or the Building stands on no block face. A face side splits into parades as it does into
+    /// apartment runs.
+    /// </summary>
+    public static Terrace? ShopRunOf(StylePreset preset, WorldKey world, in BuildingFacts facts) =>
+        GroupRunOf(FormGroup.Shop, preset, world, facts);
+
+    private static Terrace? GroupRunOf(FormGroup group, StylePreset preset, WorldKey world, in BuildingFacts facts)
     {
         ArgumentNullException.ThrowIfNull(preset);
-        if (preset.ApartmentRuns is not { } span || facts.Face == 0 || facts.ParcelFrontage <= 0) return null;
+        Bounds? lengths = group == FormGroup.Shop ? preset.ShopRuns : preset.ApartmentRuns;
+        if (lengths is not { } span || facts.Face == 0 || facts.ParcelFrontage <= 0) return null;
 
         var era = new Ticks((ulong)facts.Side);
-        ulong lengths = (ulong)(span.High - span.Low + 1);
-        int lots = (int)(span.Low + (long)(Randomness.Draw(world, FaceSpace | facts.Face, era, PurposeTag.AppearanceApartmentRun) % lengths));
+        (ulong space, PurposeTag tag) = group == FormGroup.Shop
+            ? (ShopSpace, PurposeTag.AppearanceShopRun)
+            : (ApartmentSpace, PurposeTag.AppearanceApartmentRun);
+        ulong choices = (ulong)(span.High - span.Low + 1);
+        int lots = (int)(span.Low + (long)(Randomness.Draw(world, FaceSpace | facts.Face, era, tag) % choices));
         int parcel = facts.Offset / facts.ParcelFrontage;
         ulong cell = (ulong)(parcel / lots);
-        return new Terrace(ApartmentSpace | (facts.Face << RunFaceShift) | cell, era, cell, parcel % lots, lots);
+        return new Terrace(space | (facts.Face << RunFaceShift) | cell, era, cell, parcel % lots, lots);
     }
+
+    /// <summary>The draw a run's shared look is built from, out of <see cref="FamilyBodyBuilder.HouseSeeds"/>.</summary>
+    public static int RunSeed(WorldKey world, Terrace run) => House(world, run.Entity, run.Era);
 
     /// <summary>The terrace or apartment run a family's form spans, or <c>null</c> for a family without one.</summary>
     public static Terrace? FormRunOf(AppearanceFamily family, StylePreset preset, WorldKey world, in BuildingFacts facts)
@@ -225,6 +282,7 @@ public static class FamilyPicker
         {
             { Terrace: not null } => TerraceOf(preset, world, facts),
             { Apartment: not null } => ApartmentRunOf(preset, world, facts),
+            { Shop: not null } => ShopRunOf(preset, world, facts),
             _ => null,
         };
     }
@@ -233,7 +291,7 @@ public static class FamilyPicker
     public static int TerracePitch(AppearanceFamily family, WorldKey world, Terrace terrace)
     {
         ArgumentNullException.ThrowIfNull(family);
-        if ((family.Body?.Terrace?.PitchDegrees ?? family.Body?.Apartment?.PitchDegrees) is not { } pitch) return 0;
+        if ((family.Body?.Terrace?.PitchDegrees ?? family.Body?.Apartment?.PitchDegrees ?? family.Body?.Shop?.PitchDegrees) is not { } pitch) return 0;
         ulong draw = Randomness.Draw(world, terrace.Entity, terrace.Era, PurposeTag.AppearanceTerracePitch);
         return (int)(pitch.Low + (long)(draw % (ulong)(pitch.High - pitch.Low + 1)));
     }
@@ -247,16 +305,16 @@ public static class FamilyPicker
     /// agree on a terrace's pick unless the pick admits only one of them. A neighbor whose Lot admits
     /// a family this Building does not can therefore still match it.
     /// </remarks>
-    /// <param name="apartments">Rank only the apartment families, once the Building's draw has made it an apartment.</param>
+    /// <param name="group">Rank only this group's families, once the Building's draw has put it in the group.</param>
     private static AppearanceFamily TerraceFamily(StylePreset preset, WorldKey world, in BuildingFacts facts, Terrace terrace,
-        bool apartments = false)
+        FormGroup? group = null)
     {
         ulong Seed(ulong cell) => Randomness.Draw(world, (terrace.Entity & ~CellMask) | cell, terrace.Era, PurposeTag.AppearanceFamily);
 
-        if (terrace.Cell % 2 == 0) return Ranked(preset, facts, Seed(terrace.Cell), apartments);
-        AppearanceFamily before = Ranked(preset, facts, Seed(terrace.Cell - 1), apartments);
-        AppearanceFamily after = Ranked(preset, facts, Seed(terrace.Cell + 1), apartments);
-        return Ranked(preset, facts, Seed(terrace.Cell), apartments, before, after);
+        if (terrace.Cell % 2 == 0) return Ranked(preset, facts, Seed(terrace.Cell), group);
+        AppearanceFamily before = Ranked(preset, facts, Seed(terrace.Cell - 1), group);
+        AppearanceFamily after = Ranked(preset, facts, Seed(terrace.Cell + 1), group);
+        return Ranked(preset, facts, Seed(terrace.Cell), group, before, after);
     }
 
     private const ulong CellMask = (1UL << RunFaceShift) - 1;
@@ -266,7 +324,7 @@ public static class FamilyPicker
     /// while any other remains. A family's score is its lowest of one hashed ticket per unit of weight,
     /// so each family ranks first in proportion to its weight.
     /// </summary>
-    private static AppearanceFamily Ranked(StylePreset preset, in BuildingFacts facts, ulong seed, bool apartments,
+    private static AppearanceFamily Ranked(StylePreset preset, in BuildingFacts facts, ulong seed, FormGroup? group,
         AppearanceFamily? skip = null, AppearanceFamily? also = null)
     {
         AppearanceFamily? best = null, first = null;
@@ -274,7 +332,7 @@ public static class FamilyPicker
         for (int i = 0; i < preset.Families.Length; i++)
         {
             AppearanceFamily family = preset.Families[i];
-            if (family.Fallback || !family.Admits(facts) || apartments && family.Body?.Apartment is null) continue;
+            if (family.Fallback || !family.Admits(facts) || group is not null && GroupOf(family) != group) continue;
             ulong score = ulong.MaxValue;
             for (int ticket = 0; ticket < family.Weight; ticket++)
             {
@@ -293,7 +351,8 @@ public static class FamilyPicker
     private static bool SameForm(AppearanceFamily family, AppearanceFamily? other) => other is not null
         && (ReferenceEquals(family, other)
             || family.Body?.Terrace is { } t && t.Form == other.Body?.Terrace?.Form
-            || family.Body?.Apartment is { } a && a.Form == other.Body?.Apartment?.Form);
+            || family.Body?.Apartment is { } a && a.Form == other.Body?.Apartment?.Form
+            || family.Body?.Shop is { } s && s.Form == other.Body?.Shop?.Form);
 
     private static ulong Mix(ulong z)
     {

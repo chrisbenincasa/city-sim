@@ -142,6 +142,39 @@ gables at 32°, two side gables at 30°, bay front, set-back top, bay front and 
 front. Runs stop at a cross street, so the Buildings either side of one can match. Row 221 has two
 such pairs at its five crossings.
 
+Shop houses meet the bar with nine forms, chosen by the user on October 26, 2026 from Blender
+renders: Victorian gable, gabled oriel, turret corner, pantile hipped, mansard, main street,
+interwar curve, sixties canopy and set-back modern. Each form is a family (`shop-house-<form>`)
+whose body names it with `shop` (`FamilyBodyBuilder.Shop.cs`, `scripts/art/shop-forms.py`). The
+four pitched forms draw their pitch from `pitch_degrees`. A mansard or set-back form of one storey
+draws as main street.
+
+- A parade is a run. The preset's `shop_lots = [2, 4]` gives its length in Lots. It shares form,
+  pitch, walls, trim and the flats' doors.
+- Each shop unit, about 6 m of frontage, draws its own shopfront style, paint, awning and hanging
+  sign. Timber, aluminium, glass, iron and deco fronts mix within one parade.
+- A free side on a block corner turns a shop window onto the side street and takes the form's
+  corner: a splay, a ground-storey splay with a column or corbel, a rounded corner, or a turret.
+- A pitched roof covers the front 10 m. A deeper Building has a flat rear range behind it.
+
+| Ruleset, 600 Ticks | Forms by band | Neighbor pairs across parades with one form and pitch within 5° |
+|---|---|---|
+| `traded.toml`, 10,000 Citizens | 4 m: 5, 8 m: 9, 12 m: 9, 16 m: 5, 20 m: 3 | 0 of 6 |
+
+On that run, 18 of 24 neighboring shop pairs stand in one parade. Box fallbacks among shopfront
+Buildings fell from 104 to 34. The rest are PadSite and SalesYard Lots and two 120 m HighStreetBlock
+Lots.
+
+Driven on `traded.toml` at 10,000 Citizens from Tick 600, the street-level captures around Tile
+11690 to 11740 show each shop in a Building drawing a different front:
+`shops-gabled-oriel.png`, `shops-mansard.png`, `shops-main-street.png` and `shops-row.png` from
+`shops.drive`. `shops-blender-forms.jpg` is the nine Blender renders.
+
+The shell has not drawn a corner shop yet. `BuildingFacts.Corner` is false for all 58 shop
+Buildings on that run, and 41 of them touch no neighbor, so parades stand as detached Buildings
+([#243](https://github.com/chrisbenincasa/city-sim/issues/243)). Corner cuts and turrets are checked
+only by `ShopBodyTests` and the Blender renders.
+
 Each form is written twice, in Python for Blender and in C#, and no test checks that the two agree.
 The C# is the reference and the script's docstring says so.
 

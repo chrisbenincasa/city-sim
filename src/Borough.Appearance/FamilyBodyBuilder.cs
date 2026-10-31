@@ -483,6 +483,9 @@ public static partial class FamilyBodyBuilder
         private static readonly Vector4 Unpainted = new(1f, 1f, 1f, 0f);
         private readonly Dictionary<string, Vector4> _paints = new(StringComparer.Ordinal);
 
+        /// <summary>Dressed names that stand in for bare part names, so shared helpers draw in a body's own look.</summary>
+        public Dictionary<string, string>? Look { get; init; }
+
         public void Facade(Face face, float width, float height, List<Opening> openings,
             string wall = "wall", string trim = "trim", string door = "door", string frame = "frame", float from = 0f, float to = -1f)
         {
@@ -648,6 +651,7 @@ public static partial class FamilyBodyBuilder
         /// <summary>A convex polygon in the script's frame, anticlockwise seen from outside.</summary>
         public void Polygon(string part, ReadOnlySpan<Vector3> points)
         {
+            if (Look is not null && Look.TryGetValue(part, out string? dressed)) part = dressed;
             Vector3 cross = Vector3.Cross(points[1] - points[0], points[^1] - points[0]);
             if (cross.LengthSquared() < 1e-10f) return;
             Vector3 n = Vector3.Normalize(cross);
