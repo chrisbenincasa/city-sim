@@ -31,7 +31,7 @@ public partial class Main
     [
         "wall-end", "wall", "trim", "roof-new", "roof", "membrane", "glass", "door", "frame", "metal",
         "plinth", "storefront", "sign", "awning", "solar", "spandrel", "reveal", "paving", "planter",
-        "tree",
+        "tree", "band", "accent", "canopy", "lobby", "sedum", "plant",
     ];
 
     private static readonly string[] RoofParts = ["roof-new", "roof", "membrane"];
@@ -806,7 +806,7 @@ public partial class Main
     private Dictionary<string, Color> FarPaintColors(FamilyBody body,
         Dictionary<string, Material> library, IReadOnlyDictionary<string, Paint>? scheme)
     {
-        string[] parts = ["wall", "wall-end", "trim", "glass", "frame", "spandrel"];
+        string[] parts = ["wall", "wall-end", "trim", "glass", "frame", "spandrel", "panel", "attic"];
         var colors = new Dictionary<string, Color>();
         foreach (string part in parts)
         {

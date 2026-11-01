@@ -75,6 +75,12 @@ public static partial class FamilyBodyBuilder
         Rect bounds = new(-frontage / 2f, -depth / 2f, frontage / 2f, depth / 2f);
         Rect[] rects = MidriseWings(bounds, ring);
         MidriseBody shape = body.Midrise;
+        if (IsPerimeter(shape.Variant))
+        {
+            BuildPerimeter(writer, bounds, rects, ring, attached, total, shape, detail);
+            return mesh;
+        }
+
         bool mansion = shape.Variant == MidriseVariant.Mansion;
         MansionLook mansionLook = Mansion with { Bay = shape.ModuleMetres ?? Mansion.Bay };
         SlabLook slabLook = PanelSlab with { Bay = shape.ModuleMetres ?? PanelSlab.Bay };

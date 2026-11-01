@@ -1,0 +1,1565 @@
+{
+  "storey_metres": 3.5,
+  "wing_metres": 16.0,
+  "looks": {
+    "brick-loggia": {
+      "bay": 3.6,
+      "window": [
+        1.8,
+        2.5,
+        0.4
+      ],
+      "reveal": 0.45,
+      "loggia_every": 3,
+      "loggia_depth": 1.6,
+      "attic": true,
+      "attic_setback": 2.2,
+      "parapet": 0.6,
+      "band": true,
+      "yard_balconies": true
+    },
+    "timber-frame": {
+      "bay": 3.0,
+      "window": [
+        1.4,
+        2.6,
+        0.1
+      ],
+      "reveal": 0.3,
+      "box_every": 4,
+      "attic": true,
+      "attic_setback": 2.0,
+      "parapet": 0.5,
+      "yard_balconies": true
+    },
+    "white-render": {
+      "bay": 3.2,
+      "widths": [
+        1.1,
+        2.3,
+        1.1,
+        1.6
+      ],
+      "window_height": 1.7,
+      "sill": 0.8,
+      "reveal": 0.12,
+      "corner_balconies": true,
+      "loggia_depth": 1.8,
+      "attic": false,
+      "parapet": 0.4,
+      "slab_balconies": true,
+      "accent": true
+    },
+    "gable-front": {
+      "bay": 4.0,
+      "window": [
+        1.0,
+        2.1,
+        0.6
+      ],
+      "reveal": 0.1,
+      "module": 8.0,
+      "deep": 16.0,
+      "pile": 12.0,
+      "pitch": 45,
+      "attic": false,
+      "gable_window": true
+    },
+    "ribbon": {
+      "bay": 3.0,
+      "band": [
+        0.9,
+        2.3
+      ],
+      "mullion": 1.5,
+      "ground_recess": 1.6,
+      "canopy": 2.2,
+      "fascia": [
+        0.45,
+        0.7
+      ],
+      "attic": false,
+      "stair_tower": true
+    },
+    "crosswall": {
+      "bay": 3.0,
+      "pier_every": 2,
+      "pier": [
+        0.6,
+        0.55
+      ],
+      "window": [
+        2.0,
+        1.6,
+        0.9
+      ],
+      "reveal": 0.15,
+      "fascia": [
+        0.35,
+        0.9
+      ],
+      "attic": false
+    }
+  },
+  "far_cells": {
+    "party": 0,
+    "ground": 1,
+    "typical": 2,
+    "attic": 3,
+    "end": 4
+  },
+  "sites": [
+    {
+      "name": "brick-loggia-solid",
+      "form": "brick-loggia",
+      "frontage": 48,
+      "depth": 24,
+      "storeys": 4,
+      "ring": false,
+      "attached": [],
+      "faces": {
+        "attic": 288,
+        "band": 24,
+        "canopy": 18,
+        "door": 3,
+        "frame": 1992,
+        "glass": 181,
+        "lobby": 3,
+        "membrane": 6,
+        "metal": 480,
+        "paving": 6,
+        "reveal": 324,
+        "sedum": 6,
+        "trim": 192,
+        "wall": 624,
+        "wall-end": 288
+      },
+      "corners": {
+        "attic": 1152,
+        "band": 96,
+        "canopy": 72,
+        "door": 12,
+        "frame": 7968,
+        "glass": 724,
+        "lobby": 12,
+        "membrane": 24,
+        "metal": 1920,
+        "paving": 24,
+        "reveal": 1296,
+        "sedum": 24,
+        "trim": 768,
+        "wall": 2496,
+        "wall-end": 1152
+      },
+      "bounds": [
+        [
+          -24.06,
+          -13.3,
+          0
+        ],
+        [
+          24.06,
+          13.62,
+          14.15
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 40,
+        "membrane": 6,
+        "paving": 6,
+        "sedum": 6,
+        "trim": 48
+      },
+      "far_corners": {
+        "far-facade": 160,
+        "membrane": 24,
+        "paving": 24,
+        "sedum": 24,
+        "trim": 192
+      },
+      "far_bounds": [
+        [
+          -24.04,
+          -12.04,
+          0.0
+        ],
+        [
+          24.04,
+          12.1,
+          14.15
+        ]
+      ],
+      "far_cell_counts": {
+        "1": 4,
+        "2": 4,
+        "3": 4,
+        "4": 4
+      }
+    },
+    {
+      "name": "brick-loggia-low",
+      "form": "brick-loggia",
+      "frontage": 28,
+      "depth": 20,
+      "storeys": 3,
+      "ring": false,
+      "attached": [
+        "w"
+      ],
+      "faces": {
+        "band": 18,
+        "canopy": 12,
+        "door": 2,
+        "frame": 1152,
+        "glass": 88,
+        "lobby": 2,
+        "membrane": 6,
+        "metal": 240,
+        "reveal": 168,
+        "sedum": 6,
+        "trim": 114,
+        "wall": 384,
+        "wall-end": 180
+      },
+      "corners": {
+        "band": 72,
+        "canopy": 48,
+        "door": 8,
+        "frame": 4608,
+        "glass": 352,
+        "lobby": 8,
+        "membrane": 24,
+        "metal": 960,
+        "reveal": 672,
+        "sedum": 24,
+        "trim": 456,
+        "wall": 1536,
+        "wall-end": 720
+      },
+      "bounds": [
+        [
+          -14.4,
+          -11.3,
+          0
+        ],
+        [
+          14.06,
+          11.62,
+          11.18
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 30,
+        "membrane": 6,
+        "sedum": 6,
+        "trim": 18
+      },
+      "far_corners": {
+        "far-facade": 120,
+        "membrane": 24,
+        "sedum": 24,
+        "trim": 72
+      },
+      "far_bounds": [
+        [
+          -14.0,
+          -10.04,
+          0.0
+        ],
+        [
+          14.04,
+          10.04,
+          11.18
+        ]
+      ],
+      "far_cell_counts": {
+        "0": 3,
+        "1": 3,
+        "2": 4,
+        "4": 2
+      }
+    },
+    {
+      "name": "brick-loggia-ring",
+      "form": "brick-loggia",
+      "frontage": 56,
+      "depth": 52,
+      "storeys": 5,
+      "ring": true,
+      "attached": [],
+      "faces": {
+        "attic": 708,
+        "band": 72,
+        "canopy": 84,
+        "door": 14,
+        "frame": 6624,
+        "glass": 604,
+        "lobby": 14,
+        "membrane": 24,
+        "metal": 3240,
+        "paving": 24,
+        "reveal": 2112,
+        "sedum": 24,
+        "trim": 756,
+        "wall": 2592,
+        "wall-end": 1056
+      },
+      "corners": {
+        "attic": 2832,
+        "band": 288,
+        "canopy": 336,
+        "door": 56,
+        "frame": 26496,
+        "glass": 2416,
+        "lobby": 56,
+        "membrane": 96,
+        "metal": 12960,
+        "paving": 96,
+        "reveal": 8448,
+        "sedum": 96,
+        "trim": 3024,
+        "wall": 10368,
+        "wall-end": 4224
+      },
+      "bounds": [
+        [
+          -29.3,
+          -27.3,
+          0
+        ],
+        [
+          29.3,
+          27.3,
+          17.65
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 132,
+        "membrane": 24,
+        "paving": 24,
+        "sedum": 24,
+        "trim": 144
+      },
+      "far_corners": {
+        "far-facade": 528,
+        "membrane": 96,
+        "paving": 96,
+        "sedum": 96,
+        "trim": 576
+      },
+      "far_bounds": [
+        [
+          -28.04,
+          -26.04,
+          0.0
+        ],
+        [
+          28.04,
+          26.04,
+          17.65
+        ]
+      ],
+      "far_cell_counts": {
+        "1": 12,
+        "2": 36,
+        "3": 12
+      }
+    },
+    {
+      "name": "timber-frame-solid",
+      "form": "timber-frame",
+      "frontage": 40,
+      "depth": 20,
+      "storeys": 4,
+      "ring": false,
+      "attached": [
+        "e"
+      ],
+      "faces": {
+        "attic": 246,
+        "canopy": 18,
+        "door": 3,
+        "frame": 1992,
+        "glass": 169,
+        "lobby": 3,
+        "membrane": 6,
+        "metal": 3252,
+        "paving": 6,
+        "plant": 6,
+        "reveal": 36,
+        "trim": 276,
+        "wall": 498,
+        "wall-end": 270
+      },
+      "corners": {
+        "attic": 984,
+        "canopy": 72,
+        "door": 12,
+        "frame": 7968,
+        "glass": 676,
+        "lobby": 12,
+        "membrane": 24,
+        "metal": 13008,
+        "paving": 24,
+        "plant": 24,
+        "reveal": 144,
+        "trim": 1104,
+        "wall": 1992,
+        "wall-end": 1080
+      },
+      "bounds": [
+        [
+          -20.04,
+          -11.3,
+          0
+        ],
+        [
+          20.0,
+          11.62,
+          16.4
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 35,
+        "membrane": 6,
+        "metal": 12,
+        "paving": 6,
+        "plant": 6,
+        "trim": 36
+      },
+      "far_corners": {
+        "far-facade": 140,
+        "membrane": 24,
+        "metal": 48,
+        "paving": 24,
+        "plant": 24,
+        "trim": 144
+      },
+      "far_bounds": [
+        [
+          -20.04,
+          -10.04,
+          0.0
+        ],
+        [
+          20.0,
+          10.1,
+          16.4
+        ]
+      ],
+      "far_cell_counts": {
+        "0": 5,
+        "1": 3,
+        "2": 4,
+        "3": 3,
+        "4": 2
+      }
+    },
+    {
+      "name": "timber-frame-low",
+      "form": "timber-frame",
+      "frontage": 32,
+      "depth": 16,
+      "storeys": 3,
+      "ring": false,
+      "attached": [],
+      "faces": {
+        "canopy": 12,
+        "door": 2,
+        "frame": 1824,
+        "glass": 124,
+        "lobby": 2,
+        "membrane": 6,
+        "metal": 3012,
+        "plant": 6,
+        "reveal": 24,
+        "trim": 264,
+        "wall": 504,
+        "wall-end": 252
+      },
+      "corners": {
+        "canopy": 48,
+        "door": 8,
+        "frame": 7296,
+        "glass": 496,
+        "lobby": 8,
+        "membrane": 24,
+        "metal": 12048,
+        "plant": 24,
+        "reveal": 96,
+        "trim": 1056,
+        "wall": 2016,
+        "wall-end": 1008
+      },
+      "bounds": [
+        [
+          -16.4,
+          -9.3,
+          0
+        ],
+        [
+          16.04,
+          9.62,
+          12.95
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 36,
+        "membrane": 6,
+        "metal": 12,
+        "plant": 6,
+        "trim": 24
+      },
+      "far_corners": {
+        "far-facade": 144,
+        "membrane": 24,
+        "metal": 48,
+        "plant": 24,
+        "trim": 96
+      },
+      "far_bounds": [
+        [
+          -16.04,
+          -8.04,
+          0.0
+        ],
+        [
+          16.04,
+          8.04,
+          12.95
+        ]
+      ],
+      "far_cell_counts": {
+        "1": 4,
+        "2": 4,
+        "4": 4
+      }
+    },
+    {
+      "name": "timber-frame-ring",
+      "form": "timber-frame",
+      "frontage": 52,
+      "depth": 48,
+      "storeys": 6,
+      "ring": true,
+      "attached": [],
+      "faces": {
+        "attic": 732,
+        "canopy": 84,
+        "door": 14,
+        "frame": 10224,
+        "glass": 752,
+        "lobby": 14,
+        "membrane": 24,
+        "metal": 17760,
+        "paving": 24,
+        "reveal": 168,
+        "sedum": 24,
+        "trim": 1872,
+        "wall": 3048,
+        "wall-end": 1152
+      },
+      "corners": {
+        "attic": 2928,
+        "canopy": 336,
+        "door": 56,
+        "frame": 40896,
+        "glass": 3008,
+        "lobby": 56,
+        "membrane": 96,
+        "metal": 71040,
+        "paving": 96,
+        "reveal": 672,
+        "sedum": 96,
+        "trim": 7488,
+        "wall": 12192,
+        "wall-end": 4608
+      },
+      "bounds": [
+        [
+          -27.3,
+          -25.3,
+          0
+        ],
+        [
+          27.3,
+          25.3,
+          21.15
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 144,
+        "membrane": 24,
+        "paving": 24,
+        "sedum": 24,
+        "trim": 144
+      },
+      "far_corners": {
+        "far-facade": 576,
+        "membrane": 96,
+        "paving": 96,
+        "sedum": 96,
+        "trim": 576
+      },
+      "far_bounds": [
+        [
+          -26.04,
+          -24.04,
+          0.0
+        ],
+        [
+          26.04,
+          24.04,
+          21.15
+        ]
+      ],
+      "far_cell_counts": {
+        "1": 12,
+        "2": 48,
+        "3": 12
+      }
+    },
+    {
+      "name": "white-render-solid",
+      "form": "white-render",
+      "frontage": 44,
+      "depth": 22,
+      "storeys": 4,
+      "ring": false,
+      "attached": [],
+      "faces": {
+        "accent": 18,
+        "canopy": 18,
+        "door": 3,
+        "frame": 3048,
+        "glass": 259,
+        "lobby": 3,
+        "membrane": 6,
+        "metal": 402,
+        "reveal": 252,
+        "solar": 7,
+        "trim": 204,
+        "wall": 870,
+        "wall-end": 300
+      },
+      "corners": {
+        "accent": 72,
+        "canopy": 72,
+        "door": 12,
+        "frame": 12192,
+        "glass": 1036,
+        "lobby": 12,
+        "membrane": 24,
+        "metal": 1608,
+        "reveal": 1008,
+        "solar": 28,
+        "trim": 816,
+        "wall": 3480,
+        "wall-end": 1200
+      },
+      "bounds": [
+        [
+          -22.05,
+          -12.3,
+          0
+        ],
+        [
+          22.05,
+          11.04,
+          14.9
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 40,
+        "membrane": 6,
+        "metal": 42,
+        "solar": 7,
+        "trim": 24
+      },
+      "far_corners": {
+        "far-facade": 160,
+        "membrane": 24,
+        "metal": 168,
+        "solar": 28,
+        "trim": 96
+      },
+      "far_bounds": [
+        [
+          -22.04,
+          -11.04,
+          0.0
+        ],
+        [
+          22.04,
+          11.04,
+          14.9
+        ]
+      ],
+      "far_cell_counts": {
+        "1": 4,
+        "2": 6,
+        "4": 6
+      }
+    },
+    {
+      "name": "white-render-low",
+      "form": "white-render",
+      "frontage": 24,
+      "depth": 18,
+      "storeys": 3,
+      "ring": false,
+      "attached": [
+        "w",
+        "e"
+      ],
+      "faces": {
+        "accent": 12,
+        "canopy": 12,
+        "door": 2,
+        "frame": 1008,
+        "glass": 94,
+        "lobby": 2,
+        "membrane": 6,
+        "metal": 276,
+        "reveal": 168,
+        "solar": 6,
+        "trim": 84,
+        "wall": 276,
+        "wall-end": 174
+      },
+      "corners": {
+        "accent": 48,
+        "canopy": 48,
+        "door": 8,
+        "frame": 4032,
+        "glass": 376,
+        "lobby": 8,
+        "membrane": 24,
+        "metal": 1104,
+        "reveal": 672,
+        "solar": 24,
+        "trim": 336,
+        "wall": 1104,
+        "wall-end": 696
+      },
+      "bounds": [
+        [
+          -12.05,
+          -10.3,
+          0
+        ],
+        [
+          12.05,
+          9.04,
+          11.4
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 24,
+        "membrane": 6,
+        "metal": 36,
+        "solar": 6,
+        "trim": 12
+      },
+      "far_corners": {
+        "far-facade": 96,
+        "membrane": 24,
+        "metal": 144,
+        "solar": 24,
+        "trim": 48
+      },
+      "far_bounds": [
+        [
+          -12.0,
+          -9.04,
+          0.0
+        ],
+        [
+          12.0,
+          9.04,
+          11.4
+        ]
+      ],
+      "far_cell_counts": {
+        "0": 6,
+        "1": 2,
+        "2": 4
+      }
+    },
+    {
+      "name": "white-render-ring",
+      "form": "white-render",
+      "frontage": 60,
+      "depth": 52,
+      "storeys": 5,
+      "ring": true,
+      "attached": [],
+      "faces": {
+        "accent": 84,
+        "canopy": 84,
+        "door": 14,
+        "frame": 10128,
+        "glass": 1254,
+        "lobby": 14,
+        "membrane": 24,
+        "metal": 3888,
+        "plant": 24,
+        "reveal": 2472,
+        "trim": 1320,
+        "wall": 3144,
+        "wall-end": 1248
+      },
+      "corners": {
+        "accent": 336,
+        "canopy": 336,
+        "door": 56,
+        "frame": 40512,
+        "glass": 5016,
+        "lobby": 56,
+        "membrane": 96,
+        "metal": 15552,
+        "plant": 96,
+        "reveal": 9888,
+        "trim": 5280,
+        "wall": 12576,
+        "wall-end": 4992
+      },
+      "bounds": [
+        [
+          -31.3,
+          -27.3,
+          0
+        ],
+        [
+          31.3,
+          27.3,
+          19.95
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 132,
+        "membrane": 24,
+        "metal": 48,
+        "plant": 24,
+        "trim": 72
+      },
+      "far_corners": {
+        "far-facade": 528,
+        "membrane": 96,
+        "metal": 192,
+        "plant": 96,
+        "trim": 288
+      },
+      "far_bounds": [
+        [
+          -30.04,
+          -26.04,
+          0.0
+        ],
+        [
+          30.04,
+          26.04,
+          19.95
+        ]
+      ],
+      "far_cell_counts": {
+        "1": 12,
+        "2": 48
+      }
+    },
+    {
+      "name": "gable-front-shallow",
+      "form": "gable-front",
+      "frontage": 40,
+      "depth": 16,
+      "storeys": 3,
+      "ring": false,
+      "attached": [],
+      "faces": {
+        "canopy": 18,
+        "door": 3,
+        "frame": 1560,
+        "glass": 70,
+        "lobby": 3,
+        "reveal": 36,
+        "roof": 10,
+        "trim": 24,
+        "wall": 442,
+        "wall-end": 228
+      },
+      "corners": {
+        "canopy": 72,
+        "door": 12,
+        "frame": 6240,
+        "glass": 280,
+        "lobby": 12,
+        "reveal": 144,
+        "roof": 40,
+        "trim": 96,
+        "wall": 1758,
+        "wall-end": 912
+      },
+      "bounds": [
+        [
+          -20.05,
+          -9.3,
+          0
+        ],
+        [
+          20.05,
+          8.05,
+          14.5
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 12,
+        "roof": 10,
+        "trim": 24,
+        "wall": 10
+      },
+      "far_corners": {
+        "far-facade": 48,
+        "roof": 40,
+        "trim": 96,
+        "wall": 30
+      },
+      "far_bounds": [
+        [
+          -20.05,
+          -8.05,
+          0.0
+        ],
+        [
+          20.05,
+          8.05,
+          14.5
+        ]
+      ],
+      "far_cell_counts": {
+        "1": 4,
+        "2": 4,
+        "4": 4
+      }
+    },
+    {
+      "name": "gable-front-deep",
+      "form": "gable-front",
+      "frontage": 36,
+      "depth": 26,
+      "storeys": 4,
+      "ring": false,
+      "attached": [
+        "w"
+      ],
+      "faces": {
+        "canopy": 18,
+        "door": 3,
+        "frame": 1872,
+        "glass": 78,
+        "lobby": 3,
+        "reveal": 36,
+        "roof": 6,
+        "trim": 18,
+        "wall": 552,
+        "wall-end": 210
+      },
+      "corners": {
+        "canopy": 72,
+        "door": 12,
+        "frame": 7488,
+        "glass": 312,
+        "lobby": 12,
+        "reveal": 144,
+        "roof": 24,
+        "trim": 72,
+        "wall": 2202,
+        "wall-end": 840
+      },
+      "bounds": [
+        [
+          -18.0,
+          -14.3,
+          0
+        ],
+        [
+          18.05,
+          13.05,
+          18.333
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 16,
+        "roof": 6,
+        "trim": 18,
+        "wall": 6
+      },
+      "far_corners": {
+        "far-facade": 64,
+        "roof": 24,
+        "trim": 72,
+        "wall": 18
+      },
+      "far_bounds": [
+        [
+          -18.0,
+          -13.05,
+          0.0
+        ],
+        [
+          18.05,
+          13.05,
+          18.333
+        ]
+      ],
+      "far_cell_counts": {
+        "0": 4,
+        "1": 3,
+        "2": 6,
+        "4": 3
+      }
+    },
+    {
+      "name": "gable-front-ring",
+      "form": "gable-front",
+      "frontage": 56,
+      "depth": 48,
+      "storeys": 4,
+      "ring": true,
+      "attached": [],
+      "faces": {
+        "canopy": 84,
+        "door": 14,
+        "frame": 6576,
+        "glass": 292,
+        "lobby": 14,
+        "reveal": 168,
+        "roof": 36,
+        "trim": 72,
+        "wall": 1980,
+        "wall-end": 972
+      },
+      "corners": {
+        "canopy": 336,
+        "door": 56,
+        "frame": 26304,
+        "glass": 1168,
+        "lobby": 56,
+        "reveal": 672,
+        "roof": 144,
+        "trim": 288,
+        "wall": 7884,
+        "wall-end": 3888
+      },
+      "bounds": [
+        [
+          -29.3,
+          -25.3,
+          0
+        ],
+        [
+          29.3,
+          25.3,
+          18.0
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 48,
+        "roof": 36,
+        "trim": 72,
+        "wall": 36
+      },
+      "far_corners": {
+        "far-facade": 192,
+        "roof": 144,
+        "trim": 288,
+        "wall": 108
+      },
+      "far_bounds": [
+        [
+          -28.05,
+          -24.05,
+          0.0
+        ],
+        [
+          28.05,
+          24.05,
+          18.0
+        ]
+      ],
+      "far_cell_counts": {
+        "1": 12,
+        "2": 36
+      }
+    },
+    {
+      "name": "ribbon-solid",
+      "form": "ribbon",
+      "frontage": 52,
+      "depth": 22,
+      "storeys": 4,
+      "ring": false,
+      "attached": [],
+      "faces": {
+        "frame": 2208,
+        "glass": 232,
+        "membrane": 6,
+        "metal": 12,
+        "plant": 6,
+        "spandrel": 144,
+        "trim": 414,
+        "wall": 168,
+        "wall-end": 252
+      },
+      "corners": {
+        "frame": 8832,
+        "glass": 928,
+        "membrane": 24,
+        "metal": 48,
+        "plant": 24,
+        "spandrel": 576,
+        "trim": 1656,
+        "wall": 672,
+        "wall-end": 1008
+      },
+      "bounds": [
+        [
+          -26.7,
+          -13.2,
+          0
+        ],
+        [
+          26.7,
+          12.32,
+          16.45
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 16,
+        "membrane": 6,
+        "metal": 12,
+        "plant": 6,
+        "trim": 24,
+        "wall": 24
+      },
+      "far_corners": {
+        "far-facade": 64,
+        "membrane": 24,
+        "metal": 48,
+        "plant": 24,
+        "trim": 96,
+        "wall": 96
+      },
+      "far_bounds": [
+        [
+          -26.7,
+          -12.0,
+          0.0
+        ],
+        [
+          26.7,
+          11.7,
+          16.45
+        ]
+      ],
+      "far_cell_counts": {
+        "1": 4,
+        "2": 6,
+        "4": 6
+      }
+    },
+    {
+      "name": "ribbon-low",
+      "form": "ribbon",
+      "frontage": 20,
+      "depth": 16,
+      "storeys": 3,
+      "ring": false,
+      "attached": [
+        "e"
+      ],
+      "faces": {
+        "frame": 636,
+        "glass": 68,
+        "membrane": 6,
+        "metal": 12,
+        "plant": 6,
+        "spandrel": 72,
+        "trim": 144,
+        "wall": 78,
+        "wall-end": 126
+      },
+      "corners": {
+        "frame": 2544,
+        "glass": 272,
+        "membrane": 24,
+        "metal": 48,
+        "plant": 24,
+        "spandrel": 288,
+        "trim": 576,
+        "wall": 312,
+        "wall-end": 504
+      },
+      "bounds": [
+        [
+          -10.7,
+          -10.2,
+          0
+        ],
+        [
+          10.0,
+          9.32,
+          12.95
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 12,
+        "membrane": 6,
+        "metal": 12,
+        "plant": 6,
+        "trim": 18
+      },
+      "far_corners": {
+        "far-facade": 48,
+        "membrane": 24,
+        "metal": 48,
+        "plant": 24,
+        "trim": 72
+      },
+      "far_bounds": [
+        [
+          -10.7,
+          -8.7,
+          0.0
+        ],
+        [
+          10.0,
+          8.7,
+          12.95
+        ]
+      ],
+      "far_cell_counts": {
+        "0": 3,
+        "1": 3,
+        "2": 4,
+        "4": 2
+      }
+    },
+    {
+      "name": "ribbon-ring",
+      "form": "ribbon",
+      "frontage": 56,
+      "depth": 56,
+      "storeys": 5,
+      "ring": true,
+      "attached": [],
+      "faces": {
+        "frame": 6096,
+        "glass": 610,
+        "membrane": 24,
+        "sedum": 24,
+        "spandrel": 576,
+        "trim": 1164,
+        "wall": 648,
+        "wall-end": 852
+      },
+      "corners": {
+        "frame": 24384,
+        "glass": 2440,
+        "membrane": 96,
+        "sedum": 96,
+        "spandrel": 2304,
+        "trim": 4656,
+        "wall": 2592,
+        "wall-end": 3408
+      },
+      "bounds": [
+        [
+          -30.2,
+          -30.2,
+          0
+        ],
+        [
+          30.2,
+          30.2,
+          18.7
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 60,
+        "membrane": 24,
+        "sedum": 24,
+        "trim": 72,
+        "wall": 72
+      },
+      "far_corners": {
+        "far-facade": 240,
+        "membrane": 96,
+        "sedum": 96,
+        "trim": 288,
+        "wall": 288
+      },
+      "far_bounds": [
+        [
+          -29.0,
+          -29.0,
+          0.0
+        ],
+        [
+          29.0,
+          29.0,
+          18.7
+        ]
+      ],
+      "far_cell_counts": {
+        "1": 12,
+        "2": 48
+      }
+    },
+    {
+      "name": "crosswall-solid",
+      "form": "crosswall",
+      "frontage": 44,
+      "depth": 20,
+      "storeys": 4,
+      "ring": false,
+      "attached": [],
+      "faces": {
+        "canopy": 18,
+        "door": 3,
+        "frame": 1440,
+        "glass": 159,
+        "lobby": 3,
+        "membrane": 6,
+        "metal": 1482,
+        "panel": 1008,
+        "reveal": 36,
+        "solar": 7,
+        "trim": 240,
+        "wall": 168,
+        "wall-end": 324
+      },
+      "corners": {
+        "canopy": 72,
+        "door": 12,
+        "frame": 5760,
+        "glass": 636,
+        "lobby": 12,
+        "membrane": 24,
+        "metal": 5928,
+        "panel": 4032,
+        "reveal": 144,
+        "solar": 28,
+        "trim": 960,
+        "wall": 672,
+        "wall-end": 1296
+      },
+      "bounds": [
+        [
+          -22.9,
+          -11.3,
+          0
+        ],
+        [
+          22.9,
+          11.4,
+          14.9
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 16,
+        "membrane": 6,
+        "metal": 42,
+        "solar": 7,
+        "trim": 24
+      },
+      "far_corners": {
+        "far-facade": 64,
+        "membrane": 24,
+        "metal": 168,
+        "solar": 28,
+        "trim": 96
+      },
+      "far_bounds": [
+        [
+          -22.9,
+          -10.9,
+          0.0
+        ],
+        [
+          22.9,
+          10.9,
+          14.9
+        ]
+      ],
+      "far_cell_counts": {
+        "1": 4,
+        "2": 6,
+        "4": 6
+      }
+    },
+    {
+      "name": "crosswall-low",
+      "form": "crosswall",
+      "frontage": 28,
+      "depth": 24,
+      "storeys": 3,
+      "ring": false,
+      "attached": [
+        "w"
+      ],
+      "faces": {
+        "canopy": 12,
+        "door": 2,
+        "frame": 696,
+        "glass": 68,
+        "lobby": 2,
+        "membrane": 6,
+        "metal": 600,
+        "panel": 420,
+        "reveal": 24,
+        "sedum": 6,
+        "trim": 114,
+        "wall": 108,
+        "wall-end": 210
+      },
+      "corners": {
+        "canopy": 48,
+        "door": 8,
+        "frame": 2784,
+        "glass": 272,
+        "lobby": 8,
+        "membrane": 24,
+        "metal": 2400,
+        "panel": 1680,
+        "reveal": 96,
+        "sedum": 24,
+        "trim": 456,
+        "wall": 432,
+        "wall-end": 840
+      },
+      "bounds": [
+        [
+          -14.0,
+          -13.3,
+          0
+        ],
+        [
+          14.9,
+          13.4,
+          10.85
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 12,
+        "membrane": 6,
+        "sedum": 6,
+        "trim": 18
+      },
+      "far_corners": {
+        "far-facade": 48,
+        "membrane": 24,
+        "sedum": 24,
+        "trim": 72
+      },
+      "far_bounds": [
+        [
+          -14.0,
+          -12.9,
+          0.0
+        ],
+        [
+          14.9,
+          12.9,
+          10.85
+        ]
+      ],
+      "far_cell_counts": {
+        "0": 3,
+        "1": 3,
+        "2": 4,
+        "4": 2
+      }
+    },
+    {
+      "name": "crosswall-ring",
+      "form": "crosswall",
+      "frontage": 52,
+      "depth": 52,
+      "storeys": 4,
+      "ring": true,
+      "attached": [],
+      "faces": {
+        "canopy": 84,
+        "door": 14,
+        "frame": 3696,
+        "glass": 370,
+        "lobby": 14,
+        "membrane": 24,
+        "metal": 2928,
+        "panel": 2376,
+        "plant": 24,
+        "reveal": 168,
+        "trim": 576,
+        "wall": 396,
+        "wall-end": 1224
+      },
+      "corners": {
+        "canopy": 336,
+        "door": 56,
+        "frame": 14784,
+        "glass": 1480,
+        "lobby": 56,
+        "membrane": 96,
+        "metal": 11712,
+        "panel": 9504,
+        "plant": 96,
+        "reveal": 672,
+        "trim": 2304,
+        "wall": 1584,
+        "wall-end": 4896
+      },
+      "bounds": [
+        [
+          -27.3,
+          -27.3,
+          0
+        ],
+        [
+          27.3,
+          27.3,
+          16.45
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 48,
+        "membrane": 24,
+        "metal": 48,
+        "plant": 24,
+        "trim": 72
+      },
+      "far_corners": {
+        "far-facade": 192,
+        "membrane": 96,
+        "metal": 192,
+        "plant": 96,
+        "trim": 288
+      },
+      "far_bounds": [
+        [
+          -26.9,
+          -26.9,
+          0.0
+        ],
+        [
+          26.9,
+          26.9,
+          16.45
+        ]
+      ],
+      "far_cell_counts": {
+        "1": 12,
+        "2": 36
+      }
+    }
+  ]
+}

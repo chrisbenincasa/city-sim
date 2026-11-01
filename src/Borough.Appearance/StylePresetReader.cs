@@ -464,11 +464,17 @@ public static class StylePresetReader
                 {
                     "mansion" => MidriseVariant.Mansion,
                     "panel-slab" => MidriseVariant.PanelSlab,
+                    "brick-loggia" => MidriseVariant.BrickLoggia,
+                    "timber-frame" => MidriseVariant.TimberFrame,
+                    "white-render" => MidriseVariant.WhiteRender,
+                    "gable-front" => MidriseVariant.GableFront,
+                    "ribbon" => MidriseVariant.Ribbon,
+                    "crosswall" => MidriseVariant.Crosswall,
                     _ => null,
                 };
                 if (variant is not null && parsed is null)
                 {
-                    Refuse(LineOf(_keys["variant"]), "'variant' must be \"mansion\" or \"panel-slab\".");
+                    Refuse(LineOf(_keys["variant"]), "'variant' must be \"mansion\", \"panel-slab\", \"brick-loggia\", \"timber-frame\", \"white-render\", \"gable-front\", \"ribbon\" or \"crosswall\".");
                 }
                 else if (parsed is { } found)
                 {
@@ -840,6 +846,17 @@ public static class StylePresetReader
                 if (owner != variant && _keys.TryGetValue(key, out KeyValueSyntax? refused))
                 {
                     Refuse(LineOf(refused), $"'{key}' is only valid for a {(owner == MidriseVariant.Mansion ? "mansion" : "panel-slab")} body.");
+                }
+            }
+
+            if (FamilyBodyBuilder.IsPerimeter(variant))
+            {
+                foreach (string key in (string[])["street_openings", "shops"])
+                {
+                    if (_keys.TryGetValue(key, out KeyValueSyntax? refused))
+                    {
+                        Refuse(LineOf(refused), $"'{key}' is only valid for a mansion or panel-slab body.");
+                    }
                 }
             }
 

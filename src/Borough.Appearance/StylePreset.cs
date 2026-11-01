@@ -506,7 +506,7 @@ public enum StreetOpenings
     Windows,
 }
 
-/// <summary>The two mid-rise types a body can build.</summary>
+/// <summary>The mid-rise types a body can build.</summary>
 public enum MidriseVariant
 {
     /// <summary>A brick perimeter block with a set-back attic storey.</summary>
@@ -514,6 +514,24 @@ public enum MidriseVariant
 
     /// <summary>A precast panel slab with galleries on the yard side and a recessed ground storey.</summary>
     PanelSlab,
+
+    /// <summary>A contemporary brick block with deep reveals, street loggias and a standing-seam attic.</summary>
+    BrickLoggia,
+
+    /// <summary>A contemporary timber-clad block with tall windows, box frames and a metal attic.</summary>
+    TimberFrame,
+
+    /// <summary>A contemporary white rendered block with mixed window widths, corner loggias and slab balconies.</summary>
+    WhiteRender,
+
+    /// <summary>A contemporary brick block under steep standing-seam gables with no eaves.</summary>
+    GableFront,
+
+    /// <summary>A mid-century block with horizontal window bands, a recessed glazed ground storey and a thin fascia.</summary>
+    Ribbon,
+
+    /// <summary>A mid-century brick crosswall block with panel infill between piers and a deep fascia.</summary>
+    Crosswall,
 }
 
 /// <summary>The four tower layouts a body can build.</summary>
