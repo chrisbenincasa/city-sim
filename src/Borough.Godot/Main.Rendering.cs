@@ -33,6 +33,7 @@ public partial class Main
             else RefreshFamilyBodies(changes.Buildings);
             PlanGardens();
             _drawnBuildings = Massings(Buildings());
+            PlaceFrontYards();
             _vacantLots = Fill(_plots, Plots(), _plotIds);
             Fill(_zones, ZonedBlocks());
             FillCarParks();
@@ -66,7 +67,11 @@ public partial class Main
 
                     // A bodied Building writes no massing box, so a gone one is news only here.
                     // A body under the same id is left standing for PlaceFamilyBody to compare with.
-                    if (old.Id != id) geometry |= ReplaceBuilding(old.Id) | RemoveFamilyBody(old.Id);
+                    if (old.Id != id)
+                    {
+                        geometry |= ReplaceBuilding(old.Id) | RemoveFamilyBody(old.Id);
+                        RemoveFrontYard(old.Id);
+                    }
                     changedIds.Add(old.Id);
                 }
                 if (!live) continue;
@@ -91,6 +96,7 @@ public partial class Main
                     roof?.Add(new(one.Roof, bodied ? FarPaint(one, shape!.Roof, RoofPaint(one)) : RoofPaint(one), RoofWall(one), bodied));
                 }
                 geometry |= ReplaceBuilding(id);
+                PlaceFrontYard(slot);
                 bool drawn = bodied || modules || _bodyEdits.Count != 0;
                 _renderedBuildings[slot] = (id, drawn);
                 if (drawn) _drawnBuildings++;

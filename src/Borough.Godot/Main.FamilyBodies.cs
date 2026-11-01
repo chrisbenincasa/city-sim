@@ -323,6 +323,7 @@ public partial class Main
                 + $"\tattached {request.Attached}\tpaint {request.Paint}"
                 + $"\ttile {Mathf.RoundToInt(one.Body.Origin.X / MetresPerTile)} {Mathf.RoundToInt(-one.Body.Origin.Z / MetresPerTile)}"
                 + (request.Site is { } t ? $"\tpodium {t.PodiumStoreys}\tshaft {t.ShaftFrontage}x{t.ShaftDepth} m" : "")
+                + $"\tfront {Mathf.RoundToInt(Mathf.Sin(request.Turn))} {Mathf.RoundToInt(-Mathf.Cos(request.Turn))}"
                 + (request.Ring ? "\tring" : "")
                 + (request.Body.Terrace is { } form ? $"\tterrace {form.Form} {request.Terrace.PitchDegrees}° house {request.Terrace.Index + 1} of {request.Terrace.Houses}" : "")
                 + (request.Body.Shop is { } shop ? $"\tshop {FamilyBodyBuilder.Drawn(shop, request.Storeys)} {request.Terrace.PitchDegrees}° lot {request.Terrace.Index + 1} of {request.Terrace.Houses}{(request.Corner ? " corner" : "")}" : "")
