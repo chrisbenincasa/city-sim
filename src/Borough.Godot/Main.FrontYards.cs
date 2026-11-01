@@ -201,11 +201,10 @@ public partial class Main
     private const float ForecourtBayMetres = 6f;
     private const float CafeLeastMetres = 1.4f;
     private const float UmbrellaLeastMetres = 2.4f;
-    private const float ScreenLeastMetres = 2.2f;
-    private const float BenchLeastMetres = 1.8f;
-    private const float BikeLeastMetres = 1.2f;
+    private const float BenchLeastMetres = 1.2f;
+    private const float BikeLeastMetres = 1f;
     private const float TopiaryLeastMetres = 1.2f;
-    private const float StreetTreeLeastMetres = 3f;
+    private const float StreetTreeLeastMetres = 1.4f;
     private const float StandEveryMetres = 1.8f;
     private const float PavingTop = .1f;
 
@@ -221,8 +220,8 @@ public partial class Main
 
     /// <summary>
     /// Street furniture on a shop's paved forecourt. Each shop picks one edge treatment along the street
-    /// edge, set at its bay lines. Forecourts from 1.4 m deep may set out café tables, from 2.2 m screen
-    /// them from the street, and from 2.4 m shade them with parasols. Some shops also put out an A-board,
+    /// edge, set at its bay lines. Forecourts from 1.4 m deep may set out café tables, screened from the street
+    /// or not, and from 2.4 m shade them with parasols. Some shops also put out an A-board,
     /// and some flank their middle with potted topiaries.
     /// </summary>
     private void DressForecourt(YardDraw draw, float w, float near, float far, ulong id)
@@ -238,7 +237,7 @@ public partial class Main
         bool cafe = deep >= CafeLeastMetres && (h >> 3) % 5 < 2;
         if (edge == ForecourtEdge.Benches && (cafe || deep < BenchLeastMetres)) edge = ForecourtEdge.Planters;
         bool umbrellas = deep >= UmbrellaLeastMetres && (h >> 5) % 3 != 0;
-        bool screens = cafe && deep >= ScreenLeastMetres && (h >> 6) % 2 == 0;
+        bool screens = cafe && (h >> 19) % 2 == 0;
         bool signs = (h >> 7) % 2 == 0;
         bool topiary = deep >= TopiaryLeastMetres && w >= 2.5f && (h >> 16) % 3 == 0;
         Color planter = PlanterTones[(h >> 9) % (uint)PlanterTones.Length];
@@ -295,7 +294,7 @@ public partial class Main
             uint pick = h + (uint)(k * 13);
             if (cafeBays)
             {
-                float s = deep >= UmbrellaLeastMetres ? Mathf.Max(near + ShopWalkMetres + .4f, far - (screens ? 1.4f : 1.1f)) : far - .55f;
+                float s = deep >= UmbrellaLeastMetres ? Mathf.Max(near + ShopWalkMetres + .4f, far - (screens ? 1.4f : 1.1f)) : far - (screens ? .85f : .55f);
                 int sets = pitch >= 5.4f ? 2 : 1;
                 for (int t = 0; t < sets; t++)
                 {
