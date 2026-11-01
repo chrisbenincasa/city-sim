@@ -430,47 +430,68 @@ public static partial class FamilyBodyBuilder
         }
     }
 
+    /// <summary>Relative gable widths along a row, so equal gables do not repeat down a whole block.</summary>
+    private static readonly float[] GableRhythm = [1f, 1.3f, .8f, 1.15f, .75f];
+
+    private static float[] GableWidths(float length, float module)
+    {
+        int n = Math.Max(1, RoundStoreys(length / module));
+        float[] weights = [.. Enumerable.Range(0, n).Select(k => GableRhythm[(k + (int)length) % GableRhythm.Length])];
+        float sum = weights.Sum();
+        return [.. weights.Select(w => length * w / sum)];
+    }
+
     /// <summary>
-    /// Steep gables. A shallow body turns a gable to the street every module; a deep solid body runs its
-    /// ridges along the street, one pile at most <see cref="PerimeterLook.Pile"/> deep after another.
+    /// Steep gables turned to the street, in a row of varied widths. A deep solid body keeps a band of
+    /// street gables at most <see cref="PerimeterLook.Pile"/> deep and a flat roof behind it.
     /// </summary>
-    private static void Gables(Writer writer, Rect[] rects, bool ring, float top, PerimeterLook look, bool far)
+    private static void Gables(Writer writer, Rect[] rects, bool ring, float top, PerimeterLook look, PerimeterRoof kit, bool far)
     {
         float rise = MathF.Tan(look.Pitch * MathF.PI / 180f);
         foreach (Rect r in rects)
         {
-            bool deep = !ring && r.Depth > look.Deep;
-            bool alongX = !deep && (!ring || r.Width >= r.Depth);
-            float length = alongX ? r.Width : r.Depth;
-            int n = deep ? (int)MathF.Ceiling(length / look.Pile) : Math.Max(1, RoundStoreys(length / look.Module));
-            float m = length / n;
-            for (int k = 0; k < n; k++)
+            if (!ring && r.Depth > look.Deep)
             {
-                if (alongX)
+                float front = Math.Min(look.Pile, r.Depth / 2f);
+                GableRow(writer, new Rect(r.X0, r.Y0, r.X1, r.Y0 + front), true, top, rise, look, far);
+                Box(writer, new Vector3(r.X0 + .1f, r.Y0 + front, top - .2f), new Vector3(r.X1 - .1f, r.Y1 - .1f, top + .05f), "membrane");
+                RoofDetail(writer, new Rect(r.X0, r.Y0 + front, r.X1, r.Y1), top + .05f, kit);
+                continue;
+            }
+
+            GableRow(writer, r, !ring || r.Width >= r.Depth, top, rise, look, far);
+        }
+    }
+
+    private static void GableRow(Writer writer, Rect r, bool alongX, float top, float rise, PerimeterLook look, bool far)
+    {
+        float a = alongX ? r.X0 : r.Y0;
+        foreach (float m in GableWidths(alongX ? r.Width : r.Depth, look.Module))
+        {
+            float b = a + m;
+            float c = (a + b) / 2f, h = top + (m / 2f * rise);
+            if (alongX)
+            {
+                writer.Polygon("roof", [new(a, r.Y0, top), new(c, r.Y0, h), new(c, r.Y1, h), new(a, r.Y1, top)]);
+                writer.Polygon("roof", [new(c, r.Y0, h), new(b, r.Y0, top), new(b, r.Y1, top), new(c, r.Y1, h)]);
+                writer.Polygon("wall", [new(a, r.Y0, top), new(b, r.Y0, top), new(c, r.Y0, h)]);
+                writer.Polygon("wall", [new(b, r.Y1, top), new(a, r.Y1, top), new(c, r.Y1, h)]);
+                if (look.GableWindow && !far)
                 {
-                    float a = r.X0 + (k * m), b = r.X0 + ((k + 1) * m);
-                    float c = (a + b) / 2f, h = top + (m / 2f * rise);
-                    writer.Polygon("roof", [new(a, r.Y0, top), new(c, r.Y0, h), new(c, r.Y1, h), new(a, r.Y1, top)]);
-                    writer.Polygon("roof", [new(c, r.Y0, h), new(b, r.Y0, top), new(b, r.Y1, top), new(c, r.Y1, h)]);
-                    writer.Polygon("wall", [new(a, r.Y0, top), new(b, r.Y0, top), new(c, r.Y0, h)]);
-                    writer.Polygon("wall", [new(b, r.Y1, top), new(a, r.Y1, top), new(c, r.Y1, h)]);
-                    if (look.GableWindow && !far)
-                    {
-                        float y = r.Y0 - .02f;
-                        writer.Polygon("glass",
-                            [new(c - .5f, y, top + .4f), new(c + .5f, y, top + .4f), new(c + .5f, y, top + 2.4f), new(c - .5f, y, top + 2.4f)]);
-                    }
-                }
-                else
-                {
-                    float a = r.Y0 + (k * m), b = r.Y0 + ((k + 1) * m);
-                    float c = (a + b) / 2f, h = top + (m / 2f * rise);
-                    writer.Polygon("roof", [new(r.X0, a, top), new(r.X1, a, top), new(r.X1, c, h), new(r.X0, c, h)]);
-                    writer.Polygon("roof", [new(r.X1, b, top), new(r.X0, b, top), new(r.X0, c, h), new(r.X1, c, h)]);
-                    writer.Polygon("wall", [new(r.X0, b, top), new(r.X0, a, top), new(r.X0, c, h)]);
-                    writer.Polygon("wall", [new(r.X1, a, top), new(r.X1, b, top), new(r.X1, c, h)]);
+                    float y = r.Y0 - .02f;
+                    writer.Polygon("glass",
+                        [new(c - .5f, y, top + .4f), new(c + .5f, y, top + .4f), new(c + .5f, y, top + 2.4f), new(c - .5f, y, top + 2.4f)]);
                 }
             }
+            else
+            {
+                writer.Polygon("roof", [new(r.X0, a, top), new(r.X1, a, top), new(r.X1, c, h), new(r.X0, c, h)]);
+                writer.Polygon("roof", [new(r.X1, b, top), new(r.X0, b, top), new(r.X0, c, h), new(r.X1, c, h)]);
+                writer.Polygon("wall", [new(r.X0, b, top), new(r.X0, a, top), new(r.X0, c, h)]);
+                writer.Polygon("wall", [new(r.X1, a, top), new(r.X1, b, top), new(r.X1, c, h)]);
+            }
+
+            a = b;
         }
     }
 
@@ -534,7 +555,7 @@ public static partial class FamilyBodyBuilder
         float top = storeys * Storey;
         if (look.Form == MidriseVariant.GableFront)
         {
-            Gables(writer, rects, ring, top, look, far);
+            Gables(writer, rects, ring, top, look, kit, far);
             return;
         }
 

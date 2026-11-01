@@ -908,7 +908,7 @@
         [
           20.05,
           8.05,
-          14.5
+          15.7
         ]
       ],
       "far_faces": {
@@ -932,7 +932,7 @@
         [
           20.05,
           8.05,
-          14.5
+          15.7
         ]
       ],
       "far_cell_counts": {
@@ -955,24 +955,28 @@
         "canopy": 18,
         "door": 3,
         "frame": 1872,
-        "glass": 78,
+        "glass": 82,
         "lobby": 3,
+        "membrane": 6,
         "reveal": 36,
-        "roof": 6,
+        "roof": 8,
+        "sedum": 6,
         "trim": 18,
-        "wall": 552,
+        "wall": 554,
         "wall-end": 210
       },
       "corners": {
         "canopy": 72,
         "door": 12,
         "frame": 7488,
-        "glass": 312,
+        "glass": 328,
         "lobby": 12,
+        "membrane": 24,
         "reveal": 144,
-        "roof": 24,
+        "roof": 32,
+        "sedum": 24,
         "trim": 72,
-        "wall": 2202,
+        "wall": 2208,
         "wall-end": 840
       },
       "bounds": [
@@ -984,20 +988,24 @@
         [
           18.05,
           13.05,
-          18.333
+          19.85
         ]
       ],
       "far_faces": {
         "far-facade": 16,
-        "roof": 6,
+        "membrane": 6,
+        "roof": 8,
+        "sedum": 6,
         "trim": 18,
-        "wall": 6
+        "wall": 8
       },
       "far_corners": {
         "far-facade": 64,
-        "roof": 24,
+        "membrane": 24,
+        "roof": 32,
+        "sedum": 24,
         "trim": 72,
-        "wall": 18
+        "wall": 24
       },
       "far_bounds": [
         [
@@ -1008,7 +1016,7 @@
         [
           18.05,
           13.05,
-          18.333
+          19.85
         ]
       ],
       "far_cell_counts": {
@@ -1059,7 +1067,7 @@
         [
           29.3,
           25.3,
-          18.0
+          19.127
         ]
       ],
       "far_faces": {
@@ -1083,7 +1091,7 @@
         [
           28.05,
           24.05,
-          18.0
+          19.127
         ]
       ],
       "far_cell_counts": {

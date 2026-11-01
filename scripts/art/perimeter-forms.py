@@ -409,36 +409,52 @@ def roof_kit(g, rect, z, kind):
     g.box('metal', (cx - 3.4, cy + 2.3, z), (cx + 3.4, cy + 2.4, z + 2.4))
 
 
-def gables(g, rects, ring, top, look, far=False):
-    """Steep standing-seam gables. A shallow body turns a gable to the street every module; a deep solid
-    body runs its ridges along the street, one pile at most 12 m deep after another."""
+# Relative gable widths along a row, so equal gables do not repeat down a whole block.
+GABLE_RHYTHM = (1.0, 1.3, .8, 1.15, .75)
+
+
+def gable_widths(length, module):
+    n = max(1, round(length / module))
+    weights = [GABLE_RHYTHM[(k + int(length)) % len(GABLE_RHYTHM)] for k in range(n)]
+    return [length * w / sum(weights) for w in weights]
+
+
+def gables(g, rects, ring, top, look, kit, far=False):
+    """Steep standing-seam gables turned to the street, in a row of varied widths. A deep solid body
+    keeps a band of street gables at most one pile deep and a flat roof behind it."""
     rise = math.tan(math.radians(look['pitch']))
     for rect in rects:
         x0, y0, x1, y1 = rect
-        deep = not ring and y1 - y0 > look['deep']
-        along_x = not deep and (not ring or (x1 - x0) >= (y1 - y0))
-        length = (x1 - x0) if along_x else (y1 - y0)
-        n = math.ceil(length / look['pile']) if deep else max(1, round(length / look['module']))
-        m = length / n
-        for k in range(n):
-            if along_x:
-                a, b = x0 + k * m, x0 + (k + 1) * m
-                c, h = (a + b) / 2, top + m / 2 * rise
-                g.polygon('roof', [(a, y0, top), (c, y0, h), (c, y1, h), (a, y1, top)])
-                g.polygon('roof', [(c, y0, h), (b, y0, top), (b, y1, top), (c, y1, h)])
-                g.polygon('wall', [(a, y0, top), (b, y0, top), (c, y0, h)])
-                g.polygon('wall', [(b, y1, top), (a, y1, top), (c, y1, h)])
-                if look.get('gable_window') and not far:
-                    y = y0 - .02
-                    g.polygon('glass', [(c - .5, y, top + .4), (c + .5, y, top + .4),
-                                        (c + .5, y, top + 2.4), (c - .5, y, top + 2.4)])
-            else:
-                a, b = y0 + k * m, y0 + (k + 1) * m
-                c, h = (a + b) / 2, top + m / 2 * rise
-                g.polygon('roof', [(x0, a, top), (x1, a, top), (x1, c, h), (x0, c, h)])
-                g.polygon('roof', [(x1, b, top), (x0, b, top), (x0, c, h), (x1, c, h)])
-                g.polygon('wall', [(x0, b, top), (x0, a, top), (x0, c, h)])
-                g.polygon('wall', [(x1, a, top), (x1, b, top), (x1, c, h)])
+        if not ring and y1 - y0 > look['deep']:
+            front = min(look['pile'], (y1 - y0) / 2)
+            gable_row(g, (x0, y0, x1, y0 + front), True, top, rise, look, far)
+            g.box('membrane', (x0 + .1, y0 + front, top - .2), (x1 - .1, y1 - .1, top + .05))
+            roof_kit(g, (x0, y0 + front, x1, y1), top + .05, kit)
+            continue
+        gable_row(g, rect, not ring or (x1 - x0) >= (y1 - y0), top, rise, look, far)
+
+
+def gable_row(g, rect, along_x, top, rise, look, far):
+    x0, y0, x1, y1 = rect
+    a = x0 if along_x else y0
+    for m in gable_widths((x1 - x0) if along_x else (y1 - y0), look['module']):
+        b = a + m
+        c, h = (a + b) / 2, top + m / 2 * rise
+        if along_x:
+            g.polygon('roof', [(a, y0, top), (c, y0, h), (c, y1, h), (a, y1, top)])
+            g.polygon('roof', [(c, y0, h), (b, y0, top), (b, y1, top), (c, y1, h)])
+            g.polygon('wall', [(a, y0, top), (b, y0, top), (c, y0, h)])
+            g.polygon('wall', [(b, y1, top), (a, y1, top), (c, y1, h)])
+            if look.get('gable_window') and not far:
+                y = y0 - .02
+                g.polygon('glass', [(c - .5, y, top + .4), (c + .5, y, top + .4),
+                                    (c + .5, y, top + 2.4), (c - .5, y, top + 2.4)])
+        else:
+            g.polygon('roof', [(x0, a, top), (x1, a, top), (x1, c, h), (x0, c, h)])
+            g.polygon('roof', [(x1, b, top), (x0, b, top), (x0, c, h), (x1, c, h)])
+            g.polygon('wall', [(x0, b, top), (x0, a, top), (x0, c, h)])
+            g.polygon('wall', [(x1, a, top), (x1, b, top), (x1, c, h)])
+        a = b
 
 
 def roofs(g, rects, bounds, ring, attached, storeys, form, look, kit, far=False):
@@ -482,7 +498,7 @@ def roofs(g, rects, bounds, ring, attached, storeys, form, look, kit, far=False)
         return
     top = storeys * STOREY
     if form == 'gable-front':
-        gables(g, rects, ring, top, look, far)
+        gables(g, rects, ring, top, look, kit, far)
         return
     for rect in rects:
         x0, y0, x1, y1 = rect

@@ -2140,7 +2140,7 @@ frontage_metres = [16, 400]
 library = "midrise-families/perimeter"
 shape = "midrise"
 variant = "brick-loggia"
-materials = { wall = "bricks-088", wall-end = "bricks-088", attic = "standing-seam", membrane = "bitumen", paving = "concrete-panels" }
+materials = { wall = "bricks-088", wall-end = "bricks-088", attic = "standing-seam", membrane = "bitumen", paving = "concrete-panels", sedum = "aerial-grass-rock" }
 
 [[family.paint]]
 wall = "5e4a3c"
@@ -2177,7 +2177,7 @@ frontage_metres = [16, 400]
 library = "midrise-families/perimeter"
 shape = "midrise"
 variant = "timber-frame"
-materials = { wall = "wood-siding-011", wall-end = "concrete-wall-001", attic = "standing-seam", membrane = "bitumen", paving = "concrete-panels" }
+materials = { wall = "wood-siding-011", wall-end = "concrete-wall-001", attic = "standing-seam", membrane = "bitumen", paving = "concrete-panels", sedum = "aerial-grass-rock" }
 
 [[family.paint]]
 wall-end = "a9a8a3"
@@ -2214,7 +2214,7 @@ frontage_metres = [16, 400]
 library = "midrise-families/perimeter"
 shape = "midrise"
 variant = "white-render"
-materials = { wall = "plaster-001", wall-end = "concrete-wall-001", membrane = "bitumen", paving = "concrete-panels" }
+materials = { wall = "plaster-001", wall-end = "concrete-wall-001", membrane = "bitumen", paving = "concrete-panels", sedum = "aerial-grass-rock" }
 
 [[family.paint]]
 wall = "d9d6cf"
@@ -2251,7 +2251,7 @@ frontage_metres = [16, 400]
 library = "midrise-families/perimeter"
 shape = "midrise"
 variant = "gable-front"
-materials = { wall = "bricks-088", wall-end = "bricks-088", roof = "standing-seam" }
+materials = { wall = "bricks-088", wall-end = "bricks-088", roof = "standing-seam", membrane = "bitumen", sedum = "aerial-grass-rock" }
 
 [[family.paint]]
 wall = "8a5c48"
@@ -2288,7 +2288,7 @@ frontage_metres = [16, 400]
 library = "midrise-families/perimeter"
 shape = "midrise"
 variant = "ribbon"
-materials = { wall = "plaster-001", wall-end = "concrete-wall-001", membrane = "bitumen", paving = "concrete-panels" }
+materials = { wall = "plaster-001", wall-end = "concrete-wall-001", membrane = "bitumen", paving = "concrete-panels", sedum = "aerial-grass-rock" }
 
 [[family.paint]]
 wall = "d2cfc6"
@@ -2328,7 +2328,7 @@ frontage_metres = [16, 400]
 library = "midrise-families/perimeter"
 shape = "midrise"
 variant = "crosswall"
-materials = { wall = "bricks-088", wall-end = "bricks-088", panel = "white-planks-clean", membrane = "bitumen", paving = "concrete-panels" }
+materials = { wall = "bricks-088", wall-end = "bricks-088", panel = "white-planks-clean", membrane = "bitumen", paving = "concrete-panels", sedum = "aerial-grass-rock" }
 
 [[family.paint]]
 wall = "7a4a36"
