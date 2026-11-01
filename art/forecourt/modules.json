@@ -1,0 +1,289 @@
+{
+  "painted": [
+    "canvas",
+    "planter",
+    "bloom",
+    "paint"
+  ],
+  "modules": [
+    {
+      "module": "cafe-table",
+      "vertices": 472,
+      "faces": 320,
+      "triangles": 808,
+      "bounds_min": [
+        -0.802,
+        -0.355,
+        -0.001
+      ],
+      "bounds_max": [
+        0.802,
+        0.355,
+        0.87
+      ],
+      "materials": [
+        "iron",
+        "marble",
+        "rattan"
+      ],
+      "geometry_sha256": "a49c80b266ba904aeb002103b3a4094899f8850b0bccb11ab20be4a9279c83f1"
+    },
+    {
+      "module": "umbrella",
+      "vertices": 131,
+      "faces": 103,
+      "triangles": 210,
+      "bounds_min": [
+        -1.21,
+        -1.21,
+        0.0
+      ],
+      "bounds_max": [
+        1.21,
+        1.21,
+        2.7
+      ],
+      "materials": [
+        "canvas",
+        "iron"
+      ],
+      "geometry_sha256": "bf81a2f4da34bd86dbf498d52419e3d1ab307d6f6d40f1e2993eeba23bc06c64"
+    },
+    {
+      "module": "planter",
+      "vertices": 32,
+      "faces": 24,
+      "triangles": 48,
+      "bounds_min": [
+        -0.63,
+        -0.28,
+        0.0
+      ],
+      "bounds_max": [
+        0.63,
+        0.28,
+        0.57
+      ],
+      "materials": [
+        "iron",
+        "planter",
+        "soil"
+      ],
+      "geometry_sha256": "f195a925e6ef2368456a4795718d50ea5b2ed5a7ca34128534bef0032b933cdb"
+    },
+    {
+      "module": "planter-green",
+      "vertices": 336,
+      "faces": 640,
+      "triangles": 640,
+      "bounds_min": [
+        -0.638,
+        -0.23,
+        0.514
+      ],
+      "bounds_max": [
+        0.628,
+        0.24,
+        0.91
+      ],
+      "materials": [
+        "leaf",
+        "leaf-dark",
+        "leaf-light"
+      ],
+      "geometry_sha256": "71d057c11e6f1cb5170bb7d1c8909e21418d45b63e6e0b47e77bfc8c1cc247e7"
+    },
+    {
+      "module": "planter-bloom",
+      "vertices": 108,
+      "faces": 180,
+      "triangles": 180,
+      "bounds_min": [
+        -0.558,
+        -0.195,
+        0.795
+      ],
+      "bounds_max": [
+        0.598,
+        0.175,
+        1.045
+      ],
+      "materials": [
+        "bloom"
+      ],
+      "geometry_sha256": "3d3353576fbd520c7c8da970d3a16301e62718699403a51088f8410dd570ec95"
+    },
+    {
+      "module": "bench",
+      "vertices": 208,
+      "faces": 144,
+      "triangles": 336,
+      "bounds_min": [
+        -0.9,
+        -0.252,
+        -0.002
+      ],
+      "bounds_max": [
+        0.9,
+        0.321,
+        0.925
+      ],
+      "materials": [
+        "iron",
+        "timber"
+      ],
+      "geometry_sha256": "a2c151b6072dd9f038b81e0213e017a4d045ee26032667b7a5e744ed7ef97b3d"
+    },
+    {
+      "module": "bollard",
+      "vertices": 140,
+      "faces": 116,
+      "triangles": 272,
+      "bounds_min": [
+        -0.11,
+        -0.107,
+        0.0
+      ],
+      "bounds_max": [
+        0.11,
+        0.107,
+        0.925
+      ],
+      "materials": [
+        "iron",
+        "reflect"
+      ],
+      "geometry_sha256": "1acc2e4c1e5c6f965f6f58e7aff71cd78b824c064cc859afdfd9a73a3d60dd4d"
+    },
+    {
+      "module": "bike-rack",
+      "vertices": 216,
+      "faces": 144,
+      "triangles": 360,
+      "bounds_min": [
+        -1.271,
+        -0.024,
+        0.0
+      ],
+      "bounds_max": [
+        1.271,
+        0.024,
+        0.771
+      ],
+      "materials": [
+        "steel"
+      ],
+      "geometry_sha256": "277060a165362bc1eab213a857ec34962852269a35a13d49273f874ba4999149"
+    },
+    {
+      "module": "bicycle",
+      "vertices": 504,
+      "faces": 436,
+      "triangles": 928,
+      "bounds_min": [
+        -0.862,
+        -0.282,
+        -0.002
+      ],
+      "bounds_max": [
+        0.862,
+        0.282,
+        0.996
+      ],
+      "materials": [
+        "paint",
+        "rattan",
+        "rubber",
+        "steel"
+      ],
+      "geometry_sha256": "b2e6ade2a7e0c574c7b525e6a295169738e14248f1b7fce7dca688236e698678"
+    },
+    {
+      "module": "a-board",
+      "vertices": 108,
+      "faces": 80,
+      "triangles": 164,
+      "bounds_min": [
+        -0.3,
+        -0.325,
+        0.0
+      ],
+      "bounds_max": [
+        0.3,
+        0.325,
+        0.92
+      ],
+      "materials": [
+        "chalk",
+        "chalk-text",
+        "iron",
+        "paint"
+      ],
+      "geometry_sha256": "5c2515e08a81f41272fcb3818a8e954b77d5b5afbe27382d1769da8d1fd28b55"
+    },
+    {
+      "module": "tree-grate",
+      "vertices": 488,
+      "faces": 414,
+      "triangles": 876,
+      "bounds_min": [
+        -0.6,
+        -0.6,
+        0.0
+      ],
+      "bounds_max": [
+        0.6,
+        0.6,
+        1.5
+      ],
+      "materials": [
+        "iron",
+        "soil"
+      ],
+      "geometry_sha256": "10123f657becb74324407b947d22bf837533326eb11c10312ac827b643e7e57f"
+    },
+    {
+      "module": "cafe-screen",
+      "vertices": 60,
+      "faces": 42,
+      "triangles": 96,
+      "bounds_min": [
+        -0.897,
+        -0.2,
+        -0.005
+      ],
+      "bounds_max": [
+        0.897,
+        0.2,
+        1.016
+      ],
+      "materials": [
+        "canvas",
+        "steel"
+      ],
+      "geometry_sha256": "71e81cf12cb3e68ad0a572893916da3963845a422d4cb646ea113875d1d551ec"
+    },
+    {
+      "module": "topiary",
+      "vertices": 134,
+      "faces": 154,
+      "triangles": 256,
+      "bounds_min": [
+        -0.304,
+        -0.32,
+        0.0
+      ],
+      "bounds_max": [
+        0.304,
+        0.32,
+        1.5
+      ],
+      "materials": [
+        "leaf-dark",
+        "pot",
+        "timber-dark"
+      ],
+      "geometry_sha256": "b0d6a3900f18c5979c52de8ca60745a7c220beec5a5d432d779b6710fc04d0df"
+    }
+  ]
+}

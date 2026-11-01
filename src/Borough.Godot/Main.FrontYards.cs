@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Borough.Appearance;
 using Q16 = Borough.Core.Arithmetic.Fixed;
 using Borough.Core.Entities;
@@ -42,6 +43,24 @@ public partial class Main
     private readonly List<InstanceValue> _frontTreeEdits = [];
     private readonly HashSet<ulong> _frontYardIds = [];
 
+    private enum Furniture
+    {
+        CafeTable, Umbrella, Planter, PlanterGreen, PlanterBloom, Bench, Bollard, BikeRack, Bicycle, ABoard, TreeGrate,
+        CafeScreen, Topiary,
+    }
+
+    /// <summary>The <c>assets/forecourt</c> modules <c>scripts/art/forecourt.py</c> authors, in <see cref="Furniture"/> order.</summary>
+    private static readonly string[] FurnitureModules =
+    [
+        "cafe-table", "umbrella", "planter", "planter-green", "planter-bloom", "bench", "bollard", "bike-rack", "bicycle",
+        "a-board", "tree-grate", "cafe-screen", "topiary",
+    ];
+
+    private static readonly string[] FurniturePainted = ["canvas", "planter", "bloom", "paint"];
+
+    private readonly InstanceLayer[] _furniture = new InstanceLayer[FurnitureModules.Length];
+    private readonly List<InstanceValue>[] _furnitureEdits = [.. FurnitureModules.Select(_ => new List<InstanceValue>())];
+
     /// <summary>How far a body moves back from its footprint's front, and how deep its front yard is.</summary>
     private readonly record struct FrontSetback(float Recess, float Yard, bool Dwelling, bool Shop);
 
@@ -51,7 +70,10 @@ public partial class Main
         _frontHedges = Layer(Colors.White, Vector3.One, perInstance: true);
         var (_, middle, _) = TreeMeshes();
         _frontTrees = Layer(Colors.White, middle, perInstance: true);
-        foreach (InstanceLayer layer in (InstanceLayer[])[_frontGround, _frontHedges, _frontTrees])
+        for (int i = 0; i < FurnitureModules.Length; i++)
+            _furniture[i] = Layer(Colors.White, Commit(Load($"forecourt/{FurnitureModules[i]}", FurniturePainted).Corners), perInstance: true);
+
+        foreach (InstanceLayer layer in (InstanceLayer[])[_frontGround, _frontHedges, _frontTrees, .. _furniture])
         {
             layer.Multimesh.NearOnly = true;
             BodyResidency(layer);
@@ -63,6 +85,7 @@ public partial class Main
         yield return ("front-yard-ground", _frontGround, true, null);
         yield return ("front-yard-hedge", _frontHedges, true, null);
         yield return ("front-yard-tree", _frontTrees, true, null);
+        for (int i = 0; i < FurnitureModules.Length; i++) yield return ($"forecourt-{FurnitureModules[i]}", _furniture[i], true, null);
     }
 
     /// <summary>A Building's setback, or none for a Tower, a courtyard ring or a Lot with no Street address.</summary>
@@ -119,6 +142,7 @@ public partial class Main
         _frontGroundEdits.Clear();
         _frontHedgeEdits.Clear();
         _frontTreeEdits.Clear();
+        foreach (List<InstanceValue> edits in _furnitureEdits) edits.Clear();
         FrontSetback setback = SetbackOf(building);
         if (setback.Yard >= FrontStepMetres)
         {
@@ -168,6 +192,7 @@ public partial class Main
         _frontGround.Multimesh.Replace(id, _frontGroundEdits);
         _frontHedges.Multimesh.Replace(id, _frontHedgeEdits);
         _frontTrees.Multimesh.Replace(id, _frontTreeEdits);
+        for (int i = 0; i < _furniture.Length; i++) _furniture[i].Multimesh.Replace(id, _furnitureEdits[i]);
         if (_frontGroundEdits.Count > 0) _frontYardIds.Add(id);
         else _frontYardIds.Remove(id);
     }
@@ -176,25 +201,29 @@ public partial class Main
     private const float ForecourtBayMetres = 6f;
     private const float CafeLeastMetres = 1.4f;
     private const float UmbrellaLeastMetres = 2.4f;
+    private const float ScreenLeastMetres = 2.2f;
     private const float BenchLeastMetres = 1.8f;
+    private const float BikeLeastMetres = 1.2f;
+    private const float TopiaryLeastMetres = 1.2f;
     private const float StreetTreeLeastMetres = 3f;
+    private const float StandEveryMetres = 1.8f;
+    private const float PavingTop = .1f;
 
     // Kept clear along the shopfront so doors open onto a walkway.
     private const float ShopWalkMetres = 1.2f;
 
-    private static readonly Color[] PlanterTones = [Hex(0x3b3f42), Hex(0xa65a3a), Hex(0x8a6a48), Hex(0x9a978f)];
+    private static readonly Color[] PlanterTones = [Hex(0x3b3f42), Hex(0xa65a3a), Hex(0x8a6a48), Hex(0x9a978f), Hex(0xd8d2c4)];
     private static readonly Color[] CanvasTones = [Hex(0xe8e2d0), Hex(0x2f5d50), Hex(0x9a3b32), Hex(0x2d4a6b), Hex(0xd9a441)];
-    private static readonly Color[] BloomTones = [Hex(0xc8506a), Hex(0xe0b040), Hex(0xe8e4dc), Hex(0x8a5ab0)];
-    private static readonly Color PlantingTone = Hex(0x4d6b35);
-    private static readonly Color StreetMetal = Hex(0x2b2e30);
-    private static readonly Color BenchTimber = Hex(0x8a6a48);
-    private static readonly Color GrateTone = Hex(0x4a4a46);
+    private static readonly Color[] BloomTones = [Hex(0xc8506a), Hex(0xe0b040), Hex(0xe8e4dc), Hex(0x8a5ab0), Hex(0xd8703a)];
+    private static readonly Color[] BikeTones = [Hex(0x2d4a6b), Hex(0x9a3b32), Hex(0x2f5d50), Hex(0xe8e2d0), Hex(0x23272a), Hex(0xd9a441)];
 
-    private enum ForecourtEdge { Planters, Trees, Benches, Bollards }
+    private enum ForecourtEdge { Planters, Trees, Benches, Bollards, Bikes }
 
     /// <summary>
-    /// Street furniture on a shop's paved forecourt. Each shop picks one edge treatment, set at the
-    /// bay lines along the street edge. Forecourts from 1.4 m deep may add café tables, and from 2.4 m their umbrellas.
+    /// Street furniture on a shop's paved forecourt. Each shop picks one edge treatment along the street
+    /// edge, set at its bay lines. Forecourts from 1.4 m deep may set out café tables, from 2.2 m screen
+    /// them from the street, and from 2.4 m shade them with parasols. Some shops also put out an A-board,
+    /// and some flank their middle with potted topiaries.
     /// </summary>
     private void DressForecourt(YardDraw draw, float w, float near, float far, ulong id)
     {
@@ -203,12 +232,15 @@ public partial class Main
 
         uint h = (uint)id * 0x9E3779B1u;
         h ^= h >> 13;
-        var edge = (ForecourtEdge)(h % 4);
+        var edge = (ForecourtEdge)(h % 5);
         if (edge == ForecourtEdge.Trees && deep < StreetTreeLeastMetres) edge = ForecourtEdge.Planters;
-        bool cafe = deep >= CafeLeastMetres && (h >> 2) % 5 < 2;
+        if (edge == ForecourtEdge.Bikes && deep < BikeLeastMetres) edge = ForecourtEdge.Bollards;
+        bool cafe = deep >= CafeLeastMetres && (h >> 3) % 5 < 2;
         if (edge == ForecourtEdge.Benches && (cafe || deep < BenchLeastMetres)) edge = ForecourtEdge.Planters;
         bool umbrellas = deep >= UmbrellaLeastMetres && (h >> 5) % 3 != 0;
+        bool screens = cafe && deep >= ScreenLeastMetres && (h >> 6) % 2 == 0;
         bool signs = (h >> 7) % 2 == 0;
+        bool topiary = deep >= TopiaryLeastMetres && w >= 2.5f && (h >> 16) % 3 == 0;
         Color planter = PlanterTones[(h >> 9) % (uint)PlanterTones.Length];
         Color canvas = CanvasTones[(h >> 11) % (uint)CanvasTones.Length];
         Color bloom = BloomTones[(h >> 14) % (uint)BloomTones.Length];
@@ -216,30 +248,43 @@ public partial class Main
         float frontage = w * 2f;
         int bays = Math.Max(1, Mathf.RoundToInt(frontage / ForecourtBayMetres));
         float pitch = frontage / bays;
-        float kerbSide = far - .4f;
+        bool cafeBays = cafe && pitch >= 3.6f;
 
         for (int k = 0; k <= bays; k++)
         {
             float u = Mathf.Clamp(-w + (pitch * k), -w + .7f, w - .7f);
             bool end = k == 0 || k == bays;
+            uint pick = h + (uint)(k * 7);
             switch (edge)
             {
                 case ForecourtEdge.Planters:
-                    Planter(draw, u, kerbSide, planter, k % 2 == 0 ? bloom : PlantingTone);
+                    Planter(draw, u, far - .4f, planter, k % 2 == 0 ? bloom : (Color?)null, pick);
                     break;
                 case ForecourtEdge.Trees when !end:
-                    _frontGroundEdits.Add(draw.At(u, far - .8f, 1.2f, 1.2f, .1f, .12f, GrateTone));
-                    _frontTreeEdits.Add(draw.Tree(u, far - .8f, 4.5f + ((h + (uint)k) % 3 * .5f), Colors.White));
+                    Furnish(Furniture.TreeGrate, draw.Module(u, far - .8f, 0f, 0f, Colors.White));
+                    _frontTreeEdits.Add(draw.Tree(u, far - .8f, 4.5f + (pick % 3 * .5f), Colors.White));
                     break;
                 case ForecourtEdge.Trees:
-                    Planter(draw, u, kerbSide, planter, PlantingTone);
+                    Planter(draw, u, far - .4f, planter, null, pick);
                     break;
                 case ForecourtEdge.Benches when !end:
-                    Bench(draw, u, far - .45f);
+                    Furnish(Furniture.Bench, draw.Module(u, far - .4f, PavingTop, Mathf.Pi, Colors.White));
                     break;
-                case ForecourtEdge.Bollards:
+                case ForecourtEdge.Bollards when !screens:
                     for (int b = -1; b <= 1; b += 2)
-                        _frontHedgeEdits.Add(draw.At(Mathf.Clamp(u + (b * .8f), -w + .2f, w - .2f), far - .25f, .16f, .16f, 0f, .9f, StreetMetal));
+                        Furnish(Furniture.Bollard, draw.Module(Mathf.Clamp(u + (b * .8f), -w + .2f, w - .2f), far - .25f, PavingTop, 0f, Colors.White));
+                    break;
+                case ForecourtEdge.Bikes when !end && pitch >= 3f:
+                    float stands = far - .55f;
+                    Furnish(Furniture.BikeRack, draw.Module(u, stands, PavingTop, 0f, Colors.White));
+                    int parked = 1 + (int)(pick % 3);
+                    for (int b = 0; b < parked; b++)
+                    {
+                        float at = u + ((b % 2 == 0 ? -.5f : .5f) * StandEveryMetres);
+                        float side = b < 2 ? -.13f : .13f;
+                        Furnish(Furniture.Bicycle, draw.Module(at, stands + side, PavingTop, b % 2 == 0 ? 0f : Mathf.Pi,
+                            BikeTones[(pick + (uint)b) % (uint)BikeTones.Length]));
+                    }
                     break;
             }
         }
@@ -247,50 +292,48 @@ public partial class Main
         for (int k = 0; k < bays; k++)
         {
             float middle = -w + (pitch * (k + .5f));
-            if (cafe && pitch >= 3.6f)
+            uint pick = h + (uint)(k * 13);
+            if (cafeBays)
             {
-                float s = deep >= UmbrellaLeastMetres ? Mathf.Max(near + ShopWalkMetres + .4f, far - 1.1f) : far - .55f;
+                float s = deep >= UmbrellaLeastMetres ? Mathf.Max(near + ShopWalkMetres + .4f, far - (screens ? 1.4f : 1.1f)) : far - .55f;
                 int sets = pitch >= 5.4f ? 2 : 1;
                 for (int t = 0; t < sets; t++)
-                    CafeSet(draw, sets == 1 ? middle : middle + ((t - .5f) * 2.6f), s, umbrellas, canvas);
+                {
+                    float u = sets == 1 ? middle : middle + ((t - .5f) * 2.6f);
+                    float jitter = (((pick >> t) % 5) - 2f) * .06f;
+                    Furnish(Furniture.CafeTable, draw.Module(u, s, PavingTop, jitter, Colors.White));
+                    // One parasol a bay, because two tables 2.6 m apart would close their canopies into one band.
+                    if (umbrellas && t == 0) Furnish(Furniture.Umbrella, draw.Module(middle, s, PavingTop, 0f, canvas));
+                }
+
+                if (screens)
+                {
+                    int panels = Math.Max(1, (int)((pitch - .4f) / 1.8f));
+                    for (int p = 0; p < panels; p++)
+                        Furnish(Furniture.CafeScreen, draw.Module(middle + ((p - ((panels - 1) * .5f)) * 1.8f), far - .25f, PavingTop, 0f, canvas));
+                }
             }
             else if (signs && k % 2 == 0)
             {
-                _frontHedgeEdits.Add(draw.At(middle + 1.4f, far - .3f, .55f, .3f, 0f, .85f, canvas));
+                Furnish(Furniture.ABoard, draw.Module(middle + 1.4f, far - .5f, PavingTop, ((pick % 5) - 2f) * .12f, canvas));
             }
         }
-    }
 
-    private void Planter(YardDraw draw, float u, float s, Color body, Color top)
-    {
-        _frontHedgeEdits.Add(draw.At(u, s, 1.2f, .5f, 0f, .55f, body));
-        _frontHedgeEdits.Add(draw.At(u, s, 1.1f, .42f, .55f, .9f, PlantingTone));
-        if (top != PlantingTone) _frontHedgeEdits.Add(draw.At(u, s, .8f, .3f, .9f, 1f, top));
-    }
-
-    private void Bench(YardDraw draw, float u, float s)
-    {
-        _frontHedgeEdits.Add(draw.At(u, s, 1.7f, .45f, .42f, .48f, BenchTimber));
-        _frontHedgeEdits.Add(draw.At(u, s - .2f, 1.7f, .06f, .48f, .9f, BenchTimber));
-        for (int side = -1; side <= 1; side += 2)
-            _frontHedgeEdits.Add(draw.At(u + (side * .7f), s, .08f, .42f, 0f, .42f, StreetMetal));
-    }
-
-    private void CafeSet(YardDraw draw, float u, float s, bool umbrella, Color canvas)
-    {
-        _frontHedgeEdits.Add(draw.At(u, s, .7f, .7f, .72f, .76f, StreetMetal));
-        _frontHedgeEdits.Add(draw.At(u, s, .08f, .08f, 0f, .72f, StreetMetal));
-        for (int side = -1; side <= 1; side += 2)
+        if (topiary)
         {
-            float seat = u + (side * .62f);
-            _frontHedgeEdits.Add(draw.At(seat, s, .42f, .42f, .44f, .48f, StreetMetal));
-            _frontHedgeEdits.Add(draw.At(seat + (side * .19f), s, .04f, .42f, .48f, .9f, StreetMetal));
-            _frontHedgeEdits.Add(draw.At(seat, s, .06f, .06f, 0f, .44f, StreetMetal));
+            for (int side = -1; side <= 1; side += 2)
+                Furnish(Furniture.Topiary, draw.Module(side * 1.3f, near + .4f, PavingTop, 0f, Colors.White));
         }
-        if (!umbrella) return;
-        _frontHedgeEdits.Add(draw.At(u, s, .05f, .05f, .76f, 2.3f, StreetMetal));
-        _frontHedgeEdits.Add(draw.At(u, s, 2.2f, 2.2f, 2.2f, 2.3f, canvas));
-        _frontHedgeEdits.Add(draw.At(u, s, 1.1f, 1.1f, 2.3f, 2.42f, canvas));
+    }
+
+    private void Furnish(Furniture module, InstanceValue placed) => _furnitureEdits[(int)module].Add(placed);
+
+    private void Planter(YardDraw draw, float u, float s, Color body, Color? bloom, uint pick)
+    {
+        float shade = .9f + (pick % 5 * .05f);
+        Furnish(Furniture.Planter, draw.Module(u, s, PavingTop, 0f, body));
+        Furnish(Furniture.PlanterGreen, draw.Module(u, s, PavingTop, pick % 2 == 0 ? 0f : Mathf.Pi, new Color(shade, shade, shade)));
+        if (bloom is { } tone) Furnish(Furniture.PlanterBloom, draw.Module(u, s, PavingTop, pick % 2 == 0 ? 0f : Mathf.Pi, tone));
     }
 
     private void PlaceFrontYards()
@@ -335,6 +378,7 @@ public partial class Main
         _frontGround.Multimesh.Replace(id, []);
         _frontHedges.Multimesh.Replace(id, []);
         _frontTrees.Multimesh.Replace(id, []);
+        foreach (InstanceLayer layer in _furniture) layer.Multimesh.Replace(id, []);
     }
 
     /// <summary>Boxes and trees in a body's own frame: across its frontage, forward toward the Street.</summary>
@@ -349,6 +393,16 @@ public partial class Main
 
         public InstanceValue At(float u, float s, float wide, float deep, float y0, float y1, Color paint) =>
             Box(u - (wide * .5f), u + (wide * .5f), s - (deep * .5f), s + (deep * .5f), y0, y1, paint);
+
+        /// <summary>A whole forecourt module, its street side toward the Street, turned about the upright by <paramref name="turn"/>.</summary>
+        public InstanceValue Module(float u, float s, float y, float turn, Color paint)
+        {
+            (float sin, float cos) = MathF.SinCos(turn);
+            Vector3 across = (Across * cos) + (Forward * sin);
+            Vector3 forward = (Forward * cos) - (Across * sin);
+            Vector3 at = Origin + (Across * u) + (Forward * s) + (Vector3.Up * y);
+            return new InstanceValue(new Transform3D(new Basis(across, Vector3.Up, forward), at), paint);
+        }
 
         public InstanceValue Tree(float u, float s, float tall, Color shade)
         {
