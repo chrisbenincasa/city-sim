@@ -207,6 +207,11 @@ public partial class Main
     private const float StreetTreeLeastMetres = 1.4f;
     private const float StandEveryMetres = 1.8f;
     private const float PavingTop = .1f;
+    private const float ScreenPanelMetres = 1.8f;
+    private const float ScreenGapMetres = .6f;
+
+    // Screen centers stay this far from the frontage middle, where the topiary pair also assumes the door.
+    private const float DoorGapMetres = 1.8f;
 
     // Kept clear along the shopfront so doors open onto a walkway.
     private const float ShopWalkMetres = 1.2f;
@@ -307,9 +312,14 @@ public partial class Main
 
                 if (screens)
                 {
-                    int panels = Math.Max(1, (int)((pitch - .4f) / 1.8f));
+                    int panels = Math.Max(1, (int)((pitch - (2f * ScreenGapMetres)) / ScreenPanelMetres));
+                    float reach = (pitch * .5f) - (ScreenPanelMetres * .5f) - .3f + .01f;
                     for (int p = 0; p < panels; p++)
-                        Furnish(Furniture.CafeScreen, draw.Module(middle + ((p - ((panels - 1) * .5f)) * 1.8f), far - .25f, PavingTop, 0f, canvas));
+                    {
+                        float c = middle + ((p - ((panels - 1) * .5f)) * ScreenPanelMetres);
+                        if (Mathf.Abs(c) < DoorGapMetres) c = Mathf.Sign(c) * DoorGapMetres;
+                        if (c != 0f && Mathf.Abs(c - middle) <= reach) Furnish(Furniture.CafeScreen, draw.Module(c, far - .25f, PavingTop, 0f, canvas));
+                    }
                 }
             }
             else if (signs && k % 2 == 0)
