@@ -421,5 +421,37 @@ public partial class Main
         _above.GroundHorizonColor = new Color(0.05f, 0.07f, 0.13f)
             .Lerp(new Color(0.58f, 0.65f, 0.71f), lit)
             .Lerp(new Color(0.62f, 0.42f, 0.34f), dusk);
+
+        DistanceLook();
+    }
+
+    /// <summary>Sharpens the city as the camera pulls back, on ramps over the orbit's eye distance.</summary>
+    /// <remarks>
+    /// <para>
+    /// Past about 500 m a block is a few pixels, so the sun-and-sky balance and the grade that suit
+    /// a street read flat. Ambient falls and the sun rises so lit and shaded faces separate, and a
+    /// grade lifts contrast and trims saturation; both reach full strength at 2 km. Occlusion widens
+    /// to building scale between 250 m and 900 m.
+    /// </para>
+    /// <para>
+    /// ⚠ Occlusion also needs <c>project.godot</c>'s <c>rendering/environment/ssao/fadeout_from</c>
+    /// and <c>fadeout_to</c> (1,440 m and 2,400 m). Godot's default fades it out between 50 m and
+    /// 300 m from the camera, which draws none at the opening camera.
+    /// </para>
+    /// </remarks>
+    private void DistanceLook()
+    {
+        float far = Mathf.SmoothStep(450f, 2_000f, _distance);
+        float occluded = Mathf.SmoothStep(250f, 900f, _distance);
+
+        _air.SsaoRadius = Mathf.Lerp(2.2f, 12f, occluded);
+        _air.SsaoIntensity = Mathf.Lerp(1.6f, 2.4f, occluded);
+
+        _air.AmbientLightEnergy *= Mathf.Lerp(1f, 0.6f, far);
+        _light.LightEnergy *= Mathf.Lerp(1f, 1.25f, far);
+
+        _air.AdjustmentEnabled = far > 0f;
+        _air.AdjustmentContrast = Mathf.Lerp(1f, 1.15f, far);
+        _air.AdjustmentSaturation = Mathf.Lerp(1f, 0.9f, far);
     }
 }

@@ -318,6 +318,24 @@ That is affordable in the near band around the camera and not city-wide, so the 
   godot --headless --path src/Borough.Godot --script ../../tests/Borough.Tests/Appearance/BodyKitGuard.gd
   ```
 
+### 3.4 The city at distance
+
+- `DistanceLook()` in `Main.Sky.cs` ramps the light and grade on the orbit's eye distance.
+  Between 450 m and 2,000 m, sky ambient falls to 0.6×, the sun rises to 1.25×, contrast rises to
+  1.15 and saturation falls to 0.9. Between 250 m and 900 m, occlusion widens from 2.2 m to 12 m
+  and strengthens from 1.6 to 2.4.
+- `project.godot` fades occlusion out between 1,440 m and 2,400 m from the camera. Godot's default
+  of 50–300 m drew no occlusion at the opening camera.
+- At 12:30 the sun stands about 54° up, so cast shadows are short. Shadow range does not limit the
+  far view.
+- Pavement, kerb and paint draw only on served Segments. A Segment is served when a zoned or built
+  Lot fronts it. A foot path is served when both of its Nodes meet a served Segment, and an
+  unserved one draws in asphalt. A Street laid across empty country keeps its carriageway, so it
+  stays visible without a pale grid.
+- Zoning, unzoning, and a Building appearing or going repave when the served set changes.
+- Measured on the gridded save: built-area local contrast +23% at 2 km and +24% at 3 km; contrast
+  on the empty street ring −57% and −55%.
+
 ---
 
 ## 4. Reference games, and what each one is cited for
@@ -379,7 +397,7 @@ ends up with assets for a system nobody built.
 | **The overlays** | ✅ **DRAWN as of [`plans/0049`](../plans/0049-visuals.md) row 7** — pollution, land value and Sealing, on the `o` key and the `overlay` drive verb. §3.1's *takes over rather than tints* as written: the city goes to an unlit silhouette and the ground carries the ramp. ⚠ **What is still missing is the REGION half** — `01 §5` wants an overlay to follow the camera and tint **Settlements** when the Cells are too small to see, and it tints Cells at every zoom |
 | **Zone** | A Lot carries one and only vacant Lots show anything |
 | **Kind identity** | `serves` and `[[business]]` both exist; a school, a shop and a house are one box. ⚠ **A Building is no longer ALWAYS one box** — [`plans/0053`](../plans/0053-the-block.md) step 4 draws a footprint the daylight bound hollows as **four wings round a courtyard**, off `BuildingPlan.Hollow`, which is the same call the capacity subtracts. ***That is form derived from the ground and not identity***: the ring says the plot is big, never that the building is a school |
-| **The street** | ✅ **DRAWN, [`plans/0049`](../plans/0049-visuals.md) row 8, all four steps.** The three `RoadKind`s draw apart; a Segment carrying feet *and* cars draws a **footway** either side, off the mode mask rather than the kind, so an Arterial gets none and **Severance is on the ground**; the footway carries a **kerb** band, unbroken along the Segment; every carriageway carrying cars is painted with a yellow center line, dashed on a Street and double on an Arterial, white edge lines, and a white stop bar across each lane entering a junction; and each strip stops at the **junction** on a mitre against whatever actually meets the Segment there, so it runs through where nothing crosses, turns the corner, and dead-ends flush against an Arterial. ⚠ **A crossing is a whole Street kept for feet and not a stripe over a road**, so it has been drawn since step 1 and there was never anything to invent — row 8's **F62**, closing **F58** and **F51**. ⚠ **The head of a dead end is a CAP and not a mitre**, so it is a second shape — a bar across the end closing the kerb's U inside the pavement's, at the **12** Street stubs `severance.toml`'s Arterials cut off and the **0** on `pictured.toml` |
+| **The street** | ✅ **DRAWN, [`plans/0049`](../plans/0049-visuals.md) row 8, all four steps.** The three `RoadKind`s draw apart; a Segment carrying feet *and* cars draws a **footway** either side, off the mode mask rather than the kind, so an Arterial gets none and **Severance is on the ground**; the footway carries a **kerb** band, unbroken along the Segment; every carriageway carrying cars is painted with a yellow center line, dashed on a Street and double on an Arterial, white edge lines, and a white stop bar across each lane entering a junction; and each strip stops at the **junction** on a mitre against whatever actually meets the Segment there, so it runs through where nothing crosses, turns the corner, and dead-ends flush against an Arterial. Pavement, kerb and paint draw only on a Segment a zoned or built Lot fronts (§3.4). ⚠ **A crossing is a whole Street kept for feet and not a stripe over a road**, so it has been drawn since step 1 and there was never anything to invent — row 8's **F62**, closing **F58** and **F51**. ⚠ **The head of a dead end is a CAP and not a mitre**, so it is a second shape — a bar across the end closing the kerb's U inside the pavement's, at the **12** Street stubs `severance.toml`'s Arterials cut off and the **0** on `pictured.toml` |
 | **Travellers** | Mode is drawn: a walker is a figure with torso, head and legs, and a driver is a car (`Main.Assets.cs` `WalkerMesh`, `CarMesh`), on separate layers. Nothing yet draws the Fidelity tier |
 | **Car Park** | Capacity is a Building's floor over `[capacity] floor_tiles_per_parking_space` ([`plans/0053`](../plans/0053-the-block.md) step 3) and nothing is drawn. ⚠ **This row said *declared per kind* until then**, which was the retired `[[building]] parking` |
 | **District** | `DistrictTable` has rows and no boundary is drawn |
