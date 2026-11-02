@@ -276,24 +276,32 @@ public sealed class WideHouseBodyTests
         Assert.Equal(11, forms.Count);
     }
 
-    [Fact]
-    public void Narrow_houses_pick_as_they_did_without_the_wide_forms()
+    [Theory]
+    [InlineData(8, .48, .62, .19, .31)]
+    [InlineData(10, .52, .68, .15, .27)]
+    public void Narrow_houses_draw_contemporary_first(int frontage, double conLow, double conHigh, double midLow, double midHigh)
     {
         StylePreset preset = TestStreet();
-        StylePreset narrow = preset with
-        {
-            Families = [.. preset.Families.Select(f => f.Body?.House is { Wide: true } ? f with { Fallback = true } : f)],
-        };
-
-        for (ulong face = 1; face <= 60; face++)
+        var contemporary = new HashSet<HouseVariant> { HouseVariant.StaggeredGables, HouseVariant.FlatSetback, HouseVariant.Sawtooth, HouseVariant.Pavilions };
+        int con = 0, mid = 0, all = 0, pavilions = 0;
+        for (ulong face = 1; face <= 400; face++)
         {
             for (int i = 0; i < 10; i++)
             {
-                int frontage = 8 + (i % 4);
-                BuildingFacts facts = Facts((face * 100) + (ulong)i, face, (frontage * i) + 1, frontage, 8 + (i % 9), 1 + (i % 3));
-                Assert.Equal(FamilyPicker.Pick(narrow, World, facts).Family?.Id, FamilyPicker.Pick(preset, World, facts).Family?.Id);
+                int wide = frontage + (i % 2);
+                BuildingFacts facts = Facts((face * 100) + (ulong)i, face, (wide * i) + 1, wide, 8 + (i % 9), 1 + (i % 3));
+                HouseBody house = FamilyPicker.Pick(preset, World, facts).Family!.Body!.House!;
+                all++;
+                if (!house.Wide) continue;
+                if (contemporary.Contains(house.Variant)) con++;
+                else mid++;
+                if (house.Variant == HouseVariant.Pavilions) pavilions++;
             }
         }
+
+        Assert.InRange((double)con / all, conLow, conHigh);
+        Assert.InRange((double)mid / all, midLow, midHigh);
+        Assert.Equal(frontage >= 10, pavilions > 0);
     }
 
     private static bool TopFacesUp(FamilyBodyMesh mesh, float x, float z)
