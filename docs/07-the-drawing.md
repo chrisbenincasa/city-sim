@@ -180,11 +180,19 @@ shipped families drifted toward traditional forms.
 
 **Where it stands**
 
-On `base/ruleset.toml`, `gridded.toml` and `traded.toml` at 10,000 Citizens and 600 Ticks, 95–96%
-of the Buildings that draw a family body draw a traditional form. A founding run on the base Ruleset, replayed
-to Day 45 by `FoundingPeriodProbe`, draws a traditional form on 67 of its 69 family bodies, 65 of
-them mansion blocks. Bringing the shipped families to
-this mix is the board row "Period mix in the shipped families".
+Shares of the Buildings that draw a family body, at 10,000 Citizens, 600 Ticks and seed 1, with a
+founding run replayed to Day 45 by `FoundingPeriodProbe`:
+
+| City | Contemporary | Mid-century | Traditional | Most traditional Buildings |
+|---|---|---|---|---|
+| Founding run | 65% | 32% | 3% | mansion blocks |
+| `gridded.toml` | 66% | 17% | 17% | wide houses, apartments |
+| `pictured.toml` | 52% | 29% | 19% | narrow houses |
+| `base/ruleset.toml` | 50% | 23% | 27% | mansion blocks |
+| `traded.toml` | 35% | 21% | 44% | rowhouses, narrow houses |
+| `platted.toml` | 28% | 23% | 49% | mansion blocks, apartments |
+
+Bringing the rest to this mix is the board row "Period mix in the shipped families".
 
 ---
 

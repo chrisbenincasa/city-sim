@@ -14,7 +14,7 @@ plan, and neighbors across runs never share a form and pitch within 5 degrees.
 
 | Group | Families | Lots | Forms | Variety | Periods | Where |
 |---|---|---|---|---|---|---|
-| Narrow detached houses | `house-detached-*` | 1–3 storeys, 8–11 m | 10 | Meets the bar | 10 / 0 / 0 | main |
+| Narrow detached houses | `house-detached-*`, `house-narrow-*` | 1–3 storeys, 8–11 m | 18, 17 under 10 m | Meets the bar | 10 / 4 / 4 | `founding-period-share` |
 | Rowhouses | `rowhouses`, `rowhouses-*` | 2–3 storeys, 4–12 m, up to 16 m deep | 6, 5 at 12 m | Meets the bar | 6 / 0 / 0 | main, #241 |
 | Attached apartments | `corridor-`, `two-unit-`, `walkup-apartments*` | 3 storeys, 20–36 m | 8 per band | Meets the bar | 5 / 1 / 2 | #242 |
 | Detached apartments | `detached-corridor*`, `detached-walkup*`, `detached-two-unit*` | 4–5 storeys, 16–64 m | 7–8 | Meets the bar | 5 / 1 / 2 | #242 |
@@ -22,6 +22,7 @@ plan, and neighbors across runs never share a form and pitch within 5 degrees.
 | Detached shops | `detached-shop-*` | 2–3 storeys, 16–60 m, 12–28 m deep | 7 | Meets the bar; one store per Building | 1 / 2 / 4 | main, #253 |
 | Workshops | `workshop`, `workshop-*` | 2 storeys, 28–36 m | 6 | Meets the bar on a fixture preset only | 2 / 2 / 2 | #245 |
 | Wide houses | `house-terrace`, `house-front-gables`, `house-villa`, twelve `house-<form>` | 1–3 storeys, 12–84 m, 8–36 m deep | 10–11 per band, 4 deep | Meets the bar | 3 / 5 / 7 | main, #247 |
+| Perimeter forms | `perimeter-*` | 3–8 storeys, from 16 m | 6 | Not checked | 0 / 2 / 4 | main, #255 |
 | Mansion blocks | `mansion-block`, `mansion-balconies`, `mansion-shops` | 4–11 storeys | 3 families | Not checked | 3 / 0 / 0 | main |
 | Towers | `tower-point`, `tower-stepped-point`, `tower-l`, `tower-h` | any | 4 families | Not checked | 0 / 4 / 0 | main |
 | Panel slabs | `panel-slab`, `panel-slab-plain`, `panel-slab-balconies` | 12–24 storeys | 3 families | Not checked | 0 / 3 / 0 | main |
@@ -51,18 +52,17 @@ The base game is founded by the player from empty Ground, so a populated lattice
 the Lots a player makes. `--appearance` builds that synthetic city and ignores `--log` (#248), so
 `FoundingPeriodProbe` replays `rulesets/base/founding.borough` instead. The base Ruleset sets
 `block_pattern = "perimeter"`, so every founding Lot is a Perimeter Lot at 3–4 storeys, with
-footprints 16–60 m wide and 16–60 m deep. No detached family admits them. On main at Day 45 the
-run stands 125 Buildings, and the city stops at 128:
+footprints 16–60 m wide and 16–60 m deep. No detached family admits them. At Day 45 the run
+stands 125 Buildings, and the city stops at 128:
 
 | Kind | Buildings | Box fallbacks | Families that draw |
 |---|---|---|---|
-| dwelling | 102 | 46, all at 3 storeys | mansion blocks 53, attached apartments 3 |
-| shopfront | 21 | 8, all at 3 storeys | mansion blocks 12, corner shop 1 |
+| dwelling | 102 | none | perimeter forms 97, mansion blocks 4, attached apartments 1 |
+| shopfront | 21 | none | perimeter forms 21 |
 | school, port | 2 | 2 | none |
 
-Of the 69 Buildings that draw a family body, 67 draw a traditional form and 2 a contemporary one.
-An earlier count on `detached-shops` read 128 Detached Lots and drew wide houses and detached
-stores; the code it ran is unchanged on main, and the cause of the difference is unknown.
+Of the 123 Buildings that draw a family body, 80 draw a contemporary form, 39 a mid-century one and
+4 a traditional one.
 
 The base lattice's 4–12 m deep footprints come from its 16 m deep parcels, which a founding run
 does not make. They need no family. The box counts above for `base/ruleset.toml` predate the
@@ -85,7 +85,6 @@ detached shops.
 
 | Lot shape | Box fallbacks | Candidate family |
 |---|---|---|
-| Perimeter dwelling or shopfront, 3 storeys, 16–60 m wide, 16–60 m deep | founding 54 | Contemporary perimeter block at 3 storeys |
 | Detached dwelling, 2–3 storeys, 4–32 m wide and 4 m deep, or 4–8 m wide | base 658 | None; only the synthetic base lattice makes it |
 | Detached dwelling, 2–3 storeys, 8 m wide, 20–28 m deep | gridded 9 | Deeper narrow houses |
 | Perimeter dwelling, 3 storeys, 4–12 m wide, 20–24 m deep | traded 170 | Deeper rowhouses or rear wings |
@@ -98,9 +97,9 @@ detached shops.
 
 ## Next
 
-1. Add a contemporary family for 3-storey Perimeter Lots, which box 54 of a founding run's 125
-   Buildings.
-2. Add contemporary and mid-century mansion-block forms. Three traditional mansion families draw
-   65 of a founding run's Buildings.
-3. Add school and port bodies.
+1. Add school and port bodies, the last two boxes in a founding run.
+2. Add contemporary and mid-century rowhouse forms. Six traditional rowhouse families draw 353 of
+   `traded`'s Buildings.
+3. Add contemporary and mid-century mansion-block forms. Three traditional mansion families draw 114
+   of `base`'s Buildings.
 4. Add pad-site stores, the largest shopfront gap on `traded` and `pictured`.
