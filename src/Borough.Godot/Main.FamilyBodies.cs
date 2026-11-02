@@ -31,7 +31,7 @@ public partial class Main
     [
         "wall-end", "wall", "trim", "roof-new", "roof", "membrane", "glass", "door", "frame", "metal",
         "plinth", "storefront", "sign", "awning", "solar", "spandrel", "reveal", "paving", "planter",
-        "tree",
+        "tree", "band", "accent", "canopy", "lobby", "sedum", "plant",
     ];
 
     private static readonly string[] RoofParts = ["roof-new", "roof", "membrane"];
@@ -79,8 +79,8 @@ public partial class Main
     /// <summary>Where a body probed for side neighbours, and the Buildings it found there; 0 is none.</summary>
     private readonly record struct BodyNeighbours(int Slot, Vector3 LeftProbe, Vector3 RightProbe, ulong LeftId, ulong RightId);
 
-    /// <summary>A generated body, and the linear mean colours its far box is painted with.</summary>
-    private sealed record BodyShape(ArrayMesh Mesh, Color Wall, Color Roof, FamilyBody Body);
+    /// <summary>A generated body, the linear mean colours its far box is painted with, and its street doors.</summary>
+    private sealed record BodyShape(ArrayMesh Mesh, Color Wall, Color Roof, FamilyBody Body, IReadOnlyList<FamilyDoor> Doors);
 
     private readonly record struct PlacedBody(
         ulong Id,
@@ -323,6 +323,7 @@ public partial class Main
                 + $"\tattached {request.Attached}\tpaint {request.Paint}"
                 + $"\ttile {Mathf.RoundToInt(one.Body.Origin.X / MetresPerTile)} {Mathf.RoundToInt(-one.Body.Origin.Z / MetresPerTile)}"
                 + (request.Site is { } t ? $"\tpodium {t.PodiumStoreys}\tshaft {t.ShaftFrontage}x{t.ShaftDepth} m" : "")
+                + $"\tfront {Mathf.RoundToInt(Mathf.Sin(request.Turn))} {Mathf.RoundToInt(-Mathf.Cos(request.Turn))}"
                 + (request.Ring ? "\tring" : "")
                 + (request.Body.Terrace is { } form ? $"\tterrace {form.Form} {request.Terrace.PitchDegrees}° house {request.Terrace.Index + 1} of {request.Terrace.Houses}" : "")
                 + (request.Body.Shop is { } shop ? $"\tshop {FamilyBodyBuilder.Drawn(shop, request.Storeys)} {request.Terrace.PitchDegrees}° lot {request.Terrace.Index + 1} of {request.Terrace.Houses}{(request.Corner ? " corner" : "")}" : "")
@@ -498,6 +499,7 @@ public partial class Main
             // By the remembered id as well as by the slot's, so a body outlives neither.
             RemoveFamilyBody(id);
             PlaceFamilyBody(slot);
+            PlaceFrontYard(slot);
         }
     }
 
@@ -589,7 +591,7 @@ public partial class Main
                 if (!_familyBodyMeshes.ContainsKey(key) && seen.Add(key)) missing.Add(request);
             }
 
-            var surfaces = new List<BodySurface>[missing.Count];
+            var surfaces = new (List<BodySurface>, IReadOnlyList<FamilyDoor>)[missing.Count];
             System.Threading.Tasks.Parallel.For(0, missing.Count,
                 i => surfaces[i] = BodySurfaces(missing[i], detail));
             for (int i = 0; i < missing.Count; i++) BodyMesh(missing[i], detail, surfaces[i]);
@@ -600,7 +602,7 @@ public partial class Main
     private readonly record struct BodySurface(string Part, Godot.Collections.Array Arrays, int VertexCount);
 
     /// <summary>A body's surfaces with tangents and no colour. Touches no scene or rendering server, so any thread may call it.</summary>
-    private static List<BodySurface> BodySurfaces(BodyRequest request, FamilyBodyDetail detail)
+    private static (List<BodySurface> Surfaces, IReadOnlyList<FamilyDoor> Doors) BodySurfaces(BodyRequest request, FamilyBodyDetail detail)
     {
         var surfaces = new List<BodySurface>();
         FamilyBodyMesh built = request switch
@@ -657,13 +659,17 @@ public partial class Main
             surfaces.Add(new BodySurface(part, tool.CommitToArrays(), source.VertexCount));
         }
 
-        return surfaces;
+        return (surfaces, request.Ring ? [] : built.Doors);
     }
 
-    private BodyShape BodyMesh(BodyRequest request, FamilyBodyDetail detail, List<BodySurface>? surfaces = null)
+
+    private BodyShape BodyMesh(BodyRequest request, FamilyBodyDetail detail,
+        (List<BodySurface> Surfaces, IReadOnlyList<FamilyDoor> Doors)? built = null)
     {
         BodyKey key = request.Key(detail);
         if (_familyBodyMeshes.TryGetValue(key, out BodyShape? cached)) return cached;
+
+        (List<BodySurface> surfaces, IReadOnlyList<FamilyDoor> doors) = built ?? BodySurfaces(request, detail);
 
         (AppearanceFamily family, FamilyBody body, int paint) = (request.Family, request.Body, request.Paint);
         Dictionary<string, Material> library = BodyLibrary(body.Library);
@@ -679,7 +685,7 @@ public partial class Main
             ? null
             : new FarWindowFactoryInput(family.Id, farFacade.Variant, farPaints!, farFacade.Cells);
         var reads = new Dictionary<string, Color>();
-        foreach ((string part, Godot.Collections.Array arrays, int vertexCount) in surfaces ?? BodySurfaces(request, detail))
+        foreach ((string part, Godot.Collections.Array arrays, int vertexCount) in surfaces)
         {
             if (part == "far-facade" && farInput is not null)
             {
@@ -744,7 +750,7 @@ public partial class Main
         Color fallback = MeanColour(null);
         Color wall = WallParts.Where(reads.ContainsKey).Select(part => reads[part]).DefaultIfEmpty(fallback).First();
         Color roof = RoofParts.Where(reads.ContainsKey).Select(part => reads[part]).DefaultIfEmpty(fallback).First();
-        var shape = new BodyShape(mesh, wall, roof, body);
+        var shape = new BodyShape(mesh, wall, roof, body, doors);
         _familyBodyMeshes[key] = shape;
         return shape;
     }
@@ -805,7 +811,7 @@ public partial class Main
     private Dictionary<string, Color> FarPaintColors(FamilyBody body,
         Dictionary<string, Material> library, IReadOnlyDictionary<string, Paint>? scheme)
     {
-        string[] parts = ["wall", "wall-end", "trim", "glass", "frame", "spandrel"];
+        string[] parts = ["wall", "wall-end", "trim", "glass", "frame", "spandrel", "panel", "attic"];
         var colors = new Dictionary<string, Color>();
         foreach (string part in parts)
         {

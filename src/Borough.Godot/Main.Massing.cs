@@ -133,6 +133,12 @@ public partial class Main
 
             System.Numerics.Vector2 front = LotGeometry.Front(_world, lot);
             bool alongA = front.Y != 0;
+            FrontSetback setback = SetbackOf(slot);
+            east -= front.X * setback.Recess * .5f;
+            north -= front.Y * setback.Recess * .5f;
+            if (alongA) southNorth -= setback.Recess;
+            else eastWest -= setback.Recess;
+
             float along = alongA ? eastWest : southNorth;
             float deep = alongA ? southNorth : eastWest;
 

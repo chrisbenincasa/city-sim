@@ -216,7 +216,7 @@
               },
               "variant": {
                 "description": "The tower layout, the mid-rise type, the house form, the shop form or the workshop form. Required for a tower, mid-rise, house, shop or workshop body and refused for a block.",
-                "enum": ["point", "stepped-point", "l", "h", "mansion", "panel-slab", "terrace", "front-gables", "villa", "hipped", "half-hip", "cross-gable", "saltbox", "gambrel", "l-plan", "rear-outshot", "side-wing", "staggered-gables", "flat-setback", "sawtooth", "pavilions", "span", "butterfly", "monopitch", "low-hip", "deep-flat", "deep-gables", "deep-sawtooth", "deep-span", "victorian-gable", "gabled-oriel", "turret-corner", "main-street", "mansard", "interwar-curve", "sixties-canopy", "setback-modern", "pantile-hipped", "glass-base", "gabled-hall", "colonnade", "mono-pitch", "canopy", "folded-plate", "commercial-block", "builders-yard", "monitor", "interwar-garage", "parapet-roller", "portal-shed"]
+                "enum": ["point", "stepped-point", "l", "h", "mansion", "panel-slab", "brick-loggia", "timber-frame", "white-render", "gable-front", "ribbon", "crosswall", "terrace", "front-gables", "villa", "hipped", "half-hip", "cross-gable", "saltbox", "gambrel", "l-plan", "rear-outshot", "side-wing", "staggered-gables", "flat-setback", "sawtooth", "pavilions", "span", "butterfly", "monopitch", "low-hip", "deep-flat", "deep-gables", "deep-sawtooth", "deep-span", "victorian-gable", "gabled-oriel", "turret-corner", "main-street", "mansard", "interwar-curve", "sixties-canopy", "setback-modern", "pantile-hipped", "glass-base", "gabled-hall", "colonnade", "mono-pitch", "canopy", "folded-plate", "commercial-block", "builders-yard", "monitor", "interwar-garage", "parapet-roller", "portal-shed"]
               },
               "module_metres": {
                 "description": "A mid-rise body's window module along a face, in metres. Defaults to 3.3 for a mansion and 3.6 for a panel slab.",
@@ -243,7 +243,7 @@
                 "description": "The size one texture tile covers, by part, as [along, up] in metres. A part named in materials takes its texture's size unless listed here. Other unlisted parts tile per metre.",
                 "type": "object",
                 "propertyNames": {
-                  "enum": ["wall", "wall-end", "trim", "roof", "membrane", "glass", "door", "frame", "metal", "plinth", "spandrel", "reveal", "paving", "planter", "tree"]
+                  "enum": ["wall", "wall-end", "trim", "roof", "membrane", "glass", "door", "frame", "metal", "plinth", "spandrel", "reveal", "paving", "planter", "tree", "attic", "panel", "band", "accent", "canopy", "lobby", "sedum", "plant", "solar"]
                 },
                 "additionalProperties": {
                   "type": "array",
@@ -259,7 +259,7 @@
                 "description": "The texture library entry that dresses each named part in place of its model's material. The part tiles at the texture's own size unless tile_metres lists it.",
                 "type": "object",
                 "propertyNames": {
-                  "enum": ["wall", "wall-end", "trim", "roof", "membrane", "glass", "door", "frame", "metal", "plinth", "spandrel", "reveal", "paving", "planter", "tree"]
+                  "enum": ["wall", "wall-end", "trim", "roof", "membrane", "glass", "door", "frame", "metal", "plinth", "spandrel", "reveal", "paving", "planter", "tree", "attic", "panel", "band", "accent", "canopy", "lobby", "sedum", "plant", "solar"]
                 },
                 "additionalProperties": {
                   "type": "string",
@@ -494,7 +494,7 @@
               },
               {
                 "if": { "properties": { "shape": { "const": "midrise" } }, "required": ["shape"] },
-                "then": { "properties": { "variant": { "enum": ["mansion", "panel-slab"] } } },
+                "then": { "properties": { "variant": { "enum": ["mansion", "panel-slab", "brick-loggia", "timber-frame", "white-render", "gable-front", "ribbon", "crosswall"] } } },
                 "else": {
                   "not": {
                     "anyOf": [
@@ -514,6 +514,10 @@
               {
                 "if": { "properties": { "variant": { "const": "panel-slab" } }, "required": ["variant"] },
                 "then": { "not": { "required": ["attic"] } }
+              },
+              {
+                "if": { "properties": { "variant": { "enum": ["brick-loggia", "timber-frame", "white-render", "gable-front", "ribbon", "crosswall"] } }, "required": ["variant"] },
+                "then": { "not": { "anyOf": [{ "required": ["street_openings"] }, { "required": ["shops"] }, { "required": ["attic"] }, { "required": ["galleries"] }] } }
               }
             ],
             "additionalProperties": false
@@ -603,6 +607,51 @@
                   "type": "string",
                   "pattern": "^[0-9a-fA-F]{6}$",
                   "description": "The sRGB colour of the body's tree part, as six hex digits."
+                },
+                "attic": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{6}$",
+                  "description": "The sRGB colour of the body's attic part, as six hex digits. A textured part multiplies its photograph by it."
+                },
+                "panel": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{6}$",
+                  "description": "The sRGB colour of the body's panel part, as six hex digits. A textured part multiplies its photograph by it."
+                },
+                "band": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{6}$",
+                  "description": "The sRGB colour of the body's band part, as six hex digits. A textured part multiplies its photograph by it."
+                },
+                "accent": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{6}$",
+                  "description": "The sRGB colour of the body's accent part, as six hex digits. A textured part multiplies its photograph by it."
+                },
+                "canopy": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{6}$",
+                  "description": "The sRGB colour of the body's canopy part, as six hex digits. A textured part multiplies its photograph by it."
+                },
+                "lobby": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{6}$",
+                  "description": "The sRGB colour of the body's lobby part, as six hex digits. A textured part multiplies its photograph by it."
+                },
+                "sedum": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{6}$",
+                  "description": "The sRGB colour of the body's sedum part, as six hex digits. A textured part multiplies its photograph by it."
+                },
+                "plant": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{6}$",
+                  "description": "The sRGB colour of the body's plant part, as six hex digits. A textured part multiplies its photograph by it."
+                },
+                "solar": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{6}$",
+                  "description": "The sRGB colour of the body's solar part, as six hex digits. A textured part multiplies its photograph by it."
                 }
               },
               "additionalProperties": false,

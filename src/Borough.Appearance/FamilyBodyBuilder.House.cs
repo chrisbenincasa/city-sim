@@ -39,7 +39,7 @@ public static partial class FamilyBodyBuilder
     private const float DoorSill = .3f;
     private const float VillaSetBack = 1.5f;
     private static readonly float WindowHeight = MathF.Min(1.9f, Storey - 1.3f);
-    private static readonly float DoorHeight = MathF.Min(2.75f, Storey - .75f);
+    private static readonly float DoorHeight = MathF.Min(2.3f, Storey - .75f);
 
     /// <param name="seed">Which draw, from 0 to <see cref="HouseSeeds"/>.</param>
     /// <param name="pitch">The draw whose roof pitches the house takes, or <c>null</c> for its own.</param>

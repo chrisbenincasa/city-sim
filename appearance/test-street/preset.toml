@@ -2121,6 +2121,239 @@ wall = "a7a39a"
 wall-end = "e4ddcc"
 trim = "24324a"
 
+# The perimeter forms, from scripts/art/perimeter-forms.py: four contemporary and two mid-century
+# blocks for Perimeter Lots from 3 storeys up. Each weighs three to the mansion families' one, so the
+# band draws mostly present-day forms (docs/07-the-drawing.md, Contemporary first). A frontage of at
+# least 16 m keeps them off the rowhouse Lots.
+
+[[family]]
+id = "perimeter-brick-loggia"
+kinds = ["dwelling", "shopfront"]
+patterns = ["perimeter"]
+weight = 3
+storeys = [3, 8]
+frontage_metres = [16, 400]
+
+# Contemporary. Dark brick with deep window reveals, recessed street loggias, a stone band over the
+# ground storey and a standing-seam attic set back from 4 storeys.
+[family.body]
+library = "midrise-families/perimeter"
+shape = "midrise"
+variant = "brick-loggia"
+materials = { wall = "bricks-088", wall-end = "bricks-088", attic = "standing-seam", membrane = "bitumen", paving = "concrete-panels", sedum = "aerial-grass-rock" }
+
+[[family.paint]]
+wall = "5e4a3c"
+wall-end = "5e4a3c"
+trim = "4a4744"
+frame = "3b3530"
+attic = "5b5f62"
+
+[[family.paint]]
+wall = "7b4a36"
+wall-end = "7b4a36"
+trim = "3b3530"
+frame = "3b3530"
+attic = "5b5f62"
+
+[[family.paint]]
+wall = "4f4d4a"
+wall-end = "4f4d4a"
+trim = "8a7f74"
+frame = "b08d57"
+attic = "5b5f62"
+
+[[family]]
+id = "perimeter-timber-frame"
+kinds = ["dwelling", "shopfront"]
+patterns = ["perimeter"]
+weight = 3
+storeys = [3, 8]
+frontage_metres = [16, 400]
+
+# Contemporary. Vertical timber over a concrete ground storey, tall French windows with rails, box
+# frames on the street and a metal attic set back from 4 storeys.
+[family.body]
+library = "midrise-families/perimeter"
+shape = "midrise"
+variant = "timber-frame"
+materials = { wall = "wood-siding-011", wall-end = "concrete-wall-001", attic = "standing-seam", membrane = "bitumen", paving = "concrete-panels", sedum = "aerial-grass-rock" }
+
+[[family.paint]]
+wall-end = "a9a8a3"
+frame = "26292b"
+trim = "2f3235"
+reveal = "6b5a48"
+attic = "3c4043"
+
+[[family.paint]]
+wall-end = "5c5f60"
+frame = "c9c6be"
+trim = "c9c6be"
+reveal = "6b5a48"
+attic = "3c4043"
+
+[[family.paint]]
+wall-end = "8c8a84"
+frame = "3d4a3f"
+trim = "3d4a3f"
+reveal = "6b5a48"
+attic = "3c4043"
+
+[[family]]
+id = "perimeter-white-render"
+kinds = ["dwelling", "shopfront"]
+patterns = ["perimeter"]
+weight = 3
+storeys = [3, 8]
+frontage_metres = [16, 400]
+
+# Contemporary. Pale render with a rhythm of mixed window widths, corner loggias, cantilevered slab
+# balconies and a colored stair strip over each entrance.
+[family.body]
+library = "midrise-families/perimeter"
+shape = "midrise"
+variant = "white-render"
+materials = { wall = "plaster-001", wall-end = "concrete-wall-001", membrane = "bitumen", paving = "concrete-panels", sedum = "aerial-grass-rock" }
+
+[[family.paint]]
+wall = "d9d6cf"
+wall-end = "4d4f51"
+trim = "cfccc4"
+accent = "c4693f"
+reveal = "c9c5bc"
+
+[[family.paint]]
+wall = "d6ccb6"
+wall-end = "5a5246"
+trim = "cbbfa6"
+accent = "3f6f8a"
+reveal = "c9c5bc"
+
+[[family.paint]]
+wall = "bcc7c2"
+wall-end = "3f4544"
+trim = "b1bcb7"
+accent = "d2a23c"
+reveal = "c9c5bc"
+
+[[family]]
+id = "perimeter-gable-front"
+kinds = ["dwelling", "shopfront"]
+patterns = ["perimeter"]
+weight = 3
+storeys = [3, 6]
+frontage_metres = [16, 400]
+
+# Contemporary. Brick under steep standing-seam gables with no eaves, one to the street every 8 m.
+# A body deeper than 16 m turns its ridges along the street instead.
+[family.body]
+library = "midrise-families/perimeter"
+shape = "midrise"
+variant = "gable-front"
+materials = { wall = "bricks-088", wall-end = "bricks-088", roof = "standing-seam", membrane = "bitumen", sedum = "aerial-grass-rock" }
+
+[[family.paint]]
+wall = "8a5c48"
+wall-end = "8a5c48"
+roof = "3a3d40"
+trim = "3a3d40"
+reveal = "7d6e62"
+
+[[family.paint]]
+wall = "b3ada3"
+wall-end = "b3ada3"
+roof = "56605a"
+trim = "56605a"
+reveal = "7d6e62"
+
+[[family.paint]]
+wall = "6e4434"
+wall-end = "6e4434"
+roof = "7c7f80"
+trim = "7c7f80"
+reveal = "7d6e62"
+
+[[family]]
+id = "perimeter-ribbon"
+kinds = ["dwelling", "shopfront"]
+patterns = ["perimeter"]
+weight = 3
+storeys = [3, 8]
+frontage_metres = [16, 400]
+
+# Mid-century. Continuous window bands between colored spandrels, a glazed ground storey set back
+# under a canopy, a thin fascia and stair towers on the longer street fronts.
+[family.body]
+library = "midrise-families/perimeter"
+shape = "midrise"
+variant = "ribbon"
+materials = { wall = "plaster-001", wall-end = "concrete-wall-001", membrane = "bitumen", paving = "concrete-panels", sedum = "aerial-grass-rock" }
+
+[[family.paint]]
+wall = "d2cfc6"
+wall-end = "6b6d6e"
+frame = "cfd2d0"
+trim = "e2e0da"
+reveal = "5a5c5e"
+spandrel = "3f7f7a"
+
+[[family.paint]]
+wall = "d2cfc6"
+wall-end = "6b6d6e"
+frame = "cfd2d0"
+trim = "e2e0da"
+reveal = "5a5c5e"
+spandrel = "c9a227"
+
+[[family.paint]]
+wall = "d2cfc6"
+wall-end = "6b6d6e"
+frame = "cfd2d0"
+trim = "e2e0da"
+reveal = "5a5c5e"
+spandrel = "b4472f"
+
+[[family]]
+id = "perimeter-crosswall"
+kinds = ["dwelling", "shopfront"]
+patterns = ["perimeter"]
+weight = 3
+storeys = [3, 8]
+frontage_metres = [16, 400]
+
+# Mid-century. Projecting brick crosswalls every two bays with painted panel infill and wide windows
+# between them, a deep fascia, and railed balconies between the piers on the yard.
+[family.body]
+library = "midrise-families/perimeter"
+shape = "midrise"
+variant = "crosswall"
+materials = { wall = "bricks-088", wall-end = "bricks-088", panel = "white-planks-clean", membrane = "bitumen", paving = "concrete-panels", sedum = "aerial-grass-rock" }
+
+[[family.paint]]
+wall = "7a4a36"
+wall-end = "7a4a36"
+frame = "d8d5cd"
+trim = "d8d5cd"
+reveal = "6d625a"
+panel = "d2c9b4"
+
+[[family.paint]]
+wall = "7a4a36"
+wall-end = "7a4a36"
+frame = "d8d5cd"
+trim = "d8d5cd"
+reveal = "6d625a"
+panel = "8fb3a8"
+
+[[family.paint]]
+wall = "7a4a36"
+wall-end = "7a4a36"
+frame = "d8d5cd"
+trim = "d8d5cd"
+reveal = "6d625a"
+panel = "d9b56c"
+
 [[family]]
 id = "panel-slab"
 kinds = ["dwelling", "shopfront"]

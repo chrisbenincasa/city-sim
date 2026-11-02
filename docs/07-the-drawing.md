@@ -233,6 +233,12 @@ reference site that uses it before the builder follows. Each family's swatches e
 `assets/midrise-families/mansion.glb` and `slab.glb`, because the shell matches a material to a
 part by its name prefix.
 
+The perimeter forms follow the same rule. `scripts/art/perimeter-forms.py` is the reference for the
+four contemporary forms (`brick-loggia`, `timber-frame`, `white-render`, `gable-front`) and the two
+mid-century forms (`ribbon`, `crosswall`). Its `export` job writes `art/perimeter-forms/bodies.json`
+and `assets/midrise-families/perimeter.glb`, and `PerimeterBodyTests` holds the builder to each
+reference site's corners per part, bounds and far cells.
+
 **Surface textures come from the library in `src/Borough.Godot/assets/city/library/`.** It sits
 inside the Godot project so the shell can load it. `textures.toml` lists each CC0 texture with its
 tile size in metres, where that size comes from, whether a family paints it, and how strongly its

@@ -128,4 +128,18 @@ public sealed class TerraceBodyTests
         Assert.Contains(wide, p => p.Z > 5.9f && p.Y < ShellBuilder.StoreyMetres);
         Assert.Contains(wide, p => p.Z is > 4.8f and < 5.2f);
     }
+
+    [Theory]
+    [MemberData(nameof(Shapes))]
+    public void Every_house_reports_one_street_door_in_its_front_wall(string form, int frontage, int depth, int storeys)
+    {
+        foreach ((_, _, FamilyBodyMesh mesh) in Houses(form, frontage, depth, storeys))
+        {
+            FamilyDoor door = Assert.Single(mesh.Doors);
+            Assert.InRange(MathF.Abs(door.Across) + (door.Width / 2f), 0f, frontage / 2f);
+            Assert.InRange(door.Forward, (depth / 2f) - 1.5f, (depth / 2f) + 1.5f);
+            Assert.InRange(door.Width, .8f, 1.6f);
+            Assert.InRange(door.Sill, 0f, 1.5f);
+        }
+    }
 }
