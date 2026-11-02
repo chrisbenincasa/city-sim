@@ -207,7 +207,7 @@ public partial class Main
         }
         if (_kerbs.Stale(eye))
         {
-            Fill(_kerbs, Kerbs(), _kerbIds);
+            Fill(_kerbs, Served(Kerbs()), _kerbIds);
             wrote = true;
         }
         for (int i = 0; i < _gardenLayers.Length; i++)

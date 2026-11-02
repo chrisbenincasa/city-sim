@@ -1138,7 +1138,8 @@ public partial class Main
             (float wide, Color paint) = (RoadKind)segments.Kind[slot] switch
             {
                 RoadKind.Arterial => (ArterialWidthMetres, Arterial),
-                RoadKind.FootPath => (FootPathWidthMetres, Flagstone),
+                RoadKind.FootPath => (FootPathWidthMetres,
+                    _servedSegments.Contains(segments.Rows.IdAt(slot)) ? Flagstone : Carriageway),
                 _ => (CarriagewayWidthMetres, Carriageway),
             };
 
@@ -1880,14 +1881,89 @@ public partial class Main
     /// has to know to apply; a layer of its own is a row somebody can count by name
     /// (<c>plans/0048</c> §5). It is also what makes the pavements a thing that can be counted
     /// against <c>--roads</c>' census of what carries feet.
+    /// <para>
+    /// Pavement, kerb and paint are drawn only on served Segments. A Street with no zoned or built
+    /// Lot keeps its asphalt alone, so a lattice laid across empty country reads as dark lines
+    /// rather than a pale grid at 2–3 km.
+    /// </para>
     /// </remarks>
     private void Pave()
     {
+        _lotServed = LotServedSegments();
+        _servedSegments = ServedSegments(_lotServed);
         _kerbPieces.Clear();
         Fill(_roads, Paving(), _roadIds);
-        Fill(_footways, Footways(), _footwayIds);
-        Fill(_kerbs, Kerbs(), _kerbIds);
-        Fill(_markings, Markings(), _markingIds);
+        Fill(_footways, Served(Footways()), _footwayIds);
+        Fill(_kerbs, Served(Kerbs()), _kerbIds);
+        Fill(_markings, Served(Markings()), _markingIds);
+    }
+
+    /// <summary>Segment ids a zoned or built Lot fronts, from either side.</summary>
+    private HashSet<ulong> _lotServed = [];
+
+    /// <summary><see cref="_lotServed"/> plus every foot path whose two Nodes both meet one of them.</summary>
+    private HashSet<ulong> _servedSegments = [];
+
+    private HashSet<ulong> LotServedSegments()
+    {
+        var served = new HashSet<ulong>();
+        LotTable lots = _world.Lots;
+        RoadSegmentTable segments = _world.Roads.Segments;
+
+        for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
+        {
+            if (!lots.Rows.IsLive(slot) || (lots.Zone[slot] == 0 && lots.IsVacant(slot))) continue;
+            int segment = lots.FrontageOn(slot);
+            if (segment != Rows.NoSlot) served.Add(segments.Rows.IdAt(segment));
+        }
+
+        return served;
+    }
+
+    /// <remarks>
+    /// No Lot fronts a foot path, so a foot path borrows its service from the Streets at its ends.
+    /// It needs both ends, because a path leaving the city edge into empty country has one.
+    /// </remarks>
+    private HashSet<ulong> ServedSegments(HashSet<ulong> lotServed)
+    {
+        var served = new HashSet<ulong>(lotServed);
+        RoadSegmentTable segments = _world.Roads.Segments;
+        RoadNodeTable nodes = _world.Roads.Nodes;
+        var met = new HashSet<int>();
+
+        for (int slot = 0; slot < segments.Rows.SlotCount; slot++)
+        {
+            if (!segments.Rows.IsLive(slot) || !lotServed.Contains(segments.Rows.IdAt(slot))) continue;
+            if (nodes.Rows.TryResolve(segments.NodeA[slot], out int a)) met.Add(a);
+            if (nodes.Rows.TryResolve(segments.NodeB[slot], out int b)) met.Add(b);
+        }
+
+        for (int slot = 0; slot < segments.Rows.SlotCount; slot++)
+        {
+            if (!segments.Rows.IsLive(slot) || (RoadKind)segments.Kind[slot] != RoadKind.FootPath) continue;
+            if (nodes.Rows.TryResolve(segments.NodeA[slot], out int a) && met.Contains(a)
+                && nodes.Rows.TryResolve(segments.NodeB[slot], out int b) && met.Contains(b))
+            {
+                served.Add(segments.Rows.IdAt(slot));
+            }
+        }
+
+        return served;
+    }
+
+    private IEnumerable<(ulong Id, Transform3D Where, Color What)> Served(
+        IEnumerable<(ulong Id, Transform3D Where, Color What)> places)
+    {
+        foreach (var place in places)
+        {
+            if (_servedSegments.Contains(place.Id)) yield return place;
+        }
+    }
+
+    /// <summary>Asks for a repave when the Lots that serve Streets have changed.</summary>
+    private void RepaveIfServiceChanged()
+    {
+        if (!_lotServed.SetEquals(LotServedSegments())) _repave = true;
     }
 
     /// <summary>The Cell lattice, drawn over the ground the city stands on.</summary>

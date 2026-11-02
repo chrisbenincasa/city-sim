@@ -53,6 +53,7 @@ public partial class Main
         {
             bool geometry = false;
             bool fronts = false;
+            bool turnover = false;
             var changedIds = new HashSet<ulong>();
             var placed = new List<int>();
             foreach (int slot in changes.Buildings)
@@ -61,6 +62,7 @@ public partial class Main
                 _bodyEdits.Clear(); _roofEdits.Clear(); _hipEdits.Clear(); _pairedRoofEdits.Clear(); _parapetEdits.Clear(); _yardEdits.Clear();
                 bool live = _world.Buildings.Rows.IsLive(slot);
                 ulong id = live ? _world.Buildings.Rows.IdAt(slot) : 0;
+                turnover |= _renderedBuildings.TryGetValue(slot, out var seen) ? seen.Id != id : live;
                 if (_renderedBuildings.Remove(slot, out var old))
                 {
                     if (old.Drawn) _drawnBuildings--;
@@ -123,7 +125,9 @@ public partial class Main
             {
                 FillCarParks();
             }
+            if (turnover) RepaveIfServiceChanged();
         }
+        if (changes.Full) RepaveIfServiceChanged();
         changes.Clear();
         if (_verifyRendering) VerifyBuildingDrawing();
     }
