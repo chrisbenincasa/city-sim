@@ -115,6 +115,7 @@ public static partial class FamilyBodyBuilder
         Slab(writer, side, "reveal", u - .95f, u - .9f, 0f, 2.9f, d, d + 1.2f);
         Slab(writer, side, "reveal", u + .9f, u + .95f, 0f, 2.9f, d, d + 1.2f);
         Plane(writer, side.Face, "door", u - .9f, u + .9f, 0f, 2.6f, d + 1.2f);
+        writer.StreetDoor(side.Face, u - .9f, u + .9f, 0f);
         Plane(writer, side.Face, "lobby", u - .9f, u + .9f, 2.6f, 2.9f, d + 1.2f);
         Slab(writer, side, "canopy", u - 1.6f, u + 1.6f, 2.95f, 3.12f, -1.3f, d);
     }

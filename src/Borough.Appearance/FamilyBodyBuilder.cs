@@ -8,12 +8,30 @@ public enum FamilyBodyDetail : byte
     Far,
 }
 
-/// <summary>A generated body: one mesh per material part, in the order parts were first used.</summary>
+/// <summary>
+/// A ground-floor door in a street-facing wall. <paramref name="Across"/> runs right along the frontage
+/// as seen from the street, and <paramref name="Forward"/> runs toward the street to the wall's face.
+/// Both are metres from the footprint centre. <paramref name="Width"/> is the opening's width and
+/// <paramref name="Sill"/> its height above the ground, in metres.
+/// </summary>
+public readonly record struct FamilyDoor(float Across, float Forward, float Width, float Sill);
+
+/// <summary>A generated body: one mesh per material part, in the order parts were first used, and its street doors.</summary>
 public sealed class FamilyBodyMesh
 {
     private readonly List<(string Part, ShellMesh Mesh)> _parts = [];
+    private readonly List<FamilyDoor> _doors = [];
 
     public IReadOnlyList<(string Part, ShellMesh Mesh)> Parts => _parts;
+
+    /// <summary>The street doors, west to east along the frontage.</summary>
+    public IReadOnlyList<FamilyDoor> Doors => _doors;
+
+    internal void AddDoor(FamilyDoor door)
+    {
+        int at = _doors.FindIndex(d => d.Across > door.Across);
+        _doors.Insert(at < 0 ? _doors.Count : at, door);
+    }
 
     internal ShellMesh Part(string name)
     {
@@ -43,6 +61,9 @@ public static partial class FamilyBodyBuilder
     private const float Storey = ShellBuilder.StoreyMetres;
     private const float Reveal = .18f;
     private const float PlinthHeight = .3f;
+
+    // Higher sills are upper-floor balcony and terrace doors.
+    private const float StreetDoorSill = 1.5f;
 
     /// <summary>The material parts a body is built from.</summary>
     public static readonly string[] PartNames =
@@ -518,8 +539,17 @@ public static partial class FamilyBodyBuilder
             }
         }
 
+        /// <summary>Records a door whose sill is near the ground in a wall facing the street.</summary>
+        public void StreetDoor(Face face, float u0, float u1, float sill, float depth = 0f)
+        {
+            if (face.Outward.Y > -.99f || sill > StreetDoorSill) return;
+            Vector3 middle = face.Point((u0 + u1) / 2f, 0f, depth);
+            mesh.AddDoor(new FamilyDoor(middle.X, -middle.Y, MathF.Abs(u1 - u0), sill));
+        }
+
         private void Recess(Face face, Opening o, string trim, string door, string frame)
         {
+            if (o.Kind == OpeningKind.Door) StreetDoor(face, o.U, o.U + o.W, o.V);
             bool solid = o.Kind is OpeningKind.Door or OpeningKind.Roller;
             float depth = Reveal + (solid ? .05f : 0f);
             (float, float)[] corners = [(o.U, o.V), (o.U + o.W, o.V), (o.U + o.W, o.V + o.H), (o.U, o.V + o.H)];

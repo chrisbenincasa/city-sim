@@ -1,0 +1,247 @@
+{
+  "painted": [
+    "brick",
+    "paint",
+    "flag",
+    "bloom"
+  ],
+  "bay_metres": 2.0,
+  "path_bay_metres": 1.0,
+  "modules": [
+    {
+      "module": "hedge",
+      "vertices": 272,
+      "faces": 486,
+      "triangles": 492,
+      "bounds_min": [
+        -1.071,
+        -0.42,
+        0.0
+      ],
+      "bounds_max": [
+        1.071,
+        0.432,
+        1.332
+      ],
+      "materials": [
+        "hedge",
+        "hedge-light"
+      ],
+      "geometry_sha256": "75eb132df139af38f720a0574606074e46acbf396c7943bba86dcbe322e6a2e6"
+    },
+    {
+      "module": "wall",
+      "vertices": 30,
+      "faces": 23,
+      "triangles": 44,
+      "bounds_min": [
+        -1.0,
+        -0.216,
+        0.0
+      ],
+      "bounds_max": [
+        1.0,
+        0.216,
+        0.84
+      ],
+      "materials": [
+        "brick",
+        "coping"
+      ],
+      "geometry_sha256": "dd97a7b16ce0a7788b22f426a885347296c94a5d11731a6f24df2009a41f5808"
+    },
+    {
+      "module": "railing",
+      "vertices": 248,
+      "faces": 206,
+      "triangles": 348,
+      "bounds_min": [
+        -1.0,
+        -0.216,
+        0.0
+      ],
+      "bounds_max": [
+        1.0,
+        0.216,
+        1.392
+      ],
+      "materials": [
+        "brick",
+        "coping",
+        "iron"
+      ],
+      "geometry_sha256": "a834d9bc4245eb40f9bca910785a33199fda15a47c6fd0ef6ca663021e9993d1"
+    },
+    {
+      "module": "picket",
+      "vertices": 178,
+      "faces": 153,
+      "triangles": 280,
+      "bounds_min": [
+        -1.06,
+        -0.072,
+        0.0
+      ],
+      "bounds_max": [
+        1.06,
+        0.072,
+        1.236
+      ],
+      "materials": [
+        "paint"
+      ],
+      "geometry_sha256": "2ed0471dc4a44e76c019c2b070b91d8ab1797a7160c045ad8842ad4ca8c82aef"
+    },
+    {
+      "module": "pier",
+      "vertices": 29,
+      "faces": 23,
+      "triangles": 42,
+      "bounds_min": [
+        -0.324,
+        -0.324,
+        0.0
+      ],
+      "bounds_max": [
+        0.324,
+        0.324,
+        1.392
+      ],
+      "materials": [
+        "brick",
+        "coping"
+      ],
+      "geometry_sha256": "d53e089afe28d16828a1ddf8e3360b410acd18b71c3c5750706abe71714a416f"
+    },
+    {
+      "module": "gate-iron",
+      "vertices": 236,
+      "faces": 254,
+      "triangles": 368,
+      "bounds_min": [
+        -0.606,
+        -0.03,
+        0.024
+      ],
+      "bounds_max": [
+        0.606,
+        0.03,
+        1.291
+      ],
+      "materials": [
+        "paint"
+      ],
+      "geometry_sha256": "75e5a5bddb4e3a54798bd227dd735956b38a6a49d79abf127bda6dd550b3500f"
+    },
+    {
+      "module": "gate-timber",
+      "vertices": 94,
+      "faces": 81,
+      "triangles": 148,
+      "bounds_min": [
+        -0.564,
+        -0.012,
+        0.072
+      ],
+      "bounds_max": [
+        0.564,
+        0.08,
+        1.08
+      ],
+      "materials": [
+        "paint"
+      ],
+      "geometry_sha256": "6a5cce256db493d7067f0c4fb58bdff3de34b69355a8ba1d0998081d782e21c5"
+    },
+    {
+      "module": "path-flags",
+      "vertices": 40,
+      "faces": 22,
+      "triangles": 44,
+      "bounds_min": [
+        -0.56,
+        -0.5,
+        0.0
+      ],
+      "bounds_max": [
+        0.56,
+        0.5,
+        0.13
+      ],
+      "materials": [
+        "edging",
+        "flag",
+        "mortar"
+      ],
+      "geometry_sha256": "e9ac3c213258df32faf4200016004c5bfe1cc13cb506aa4301749c8561059845"
+    },
+    {
+      "module": "path-tiled",
+      "vertices": 296,
+      "faces": 256,
+      "triangles": 312,
+      "bounds_min": [
+        -0.56,
+        -0.5,
+        0.0
+      ],
+      "bounds_max": [
+        0.56,
+        0.5,
+        0.145
+      ],
+      "materials": [
+        "edging",
+        "mortar",
+        "tile-black",
+        "tile-cream",
+        "tile-red"
+      ],
+      "geometry_sha256": "c954b1d76b27ab2c2400ffc710a6cb8decc14fa22732c115caf317e573eadec9"
+    },
+    {
+      "module": "doorstep",
+      "vertices": 16,
+      "faces": 12,
+      "triangles": 24,
+      "bounds_min": [
+        -0.7,
+        -0.3,
+        0.0
+      ],
+      "bounds_max": [
+        0.7,
+        0.3,
+        0.3
+      ],
+      "materials": [
+        "step"
+      ],
+      "geometry_sha256": "a9e8e98c38f0e7ab55071fd9b21a658f268f0f67a5a18247f811c8549a46516c"
+    },
+    {
+      "module": "border",
+      "vertices": 332,
+      "faces": 606,
+      "triangles": 612,
+      "bounds_min": [
+        -1.019,
+        -0.36,
+        0.0
+      ],
+      "bounds_max": [
+        1.0,
+        0.36,
+        0.504
+      ],
+      "materials": [
+        "bloom",
+        "leaf",
+        "leaf-dark",
+        "leaf-light",
+        "soil"
+      ],
+      "geometry_sha256": "92c3974b20f8a93c4aabc34ff656938b1f180e1676355535489fcac64a75924b"
+    }
+  ]
+}

@@ -523,11 +523,12 @@ def render(out):
         bpy.ops.render.render(write_still=True)
 
 
-arguments = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else ['export']
-if arguments[0] == 'render':
-    render(Path(arguments[1]))
-else:
-    SOURCES.mkdir(parents=True, exist_ok=True)
-    EXPORT.mkdir(parents=True, exist_ok=True)
-    records = [export(name, build) for name, build in MODULES.items()]
-    (SOURCES / 'modules.json').write_text(json.dumps({'painted': list(PAINTED), 'modules': records}, indent=2) + '\n')
+if __name__ == '__main__':
+    arguments = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else ['export']
+    if arguments[0] == 'render':
+        render(Path(arguments[1]))
+    else:
+        SOURCES.mkdir(parents=True, exist_ok=True)
+        EXPORT.mkdir(parents=True, exist_ok=True)
+        records = [export(name, build) for name, build in MODULES.items()]
+        (SOURCES / 'modules.json').write_text(json.dumps({'painted': list(PAINTED), 'modules': records}, indent=2) + '\n')

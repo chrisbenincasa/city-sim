@@ -35,11 +35,9 @@ public partial class Main
     private const float GateEveryMetres = 12f;
 
     private InstanceLayer _frontGround = null!;
-    private InstanceLayer _frontHedges = null!;
     private InstanceLayer _frontTrees = null!;
 
     private readonly List<InstanceValue> _frontGroundEdits = [];
-    private readonly List<InstanceValue> _frontHedgeEdits = [];
     private readonly List<InstanceValue> _frontTreeEdits = [];
     private readonly HashSet<ulong> _frontYardIds = [];
 
@@ -61,19 +59,31 @@ public partial class Main
     private readonly InstanceLayer[] _furniture = new InstanceLayer[FurnitureModules.Length];
     private readonly List<InstanceValue>[] _furnitureEdits = [.. FurnitureModules.Select(_ => new List<InstanceValue>())];
 
-    /// <summary>How far a body moves back from its footprint's front, and how deep its front yard is.</summary>
-    private readonly record struct FrontSetback(float Recess, float Yard, bool Dwelling, bool Shop);
+    private enum FrontKit { Hedge, Wall, Railing, Picket, Pier, GateIron, GateTimber, PathFlags, PathTiled, Doorstep, Border }
+
+    /// <summary>The <c>assets/front-yard</c> modules <c>scripts/art/front-yard.py</c> authors, in <see cref="FrontKit"/> order.</summary>
+    private static readonly string[] FrontKitModules =
+        ["hedge", "wall", "railing", "picket", "pier", "gate-iron", "gate-timber", "path-flags", "path-tiled", "doorstep", "border"];
+
+    private static readonly string[] FrontKitPainted = ["brick", "paint", "flag", "bloom"];
+
+    private readonly InstanceLayer[] _frontKit = new InstanceLayer[FrontKitModules.Length];
+    private readonly List<InstanceValue>[] _frontKitEdits = [.. FrontKitModules.Select(_ => new List<InstanceValue>())];
+
+    /// <summary>How far a body moves back from its footprint's front, how deep its front yard is, and its street side's draw.</summary>
+    private readonly record struct FrontSetback(float Recess, float Yard, bool Dwelling, bool Shop, uint Street);
 
     private void CreateFrontYardLayers()
     {
         _frontGround = Layer(Colors.White, Vector3.One, perInstance: true, casts: false);
-        _frontHedges = Layer(Colors.White, Vector3.One, perInstance: true);
         var (_, middle, _) = TreeMeshes();
         _frontTrees = Layer(Colors.White, middle, perInstance: true);
         for (int i = 0; i < FurnitureModules.Length; i++)
             _furniture[i] = Layer(Colors.White, Commit(Load($"forecourt/{FurnitureModules[i]}", FurniturePainted).Corners), perInstance: true);
+        for (int i = 0; i < FrontKitModules.Length; i++)
+            _frontKit[i] = Layer(Colors.White, Commit(Load($"front-yard/{FrontKitModules[i]}", FrontKitPainted).Corners), perInstance: true);
 
-        foreach (InstanceLayer layer in (InstanceLayer[])[_frontGround, _frontHedges, _frontTrees, .. _furniture])
+        foreach (InstanceLayer layer in (InstanceLayer[])[_frontGround, _frontTrees, .. _furniture, .. _frontKit])
         {
             layer.Multimesh.NearOnly = true;
             BodyResidency(layer);
@@ -83,9 +93,9 @@ public partial class Main
     private IEnumerable<(string Name, InstanceLayer Layer, bool Colours, List<ulong>? Ids)> FrontYardLayers()
     {
         yield return ("front-yard-ground", _frontGround, true, null);
-        yield return ("front-yard-hedge", _frontHedges, true, null);
         yield return ("front-yard-tree", _frontTrees, true, null);
         for (int i = 0; i < FurnitureModules.Length; i++) yield return ($"forecourt-{FurnitureModules[i]}", _furniture[i], true, null);
+        for (int i = 0; i < FrontKitModules.Length; i++) yield return ($"front-yard-{FrontKitModules[i]}", _frontKit[i], true, null);
     }
 
     /// <summary>A Building's setback, or none for a Tower, a courtyard ring or a Lot with no Street address.</summary>
@@ -132,7 +142,7 @@ public partial class Main
             : ShopFrontMetres + (mix % ShopFrontSteps * FrontStepMetres);
         float recess = Mathf.Clamp(target - gap, 0f, depth * FrontRecessShare);
         recess = Mathf.Floor(recess / FrontStepMetres) * FrontStepMetres;
-        return new FrontSetback(recess, Mathf.Min(recess + gap, FrontYardMostMetres), dwelling, shop);
+        return new FrontSetback(recess, Mathf.Min(recess + gap, FrontYardMostMetres), dwelling, shop, mix);
     }
 
     /// <summary>Draws a Building's front yard in front of its massing box, which already stands back by the setback.</summary>
@@ -140,9 +150,9 @@ public partial class Main
     {
         ulong id = one.Id;
         _frontGroundEdits.Clear();
-        _frontHedgeEdits.Clear();
         _frontTreeEdits.Clear();
         foreach (List<InstanceValue> edits in _furnitureEdits) edits.Clear();
+        foreach (List<InstanceValue> edits in _frontKitEdits) edits.Clear();
         FrontSetback setback = SetbackOf(building);
         if (setback.Yard >= FrontStepMetres)
         {
@@ -157,44 +167,222 @@ public partial class Main
             var draw = new YardDraw(one.Body.Origin with { Y = 0f }, forward, across);
             int pick = (int)(id % 997);
             Color stone = StoneTones[pick % StoneTones.Length];
+            List<FamilyDoor> doors = DoorsOf(id, w, near);
 
             if (!setback.Dwelling || setback.Yard < HedgedYardLeastMetres)
             {
                 _frontGroundEdits.Add(draw.Box(-w, w, near, far, 0f, .1f, stone));
-                if (setback.Shop) DressForecourt(draw, w, near, far, id);
+                if (setback.Shop) DressForecourt(draw, w, near, far, id, doors);
             }
             else
             {
                 _frontGroundEdits.Add(draw.Box(-w, w, near, far, 0f, .06f, LawnTones[pick % LawnTones.Length]));
-                _frontGroundEdits.Add(draw.Box(-w, w, near, near + 1.2f, 0f, .09f, stone));
-                int gates = Math.Max(1, Mathf.RoundToInt(frontage / GateEveryMetres));
-                float pitch = frontage / gates;
-                bool wall = pick % 5 < 2;
-                float edge = far - .2f, hedgeIn = edge - (wall ? .3f : .7f), high = wall ? .6f : 1.1f;
-                float from = -w + .2f;
-                for (int k = 0; k < gates; k++)
-                {
-                    float gate = -w + (pitch * (k + .5f));
-                    _frontGroundEdits.Add(draw.Box(gate - .8f, gate + .8f, near + 1.2f, far, 0f, .09f, stone));
-                    _frontHedgeEdits.Add(draw.Box(from, gate - 1f, hedgeIn, edge, 0f, high, wall ? WallTone : HedgeTone));
-                    from = gate + 1f;
-                    if (k > 0 && setback.Yard >= YardTreeLeastMetres)
-                    {
-                        float shade = .88f + ((pick + k) % 7 * .04f);
-                        _frontTreeEdits.Add(draw.Tree(-w + (pitch * k), (near + 1.2f + hedgeIn) * .5f, 5.5f + ((pick + k) % 3), new Color(shade, shade, shade)));
-                    }
-                }
-                _frontHedgeEdits.Add(draw.Box(from, w - .2f, hedgeIn, edge, 0f, high, wall ? WallTone : HedgeTone));
+                DressGarden(draw, w, near, far, id, setback.Street, doors, Mathf.RoundToInt(size.Y / StoreyMetres));
             }
-            if (_reportFamilyBodies) GD.Print($"front_yard\tbuilding {id}\tsetback {setback.Recess}\tyard {setback.Yard}\t{(setback.Dwelling ? "garden" : "paved")}");
+            if (_reportFamilyBodies) GD.Print($"front_yard\tbuilding {id}\tsetback {setback.Recess}\tyard {setback.Yard}\t{(setback.Dwelling ? "garden" : "paved")}\tdoors {doors.Count}");
         }
 
         _frontGround.Multimesh.Replace(id, _frontGroundEdits);
-        _frontHedges.Multimesh.Replace(id, _frontHedgeEdits);
         _frontTrees.Multimesh.Replace(id, _frontTreeEdits);
         for (int i = 0; i < _furniture.Length; i++) _furniture[i].Multimesh.Replace(id, _furnitureEdits[i]);
+        for (int i = 0; i < _frontKit.Length; i++) _frontKit[i].Multimesh.Replace(id, _frontKitEdits[i]);
         if (_frontGroundEdits.Count > 0) _frontYardIds.Add(id);
         else _frontYardIds.Remove(id);
+    }
+
+    // A door further behind the body's front than this opens onto a court of its own, not the yard.
+    private const float DoorReachMetres = 4f;
+
+    /// <summary>The street doors of a Building's body that open onto its front yard, west to east; none where it draws no body.</summary>
+    private List<FamilyDoor> DoorsOf(ulong id, float w, float near) =>
+        _placedBodies.TryGetValue(id, out PlacedBody body)
+            ? [.. body.NearShape.Doors.Where(d => MathF.Abs(d.Across) <= w && d.Forward > near - DoorReachMetres)]
+            : [];
+
+    private enum FrontBoundary { Hedge, Wall, Railing, Picket }
+
+    private static readonly FrontBoundary[] AttachedBoundaries =
+    [
+        FrontBoundary.Railing, FrontBoundary.Railing, FrontBoundary.Railing, FrontBoundary.Wall, FrontBoundary.Wall, FrontBoundary.Wall,
+        FrontBoundary.Hedge, FrontBoundary.Hedge, FrontBoundary.Hedge, FrontBoundary.Picket,
+    ];
+
+    private static readonly FrontBoundary[] DetachedBoundaries =
+    [
+        FrontBoundary.Hedge, FrontBoundary.Hedge, FrontBoundary.Hedge, FrontBoundary.Hedge, FrontBoundary.Picket, FrontBoundary.Picket, FrontBoundary.Picket,
+        FrontBoundary.Wall, FrontBoundary.Wall, FrontBoundary.Railing,
+    ];
+
+    private static readonly Color[] BrickTones = [Hex(0x9a4f38), Hex(0x7a4a36), Hex(0xb0623f), Hex(0xc9a46a), Hex(0xb89a72), Hex(0xd8d0bc)];
+    private static readonly Color[] GateTones = [Hex(0x1e2123), Hex(0x1e2123), Hex(0x2f4a3c), Hex(0x24303a), Hex(0xe8e4da)];
+    private static readonly Color[] PicketTones = [Hex(0xe8e4da), Hex(0xe8e4da), Hex(0xd6cfbf), Hex(0x9aa58a), Hex(0x8d9194)];
+
+    private const float FrontBayMetres = 2f;
+
+    // A picket fence reads as a cottage garden, so taller blocks take railings instead.
+    private const int PicketMostStoreys = 2;
+    private const float PierHalfMetres = .3f;
+    private const float GateLift = .08f;
+
+    // The garden kit is authored 1.2 times real size to match the bodies; topiary comes from the forecourt kit at real size.
+    private const float GardenTopiaryScale = 1.2f;
+
+    // Below this sill a body's door opens straight onto the ground, so it takes no step.
+    private const float DoorstepLeastSill = .2f;
+
+    /// <summary>
+    /// A dwelling's front garden. Each street side shares one boundary, a hedge, a low wall, railings on
+    /// a dwarf wall or a picket fence, and one house in four picks its own. Every street door gets a gate
+    /// in the boundary and a path straight to its step, so paths line up with the doors the body draws.
+    /// A massing box gets gates every <see cref="GateEveryMetres"/>, and a body without street doors gets
+    /// an unbroken boundary. Attached houses draw the
+    /// boundary down their west party line too, and deep gardens plant trees between the paths.
+    /// </summary>
+    private void DressGarden(YardDraw draw, float w, float near, float far, ulong id, uint street, List<FamilyDoor> doors, int storeys)
+    {
+        uint h = (uint)id * 0x9E3779B1u;
+        h ^= h >> 13;
+        bool left = _bodyNeighbours.TryGetValue(id, out BodyNeighbours neighbours) && neighbours.LeftId != 0;
+        bool right = neighbours.RightId != 0;
+        uint style = h % 4 == 0 ? h >> 4 : street >> 3;
+        FrontBoundary boundary = (left || right ? AttachedBoundaries : DetachedBoundaries)[style % 10];
+        if (boundary == FrontBoundary.Picket && storeys > PicketMostStoreys) boundary = FrontBoundary.Railing;
+        bool piers = boundary is FrontBoundary.Wall or FrontBoundary.Railing;
+        FrontKit run = boundary switch
+        {
+            FrontBoundary.Wall => FrontKit.Wall,
+            FrontBoundary.Railing => FrontKit.Railing,
+            FrontBoundary.Picket => FrontKit.Picket,
+            _ => FrontKit.Hedge,
+        };
+        float half = boundary switch { FrontBoundary.Hedge => .42f, FrontBoundary.Picket => .07f, _ => .22f };
+        float line = far - .05f - half;
+        float shade = .8f + ((h >> 7) % 5 * .05f);
+        Color paint = boundary switch
+        {
+            FrontBoundary.Hedge => new Color(shade, shade, shade),
+            FrontBoundary.Picket => PicketTones[(style >> 4) % (uint)PicketTones.Length],
+            _ => BrickTones[(style >> 4) % (uint)BrickTones.Length],
+        };
+        FrontKit? gate = boundary switch
+        {
+            FrontBoundary.Picket => FrontKit.GateTimber,
+            FrontBoundary.Hedge => (h >> 5) % 2 == 0 ? FrontKit.GateTimber : null,
+            _ => FrontKit.GateIron,
+        };
+        Color gatePaint = boundary == FrontBoundary.Picket ? paint : GateTones[(h >> 9) % (uint)GateTones.Length];
+        FrontKit path = piers && (style >> 8) % 2 == 0 ? FrontKit.PathTiled : FrontKit.PathFlags;
+        Color flag = StoneTones[(h >> 11) % (uint)StoneTones.Length];
+        bool topiary = (h >> 15) % 4 == 0;
+        bool border = boundary != FrontBoundary.Picket && (h >> 17) % 2 == 0;
+        Color bloom = BloomTones[(h >> 19) % (uint)BloomTones.Length];
+
+        if (doors.Count == 0 && !_placedBodies.ContainsKey(id))
+        {
+            int count = Math.Max(1, Mathf.RoundToInt(w * 2f / GateEveryMetres));
+            for (int k = 0; k < count; k++) doors.Add(new FamilyDoor(-w + (w * 2f * (k + .5f) / count), near, 1f, 0f));
+        }
+
+        var gaps = new List<(float From, float To)>();
+        foreach (FamilyDoor door in doors)
+        {
+            float wide = Mathf.Clamp(door.Width, 1f, 2.4f);
+            float open = Mathf.Max(wide * .5f + .06f, .6f);
+            float reach = open + (piers ? (PierHalfMetres * 2f) - .05f : .05f);
+            if (gaps.Count > 0 && door.Across - reach < gaps[^1].To + .3f)
+            {
+                gaps[^1] = (gaps[^1].From, door.Across + reach);
+            }
+            else
+            {
+                gaps.Add((door.Across - reach, door.Across + reach));
+            }
+
+            if (gate is { } leaf && wide <= 1.2f) Kit(leaf, draw.Module(door.Across, line, GateLift, 0f, gatePaint));
+            if (piers)
+            {
+                for (int side = -1; side <= 1; side += 2)
+                    Kit(FrontKit.Pier, draw.Module(door.Across + (side * (open + PierHalfMetres - .03f)), line, 0f, 0f, paint));
+            }
+
+            float from = door.Forward;
+            if (door.Sill >= DoorstepLeastSill)
+            {
+                float step = Mathf.Max(1f, (wide + .4f) / 1.4f);
+                Kit(FrontKit.Doorstep, draw.Module(door.Across, door.Forward + .3f, 0f, 0f, Colors.White, step));
+                from += .6f;
+                if (topiary)
+                {
+                    for (int side = -1; side <= 1; side += 2)
+                        Furnish(Furniture.Topiary, draw.Module(door.Across + (side * ((step * .7f) + .42f)), door.Forward + .42f, 0f, 0f, Colors.White,
+                            GardenTopiaryScale, GardenTopiaryScale, GardenTopiaryScale));
+                }
+            }
+
+            int bays = Math.Max(1, Mathf.RoundToInt(far - from));
+            float bay = (far - from) / bays;
+            for (int k = 0; k < bays && bay > .1f; k++)
+                Kit(path, draw.Module(door.Across, from + (bay * (k + .5f)), 0f, 0f, flag, wide, bay));
+        }
+
+        float start = -w;
+        if (piers && !left)
+        {
+            Kit(FrontKit.Pier, draw.Module(-w + PierHalfMetres, line, 0f, 0f, paint));
+            start += PierHalfMetres * 2f;
+        }
+        float end = w;
+        if (piers && !right)
+        {
+            Kit(FrontKit.Pier, draw.Module(w - PierHalfMetres, line, 0f, 0f, paint));
+            end -= PierHalfMetres * 2f;
+        }
+
+        float at = start;
+        foreach ((float from, float to) in gaps)
+        {
+            BoundaryRun(draw, run, at, from, line, paint, sideways: false);
+            if (border) BoundaryRun(draw, FrontKit.Border, at + .3f, from - .15f, line - half - .42f, bloom, sideways: false);
+            at = to;
+        }
+        BoundaryRun(draw, run, at, end, line, paint, sideways: false);
+        if (border) BoundaryRun(draw, FrontKit.Border, at + .15f, end - .3f, line - half - .42f, bloom, sideways: false);
+
+        if (left) BoundaryRun(draw, run, near + .1f, line - half, -w + half, paint, sideways: true);
+
+        if (far - near >= YardTreeLeastMetres)
+        {
+            float middle = (near + line - half) * .5f;
+            float prior = -w;
+            for (int k = 0; k <= gaps.Count; k++)
+            {
+                float next = k < gaps.Count ? gaps[k].From : w;
+                if (next - prior >= 5f)
+                {
+                    float tone = .88f + ((h + (uint)k) % 7 * .04f);
+                    _frontTreeEdits.Add(draw.Tree((prior + next) * .5f, middle, 5.5f + ((h + (uint)k) % 3), new Color(tone, tone, tone)));
+                }
+                if (k < gaps.Count) prior = gaps[k].To;
+            }
+        }
+    }
+
+    private void Kit(FrontKit module, InstanceValue placed) => _frontKitEdits[(int)module].Add(placed);
+
+    /// <summary>Bays of a 2 m boundary module from one point to another, each stretched to fit; sideways runs toward the Street.</summary>
+    private void BoundaryRun(YardDraw draw, FrontKit module, float from, float to, float line, Color paint, bool sideways)
+    {
+        float length = to - from;
+        if (length < .4f) return;
+        int bays = Math.Max(1, Mathf.RoundToInt(length / FrontBayMetres));
+        float bay = length / bays;
+        for (int k = 0; k < bays; k++)
+        {
+            float along = from + (bay * (k + .5f));
+            Kit(module, sideways
+                ? draw.Module(line, along, 0f, Mathf.Pi * .5f, paint, bay / FrontBayMetres)
+                : draw.Module(along, line, 0f, 0f, paint, bay / FrontBayMetres));
+        }
     }
 
     private const float ForecourtLeastMetres = .9f;
@@ -210,7 +398,7 @@ public partial class Main
     private const float ScreenPanelMetres = 1.8f;
     private const float ScreenGapMetres = .6f;
 
-    // Screen centers stay this far from the frontage middle, where the topiary pair also assumes the door.
+    // Screen centers stay this far from each door.
     private const float DoorGapMetres = 1.8f;
 
     // Kept clear along the shopfront so doors open onto a walkway.
@@ -226,10 +414,11 @@ public partial class Main
     /// <summary>
     /// Street furniture on a shop's paved forecourt. Each shop picks one edge treatment along the street
     /// edge, set at its bay lines. Forecourts from 1.4 m deep may set out café tables, screened from the street
-    /// or not, and from 2.4 m shade them with parasols. Some shops also put out an A-board,
-    /// and some flank their middle with potted topiaries.
+    /// or not, and from 2.4 m shade them with parasols. Screens leave each door clear. Some shops also put
+    /// out an A-board, and some flank the door nearest their middle with potted topiaries.
     /// </summary>
-    private void DressForecourt(YardDraw draw, float w, float near, float far, ulong id)
+    /// <param name="doors">The body's street doors; none means one door mid-frontage.</param>
+    private void DressForecourt(YardDraw draw, float w, float near, float far, ulong id, List<FamilyDoor> doors)
     {
         float deep = far - near;
         if (deep < ForecourtLeastMetres) return;
@@ -249,6 +438,7 @@ public partial class Main
         Color canvas = CanvasTones[(h >> 11) % (uint)CanvasTones.Length];
         Color bloom = BloomTones[(h >> 14) % (uint)BloomTones.Length];
 
+        List<float> entrances = doors.Count > 0 ? [.. doors.Select(d => d.Across)] : [0f];
         float frontage = w * 2f;
         int bays = Math.Max(1, Mathf.RoundToInt(frontage / ForecourtBayMetres));
         float pitch = frontage / bays;
@@ -317,8 +507,13 @@ public partial class Main
                     for (int p = 0; p < panels; p++)
                     {
                         float c = middle + ((p - ((panels - 1) * .5f)) * ScreenPanelMetres);
-                        if (Mathf.Abs(c) < DoorGapMetres) c = Mathf.Sign(c) * DoorGapMetres;
-                        if (c != 0f && Mathf.Abs(c - middle) <= reach) Furnish(Furniture.CafeScreen, draw.Module(c, far - .25f, PavingTop, 0f, canvas));
+                        foreach (float door in entrances)
+                        {
+                            if (Mathf.Abs(c - door) < DoorGapMetres) c = door + (c < door ? -DoorGapMetres : DoorGapMetres);
+                        }
+
+                        bool clear = !entrances.Exists(door => Mathf.Abs(c - door) < DoorGapMetres - .01f);
+                        if (clear && Mathf.Abs(c - middle) <= reach) Furnish(Furniture.CafeScreen, draw.Module(c, far - .25f, PavingTop, 0f, canvas));
                     }
                 }
             }
@@ -330,8 +525,9 @@ public partial class Main
 
         if (topiary)
         {
+            float door = entrances.MinBy(MathF.Abs);
             for (int side = -1; side <= 1; side += 2)
-                Furnish(Furniture.Topiary, draw.Module(side * 1.3f, near + .4f, PavingTop, 0f, Colors.White));
+                Furnish(Furniture.Topiary, draw.Module(Mathf.Clamp(door + (side * 1.3f), -w + .4f, w - .4f), near + .4f, PavingTop, 0f, Colors.White));
         }
     }
 
@@ -385,9 +581,9 @@ public partial class Main
     {
         _frontYardIds.Remove(id);
         _frontGround.Multimesh.Replace(id, []);
-        _frontHedges.Multimesh.Replace(id, []);
         _frontTrees.Multimesh.Replace(id, []);
         foreach (InstanceLayer layer in _furniture) layer.Multimesh.Replace(id, []);
+        foreach (InstanceLayer layer in _frontKit) layer.Multimesh.Replace(id, []);
     }
 
     /// <summary>Boxes and trees in a body's own frame: across its frontage, forward toward the Street.</summary>
@@ -403,14 +599,17 @@ public partial class Main
         public InstanceValue At(float u, float s, float wide, float deep, float y0, float y1, Color paint) =>
             Box(u - (wide * .5f), u + (wide * .5f), s - (deep * .5f), s + (deep * .5f), y0, y1, paint);
 
-        /// <summary>A whole forecourt module, its street side toward the Street, turned about the upright by <paramref name="turn"/>.</summary>
-        public InstanceValue Module(float u, float s, float y, float turn, Color paint)
+        /// <summary>
+        /// A whole module, its street side toward the Street, turned about the upright by <paramref name="turn"/>
+        /// and stretched by <paramref name="wide"/> along its own X and <paramref name="deep"/> along its depth.
+        /// </summary>
+        public InstanceValue Module(float u, float s, float y, float turn, Color paint, float wide = 1f, float deep = 1f, float tall = 1f)
         {
             (float sin, float cos) = MathF.SinCos(turn);
             Vector3 across = (Across * cos) + (Forward * sin);
             Vector3 forward = (Forward * cos) - (Across * sin);
             Vector3 at = Origin + (Across * u) + (Forward * s) + (Vector3.Up * y);
-            return new InstanceValue(new Transform3D(new Basis(across, Vector3.Up, forward), at), paint);
+            return new InstanceValue(new Transform3D(new Basis(across * wide, Vector3.Up * tall, forward * deep), at), paint);
         }
 
         public InstanceValue Tree(float u, float s, float tall, Color shade)
