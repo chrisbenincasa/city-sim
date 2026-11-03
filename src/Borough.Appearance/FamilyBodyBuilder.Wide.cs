@@ -248,7 +248,10 @@ public static partial class FamilyBodyBuilder
     private static void Cuboid(Writer w, Vector3 a, Vector3 b, string part) => w.Box(Vector3.Min(a, b), Vector3.Max(a, b), part);
 
     /// <summary>A wall in the look's ground and upper dressing, with framed windows and a base course.</summary>
-    private static void WideFace(Writer w, WideLook s, Face face, float width, float height, List<Opening> openings, string door)
+    /// <param name="flushStart">Stop the base course at the wall's start rather than wrapping the corner there.</param>
+    /// <param name="flushEnd">Stop the base course at the wall's end.</param>
+    private static void WideFace(Writer w, WideLook s, Face face, float width, float height, List<Opening> openings, string door,
+        bool flushStart = false, bool flushEnd = false)
     {
         if (s.Upper != s.Ground && height > Storey)
         {
@@ -272,7 +275,7 @@ public static partial class FamilyBodyBuilder
             w.Slab(face, b - .07f, b, v, h, Reveal - .06f, Reveal, s.Frame);
         }
 
-        w.Slab(face, -.02f, width + .02f, 0f, .15f, -.03f, 0f, WidePlinth);
+        w.Slab(face, flushStart ? 0f : -.02f, flushEnd ? width : width + .02f, 0f, .15f, -.03f, 0f, WidePlinth);
     }
 
     private static List<Opening> ContemporaryFront(float w, int storeys, UpperWindows windows, bool mirror, bool door)
@@ -340,6 +343,7 @@ public static partial class FamilyBodyBuilder
     }
 
     /// <summary>A row of <paramref name="n"/> houses from <paramref name="x0"/>, fronts facing -Y at <paramref name="y0"/>.</summary>
+    /// <remarks>A row end without its side wall stops its base courses flush with the end.</remarks>
     private static void WideRow(Writer w, WideLook s, int n, float width, float x0, float y0, float y1, int storeys,
         bool front = true, bool back = true, bool left = true, bool right = true, bool door = true, float z0 = 0f, int first = 0)
     {
@@ -355,7 +359,7 @@ public static partial class FamilyBodyBuilder
                 List<Opening> openings = s.Contemporary
                     ? ContemporaryFront(width, storeys, s.Windows, k % 2 == 1, door)
                     : MidCenturyFront(width, storeys, k % 2 == 1, door);
-                WideFace(w, s, face, width, H, openings, paint);
+                WideFace(w, s, face, width, H, openings, paint, flushStart: i == 0 && !left, flushEnd: i == n - 1 && !right);
                 foreach (Opening o in openings)
                 {
                     if (o.Kind == OpeningKind.Door)
@@ -379,7 +383,8 @@ public static partial class FamilyBodyBuilder
             if (back)
             {
                 var face = new Face(new Vector3(x + width, y1, z0), -Vector3.UnitX, Vector3.UnitY);
-                WideFace(w, s, face, width, H, WideBack(width, storeys, s.Contemporary), paint);
+                WideFace(w, s, face, width, H, WideBack(width, storeys, s.Contemporary), paint,
+                    flushStart: i == n - 1 && !right, flushEnd: i == 0 && !left);
             }
         }
 
@@ -394,21 +399,23 @@ public static partial class FamilyBodyBuilder
         if (right) WideFace(w, s, new Face(new Vector3(x0 + (n * width), y0, z0), Vector3.UnitY, Vector3.UnitX), d, H, windows, s.Doors[0]);
     }
 
+    /// <param name="flush">Sides on a party line, whose coping stops at the line rather than oversailing it.</param>
     private static void Parapet(Writer w, WideLook s, float x0, float x1, float y0, float y1, float z, string? material = null,
-        float height = .45f)
+        float height = .45f, AttachedSides flush = AttachedSides.None)
     {
         const float Wall = .25f, Over = .03f;
         string wall = material ?? s.Upper;
+        float left = flush.HasFlag(AttachedSides.Left) ? 0f : Over, right = flush.HasFlag(AttachedSides.Right) ? 0f : Over;
         w.Box(new Vector3(x0, y0, z - .05f), new Vector3(x1, y1, z + .02f), Deck);
         w.Box(new Vector3(x0, y0, z), new Vector3(x1, y0 + Wall, z + height), wall);
         w.Box(new Vector3(x0, y1 - Wall, z), new Vector3(x1, y1, z + height), wall);
         w.Box(new Vector3(x0, y0, z), new Vector3(x0 + Wall, y1, z + height), wall);
         w.Box(new Vector3(x1 - Wall, y0, z), new Vector3(x1, y1, z + height), wall);
         float top = z + height, coping = top + .06f;
-        w.Box(new Vector3(x0 - Over, y0 - Over, top), new Vector3(x1 + Over, y0 + Wall + Over, coping), s.Trim);
-        w.Box(new Vector3(x0 - Over, y1 - Wall - Over, top), new Vector3(x1 + Over, y1 + Over, coping), s.Trim);
-        w.Box(new Vector3(x0 - Over, y0 - Over, top), new Vector3(x0 + Wall + Over, y1 + Over, coping), s.Trim);
-        w.Box(new Vector3(x1 - Wall - Over, y0 - Over, top), new Vector3(x1 + Over, y1 + Over, coping), s.Trim);
+        w.Box(new Vector3(x0 - left, y0 - Over, top), new Vector3(x1 + right, y0 + Wall + Over, coping), s.Trim);
+        w.Box(new Vector3(x0 - left, y1 - Wall - Over, top), new Vector3(x1 + right, y1 + Over, coping), s.Trim);
+        w.Box(new Vector3(x0 - left, y0 - Over, top), new Vector3(x0 + Wall + Over, y1 + Over, coping), s.Trim);
+        w.Box(new Vector3(x1 - Wall - Over, y0 - Over, top), new Vector3(x1 + right, y1 + Over, coping), s.Trim);
     }
 
     /// <summary>A tall window up the face of a front gable standing at <paramref name="y"/>.</summary>

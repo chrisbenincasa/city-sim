@@ -45,6 +45,7 @@ kinds = ["dwelling", "shopfront", "school", "port", "hospital", "clinic", "unive
 id = "rowhouses"
 model = "test-street/rowhouses"
 kinds = ["dwelling"]
+weight = 3
 storeys = [2, 3]
 frontage_metres = [4, 12]
 depth_metres = [8, 16]
@@ -123,6 +124,7 @@ door = "5a3325"
 id = "rowhouses-parapet"
 model = "test-street/rowhouses"
 kinds = ["dwelling"]
+weight = 3
 storeys = [2, 3]
 frontage_metres = [4, 12]
 depth_metres = [8, 16]
@@ -196,6 +198,7 @@ door = "5a3325"
 id = "rowhouses-mansard"
 model = "test-street/rowhouses"
 kinds = ["dwelling"]
+weight = 3
 storeys = [2, 3]
 frontage_metres = [4, 12]
 depth_metres = [8, 16]
@@ -269,6 +272,7 @@ door = "5a3325"
 id = "rowhouses-front-gable"
 model = "test-street/rowhouses"
 kinds = ["dwelling"]
+weight = 3
 storeys = [2, 3]
 frontage_metres = [4, 12]
 depth_metres = [8, 16]
@@ -343,6 +347,7 @@ door = "5a3325"
 id = "rowhouses-paired-gable"
 model = "test-street/rowhouses"
 kinds = ["dwelling"]
+weight = 3
 storeys = [2, 3]
 frontage_metres = [4, 11]
 depth_metres = [8, 16]
@@ -417,6 +422,7 @@ door = "5a3325"
 id = "rowhouses-bay-front"
 model = "test-street/rowhouses"
 kinds = ["dwelling"]
+weight = 3
 storeys = [2, 3]
 frontage_metres = [4, 12]
 depth_metres = [8, 16]
@@ -485,6 +491,161 @@ wall = "7a7a5c"
 wall-end = "6c6c52"
 trim = "ebe6d8"
 door = "5a3325"
+
+# ---------------------------------------------------------------------------------------------
+# Contemporary and mid-century rowhouses. scripts/art/rowhouse-periods.py is the Blender reference.
+# Each terrace draws its walls, roof and paint from one shared look, so these families take no
+# materials or paints. A terrace takes the family that ranks first by weight: contemporary forms
+# weigh 7, mid-century 6 and the six traditional forms 3.
+
+# A steep front gable with no eaves and a glazed gable; every other house stands 1.2 m back.
+[[family]]
+id = "rowhouses-eaveless-gable"
+model = "test-street/rowhouses"
+kinds = ["dwelling"]
+weight = 7
+storeys = [2, 3]
+frontage_metres = [4, 12]
+depth_metres = [8, 16]
+patterns = ["perimeter", "back-to-back"]
+
+[family.body]
+library = "test-street/rowhouses"
+bay_metres = 3.5
+terrace = "eaveless-gable"
+pitch_degrees = [38, 45]
+
+# A flat roof with the top storey set 2.2 m back behind a railed roof terrace.
+[[family]]
+id = "rowhouses-roof-terrace"
+model = "test-street/rowhouses"
+kinds = ["dwelling"]
+weight = 7
+storeys = [2, 3]
+frontage_metres = [4, 12]
+depth_metres = [8, 16]
+patterns = ["perimeter", "back-to-back"]
+
+[family.body]
+library = "test-street/rowhouses"
+bay_metres = 3.5
+terrace = "roof-terrace"
+
+# A mono-pitch to each house, the whole terrace rising one way, glazed in each step.
+[[family]]
+id = "rowhouses-sawtooth"
+model = "test-street/rowhouses"
+kinds = ["dwelling"]
+weight = 7
+storeys = [2, 3]
+frontage_metres = [4, 12]
+depth_metres = [8, 16]
+patterns = ["perimeter", "back-to-back"]
+
+[family.body]
+library = "test-street/rowhouses"
+bay_metres = 3.5
+terrace = "sawtooth"
+pitch_degrees = [14, 22]
+
+# A flat roof over upper storeys framed by a box standing out from the street wall.
+[[family]]
+id = "rowhouses-box-front"
+model = "test-street/rowhouses"
+kinds = ["dwelling"]
+weight = 7
+storeys = [2, 3]
+frontage_metres = [4, 12]
+depth_metres = [8, 16]
+patterns = ["perimeter", "back-to-back"]
+
+[family.body]
+library = "test-street/rowhouses"
+bay_metres = 3.5
+terrace = "box-front"
+
+# A shallow side gable with deep eaves over brick cross walls and panels under ribbon windows.
+[[family]]
+id = "rowhouses-cross-wall"
+model = "test-street/rowhouses"
+kinds = ["dwelling"]
+weight = 6
+storeys = [2, 3]
+frontage_metres = [4, 12]
+depth_metres = [8, 16]
+patterns = ["perimeter", "back-to-back"]
+
+[family.body]
+library = "test-street/rowhouses"
+bay_metres = 3.5
+terrace = "cross-wall"
+pitch_degrees = [12, 16]
+
+# An inverted metal roof falling from the party walls to a valley on the center line.
+[[family]]
+id = "rowhouses-butterfly"
+model = "test-street/rowhouses"
+kinds = ["dwelling"]
+weight = 6
+storeys = [2, 3]
+frontage_metres = [4, 12]
+depth_metres = [8, 16]
+patterns = ["perimeter", "back-to-back"]
+
+[family.body]
+library = "test-street/rowhouses"
+bay_metres = 3.5
+terrace = "butterfly"
+pitch_degrees = [10, 15]
+
+# A low roof, hipped at a free end, over an upper storey hung with tiles or boards.
+[[family]]
+id = "rowhouses-tile-hung"
+model = "test-street/rowhouses"
+kinds = ["dwelling"]
+weight = 6
+storeys = [2, 3]
+frontage_metres = [4, 12]
+depth_metres = [8, 16]
+patterns = ["perimeter", "back-to-back"]
+
+[family.body]
+library = "test-street/rowhouses"
+bay_metres = 3.5
+terrace = "tile-hung"
+pitch_degrees = [18, 24]
+
+# The parapet form's massing as contemporary infill: a plain parapet under a thin metal coping.
+[[family]]
+id = "rowhouses-parapet-infill"
+model = "test-street/rowhouses"
+kinds = ["dwelling"]
+weight = 7
+storeys = [2, 3]
+frontage_metres = [4, 12]
+depth_metres = [8, 16]
+patterns = ["perimeter", "back-to-back"]
+
+[family.body]
+library = "test-street/rowhouses"
+bay_metres = 3.5
+terrace = "parapet-infill"
+
+# The mansard form's massing as contemporary: a top storey clad in standing-seam metal.
+[[family]]
+id = "rowhouses-mansard-zinc"
+model = "test-street/rowhouses"
+kinds = ["dwelling"]
+weight = 7
+storeys = [2, 3]
+frontage_metres = [4, 12]
+depth_metres = [8, 16]
+patterns = ["perimeter", "back-to-back"]
+
+[family.body]
+library = "test-street/rowhouses"
+bay_metres = 3.5
+terrace = "mansard-zinc"
 
 [[family]]
 id = "corridor-apartments"

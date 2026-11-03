@@ -1,5 +1,8 @@
 using System.Numerics;
 using Borough.Appearance;
+using Borough.Core.Determinism;
+using Borough.Core.Entities;
+using Borough.Core.Space;
 
 namespace Borough.Tests.Appearance;
 
@@ -9,19 +12,25 @@ public sealed class TerraceBodyTests
     private static readonly string[] Forms =
     [
         "rowhouses", "rowhouses-parapet", "rowhouses-mansard", "rowhouses-front-gable", "rowhouses-paired-gable", "rowhouses-bay-front",
+        "rowhouses-eaveless-gable", "rowhouses-roof-terrace", "rowhouses-sawtooth", "rowhouses-box-front", "rowhouses-cross-wall",
+        "rowhouses-butterfly", "rowhouses-tile-hung", "rowhouses-parapet-infill", "rowhouses-mansard-zinc",
     ];
+
+    private static readonly WorldKey World = WorldKey.FromSeed(11);
 
     private static readonly AttachedSides[] Sides =
     [
         AttachedSides.None, AttachedSides.Left, AttachedSides.Right, AttachedSides.Left | AttachedSides.Right,
     ];
 
-    private static FamilyBody TestStreet(string family)
+    private static StylePreset TestStreet()
     {
         StylePresetResult read = StylePresetReader.Read(Path.Combine(AppContext.BaseDirectory, "Appearance", "test-street"));
         Assert.Empty(read.Errors);
-        return read.Preset!.Families.Single(f => f.Id == family).Body!;
+        return read.Preset!;
     }
+
+    private static FamilyBody TestStreet(string family) => TestStreet().Families.Single(f => f.Id == family).Body!;
 
     public static TheoryData<string, int, int, int> Shapes()
     {
@@ -46,7 +55,7 @@ public sealed class TerraceBodyTests
         (int low, int high) = body.Terrace!.PitchDegrees is { } pitch ? ((int)pitch.Low, (int)pitch.High) : (0, 0);
         foreach (AttachedSides sides in Sides)
         {
-            foreach (TerracePlace place in (TerracePlace[])[new(low, 0, 4), new(high, 1, 4), new(high, 3, 4)])
+            foreach (TerracePlace place in (TerracePlace[])[new(low, 0, 4, 3), new(high, 1, 4, 3), new(high, 3, 4, 3), new(low, 2, 4, 200)])
             {
                 yield return (sides, place, FamilyBodyBuilder.Build(body, frontage, depth, storeys, sides, place));
             }
@@ -142,4 +151,50 @@ public sealed class TerraceBodyTests
             Assert.InRange(door.Sill, 0f, 1.5f);
         }
     }
+
+    [Fact]
+    public void A_sawtooth_terrace_rises_one_way()
+    {
+        FamilyBody body = TestStreet("rowhouses-sawtooth");
+        var rising = new HashSet<bool>();
+        for (int seed = 0; seed < 16; seed++)
+        {
+            bool[] houses = [.. Enumerable.Range(0, 4).Select(i =>
+                FamilyBodyBuilder.Build(body, 6f, 12f, 2, AttachedSides.Left | AttachedSides.Right, new TerracePlace(18, i, 4, seed)).Parts
+                    .Where(p => p.Part.StartsWith("roof@", StringComparison.Ordinal)).SelectMany(p => p.Mesh.Positions.ToArray()).MaxBy(p => p.Y).X > 0f)];
+            Assert.All(houses, h => Assert.Equal(houses[0], h));
+            rising.Add(houses[0]);
+        }
+
+        Assert.Equal(2, rising.Count);
+    }
+
+    /// <remarks>The bands hold the share each period takes at the preset's weights.</remarks>
+    [Theory]
+    [InlineData(5, ContemporaryShare, MidCenturyShare)]
+    [InlineData(8, ContemporaryShare, MidCenturyShare)]
+    public void Rowhouses_draw_contemporary_first(int frontage, double contemporary, double midCentury)
+    {
+        const double Band = .07;
+        StylePreset preset = TestStreet();
+        int con = 0, mid = 0, all = 0;
+        for (ulong face = 1; face <= 400; face++)
+        {
+            for (int i = 0; i < 24; i++)
+            {
+                var facts = new BuildingFacts((face * 100) + (ulong)i, "dwelling", frontage, 12, 2 + (i % 2), BlockPattern.Perimeter,
+                    LotTable.Housing, 0, face, StreetSide.Left, Offset: (frontage * i) + 1, ParcelFrontage: frontage);
+                TerraceBody terrace = FamilyPicker.Pick(preset, World, facts).Family!.Body!.Terrace!;
+                all++;
+                if (!terrace.Period) continue;
+                if (terrace.Contemporary) con++;
+                else mid++;
+            }
+        }
+
+        Assert.InRange((double)con / all, contemporary - Band, contemporary + Band);
+        Assert.InRange((double)mid / all, midCentury - Band, midCentury + Band);
+    }
+
+    private const double ContemporaryShare = .52, MidCenturyShare = .22;
 }
