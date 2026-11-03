@@ -15,7 +15,7 @@ plan, and neighbors across runs never share a form and pitch within 5 degrees.
 | Group | Families | Lots | Forms | Variety | Periods | Where |
 |---|---|---|---|---|---|---|
 | Narrow detached houses | `house-detached-*`, `house-narrow-*` | 1–3 storeys, 8–11 m | 18, 17 under 10 m | Meets the bar | 10 / 4 / 4 | `founding-period-share` |
-| Rowhouses | `rowhouses`, `rowhouses-*` | 2–3 storeys, 4–12 m, up to 16 m deep | 6, 5 at 12 m | Meets the bar | 6 / 0 / 0 | main, #241 |
+| Rowhouses | `rowhouses`, `rowhouses-*` | 2–3 storeys, 4–12 m, up to 16 m deep | 15, 14 at 12 m | Meets the bar | 6 / 3 / 6 | `rowhouse-periods` |
 | Attached apartments | `corridor-`, `two-unit-`, `walkup-apartments*` | 3 storeys, 20–36 m | 8 per band | Meets the bar | 5 / 1 / 2 | #242 |
 | Detached apartments | `detached-corridor*`, `detached-walkup*`, `detached-two-unit*` | 4–5 storeys, 16–64 m | 7–8 | Meets the bar | 5 / 1 / 2 | #242 |
 | Shop houses | `shop-house-*` | 2–4 storeys, 4–24 m | 9 | Meets the bar; parades stand detached (#243) | 6 / 2 / 1 | #244 |
@@ -34,6 +34,8 @@ plan, and neighbors across runs never share a form and pitch within 5 degrees.
 Periods counts forms as traditional / mid-century / contemporary under
 [the drawing's period mix](../docs/07-the-drawing.md#22-contemporary-first). The counts are a first
 reading of names and renders, not a reviewed classification.
+Rowhouses weigh 7, 6 and 3 by period and draw 51% contemporary, 22% mid-century and 27% traditional
+of `traded`'s 353 rowhouses.
 
 ## Where each family draws
 
@@ -98,8 +100,6 @@ detached shops.
 ## Next
 
 1. Add school and port bodies, the last two boxes in a founding run.
-2. Add contemporary and mid-century rowhouse forms. Six traditional rowhouse families draw 353 of
-   `traded`'s Buildings.
-3. Add contemporary and mid-century mansion-block forms. Three traditional mansion families draw 114
+2. Add contemporary and mid-century mansion-block forms. Three traditional mansion families draw 114
    of `base`'s Buildings.
-4. Add pad-site stores, the largest shopfront gap on `traded` and `pictured`.
+3. Add pad-site stores, the largest shopfront gap on `traded` and `pictured`.

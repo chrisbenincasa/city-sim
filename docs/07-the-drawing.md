@@ -188,9 +188,16 @@ founding run replayed to Day 45 by `FoundingPeriodProbe`:
 | Founding run | 65% | 32% | 3% | mansion blocks |
 | `gridded.toml` | 66% | 17% | 17% | wide houses, apartments |
 | `pictured.toml` | 52% | 29% | 19% | narrow houses |
-| `base/ruleset.toml` | 50% | 23% | 27% | mansion blocks |
-| `traded.toml` | 35% | 21% | 44% | rowhouses, narrow houses |
+| `base/ruleset.toml` | 53% | 24% | 23% | mansion blocks |
+| `traded.toml` | 50% | 26% | 25% | narrow houses, rowhouses |
 | `platted.toml` | 28% | 23% | 49% | mansion blocks, apartments |
+
+Rowhouses draw fifteen forms. Six are contemporary: the eaveless gable, roof terrace, sawtooth and box
+front, and the parapet and mansard re-dressed as flat-front infill and a zinc top storey. Three are
+mid-century: the cross wall, butterfly and tile-hung forms. Six are traditional. The families weigh
+7, 6 and 3 by period, chosen by the user on 11/03/2026. On `traded.toml`, rowhouses draw 51%
+contemporary, 22% mid-century and 27% traditional of 353 Buildings. `TerraceBodyTests` holds the
+picker's rowhouse shares within 7 points of 52% and 22%.
 
 Bringing the rest to this mix is the board row "Period mix in the shipped families".
 

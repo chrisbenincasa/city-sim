@@ -285,7 +285,8 @@ public partial class Main
         (int house, int pitch) = body.House is null ? (0, 0) : FamilyPicker.House(preset, _world.Key, facts);
         Terrace? run = FamilyPicker.FormRunOf(family, preset, _world.Key, facts);
         TerracePlace terrace = run is { } span
-            ? new TerracePlace(FamilyPicker.TerracePitch(family, _world.Key, span), span.Index, span.Houses)
+            ? new TerracePlace(FamilyPicker.TerracePitch(family, _world.Key, span), span.Index, span.Houses,
+                body.Terrace is { Period: true } ? FamilyPicker.RunSeed(_world.Key, span) : 0)
             : default;
         if (body.Shop is not null || Dressed(body))
         {
@@ -640,7 +641,7 @@ public partial class Main
             arrays[(int)Mesh.ArrayType.Normal] = normals;
             arrays[(int)Mesh.ArrayType.TexUV] = uvs;
             arrays[(int)Mesh.ArrayType.TexUV2] = uv2s;
-            if (request.Body.House is not null || request.Body.Shop is not null || Dressed(request.Body))
+            if (VertexPainted(request.Body))
             {
                 var colors = new Color[source.VertexCount];
                 for (int i = 0; i < colors.Length; i++)
@@ -708,7 +709,7 @@ public partial class Main
                 continue;
             }
 
-            if (body.House is not null || body.Shop is not null || Dressed(body))
+            if (VertexPainted(body))
             {
                 HouseSurface(mesh, part, arrays, library, family.Id, reads);
                 continue;
@@ -757,6 +758,10 @@ public partial class Main
 
     /// <summary>Whether a body draws its own dressed surfaces, as a workshop form other than the panel shed does.</summary>
     private static bool Dressed(FamilyBody body) => body.Workshop is { Form: not WorkshopForm.PanelShed };
+
+    /// <summary>Whether a body's surfaces name their own textures and carry their paint in vertex colors.</summary>
+    private static bool VertexPainted(FamilyBody body) =>
+        body.House is not null || body.Shop is not null || Dressed(body) || body.Terrace is { Period: true };
 
     /// <summary>
     /// A house surface. Its part is <c>part@texture</c> for a library texture or a bare part for the

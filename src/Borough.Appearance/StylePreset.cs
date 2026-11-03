@@ -257,7 +257,19 @@ public sealed record FamilyBody(
 
 /// <summary>An attached house's roof and plan. Every house of one terrace shares them and its pitch.</summary>
 /// <param name="PitchDegrees">The range a terrace's pitch is drawn from, or <c>null</c> for a flat or mansard roof.</param>
-public sealed record TerraceBody(TerraceForm Form, Bounds? PitchDegrees);
+public sealed record TerraceBody(TerraceForm Form, Bounds? PitchDegrees)
+{
+    /// <summary>
+    /// Whether the form is a contemporary or mid-century one. Those draw their own dressed and painted
+    /// surfaces from the terrace's shared look rather than the family's materials and paints.
+    /// </summary>
+    public bool Period => Form is TerraceForm.EavelessGable or TerraceForm.RoofTerrace or TerraceForm.Sawtooth or TerraceForm.BoxFront
+        or TerraceForm.CrossWall or TerraceForm.Butterfly or TerraceForm.TileHung or TerraceForm.ParapetInfill or TerraceForm.MansardZinc;
+
+    /// <summary>Whether the form is a contemporary one.</summary>
+    public bool Contemporary => Form is TerraceForm.EavelessGable or TerraceForm.RoofTerrace or TerraceForm.Sawtooth or TerraceForm.BoxFront
+        or TerraceForm.ParapetInfill or TerraceForm.MansardZinc;
+}
 
 /// <summary>The roofs and plans an attached house can take.</summary>
 public enum TerraceForm : byte
@@ -279,6 +291,33 @@ public enum TerraceForm : byte
 
     /// <summary>A side gable over a front wall set back behind a bay window that reaches the Lot line.</summary>
     BayFront,
+
+    /// <summary>A steep front gable with no eaves and a glazed gable; every other house stands back from the street.</summary>
+    EavelessGable,
+
+    /// <summary>A flat roof with the top storey set back behind a railed roof terrace.</summary>
+    RoofTerrace,
+
+    /// <summary>A mono-pitch to each house, every house of a terrace rising the same way, glazed in its step.</summary>
+    Sawtooth,
+
+    /// <summary>A flat roof behind a thin coping, the upper storeys framed by a box standing out from the street wall.</summary>
+    BoxFront,
+
+    /// <summary>A shallow side gable with deep eaves, brick cross walls standing forward on the party lines, panels under ribbon windows.</summary>
+    CrossWall,
+
+    /// <summary>An inverted metal roof falling from the party walls to a valley on the house's center line.</summary>
+    Butterfly,
+
+    /// <summary>A low roof along the street, hipped at a free end, over an upper storey hung with tiles or boards.</summary>
+    TileHung,
+
+    /// <summary>The parapet form's massing as contemporary infill: a plain parapet in the wall material under a thin metal coping.</summary>
+    ParapetInfill,
+
+    /// <summary>The mansard form's massing as contemporary: a top storey clad in standing-seam metal, lit by flush framed boxes.</summary>
+    MansardZinc,
 }
 
 /// <summary>An apartment Building's roof and plan. Every Building of one run shares them and its pitch.</summary>

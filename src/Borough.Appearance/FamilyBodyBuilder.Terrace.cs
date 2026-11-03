@@ -6,7 +6,8 @@ namespace Borough.Appearance;
 /// <param name="PitchDegrees">The terrace's pitch, or 0 for the midpoint of the family's range.</param>
 /// <param name="Index">The house's place in its terrace. Odd houses lay their bays from the right.</param>
 /// <param name="Houses">How many Lots the terrace spans.</param>
-public readonly record struct TerracePlace(int PitchDegrees, int Index, int Houses);
+/// <param name="Seed">The draw a period form's shared look is built from, out of <see cref="FamilyBodyBuilder.HouseSeeds"/>.</param>
+public readonly record struct TerracePlace(int PitchDegrees, int Index, int Houses, int Seed = 0);
 
 /// <summary>
 /// The attached house forms: one house between its side walls, varied by roof and plan. They follow
@@ -37,6 +38,12 @@ public static partial class FamilyBodyBuilder
         var w = new Writer(mesh, body);
         float x = frontage / 2f, y = depth / 2f;
         float pitch = place.PitchDegrees > 0 ? place.PitchDegrees : body.GableDegrees;
+        if (terrace.Period)
+        {
+            PeriodTerrace(w, terrace, x, y, storeys, attached, place, pitch);
+            return mesh;
+        }
+
         bool mirror = place.Index % 2 == 1;
         int bays = Bays(frontage, body.BayMetres);
         int wallStoreys = terrace.Form == TerraceForm.Mansard && storeys > 1 ? storeys - 1 : storeys;

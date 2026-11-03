@@ -647,11 +647,21 @@ public static class StylePresetReader
                 "front-gable" => TerraceForm.FrontGable,
                 "paired-gable" => TerraceForm.PairedGable,
                 "bay-front" => TerraceForm.BayFront,
+                "eaveless-gable" => TerraceForm.EavelessGable,
+                "roof-terrace" => TerraceForm.RoofTerrace,
+                "sawtooth" => TerraceForm.Sawtooth,
+                "box-front" => TerraceForm.BoxFront,
+                "cross-wall" => TerraceForm.CrossWall,
+                "butterfly" => TerraceForm.Butterfly,
+                "tile-hung" => TerraceForm.TileHung,
+                "parapet-infill" => TerraceForm.ParapetInfill,
+                "mansard-zinc" => TerraceForm.MansardZinc,
                 _ => null,
             };
             if (form is not { } found)
             {
-                Refuse(LineOf(_keys["terrace"]), "'terrace' must be \"side-gable\", \"parapet\", \"mansard\", \"front-gable\", \"paired-gable\" or \"bay-front\".");
+                Refuse(LineOf(_keys["terrace"]), "'terrace' must be \"side-gable\", \"parapet\", \"mansard\", \"front-gable\", \"paired-gable\", "
+                    + "\"bay-front\", \"eaveless-gable\", \"roof-terrace\", \"sawtooth\", \"box-front\", \"cross-wall\", \"butterfly\", \"tile-hung\", \"parapet-infill\" or \"mansard-zinc\".");
                 return null;
             }
 
@@ -660,10 +670,14 @@ public static class StylePresetReader
                 if (_keys.TryGetValue(own, out KeyValueSyntax? refused)) Refuse(LineOf(refused), $"a terrace form draws its own roof, so it takes no '{own}'.");
             }
 
-            bool pitched = found is not (TerraceForm.Parapet or TerraceForm.Mansard);
-            if (pitched && pitch is not { Low: >= 18, High: <= 45 })
+            bool pitched = found is not (TerraceForm.Parapet or TerraceForm.Mansard or TerraceForm.RoofTerrace or TerraceForm.BoxFront
+                or TerraceForm.ParapetInfill or TerraceForm.MansardZinc);
+
+            // The mid-century and sawtooth roofs are low by design.
+            int least = new TerraceBody(found, null).Period ? 8 : 18;
+            if (pitched && (pitch is not { } given || given.Low < least || given.High > 45))
             {
-                Refuse(LineOf(_keys["terrace"]), "a pitched terrace form needs 'pitch_degrees' = [low, high] within 18 to 45 degrees.");
+                Refuse(LineOf(_keys["terrace"]), $"a pitched {name} terrace needs 'pitch_degrees' = [low, high] within {least} to 45 degrees.");
                 return null;
             }
 
