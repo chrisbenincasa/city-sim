@@ -470,11 +470,17 @@ public static class StylePresetReader
                     "gable-front" => MidriseVariant.GableFront,
                     "ribbon" => MidriseVariant.Ribbon,
                     "crosswall" => MidriseVariant.Crosswall,
+                    "school-roof-play" => MidriseVariant.SchoolRoofPlay,
+                    "school-ribbon" => MidriseVariant.SchoolRibbon,
+                    "school-board" => MidriseVariant.SchoolBoard,
+                    "gate-interchange" => MidriseVariant.GateInterchange,
+                    "gate-hall" => MidriseVariant.GateHall,
+                    "gate-station" => MidriseVariant.GateStation,
                     _ => null,
                 };
                 if (variant is not null && parsed is null)
                 {
-                    Refuse(LineOf(_keys["variant"]), "'variant' must be \"mansion\", \"panel-slab\", \"brick-loggia\", \"timber-frame\", \"white-render\", \"gable-front\", \"ribbon\" or \"crosswall\".");
+                    Refuse(LineOf(_keys["variant"]), "'variant' must be \"mansion\", \"panel-slab\", \"brick-loggia\", \"timber-frame\", \"white-render\", \"gable-front\", \"ribbon\", \"crosswall\", \"school-roof-play\", \"school-ribbon\", \"school-board\", \"gate-interchange\", \"gate-hall\" or \"gate-station\".");
                 }
                 else if (parsed is { } found)
                 {
@@ -849,7 +855,7 @@ public static class StylePresetReader
                 }
             }
 
-            if (FamilyBodyBuilder.IsPerimeter(variant))
+            if (FamilyBodyBuilder.IsPerimeter(variant) || FamilyBodyBuilder.IsCivic(variant))
             {
                 foreach (string key in (string[])["street_openings", "shops"])
                 {

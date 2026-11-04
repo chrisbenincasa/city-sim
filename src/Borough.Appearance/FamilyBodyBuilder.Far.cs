@@ -24,6 +24,7 @@ public static partial class FamilyBodyBuilder
             {
                 MidriseVariant.Mansion => MansionFarFacade(midrise),
                 MidriseVariant.PanelSlab => SlabFarFacade(midrise),
+                _ when IsCivic(midrise.Variant) => CivicFarFacade(midrise),
                 _ when IsPerimeter(midrise.Variant) => PerimeterFarFacade(midrise),
                 _ => throw new ArgumentOutOfRangeException(nameof(body)),
             };
@@ -71,6 +72,30 @@ public static partial class FamilyBodyBuilder
             new(2, $"{name}-typical", wall, look.Bay, window.W, window.H, window.Sill),
             new(MansionAtticFarCell, $"{name}-attic", "attic", look.Bay, attic, 2.6f, .2f),
             new(4, $"{name}-end", wall, look.Bay, window.W, window.H, window.Sill),
+        ]);
+    }
+
+    /// <summary>A School or Gate form's cells. They take the mansion block's ids without the attic, and each window stands for the form's typical opening.</summary>
+    private static FamilyBodyFarFacade CivicFarFacade(MidriseBody body)
+    {
+        CivicLook look = CivicLookOf(body);
+        (string name, string wall, string groundWall, (float W, float H, float Sill) window, (float W, float H, float Sill) ground, (float W, float H, float Sill) end) = look.Form switch
+        {
+            MidriseVariant.SchoolRoofPlay => ("school-roof-play", "wall", "wall", look.Window, look.Window, (look.EndWindow, look.Window.H, look.Window.Sill)),
+            MidriseVariant.SchoolRibbon => ("school-ribbon", "spandrel", "spandrel", (look.Bay - .1f, look.Ribbon.High - look.Ribbon.Low, look.Ribbon.Low),
+                (look.Bay - .1f, look.Ribbon.High - look.Ribbon.Low, look.Ribbon.Low), default),
+            MidriseVariant.SchoolBoard => ("school-board", "wall", "wall", look.Window, look.Window, look.Window),
+            MidriseVariant.GateInterchange => ("gate-interchange", "wall", "wall-end", (look.Bay - .1f, look.Ribbon.High - look.Ribbon.Low, look.Ribbon.Low),
+                (look.Bay - .2f, 2.6f, .3f), (look.Bay - .1f, look.Ribbon.High - look.Ribbon.Low, look.Ribbon.Low)),
+            MidriseVariant.GateHall => ("gate-hall", "wall", "wall", (2f, 1.8f, .9f), (2f, 1.8f, .9f), (look.Bay - .1f, look.Ribbon.High - look.Ribbon.Low, look.Ribbon.Low)),
+            _ => ("gate-station", "wall", "wall", look.Window, look.Window, look.Window),
+        };
+        return new FamilyBodyFarFacade(name,
+        [
+            new(0, $"{name}-party", "wall", look.Bay, 0f, 0f, 0f),
+            new(1, $"{name}-ground", groundWall, look.Bay, ground.W, ground.H, ground.Sill),
+            new(2, $"{name}-typical", wall, look.Bay, window.W, window.H, window.Sill),
+            new(4, $"{name}-end", look.Form == MidriseVariant.SchoolRibbon ? "wall-end" : wall, look.Bay, end.W, end.H, end.Sill),
         ]);
     }
 

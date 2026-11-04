@@ -70,7 +70,7 @@ public static partial class FamilyBodyBuilder
     [
         "wall", "wall-end", "trim", "roof", "membrane", "glass", "door", "frame", "metal", "plinth",
         "spandrel", "reveal", "paving", "planter", "tree", "attic", "panel", "band", "accent", "canopy",
-        "lobby", "sedum", "plant", "solar",
+        "lobby", "court", "sedum", "plant", "solar",
     ];
 
     private static readonly int[][] BoxFaces = [[0, 3, 2, 1], [4, 5, 6, 7], [0, 1, 5, 4], [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7]];

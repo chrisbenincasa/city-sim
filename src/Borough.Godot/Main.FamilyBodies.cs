@@ -31,7 +31,7 @@ public partial class Main
     [
         "wall-end", "wall", "trim", "roof-new", "roof", "membrane", "glass", "door", "frame", "metal",
         "plinth", "storefront", "sign", "awning", "solar", "spandrel", "reveal", "paving", "planter",
-        "tree", "band", "accent", "canopy", "lobby", "sedum", "plant",
+        "tree", "band", "accent", "canopy", "lobby", "court", "sedum", "plant",
     ];
 
     private static readonly string[] RoofParts = ["roof-new", "roof", "membrane"];
