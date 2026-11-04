@@ -1,0 +1,1969 @@
+{
+  "storey_metres": 3.5,
+  "wing_metres": 16.0,
+  "looks": {
+    "roof-play": {
+      "bay": 3.4,
+      "window": [
+        2.4,
+        2.1,
+        0.8
+      ],
+      "end_bay": 5.0,
+      "end_window": 1.6,
+      "reveal": 0.3,
+      "parapet": 0.5,
+      "entrance": 8.0,
+      "entrance_share": 0.3,
+      "recess": 2.0
+    },
+    "ribbon": {
+      "bay": 2.4,
+      "ribbon": [
+        0.95,
+        2.9
+      ],
+      "spandrel": [
+        0.12,
+        0.9
+      ],
+      "fascia": [
+        0.1,
+        0.45,
+        0.4
+      ],
+      "hall": 15.0,
+      "hall_share": 0.32,
+      "hall_least": 30.0,
+      "hall_rise": 2.5,
+      "stack": 8.0
+    },
+    "board": {
+      "bay": 3.0,
+      "window": [
+        1.3,
+        2.5,
+        0.6
+      ],
+      "group": 15.0,
+      "step": 2.0,
+      "pitch": 45.0,
+      "gable": 9.0,
+      "reveal": 0.2,
+      "plinth": 0.45,
+      "cornice": 0.15
+    },
+    "interchange": {
+      "bay": 3.0,
+      "recess": 4.0,
+      "recess_share": 0.2,
+      "fin": 1.2,
+      "ribbon": [
+        0.5,
+        3.0
+      ],
+      "canopy": 2.5,
+      "pylon": 1.8,
+      "parapet": 0.6,
+      "column": 7.2
+    },
+    "hall": {
+      "bay": 4.0,
+      "pitch": 35.0,
+      "mullion": 1.6,
+      "portal": [
+        9.0,
+        4.8
+      ],
+      "ribbon": [
+        1.0,
+        2.6
+      ],
+      "span": 40.0
+    },
+    "station": {
+      "bay": 3.0,
+      "window": [
+        1.3,
+        2.3,
+        0.7
+      ],
+      "pitch": 35.0,
+      "pavilion": [
+        12.0,
+        0.42
+      ],
+      "forward": 1.0,
+      "rise": 1.5,
+      "tower": 3.4,
+      "canopy": 2.0,
+      "reveal": 0.2
+    }
+  },
+  "far_cells": {
+    "party": 0,
+    "ground": 1,
+    "typical": 2,
+    "end": 4
+  },
+  "sites": [
+    {
+      "name": "roof-play-founding",
+      "form": "roof-play",
+      "frontage": 48,
+      "depth": 20,
+      "storeys": 3,
+      "ring": false,
+      "attached": [],
+      "faces": {
+        "accent": 24,
+        "band": 48,
+        "canopy": 6,
+        "court": 6,
+        "door": 1,
+        "frame": 2400,
+        "glass": 101,
+        "membrane": 6,
+        "metal": 378,
+        "paving": 6,
+        "trim": 24,
+        "wall": 876
+      },
+      "corners": {
+        "accent": 96,
+        "band": 192,
+        "canopy": 24,
+        "court": 24,
+        "door": 4,
+        "frame": 9600,
+        "glass": 404,
+        "membrane": 24,
+        "metal": 1512,
+        "paving": 24,
+        "trim": 96,
+        "wall": 3504
+      },
+      "bounds": [
+        [
+          -24.04,
+          -10.06,
+          0.0
+        ],
+        [
+          24.04,
+          10.04,
+          13.85
+        ]
+      ],
+      "far_faces": {
+        "accent": 6,
+        "canopy": 6,
+        "court": 6,
+        "far-facade": 36,
+        "membrane": 6,
+        "metal": 6,
+        "paving": 6,
+        "trim": 24
+      },
+      "far_corners": {
+        "accent": 24,
+        "canopy": 24,
+        "court": 24,
+        "far-facade": 144,
+        "membrane": 24,
+        "metal": 24,
+        "paving": 24,
+        "trim": 96
+      },
+      "far_bounds": [
+        [
+          -24.04,
+          -10.04,
+          0.0
+        ],
+        [
+          24.04,
+          10.04,
+          13.85
+        ]
+      ],
+      "far_cell_counts": {
+        "1": 4,
+        "2": 4,
+        "4": 4
+      }
+    },
+    {
+      "name": "roof-play-small",
+      "form": "roof-play",
+      "frontage": 28,
+      "depth": 20,
+      "storeys": 3,
+      "ring": false,
+      "attached": [
+        "w"
+      ],
+      "faces": {
+        "accent": 24,
+        "band": 48,
+        "canopy": 6,
+        "court": 6,
+        "door": 1,
+        "frame": 1248,
+        "glass": 53,
+        "membrane": 6,
+        "metal": 294,
+        "paving": 6,
+        "trim": 18,
+        "wall": 534
+      },
+      "corners": {
+        "accent": 96,
+        "band": 192,
+        "canopy": 24,
+        "court": 24,
+        "door": 4,
+        "frame": 4992,
+        "glass": 212,
+        "membrane": 24,
+        "metal": 1176,
+        "paving": 24,
+        "trim": 72,
+        "wall": 2136
+      },
+      "bounds": [
+        [
+          -14.0,
+          -10.06,
+          0.0
+        ],
+        [
+          14.04,
+          10.04,
+          13.85
+        ]
+      ],
+      "far_faces": {
+        "accent": 6,
+        "canopy": 6,
+        "court": 6,
+        "far-facade": 30,
+        "membrane": 6,
+        "metal": 6,
+        "paving": 6,
+        "trim": 18
+      },
+      "far_corners": {
+        "accent": 24,
+        "canopy": 24,
+        "court": 24,
+        "far-facade": 120,
+        "membrane": 24,
+        "metal": 24,
+        "paving": 24,
+        "trim": 72
+      },
+      "far_bounds": [
+        [
+          -14.0,
+          -10.04,
+          0.0
+        ],
+        [
+          14.04,
+          10.04,
+          13.85
+        ]
+      ],
+      "far_cell_counts": {
+        "0": 3,
+        "1": 3,
+        "2": 4,
+        "4": 2
+      }
+    },
+    {
+      "name": "roof-play-attached",
+      "form": "roof-play",
+      "frontage": 40,
+      "depth": 24,
+      "storeys": 4,
+      "ring": false,
+      "attached": [
+        "e"
+      ],
+      "faces": {
+        "accent": 24,
+        "band": 48,
+        "canopy": 6,
+        "court": 6,
+        "door": 1,
+        "frame": 2592,
+        "glass": 109,
+        "membrane": 6,
+        "metal": 366,
+        "paving": 6,
+        "trim": 18,
+        "wall": 924
+      },
+      "corners": {
+        "accent": 96,
+        "band": 192,
+        "canopy": 24,
+        "court": 24,
+        "door": 4,
+        "frame": 10368,
+        "glass": 436,
+        "membrane": 24,
+        "metal": 1464,
+        "paving": 24,
+        "trim": 72,
+        "wall": 3696
+      },
+      "bounds": [
+        [
+          -20.04,
+          -12.06,
+          0.0
+        ],
+        [
+          20.0,
+          12.04,
+          17.35
+        ]
+      ],
+      "far_faces": {
+        "accent": 6,
+        "canopy": 6,
+        "court": 6,
+        "far-facade": 34,
+        "membrane": 6,
+        "metal": 6,
+        "paving": 6,
+        "trim": 18
+      },
+      "far_corners": {
+        "accent": 24,
+        "canopy": 24,
+        "court": 24,
+        "far-facade": 136,
+        "membrane": 24,
+        "metal": 24,
+        "paving": 24,
+        "trim": 72
+      },
+      "far_bounds": [
+        [
+          -20.04,
+          -12.04,
+          0.0
+        ],
+        [
+          20.0,
+          12.04,
+          17.35
+        ]
+      ],
+      "far_cell_counts": {
+        "0": 4,
+        "1": 3,
+        "2": 6,
+        "4": 3
+      }
+    },
+    {
+      "name": "roof-play-ring",
+      "form": "roof-play",
+      "frontage": 56,
+      "depth": 52,
+      "storeys": 3,
+      "ring": true,
+      "attached": [],
+      "faces": {
+        "accent": 24,
+        "band": 48,
+        "canopy": 6,
+        "court": 6,
+        "door": 1,
+        "frame": 6288,
+        "glass": 263,
+        "membrane": 24,
+        "metal": 390,
+        "paving": 6,
+        "trim": 72,
+        "wall": 2328
+      },
+      "corners": {
+        "accent": 96,
+        "band": 192,
+        "canopy": 24,
+        "court": 24,
+        "door": 4,
+        "frame": 25152,
+        "glass": 1052,
+        "membrane": 96,
+        "metal": 1560,
+        "paving": 24,
+        "trim": 288,
+        "wall": 9312
+      },
+      "bounds": [
+        [
+          -28.04,
+          -26.06,
+          0.0
+        ],
+        [
+          28.04,
+          26.04,
+          13.85
+        ]
+      ],
+      "far_faces": {
+        "accent": 6,
+        "canopy": 6,
+        "court": 6,
+        "far-facade": 108,
+        "membrane": 24,
+        "metal": 6,
+        "paving": 6,
+        "trim": 72
+      },
+      "far_corners": {
+        "accent": 24,
+        "canopy": 24,
+        "court": 24,
+        "far-facade": 432,
+        "membrane": 96,
+        "metal": 24,
+        "paving": 24,
+        "trim": 288
+      },
+      "far_bounds": [
+        [
+          -28.04,
+          -26.04,
+          0.0
+        ],
+        [
+          28.04,
+          26.04,
+          13.85
+        ]
+      ],
+      "far_cell_counts": {
+        "1": 12,
+        "2": 24
+      }
+    },
+    {
+      "name": "ribbon-founding",
+      "form": "ribbon",
+      "frontage": 48,
+      "depth": 20,
+      "storeys": 3,
+      "ring": false,
+      "attached": [],
+      "faces": {
+        "canopy": 6,
+        "door": 1,
+        "glass": 9,
+        "membrane": 12,
+        "metal": 12,
+        "panel": 252,
+        "spandrel": 252,
+        "trim": 300,
+        "wall": 36,
+        "wall-end": 90
+      },
+      "corners": {
+        "canopy": 24,
+        "door": 4,
+        "glass": 36,
+        "membrane": 48,
+        "metal": 48,
+        "panel": 1008,
+        "spandrel": 1008,
+        "trim": 1200,
+        "wall": 144,
+        "wall-end": 360
+      },
+      "bounds": [
+        [
+          -24.4,
+          -13.0,
+          0.0
+        ],
+        [
+          24.3,
+          10.4,
+          18.8
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 18,
+        "membrane": 12,
+        "trim": 48,
+        "wall-end": 30
+      },
+      "far_corners": {
+        "far-facade": 72,
+        "membrane": 48,
+        "trim": 192,
+        "wall-end": 120
+      },
+      "far_bounds": [
+        [
+          -24.4,
+          -10.4,
+          0.0
+        ],
+        [
+          24.3,
+          10.4,
+          18.8
+        ]
+      ],
+      "far_cell_counts": {
+        "1": 6,
+        "2": 8,
+        "4": 4
+      }
+    },
+    {
+      "name": "ribbon-small",
+      "form": "ribbon",
+      "frontage": 28,
+      "depth": 20,
+      "storeys": 3,
+      "ring": false,
+      "attached": [
+        "w"
+      ],
+      "faces": {
+        "canopy": 6,
+        "door": 1,
+        "glass": 6,
+        "membrane": 6,
+        "metal": 12,
+        "panel": 216,
+        "spandrel": 216,
+        "trim": 252,
+        "wall": 42,
+        "wall-end": 12
+      },
+      "corners": {
+        "canopy": 24,
+        "door": 4,
+        "glass": 24,
+        "membrane": 24,
+        "metal": 48,
+        "panel": 864,
+        "spandrel": 864,
+        "trim": 1008,
+        "wall": 168,
+        "wall-end": 48
+      },
+      "bounds": [
+        [
+          -14.0,
+          -13.0,
+          0.0
+        ],
+        [
+          14.4,
+          10.4,
+          18.8
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 12,
+        "membrane": 6,
+        "trim": 24,
+        "wall-end": 6
+      },
+      "far_corners": {
+        "far-facade": 48,
+        "membrane": 24,
+        "trim": 96,
+        "wall-end": 24
+      },
+      "far_bounds": [
+        [
+          -14.0,
+          -10.4,
+          0.0
+        ],
+        [
+          14.4,
+          10.4,
+          18.8
+        ]
+      ],
+      "far_cell_counts": {
+        "0": 3,
+        "1": 3,
+        "2": 4,
+        "4": 2
+      }
+    },
+    {
+      "name": "ribbon-attached",
+      "form": "ribbon",
+      "frontage": 40,
+      "depth": 24,
+      "storeys": 4,
+      "ring": false,
+      "attached": [
+        "e"
+      ],
+      "faces": {
+        "canopy": 6,
+        "door": 1,
+        "glass": 10,
+        "membrane": 12,
+        "metal": 12,
+        "panel": 264,
+        "spandrel": 264,
+        "trim": 282,
+        "wall": 54,
+        "wall-end": 66
+      },
+      "corners": {
+        "canopy": 24,
+        "door": 4,
+        "glass": 40,
+        "membrane": 48,
+        "metal": 48,
+        "panel": 1056,
+        "spandrel": 1056,
+        "trim": 1128,
+        "wall": 216,
+        "wall-end": 264
+      },
+      "bounds": [
+        [
+          -20.4,
+          -15.0,
+          0.0
+        ],
+        [
+          20.0,
+          12.4,
+          22.3
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 20,
+        "membrane": 12,
+        "trim": 42,
+        "wall": 6,
+        "wall-end": 24
+      },
+      "far_corners": {
+        "far-facade": 80,
+        "membrane": 48,
+        "trim": 168,
+        "wall": 24,
+        "wall-end": 96
+      },
+      "far_bounds": [
+        [
+          -20.4,
+          -12.4,
+          0.0
+        ],
+        [
+          20.0,
+          12.4,
+          22.3
+        ]
+      ],
+      "far_cell_counts": {
+        "1": 5,
+        "2": 12,
+        "4": 3
+      }
+    },
+    {
+      "name": "ribbon-ring",
+      "form": "ribbon",
+      "frontage": 56,
+      "depth": 52,
+      "storeys": 3,
+      "ring": true,
+      "attached": [],
+      "faces": {
+        "canopy": 6,
+        "door": 1,
+        "glass": 36,
+        "membrane": 24,
+        "metal": 12,
+        "panel": 1116,
+        "spandrel": 1152,
+        "trim": 1338,
+        "wall": 216,
+        "wall-end": 6
+      },
+      "corners": {
+        "canopy": 24,
+        "door": 4,
+        "glass": 144,
+        "membrane": 96,
+        "metal": 48,
+        "panel": 4464,
+        "spandrel": 4608,
+        "trim": 5352,
+        "wall": 864,
+        "wall-end": 24
+      },
+      "bounds": [
+        [
+          -28.4,
+          -29.0,
+          0.0
+        ],
+        [
+          28.4,
+          26.4,
+          18.8
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 36,
+        "membrane": 24,
+        "trim": 78,
+        "wall-end": 6
+      },
+      "far_corners": {
+        "far-facade": 144,
+        "membrane": 96,
+        "trim": 312,
+        "wall-end": 24
+      },
+      "far_bounds": [
+        [
+          -28.4,
+          -26.4,
+          0.0
+        ],
+        [
+          28.4,
+          26.4,
+          18.8
+        ]
+      ],
+      "far_cell_counts": {
+        "1": 12,
+        "2": 24
+      }
+    },
+    {
+      "name": "board-founding",
+      "form": "board",
+      "frontage": 48,
+      "depth": 20,
+      "storeys": 3,
+      "ring": false,
+      "attached": [],
+      "faces": {
+        "band": 930,
+        "door": 2,
+        "frame": 702,
+        "glass": 171,
+        "metal": 12,
+        "roof": 14,
+        "trim": 18,
+        "wall": 1023
+      },
+      "corners": {
+        "band": 3720,
+        "door": 8,
+        "frame": 2808,
+        "glass": 684,
+        "metal": 48,
+        "roof": 50,
+        "trim": 72,
+        "wall": 4089
+      },
+      "bounds": [
+        [
+          -24.15,
+          -10.4,
+          0
+        ],
+        [
+          24.15,
+          10.15,
+          25.25
+        ]
+      ],
+      "far_faces": {
+        "band": 36,
+        "far-facade": 12,
+        "metal": 6,
+        "roof": 14,
+        "trim": 18,
+        "wall": 15
+      },
+      "far_corners": {
+        "band": 144,
+        "far-facade": 48,
+        "metal": 24,
+        "roof": 50,
+        "trim": 72,
+        "wall": 57
+      },
+      "far_bounds": [
+        [
+          -24.15,
+          -10.15,
+          0.0
+        ],
+        [
+          24.15,
+          10.15,
+          25.25
+        ]
+      ],
+      "far_cell_counts": {
+        "1": 4,
+        "2": 4,
+        "4": 4
+      }
+    },
+    {
+      "name": "board-small",
+      "form": "board",
+      "frontage": 28,
+      "depth": 20,
+      "storeys": 3,
+      "ring": false,
+      "attached": [
+        "w"
+      ],
+      "faces": {
+        "band": 576,
+        "door": 2,
+        "frame": 396,
+        "glass": 102,
+        "metal": 12,
+        "roof": 11,
+        "trim": 18,
+        "wall": 651
+      },
+      "corners": {
+        "band": 2304,
+        "door": 8,
+        "frame": 1584,
+        "glass": 408,
+        "metal": 48,
+        "roof": 39,
+        "trim": 72,
+        "wall": 2601
+      },
+      "bounds": [
+        [
+          -14.15,
+          -10.4,
+          0
+        ],
+        [
+          14.15,
+          10.15,
+          25.25
+        ]
+      ],
+      "far_faces": {
+        "band": 30,
+        "far-facade": 12,
+        "metal": 6,
+        "roof": 11,
+        "trim": 18,
+        "wall": 15
+      },
+      "far_corners": {
+        "band": 120,
+        "far-facade": 48,
+        "metal": 24,
+        "roof": 39,
+        "trim": 72,
+        "wall": 57
+      },
+      "far_bounds": [
+        [
+          -14.15,
+          -10.15,
+          0.0
+        ],
+        [
+          14.15,
+          10.15,
+          25.25
+        ]
+      ],
+      "far_cell_counts": {
+        "0": 3,
+        "1": 3,
+        "2": 4,
+        "4": 2
+      }
+    },
+    {
+      "name": "board-attached",
+      "form": "board",
+      "frontage": 40,
+      "depth": 24,
+      "storeys": 4,
+      "ring": false,
+      "attached": [
+        "e"
+      ],
+      "faces": {
+        "band": 942,
+        "door": 2,
+        "frame": 720,
+        "glass": 174,
+        "metal": 12,
+        "roof": 13,
+        "trim": 18,
+        "wall": 1048
+      },
+      "corners": {
+        "band": 3768,
+        "door": 8,
+        "frame": 2880,
+        "glass": 696,
+        "metal": 48,
+        "roof": 47,
+        "trim": 72,
+        "wall": 4188
+      },
+      "bounds": [
+        [
+          -20.15,
+          -12.4,
+          0
+        ],
+        [
+          20.15,
+          12.15,
+          30.75
+        ]
+      ],
+      "far_faces": {
+        "band": 30,
+        "far-facade": 16,
+        "metal": 6,
+        "roof": 13,
+        "trim": 18,
+        "wall": 16
+      },
+      "far_corners": {
+        "band": 120,
+        "far-facade": 64,
+        "metal": 24,
+        "roof": 47,
+        "trim": 72,
+        "wall": 60
+      },
+      "far_bounds": [
+        [
+          -20.15,
+          -12.15,
+          0.0
+        ],
+        [
+          20.15,
+          12.15,
+          30.75
+        ]
+      ],
+      "far_cell_counts": {
+        "0": 4,
+        "1": 3,
+        "2": 6,
+        "4": 3
+      }
+    },
+    {
+      "name": "board-ring",
+      "form": "board",
+      "frontage": 56,
+      "depth": 52,
+      "storeys": 3,
+      "ring": true,
+      "attached": [],
+      "faces": {
+        "band": 2154,
+        "door": 2,
+        "frame": 1710,
+        "glass": 357,
+        "metal": 12,
+        "roof": 28,
+        "trim": 18,
+        "wall": 2482
+      },
+      "corners": {
+        "band": 8616,
+        "door": 8,
+        "frame": 6840,
+        "glass": 1428,
+        "metal": 48,
+        "roof": 100,
+        "trim": 72,
+        "wall": 9924
+      },
+      "bounds": [
+        [
+          -28.15,
+          -26.4,
+          0
+        ],
+        [
+          28.15,
+          26.15,
+          23.25
+        ]
+      ],
+      "far_faces": {
+        "band": 84,
+        "far-facade": 36,
+        "metal": 6,
+        "roof": 28,
+        "trim": 18,
+        "wall": 16
+      },
+      "far_corners": {
+        "band": 336,
+        "far-facade": 144,
+        "metal": 24,
+        "roof": 100,
+        "trim": 72,
+        "wall": 60
+      },
+      "far_bounds": [
+        [
+          -28.15,
+          -26.15,
+          0.0
+        ],
+        [
+          28.15,
+          26.15,
+          23.25
+        ]
+      ],
+      "far_cell_counts": {
+        "1": 12,
+        "2": 24
+      }
+    },
+    {
+      "name": "interchange-founding",
+      "form": "interchange",
+      "frontage": 28,
+      "depth": 24,
+      "storeys": 3,
+      "ring": false,
+      "attached": [],
+      "faces": {
+        "accent": 6,
+        "band": 6,
+        "canopy": 6,
+        "door": 1,
+        "frame": 48,
+        "glass": 26,
+        "lobby": 1,
+        "membrane": 6,
+        "metal": 333,
+        "trim": 30,
+        "wall": 216,
+        "wall-end": 156
+      },
+      "corners": {
+        "accent": 24,
+        "band": 24,
+        "canopy": 24,
+        "door": 4,
+        "frame": 192,
+        "glass": 104,
+        "lobby": 16,
+        "membrane": 24,
+        "metal": 1344,
+        "trim": 120,
+        "wall": 864,
+        "wall-end": 624
+      },
+      "bounds": [
+        [
+          -14.04,
+          -14.55,
+          0
+        ],
+        [
+          14.04,
+          12.5,
+          17.5
+        ]
+      ],
+      "far_faces": {
+        "accent": 6,
+        "canopy": 6,
+        "far-facade": 36,
+        "membrane": 6,
+        "metal": 6,
+        "trim": 24
+      },
+      "far_corners": {
+        "accent": 24,
+        "canopy": 24,
+        "far-facade": 144,
+        "membrane": 24,
+        "metal": 24,
+        "trim": 96
+      },
+      "far_bounds": [
+        [
+          -14.04,
+          -14.55,
+          0.0
+        ],
+        [
+          14.04,
+          12.04,
+          17.5
+        ]
+      ],
+      "far_cell_counts": {
+        "1": 4,
+        "2": 4,
+        "4": 4
+      }
+    },
+    {
+      "name": "interchange-fixture",
+      "form": "interchange",
+      "frontage": 60,
+      "depth": 20,
+      "storeys": 2,
+      "ring": false,
+      "attached": [],
+      "faces": {
+        "accent": 6,
+        "band": 6,
+        "canopy": 6,
+        "door": 1,
+        "frame": 114,
+        "glass": 28,
+        "lobby": 1,
+        "membrane": 6,
+        "metal": 681,
+        "trim": 30,
+        "wall": 120,
+        "wall-end": 192
+      },
+      "corners": {
+        "accent": 24,
+        "band": 24,
+        "canopy": 24,
+        "door": 4,
+        "frame": 456,
+        "glass": 112,
+        "lobby": 16,
+        "membrane": 24,
+        "metal": 2736,
+        "trim": 120,
+        "wall": 480,
+        "wall-end": 768
+      },
+      "bounds": [
+        [
+          -30.04,
+          -12.55,
+          0
+        ],
+        [
+          30.04,
+          10.5,
+          14.0
+        ]
+      ],
+      "far_faces": {
+        "accent": 6,
+        "canopy": 6,
+        "far-facade": 32,
+        "membrane": 6,
+        "metal": 6,
+        "trim": 24
+      },
+      "far_corners": {
+        "accent": 24,
+        "canopy": 24,
+        "far-facade": 128,
+        "membrane": 24,
+        "metal": 24,
+        "trim": 96
+      },
+      "far_bounds": [
+        [
+          -30.04,
+          -12.55,
+          0.0
+        ],
+        [
+          30.04,
+          10.04,
+          14.0
+        ]
+      ],
+      "far_cell_counts": {
+        "1": 4,
+        "2": 2,
+        "4": 2
+      }
+    },
+    {
+      "name": "interchange-attached",
+      "form": "interchange",
+      "frontage": 36,
+      "depth": 20,
+      "storeys": 3,
+      "ring": false,
+      "attached": [
+        "e"
+      ],
+      "faces": {
+        "accent": 6,
+        "band": 6,
+        "canopy": 6,
+        "door": 1,
+        "frame": 66,
+        "glass": 20,
+        "lobby": 1,
+        "membrane": 6,
+        "metal": 423,
+        "trim": 24,
+        "wall": 168,
+        "wall-end": 114
+      },
+      "corners": {
+        "accent": 24,
+        "band": 24,
+        "canopy": 24,
+        "door": 4,
+        "frame": 264,
+        "glass": 80,
+        "lobby": 16,
+        "membrane": 24,
+        "metal": 1704,
+        "trim": 96,
+        "wall": 672,
+        "wall-end": 456
+      },
+      "bounds": [
+        [
+          -18.04,
+          -12.55,
+          0
+        ],
+        [
+          18.0,
+          10.5,
+          17.5
+        ]
+      ],
+      "far_faces": {
+        "accent": 6,
+        "canopy": 6,
+        "far-facade": 30,
+        "membrane": 6,
+        "metal": 6,
+        "trim": 18
+      },
+      "far_corners": {
+        "accent": 24,
+        "canopy": 24,
+        "far-facade": 120,
+        "membrane": 24,
+        "metal": 24,
+        "trim": 72
+      },
+      "far_bounds": [
+        [
+          -18.04,
+          -12.55,
+          0.0
+        ],
+        [
+          18.0,
+          10.04,
+          17.5
+        ]
+      ],
+      "far_cell_counts": {
+        "0": 3,
+        "1": 3,
+        "2": 4,
+        "4": 2
+      }
+    },
+    {
+      "name": "interchange-ring",
+      "form": "interchange",
+      "frontage": 52,
+      "depth": 48,
+      "storeys": 3,
+      "ring": true,
+      "attached": [],
+      "faces": {
+        "accent": 6,
+        "band": 6,
+        "canopy": 6,
+        "door": 1,
+        "frame": 96,
+        "glass": 78,
+        "lobby": 1,
+        "membrane": 24,
+        "metal": 1479,
+        "trim": 78,
+        "wall": 648,
+        "wall-end": 516
+      },
+      "corners": {
+        "accent": 24,
+        "band": 24,
+        "canopy": 24,
+        "door": 4,
+        "frame": 384,
+        "glass": 312,
+        "lobby": 16,
+        "membrane": 96,
+        "metal": 5928,
+        "trim": 312,
+        "wall": 2592,
+        "wall-end": 2064
+      },
+      "bounds": [
+        [
+          -26.5,
+          -26.55,
+          0
+        ],
+        [
+          26.5,
+          24.5,
+          17.5
+        ]
+      ],
+      "far_faces": {
+        "accent": 6,
+        "canopy": 6,
+        "far-facade": 108,
+        "membrane": 24,
+        "metal": 6,
+        "trim": 72
+      },
+      "far_corners": {
+        "accent": 24,
+        "canopy": 24,
+        "far-facade": 432,
+        "membrane": 96,
+        "metal": 24,
+        "trim": 288
+      },
+      "far_bounds": [
+        [
+          -26.04,
+          -26.55,
+          0.0
+        ],
+        [
+          26.04,
+          24.04,
+          17.5
+        ]
+      ],
+      "far_cell_counts": {
+        "1": 12,
+        "2": 24
+      }
+    },
+    {
+      "name": "hall-founding",
+      "form": "hall",
+      "frontage": 28,
+      "depth": 24,
+      "storeys": 3,
+      "ring": false,
+      "attached": [],
+      "faces": {
+        "accent": 18,
+        "door": 1,
+        "frame": 114,
+        "glass": 29,
+        "lobby": 1,
+        "metal": 3,
+        "roof": 2,
+        "trim": 12,
+        "wall": 350
+      },
+      "corners": {
+        "accent": 72,
+        "door": 4,
+        "frame": 456,
+        "glass": 115,
+        "lobby": 16,
+        "metal": 24,
+        "roof": 8,
+        "trim": 48,
+        "wall": 1398
+      },
+      "bounds": [
+        [
+          -14.25,
+          -13.2,
+          0
+        ],
+        [
+          14.25,
+          12.0,
+          20.303
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 12,
+        "roof": 2,
+        "trim": 12,
+        "wall": 2
+      },
+      "far_corners": {
+        "far-facade": 48,
+        "roof": 8,
+        "trim": 48,
+        "wall": 6
+      },
+      "far_bounds": [
+        [
+          -14.25,
+          -12.0,
+          0.0
+        ],
+        [
+          14.25,
+          12.0,
+          20.303
+        ]
+      ],
+      "far_cell_counts": {
+        "1": 4,
+        "2": 4,
+        "4": 4
+      }
+    },
+    {
+      "name": "hall-fixture",
+      "form": "hall",
+      "frontage": 60,
+      "depth": 20,
+      "storeys": 2,
+      "ring": false,
+      "attached": [],
+      "faces": {
+        "accent": 18,
+        "door": 1,
+        "frame": 228,
+        "glass": 38,
+        "lobby": 2,
+        "metal": 6,
+        "roof": 4,
+        "trim": 12,
+        "wall": 346
+      },
+      "corners": {
+        "accent": 72,
+        "door": 4,
+        "frame": 912,
+        "glass": 150,
+        "lobby": 32,
+        "metal": 48,
+        "roof": 16,
+        "trim": 48,
+        "wall": 1380
+      },
+      "bounds": [
+        [
+          -30.25,
+          -11.2,
+          0
+        ],
+        [
+          30.25,
+          10.0,
+          17.503
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 8,
+        "roof": 4,
+        "trim": 12,
+        "wall": 4
+      },
+      "far_corners": {
+        "far-facade": 32,
+        "roof": 16,
+        "trim": 48,
+        "wall": 12
+      },
+      "far_bounds": [
+        [
+          -30.25,
+          -10.0,
+          0.0
+        ],
+        [
+          30.25,
+          10.0,
+          17.503
+        ]
+      ],
+      "far_cell_counts": {
+        "1": 4,
+        "2": 2,
+        "4": 2
+      }
+    },
+    {
+      "name": "hall-attached",
+      "form": "hall",
+      "frontage": 36,
+      "depth": 20,
+      "storeys": 3,
+      "ring": false,
+      "attached": [
+        "e"
+      ],
+      "faces": {
+        "accent": 18,
+        "door": 1,
+        "frame": 144,
+        "glass": 32,
+        "lobby": 1,
+        "metal": 3,
+        "roof": 2,
+        "trim": 6,
+        "wall": 320
+      },
+      "corners": {
+        "accent": 72,
+        "door": 4,
+        "frame": 576,
+        "glass": 127,
+        "lobby": 16,
+        "metal": 24,
+        "roof": 8,
+        "trim": 24,
+        "wall": 1278
+      },
+      "bounds": [
+        [
+          -18.25,
+          -11.2,
+          0
+        ],
+        [
+          18.0,
+          10.0,
+          23.104
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 12,
+        "roof": 2,
+        "trim": 6,
+        "wall": 2
+      },
+      "far_corners": {
+        "far-facade": 48,
+        "roof": 8,
+        "trim": 24,
+        "wall": 6
+      },
+      "far_bounds": [
+        [
+          -18.25,
+          -10.0,
+          0.0
+        ],
+        [
+          18.0,
+          10.0,
+          23.104
+        ]
+      ],
+      "far_cell_counts": {
+        "0": 3,
+        "1": 3,
+        "2": 4,
+        "4": 2
+      }
+    },
+    {
+      "name": "hall-ring",
+      "form": "hall",
+      "frontage": 52,
+      "depth": 48,
+      "storeys": 3,
+      "ring": true,
+      "attached": [],
+      "faces": {
+        "accent": 18,
+        "door": 1,
+        "frame": 216,
+        "glass": 169,
+        "lobby": 2,
+        "metal": 6,
+        "roof": 12,
+        "wall": 1626
+      },
+      "corners": {
+        "accent": 72,
+        "door": 4,
+        "frame": 864,
+        "glass": 674,
+        "lobby": 32,
+        "metal": 48,
+        "roof": 48,
+        "wall": 6492
+      },
+      "bounds": [
+        [
+          -26.0,
+          -25.2,
+          0
+        ],
+        [
+          26.0,
+          24.0,
+          19.603
+        ]
+      ],
+      "far_faces": {
+        "far-facade": 36,
+        "roof": 12,
+        "wall": 12
+      },
+      "far_corners": {
+        "far-facade": 144,
+        "roof": 48,
+        "wall": 36
+      },
+      "far_bounds": [
+        [
+          -26.0,
+          -24.0,
+          0.0
+        ],
+        [
+          26.0,
+          24.0,
+          19.603
+        ]
+      ],
+      "far_cell_counts": {
+        "1": 12,
+        "2": 24
+      }
+    },
+    {
+      "name": "station-founding",
+      "form": "station",
+      "frontage": 28,
+      "depth": 24,
+      "storeys": 3,
+      "ring": false,
+      "attached": [],
+      "faces": {
+        "band": 2052,
+        "canopy": 48,
+        "door": 1,
+        "glass": 99,
+        "lobby": 1,
+        "metal": 9,
+        "roof": 14,
+        "wall": 926
+      },
+      "corners": {
+        "band": 8208,
+        "canopy": 192,
+        "door": 4,
+        "glass": 405,
+        "lobby": 16,
+        "metal": 48,
+        "roof": 50,
+        "wall": 3712
+      },
+      "bounds": [
+        [
+          -14.15,
+          -13.05,
+          0.0
+        ],
+        [
+          14.15,
+          12.15,
+          26.257
+        ]
+      ],
+      "far_faces": {
+        "band": 30,
+        "far-facade": 12,
+        "metal": 6,
+        "roof": 14,
+        "wall": 12
+      },
+      "far_corners": {
+        "band": 120,
+        "far-facade": 48,
+        "metal": 24,
+        "roof": 50,
+        "wall": 48
+      },
+      "far_bounds": [
+        [
+          -14.15,
+          -12.1,
+          0.0
+        ],
+        [
+          14.15,
+          12.15,
+          26.257
+        ]
+      ],
+      "far_cell_counts": {
+        "1": 4,
+        "2": 4,
+        "4": 4
+      }
+    },
+    {
+      "name": "station-fixture",
+      "form": "station",
+      "frontage": 60,
+      "depth": 20,
+      "storeys": 2,
+      "ring": false,
+      "attached": [],
+      "faces": {
+        "band": 1776,
+        "canopy": 96,
+        "door": 1,
+        "glass": 100,
+        "lobby": 1,
+        "metal": 9,
+        "roof": 14,
+        "wall": 812
+      },
+      "corners": {
+        "band": 7104,
+        "canopy": 384,
+        "door": 4,
+        "glass": 409,
+        "lobby": 16,
+        "metal": 48,
+        "roof": 50,
+        "wall": 3256
+      },
+      "bounds": [
+        [
+          -30.15,
+          -11.05,
+          0.0
+        ],
+        [
+          30.15,
+          10.15,
+          21.357
+        ]
+      ],
+      "far_faces": {
+        "band": 30,
+        "far-facade": 8,
+        "metal": 6,
+        "roof": 14,
+        "wall": 12
+      },
+      "far_corners": {
+        "band": 120,
+        "far-facade": 32,
+        "metal": 24,
+        "roof": 50,
+        "wall": 48
+      },
+      "far_bounds": [
+        [
+          -30.15,
+          -10.1,
+          0.0
+        ],
+        [
+          30.15,
+          10.15,
+          21.357
+        ]
+      ],
+      "far_cell_counts": {
+        "1": 4,
+        "2": 2,
+        "4": 2
+      }
+    },
+    {
+      "name": "station-attached",
+      "form": "station",
+      "frontage": 36,
+      "depth": 20,
+      "storeys": 3,
+      "ring": false,
+      "attached": [
+        "e"
+      ],
+      "faces": {
+        "band": 1698,
+        "canopy": 60,
+        "door": 1,
+        "glass": 84,
+        "lobby": 1,
+        "metal": 9,
+        "roof": 13,
+        "wall": 789
+      },
+      "corners": {
+        "band": 6792,
+        "canopy": 240,
+        "door": 4,
+        "glass": 345,
+        "lobby": 16,
+        "metal": 48,
+        "roof": 47,
+        "wall": 3163
+      },
+      "bounds": [
+        [
+          -18.15,
+          -11.05,
+          0.0
+        ],
+        [
+          18.15,
+          10.15,
+          24.857
+        ]
+      ],
+      "far_faces": {
+        "band": 24,
+        "far-facade": 12,
+        "metal": 6,
+        "roof": 13,
+        "wall": 13
+      },
+      "far_corners": {
+        "band": 96,
+        "far-facade": 48,
+        "metal": 24,
+        "roof": 47,
+        "wall": 51
+      },
+      "far_bounds": [
+        [
+          -18.15,
+          -10.1,
+          0.0
+        ],
+        [
+          18.15,
+          10.15,
+          24.857
+        ]
+      ],
+      "far_cell_counts": {
+        "0": 3,
+        "1": 3,
+        "2": 4,
+        "4": 2
+      }
+    },
+    {
+      "name": "station-ring",
+      "form": "station",
+      "frontage": 52,
+      "depth": 48,
+      "storeys": 3,
+      "ring": true,
+      "attached": [],
+      "faces": {
+        "band": 5388,
+        "canopy": 84,
+        "door": 1,
+        "glass": 261,
+        "lobby": 1,
+        "metal": 9,
+        "roof": 26,
+        "wall": 2318
+      },
+      "corners": {
+        "band": 21552,
+        "canopy": 336,
+        "door": 4,
+        "glass": 1053,
+        "lobby": 16,
+        "metal": 48,
+        "roof": 88,
+        "wall": 9280
+      },
+      "bounds": [
+        [
+          -26.15,
+          -26.05,
+          0.0
+        ],
+        [
+          26.15,
+          24.15,
+          23.807
+        ]
+      ],
+      "far_faces": {
+        "band": 78,
+        "far-facade": 36,
+        "metal": 6,
+        "roof": 26,
+        "wall": 12
+      },
+      "far_corners": {
+        "band": 312,
+        "far-facade": 144,
+        "metal": 24,
+        "roof": 88,
+        "wall": 48
+      },
+      "far_bounds": [
+        [
+          -26.15,
+          -24.15,
+          0.0
+        ],
+        [
+          26.15,
+          24.15,
+          23.807
+        ]
+      ],
+      "far_cell_counts": {
+        "1": 12,
+        "2": 24
+      }
+    }
+  ]
+}

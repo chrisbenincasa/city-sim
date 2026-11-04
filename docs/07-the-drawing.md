@@ -249,6 +249,12 @@ mid-century forms (`ribbon`, `crosswall`). Its `export` job writes `art/perimete
 and `assets/midrise-families/perimeter.glb`, and `PerimeterBodyTests` holds the builder to each
 reference site's corners per part, bounds and far cells.
 
+The civic forms follow it too. `scripts/art/civic-forms.py` is the reference for three School forms
+(`roof-play` contemporary, `ribbon` mid-century, `board` traditional) and three Gate forms, which
+draw the port kind as a transit station (`interchange` contemporary, `hall` mid-century, `station`
+traditional). Its `export` job writes `art/civic-forms/bodies.json` and
+`assets/midrise-families/civic.glb`, and `CivicBodyTests` holds the builder to them.
+
 **Surface textures come from the library in `src/Borough.Godot/assets/city/library/`.** It sits
 inside the Godot project so the shell can load it. `textures.toml` lists each CC0 texture with its
 tile size in metres, where that size comes from, whether a family paints it, and how strongly its

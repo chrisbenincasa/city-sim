@@ -532,6 +532,24 @@ public enum MidriseVariant
 
     /// <summary>A mid-century brick crosswall block with panel infill between piers and a deep fascia.</summary>
     Crosswall,
+
+    /// <summary>A contemporary School with a double-height lined entrance, deep classroom reveals and a fenced roof playground.</summary>
+    SchoolRoofPlay,
+
+    /// <summary>A mid-century School with ribbon windows over colored spandrels, a taller hall and a boiler stack.</summary>
+    SchoolRibbon,
+
+    /// <summary>A traditional brick board School under a steep hipped roof with window gables and a bell cupola.</summary>
+    SchoolBoard,
+
+    /// <summary>A contemporary Gate with a recessed glazed concourse, a canopy, fins and a clock pylon.</summary>
+    GateInterchange,
+
+    /// <summary>A contemporary Gate under one or two great glazed gables with a deep portal.</summary>
+    GateHall,
+
+    /// <summary>A traditional brick station Gate with an arched centre pavilion, a clock tower and iron canopies.</summary>
+    GateStation,
 }
 
 /// <summary>The four tower layouts a body can build.</summary>

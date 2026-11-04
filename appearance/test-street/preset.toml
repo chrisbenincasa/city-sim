@@ -2448,6 +2448,279 @@ wall = "dad6cc"
 spandrel = "b8a23c"
 
 # ---------------------------------------------------------------------------------------------
+# The School and Gate forms, from scripts/art/civic-forms.py: a contemporary, a mid-century and a
+# traditional School, and a contemporary interchange, a contemporary hall and a traditional station
+# for the Gate (kind "port"). Each draws one mid-rise body over the whole Lot. A School or Gate under
+# 2 storeys or 20 m of frontage keeps the box.
+
+[[family]]
+id = "school-roof-play"
+kinds = ["school"]
+storeys = [2, 6]
+frontage_metres = [20, 400]
+
+# Contemporary. A double-height entrance cut into the frontage with a colored lining, classroom
+# windows in deep reveals and a fenced playground on the roof.
+[family.body]
+library = "midrise-families/civic"
+shape = "midrise"
+variant = "school-roof-play"
+materials = { membrane = "bitumen", wall = "bricks-085", wall-end = "bricks-085", paving = "concrete-panels" }
+
+[[family.paint]]
+glass = "2f3a42"
+door = "2b2e31"
+metal = "2f3437"
+lobby = "f2efe6"
+trim = "3a3d40"
+frame = "2b2e31"
+band = "eeeeea"
+paving = "b9b6ad"
+court = "3f7d4f"
+canopy = "eeeeea"
+accent = "e0a526"
+
+[[family.paint]]
+glass = "2f3a42"
+door = "2b2e31"
+metal = "2f3437"
+lobby = "f2efe6"
+trim = "3a3d40"
+frame = "2b2e31"
+band = "eeeeea"
+paving = "b9b6ad"
+court = "b5553c"
+canopy = "eeeeea"
+accent = "2f8f8a"
+
+[[family.paint]]
+glass = "2f3a42"
+door = "2b2e31"
+metal = "2f3437"
+lobby = "f2efe6"
+trim = "3a3d40"
+frame = "2b2e31"
+band = "eeeeea"
+paving = "b9b6ad"
+court = "3b6e8f"
+canopy = "eeeeea"
+accent = "d0603a"
+
+[[family]]
+id = "school-ribbon"
+kinds = ["school"]
+storeys = [2, 6]
+frontage_metres = [20, 400]
+
+# Mid-century. Ribbon windows over colored spandrel panels between slim white columns, a deep white
+# roof edge, a taller hall with a clerestory at one end and a brick boiler stack.
+[family.body]
+library = "midrise-families/civic"
+shape = "midrise"
+variant = "school-ribbon"
+materials = { membrane = "bitumen", wall = "preconcrete-wall-001", wall-end = "bricks-051" }
+
+[[family.paint]]
+glass = "2f3a42"
+door = "2b2e31"
+metal = "2f3437"
+lobby = "f2efe6"
+wall = "d6d2c8"
+trim = "eeeeea"
+spandrel = "a9c3cf"
+panel = "d8c27a"
+canopy = "eeeeea"
+
+[[family.paint]]
+glass = "2f3a42"
+door = "2b2e31"
+metal = "2f3437"
+lobby = "f2efe6"
+wall = "d6d2c8"
+trim = "eeeeea"
+spandrel = "c45a3b"
+panel = "e3dccb"
+canopy = "eeeeea"
+
+[[family.paint]]
+glass = "2f3a42"
+door = "2b2e31"
+metal = "2f3437"
+lobby = "f2efe6"
+wall = "d6d2c8"
+trim = "eeeeea"
+spandrel = "6f8f7a"
+panel = "d8c27a"
+canopy = "eeeeea"
+
+[[family]]
+id = "school-board"
+kinds = ["school"]
+storeys = [2, 6]
+frontage_metres = [20, 400]
+
+# Traditional. Tall brick storeys under a steep hipped roof, a gable over each group of tall
+# windows, stone bands, two entrances and a bell cupola on the ridge.
+[family.body]
+library = "midrise-families/civic"
+shape = "midrise"
+variant = "school-board"
+materials = { membrane = "bitumen", wall = "bricks-066", roof = "roofing-tiles-003" }
+
+[[family.paint]]
+glass = "2f3a42"
+door = "2b2e31"
+metal = "2f3437"
+lobby = "f2efe6"
+band = "e3dccb"
+trim = "ece8dc"
+frame = "ece8dc"
+
+[[family.paint]]
+glass = "2f3a42"
+door = "2b2e31"
+metal = "2f3437"
+lobby = "f2efe6"
+band = "d8d2c4"
+trim = "ece8dc"
+frame = "ece8dc"
+
+[[family]]
+id = "gate-interchange"
+kinds = ["port"]
+storeys = [2, 6]
+frontage_metres = [20, 400]
+
+# Contemporary. A glazed concourse set back under the upper storeys, a thin canopy, fins over
+# ribbon windows and a clock pylon at one corner.
+[family.body]
+library = "midrise-families/civic"
+shape = "midrise"
+variant = "gate-interchange"
+materials = { membrane = "bitumen", wall = "concrete-tile-facade", wall-end = "concrete-tile-facade" }
+
+[[family.paint]]
+glass = "2f3a42"
+door = "2b2e31"
+metal = "2f3437"
+lobby = "f2efe6"
+wall = "c8c3b8"
+wall-end = "8a8d86"
+trim = "eeeeea"
+frame = "3a3d40"
+band = "eeeeea"
+canopy = "eeeeea"
+accent = "e0a526"
+
+[[family.paint]]
+glass = "2f3a42"
+door = "2b2e31"
+metal = "2f3437"
+lobby = "f2efe6"
+wall = "d6d2c8"
+wall-end = "8a8d86"
+trim = "eeeeea"
+frame = "3a3d40"
+band = "eeeeea"
+canopy = "eeeeea"
+accent = "2f8f8a"
+
+[[family.paint]]
+glass = "2f3a42"
+door = "2b2e31"
+metal = "2f3437"
+lobby = "f2efe6"
+wall = "8a8d86"
+wall-end = "8a8d86"
+trim = "eeeeea"
+frame = "3a3d40"
+band = "eeeeea"
+canopy = "eeeeea"
+accent = "d0603a"
+
+[[family]]
+id = "gate-hall"
+kinds = ["port"]
+storeys = [2, 6]
+frontage_metres = [20, 400]
+
+# Contemporary. One or two great gables to the street, glazed from the concourse floor to the
+# ridge, timber sides with ribbon windows and a deep portal around the doors.
+[family.body]
+library = "midrise-families/civic"
+shape = "midrise"
+variant = "gate-hall"
+materials = { membrane = "bitumen", wall = "wood-siding-011", roof = "standing-seam" }
+
+[[family.paint]]
+glass = "2f3a42"
+door = "2b2e31"
+metal = "2f3437"
+lobby = "f2efe6"
+frame = "eeeeea"
+trim = "3a3d40"
+roof = "4a4f53"
+accent = "c4693f"
+
+[[family.paint]]
+glass = "2f3a42"
+door = "2b2e31"
+metal = "2f3437"
+lobby = "f2efe6"
+frame = "c9a477"
+trim = "3a3d40"
+roof = "4a4f53"
+accent = "3f6fb0"
+
+[[family.paint]]
+glass = "2f3a42"
+door = "2b2e31"
+metal = "2f3437"
+lobby = "f2efe6"
+frame = "eeeeea"
+trim = "3a3d40"
+roof = "6e7377"
+accent = "7aa33c"
+
+[[family]]
+id = "gate-station"
+kinds = ["port"]
+storeys = [2, 6]
+frontage_metres = [20, 400]
+
+# Traditional. Brick wings under a hipped roof, a centre pavilion with a tall arched entrance, a
+# clock tower, stone quoins and glazed iron canopies on columns.
+[family.body]
+library = "midrise-families/civic"
+shape = "midrise"
+variant = "gate-station"
+materials = { membrane = "bitumen", wall = "bricks-066", roof = "roofing-tiles-003" }
+
+[[family.paint]]
+glass = "2f3a42"
+door = "2b2e31"
+metal = "2f3437"
+lobby = "f2efe6"
+band = "e3dccb"
+canopy = "2f4a3c"
+
+[[family.paint]]
+glass = "2f3a42"
+door = "2b2e31"
+metal = "2f3437"
+lobby = "f2efe6"
+band = "e3dccb"
+canopy = "6a2f2a"
+
+[[family.paint]]
+glass = "2f3a42"
+door = "2b2e31"
+metal = "2f3437"
+lobby = "f2efe6"
+band = "d8d2c4"
+canopy = "24303a"
+
+# ---------------------------------------------------------------------------------------------
 # The detached families. A Detached Lot stands its Building clear of its neighbours. Up to three
 # storeys it draws one of the three house forms; from four it reuses an apartment body at the Lot's
 # own size.

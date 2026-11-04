@@ -23,6 +23,8 @@ plan, and neighbors across runs never share a form and pitch within 5 degrees.
 | Workshops | `workshop`, `workshop-*` | 2 storeys, 28–36 m | 6 | Meets the bar on a fixture preset only | 2 / 2 / 2 | #245 |
 | Wide houses | `house-terrace`, `house-front-gables`, `house-villa`, twelve `house-<form>` | 1–3 storeys, 12–84 m, 8–36 m deep | 10–11 per band, 4 deep | Meets the bar | 3 / 5 / 7 | main, #247 |
 | Perimeter forms | `perimeter-*` | 3–8 storeys, from 16 m | 6 | Not checked | 0 / 2 / 4 | main, #255 |
+| Schools | `school-roof-play`, `school-ribbon`, `school-board` | 2–6 storeys, 20–400 m | 3 | Not checked | 1 / 1 / 1 | `school-port` |
+| Gates | `gate-interchange`, `gate-hall`, `gate-station`, kind port | 2–6 storeys, 20–400 m | 3 | Not checked | 1 / 1 / 1 | `school-port` |
 | Mansion blocks | `mansion-block`, `mansion-balconies`, `mansion-shops` | 4–11 storeys | 3 families | Not checked | 3 / 0 / 0 | main |
 | Towers | `tower-point`, `tower-stepped-point`, `tower-l`, `tower-h` | any | 4 families | Not checked | 0 / 4 / 0 | main |
 | Panel slabs | `panel-slab`, `panel-slab-plain`, `panel-slab-balconies` | 12–24 storeys | 3 families | Not checked | 0 / 3 / 0 | main |
@@ -59,10 +61,11 @@ stands 125 Buildings, and the city stops at 128:
 |---|---|---|---|
 | dwelling | 102 | none | perimeter forms 97, mansion blocks 4, attached apartments 1 |
 | shopfront | 21 | none | perimeter forms 21 |
-| school, port | 2 | 2 | none |
+| school | 1 | none | `school-roof-play` |
+| port | 1 | none | `gate-hall` |
 
-Of the 123 Buildings that draw a family body, 80 draw a contemporary form, 39 a mid-century one and
-4 a traditional one.
+Every Building draws a family body. Of the 123 that are not civic, 80 draw a contemporary form, 39
+a mid-century one and 4 a traditional one.
 
 The base lattice's 4–12 m deep footprints come from its 16 m deep parcels, which a founding run
 does not make. They need no family. The box counts above for `base/ruleset.toml` predate the
@@ -74,8 +77,6 @@ detached shops.
 
 | Kind | Declared in | Draws as |
 |---|---|---|
-| school | base game, 8 fixtures | box |
-| port | base game, 11 fixtures | box |
 | clinic, hospital | `care`, `pictured`, `profile-services` | box |
 | primary, secondary, college, university | `schooling` | box |
 | office | `offices`, `pictured` | no family, not even box |
@@ -97,9 +98,8 @@ detached shops.
 
 ## Next
 
-1. Add school and port bodies, the last two boxes in a founding run.
-2. Add contemporary and mid-century rowhouse forms. Six traditional rowhouse families draw 353 of
+1. Add contemporary and mid-century rowhouse forms. Six traditional rowhouse families draw 353 of
    `traded`'s Buildings.
-3. Add contemporary and mid-century mansion-block forms. Three traditional mansion families draw 114
+2. Add contemporary and mid-century mansion-block forms. Three traditional mansion families draw 114
    of `base`'s Buildings.
-4. Add pad-site stores, the largest shopfront gap on `traded` and `pictured`.
+3. Add pad-site stores, the largest shopfront gap on `traded` and `pictured`.

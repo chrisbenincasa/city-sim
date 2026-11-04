@@ -60,7 +60,8 @@ public static partial class FamilyBodyBuilder
     internal static PerimeterLook Crosswall { get; } = new(MidriseVariant.Crosswall, 3f, (2f, 1.6f, .9f), .15f,
         Fascia: (.35f, .9f), PierEvery: 2, Pier: (.6f, .55f));
 
-    internal static bool IsPerimeter(MidriseVariant variant) => variant is not (MidriseVariant.Mansion or MidriseVariant.PanelSlab);
+    internal static bool IsPerimeter(MidriseVariant variant) =>
+        variant is not (MidriseVariant.Mansion or MidriseVariant.PanelSlab) && !IsCivic(variant);
 
     internal static PerimeterLook PerimeterLookOf(MidriseBody body)
     {
