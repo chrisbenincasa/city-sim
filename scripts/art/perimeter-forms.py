@@ -2,8 +2,8 @@
 
 blender --background --factory-startup --python-exit-code 1 --python scripts/art/perimeter-forms.py -- OUT [job...]
 
-Jobs: export, sheet-<form> for each form in FORMS, sheet-mansion for the shipped mansion block, and mix,
-which draws the forms at the target period shares.
+Jobs: export, sheet-<form> for each form in FORMS, sheet-prewar-apartments for the shipped prewar
+apartment building, and mix, which draws the forms at the target period shares.
 
 export is the shell's reference. It builds each form's reference sites near and far, and writes
 art/perimeter-forms/bodies.json with each site's faces and corners per part and its bounds, the looks and
@@ -19,7 +19,7 @@ becomes a garden with a hedge and paths. Wings, face roles and openings come fro
 so rings follow the shell's builder.
 
 Far mode draws every wall as one far-facade quad per storey with the near bay count. Its cells are
-0 party, 1 ground, 2 typical, 3 attic and 4 end, the same ids as the mansion block's.
+0 party, 1 ground, 2 typical, 3 attic and 4 end, the same ids as the prewar apartment building's.
 """
 import importlib.util
 import json
@@ -667,10 +667,10 @@ def stand(lot, form, seed):
     r = random.Random(seed)
     centre, frontage, depth, front, storeys = lot_frame(lot)
     name = f'lot-{lot[0]}'
-    if form == 'mansion':
+    if form == 'prewar-apartments':
         g = Geometry()
-        mr.site(g, 'mansion', frontage, depth, storeys)
-        place(name, mr.family_geometry('mansion', g), mr_made(), centre, front)
+        mr.site(g, 'prewar-apartments', frontage, depth, storeys)
+        place(name, mr.family_geometry('prewar-apartments', g), mr_made(), centre, front)
         return
     recess = recess_for(frontage, depth, r)
     spec = FORMS[form]
@@ -689,7 +689,7 @@ MR_MADE = {}
 
 
 def mr_made():
-    if 'made' not in MR_MADE or not MR_MADE['made']['wall-mansion'].name:
+    if 'made' not in MR_MADE or not MR_MADE['made']['wall-prewar-apartments'].name:
         MR_MADE['made'] = mr.materials()
     return MR_MADE['made']
 
@@ -731,7 +731,7 @@ def sheet(form, tag=None):
 
 def mix(seed=7):
     """The forms at the target period shares: 9 contemporary, 4 mid-century and 3 traditional of 16 Lots.
-    Mansion blocks admit 4 storeys and up, so traditional takes only 4-storey Lots."""
+    Prewar apartment buildings admit 4 storeys and up, so traditional takes only 4-storey Lots."""
     camera = stage()
     MR_MADE.clear()
     r = random.Random(seed)
@@ -741,7 +741,7 @@ def mix(seed=7):
     rest = [lot for lot in lots if lot not in tall_lots]
     cycles = {p: r.sample([f for f in FORMS if FORMS[f]['period'] == p],
                           k=sum(FORMS[f]['period'] == p for f in FORMS)) for p in ('contemporary', 'mid-century')}
-    picks = {lot[0]: 'mansion' for lot in tall_lots}
+    picks = {lot[0]: 'prewar-apartments' for lot in tall_lots}
     for i, lot in enumerate(rest):
         period = 'mid-century' if i < 4 else 'contemporary'
         k = i if i < 4 else i - 4
@@ -865,7 +865,7 @@ def export():
         print('PERIMETER', report['name'], report['faces'])
 
 
-JOBS = {f'sheet-{f}': (lambda f=f: sheet(f)) for f in [*FORMS, 'mansion']}
+JOBS = {f'sheet-{f}': (lambda f=f: sheet(f)) for f in [*FORMS, 'prewar-apartments']}
 JOBS['mix'] = mix
 JOBS['export'] = export
 OUT.mkdir(parents=True, exist_ok=True)

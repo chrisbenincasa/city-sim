@@ -3,8 +3,8 @@
 Run with Blender in the background:
   blender --background art/midrise-families/lineup.blend --python scripts/art/midrise-families-render.py -- OUT_DIR
 
-The selected references cover a solid mansion, a mansion ring, the attic and a panel slab. The
-shared renderer gives far facades a checker per bay and storey and overlays those grid lines on near.
+The selected references cover a solid prewar apartment building, a prewar apartment ring, the attic
+and a panel slab. The shared renderer gives far facades a checker per bay and storey and overlays those grid lines on near.
 """
 import importlib.util
 import sys
@@ -19,11 +19,11 @@ _spec.loader.exec_module(review)
 def main():
     out = Path(sys.argv[sys.argv.index('--') + 1])
     renderer = review.ReviewRenderer(out)
-    renderer.pair('shops-wide-bay', 'mansion-solid-near-far.png')
-    renderer.pair('perimeter-ring', 'mansion-ring-near-far.png')
-    renderer.pair('back-to-back-deep', 'mansion-attic-near-far.png')
+    renderer.pair('shops-wide-bay', 'prewar-apartments-solid-near-far.png')
+    renderer.pair('perimeter-ring', 'prewar-apartments-ring-near-far.png')
+    renderer.pair('back-to-back-deep', 'prewar-apartments-attic-near-far.png')
     renderer.pair('courtyard-face', 'panel-slab-near-far.png')
-    renderer.overlay('shops-wide-bay', 'mansion-overlay.png')
+    renderer.overlay('shops-wide-bay', 'prewar-apartments-overlay.png')
     renderer.overlay('courtyard-face', 'panel-slab-overlay.png')
 
 

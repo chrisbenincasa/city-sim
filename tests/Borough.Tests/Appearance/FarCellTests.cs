@@ -16,12 +16,12 @@ public sealed class FarCellTests
 
         Dictionary<string, int> actual = new()
         {
-            ["mansion-party"] = FamilyBodyBuilder.MidriseFarCell(true, FamilyBodyBuilder.Role.Party, 0),
+            ["prewar-apartments-party"] = FamilyBodyBuilder.MidriseFarCell(true, FamilyBodyBuilder.Role.Party, 0),
             ["slab-party"] = FamilyBodyBuilder.MidriseFarCell(false, FamilyBodyBuilder.Role.Party, 0),
-            ["mansion-ground"] = FamilyBodyBuilder.MidriseFarCell(true, FamilyBodyBuilder.Role.Street, 0),
-            ["mansion-typical"] = FamilyBodyBuilder.MidriseFarCell(true, FamilyBodyBuilder.Role.Street, 1),
-            ["mansion-attic"] = FamilyBodyBuilder.MansionAtticFarCell,
-            ["mansion-end"] = FamilyBodyBuilder.MidriseFarCell(true, FamilyBodyBuilder.Role.End, 1),
+            ["prewar-apartments-ground"] = FamilyBodyBuilder.MidriseFarCell(true, FamilyBodyBuilder.Role.Street, 0),
+            ["prewar-apartments-typical"] = FamilyBodyBuilder.MidriseFarCell(true, FamilyBodyBuilder.Role.Street, 1),
+            ["prewar-apartments-attic"] = FamilyBodyBuilder.PrewarApartmentsAtticFarCell,
+            ["prewar-apartments-end"] = FamilyBodyBuilder.MidriseFarCell(true, FamilyBodyBuilder.Role.End, 1),
             ["slab-ground"] = FamilyBodyBuilder.MidriseFarCell(false, FamilyBodyBuilder.Role.Street, 0),
             ["slab-typical"] = FamilyBodyBuilder.MidriseFarCell(false, FamilyBodyBuilder.Role.Street, 1),
             ["slab-end"] = FamilyBodyBuilder.MidriseFarCell(false, FamilyBodyBuilder.Role.End, 1),
@@ -30,7 +30,7 @@ public sealed class FarCellTests
         Assert.Equal(expected.OrderBy(p => p.Key), actual.OrderBy(p => p.Key));
 
         // The ground band at storey 0 applies to an End wall as well, matching the near flank.
-        Assert.Equal(expected["mansion-ground"], FamilyBodyBuilder.MidriseFarCell(true, FamilyBodyBuilder.Role.End, 0));
+        Assert.Equal(expected["prewar-apartments-ground"], FamilyBodyBuilder.MidriseFarCell(true, FamilyBodyBuilder.Role.End, 0));
         Assert.Equal(expected["slab-ground"], FamilyBodyBuilder.MidriseFarCell(false, FamilyBodyBuilder.Role.End, 0));
     }
 

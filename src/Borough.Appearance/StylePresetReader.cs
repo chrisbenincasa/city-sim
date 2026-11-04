@@ -462,7 +462,7 @@ public static class StylePresetReader
                 string? variant = Text("variant", required: true);
                 MidriseVariant? parsed = variant switch
                 {
-                    "mansion" => MidriseVariant.Mansion,
+                    "prewar-apartments" => MidriseVariant.PrewarApartments,
                     "panel-slab" => MidriseVariant.PanelSlab,
                     "brick-loggia" => MidriseVariant.BrickLoggia,
                     "timber-frame" => MidriseVariant.TimberFrame,
@@ -474,7 +474,7 @@ public static class StylePresetReader
                 };
                 if (variant is not null && parsed is null)
                 {
-                    Refuse(LineOf(_keys["variant"]), "'variant' must be \"mansion\", \"panel-slab\", \"brick-loggia\", \"timber-frame\", \"white-render\", \"gable-front\", \"ribbon\" or \"crosswall\".");
+                    Refuse(LineOf(_keys["variant"]), "'variant' must be \"prewar-apartments\", \"panel-slab\", \"brick-loggia\", \"timber-frame\", \"white-render\", \"gable-front\", \"ribbon\" or \"crosswall\".");
                 }
                 else if (parsed is { } found)
                 {
@@ -840,12 +840,12 @@ public static class StylePresetReader
                 Refuse(LineOf(_keys["street_openings"]), "'street_openings' must be \"loggias\", \"balconies\" or \"windows\".");
             }
 
-            (string Key, MidriseVariant Variant)[] owned = [("attic", MidriseVariant.Mansion), ("galleries", MidriseVariant.PanelSlab)];
+            (string Key, MidriseVariant Variant)[] owned = [("attic", MidriseVariant.PrewarApartments), ("galleries", MidriseVariant.PanelSlab)];
             foreach ((string key, MidriseVariant owner) in owned)
             {
                 if (owner != variant && _keys.TryGetValue(key, out KeyValueSyntax? refused))
                 {
-                    Refuse(LineOf(refused), $"'{key}' is only valid for a {(owner == MidriseVariant.Mansion ? "mansion" : "panel-slab")} body.");
+                    Refuse(LineOf(refused), $"'{key}' is only valid for a {(owner == MidriseVariant.PrewarApartments ? "prewar-apartments" : "panel-slab")} body.");
                 }
             }
 
@@ -855,7 +855,7 @@ public static class StylePresetReader
                 {
                     if (_keys.TryGetValue(key, out KeyValueSyntax? refused))
                     {
-                        Refuse(LineOf(refused), $"'{key}' is only valid for a mansion or panel-slab body.");
+                        Refuse(LineOf(refused), $"'{key}' is only valid for a prewar-apartments or panel-slab body.");
                     }
                 }
             }
