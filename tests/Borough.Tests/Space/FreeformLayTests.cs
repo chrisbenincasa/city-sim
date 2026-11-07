@@ -1,5 +1,6 @@
 using Borough.Core.Arithmetic;
 using Borough.Core.Entities;
+using Borough.Core.Invariants;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
@@ -195,6 +196,37 @@ public sealed class FreeformLayTests
         Assert.Equal([(street, true)], Hops(world, arrivesFromWest));
         Assert.Equal([(created, false)], Hops(world, arrivesFromEast));
         Assert.Equal([(street, true), (created, true)], Hops(world, along));
+    }
+
+    [Fact]
+    public void A_vehicle_on_a_split_street_counts_on_the_half_its_hop_now_names()
+    {
+        World world = Fresh();
+        Assert.Equal(StreetLayRefusal.None, world.LayStreet(1_000, 1_000, 1_100, 1_000, 0));
+        int street = Assert.Single(Live(world.Roads));
+        Address far = Address.On(street, new Tiles(80), StreetSide.Left);
+        Drive(world, Route(world, (street, true)));
+        Drive(world, Route(world, (street, false)));
+        Drive(world, Route(world, Address.None, far, (street, false)));
+
+        Assert.Equal(StreetLayRefusal.None, world.LayStreet(1_050, 950, 1_050, 1_050, 0));
+
+        int created = Live(world.Roads).Single(s => s != street
+            && End(world.Roads, world.Roads.Segments.NodeB[s]) == (1_100, 1_000));
+        RoadSegmentTable segments = world.Roads.Segments;
+        Assert.Equal((1, 0), (segments.VolumeForward[street], segments.VolumeBackward[street]));
+        Assert.Equal((0, 2), (segments.VolumeForward[created], segments.VolumeBackward[created]));
+        WorldInvariants.TrafficIsConserved(world, world.Invariants);
+    }
+
+    private static void Drive(World world, int leg)
+    {
+        int hop = world.Legs.RouteHead[leg] - 1;
+        int traveller = world.Travellers.Rows.Resolve(world.Travellers.Create(default, default, leg, Ticks.Zero));
+        world.Travellers.CurrentHop[traveller] = hop;
+        int segment = world.Roads.Segments.Rows.Resolve(world.RouteHops.Segment[hop]);
+        if (world.RouteHops.Forward[hop] != 0) { world.Roads.Segments.VolumeForward[segment]++; }
+        else { world.Roads.Segments.VolumeBackward[segment]++; }
     }
 
     private static int Route(World world, params (int Segment, bool Forward)[] hops) =>

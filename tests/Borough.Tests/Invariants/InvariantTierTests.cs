@@ -703,6 +703,16 @@ public sealed class InvariantTierTests
         Assert.Equal(Invariant.SegmentVolumeIsConserved, CaughtAtEnd(world));
     }
 
+    [Fact]
+    public void Volume_on_one_segment_offset_by_another_is_caught()
+    {
+        World world = WithRoads();
+        world.Roads.Segments.VolumeBackward[0]++;
+        world.Roads.Segments.VolumeBackward[1]--;
+
+        Assert.Equal(Invariant.SegmentVolumeIsConserved, CaughtAtEnd(world));
+    }
+
     /// <summary>
     /// <b>A Trip released while still in flight is caught at the write site.</b>
     /// </summary>
