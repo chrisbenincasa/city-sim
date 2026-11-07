@@ -177,7 +177,8 @@ public sealed partial class World
     /// renamed and the original follows it. A Leg's first hop starts at its own Address and its last
     /// hop ends at one, so either keeps only the half it drives when that Address lies on the other
     /// side of the split. Addresses must already have moved. A Vehicle already on the hop keeps the
-    /// arrival time it was priced at for the whole Segment.
+    /// arrival time it was priced at for the whole Segment, and its volume follows a renamed hop to
+    /// <paramref name="to"/>, where its <c>TripEngine.Leave</c> will take it off.
     /// </remarks>
     private void SplitRouteHops(Handle<RoadSegment> from, Handle<RoadSegment> to)
     {
@@ -209,6 +210,25 @@ public sealed partial class World
                 }
 
                 hop = next;
+            }
+        }
+
+        // To is new, so a Traveller whose hop now names it was entered onto from.
+        int fromSlot = Roads.Segments.Rows.Resolve(from), toSlot = Roads.Segments.Rows.Resolve(to);
+        for (int traveller = 0; traveller < Travellers.Rows.SlotCount; traveller++)
+        {
+            if (!Travellers.Rows.IsLive(traveller)) { continue; }
+            int hop = Travellers.CurrentHop[traveller];
+            if (hop == Rows.NoSlot || RouteHops.Segment[hop] != to) { continue; }
+            if (RouteHops.Forward[hop] != 0)
+            {
+                Roads.Segments.VolumeForward[fromSlot]--;
+                Roads.Segments.VolumeForward[toSlot]++;
+            }
+            else
+            {
+                Roads.Segments.VolumeBackward[fromSlot]--;
+                Roads.Segments.VolumeBackward[toSlot]++;
             }
         }
     }

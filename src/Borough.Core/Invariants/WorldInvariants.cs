@@ -134,6 +134,12 @@ public static class WorldInvariants
     /// counted every in-flight Traveller would fail on a walking city and would have to be weakened by
     /// whoever met it first.
     /// </para>
+    /// <para>
+    /// <b>Each Segment direction must also equal the vehicles whose current hop is on it.</b> The
+    /// city-wide sums alone pass a +1 on one Segment offset by a −1 on another. A hop on a bulldozed
+    /// Segment is skipped in the tally, as <c>TripEngine.Enter</c> and <c>Leave</c> skip it, so only
+    /// the sums see that vehicle.
+    /// </para>
     /// </remarks>
     internal static void TrafficIsConserved(World world, InvariantRegistry report)
     {
@@ -141,23 +147,13 @@ public static class WorldInvariants
         ArgumentNullException.ThrowIfNull(report);
 
         RoadSegmentTable segments = world.Roads.Segments;
-
-        long onTheRoad = 0;
-
-        for (int slot = 0; slot < segments.Rows.SlotCount; slot++)
-        {
-            if (!segments.Rows.IsLive(slot))
-            {
-                continue;
-            }
-
-            onTheRoad += segments.VolumeForward[slot] + segments.VolumeBackward[slot];
-        }
-
-        long driving = 0;
-
         TravellerTable travellers = world.Travellers;
         LegTable legs = world.Legs;
+        RouteHopTable hops = world.RouteHops;
+
+        long driving = 0;
+        var forwardOn = new int[segments.Rows.SlotCount];
+        var backwardOn = new int[segments.Rows.SlotCount];
 
         for (int slot = 0; slot < travellers.Rows.SlotCount; slot++)
         {
@@ -170,6 +166,38 @@ public static class WorldInvariants
             {
                 driving++;
             }
+
+            int hop = travellers.CurrentHop[slot];
+
+            if (hop == Rows.NoSlot || !segments.Rows.TryResolve(hops.Segment[hop], out int segment))
+            {
+                continue;
+            }
+
+            if (hops.Forward[hop] != 0)
+            {
+                forwardOn[segment]++;
+            }
+            else
+            {
+                backwardOn[segment]++;
+            }
+        }
+
+        long onTheRoad = 0;
+
+        for (int slot = 0; slot < segments.Rows.SlotCount; slot++)
+        {
+            if (!segments.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            onTheRoad += segments.VolumeForward[slot] + segments.VolumeBackward[slot];
+
+            report.Require(
+                segments.VolumeForward[slot] == forwardOn[slot] && segments.VolumeBackward[slot] == backwardOn[slot],
+                Invariant.SegmentVolumeIsConserved, slot, forwardOn[slot] + backwardOn[slot]);
         }
 
         report.Require(
