@@ -94,6 +94,7 @@ public static class StylePresetReader
     internal static IReadOnlyList<string> BlockOnlyBodyKeys => LowRiseBodyKeys;
 
     private static readonly string[] MidriseBodyKeys = ["module_metres", "street_openings", "shops", "attic", "galleries"];
+    private static readonly string[] MansionYardKeys = ["yard_metres", "shallow_yard_metres", "least_house_metres"];
 
     internal static IReadOnlyList<string> MidriseOnlyBodyKeys => MidriseBodyKeys;
 
@@ -415,7 +416,7 @@ public static class StylePresetReader
         public FamilyBody? Body()
         {
             int before = errors.Count;
-            Collect(["library", "shape", "variant", "tile_metres", "materials", "bay_metres", "parapet_metres", "pilasters", "plant", "roof_hatch", "vents", "openings", "gable_degrees", "chimney", "steps", "party_line", "shopfront", "panels", "rooflights", "receiving_canopy", "terrace", "apartment", "workshop", "pitch_degrees", "wide", .. MidriseBodyKeys, .. Rows]);
+            Collect(["library", "shape", "variant", "tile_metres", "materials", "bay_metres", "parapet_metres", "pilasters", "plant", "roof_hatch", "vents", "openings", "gable_degrees", "chimney", "steps", "party_line", "shopfront", "panels", "rooflights", "receiving_canopy", "terrace", "apartment", "workshop", "pitch_degrees", "wide", .. MansionYardKeys, .. MidriseBodyKeys, .. Rows]);
             string? library = Text("library", required: true);
             Dictionary<string, (float, float)> tiles = Tiles("tile_metres");
             Dictionary<string, string> materials = Materials("materials");
@@ -509,12 +510,28 @@ public static class StylePresetReader
                     "deep-gables" => HouseVariant.DeepGables,
                     "deep-sawtooth" => HouseVariant.DeepSawtooth,
                     "deep-span" => HouseVariant.DeepSpan,
+                    "mansion-colonial" => HouseVariant.MansionColonial,
+                    "mansion-tudor" => HouseVariant.MansionTudor,
+                    "mansion-queen-anne" => HouseVariant.MansionQueenAnne,
+                    "mansion-chateau" => HouseVariant.MansionChateau,
+                    "mansion-spanish" => HouseVariant.MansionSpanish,
+                    "mansion-prairie" => HouseVariant.MansionPrairie,
+                    "mansion-regency" => HouseVariant.MansionRegency,
+                    "mansion-mid-century" => HouseVariant.MansionMidCentury,
+                    "mansion-farmhouse" => HouseVariant.MansionFarmhouse,
+                    "mansion-neo-eclectic" => HouseVariant.MansionNeoEclectic,
+                    "mansion-california" => HouseVariant.MansionCalifornia,
                     _ => null,
                 };
                 bool? wide = Boolean("wide");
                 if (variant is not null && parsed is null)
                 {
-                    Refuse(LineOf(_keys["variant"]), "'variant' must be \"terrace\", \"front-gables\", \"villa\", \"hipped\", \"half-hip\", \"cross-gable\", \"saltbox\", \"gambrel\", \"l-plan\", \"rear-outshot\", \"side-wing\", \"staggered-gables\", \"flat-setback\", \"sawtooth\", \"pavilions\", \"span\", \"butterfly\", \"monopitch\", \"low-hip\", \"deep-flat\", \"deep-gables\", \"deep-sawtooth\" or \"deep-span\".");
+                    Refuse(LineOf(_keys["variant"]), "'variant' must be \"terrace\", \"front-gables\", \"villa\", \"hipped\", \"half-hip\", \"cross-gable\", \"saltbox\", \"gambrel\", \"l-plan\", \"rear-outshot\", \"side-wing\", \"staggered-gables\", \"flat-setback\", \"sawtooth\", \"pavilions\", \"span\", \"butterfly\", \"monopitch\", \"low-hip\", \"deep-flat\", \"deep-gables\", \"deep-sawtooth\", \"deep-span\", \"mansion-colonial\", \"mansion-tudor\", \"mansion-queen-anne\", \"mansion-chateau\", \"mansion-spanish\", \"mansion-prairie\", \"mansion-regency\", \"mansion-mid-century\", \"mansion-farmhouse\", \"mansion-neo-eclectic\" or \"mansion-california\".");
+                }
+                else if (parsed is { } mansion && FamilyBodyBuilder.IsMansion(mansion))
+                {
+                    if (wide is not null) Refuse(LineOf(_keys["wide"]), "a mansion is always wide: drop 'wide'.");
+                    house = new HouseBody(mansion, Wide: true, Yard: MansionYardOf());
                 }
                 else if (parsed is { } found)
                 {
@@ -540,6 +557,17 @@ public static class StylePresetReader
             else if (_keys.TryGetValue("variant", out KeyValueSyntax? strayVariant))
             {
                 Refuse(LineOf(strayVariant), "'variant' is only valid when 'shape' is \"tower\", \"midrise\", \"house\", \"shop\" or \"workshop\".");
+            }
+
+            if (house is null || !FamilyBodyBuilder.IsMansion(house.Variant))
+            {
+                foreach (string key in MansionYardKeys)
+                {
+                    if (_keys.TryGetValue(key, out KeyValueSyntax? refused))
+                    {
+                        Refuse(LineOf(refused), $"'{key}' is only valid for a mansion house body.");
+                    }
+                }
             }
 
             if (!houseShape && _keys.TryGetValue("wide", out KeyValueSyntax? strayWide))
@@ -1122,6 +1150,27 @@ public static class StylePresetReader
             }
 
             return [.. values];
+        }
+
+        /// <summary>A mansion's yard. Every key is required, so the preset states each distance.</summary>
+        private MansionYard? MansionYardOf()
+        {
+            Bounds? deep = Range("yard_metres");
+            Bounds? shallow = Range("shallow_yard_metres");
+            float? least = Metres("least_house_metres", required: true, least: 4f);
+            foreach (string key in (string[])["yard_metres", "shallow_yard_metres"])
+            {
+                if (!_keys.ContainsKey(key)) Refuse(LineOf(table), $"'{key}' is required for a mansion house body.");
+            }
+
+            if (deep is not { } d || shallow is not { } s || least is not { } l) return null;
+            if (s.High > d.Low)
+            {
+                Refuse(LineOf(_keys["shallow_yard_metres"]), "'shallow_yard_metres' must end at or below where 'yard_metres' begins.");
+                return null;
+            }
+
+            return new MansionYard((d.Low, d.High), (s.Low, s.High), l);
         }
 
         private Bounds? Range(string key)

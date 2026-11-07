@@ -36,7 +36,7 @@ public static partial class FamilyBodyBuilder
 
     /// <summary>The roof pitch in whole degrees a house of this form takes from the draw <paramref name="pitchSeed"/>; 0 for a flat roof.</summary>
     public static int HousePitchDegrees(HouseVariant variant, int pitchSeed, float frontage, float depth, int storeys) =>
-        (int)MathF.Round(IsWideForm(variant) ? WidePitch(variant, pitchSeed)
+        IsMansion(variant) ? 0 : (int)MathF.Round(IsWideForm(variant) ? WidePitch(variant, pitchSeed)
             : HouseLook.Draw(variant, pitchSeed, frontage, depth, storeys).Pitch);
 
     private static float WidePitch(HouseVariant variant, int seed)

@@ -221,6 +221,13 @@ C# massing as the authoring workflow. Existing zoning, parcel and simulation geo
    bay fronts may draw less floor than the Building holds. A shop house has it too, so a mansard
    or set-back top storey over its flats may draw less floor. Street access and parking still
    agree with the simulation.
+   A mansion is the exception to that allowance. A `house-mansion-<style>` family is a large
+   detached house behind deep grounds, so it may draw far less floor than its Building holds. The
+   shell sets the house back from the Street by `yard_metres` (16–20 m in the test-street preset).
+   Where that leaves less than `least_house_metres` (14 m) of house, it uses `shallow_yard_metres`
+   (8–10 m) instead. The simulation footprint does not change. A mansion holding one Household
+   draws a gated drive, a motor court and a garage; one holding several draws a parking court,
+   a mailbox stand, a sign and side doors.
 5. Use the rudimentary roster for gameplay debugging; iterate on detailed visual design in a
    separate session. A blockout is a foundation, not finished art.
 
@@ -248,6 +255,13 @@ four contemporary forms (`brick-loggia`, `timber-frame`, `white-render`, `gable-
 mid-century forms (`ribbon`, `crosswall`). Its `export` job writes `art/perimeter-forms/bodies.json`
 and `assets/midrise-families/perimeter.glb`, and `PerimeterBodyTests` holds the builder to each
 reference site's corners per part, bounds and far cells.
+
+The US mansion forms follow the same rule. `scripts/art/mansion-forms.py` is the reference for the
+eleven styles' plan grammar: a main block, arms, an angled wing on a hub, a rear ell, a front
+arcade and a garage, chosen by seed and fitted to the footprint. Its `export` job writes the plans
+of 528 reference sites to `art/mansion-forms/bodies.json`, and `MansionBodyTests` holds
+`FamilyBodyBuilder.PlanMansion` to them. Its `sheet-<style>` jobs render each style's plans as
+blockouts. The grounds' fountain, lamp, mailbox and car are modules in `scripts/art/front-yard.py`.
 
 **Surface textures come from the library in `src/Borough.Godot/assets/city/library/`.** It sits
 inside the Godot project so the shell can load it. `textures.toml` lists each CC0 texture with its

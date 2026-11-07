@@ -24,7 +24,8 @@ public static partial class FamilyBodyBuilder
     [
         "bricks-088", "bricks-051", "bricks-066", "bricks-085", "painted-plaster-wall", "plaster-001",
         "clay-roof-tiles-02", "roofing-tiles-007", "roofing-tiles-008", "wood-siding-011", "hinoki-planks", "wood-siding-005",
-        "bitumen", "standing-seam", "concrete-tile-facade", "white-planks-clean",
+        "bitumen", "standing-seam", "concrete-tile-facade", "white-planks-clean", "stone-wall", "rock-wall-16",
+        "rough-block-wall", "stained-pine", "roofing-tiles-003",
     ];
 
     private static readonly string[] HouseWalls = ["d6cfbf", "c9b79c", "b9ad97", "8e9b86", "a7aeb0", "c4a48a", "d3c6a0", "9aa7b4", "b48f7a", "cfd3c6"];
@@ -43,7 +44,9 @@ public static partial class FamilyBodyBuilder
 
     /// <param name="seed">Which draw, from 0 to <see cref="HouseSeeds"/>.</param>
     /// <param name="pitch">The draw whose roof pitches the house takes, or <c>null</c> for its own.</param>
-    public static FamilyBodyMesh BuildHouse(FamilyBody body, float frontage, float depth, int storeys, int seed, int? pitch = null)
+    /// <param name="grounds">Which grounds a mansion is dressed for; other forms ignore it.</param>
+    public static FamilyBodyMesh BuildHouse(FamilyBody body, float frontage, float depth, int storeys, int seed, int? pitch = null,
+        MansionGrounds grounds = MansionGrounds.OneHousehold)
     {
         ArgumentNullException.ThrowIfNull(body);
         if (body.House is not { } house) throw new ArgumentException("Only a house body is built with BuildHouse().", nameof(body));
@@ -52,6 +55,7 @@ public static partial class FamilyBodyBuilder
             throw new ArgumentOutOfRangeException(nameof(frontage), frontage, $"A villa needs {VillaLeastFrontage} m of frontage.");
         }
 
+        if (IsMansion(house.Variant)) return BuildMansion(body, house.Variant, frontage, depth, storeys, seed, grounds);
         if (IsWideForm(house.Variant)) return BuildWide(body, house.Variant, frontage, depth, storeys, seed, pitch ?? seed);
 
         var mesh = new FamilyBodyMesh();

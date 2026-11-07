@@ -23,7 +23,8 @@ plan, and neighbors across runs never share a form and pitch within 5 degrees.
 | Workshops | `workshop`, `workshop-*` | 2 storeys, 28–36 m | 6 | Meets the bar on a fixture preset only | 2 / 2 / 2 | #245 |
 | Wide houses | `house-terrace`, `house-front-gables`, `house-villa`, twelve `house-<form>` | 1–3 storeys, 12–84 m, 8–36 m deep | 10–11 per band, 4 deep | Meets the bar | 3 / 5 / 7 | main, #247 |
 | Perimeter forms | `perimeter-*` | 3–8 storeys, from 16 m | 6 | Not checked | 0 / 2 / 4 | main, #255 |
-| Mansion blocks | `mansion-block`, `mansion-balconies`, `mansion-shops` | 4–11 storeys | 3 families | Not checked | 3 / 0 / 0 | main |
+| Prewar apartments | `prewar-apartments`, `prewar-apartments-balconies`, `prewar-apartments-shops` | 4–11 storeys | 3 families | Not checked | 3 / 0 / 0 | main |
+| Mansions | eleven `house-mansion-<style>` | 2–3 storeys, 28–84 m, 16–36 m deep | 11 styles, 9 plans | Not checked | 7 / 1 / 3 | #262 |
 | Towers | `tower-point`, `tower-stepped-point`, `tower-l`, `tower-h` | any | 4 families | Not checked | 0 / 4 / 0 | main |
 | Panel slabs | `panel-slab`, `panel-slab-plain`, `panel-slab-balconies` | 12–24 storeys | 3 families | Not checked | 0 / 3 / 0 | main |
 | Corner shop with flats | `corner-shops-with-flats` | 3 storeys, 20–28 m | 1 | Not checked | 1 / 0 / 0 | main |
@@ -31,6 +32,12 @@ plan, and neighbors across runs never share a form and pitch within 5 degrees.
 | Centre strip | `centre-strip` | any shopfront | 1 | Not checked | 0 / 1 / 0 | main |
 
 "Families" in the Forms column counts families, not checked forms, so the true form count can be lower.
+A mansion is a large detached house set back behind deep grounds. The mid-rise brick families
+that used the name are now prewar apartments. A mansion family's run shares a style, and each
+Building draws its own plan from its own seed. In `gridded` at Tick 1, 166 of 928 Buildings draw a
+mansion and 103 of them are contemporary. Every mansion there holds several Households, so the
+single-family grounds do not yet draw in a shipped Ruleset.
+
 Periods counts forms as traditional / mid-century / contemporary under
 [the drawing's period mix](../docs/07-the-drawing.md#22-contemporary-first). The counts are a first
 reading of names and renders, not a reviewed classification.
@@ -43,10 +50,10 @@ Headless `--appearance appearance/test-street`, seed 1, 10,000 Citizens, 600 Tic
 | Ruleset | Buildings | Box fallbacks | Families that draw |
 |---|---|---|---|
 | `base/ruleset.toml` | 1,629 | 658 dwellings, 4 ports, 1 shopfront | wide houses 801, office-warehouse 11 |
-| `traded.toml` | 1,479 | 266 dwellings, 31 shopfronts | narrow houses, rowhouses, attached apartments, shop houses, mansions, towers, centre strip |
+| `traded.toml` | 1,479 | 266 dwellings, 31 shopfronts | narrow houses, rowhouses, attached apartments, shop houses, prewar apartments, towers, centre strip |
 | `gridded.toml` | 840 | 9 dwellings | wide houses 782, office-warehouse 19 |
 | `pictured.toml` | 3,712 | 78 shopfronts | dwellings all drawn; centre strip 26 |
-| `platted.toml` | 134 | none | detached apartments, wide houses, mansions, panel slabs, office-warehouse |
+| `platted.toml` | 134 | none | detached apartments, wide houses, prewar apartments, panel slabs, office-warehouse |
 
 The base game is founded by the player from empty Ground, so a populated lattice may not show
 the Lots a player makes. `--appearance` builds that synthetic city and ignores `--log` (#248), so
@@ -57,7 +64,7 @@ stands 125 Buildings, and the city stops at 128:
 
 | Kind | Buildings | Box fallbacks | Families that draw |
 |---|---|---|---|
-| dwelling | 102 | none | perimeter forms 97, mansion blocks 4, attached apartments 1 |
+| dwelling | 102 | none | perimeter forms 97, prewar apartments 4, attached apartments 1 |
 | shopfront | 21 | none | perimeter forms 21 |
 | school, port | 2 | 2 | none |
 
@@ -100,6 +107,10 @@ detached shops.
 1. Add school and port bodies, the last two boxes in a founding run.
 2. Add contemporary and mid-century rowhouse forms. Six traditional rowhouse families draw 353 of
    `traded`'s Buildings.
-3. Add contemporary and mid-century mansion-block forms. Three traditional mansion families draw 114
-   of `base`'s Buildings.
+3. Add contemporary and mid-century mid-rise apartment forms. Three traditional prewar apartment
+   families draw 114 of `base`'s Buildings.
 4. Add pad-site stores, the largest shopfront gap on `traded` and `pictured`.
+5. Draw the single-family mansion grounds in a shipped run. Every mansion holds several Households
+   today; the board row "Single-family mansions" owns the Lot that holds one.
+6. Check mansion variety against the bar. A mansion run shares a style, so neighbors repeat a
+   style while their plans differ.

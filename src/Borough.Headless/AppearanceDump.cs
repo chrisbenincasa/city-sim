@@ -72,6 +72,7 @@ internal static class AppearanceDump
         var workshopRuns = new List<(ulong Face, StreetSide Side, int Offset, string Form, ulong Cell, int Pitch, int Parcel)>();
         var wideBlocks = new SortedDictionary<(string Band, string Form), int>();
         var wideRuns = new List<(ulong Face, StreetSide Side, int Offset, string Form, ulong Cell, int Pitch, int Parcel)>();
+        var mansions = new SortedDictionary<(string Style, MansionGrounds Grounds), int>();
         for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
         {
             if (!BuildingFacts.TryOf(world, names, slot, out BuildingFacts facts)) continue;
@@ -137,6 +138,11 @@ internal static class AppearanceDump
                     facts.FrontageMetres, facts.DepthMetres, facts.Storeys);
                 ulong era = (ulong)(facts.RaisedDay / preset.EraDays);
                 wideRuns.Add((facts.Face, facts.Side, facts.Offset, form, (era << 40) | houses.Cell, pitch, facts.Offset / facts.ParcelFrontage));
+                if (FamilyBodyBuilder.IsMansion(home.Variant))
+                {
+                    MansionGrounds grounds = facts.Units > 1 ? MansionGrounds.Apartments : MansionGrounds.OneHousehold;
+                    mansions[(form, grounds)] = mansions.GetValueOrDefault((form, grounds)) + 1;
+                }
             }
 
             if (pick.Choice == FamilyChoice.Eligible) continue;
@@ -230,6 +236,16 @@ internal static class AppearanceDump
         }
 
         output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  {eras} of those alike pairs stand in runs of different eras."));
+
+        // One Unit draws a single household's garage and drive; several draw side doors and a parking court.
+        output.WriteLine();
+        output.WriteLine("## Mansions by style and grounds");
+        output.WriteLine("  style                  grounds         buildings");
+        foreach (((string style, MansionGrounds grounds), int count) in mansions)
+        {
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  {style,-21}  {grounds,-13}  {count,9}"));
+        }
+
         return 0;
     }
 

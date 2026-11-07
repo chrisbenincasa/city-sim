@@ -1,8 +1,8 @@
 """Front-garden details for dwellings: hedges, low walls, railings, picket fences, gate piers, gates,
-gate paths, doorsteps and planted borders.
+gate paths, doorsteps and planted borders, and a mansion's fountain, lamp posts, mailbox stand and cars.
 
 Run with Blender in the background:
-  "$BLENDER_BIN" --background --factory-startup --python-exit-code 1 --python scripts/art/front-yard.py -- export
+  "$BLENDER_BIN" --background --factory-startup --python-exit-code 1 --python scripts/art/front-yard.py -- export [MODULE ...]
   "$BLENDER_BIN" --background --factory-startup --python-exit-code 1 --python scripts/art/front-yard.py -- render OUTDIR
 
 The shell lays each dwelling's lawn and places these modules whole on it. Each module's origin is its
@@ -28,7 +28,7 @@ from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import forecourt as kit  # noqa: E402
-from forecourt import BOX_FACES, blob, box, lathe, rgb, solid, tube  # noqa: E402
+from forecourt import BOX_FACES, blob, box, lathe, rgb, slab_x, solid, tube  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCES = ROOT / 'art/front-yard'
@@ -40,6 +40,7 @@ GROW = 1.2
 GROWN = {
     'hedge': (1, GROW, GROW), 'wall': (1, GROW, GROW), 'railing': (1, GROW, GROW), 'picket': (1, GROW, GROW),
     'border': (1, GROW, GROW), 'pier': (GROW,) * 3, 'gate-iron': (GROW,) * 3, 'gate-timber': (GROW,) * 3,
+    'fountain': (GROW,) * 3, 'lamp': (GROW,) * 3, 'mailbox': (GROW,) * 3, 'car': (GROW,) * 3,
 }
 
 COLOURS = {
@@ -47,6 +48,7 @@ COLOURS = {
     'coping': 'cfc8b8', 'iron': '1e2123', 'mortar': '8a857c', 'edging': '7a4a36', 'soil': '4a3628',
     'pot': '3b3f42', 'timber-dark': '5e4632',
     'tile-red': 'a4513a', 'tile-cream': 'ddd2bc', 'tile-black': '2a2a2a', 'step': 'b9b3a6',
+    'water': '35606f', 'glass': '1f2a30', 'tyre': '1c1c1c', 'chrome': '9a9ea2', 'lantern': 'd8cfa8',
     'brick': 'ffffff', 'paint': 'ffffff', 'flag': 'ffffff', 'bloom': 'ffffff',
 }
 PAINTED = ('brick', 'paint', 'flag', 'bloom')
@@ -67,8 +69,8 @@ def reset():
         material.use_nodes = True
         shader = material.node_tree.nodes['Principled BSDF']
         shader.inputs['Base Color'].default_value = colour
-        shader.inputs['Roughness'].default_value = .4 if name in ('iron', 'tile-black', 'tile-red', 'tile-cream') else .9
-        shader.inputs['Metallic'].default_value = .4 if name == 'iron' else 0
+        shader.inputs['Roughness'].default_value = .4 if name in ('iron', 'tile-black', 'tile-red', 'tile-cream', 'water', 'glass') else .9
+        shader.inputs['Metallic'].default_value = .4 if name in ('iron', 'chrome') else 0
         material.diffuse_color = colour
         kit.materials[name] = material
 
@@ -233,6 +235,51 @@ def border():
         blob(f'head-{k}', (x, y, z), (.06, .06, .04), 'bloom')
 
 
+# ---------------------------------------------------------------------------------------------
+# A mansion's grounds.
+
+
+def fountain():
+    """A stone fountain, 3.6 m across: a round basin of water with a pedestal bowl and finial at its centre."""
+    lathe('kerb', [(1.8, 0), (1.8, .45), (1.62, .45), (1.62, .1)], 24, 'flag')
+    lathe('water', [(1.63, .05), (1.63, .32)], 24, 'water')
+    lathe('pedestal', [(.32, 0), (.22, .4), (.16, .9), (.24, 1.0)], 12, 'flag')
+    lathe('bowl', [(.2, .95), (.9, 1.05), (.95, 1.2), (.82, 1.2), (.2, 1.08)], 16, 'flag')
+    lathe('bowl-water', [(.84, 1.1), (.84, 1.16)], 16, 'water')
+    lathe('finial', [(.12, 1.08), (.1, 1.5), (.16, 1.6), (.02, 1.85)], 8, 'flag')
+
+
+def lamp():
+    """A cast iron lamp post, 2.6 m tall, with a lantern on top."""
+    lathe('base', [(.16, 0), (.12, .35), (.06, .45)], 8, 'iron')
+    tube('post', (0, 0, .4), (0, 0, 2.2), .045, 'iron', 8)
+    lathe('lantern', [(.08, 2.2), (.17, 2.3), (.17, 2.6), (.05, 2.62)], 6, 'lantern')
+    lathe('hood', [(.22, 2.6), (.03, 2.78)], 6, 'iron')
+
+
+def mailbox():
+    """A cluster mailbox stand, 1.1 m across and 1.75 m tall, on a pedestal, its doors to -Y."""
+    box('pedestal', (-.2, -.15, 0), (.2, .15, .5), 'paint')
+    box('cabinet', (-.55, -.25, .5), (.55, .25, 1.65), 'paint')
+    box('cap', (-.6, -.3, 1.65), (.6, .3, 1.75), 'paint')
+    for i in range(4):
+        for j in range(4):
+            x, z = -.42 + i * .28, .62 + j * .25
+            box(f'door-{i}-{j}', (x - .11, -.27, z), (x + .11, -.25, z + .2), 'chrome')
+
+
+def car():
+    """A parked sedan, 4.8 m long along Y and 1.85 m wide, its body painted, its nose to -Y."""
+    slab_x('body', [(-2.4, .3), (2.4, .3), (2.4, .75), (2.2, .95), (-2.15, .95), (-2.4, .7)], -.92, .92, 'paint')
+    slab_x('cabin', [(-1.1, .95), (1.45, .95), (1.0, 1.42), (-.55, 1.42)], -.82, .82, 'glass')
+    slab_x('roof', [(-.5, 1.42), (.95, 1.42), (.9, 1.46), (-.45, 1.46)], -.8, .8, 'paint')
+    for x in (-.93, .93):
+        for y in (-1.5, 1.45):
+            tube(f'wheel-{x}-{y}', (x - .08 * (1 if x > 0 else -1), y, .34), (x + .03 * (1 if x > 0 else -1), y, .34), .34, 'tyre', 10)
+    for x in (-.6, .6):
+        box(f'lamp-{x}', (x - .2, -2.42, .62), (x + .2, -2.39, .75), 'lantern')
+
+
 MODULES = {
     'hedge': hedge,
     'wall': wall,
@@ -245,6 +292,10 @@ MODULES = {
     'path-tiled': path_tiled,
     'doorstep': doorstep,
     'border': border,
+    'fountain': fountain,
+    'lamp': lamp,
+    'mailbox': mailbox,
+    'car': car,
 }
 
 
@@ -405,6 +456,9 @@ if arguments[0] == 'render':
 else:
     SOURCES.mkdir(parents=True, exist_ok=True)
     EXPORT.mkdir(parents=True, exist_ok=True)
-    records = [export(name, build) for name, build in MODULES.items()]
+    chosen = arguments[1:] or list(MODULES)
+    kept = json.loads((SOURCES / 'modules.json').read_text())['modules'] if arguments[1:] else []
+    fresh = {name: export(name, MODULES[name]) for name in chosen}
+    records = [fresh.get(name) or next(r for r in kept if r['module'] == name) for name in MODULES]
     (SOURCES / 'modules.json').write_text(json.dumps({'painted': list(PAINTED), 'bay_metres': BAY,
                                                       'path_bay_metres': PATH_BAY, 'modules': records}, indent=2) + '\n')
