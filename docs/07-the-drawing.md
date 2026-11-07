@@ -258,8 +258,10 @@ reference site's corners per part, bounds and far cells.
 
 The US mansion forms follow the same rule. `scripts/art/mansion-forms.py` is the reference for the
 eleven styles' plan grammar: a main block, arms, an angled wing on a hub, a rear ell, a front
-arcade and a garage, chosen by seed and fitted to the footprint. Its `export` job writes the plans
-of 528 reference sites to `art/mansion-forms/bodies.json`, and `MansionBodyTests` holds
+arcade and a garage, chosen by seed and fitted to the footprint. Each style caps the main block's
+width by house depth and storey count. Lower set-back wings, a garage or a breezeway to one, and
+side garden fill a wide Lot's remaining frontage. Its `export` job writes the plans of 792
+reference sites to `art/mansion-forms/bodies.json`, and `MansionBodyTests` holds
 `FamilyBodyBuilder.PlanMansion` to them. Its `sheet-<style>` jobs render each style's plans as
 blockouts. The grounds' fountain, lamp, mailbox and car are modules in `scripts/art/front-yard.py`.
 

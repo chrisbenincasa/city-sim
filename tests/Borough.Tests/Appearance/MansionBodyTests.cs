@@ -156,11 +156,11 @@ public sealed class MansionBodyTests
         HouseVariant variant = House(style).House!.Variant;
         foreach ((float frontage, float depth) in ((float, float)[])[(40f, 11f), (48f, 12f)])
         {
-            MansionPlanKind[] plans = [.. Enumerable.Range(0, 16).Select(seed => FamilyBodyBuilder.PlanMansion(variant, frontage, depth, 2, seed,
-                MansionGrounds.Apartments).Kind)];
-            int winged = plans.Count(p => p != MansionPlanKind.Bar);
+            MansionPlan[] plans = [.. Enumerable.Range(0, 16).Select(seed => FamilyBodyBuilder.PlanMansion(variant, frontage, depth, 2, seed,
+                MansionGrounds.Apartments))];
+            int winged = plans.Count(p => p.Masses.Length > 1);
 
-            Assert.True(winged >= 8, $"{style} {frontage}x{depth}: {winged} of 16 draw wings ({string.Join(",", plans.Distinct())})");
+            Assert.True(winged >= 8, $"{style} {frontage}x{depth}: {winged} of 16 draw wings ({string.Join(",", plans.Select(p => p.Kind).Distinct())})");
         }
     }
 
@@ -209,6 +209,58 @@ public sealed class MansionBodyTests
         }
 
         Assert.True(checkedPlans >= 99, $"only {checkedPlans} reference plans");
+    }
+
+    [Fact]
+    public void A_wide_lot_keeps_its_main_block_within_the_cap()
+    {
+        foreach (HouseVariant style in Enum.GetValues<HouseVariant>().Where(FamilyBodyBuilder.IsMansion))
+        {
+            foreach ((float frontage, float depth, int storeys) in (ReadOnlySpan<(float, float, int)>)[(64f, 14f, 3), (84f, 14f, 2), (84f, 24f, 3), (48f, 14f, 2)])
+            {
+                float cap = FamilyBodyBuilder.MainBlockCap(style, depth, storeys);
+                if (frontage >= 64f) Assert.True(cap <= frontage * .45f, $"{style} caps its main block at {cap} m on {frontage} m");
+                for (int seed = 0; seed < 16; seed++)
+                {
+                    foreach (MansionGrounds grounds in (ReadOnlySpan<MansionGrounds>)[MansionGrounds.Apartments, MansionGrounds.OneHousehold])
+                    {
+                        MansionMass main = FamilyBodyBuilder.PlanMansion(style, frontage, depth, storeys, seed, grounds).Masses[0];
+                        Assert.True(main.X1 - main.X0 <= cap + .01f, $"{style} {frontage}x{depth} seed {seed}: main block {main.X1 - main.X0} m against {cap} m");
+                    }
+                }
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(HouseVariant.MansionColonial)]
+    [InlineData(HouseVariant.MansionRegency)]
+    public void A_symmetric_style_stays_symmetric_on_a_wide_lot(HouseVariant style)
+    {
+        for (int seed = 0; seed < 16; seed++)
+        {
+            MansionPlan plan = FamilyBodyBuilder.PlanMansion(style, 72f, 14f, 2, seed, MansionGrounds.Apartments);
+            MansionMass main = plan.Masses[0];
+            float middle = (main.X0 + main.X1) / 2f;
+            Assert.Equal(middle, (plan.Masses.Min(m => m.X0) + plan.Masses.Max(m => m.X1)) / 2f, .01f);
+            Assert.Equal(2, plan.Masses.Count(m => m.Part == MansionPart.Flank));
+        }
+    }
+
+    [Fact]
+    public void A_wide_lot_fills_its_frontage_with_lower_wings_and_a_garage()
+    {
+        int garaged = 0, flanked = 0;
+        for (int seed = 0; seed < 16; seed++)
+        {
+            MansionPlan one = FamilyBodyBuilder.PlanMansion(HouseVariant.MansionNeoEclectic, 64f, 14f, 3, seed, MansionGrounds.OneHousehold);
+            MansionPlan several = FamilyBodyBuilder.PlanMansion(HouseVariant.MansionNeoEclectic, 64f, 14f, 3, seed, MansionGrounds.Apartments);
+            if (one.Masses.Any(m => m.Part == MansionPart.Garage)) garaged++;
+            if (several.Masses.Any(m => m.Part == MansionPart.Flank && m.Storeys < 3 && m.Y0 > several.Front)) flanked++;
+        }
+
+        Assert.True(garaged >= 14, $"{garaged} of 16 single households draw a garage");
+        Assert.True(flanked >= 14, $"{flanked} of 16 apartment mansions draw a lower wing set back");
     }
 
     [Fact]

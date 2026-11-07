@@ -36,6 +36,12 @@ public enum MansionPart : byte
     Hub,
     Wing,
     Arcade,
+
+    /// <summary>A lower wing beside the main block, set back from its front.</summary>
+    Flank,
+
+    /// <summary>A one-storey link from the house to a garage.</summary>
+    Breezeway,
 }
 
 /// <summary>
@@ -80,10 +86,18 @@ public static partial class FamilyBodyBuilder
     ];
 
     // The least frontage, in metres, each style keeps for its main block between arms.
-    private static readonly float[] MansionLeastMain = [18f, 22f, 18f, 22f, 22f, 20f, 18f, 18f, 18f, 22f, 20f];
+    private static readonly float[] MansionLeastMain = [12f, 13f, 11f, 14f, 14f, 13f, 12f, 13f, 12f, 13f, 13f];
 
     // How far a style's porch, portico or porte-cochere stands in front of its main block.
     private static readonly float[] MansionStoop = [3f, 1.6f, 2.8f, 5f, 1.5f, 2f, 2.8f, 1.6f, 2.8f, 1.6f, 1.8f];
+
+    // The main block's widest frontage, arms over it included, is this many times the house depth plus
+    // 2 m a storey over two, kept between 16 m and the style's most.
+    private static readonly float[] MansionAspect = [1.6f, 1.5f, 1.3f, 1.7f, 1.7f, 1.8f, 1.6f, 1.8f, 1.5f, 1.6f, 1.45f];
+    private static readonly float[] MansionMostMain = [30f, 28f, 24f, 34f, 34f, 34f, 30f, 32f, 28f, 30f, 32f];
+
+    // The share of the frontage the house leaves free that falls on its garage side.
+    private static readonly float[] MansionGarageShare = [.5f, .7f, .75f, .6f, .6f, .65f, .5f, .8f, .7f, .75f, .8f];
 
     private const float MansionEaves = .45f;
 
@@ -94,6 +108,15 @@ public static partial class FamilyBodyBuilder
 
     private static bool GarageArm(HouseVariant style) => style is HouseVariant.MansionColonial or HouseVariant.MansionRegency
         or HouseVariant.MansionChateau or HouseVariant.MansionNeoEclectic;
+
+    private static bool Symmetric(HouseVariant style) => style is HouseVariant.MansionColonial or HouseVariant.MansionRegency;
+
+    /// <summary>The widest a mansion's main block draws on a footprint <paramref name="depth"/> deep.</summary>
+    public static float MainBlockCap(HouseVariant style, float depth, int storeys)
+    {
+        int index = StyleOf(style);
+        return Math.Clamp((MansionAspect[index] * depth) + (2f * Math.Max(0, storeys - 2)), 16f, MansionMostMain[index]);
+    }
 
     private static bool LowArms(HouseVariant style) => style is HouseVariant.MansionPrairie or HouseVariant.MansionMidCentury
         or HouseVariant.MansionCalifornia;
@@ -112,9 +135,9 @@ public static partial class FamilyBodyBuilder
         float hw = frontage / 2f, hd = depth / 2f;
         float margin = MathF.Min(3f, frontage * .06f);
         float lane = grounds == MansionGrounds.OneHousehold && frontage >= 32f ? MathF.Max(margin, 3.5f) : margin;
-        float x0 = -hw + (gside < 0 ? lane : margin), x1 = hw - (gside > 0 ? lane : margin), span = x1 - x0;
+        float lx0 = -hw + (gside < 0 ? lane : margin), lx1 = hw - (gside > 0 ? lane : margin), span = lx1 - lx0;
         float yf = -hd, yb = hd;
-        float least = MansionLeastMain[index], leastU = least + (style == HouseVariant.MansionChateau ? 14f : 0f);
+        float least = MansionLeastMain[index], leastU = least + (style == HouseVariant.MansionChateau ? 8f : 0f);
         float stoop = MathF.Min(MansionStoop[index], depth * .25f);
         aw = MathF.Min(aw, MathF.Max(6f, span * .22f));
         proj = MathF.Max(stoop, MathF.Min(proj, depth * .3f));
@@ -124,14 +147,23 @@ public static partial class FamilyBodyBuilder
         float lift = MathF.Max(stoop, ((lw + (hs / 2f)) * sin) + (wd / 2f * cos) - (hs / 2f));
 
         float rearRoom = MathF.Min(4f, depth * .25f);
+        float cap = MainBlockCap(style, depth, storeys);
+        float box = MathF.Min(span, cap), pair = MathF.Min(aw, MathF.Max(5f, box * .25f));
+        float angledMain = MathF.Min(span - reserve, cap), courtMain = MathF.Min(span - (2f * pair), cap);
+        float Core(MansionPlanKind p) => p switch
+        {
+            MansionPlanKind.Angled => angledMain + reserve,
+            MansionPlanKind.Court => courtMain + (2f * pair),
+            _ => box,
+        };
         bool Ok(MansionPlanKind p) => p switch
         {
-            MansionPlanKind.UFront => span - (2f * aw) >= leastU && depth - proj >= LeastMain,
-            MansionPlanKind.H => span - (2f * aw) >= leastU && depth >= 12f && depth - proj - rearRoom >= LeastMain,
-            MansionPlanKind.URear => span - (2f * aw) >= leastU && depth >= 12f && depth - stoop - rearRoom >= LeastMain,
-            MansionPlanKind.LFront => span - aw >= least && depth - proj >= LeastMain,
-            MansionPlanKind.Court => span >= 34f && span - (2f * aw) >= least && depth - proj >= LeastMain,
-            MansionPlanKind.Angled => span - reserve >= least && depth - lift >= LeastMain,
+            MansionPlanKind.UFront => box - (2f * pair) >= leastU && depth - proj >= LeastMain,
+            MansionPlanKind.H => box - (2f * pair) >= leastU && depth >= 12f && depth - proj - rearRoom >= LeastMain,
+            MansionPlanKind.URear => box - (2f * aw) >= 6f && depth >= 12f && depth - stoop - rearRoom >= LeastMain,
+            MansionPlanKind.LFront => box - aw >= least && depth - proj >= LeastMain,
+            MansionPlanKind.Court => Core(p) >= 34f && courtMain >= least && depth - proj >= LeastMain,
+            MansionPlanKind.Angled => angledMain >= least && depth - lift >= MathF.Max(LeastMain, hs),
             MansionPlanKind.T or MansionPlanKind.Ell => depth >= 12f && depth - stoop - rearRoom >= LeastMain,
             _ => true,
         };
@@ -146,6 +178,11 @@ public static partial class FamilyBodyBuilder
             break;
         }
 
+        if (plan is MansionPlanKind.UFront or MansionPlanKind.H or MansionPlanKind.Court) aw = pair;
+        float free = span - Core(plan);
+        float toGarage = Symmetric(style) ? free / 2f : free * MansionGarageShare[index];
+        float x0 = lx0 + (gside > 0 ? free - toGarage : toGarage), x1 = x0 + Core(plan);
+
         bool forward = plan is MansionPlanKind.UFront or MansionPlanKind.H or MansionPlanKind.LFront or MansionPlanKind.Court;
         bool rear = plan is MansionPlanKind.H or MansionPlanKind.URear or MansionPlanKind.T or MansionPlanKind.Ell;
         float front = plan == MansionPlanKind.Angled ? yf + lift : forward ? yf + proj : yf + stoop;
@@ -155,7 +192,7 @@ public static partial class FamilyBodyBuilder
         int armStoreys = Math.Max(1, storeys + (LowArms(style) ? -1 : drop));
         bool single = grounds == MansionGrounds.OneHousehold;
 
-        float mx0 = x0, mx1 = x1;
+        float mx0 = plan == MansionPlanKind.Court ? x0 + aw : x0, mx1 = plan == MansionPlanKind.Court ? x1 - aw : x1;
         var arms = new List<MansionMass>();
         MansionPart ArmPart(int side) => single && side == gside && (GarageArm(style) || plan is MansionPlanKind.H or MansionPlanKind.URear)
             ? MansionPart.Garage
@@ -172,8 +209,8 @@ public static partial class FamilyBodyBuilder
                 }
 
             case MansionPlanKind.URear:
-                arms.Add(new MansionMass(ArmPart(-1), x0, x0 + aw, front + .8f, rearEnd, armStoreys));
-                arms.Add(new MansionMass(ArmPart(1), x1 - aw, x1, front + .8f, rearEnd, armStoreys));
+                arms.Add(new MansionMass(ArmPart(-1), x0, x0 + aw, back - 1.5f, rearEnd, armStoreys));
+                arms.Add(new MansionMass(ArmPart(1), x1 - aw, x1, back - 1.5f, rearEnd, armStoreys));
                 break;
             case MansionPlanKind.LFront:
                 {
@@ -205,6 +242,8 @@ public static partial class FamilyBodyBuilder
             float at = plan == MansionPlanKind.T ? ((mx0 + mx1) / 2f) - (width / 2f) : gside > 0 ? mx0 + .8f : mx1 - .8f - width;
             arms.Add(new MansionMass(MansionPart.Rear, at, at + width, back - 1.5f, rearEnd, Math.Max(1, storeys - 1)));
         }
+
+        Flanks(arms, style, single, gside, x0, x1, lx0, lx1, front, back, yb, storeys);
 
         bool garaged = arms.Exists(a => a.Part == MansionPart.Garage);
         if (single && !garaged && yb - back >= 5f)
@@ -242,6 +281,47 @@ public static partial class FamilyBodyBuilder
         }
 
         return new MansionPlan(plan, [new MansionMass(MansionPart.Main, mx0, mx1, front, back, storeys), .. arms], gside, entry, front);
+    }
+
+    /// <summary>
+    /// Fills the frontage beside the house: a lower wing set back on each side for a symmetric style,
+    /// and otherwise a garage, a breezeway to a garage, or a lower wing on the garage side and a lower
+    /// wing on the other side where it has room. What is left stays garden.
+    /// </summary>
+    private static void Flanks(List<MansionMass> arms, HouseVariant style, bool single, int gside, float x0, float x1, float lx0, float lx1,
+        float front, float back, float yb, int storeys)
+    {
+        float step = MathF.Min(2.5f, (back - front) * .25f);
+        float y0 = front + step, y1 = MathF.Min(yb, MathF.Max(y0 + 4f, back - .5f));
+        int low = Math.Max(1, storeys - 1);
+        bool garaged = arms.Exists(a => a.Part == MansionPart.Garage);
+        float toGarage = gside > 0 ? lx1 - x1 : x0 - lx0, away = gside > 0 ? x0 - lx0 : lx1 - x1;
+        MansionMass Beside(MansionPart part, int side, float gap, float width, float b0, float b1, int levels) => side > 0
+            ? new MansionMass(part, x1 + gap, x1 + gap + width, b0, b1, levels)
+            : new MansionMass(part, x0 - gap - width, x0 - gap, b0, b1, levels);
+
+        if (Symmetric(style))
+        {
+            float width = MathF.Min(9f, MathF.Min(toGarage, away));
+            if (width < 5f) return;
+            arms.Add(Beside(single && !garaged ? MansionPart.Garage : MansionPart.Flank, gside, 0f, width, y0, y1, low));
+            arms.Add(Beside(MansionPart.Flank, -gside, 0f, width, y0, y1, low));
+            return;
+        }
+
+        if (single && !garaged && toGarage >= 6.5f)
+        {
+            float link = toGarage >= 9.5f ? 3f : 0f;
+            float width = MathF.Min(8.4f, toGarage - link);
+            if (link > 0f) arms.Add(Beside(MansionPart.Breezeway, gside, 0f, link, y0 + 1f, MathF.Min(yb, y0 + 4.5f), 1));
+            arms.Add(Beside(MansionPart.Garage, gside, link, width, y0, MathF.Min(yb, y0 + 7f), 1));
+        }
+        else if (!garaged && toGarage >= 5f)
+        {
+            arms.Add(Beside(MansionPart.Flank, gside, 0f, MathF.Min(8f, toGarage), y0, y1, low));
+        }
+
+        if (away >= 7f) arms.Add(Beside(MansionPart.Flank, -gside, 0f, MathF.Min(7f, away), y0, y1, low));
     }
 
     private enum MansionRoof : byte
@@ -687,7 +767,8 @@ public static partial class FamilyBodyBuilder
             if (facing > 0) rightOpenings = [.. doors, .. rightOpenings.Where(o => o.V >= Storey)];
             else leftOpenings = [.. doors, .. leftOpenings.Where(o => o.V >= Storey)];
         }
-        else if (!single && m.Part is MansionPart.Main or MansionPart.Arm or MansionPart.Wing && deep >= 6f)
+        else if (!single && m.Part is MansionPart.Main or MansionPart.Arm or MansionPart.Wing or MansionPart.Flank
+            && deep >= (m.Part == MansionPart.Flank ? 4f : 6f))
         {
             Opening side = new(1.6f, DoorSill, 1.1f, DoorHeight, OpeningKind.Door);
             if (leftOuter) leftOpenings = [.. leftOpenings.Where(o => o.V > Storey || o.U + o.W < deep - 3.2f), new Opening(deep - 2.7f, DoorSill, 1.1f, DoorHeight, OpeningKind.Door)];
@@ -749,7 +830,7 @@ public static partial class FamilyBodyBuilder
         float least = float.MaxValue, most = float.MinValue;
         foreach (MansionMass m in plan.Masses)
         {
-            if (m.Turn != 0f || m.Part is not (MansionPart.Main or MansionPart.Arm or MansionPart.Hub)) continue;
+            if (m.Turn != 0f || m.Part is not (MansionPart.Main or MansionPart.Arm or MansionPart.Hub or MansionPart.Flank)) continue;
             least = MathF.Min(least, m.X0);
             most = MathF.Max(most, m.X1);
         }
@@ -845,11 +926,12 @@ public static partial class FamilyBodyBuilder
         {
             MansionPart.Main => deep > wide,
             _ when m.Turn != 0f => false,
-            MansionPart.Hub => false,
+            MansionPart.Hub or MansionPart.Breezeway => false,
             _ => deep >= wide * .8f,
         };
         if (m.Part == MansionPart.Garage && m.Storeys == 1 && kind is MansionRoof.Mansard) kind = MansionRoof.Hip;
         if (m.Part == MansionPart.Hub) kind = s.Style == HouseVariant.MansionCalifornia ? MansionRoof.Flat : MansionRoof.Hip;
+        if (m.Part is MansionPart.Flank or MansionPart.Breezeway && kind == MansionRoof.Shed) kind = MansionRoof.Flat;
         float A = alongY ? wide / 2f : deep / 2f, L = alongY ? deep / 2f : wide / 2f;
         string end = s.End.Length > 0 ? s.End : s.Wall;
         switch (kind)

@@ -114,3 +114,5 @@ detached shops.
    today; the board row "Single-family mansions" owns the Lot that holds one.
 6. Check mansion variety against the bar. A mansion run shares a style, so neighbors repeat a
    style while their plans differ.
+7. Set mansions further back from the Street. A 14 m least house depth reads at the right size,
+   but the houses still stand fairly close to the frontage.

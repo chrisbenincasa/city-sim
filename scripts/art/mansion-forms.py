@@ -4,6 +4,10 @@ Each style is a main block plus the parts its plan calls for: arms that stand fo
 angled wing on a hub, a rear ell, a front arcade and a garage. The grammar picks a plan from the
 style's list by seed, keeps the first one the footprint can hold, and falls back to a bar.
 
+The main block is never wider than its style's cap, a multiple of the house depth. On a wide Lot the
+house stands centered (colonial, regency) or toward one side, and the frontage beside it takes lower
+wings set back from the main front, a garage or a breezeway to a garage, and side garden.
+
 src/Borough.Appearance/FamilyBodyBuilder.Mansion.cs draws the same plans on the same draw. The export
 job writes art/mansion-forms/bodies.json, and MansionBodyTests holds the C# builder to it. Change the
 grammar here and there together, then re-export.
@@ -44,11 +48,20 @@ PLANS = {
 
 # The least frontage each style keeps for its main block between arms, and how far its porch,
 # portico or porte-cochere stands in front of the main block.
-LEAST_MAIN = dict(zip(STYLES, [18, 22, 18, 22, 22, 20, 18, 18, 18, 22, 20]))
+LEAST_MAIN = dict(zip(STYLES, [12, 13, 11, 14, 14, 13, 12, 13, 12, 13, 13]))
 STOOP = dict(zip(STYLES, [3, 1.6, 2.8, 5, 1.5, 2, 2.8, 1.6, 2.8, 1.6, 1.8]))
 
 # The shallowest main block a plan with wings keeps. Deep yards leave many houses 8-13 m deep.
 LEAST_DEPTH = 6.5
+
+# The main block's widest frontage, arms over it included, is this many times the house depth plus
+# 2 m a storey over two, kept between 16 m and the style's most.
+ASPECT = dict(zip(STYLES, [1.6, 1.5, 1.3, 1.7, 1.7, 1.8, 1.6, 1.8, 1.5, 1.6, 1.45]))
+MOST_MAIN = dict(zip(STYLES, [30, 28, 24, 34, 34, 34, 30, 32, 28, 30, 32]))
+
+# The share of the frontage the house leaves free that falls on its garage side.
+GARAGE_SHARE = dict(zip(STYLES, [.5, .7, .75, .6, .6, .65, .5, .8, .7, .75, .8]))
+SYMMETRIC = {'colonial', 'regency'}
 
 GARAGE_ARM = {'colonial', 'regency', 'chateau', 'neo-eclectic'}
 LOW_ARMS = {'prairie', 'mid-century', 'california'}
@@ -81,6 +94,44 @@ def mass(part, x0, x1, y0, y1, storeys, turn=0.0, px=0.0, py=0.0):
     return {'part': part, 'box': [x0, x1, y0, y1, turn, px, py], 'storeys': storeys}
 
 
+def main_cap(style, depth, storeys):
+    return min(MOST_MAIN[style], max(16, ASPECT[style] * depth + 2 * max(0, storeys - 2)))
+
+
+def flanks(arms, style, single, gside, x0, x1, lx0, lx1, front, back, yb, storeys):
+    step = min(2.5, (back - front) * .25)
+    y0 = front + step
+    y1 = min(yb, max(y0 + 4, back - .5))
+    low = max(1, storeys - 1)
+    garaged = any(a['part'] == 'garage' for a in arms)
+    to_garage = lx1 - x1 if gside > 0 else x0 - lx0
+    away = x0 - lx0 if gside > 0 else lx1 - x1
+
+    def beside(part, side, gap, width, b0, b1, levels):
+        return mass(part, x1 + gap, x1 + gap + width, b0, b1, levels) if side > 0 \
+            else mass(part, x0 - gap - width, x0 - gap, b0, b1, levels)
+
+    if style in SYMMETRIC:
+        width = min(9, min(to_garage, away))
+        if width < 5:
+            return
+        arms.append(beside('garage' if single and not garaged else 'flank', gside, 0, width, y0, y1, low))
+        arms.append(beside('flank', -gside, 0, width, y0, y1, low))
+        return
+
+    if single and not garaged and to_garage >= 6.5:
+        link = 3 if to_garage >= 9.5 else 0
+        width = min(8.4, to_garage - link)
+        if link > 0:
+            arms.append(beside('breezeway', gside, 0, link, y0 + 1, min(yb, y0 + 4.5), 1))
+        arms.append(beside('garage', gside, link, width, y0, min(yb, y0 + 7), 1))
+    elif not garaged and to_garage >= 5:
+        arms.append(beside('flank', gside, 0, min(8, to_garage), y0, y1, low))
+
+    if away >= 7:
+        arms.append(beside('flank', -gside, 0, min(7, away), y0, y1, low))
+
+
 def plan_mansion(style, frontage, depth, storeys, seed, single):
     r = Draw(((seed << 8) | 0x4D) & MASK)
     aw, proj, md, rd, ew = r.range(7, 9.5), r.range(3.5, 6), r.range(10, 13), r.range(5, 8), r.range(7, 9.5)
@@ -91,12 +142,12 @@ def plan_mansion(style, frontage, depth, storeys, seed, single):
     hw, hd = frontage / 2, depth / 2
     margin = min(3, frontage * .06)
     lane = max(margin, 3.5) if single and frontage >= 32 else margin
-    x0 = -hw + (lane if gside < 0 else margin)
-    x1 = hw - (lane if gside > 0 else margin)
-    span = x1 - x0
+    lx0 = -hw + (lane if gside < 0 else margin)
+    lx1 = hw - (lane if gside > 0 else margin)
+    span = lx1 - lx0
     yf, yb = -hd, hd
     least = LEAST_MAIN[style]
-    least_u = least + (14 if style == 'chateau' else 0)
+    least_u = least + (8 if style == 'chateau' else 0)
     stoop = min(STOOP[style], depth * .25)
     aw = min(aw, max(6, span * .22))
     proj = max(stoop, min(proj, depth * .3))
@@ -105,19 +156,32 @@ def plan_mansion(style, frontage, depth, storeys, seed, single):
     reserve = hs / 2 + (lw + hs / 2) * cos + wd / 2 * sin
     lift = max(stoop, (lw + hs / 2) * sin + wd / 2 * cos - hs / 2)
     rear_room = min(4, depth * .25)
+    cap = main_cap(style, depth, storeys)
+    box = min(span, cap)
+    pair = min(aw, max(5, box * .25))
+    angled_main = min(span - reserve, cap)
+    court_main = min(span - 2 * pair, cap)
 
     ok = {
-        'u-front': span - 2 * aw >= least_u and depth - proj >= LEAST_DEPTH,
-        'h': span - 2 * aw >= least_u and depth >= 12 and depth - proj - rear_room >= LEAST_DEPTH,
-        'u-rear': span - 2 * aw >= least_u and depth >= 12 and depth - stoop - rear_room >= LEAST_DEPTH,
-        'l-front': span - aw >= least and depth - proj >= LEAST_DEPTH,
-        'court': span >= 34 and span - 2 * aw >= least and depth - proj >= LEAST_DEPTH,
-        'angled': span - reserve >= least and depth - lift >= LEAST_DEPTH,
+        'u-front': box - 2 * pair >= least_u and depth - proj >= LEAST_DEPTH,
+        'h': box - 2 * pair >= least_u and depth >= 12 and depth - proj - rear_room >= LEAST_DEPTH,
+        'u-rear': box - 2 * aw >= 6 and depth >= 12 and depth - stoop - rear_room >= LEAST_DEPTH,
+        'l-front': box - aw >= least and depth - proj >= LEAST_DEPTH,
+        'court': court_main + 2 * pair >= 34 and court_main >= least and depth - proj >= LEAST_DEPTH,
+        'angled': angled_main >= least and depth - lift >= max(LEAST_DEPTH, hs),
         't': depth >= 12 and depth - stoop - rear_room >= LEAST_DEPTH,
         'ell': depth >= 12 and depth - stoop - rear_room >= LEAST_DEPTH,
     }
     order = PLANS[style]
     plan = next((order[(seed + i) % len(order)] for i in range(len(order)) if ok[order[(seed + i) % len(order)]]), 'bar')
+
+    if plan in ('u-front', 'h', 'court'):
+        aw = pair
+    core = angled_main + reserve if plan == 'angled' else court_main + 2 * pair if plan == 'court' else box
+    free = span - core
+    to_garage = free / 2 if style in SYMMETRIC else free * GARAGE_SHARE[style]
+    x0 = lx0 + (free - to_garage if gside > 0 else to_garage)
+    x1 = x0 + core
 
     forward = plan in ('u-front', 'h', 'l-front', 'court')
     rear = plan in ('h', 'u-rear', 't', 'ell')
@@ -128,7 +192,7 @@ def plan_mansion(style, frontage, depth, storeys, seed, single):
     rear_end = min(back + rd, yb)
     arm_storeys = max(1, storeys + (-1 if style in LOW_ARMS else drop))
 
-    mx0, mx1 = x0, x1
+    mx0, mx1 = (x0 + aw, x1 - aw) if plan == 'court' else (x0, x1)
     arms = []
 
     def arm_part(side):
@@ -142,8 +206,8 @@ def plan_mansion(style, frontage, depth, storeys, seed, single):
         if plan == 'court':
             arms.append(mass('arcade', x0 + aw, x1 - aw, yf, yf + 3.2, 1))
     elif plan == 'u-rear':
-        arms.append(mass(arm_part(-1), x0, x0 + aw, front + .8, rear_end, arm_storeys))
-        arms.append(mass(arm_part(1), x1 - aw, x1, front + .8, rear_end, arm_storeys))
+        arms.append(mass(arm_part(-1), x0, x0 + aw, back - 1.5, rear_end, arm_storeys))
+        arms.append(mass(arm_part(1), x1 - aw, x1, back - 1.5, rear_end, arm_storeys))
     elif plan == 'l-front':
         side = gside if style == 'neo-eclectic' else -gside
         arms.append(mass(arm_part(side), x0, x0 + aw, yf, back, arm_storeys) if side < 0
@@ -163,6 +227,8 @@ def plan_mansion(style, frontage, depth, storeys, seed, single):
         width = min(ew, (mx1 - mx0) * .6)
         at = (mx0 + mx1) / 2 - width / 2 if plan == 't' else mx0 + .8 if gside > 0 else mx1 - .8 - width
         arms.append(mass('rear', at, at + width, back - 1.5, rear_end, max(1, storeys - 1)))
+
+    flanks(arms, style, single, gside, x0, x1, lx0, lx1, front, back, yb, storeys)
 
     def garaged():
         return any(a['part'] == 'garage' for a in arms)
@@ -197,7 +263,7 @@ def plan_mansion(style, frontage, depth, storeys, seed, single):
 
 
 # Sites span the Lots the presets draw on: 28-84 m frontage, and the 8-24 m of house a deep yard leaves.
-SITES = [(28, 8), (36, 12), (40, 11), (48, 16), (52, 20), (84, 24)]
+SITES = [(28, 8), (36, 12), (40, 11), (40, 14), (48, 14), (48, 16), (52, 20), (64, 14), (84, 24)]
 SEEDS = [0, 1, 7, 42]
 
 
@@ -226,7 +292,8 @@ def export():
 
 
 PART_COLOR = {'main': (.85, .82, .74), 'arm': (.72, .70, .62), 'garage': (.45, .50, .58), 'rear': (.66, .60, .52),
-              'hub': (.80, .66, .52), 'wing': (.70, .58, .48), 'arcade': (.86, .76, .60)}
+              'hub': (.80, .66, .52), 'wing': (.70, .58, .48), 'arcade': (.86, .76, .60), 'flank': (.62, .66, .56),
+              'breezeway': (.56, .52, .48)}
 
 
 def sheet(style):
@@ -265,7 +332,7 @@ def sheet(style):
         obj = bpy.data.objects.new(name, mesh)
         scene.collection.objects.link(obj)
 
-    sites = [(36, 12), (48, 16), (52, 20), (84, 24)]
+    sites = [(40, 14), (48, 14), (64, 14), (84, 24)]
     cx = 0.0
     for col, (frontage, depth) in enumerate(sites):
         cx += frontage / 2 + (8 if col else 0)
