@@ -1,0 +1,52 @@
+lane:   FullyQualifiedName~CommuteCauseProbe
+tree:   b6737549-dirty on HEAD
+log:    /tmp/borough-test-20261024-104135.log
+xunit:  6 threads, nice 10
+
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Borough.Analysers -> /home/christian/Code/city-sim/.claude/worktrees/inv-review-probe-b/src/Borough.Analysers/bin/Release/netstandard2.0/Borough.Analysers.dll
+  Borough.Core -> /home/christian/Code/city-sim/.claude/worktrees/inv-review-probe-b/src/Borough.Core/bin/Release/net10.0/Borough.Core.dll
+  Borough.Formats -> /home/christian/Code/city-sim/.claude/worktrees/inv-review-probe-b/src/Borough.Formats/bin/Release/net10.0/Borough.Formats.dll
+  Borough.Appearance -> /home/christian/Code/city-sim/.claude/worktrees/inv-review-probe-b/src/Borough.Appearance/bin/Release/net10.0/Borough.Appearance.dll
+  Borough.Headless -> /home/christian/Code/city-sim/.claude/worktrees/inv-review-probe-b/src/Borough.Headless/bin/Release/net10.0/Borough.Headless.dll
+  Borough.Tests -> /home/christian/Code/city-sim/.claude/worktrees/inv-review-probe-b/tests/Borough.Tests/bin/Release/net10.0/Borough.Tests.dll
+Test run for /home/christian/Code/city-sim/.claude/worktrees/inv-review-probe-b/tests/Borough.Tests/bin/Release/net10.0/Borough.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+/home/christian/Code/city-sim/.claude/worktrees/inv-review-probe-b/tests/Borough.Tests/bin/Release/net10.0/Borough.Tests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.13]   Discovering: Borough.Tests
+[xUnit.net 00:00:00.76]   Discovered:  Borough.Tests
+[xUnit.net 00:00:00.80]   Starting:    Borough.Tests
+[xUnit.net 00:00:03.50]   Finished:    Borough.Tests
+  Passed Borough.Tests.ReviewProbes.CommuteCauseProbe.Failing_commuter_cause_against_last_trip_fate [2 s]
+  Standard Output Messages:
+ tick 8366 citizen 170 activity ShoppingStopped run-start fate ExceededCommuteBudget evidence LastTrip Completed -> shell says "the commute failed"
+ tick 8367 citizen 170 activity ShoppingStopped run-start fate ExceededCommuteBudget evidence LastTrip Completed -> shell says "the commute failed"
+ tick 8368 citizen 170 activity AtHome run-start fate ExceededCommuteBudget evidence LastTrip Completed -> shell says "the commute failed"
+ tick 8369 citizen 170 activity AtHome run-start fate ExceededCommuteBudget evidence LastTrip Completed -> shell says "the commute failed"
+ tick 8369 citizen 176 activity ShoppingStopped run-start fate ExceededCommuteBudget evidence LastTrip Completed -> shell says "the commute failed"
+ tick 8370 citizen 170 activity AtHome run-start fate ExceededCommuteBudget evidence LastTrip Completed -> shell says "the commute failed"
+ tick 8370 citizen 176 activity ShoppingStopped run-start fate ExceededCommuteBudget evidence LastTrip Completed -> shell says "the commute failed"
+ tick 8371 citizen 170 activity AtHome run-start fate ExceededCommuteBudget evidence LastTrip Completed -> shell says "the commute failed"
+ ticks run 20000, crossing raised to 2400 s at tick 6000, in force 0xB0B0000000000001, live citizens at end 618
+ workers at end 377; trips completed 22753, no route 0, over budget 8; dismissal on True, last reload RulesetDegradation { BuildingsDerelicted = 0, BinsDropped = 0, RuleInstancesRearmed = 0, IsNothing = True }
+ injected budget refusals at tick 8000: 184
+ failing-commuter samples 79657 over 184 citizens
+   LastTrip null 6, Completed 6030, equals run-start fate 73621, other fate 0
+   citizens with at least one mismatched sample 84
+   shown: the commute exceeds the budget | stored ExceededCommuteBudget x73621
+   shown: the commute failed | stored Completed x6030
+   shown: the commute failed | stored null x6
+ shopping/service-travelling samples whose evidence LastTrip is null after an earlier ended Trip 6315 over 66 citizens
+
+
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 3.9274 Seconds
+
+───────────────────────────────────────────────────────────
+full output: /tmp/borough-test-20261024-104135.log
+tree:        b6737549-dirty on HEAD
