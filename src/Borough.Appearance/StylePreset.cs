@@ -408,7 +408,7 @@ public sealed record TowerBody(TowerVariant Variant);
 /// <param name="ModuleMetres">The window module along a face; <c>null</c> keeps the type's own.</param>
 /// <param name="Street">What the upper storeys of a street face open with.</param>
 /// <param name="Shops">The street face's ground storey is glazed as shopfronts.</param>
-/// <param name="Attic">A mansion's top storey is set back behind a terrace; otherwise a parapet tops it.</param>
+/// <param name="Attic">A prewar apartment building's top storey is set back behind a terrace; otherwise a parapet tops it.</param>
 /// <param name="Galleries">A panel slab's yard faces carry access galleries; otherwise they have windows.</param>
 public sealed record MidriseBody(
     MidriseVariant Variant,
@@ -510,7 +510,7 @@ public enum StreetOpenings
 public enum MidriseVariant
 {
     /// <summary>A brick perimeter block with a set-back attic storey.</summary>
-    Mansion,
+    PrewarApartments,
 
     /// <summary>A precast panel slab with galleries on the yard side and a recessed ground storey.</summary>
     PanelSlab,

@@ -73,10 +73,10 @@ public sealed class PerimeterBodyTests
     }
 
     [Fact]
-    public void A_perimeter_form_refuses_the_mansion_settings()
+    public void A_perimeter_form_refuses_the_prewar_apartments_settings()
     {
         StylePresetResult read = ReadBody("shape = \"midrise\"\nvariant = \"ribbon\"\nshops = true");
-        Assert.Contains(read.Errors, e => e.Message.Contains("'shops' is only valid for a mansion or panel-slab body.", StringComparison.Ordinal));
+        Assert.Contains(read.Errors, e => e.Message.Contains("'shops' is only valid for a prewar-apartments or panel-slab body.", StringComparison.Ordinal));
     }
 
     [Fact]

@@ -22,7 +22,7 @@ public static partial class FamilyBodyBuilder
         {
             return midrise.Variant switch
             {
-                MidriseVariant.Mansion => MansionFarFacade(midrise),
+                MidriseVariant.PrewarApartments => PrewarApartmentsFarFacade(midrise),
                 MidriseVariant.PanelSlab => SlabFarFacade(midrise),
                 _ when IsPerimeter(midrise.Variant) => PerimeterFarFacade(midrise),
                 _ => throw new ArgumentOutOfRangeException(nameof(body)),
@@ -33,24 +33,24 @@ public static partial class FamilyBodyBuilder
         throw new ArgumentException("Only mid-rise and tower bodies have a far facade.", nameof(body));
     }
 
-    private static FamilyBodyFarFacade MansionFarFacade(MidriseBody body)
+    private static FamilyBodyFarFacade PrewarApartmentsFarFacade(MidriseBody body)
     {
-        MansionLook look = Mansion with { Bay = body.ModuleMetres ?? Mansion.Bay };
-        return new FamilyBodyFarFacade("mansion",
+        PrewarApartmentsLook look = PrewarApartments with { Bay = body.ModuleMetres ?? PrewarApartments.Bay };
+        return new FamilyBodyFarFacade("prewar-apartments",
         [
-            new(0, "mansion-party", "wall", look.Bay, 0f, 0f, 0f),
-            new(1, "mansion-ground", "wall-end", look.Bay,
+            new(0, "prewar-apartments-party", "wall", look.Bay, 0f, 0f, 0f),
+            new(1, "prewar-apartments-ground", "wall-end", look.Bay,
                 look.GroundWindow.W, look.GroundWindow.H, look.GroundWindow.Sill),
-            new(2, "mansion-typical", "wall", look.Bay,
+            new(2, "prewar-apartments-typical", "wall", look.Bay,
                 look.Window.W, look.Window.H, look.Window.Sill),
-            new(3, "mansion-attic", "wall-end", look.Bay,
+            new(3, "prewar-apartments-attic", "wall-end", look.Bay,
                 look.AtticWindow.W, look.AtticWindow.H, look.AtticWindow.Sill),
-            new(4, "mansion-end", "wall", look.Bay,
+            new(4, "prewar-apartments-end", "wall", look.Bay,
                 look.Window.W, look.Window.H, look.Window.Sill),
         ]);
     }
 
-    /// <summary>A perimeter form's cells. They take the mansion block's ids, and each window stands for the form's typical opening.</summary>
+    /// <summary>A perimeter form's cells. They take the prewar apartment building's ids, and each window stands for the form's typical opening.</summary>
     private static FamilyBodyFarFacade PerimeterFarFacade(MidriseBody body)
     {
         PerimeterLook look = PerimeterLookOf(body);
@@ -69,7 +69,7 @@ public static partial class FamilyBodyBuilder
             new(0, $"{name}-party", "wall", look.Bay, 0f, 0f, 0f),
             new(1, $"{name}-ground", "wall-end", look.Bay, ground.W, ground.H, ground.Sill),
             new(2, $"{name}-typical", wall, look.Bay, window.W, window.H, window.Sill),
-            new(MansionAtticFarCell, $"{name}-attic", "attic", look.Bay, attic, 2.6f, .2f),
+            new(PrewarApartmentsAtticFarCell, $"{name}-attic", "attic", look.Bay, attic, 2.6f, .2f),
             new(4, $"{name}-end", wall, look.Bay, window.W, window.H, window.Sill),
         ]);
     }

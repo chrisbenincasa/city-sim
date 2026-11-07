@@ -1,12 +1,13 @@
-"""The mid-rise Building families: a brick mansion block and a precast panel slab, as solid bodies and rings.
+"""The mid-rise Building families: a brick prewar apartment building and a precast panel slab, as solid
+bodies and rings.
 
 Run with Blender in the background:
   blender --background --factory-startup --python-exit-code 1 --python scripts/art/midrise-families.py
 
 platted.toml raises these above the test street's three storeys:
 
-  perimeter      5 to 8 storeys    mansion block
-  back-to-back   8 to 11 storeys   mansion block
+  perimeter      5 to 8 storeys    prewar apartment building
+  back-to-back   8 to 11 storeys   prewar apartment building
   courtyard      12 to 15 storeys  panel slab
   slab           14 to 17 storeys  panel slab
 
@@ -20,23 +21,24 @@ Every face of a wing takes one role:
   end      a solid body's flank with no neighbour
   party    a flank against a neighbour, drawn blank
 
-The mansion block is brick over a rendered ground storey, with punched windows, loggias on the
-street, a cornice and a rendered attic set back behind a terrace. Its yard is the same brick
+The prewar apartment building is brick over a rendered ground storey, with punched windows, loggias
+on the street, a cornice and a rendered attic set back behind a terrace. Its yard is the same brick
 with projecting balconies. The panel slab is a precast grid on a recessed ground storey with pilotis,
 loggia columns on the street, access galleries on the yard, and plant rooms on the roof.
 
 The variants are saved as .blend references with a lineup for review. The only exports are
-mansion.glb and slab.glb, which carry each family's untextured part materials, named part first so
-the shell matches them by part; textured parts name their library texture in the Style Preset. Each body's origin is its site centre at ground level, and the street face
+prewar-apartments.glb and slab.glb, which carry each family's untextured part materials, named part
+first so the shell matches them by part; textured parts name their library texture in the Style Preset. Each body's origin is its site centre at ground level, and the street face
 looks down -Y, which Godot receives as +Z.
 
 Far mode uses one `far-facade` part for every wall. Its UVMap counts the near facade's bays in u and
 storeys from ground level in v; uv2.x carries one cell id per face. Roof membranes, paving, plant
 rooms and outline trim keep their near part names. The far cell table is:
 
-  0  mansion-party/slab-party    1  mansion-ground      2  mansion-typical
-  3  mansion-attic               4  mansion-end         5  slab-ground
-  6  slab-typical                7  slab-end
+  0  prewar-apartments-party/slab-party    1  prewar-apartments-ground
+  2  prewar-apartments-typical             3  prewar-apartments-attic
+  4  prewar-apartments-end                 5  slab-ground
+  6  slab-typical                          7  slab-end
 """
 import bpy
 import importlib.util
@@ -60,12 +62,12 @@ WALL = .25
 SIDES = ('s', 'e', 'n', 'w')
 
 FAR_CELLS = {
-    'mansion-party': 0,
+    'prewar-apartments-party': 0,
     'slab-party': 0,
-    'mansion-ground': 1,
-    'mansion-typical': 2,
-    'mansion-attic': 3,
-    'mansion-end': 4,
+    'prewar-apartments-ground': 1,
+    'prewar-apartments-typical': 2,
+    'prewar-apartments-attic': 3,
+    'prewar-apartments-end': 4,
     'slab-ground': 5,
     'slab-typical': 6,
     'slab-end': 7,
@@ -79,7 +81,7 @@ for texture in ('bricks-088', 'painted-plaster-wall', 'preconcrete-wall-001', 'c
 
 # Part name: (library texture or None, colour) for each family.
 PARTS = {
-    'mansion': {
+    'prewar-apartments': {
         'wall': ('bricks-088', '9a5b45'), 'wall-end': ('painted-plaster-wall', 'd8cfbf'), 'trim': (None, 'e9e4d8'),
         'glass': (None, '35414a'), 'frame': (None, 'ece9e2'), 'door': (None, '3b3f3c'), 'metal': (None, '2f3437'),
         'membrane': ('bitumen', None), 'plinth': (None, '7d7a73'), 'paving': ('concrete-panels', 'b9b6ad'),
@@ -95,7 +97,7 @@ PARTS = {
 
 # Lengths in metres. bay: the window module along a face. window, door: (width, height, sill).
 LOOKS = {
-    'mansion': {
+    'prewar-apartments': {
         'bay': 3.3, 'window': (1.3, 1.9, .9), 'ground_window': (1.7, 2.1, .7), 'door': (1.6, 2.7, .3),
         'entry_every': 16.0, 'loggia_every': 3, 'loggia_depth': 1.4, 'balcony_every': 2, 'balcony_depth': 1.4,
         'attic_setback': 1.8, 'attic_window': (2.4, 2.3, .5), 'cornice': (.45, .35), 'string_course': (.25, .12), 'parapet': .9,
@@ -109,10 +111,10 @@ LOOKS = {
 }
 
 # The settings a Style Preset family may change, with each family's default. street_openings is
-# 'loggias', 'balconies' or 'windows'; shops glazes the street ground storey; attic is the mansion's
-# set-back top storey; galleries are the slab's yard access decks.
+# 'loggias', 'balconies' or 'windows'; shops glazes the street ground storey; attic is the prewar
+# apartment building's set-back top storey; galleries are the slab's yard access decks.
 SETTINGS = {
-    'mansion': {'bay': 3.3, 'street_openings': 'loggias', 'shops': False, 'attic': True},
+    'prewar-apartments': {'bay': 3.3, 'street_openings': 'loggias', 'shops': False, 'attic': True},
     'slab': {'bay': 3.6, 'street_openings': 'loggias', 'shops': False, 'galleries': True},
 }
 
@@ -177,10 +179,10 @@ def railing(g, side, u0, u1, z, depth):
 
 
 # ---------------------------------------------------------------------------------------------
-# Mansion block
+# Prewar apartment building
 
-def mansion_face(g, side, a, b, storeys, role, look):
-    """One stretch of a mansion face, a to b along it, below the attic storey."""
+def prewar_apartments_face(g, side, a, b, storeys, role, look):
+    """One stretch of a prewar apartment face, a to b along it, below the attic storey."""
     if role == 'party':
         side.slab(g, 'wall', a, b, 0, storeys * STOREY, 0, WALL)
         return
@@ -246,16 +248,16 @@ def mansion_face(g, side, a, b, storeys, role, look):
         side.slab(g, 'trim', a, b, top + look['parapet'], top + look['parapet'] + .1, -.05, WALL + .05)
 
 
-def mansion_face_far(g, side, a, b, storeys, role, look):
-    """A mansion stretch with openings, projections and string courses removed."""
+def prewar_apartments_face_far(g, side, a, b, storeys, role, look):
+    """A prewar apartment stretch with openings, projections and string courses removed."""
     if role == 'party':
         for storey in range(storeys):
-            far_wall(g, side, a, b, storey, 'mansion', role, look)
+            far_wall(g, side, a, b, storey, 'prewar-apartments', role, look)
         return
     full = storeys - 1 if look['attic'] else storeys
     side.slab(g, 'plinth', a, b, 0, .4, -.05, WALL)
     for storey in range(full):
-        far_wall(g, side, a, b, storey, 'mansion', role, look)
+        far_wall(g, side, a, b, storey, 'prewar-apartments', role, look)
     top = full * STOREY
     ch, cout = look['cornice'] if role == 'street' else (.2, .08)
     side.slab(g, 'trim', a, b, top - .1, top + ch - .1, -cout, WALL)
@@ -264,7 +266,7 @@ def mansion_face_far(g, side, a, b, storeys, role, look):
         side.slab(g, 'trim', a, b, top + look['parapet'], top + look['parapet'] + .1, -.05, WALL + .05)
 
 
-def mansion_attic(g, side, a, b, z, look):
+def prewar_apartments_attic(g, side, a, b, z, look):
     """The set-back attic storey: render, a window in every bay, a thin eave."""
     openings = [centred(a + u0, a + u1, look['attic_window'][0], z + look['attic_window'][2], look['attic_window'][1]) for u0, u1 in bays(b - a, look['bay'])]
     wall_with_openings(g, side, 'wall-end', a, b, z, z + STOREY, openings)
@@ -415,13 +417,13 @@ def site(g, family, frontage, depth, storeys, attached=(), settings=None, far=Fa
                 if any(o is not rect and (t := touching(side, rect, o)) and t[0] <= a + 1e-4 and b - 1e-4 <= t[1]
                        for o in rects):
                     continue
-                if family == 'mansion':
-                    (mansion_face_far if far else mansion_face)(g, side, a, b, storeys, role, look)
+                if family == 'prewar-apartments':
+                    (prewar_apartments_face_far if far else prewar_apartments_face)(g, side, a, b, storeys, role, look)
                 else:
                     (slab_face_far if far else slab_face)(g, side, a, b, storeys, role, look)
 
-    if family == 'mansion' and look['attic']:
-        (mansion_roofs_far if far else mansion_roofs)(g, rects, bounds, ring, attached, storeys, look)
+    if family == 'prewar-apartments' and look['attic']:
+        (prewar_apartments_roofs_far if far else prewar_apartments_roofs)(g, rects, bounds, ring, attached, storeys, look)
     else:
         top = storeys * STOREY
         for rect in rects:
@@ -434,7 +436,7 @@ def site(g, family, frontage, depth, storeys, attached=(), settings=None, far=Fa
             'attached': list(attached), 'settings': chosen, 'floor_square_metres': round(floor)}
 
 
-def mansion_roofs(g, rects, bounds, ring, attached, storeys, look):
+def prewar_apartments_roofs(g, rects, bounds, ring, attached, storeys, look):
     """The attic over each wing, set back from its street faces, with a paved terrace in front."""
     full_top = (storeys - 1) * STOREY
     s = look['attic_setback']
@@ -458,7 +460,7 @@ def mansion_roofs(g, rects, bounds, ring, attached, storeys, look):
                 if role == 'party':
                     side.slab(g, 'wall', a, b, full_top, full_top + STOREY, 0, WALL)
                 else:
-                    mansion_attic(g, side, a, b, full_top, look)
+                    prewar_apartments_attic(g, side, a, b, full_top, look)
         for name in SIDES:
             if role_of(name, rect, bounds, ring, attached) == 'street':
                 side = Side(rect, name)
@@ -467,7 +469,7 @@ def mansion_roofs(g, rects, bounds, ring, attached, storeys, look):
         g.box('membrane', (ax0 + .1, ay0 + .1, full_top + STOREY - .2), (ax1 - .1, ay1 - .1, full_top + STOREY + .05))
 
 
-def mansion_roofs_far(g, rects, bounds, ring, attached, storeys, look):
+def prewar_apartments_roofs_far(g, rects, bounds, ring, attached, storeys, look):
     """The near attic footprints and roofs with windows and terrace railings removed."""
     full_top = (storeys - 1) * STOREY
     s = look['attic_setback']
@@ -488,8 +490,8 @@ def mansion_roofs_far(g, rects, bounds, ring, attached, storeys, look):
                 if any(other is not attic and (touch := touching(side, attic, other))
                        and touch[0] <= a + 1e-4 and b - 1e-4 <= touch[1] for other in attics):
                     continue
-                far_wall(g, side, a, b, storeys - 1, 'mansion', role, look,
-                         FAR_CELLS['mansion-attic'])
+                far_wall(g, side, a, b, storeys - 1, 'prewar-apartments', role, look,
+                         FAR_CELLS['prewar-apartments-attic'])
                 if role != 'party':
                     side.slab(g, 'trim', a, b, full_top + STOREY, full_top + STOREY + .25, -.5, WALL)
         ax0, ay0, ax1, ay1 = attic
@@ -499,7 +501,7 @@ def mansion_roofs_far(g, rects, bounds, ring, attached, storeys, look):
 
 # Sizes and storeys the simulation raises on platted.toml at 40,000 Citizens.
 LINEUP = {
-    'mansion': [
+    'prewar-apartments': [
         ('perimeter-terrace-a', 40, 16, 6, ('e',)),
         ('perimeter-terrace-b', 32, 20, 7, ('w', 'e')),
         ('perimeter-terrace-c', 48, 16, 5, ('w',)),
@@ -563,11 +565,11 @@ def family_geometry(family, g):
 
 
 def lineup_offsets():
-    """West to east in two rows: mansion blocks in front, slabs behind. The terrace stands as one
+    """West to east in two rows: prewar apartment buildings in front, slabs behind. The terrace stands as one
     row of three attached bodies."""
     offsets = {}
     x = 0.0
-    for name, frontage, depth, *_ in LINEUP['mansion']:
+    for name, frontage, depth, *_ in LINEUP['prewar-apartments']:
         offsets[name] = (x + frontage / 2, 0)
         gap = 0 if name.startswith('perimeter-terrace') and name != 'perimeter-terrace-c' else 40
         x += frontage + gap

@@ -60,7 +60,7 @@ public static partial class FamilyBodyBuilder
     internal static PerimeterLook Crosswall { get; } = new(MidriseVariant.Crosswall, 3f, (2f, 1.6f, .9f), .15f,
         Fascia: (.35f, .9f), PierEvery: 2, Pier: (.6f, .55f));
 
-    internal static bool IsPerimeter(MidriseVariant variant) => variant is not (MidriseVariant.Mansion or MidriseVariant.PanelSlab);
+    internal static bool IsPerimeter(MidriseVariant variant) => variant is not (MidriseVariant.PrewarApartments or MidriseVariant.PanelSlab);
 
     internal static PerimeterLook PerimeterLookOf(MidriseBody body)
     {
@@ -531,7 +531,7 @@ public static partial class FamilyBodyBuilder
                     {
                         if (far)
                         {
-                            FarWall(writer, side, a, b, storeys - 1, true, role, look.Bay, MansionAtticFarCell);
+                            FarWall(writer, side, a, b, storeys - 1, true, role, look.Bay, PrewarApartmentsAtticFarCell);
                             if (role != Role.Party) Slab(writer, side, "trim", a, b, fullTop + Storey - .2f, fullTop + Storey, -.1f, MidriseWall);
                         }
                         else if (role == Role.Party)

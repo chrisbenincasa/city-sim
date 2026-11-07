@@ -3,7 +3,7 @@
   "wing_metres": 16.0,
   "ring_minimum_metres": 48.0,
   "looks": {
-    "mansion": {
+    "prewar-apartments": {
       "bay": 3.3,
       "window": [
         1.3,
@@ -85,12 +85,12 @@
     }
   },
   "far_cells": {
-    "mansion-party": 0,
+    "prewar-apartments-party": 0,
     "slab-party": 0,
-    "mansion-ground": 1,
-    "mansion-typical": 2,
-    "mansion-attic": 3,
-    "mansion-end": 4,
+    "prewar-apartments-ground": 1,
+    "prewar-apartments-typical": 2,
+    "prewar-apartments-attic": 3,
+    "prewar-apartments-end": 4,
     "slab-ground": 5,
     "slab-typical": 6,
     "slab-end": 7
@@ -98,7 +98,7 @@
   "sites": [
     {
       "name": "perimeter-terrace-a",
-      "family": "mansion",
+      "family": "prewar-apartments",
       "frontage": 40,
       "depth": 16,
       "storeys": 6,
@@ -166,7 +166,7 @@
     },
     {
       "name": "perimeter-terrace-b",
-      "family": "mansion",
+      "family": "prewar-apartments",
       "frontage": 32,
       "depth": 20,
       "storeys": 7,
@@ -234,7 +234,7 @@
     },
     {
       "name": "perimeter-terrace-c",
-      "family": "mansion",
+      "family": "prewar-apartments",
       "frontage": 48,
       "depth": 16,
       "storeys": 5,
@@ -302,7 +302,7 @@
     },
     {
       "name": "back-to-back-deep",
-      "family": "mansion",
+      "family": "prewar-apartments",
       "frontage": 36,
       "depth": 44,
       "storeys": 10,
@@ -367,7 +367,7 @@
     },
     {
       "name": "perimeter-ring",
-      "family": "mansion",
+      "family": "prewar-apartments",
       "frontage": 56,
       "depth": 56,
       "storeys": 7,
@@ -431,7 +431,7 @@
     },
     {
       "name": "back-to-back-ring",
-      "family": "mansion",
+      "family": "prewar-apartments",
       "frontage": 60,
       "depth": 52,
       "storeys": 10,
@@ -495,7 +495,7 @@
     },
     {
       "name": "balconies-no-attic",
-      "family": "mansion",
+      "family": "prewar-apartments",
       "frontage": 40,
       "depth": 16,
       "storeys": 6,
@@ -556,7 +556,7 @@
     },
     {
       "name": "shops-wide-bay",
-      "family": "mansion",
+      "family": "prewar-apartments",
       "frontage": 48,
       "depth": 20,
       "storeys": 5,
@@ -620,7 +620,7 @@
     },
     {
       "name": "shops-ring",
-      "family": "mansion",
+      "family": "prewar-apartments",
       "frontage": 52,
       "depth": 48,
       "storeys": 8,

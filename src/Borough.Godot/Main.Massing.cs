@@ -400,7 +400,7 @@ public partial class Main
     /// <para>
     /// 🔴 <b>FOUR DOORS, ONE PER WING, ON ITS OWN OUTER FACE.</b> The two custom channels the shader
     /// reads are <em>which way the front is</em> (<c>adr/0074</c>), and a ring has four fronts —
-    /// which is what a mansion block is. The Lot's own <c>Side</c> is not used here at all, and that
+    /// which is what a prewar apartment building is. The Lot's own <c>Side</c> is not used here at all, and that
     /// is the one place in this file where the drawing knows something the Address does not.
     /// </para>
     /// <para>

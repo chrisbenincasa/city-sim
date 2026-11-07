@@ -9,7 +9,7 @@ public static partial class FamilyBodyBuilder
     /// <summary>The thickness of a ring's wings, which is <c>BuildingPlan.DaylightTiles</c> four-metre Tiles.</summary>
     public const float RingWingMetres = 16f;
 
-    internal sealed record MansionLook(
+    internal sealed record PrewarApartmentsLook(
         float Bay,
         (float W, float H, float Sill) Window,
         (float W, float H, float Sill) GroundWindow,
@@ -43,7 +43,7 @@ public static partial class FamilyBodyBuilder
         (float W, float D, float H) Plant,
         float Parapet);
 
-    internal static MansionLook Mansion { get; } = new(
+    internal static PrewarApartmentsLook PrewarApartments { get; } = new(
         3.3f, (1.3f, 1.9f, .9f), (1.7f, 2.1f, .7f), (1.6f, 2.7f, .3f), (2.4f, 2.3f, .5f), 16f, 3, 1.4f, 2, 1.4f,
         1.8f, (.45f, .35f), (.25f, .12f), .9f);
 
@@ -81,8 +81,8 @@ public static partial class FamilyBodyBuilder
             return mesh;
         }
 
-        bool mansion = shape.Variant == MidriseVariant.Mansion;
-        MansionLook mansionLook = Mansion with { Bay = shape.ModuleMetres ?? Mansion.Bay };
+        bool prewarApartments = shape.Variant == MidriseVariant.PrewarApartments;
+        PrewarApartmentsLook prewarApartmentsLook = PrewarApartments with { Bay = shape.ModuleMetres ?? PrewarApartments.Bay };
         SlabLook slabLook = PanelSlab with { Bay = shape.ModuleMetres ?? PanelSlab.Bay };
 
         foreach (Rect rect in rects)
@@ -93,10 +93,10 @@ public static partial class FamilyBodyBuilder
                 Role role = RoleOf(name, rect, bounds, ring, attached);
                 foreach ((float a, float b) in OpenStretches(side, rect, rects))
                 {
-                    if (mansion)
+                    if (prewarApartments)
                     {
-                        if (detail == FamilyBodyDetail.Far) MansionFaceFar(writer, side, a, b, total, role, mansionLook, shape);
-                        else MansionFace(writer, side, a, b, total, role, mansionLook, shape);
+                        if (detail == FamilyBodyDetail.Far) PrewarApartmentsFaceFar(writer, side, a, b, total, role, prewarApartmentsLook, shape);
+                        else PrewarApartmentsFace(writer, side, a, b, total, role, prewarApartmentsLook, shape);
                     }
                     else
                     {
@@ -107,10 +107,10 @@ public static partial class FamilyBodyBuilder
             }
         }
 
-        if (mansion && shape.Attic)
+        if (prewarApartments && shape.Attic)
         {
-            if (detail == FamilyBodyDetail.Far) MansionRoofsFar(writer, rects, bounds, ring, attached, total, mansionLook);
-            else MansionRoofs(writer, rects, bounds, ring, attached, total, mansionLook);
+            if (detail == FamilyBodyDetail.Far) PrewarApartmentsRoofsFar(writer, rects, bounds, ring, attached, total, prewarApartmentsLook);
+            else PrewarApartmentsRoofs(writer, rects, bounds, ring, attached, total, prewarApartmentsLook);
         }
         else
         {
@@ -119,7 +119,7 @@ public static partial class FamilyBodyBuilder
             {
                 Box(writer, new Vector3(rect.X0 + .1f, rect.Y0 + .1f, top - .2f),
                     new Vector3(rect.X1 - .1f, rect.Y1 - .1f, top + .05f), "membrane");
-                if (!mansion && (!ring || rect.Width > rect.Depth))
+                if (!prewarApartments && (!ring || rect.Width > rect.Depth))
                 {
                     PlantRooms(writer, new Rect(rect.X0 + 4f, rect.Y0 + 4f, rect.X1 - 4f, rect.Y1 - 4f), top, slabLook);
                 }
@@ -137,26 +137,26 @@ public static partial class FamilyBodyBuilder
         Party,
     }
 
-    /// <summary>The mansion attic's far facade cell, written directly rather than by storey/role
-    /// (the attic is one set-back storey above the rest). Matches `far_cells['mansion-attic']`.</summary>
-    internal const int MansionAtticFarCell = 3;
+    /// <summary>The prewar apartment building's attic far facade cell, written directly rather than by storey/role
+    /// (the attic is one set-back storey above the rest). Matches `far_cells['prewar-apartments-attic']`.</summary>
+    internal const int PrewarApartmentsAtticFarCell = 3;
 
     /// <summary>The far facade cell for a wall of the given role and storey. Matches the name->id
     /// table in `midrise-families.py`'s `FAR_CELLS`; a `FarCell*` test locks the two together.</summary>
-    internal static int MidriseFarCell(bool mansion, Role role, int storey, int? cell = null) => role switch
+    internal static int MidriseFarCell(bool prewarApartments, Role role, int storey, int? cell = null) => role switch
     {
         Role.Party => 0,
         _ when cell is not null => cell.Value,
-        Role.End when storey != 0 => mansion ? 4 : 7,
-        _ when mansion => storey == 0 ? 1 : 2,
+        Role.End when storey != 0 => prewarApartments ? 4 : 7,
+        _ when prewarApartments => storey == 0 ? 1 : 2,
         _ => storey == 0 ? 5 : 6,
     };
 
     private static void FarWall(Writer writer, TowerFace side, float a, float b, int storey,
-        bool mansion, Role role, float bay, int? cell = null)
+        bool prewarApartments, Role role, float bay, int? cell = null)
     {
         int count = MidriseBays(b - a, bay).Count;
-        int chosen = MidriseFarCell(mansion, role, storey, cell);
+        int chosen = MidriseFarCell(prewarApartments, role, storey, cell);
         writer.GridPlane(side.Face, a, b, storey * Storey, (storey + 1) * Storey, 0f, 0f, count, chosen);
     }
 
@@ -319,7 +319,7 @@ public static partial class FamilyBodyBuilder
         foreach (float u in posts) Slab(writer, side, "metal", u - .02f, u + .02f, z, z + 1f, depth - .02f, depth + .02f);
     }
 
-    private static void MansionFace(Writer writer, TowerFace side, float a, float b, int storeys, Role role, MansionLook look,
+    private static void PrewarApartmentsFace(Writer writer, TowerFace side, float a, float b, int storeys, Role role, PrewarApartmentsLook look,
         MidriseBody shape)
     {
         if (role == Role.Party)
@@ -414,8 +414,8 @@ public static partial class FamilyBodyBuilder
         }
     }
 
-    private static void MansionFaceFar(Writer writer, TowerFace side, float a, float b, int storeys, Role role,
-        MansionLook look, MidriseBody shape)
+    private static void PrewarApartmentsFaceFar(Writer writer, TowerFace side, float a, float b, int storeys, Role role,
+        PrewarApartmentsLook look, MidriseBody shape)
     {
         if (role == Role.Party)
         {
@@ -436,7 +436,7 @@ public static partial class FamilyBodyBuilder
         }
     }
 
-    private static void MansionAttic(Writer writer, TowerFace side, float a, float b, float z, MansionLook look)
+    private static void PrewarApartmentsAttic(Writer writer, TowerFace side, float a, float b, float z, PrewarApartmentsLook look)
     {
         var holes = new List<Hole>();
         foreach ((float u0, float u1) in MidriseBays(b - a, look.Bay))
@@ -448,8 +448,8 @@ public static partial class FamilyBodyBuilder
         Slab(writer, side, "trim", a, b, z + Storey, z + Storey + .25f, -.5f, MidriseWall);
     }
 
-    private static void MansionRoofs(Writer writer, Rect[] rects, Rect bounds, bool ring, AttachedSides attached,
-        int storeys, MansionLook look)
+    private static void PrewarApartmentsRoofs(Writer writer, Rect[] rects, Rect bounds, bool ring, AttachedSides attached,
+        int storeys, PrewarApartmentsLook look)
     {
         float fullTop = (storeys - 1) * Storey;
         float s = look.AtticSetback;
@@ -473,7 +473,7 @@ public static partial class FamilyBodyBuilder
                 foreach ((float a, float b) in OpenStretches(side, attic, attics))
                 {
                     if (role == Role.Party) Slab(writer, side, "wall", a, b, fullTop, fullTop + Storey, 0f, MidriseWall);
-                    else MansionAttic(writer, side, a, b, fullTop, look);
+                    else PrewarApartmentsAttic(writer, side, a, b, fullTop, look);
                 }
             }
 
@@ -489,8 +489,8 @@ public static partial class FamilyBodyBuilder
         }
     }
 
-    private static void MansionRoofsFar(Writer writer, Rect[] rects, Rect bounds, bool ring, AttachedSides attached,
-        int storeys, MansionLook look)
+    private static void PrewarApartmentsRoofsFar(Writer writer, Rect[] rects, Rect bounds, bool ring, AttachedSides attached,
+        int storeys, PrewarApartmentsLook look)
     {
         float fullTop = (storeys - 1) * Storey;
         float setback = look.AtticSetback;
@@ -517,7 +517,7 @@ public static partial class FamilyBodyBuilder
                 Role role = RoleOf(name, rect, bounds, ring, attached);
                 foreach ((float a, float b) in OpenStretches(side, attic, attics))
                 {
-                    FarWall(writer, side, a, b, storeys - 1, true, role, look.Bay, MansionAtticFarCell);
+                    FarWall(writer, side, a, b, storeys - 1, true, role, look.Bay, PrewarApartmentsAtticFarCell);
                     if (role != Role.Party)
                     {
                         Slab(writer, side, "trim", a, b, fullTop + Storey, fullTop + Storey + .25f, -.5f, MidriseWall);

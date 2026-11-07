@@ -185,12 +185,12 @@ founding run replayed to Day 45 by `FoundingPeriodProbe`:
 
 | City | Contemporary | Mid-century | Traditional | Most traditional Buildings |
 |---|---|---|---|---|
-| Founding run | 65% | 32% | 3% | mansion blocks |
+| Founding run | 65% | 32% | 3% | prewar apartment buildings |
 | `gridded.toml` | 66% | 17% | 17% | wide houses, apartments |
 | `pictured.toml` | 52% | 29% | 19% | narrow houses |
-| `base/ruleset.toml` | 50% | 23% | 27% | mansion blocks |
+| `base/ruleset.toml` | 50% | 23% | 27% | prewar apartment buildings |
 | `traded.toml` | 35% | 21% | 44% | rowhouses, narrow houses |
-| `platted.toml` | 28% | 23% | 49% | mansion blocks, apartments |
+| `platted.toml` | 28% | 23% | 49% | prewar apartment buildings, apartments |
 
 Bringing the rest to this mix is the board row "Period mix in the shipped families".
 
@@ -234,14 +234,14 @@ depth or a fin spacing in the script first, regenerate `bodies.json`, then follo
 parts the texture library does not dress.
 
 Mid-rise families follow the same rule. `scripts/art/midrise-families.py` is the reference for the
-mansion block and the panel slab, and `FamilyBodyBuilder.BuildMidrise` rebuilds them over a
-Building's whole footprint. A hollow footprint is built as the simulation's ring of four 16 m wings.
+prewar apartment building and the panel slab, and `FamilyBodyBuilder.BuildMidrise` rebuilds them
+over a Building's whole footprint. A hollow footprint is built as the simulation's ring of four 16 m wings.
 `art/midrise-families/bodies.json` records each reference site's faces per part and bounds, and
 `MidriseBodyTests` holds the builder to them. A family varies its body with `module_metres`,
 `street_openings`, `shops`, `attic` and `galleries`; add a setting to the script's `SETTINGS` and a
 reference site that uses it before the builder follows. Each family's swatches export separately, as
-`assets/midrise-families/mansion.glb` and `slab.glb`, because the shell matches a material to a
-part by its name prefix.
+`assets/midrise-families/prewar-apartments.glb` and `slab.glb`, because the shell matches a
+material to a part by its name prefix.
 
 The perimeter forms follow the same rule. `scripts/art/perimeter-forms.py` is the reference for the
 four contemporary forms (`brick-loggia`, `timber-frame`, `white-render`, `gable-front`) and the two

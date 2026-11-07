@@ -93,21 +93,21 @@ public sealed class MidriseBodyTests
     {
         using JsonDocument document = Bodies();
         JsonElement looks = document.RootElement.GetProperty("looks");
-        JsonElement mansion = looks.GetProperty("mansion");
+        JsonElement prewarApartments = looks.GetProperty("prewar-apartments");
         JsonElement slab = looks.GetProperty("slab");
 
         Assert.Equal(FamilyBodyBuilder.RingWingMetres, document.RootElement.GetProperty("wing_metres").GetSingle());
-        Assert.Equal(mansion.GetProperty("bay").GetSingle(), FamilyBodyBuilder.Mansion.Bay);
-        Assert.Equal(mansion.GetProperty("attic_window")[0].GetSingle(), FamilyBodyBuilder.Mansion.AtticWindow.W);
-        Assert.Equal(mansion.GetProperty("attic_setback").GetSingle(), FamilyBodyBuilder.Mansion.AtticSetback);
-        Assert.Equal(mansion.GetProperty("loggia_every").GetInt32(), FamilyBodyBuilder.Mansion.LoggiaEvery);
+        Assert.Equal(prewarApartments.GetProperty("bay").GetSingle(), FamilyBodyBuilder.PrewarApartments.Bay);
+        Assert.Equal(prewarApartments.GetProperty("attic_window")[0].GetSingle(), FamilyBodyBuilder.PrewarApartments.AtticWindow.W);
+        Assert.Equal(prewarApartments.GetProperty("attic_setback").GetSingle(), FamilyBodyBuilder.PrewarApartments.AtticSetback);
+        Assert.Equal(prewarApartments.GetProperty("loggia_every").GetInt32(), FamilyBodyBuilder.PrewarApartments.LoggiaEvery);
         Assert.Equal(slab.GetProperty("bay").GetSingle(), FamilyBodyBuilder.PanelSlab.Bay);
         Assert.Equal(slab.GetProperty("gallery_depth").GetSingle(), FamilyBodyBuilder.PanelSlab.GalleryDepth);
         Assert.Equal(slab.GetProperty("piloti_every").GetSingle(), FamilyBodyBuilder.PanelSlab.PilotiEvery);
     }
 
     [Theory]
-    [InlineData("mansion", 56f, 56f, 7)]
+    [InlineData("prewar-apartments", 56f, 56f, 7)]
     [InlineData("panel-slab", 116f, 54f, 16)]
     public void A_ring_leaves_its_courtyard_open(string variant, float frontage, float depth, int storeys)
     {
@@ -123,7 +123,7 @@ public sealed class MidriseBodyTests
     [Fact]
     public void An_attached_flank_has_no_openings()
     {
-        FamilyBodyMesh mesh = FamilyBodyBuilder.BuildMidrise(Midrise("mansion"), 40f, 16f, 6, ring: false,
+        FamilyBodyMesh mesh = FamilyBodyBuilder.BuildMidrise(Midrise("prewar-apartments"), 40f, 16f, 6, ring: false,
             AttachedSides.Right);
         ShellMesh glass = mesh.Parts.Single(p => p.Part == "glass").Mesh;
 
@@ -134,7 +134,7 @@ public sealed class MidriseBodyTests
     [Fact]
     public void Every_triangle_is_finite_and_non_degenerate()
     {
-        foreach (string variant in new[] { "mansion", "panel-slab" })
+        foreach (string variant in new[] { "prewar-apartments", "panel-slab" })
         {
             foreach (bool ring in new[] { false, true })
             {
@@ -158,24 +158,24 @@ public sealed class MidriseBodyTests
     [Fact]
     public void The_reader_accepts_both_variants()
     {
-        Assert.Equal(MidriseVariant.Mansion, Midrise("mansion").Midrise!.Variant);
+        Assert.Equal(MidriseVariant.PrewarApartments, Midrise("prewar-apartments").Midrise!.Variant);
         Assert.Equal(MidriseVariant.PanelSlab, Midrise("panel-slab").Midrise!.Variant);
     }
 
     [Fact]
     public void The_reader_takes_a_midrise_bodys_settings()
     {
-        MidriseBody mansion = Midrise("mansion", "module_metres = 3.9\nstreet_openings = \"balconies\"\nshops = true\nattic = false").Midrise!;
+        MidriseBody prewarApartments = Midrise("prewar-apartments", "module_metres = 3.9\nstreet_openings = \"balconies\"\nshops = true\nattic = false").Midrise!;
         MidriseBody slab = Midrise("panel-slab", "street_openings = \"windows\"\ngalleries = false").Midrise!;
 
-        Assert.Equal(new MidriseBody(MidriseVariant.Mansion, 3.9f, StreetOpenings.Balconies, Shops: true, Attic: false), mansion);
+        Assert.Equal(new MidriseBody(MidriseVariant.PrewarApartments, 3.9f, StreetOpenings.Balconies, Shops: true, Attic: false), prewarApartments);
         Assert.Equal(new MidriseBody(MidriseVariant.PanelSlab, null, StreetOpenings.Windows, Galleries: false), slab);
     }
 
     [Theory]
-    [InlineData("shape = \"midrise\"\nvariant = \"mansion\"\nstreet_openings = \"bays\"", "'street_openings' must be \"loggias\", \"balconies\" or \"windows\".")]
-    [InlineData("shape = \"midrise\"\nvariant = \"mansion\"\ngalleries = false", "'galleries' is only valid for a panel-slab body.")]
-    [InlineData("shape = \"midrise\"\nvariant = \"panel-slab\"\nattic = false", "'attic' is only valid for a mansion body.")]
+    [InlineData("shape = \"midrise\"\nvariant = \"prewar-apartments\"\nstreet_openings = \"bays\"", "'street_openings' must be \"loggias\", \"balconies\" or \"windows\".")]
+    [InlineData("shape = \"midrise\"\nvariant = \"prewar-apartments\"\ngalleries = false", "'galleries' is only valid for a panel-slab body.")]
+    [InlineData("shape = \"midrise\"\nvariant = \"panel-slab\"\nattic = false", "'attic' is only valid for a prewar-apartments body.")]
     [InlineData("shape = \"tower\"\nvariant = \"h\"\nshops = true", "'shops' is only valid for a mid-rise body.")]
     [InlineData("bay_metres = 4\nmodule_metres = 3", "'module_metres' is only valid for a mid-rise body.")]
     public void The_reader_refuses_a_misplaced_midrise_setting(string body, string message)
@@ -188,9 +188,9 @@ public sealed class MidriseBodyTests
 
     [Theory]
     [InlineData("shape = \"midrise\"", "'variant' is required")]
-    [InlineData("shape = \"midrise\"\nvariant = \"point\"", "'variant' must be \"mansion\", \"panel-slab\", \"brick-loggia\", \"timber-frame\", \"white-render\", \"gable-front\", \"ribbon\" or \"crosswall\"")]
-    [InlineData("shape = \"midrise\"\nvariant = \"mansion\"\nbay_metres = 4", "'bay_metres' is only valid for a block body.")]
-    [InlineData("shape = \"tower\"\nvariant = \"mansion\"", "'variant' must be \"point\", \"stepped-point\", \"l\" or \"h\"")]
+    [InlineData("shape = \"midrise\"\nvariant = \"point\"", "'variant' must be \"prewar-apartments\", \"panel-slab\", \"brick-loggia\", \"timber-frame\", \"white-render\", \"gable-front\", \"ribbon\" or \"crosswall\"")]
+    [InlineData("shape = \"midrise\"\nvariant = \"prewar-apartments\"\nbay_metres = 4", "'bay_metres' is only valid for a block body.")]
+    [InlineData("shape = \"tower\"\nvariant = \"prewar-apartments\"", "'variant' must be \"point\", \"stepped-point\", \"l\" or \"h\"")]
     public void The_reader_refuses_a_malformed_midrise(string body, string message)
     {
         StylePresetResult read = ReadBody(body);
@@ -205,7 +205,7 @@ public sealed class MidriseBodyTests
         FamilyBody block = ReadBody("bay_metres = 4").Preset!.Families[0].Body!;
 
         Assert.Throws<ArgumentException>(() => FamilyBodyBuilder.BuildMidrise(block, 40f, 16f, 6, ring: false));
-        Assert.Throws<ArgumentException>(() => FamilyBodyBuilder.Build(Midrise("mansion"), 40f, 16f, 6));
+        Assert.Throws<ArgumentException>(() => FamilyBodyBuilder.Build(Midrise("prewar-apartments"), 40f, 16f, 6));
     }
 
     private static FamilyBodyMesh BuildSite(JsonElement site, FamilyBodyDetail detail = FamilyBodyDetail.Near)
@@ -216,7 +216,7 @@ public sealed class MidriseBodyTests
             attached |= side.GetString() == "w" ? AttachedSides.Left : AttachedSides.Right;
         }
 
-        string variant = site.GetProperty("family").GetString() == "mansion" ? "mansion" : "panel-slab";
+        string variant = site.GetProperty("family").GetString() == "prewar-apartments" ? "prewar-apartments" : "panel-slab";
         JsonElement settings = site.GetProperty("settings");
         FamilyBody body = Midrise(variant);
         body = body with

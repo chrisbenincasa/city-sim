@@ -2013,16 +2013,16 @@ trim = "f0ebdd"
 # each pattern band, so a district mixes them.
 
 [[family]]
-id = "mansion-block"
+id = "prewar-apartments"
 kinds = ["dwelling", "shopfront"]
 patterns = ["perimeter", "back-to-back"]
 storeys = [4, 11]
 
 # Brick over a rendered ground storey, street loggias, a cornice and a set-back attic.
 [family.body]
-library = "midrise-families/mansion"
+library = "midrise-families/prewar-apartments"
 shape = "midrise"
-variant = "mansion"
+variant = "prewar-apartments"
 materials = { wall = "bricks-088", wall-end = "painted-plaster-wall", membrane = "bitumen", paving = "concrete-panels" }
 
 [[family.paint]]
@@ -2053,7 +2053,7 @@ wall-end = "d8c8a8"
 trim = "ffffff"
 
 [[family]]
-id = "mansion-balconies"
+id = "prewar-apartments-balconies"
 kinds = ["dwelling", "shopfront"]
 patterns = ["perimeter", "back-to-back"]
 storeys = [4, 11]
@@ -2061,9 +2061,9 @@ storeys = [4, 11]
 # A plainer interwar block: a tight window module, projecting street balconies, a parapet in
 # place of the attic.
 [family.body]
-library = "midrise-families/mansion"
+library = "midrise-families/prewar-apartments"
 shape = "midrise"
-variant = "mansion"
+variant = "prewar-apartments"
 module_metres = 3.0
 street_openings = "balconies"
 attic = false
@@ -2089,16 +2089,16 @@ wall-end = "cfc3ae"
 trim = "eeeae0"
 
 [[family]]
-id = "mansion-shops"
+id = "prewar-apartments-shops"
 kinds = ["dwelling", "shopfront"]
 patterns = ["perimeter"]
 storeys = [4, 8]
 
 # A street block over a row of shopfronts with a fascia, wide plain windows above and the attic.
 [family.body]
-library = "midrise-families/mansion"
+library = "midrise-families/prewar-apartments"
 shape = "midrise"
-variant = "mansion"
+variant = "prewar-apartments"
 module_metres = 3.9
 street_openings = "windows"
 shops = true
@@ -2122,7 +2122,7 @@ wall-end = "e4ddcc"
 trim = "24324a"
 
 # The perimeter forms, from scripts/art/perimeter-forms.py: four contemporary and two mid-century
-# blocks for Perimeter Lots from 3 storeys up. Each weighs three to the mansion families' one, so the
+# blocks for Perimeter Lots from 3 storeys up. Each weighs three to the prewar apartment families' one, so the
 # band draws mostly present-day forms (docs/07-the-drawing.md, Contemporary first). A frontage of at
 # least 16 m keeps them off the rowhouse Lots.
 

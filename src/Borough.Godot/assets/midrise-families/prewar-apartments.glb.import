@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://dtv0mc4nxoqi"
-path="res://.godot/imported/mansion.glb-07d9f5774d0c9059866546d2defb24af.scn"
+path="res://.godot/imported/prewar-apartments.glb-e8b112c53d4ce7163887e9692ccac941.scn"
 
 [deps]
 
-source_file="res://assets/midrise-families/mansion.glb"
-dest_files=["res://.godot/imported/mansion.glb-07d9f5774d0c9059866546d2defb24af.scn"]
+source_file="res://assets/midrise-families/prewar-apartments.glb"
+dest_files=["res://.godot/imported/prewar-apartments.glb-e8b112c53d4ce7163887e9692ccac941.scn"]
 
 [params]
 
