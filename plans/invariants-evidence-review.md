@@ -72,7 +72,7 @@ Sweep 03 of the [system review](system-review-brief.md).
   - Fixing this changes the State Hash on fixtures that lay Streets under traffic. One PR.
 - **Acceptance:** P2 and V1 invert (no drift, no violation). The stronger check fires on a planted
   +1/−1 pair.
-- **Routing:** proposed new issue, `needs-triage`.
+- **Routing:** #267.
 
 #### IE-B2 — A save taken just after bulldozing a Street under a car refuses to load
 
@@ -100,7 +100,7 @@ Sweep 03 of the [system review](system-review-brief.md).
   (end the Trip with a Fate, or re-plan it). The removal must also take the volume off cleanly, which
   IE-B1's repair needs too. IE-D1 covers the separate question of whether a load should refuse.
 - **Acceptance:** P1 loads cleanly after a demolition under traffic. A planted real leak still fires.
-- **Routing:** attach this evidence to #132.
+- **Routing:** evidence attached to #132.
 
 #### IE-B3 — A Rule waiting for Labour reads as a supply shortfall "since Tick 0"
 
@@ -127,7 +127,7 @@ Sweep 03 of the [system review](system-review-brief.md).
   a distinct unstaffed state. Omit the "since" line when `StarvedSince` is the sentinel. No hash
   change. One small PR.
 - **Acceptance:** the probe reports 0 Labour subjects in trouble groups and no "since Tick 0" lines.
-- **Routing:** proposed new issue, `needs-triage`.
+- **Routing:** #268.
 
 #### IE-B4 — The failing-commute cause comes from the last Trip of any purpose
 
@@ -152,7 +152,7 @@ Sweep 03 of the [system review](system-review-brief.md).
 - **Recommendation:** store the failing run's own Fate beside `CommuteFailedSince` and show that.
   Saved state, so the hash changes. One PR, best done with IE-I3.
 - **Acceptance:** the probe's mismatch count is 0.
-- **Routing:** proposed new issue, `needs-triage`, together with IE-I3.
+- **Routing:** #269, together with IE-I3.
 
 ### Bad design decisions
 
@@ -163,6 +163,10 @@ Sweep 03 of the [system review](system-review-brief.md).
   the load, and there is no collect mode or override. The tier never runs during play or before a
   save. So a transient state (IE-B2) or a defect in the check itself becomes a save the player cannot
   open, discovered only later.
+- **Startup path:** starting the shell from a save runs the check in the background
+  (`CityPreparation.cs:59`). A failure prints to stderr and exits with code 1
+  (`Main.LoadChecked`, `Main.Preparation.cs:78`), so the player gets no message. This path landed
+  after the reviewed revision and was found on the 11/07/2026 recheck.
 - **Rationale:** throwing at the first violation suits headless runs, where the run can be replayed
   to the Tick before (`InvariantRegistry.Collect` remarks). `Collect` was meant for a long balance
   run, but no shipped host sets it.
@@ -178,7 +182,7 @@ Sweep 03 of the [system review](system-review-brief.md).
   decided.
 - **Acceptance:** a save taken in IE-B2's window is either refused at write time with the violation
   named, or loads with a visible warning.
-- **Routing:** proposed new issue, `needs-triage`, with the decision stated.
+- **Routing:** #263, with the decision stated.
 
 ### Clear performance issues and poor performance implementation
 
@@ -214,7 +218,7 @@ quiet-machine timing.
   covered by IE-B1's repair. Parking is latent today, because both writers move the holder and the
   count together (`World.cs:8511-8512,8633-8645`).
 - **Acceptance:** each strengthened check fires on a planted offsetting pair.
-- **Routing:** proposed new issue, `needs-triage`, excluding the traffic check.
+- **Routing:** #264, excluding the traffic check.
 
 #### IE-I2 — Ten invariants have never been shown to fire, and a coverage test proves less than its name
 
@@ -237,7 +241,7 @@ quiet-machine timing.
   each live member to appear in an expected-violation assertion. Fix the two named tests. RT-C06 can
   ride in the same PR.
 - **Acceptance:** deleting the body of any registered check turns at least one test red.
-- **Routing:** proposed new issue, `needs-triage`, together with IE-I4.
+- **Routing:** #265, together with IE-I4.
 
 #### IE-I3 — Departing on a shopping or Service Trip erases the Citizen's last Trip
 
@@ -254,7 +258,7 @@ quiet-machine timing.
 - **Recommendation:** give the engines their own arrival signal and stop writing the evidence
   column outside `RecordTripFate`. Extend that test to a shopping world.
 - **Acceptance:** the extended test passes on a shopping world.
-- **Routing:** with IE-B4.
+- **Routing:** #269, with IE-B4.
 
 #### IE-I4 — The invariant coverage test cannot see names that begin with a one-letter word
 
@@ -271,7 +275,7 @@ quiet-machine timing.
   `docs/02-simulation-model.md:1073`; `src/Borough.Core/Invariants/Invariant.cs:932,961,1048`.
 - **Recommendation:** allow one-letter words in the pattern and correct the table cell.
 - **Acceptance:** the corrected test fails on the current cell and passes on the fixed one.
-- **Routing:** with IE-I2.
+- **Routing:** #265, with IE-I2.
 
 #### IE-I5 — The treasury identity test omits four of the thirteen money-flow counters
 
@@ -286,8 +290,7 @@ quiet-machine timing.
   is non-zero. Settle which of the four cross that edge as part of the repair.
 - **Acceptance:** the identity holds on a fixture with grants, compensation, rent and utility
   imports.
-- **Routing:** proposed new issue, `needs-triage`. It sits next to #196 and #210 but is separate
-  from them.
+- **Routing:** #266. It sits next to #196 and #210 but is separate from them.
 
 ## Reviewed with no finding
 
@@ -364,10 +367,14 @@ The shared baseline was
 It passed 199 of 199 tests in 2 min 46 s. One verifier reran P1, P2 and V1 and checked every material
 finding against the code. V1 was rerun once more from its retained copy and gave the same result.
 
+On 11/07/2026 P1, P2, P3, V1 and both `b-` probes were rerun against main at `73db62f0`. Each
+reproduced its finding; the issues carry the updated counts. The code behind IE-I1, IE-I2 and IE-I4
+was unchanged.
+
 ## Decisions and next actions
 
-- Decide IE-D1: whether a failed check refuses a load, warns, or is caught at save time.
-- File IE-B1, IE-B3, IE-B4 with IE-I3, IE-D1, IE-I1, IE-I2 with IE-I4, and IE-I5 as `needs-triage`
-  issues, and attach IE-B2's evidence to #132. Nothing has been filed yet.
+- Decide IE-D1 in #263: whether a failed check refuses a load, warns, or is caught at save time.
+- Every finding is filed as `needs-triage`: #267 (IE-B1), #268 (IE-B3), #269 (IE-B4 with IE-I3),
+  #263 (IE-D1), #264 (IE-I1), #265 (IE-I2 with IE-I4) and #266 (IE-I5). IE-B2's evidence is on #132.
 - IE-B1 is the most consequential. It is reachable in ordinary play and ends with saves that cannot
   be loaded.
