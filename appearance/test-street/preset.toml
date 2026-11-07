@@ -4552,3 +4552,208 @@ weight = 2
 library = "test-street/rowhouses"
 shape = "house"
 variant = "deep-span"
+
+# A mansion on a wide detached Lot, drawn in one of eleven US styles. scripts/art/mansion-forms.py is the
+# Blender reference. Each draws a plan from its style's grammar (U, H, T, L, ell, angled wing or court)
+# and stands far back behind a deep front yard: 16-20 m from the street edge while that leaves the house
+# 8 m of footprint, otherwise 8-10 m. A house with one Unit draws a garage and a gated drive; several
+# Units draw side doors and a parking court. A mansion draws much less floor than its Building holds,
+# because its grounds are the look (docs/07-the-drawing.md). The three contemporary styles carry over half
+# the mansion weight.
+# Colonial Revival: a symmetrical brick or clapboard block with a columned portico and shutters.
+[[family]]
+id = "house-mansion-colonial"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [2, 3]
+frontage_metres = [28, 84]
+depth_metres = [16, 36]
+weight = 1
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "mansion-colonial"
+yard_metres = [16, 20]
+shallow_yard_metres = [8, 10]
+least_house_metres = 14
+
+# Tudor Revival: steep cross gables, half-timbering over brick or stone, a tall chimney.
+[[family]]
+id = "house-mansion-tudor"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [2, 3]
+frontage_metres = [28, 84]
+depth_metres = [16, 36]
+weight = 1
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "mansion-tudor"
+yard_metres = [16, 20]
+shallow_yard_metres = [8, 10]
+least_house_metres = 14
+
+# Queen Anne: painted boards, a round corner turret and a wraparound porch.
+[[family]]
+id = "house-mansion-queen-anne"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [2, 3]
+frontage_metres = [28, 84]
+depth_metres = [16, 36]
+weight = 1
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "mansion-queen-anne"
+yard_metres = [16, 20]
+shallow_yard_metres = [8, 10]
+least_house_metres = 14
+
+# Chateauesque: stone, steep slate hips, corner turrets, wall dormers and a porte-cochere.
+[[family]]
+id = "house-mansion-chateau"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [2, 3]
+frontage_metres = [28, 84]
+depth_metres = [16, 36]
+weight = 1
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "mansion-chateau"
+yard_metres = [16, 20]
+shallow_yard_metres = [8, 10]
+least_house_metres = 14
+
+# Spanish Revival: stucco under clay tile, an entry tower, an arcade and iron balconies.
+[[family]]
+id = "house-mansion-spanish"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [2, 3]
+frontage_metres = [28, 84]
+depth_metres = [16, 36]
+weight = 1
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "mansion-spanish"
+yard_metres = [16, 20]
+shallow_yard_metres = [8, 10]
+least_house_metres = 14
+
+# Prairie: a low hip with deep eaves, bands and ribbon windows; two storeys only.
+[[family]]
+id = "house-mansion-prairie"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [2, 2]
+frontage_metres = [28, 84]
+depth_metres = [16, 36]
+weight = 1
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "mansion-prairie"
+yard_metres = [16, 20]
+shallow_yard_metres = [8, 10]
+least_house_metres = 14
+
+# Hollywood Regency: white brick or render, a mansard or low hip, a tall colonnade.
+[[family]]
+id = "house-mansion-regency"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [2, 3]
+frontage_metres = [28, 84]
+depth_metres = [16, 36]
+weight = 1
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "mansion-regency"
+yard_metres = [16, 20]
+shallow_yard_metres = [8, 10]
+least_house_metres = 14
+
+# Mid-century modern: low roofs, wood and stone walls, big glass; two storeys only.
+[[family]]
+id = "house-mansion-mid-century"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [2, 2]
+frontage_metres = [28, 84]
+depth_metres = [16, 36]
+weight = 1
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "mansion-mid-century"
+yard_metres = [16, 20]
+shallow_yard_metres = [8, 10]
+least_house_metres = 14
+
+# Modern farmhouse: white boards, steep standing-seam gables and a long porch.
+[[family]]
+id = "house-mansion-farmhouse"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [2, 3]
+frontage_metres = [28, 84]
+depth_metres = [16, 36]
+weight = 3
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "mansion-farmhouse"
+yard_metres = [16, 20]
+shallow_yard_metres = [8, 10]
+least_house_metres = 14
+
+# Neo-eclectic: stucco and stone, hipped bays, a two-storey entry and a three-car garage.
+[[family]]
+id = "house-mansion-neo-eclectic"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [2, 3]
+frontage_metres = [28, 84]
+depth_metres = [16, 36]
+weight = 3
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "mansion-neo-eclectic"
+yard_metres = [16, 20]
+shallow_yard_metres = [8, 10]
+least_house_metres = 14
+
+# California contemporary: shed and flat roofs on deep eaves, wood, stone and glass; two storeys only.
+[[family]]
+id = "house-mansion-california"
+patterns = ["detached"]
+kinds = ["dwelling"]
+storeys = [2, 2]
+frontage_metres = [28, 84]
+depth_metres = [16, 36]
+weight = 3
+
+[family.body]
+library = "test-street/rowhouses"
+shape = "house"
+variant = "mansion-california"
+yard_metres = [16, 20]
+shallow_yard_metres = [8, 10]
+least_house_metres = 14

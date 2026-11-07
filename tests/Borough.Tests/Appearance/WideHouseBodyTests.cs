@@ -273,7 +273,7 @@ public sealed class WideHouseBodyTests
         }
 
         Assert.True(pairs > 100, $"only {pairs} neighboring wide pairs");
-        Assert.Equal(11, forms.Count);
+        Assert.Equal(22, forms.Count);
     }
 
     [Theory]

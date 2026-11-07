@@ -242,6 +242,92 @@
         "soil"
       ],
       "geometry_sha256": "92c3974b20f8a93c4aabc34ff656938b1f180e1676355535489fcac64a75924b"
+    },
+    {
+      "module": "fountain",
+      "vertices": 336,
+      "faces": 248,
+      "triangles": 648,
+      "bounds_min": [
+        -2.16,
+        -2.16,
+        0.0
+      ],
+      "bounds_max": [
+        2.16,
+        2.16,
+        2.22
+      ],
+      "materials": [
+        "flag",
+        "water"
+      ],
+      "geometry_sha256": "01b6b324e594fda4542f7d1162aea228b55ed6d5c1f913f272e7ef93e8a26709"
+    },
+    {
+      "module": "lamp",
+      "vertices": 76,
+      "faces": 56,
+      "triangles": 136,
+      "bounds_min": [
+        -0.264,
+        -0.229,
+        0.0
+      ],
+      "bounds_max": [
+        0.264,
+        0.229,
+        3.336
+      ],
+      "materials": [
+        "iron",
+        "lantern"
+      ],
+      "geometry_sha256": "fb6c2f3ee50c079ef0bbc7971d7e8df2038a9d87f41571a2e1386c2a5418ab72"
+    },
+    {
+      "module": "mailbox",
+      "vertices": 152,
+      "faces": 114,
+      "triangles": 228,
+      "bounds_min": [
+        -0.72,
+        -0.36,
+        0.0
+      ],
+      "bounds_max": [
+        0.72,
+        0.36,
+        2.1
+      ],
+      "materials": [
+        "chrome",
+        "paint"
+      ],
+      "geometry_sha256": "403aa5932ea98e3679dd0ec7b8ae2f7babee66da37d192dd1307a78ab57e4974"
+    },
+    {
+      "module": "car",
+      "vertices": 124,
+      "faces": 80,
+      "triangles": 212,
+      "bounds_min": [
+        -1.152,
+        -2.904,
+        0.02
+      ],
+      "bounds_max": [
+        1.152,
+        2.88,
+        1.752
+      ],
+      "materials": [
+        "glass",
+        "lantern",
+        "paint",
+        "tyre"
+      ],
+      "geometry_sha256": "5def85a31b3ca23ceec030ec7f5e6bbca4d07117ac49d5b95d7938c489fa8b1d"
     }
   ]
 }

@@ -152,7 +152,7 @@ public sealed class HouseBodyTests
         StylePresetResult block = ReadBody("shape = \"house\"\nvariant = \"villa\"\nbay_metres = 4");
 
         Assert.Null(unknown.Preset);
-        Assert.Contains(unknown.Errors, e => e.Message.Contains("\"deep-sawtooth\" or \"deep-span\"", StringComparison.Ordinal));
+        Assert.Contains(unknown.Errors, e => e.Message.Contains("\"mansion-neo-eclectic\" or \"mansion-california\"", StringComparison.Ordinal));
         Assert.Null(block.Preset);
         Assert.Contains(block.Errors, e => e.Message.Contains("'bay_metres' is only valid for a block body", StringComparison.Ordinal));
     }

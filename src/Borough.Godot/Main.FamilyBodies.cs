@@ -97,18 +97,19 @@ public partial class Main
     /// </summary>
     private readonly record struct BodyKey(
         string Family, int Frontage, int Depth, int Storeys, AttachedSides Attached, int Paint, int House, int Pitch,
-        int PodiumStoreys, int ShaftFrontage, int ShaftDepth, bool Ring, TerracePlace Terrace, bool Corner, FamilyBodyDetail Detail);
+        int PodiumStoreys, int ShaftFrontage, int ShaftDepth, bool Ring, TerracePlace Terrace, bool Corner, MansionGrounds Grounds,
+        FamilyBodyDetail Detail);
 
     /// <summary>Everything a Building's body is placed from, read from the World.</summary>
     private readonly record struct BodyRequest(
         Massing One, AppearanceFamily Family, FamilyBody Body, float Frontage, float Depth, int Storeys,
         AttachedSides Attached, int Paint, int House, int Pitch, float Turn, BodyNeighbours Neighbours, TowerSite? Site, Vector3 Origin, bool Ring,
-        TerracePlace Terrace, bool Corner)
+        TerracePlace Terrace, bool Corner, MansionGrounds Grounds)
     {
         public BodyKey Key(FamilyBodyDetail detail) => new(Family.Id, Mathf.RoundToInt(Frontage * 100f),
             Mathf.RoundToInt(Depth * 100f), Storeys, Attached, Paint, House, Pitch, Site?.PodiumStoreys ?? 0,
             Mathf.RoundToInt((Site?.ShaftFrontage ?? 0f) * 100f),
-            Mathf.RoundToInt((Site?.ShaftDepth ?? 0f) * 100f), Ring, Terrace, Corner, detail);
+            Mathf.RoundToInt((Site?.ShaftDepth ?? 0f) * 100f), Ring, Terrace, Corner, Grounds, detail);
     }
 
     /// <summary><c>ui family-bodies on|off [NEAR]</c>; NEAR is the body band's reach in metres.</summary>
@@ -293,8 +294,15 @@ public partial class Main
             pitch = run is { } parade ? FamilyPicker.RunSeed(_world.Key, parade) : house;
         }
 
+        MansionGrounds grounds = default;
+        if (body.House is { } home && FamilyBodyBuilder.IsMansion(home.Variant))
+        {
+            house = pitch = FamilyPicker.House(_world.Key, facts.Id);
+            grounds = facts.Units > 1 ? MansionGrounds.Apartments : MansionGrounds.OneHousehold;
+        }
+
         return new BodyRequest(one, family, body, frontage, depth, storeys, attached, paint, house, pitch, turn, neighbours, site, origin, ring,
-            terrace, body.Shop is not null && facts.Corner);
+            terrace, body.Shop is not null && facts.Corner, grounds);
     }
 
     private void PlaceBody(BodyRequest request)
@@ -329,6 +337,9 @@ public partial class Main
                 + (request.Body.Shop is { } shop ? $"\tshop {FamilyBodyBuilder.Drawn(shop, request.Storeys)} {request.Terrace.PitchDegrees}° lot {request.Terrace.Index + 1} of {request.Terrace.Houses}{(request.Corner ? " corner" : "")}" : "")
                 + (request.Body.Workshop is { } works ? $"\tworkshop {works.Form} {request.Terrace.PitchDegrees}° lot {request.Terrace.Index + 1} of {request.Terrace.Houses}" : "")
                 + (request.Body.House is { Wide: true } home ? $"\thouse {home.Variant} {FamilyBodyBuilder.HousePitchDegrees(home.Variant, request.Pitch, request.Frontage, request.Depth, request.Storeys)}° draw {request.House}" : "")
+                + (request.Body.House is { } estate && FamilyBodyBuilder.IsMansion(estate.Variant)
+                    ? $"\tmansion {FamilyBodyBuilder.PlanMansion(estate.Variant, request.Frontage, request.Depth, request.Storeys, request.House, request.Grounds).Kind} {request.Grounds}"
+                    : "")
                 + (request.Body.Apartment is { } block ? $"\tapartment {block.Form} {request.Terrace.PitchDegrees}° lot {request.Terrace.Index + 1} of {request.Terrace.Houses}" : "")
                 + (one.Abandoned ? "\tabandoned" : ""));
         }
@@ -612,7 +623,7 @@ public partial class Main
             { Body.Midrise: not null } => FamilyBodyBuilder.BuildMidrise(request.Body, request.Frontage, request.Depth,
                 request.Storeys, request.Ring, request.Attached, detail),
             { Body.House: not null } => FamilyBodyBuilder.BuildHouse(request.Body, request.Frontage, request.Depth,
-                request.Storeys, request.House, request.Pitch),
+                request.Storeys, request.House, request.Pitch, request.Grounds),
             { Body.Shop: not null } => FamilyBodyBuilder.BuildShop(request.Body, request.Frontage, request.Depth, request.Storeys,
                 request.Attached, request.Corner, request.House, request.Pitch, request.Terrace),
             { Body.Workshop: { Form: not WorkshopForm.PanelShed } } => FamilyBodyBuilder.BuildWorkshop(request.Body, request.Frontage,

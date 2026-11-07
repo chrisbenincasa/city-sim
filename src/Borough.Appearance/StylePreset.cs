@@ -423,7 +423,16 @@ public sealed record MidriseBody(
 /// The form stands among the wide house forms, which share one place in the draw and rank their forms
 /// on each run of detached houses so neighboring runs differ in form.
 /// </param>
-public sealed record HouseBody(HouseVariant Variant, bool Wide = false);
+/// <param name="Yard">A mansion's front yard; <c>null</c> for every other form.</param>
+public sealed record HouseBody(HouseVariant Variant, bool Wide = false, MansionYard? Yard = null);
+
+/// <summary>
+/// How far a mansion stands back from its Street edge, in metres. It takes a depth from
+/// <paramref name="Deep"/> while that leaves <paramref name="LeastHouse"/> of footprint for the house,
+/// and one from <paramref name="Shallow"/> where it does not. The yard is drawn ground only; the
+/// Building's footprint and floor are the city's.
+/// </summary>
+public readonly record struct MansionYard((float Low, float High) Deep, (float Low, float High) Shallow, float LeastHouse);
 
 /// <summary>The house forms a body can build.</summary>
 public enum HouseVariant
@@ -496,6 +505,39 @@ public enum HouseVariant
 
     /// <summary>The span row over a double-pile front, flat-roofed outriggers behind.</summary>
     DeepSpan,
+
+    /// <summary>A Georgian Colonial Revival mansion: symmetrical, brick or clapboard, a columned portico.</summary>
+    MansionColonial,
+
+    /// <summary>A Tudor Revival mansion: steep cross gables, half-timber over brick, a massive chimney.</summary>
+    MansionTudor,
+
+    /// <summary>A Queen Anne mansion: asymmetrical, a round turret and a wraparound porch.</summary>
+    MansionQueenAnne,
+
+    /// <summary>A Chateauesque mansion: stone under steep slate hips, corner turrets and a porte-cochere.</summary>
+    MansionChateau,
+
+    /// <summary>A Spanish Colonial Revival mansion: stucco under clay tile, an entry tower and an arcaded loggia.</summary>
+    MansionSpanish,
+
+    /// <summary>A Prairie mansion: low hips with very deep eaves over banded brick and ribbon windows.</summary>
+    MansionPrairie,
+
+    /// <summary>A Hollywood Regency mansion: white brick, a mansard or low hip and a columned center.</summary>
+    MansionRegency,
+
+    /// <summary>A mid-century modern mansion: low roofs with deep eaves, wood and stone, walls of glass.</summary>
+    MansionMidCentury,
+
+    /// <summary>A modern farmhouse mansion: white boards under black standing-seam gables, a long porch.</summary>
+    MansionFarmhouse,
+
+    /// <summary>A neo-eclectic mansion, the 1990s to 2010s "McMansion": stacked hips, a two-storey entry and a three-car garage.</summary>
+    MansionNeoEclectic,
+
+    /// <summary>A California contemporary mansion: several masses under flat and shed roofs with deep overhangs.</summary>
+    MansionCalifornia,
 }
 
 /// <summary>What a mid-rise body's upper street storeys open with.</summary>

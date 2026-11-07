@@ -16,6 +16,8 @@ namespace Borough.Shell;
 /// other kind stands 1–2 m back behind paving. One distance holds along each side of a Segment, so
 /// attached bodies keep one street line. A body moves back only by what its footprint lacks, and by
 /// at most a fifth of its depth, which is the drawing's floor allowance (<c>docs/07-the-drawing.md</c>).
+/// A mansion is the exception: it stands back by its family's yard, deep where that leaves the house its
+/// least depth and shallow otherwise, and <see cref="DressMansion"/> draws its grounds.
 /// The city holds none of this, so it moves no State Hash.
 /// </summary>
 public partial class Main
@@ -59,11 +61,12 @@ public partial class Main
     private readonly InstanceLayer[] _furniture = new InstanceLayer[FurnitureModules.Length];
     private readonly List<InstanceValue>[] _furnitureEdits = [.. FurnitureModules.Select(_ => new List<InstanceValue>())];
 
-    private enum FrontKit { Hedge, Wall, Railing, Picket, Pier, GateIron, GateTimber, PathFlags, PathTiled, Doorstep, Border }
+    private enum FrontKit { Hedge, Wall, Railing, Picket, Pier, GateIron, GateTimber, PathFlags, PathTiled, Doorstep, Border, Fountain, Lamp, Mailbox, Car }
 
     /// <summary>The <c>assets/front-yard</c> modules <c>scripts/art/front-yard.py</c> authors, in <see cref="FrontKit"/> order.</summary>
     private static readonly string[] FrontKitModules =
-        ["hedge", "wall", "railing", "picket", "pier", "gate-iron", "gate-timber", "path-flags", "path-tiled", "doorstep", "border"];
+        ["hedge", "wall", "railing", "picket", "pier", "gate-iron", "gate-timber", "path-flags", "path-tiled", "doorstep", "border",
+         "fountain", "lamp", "mailbox", "car"];
 
     private static readonly string[] FrontKitPainted = ["brick", "paint", "flag", "bloom"];
 
@@ -110,14 +113,16 @@ public partial class Main
         string? kind = _names.KindId(_world.Buildings.Kind[building]);
         bool shop = kind == "shopfront" || DrawsShops(FamilyOf(building).Family?.Body);
         float depth = (LotGeometry.Front(_world, lot).Y != 0 ? footprint.Deep : footprint.Wide) * MetresPerTile;
-        return FrontSetbackOf(lot, kind == "dwelling" && !shop, shop, depth);
+        MansionYard? estate = FamilyOf(building).Family?.Body?.House?.Yard;
+        return FrontSetbackOf(lot, kind == "dwelling" && !shop, shop, depth, estate, _world.Buildings.Rows.IdAt(building));
     }
 
     private static bool DrawsShops(FamilyBody? body) =>
         body is not null && (body.Shopfront || body.Shop is not null || body.Midrise is { Shops: true });
 
     /// <returns>No setback where the Lot has no Street address.</returns>
-    private FrontSetback FrontSetbackOf(int lot, bool dwelling, bool shop, float depth)
+    /// <param name="estate">A mansion's yard, which it draws whole: deep while that leaves the house its least depth, otherwise shallow.</param>
+    private FrontSetback FrontSetbackOf(int lot, bool dwelling, bool shop, float depth, MansionYard? estate = null, ulong id = 0)
     {
         LotTable lots = _world.Lots;
         Address address = lots.AddressOf(lot);
@@ -140,6 +145,17 @@ public partial class Main
         float target = dwelling
             ? DwellingFrontMetres + (mix % DwellingFrontSteps * FrontStepMetres)
             : ShopFrontMetres + (mix % ShopFrontSteps * FrontStepMetres);
+        if (dwelling && estate is { } yard)
+        {
+            uint h = (uint)id * 0x9E3779B1u;
+            h ^= h >> 15;
+            float room = depth - yard.LeastHouse + gap;
+            (float low, float high) = room >= yard.Deep.Low ? yard.Deep : yard.Shallow;
+            float reach = Mathf.Max(gap, Mathf.Min(low + ((high - low) * (h % 9 / 8f)), room));
+            float back = Mathf.Floor((reach - gap) / FrontStepMetres) * FrontStepMetres;
+            return new FrontSetback(back, back + gap, dwelling, shop, mix);
+        }
+
         float recess = Mathf.Clamp(target - gap, 0f, depth * FrontRecessShare);
         recess = Mathf.Floor(recess / FrontStepMetres) * FrontStepMetres;
         return new FrontSetback(recess, Mathf.Min(recess + gap, FrontYardMostMetres), dwelling, shop, mix);
@@ -168,8 +184,16 @@ public partial class Main
             int pick = (int)(id % 997);
             Color stone = StoneTones[pick % StoneTones.Length];
             List<FamilyDoor> doors = DoorsOf(id, w, near);
+            int storeys = Mathf.Max(1, Mathf.RoundToInt(size.Y / StoreyMetres));
 
-            if (!setback.Dwelling || setback.Yard < HedgedYardLeastMetres)
+            if (setback.Dwelling && MansionOf(building, id, frontage, depth, storeys) is { } estate)
+            {
+                List<FamilyDoor> all = _placedBodies.TryGetValue(id, out PlacedBody placed)
+                    ? [.. placed.NearShape.Doors.Where(d => MathF.Abs(d.Across) <= w)]
+                    : [];
+                DressMansion(draw, w, near, far, id, all, estate.Plan, estate.Grounds, estate.Units);
+            }
+            else if (!setback.Dwelling || setback.Yard < HedgedYardLeastMetres)
             {
                 _frontGroundEdits.Add(draw.Box(-w, w, near, far, 0f, .1f, stone));
                 if (setback.Shop) DressForecourt(draw, w, near, far, id, doors);
@@ -188,6 +212,18 @@ public partial class Main
         for (int i = 0; i < _frontKit.Length; i++) _frontKit[i].Multimesh.Replace(id, _frontKitEdits[i]);
         if (_frontGroundEdits.Count > 0) _frontYardIds.Add(id);
         else _frontYardIds.Remove(id);
+    }
+
+    /// <summary>A mansion Building's plan, grounds and Units; its plan is <c>null</c> where it draws a massing box.</summary>
+    private (MansionPlan? Plan, MansionGrounds Grounds, int Units)? MansionOf(int building, ulong id, float frontage, float depth, int storeys)
+    {
+        if (FamilyOf(building).Family?.Body is not { House: { } home } || !FamilyBodyBuilder.IsMansion(home.Variant)) return null;
+        int units = BuildingFacts.TryOf(_world, _names, building, out BuildingFacts facts) ? facts.Units : 1;
+        MansionGrounds grounds = units > 1 ? MansionGrounds.Apartments : MansionGrounds.OneHousehold;
+        MansionPlan? plan = _placedBodies.ContainsKey(id)
+            ? FamilyBodyBuilder.PlanMansion(home.Variant, frontage, depth, storeys, FamilyPicker.House(_world.Key, id), grounds)
+            : null;
+        return (plan, grounds, units);
     }
 
     // A door further behind the body's front than this opens onto a court of its own, not the yard.
