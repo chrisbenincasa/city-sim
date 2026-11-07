@@ -114,7 +114,7 @@ public sealed class Census
     private const int MoneyCounters = 6;
 
     /// <summary>The members of <see cref="MoneyFlowCounter"/> — one per (mechanism, direction).</summary>
-    private const int MoneyFlowCounters = 13;
+    private const int MoneyFlowCounters = 14;
 
     private const int MoneyFlowMetrics = MoneyFlowCounters * AggregatesPerRuleCounter;
 
@@ -469,6 +469,7 @@ public sealed class Census
         WriteMoney(_values, at + _moneyFlowBase, (int)MoneyFlowCounter.Compensation, compensation);
         WriteMoney(_values, at + _moneyFlowBase, (int)MoneyFlowCounter.Grant, grants);
         WriteMoney(_values, at + _moneyFlowBase, (int)MoneyFlowCounter.Rent, rent);
+        WriteMoney(_values, at + _moneyFlowBase, (int)MoneyFlowCounter.Tariff, activity.Tariff);
 
         // The eighth path OUT, and the second that pays nobody: an imported Utility unit leaves the
         // money supply, because the Hinterland selling it holds no balance -- see
@@ -681,7 +682,8 @@ public sealed class Census
                 or MoneyFlowCounter.ProfitTax or MoneyFlowCounter.Subsidy
                 or MoneyFlowCounter.Placement or MoneyFlowCounter.Upkeep
                 or MoneyFlowCounter.Compensation or MoneyFlowCounter.Grant
-                or MoneyFlowCounter.Rent or MoneyFlowCounter.UtilityImport))
+                or MoneyFlowCounter.Rent or MoneyFlowCounter.Tariff
+                or MoneyFlowCounter.UtilityImport))
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(metric), metric.MoneyFlowCounter, "not a money movement this census reads.");

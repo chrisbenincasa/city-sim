@@ -1005,4 +1005,46 @@ public enum PurposeTag : ulong
     /// and for which Hinterland (<c>adr/0102</c>).
     /// </summary>
     JoblessDeparture = 76,
+
+    /// <summary>
+    /// How many houses a run of detached houses on one block face spans. Drawn by the shell and the
+    /// headless runner on the face and era, never by a Tick, so it moves no State Hash.
+    /// </summary>
+    AppearanceRun = 77,
+
+    /// <summary>
+    /// What the houses of one run share: nothing, their form and pitch, or everything. Drawn by the
+    /// shell and the headless runner on the run, never by a Tick, so it moves no State Hash.
+    /// </summary>
+    AppearanceRunShare = 78,
+
+    /// <summary>
+    /// How many Lots a terrace of attached houses on one block face spans. Drawn by the shell and the
+    /// headless runner on the face and era, never by a Tick, so it moves no State Hash.
+    /// </summary>
+    AppearanceTerrace = 79,
+
+    /// <summary>
+    /// The roof pitch every Building of one terrace or apartment run shares. Drawn by the shell on the
+    /// run, never by a Tick, so it moves no State Hash.
+    /// </summary>
+    AppearanceTerracePitch = 80,
+
+    /// <summary>
+    /// How many Lots a run of apartment Buildings on one block face spans. Drawn by the shell and the
+    /// headless runner on the face and era, never by a Tick, so it moves no State Hash.
+    /// </summary>
+    AppearanceApartmentRun = 81,
+
+    /// <summary>
+    /// How many Lots a parade of shop Buildings on one block face spans. Drawn by the shell and the
+    /// headless runner on the face side, never by a Tick, so it moves no State Hash.
+    /// </summary>
+    AppearanceShopRun = 82,
+
+    /// <summary>
+    /// How many Lots a run of workshop Buildings on one block face spans. Drawn by the shell and the
+    /// headless runner on the face side, never by a Tick, so it moves no State Hash.
+    /// </summary>
+    AppearanceWorkshopRun = 83,
 }

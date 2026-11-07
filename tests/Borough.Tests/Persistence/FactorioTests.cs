@@ -274,6 +274,8 @@ public sealed class FactorioTests(ITestOutputHelper output)
         // a full one, so what the run has to produce is rows rather than magnitudes.
         Scan(Borough.Tests.Utilities.PowerDeliveryTests.Delivering(), reached, []);
 
+        Scan(Borough.Tests.Utilities.UtilityBillingTests.Billed(), reached, []);
+
         List<string> unreachable = [.. every.Where(name => !reached.Contains(name))];
 
         _output.WriteLine($"{reached.Count} of {every.Count} columns corrupted and observed");

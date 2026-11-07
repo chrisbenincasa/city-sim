@@ -525,8 +525,8 @@ These are host execution thresholds, not Ruleset choices or saved state.
 Preparation does not reserve parking or create Trips. `StartPrepared` runs the usual qualification
 and itinerary checks; consuming a result requires matching graph version, mode, full endpoint
 Addresses and crossing cost. A mismatch searches synchronously. Thread completion order never
-chooses mutation order. This covers commute searches only: Shopping, civic journeys and all world
-writes remain serial, and `Step` still runs on its caller. A dedicated simulation thread for Godot
+chooses mutation order. Workers price commute and hiring searches (hiring since 2026-10-21, below).
+Shopping, civic journeys and all world writes remain serial, and `Step` still runs on its caller. A dedicated simulation thread for Godot
 requires the separate snapshot/command ownership work described above.
 
 `RouteWorkerTests` exercises actual Input Log replay with per-Tick 1/2/8-worker State Hash checks,
@@ -716,7 +716,8 @@ Only one batch can be outstanding. Commands are copied before dispatch, logged a
 Tick and consumed only on the first Step. Scheduling caps accumulated debt and batch size; slow
 batches shrink to one Tick. Paused edits buy one Tick, Drive barriers cap dispatch, and capture holds
 the published Tick. Worker failures reach the shell and terminate the run; shutdown joins the worker.
-Godot accepts `--route-workers 1..8`, default one, including the simulation thread. The existing
+Godot accepts `--route-workers 1..8`, including the simulation thread. The default was one until
+2026-10-21 and is now the processor count less two, from one to eight. The existing
 small-route bypass remains in Core. `--main-thread-sim` supplies the comparison control. Neither
 switch enters saved or hashed state. `Main.Performance` reports worker wall time separately from
 shell time and records frames that reused the prepared scene while the worker was busy.
@@ -1160,3 +1161,31 @@ fingerprints are in `reuse-checks.json` and `reuse-manifest.json`. `0013` is unc
 
 Restored-build validation: 24 payroll, profiling and corpus-budget assertions pass; a normal
 profile smoke run reports attribution disabled and passing end invariants.
+
+## Prepared hiring searches — 2026-10-21
+
+`Simulation.RouteWorkerCount` now also sets `EmploymentEngine.RouteWorkerCount`. On an assignment
+Tick with at least 64 sampled seekers, the coordinator repeats the seeker gates and candidate draws
+against the world as it stands and keeps each look whose Building has an open post the seeker may
+hold. Workers price those looks, one look per round. A seeker whose earlier look priced at the
+`Fast` rung is skipped, because `TryEmploy` stops there. The serial pass is unchanged and consumes a
+price only when graph version, mode, both Addresses and crossing cost match; otherwise it searches
+synchronously. Candidate selection stays on the coordinator because
+`BuildingResidency.PrefixRow` fills its prefix rows lazily. `hiringBatch` in `--profile-work`
+reports prepared, used and synchronous searches per Tick.
+
+Release .NET 10.0.12, Ubuntu 24.04, i5-10400, 1,000,000 Citizens, `stress-shopping.toml`, seed 0,
+Ticks 0–256 from population, Decide guard off. The disk was under sustained IO pressure
+(PSI `some` 35–55%), so these are desktop readings, not quiet-machine timings.
+
+| Route workers | Hiring workers | Step total, s | Growth, s | Move, s |
+|---:|---|---:|---:|---:|
+| 1 | — | 26.6 | 13.1 | 12.5 |
+| 6 | commute only | 23.5 | 11.7 | 10.7 |
+| 6 | commute and hiring | 16.2 | 4.3 | 10.9 |
+
+The six-worker run prepared 316,683 hiring searches, used 311,890 and searched 68 synchronously.
+Every run ends at State Hash `8145DA568B473C41` with 217,421 Citizens employed and invariants
+passing. `RouteWorkerTests` checks per-Tick hash equality with two and eight workers and requires
+consumed hiring prices. The headless runner stays serial by default; the shell defaults to the
+processor count less two route workers, from one to eight.

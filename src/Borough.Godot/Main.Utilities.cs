@@ -98,13 +98,22 @@ public partial class Main
         {
             anyShort |= drawn.Delivered < Ratio.One;
 
-            string imports = drawn.Imported > 0
-                ? $"\nThe District imported {drawn.Imported:N0} gross units, including road loss; "
-                    + $"the treasury paid {drawn.ImportPaid.Raw:N0} money units."
-                : string.Empty;
-            rows.Add(new($"{UtilitySentence(drawn)}\nYesterday the District's network served "
-                + $"{drawn.Received:N0} of the {drawn.Asked:N0} units asked of it.{imports}",
-                Icon: UiIcons.Resource(_names.Resource(drawn.Utility))));
+            string text = $"{UtilitySentence(drawn)}\nYesterday the District's network served "
+                + $"{drawn.Received:N0} of the {drawn.Asked:N0} units asked of it.";
+            if (drawn.Imported > 0)
+            {
+                text += $"\nThe District imported {drawn.Imported:N0} gross units, including road loss; "
+                    + $"the treasury paid {drawn.ImportPaid.Raw:N0} money units.";
+            }
+
+            if (drawn.HasTariff)
+            {
+                string name = _names.Resource(drawn.Utility) ?? $"Resource {drawn.Utility.Raw}";
+                text += $"\nPaid {drawn.Paid:N0} for {name} yesterday.";
+                if (drawn.Unpaid > 0) text += $" {drawn.Unpaid:N0} went unpaid.";
+            }
+
+            rows.Add(new(text, Icon: UiIcons.Resource(_names.Resource(drawn.Utility))));
         }
 
         return new("utilities", $"Utilities · {evidence.Utilities.Length}", anyShort, rows);

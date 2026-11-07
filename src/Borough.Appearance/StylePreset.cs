@@ -81,7 +81,44 @@ public sealed record PaintScheme(IReadOnlyDictionary<string, Paint> Parts, int W
 /// share a draw, and so share a family.
 /// </param>
 /// <param name="Attached">The block patterns whose Buildings stand in attached runs.</param>
-public sealed record StylePreset(string Name, int EraDays, BlockPattern[] Attached, AppearanceFamily[] Families);
+/// <param name="Runs">How detached houses on one block face group into runs, or <c>null</c> where each draws alone.</param>
+/// <param name="Terraces">
+/// How many Lots one terrace of attached houses spans, drawn per face and era, or <c>null</c> where a
+/// whole face draws together. Only Buildings that terrace families alone admit stand in terraces.
+/// </param>
+/// <param name="ApartmentRuns">
+/// How many Lots one run of apartment Buildings spans, drawn per face side, or <c>null</c> where
+/// apartments draw as any other Building does. A Building whose draw falls to an apartment family
+/// stands in a run, on attached and detached faces alike, and takes its run's form.
+/// </param>
+/// <param name="ShopRuns">
+/// How many Lots one parade of shop Buildings spans, drawn per face side, or <c>null</c> where shops
+/// draw as any other Building does. A parade shares its form, pitch and walls, as an apartment run does.
+/// </param>
+/// <param name="WorkshopRuns">
+/// How many Lots one run of workshop Buildings spans, drawn per face side, or <c>null</c> where workshops
+/// draw as any other Building does. A run shares its form, pitch and walls, as a shop parade does.
+/// </param>
+public sealed record StylePreset(string Name, int EraDays, BlockPattern[] Attached, AppearanceFamily[] Families,
+    HouseRuns? Runs = null, Bounds? Terraces = null, Bounds? ApartmentRuns = null, Bounds? ShopRuns = null, Bounds? WorkshopRuns = null);
+
+/// <summary>
+/// Runs of neighboring detached houses on one block face and era. Each run draws what its houses
+/// share, by weight.
+/// </summary>
+/// <param name="Alone">The weight of runs whose houses share nothing.</param>
+/// <param name="Matched">The weight of runs whose houses share their family and roof pitch.</param>
+/// <param name="Copies">The weight of runs whose houses share their family, proportions, materials and paint.</param>
+/// <param name="Houses">How many Lots one run spans, drawn per face.</param>
+public sealed record HouseRuns(int Alone, int Matched, int Copies, Bounds Houses);
+
+/// <summary>What the houses of one run share.</summary>
+public enum RunShare : byte
+{
+    Alone,
+    Matched,
+    Copies,
+}
 
 /// <summary>What one bay of one storey shows on a wall.</summary>
 public enum BayKind : byte
@@ -212,7 +249,157 @@ public sealed record FamilyBody(
     bool ReceivingCanopy = false,
     TowerBody? Tower = null,
     MidriseBody? Midrise = null,
-    HouseBody? House = null);
+    HouseBody? House = null,
+    TerraceBody? Terrace = null,
+    ApartmentBody? Apartment = null,
+    ShopBody? Shop = null,
+    WorkshopBody? Workshop = null);
+
+/// <summary>An attached house's roof and plan. Every house of one terrace shares them and its pitch.</summary>
+/// <param name="PitchDegrees">The range a terrace's pitch is drawn from, or <c>null</c> for a flat or mansard roof.</param>
+public sealed record TerraceBody(TerraceForm Form, Bounds? PitchDegrees);
+
+/// <summary>The roofs and plans an attached house can take.</summary>
+public enum TerraceForm : byte
+{
+    /// <summary>A ridge along the street, stopping at each shared wall.</summary>
+    SideGable,
+
+    /// <summary>A flat roof behind a street parapet over a bracketed cornice.</summary>
+    Parapet,
+
+    /// <summary>Walls one storey short of the Building, with its top storey inside a mansard lit by dormers.</summary>
+    Mansard,
+
+    /// <summary>A ridge running back from the street, so each house shows a gable.</summary>
+    FrontGable,
+
+    /// <summary>Two houses under one street gable whose ridge stands on their shared wall.</summary>
+    PairedGable,
+
+    /// <summary>A side gable over a front wall set back behind a bay window that reaches the Lot line.</summary>
+    BayFront,
+}
+
+/// <summary>An apartment Building's roof and plan. Every Building of one run shares them and its pitch.</summary>
+/// <param name="PitchDegrees">The range a run's pitch is drawn from, or <c>null</c> for a form without a pitched roof.</param>
+public sealed record ApartmentBody(ApartmentForm Form, Bounds? PitchDegrees);
+
+/// <summary>The roofs and plans an apartment Building can take. Each draws the Building's whole frontage.</summary>
+public enum ApartmentForm : byte
+{
+    /// <summary>A flat roof behind a parapet on all four walls.</summary>
+    Parapet,
+
+    /// <summary>A ridge along the street, hipped at each free end and stopping at each shared wall.</summary>
+    Hipped,
+
+    /// <summary>A ridge along the street, gabled at each free end and stopping at each shared wall.</summary>
+    SideGable,
+
+    /// <summary>Walls one storey short of the Building, with its top storey inside a mansard lit by dormers.</summary>
+    Mansard,
+
+    /// <summary>A hipped range whose middle third steps forward to the Lot line under a front gable.</summary>
+    CentreGable,
+
+    /// <summary>A parapet range set back behind full-height canted bays that reach the Lot line.</summary>
+    BayFront,
+
+    /// <summary>Two end wings on the Lot line and the middle set back around a forecourt, under parapets.</summary>
+    Forecourt,
+
+    /// <summary>A parapet range whose top storey stands back from the street behind a railed roof terrace.</summary>
+    Setback,
+}
+
+/// <summary>
+/// A shop-house body: shops on the ground storey with flats above. A parade shares its form, pitch and
+/// walls, and each shop unit draws its own shopfront style, paint, awning and sign.
+/// </summary>
+/// <param name="PitchDegrees">The range a parade's pitch is drawn from, or <c>null</c> for a form without a pitched roof.</param>
+public sealed record ShopBody(ShopForm Form, Bounds? PitchDegrees);
+
+/// <summary>The period roofs and plans a shop-house Building can take.</summary>
+public enum ShopForm : byte
+{
+    /// <summary>A slate side gable, sash windows, a splayed corner door and a gable end to the side street.</summary>
+    VictorianGable,
+
+    /// <summary>A front gable and a first-floor oriel over each shop, under clay tiles.</summary>
+    GabledOriel,
+
+    /// <summary>A hipped slate roof over a splayed corner that rises into an octagonal turret.</summary>
+    TurretCorner,
+
+    /// <summary>A flat roof behind a corbelled cornice and name panels, with a column under a cut-back corner.</summary>
+    MainStreet,
+
+    /// <summary>Stucco walls a storey short of the Building, with its top storey in a slate mansard.</summary>
+    Mansard,
+
+    /// <summary>A flat roof behind a parapet, render bands, steel windows and a rounded corner.</summary>
+    InterwarCurve,
+
+    /// <summary>A thin flat roof, a concrete canopy over the shops and ribbon windows over panels.</summary>
+    SixtiesCanopy,
+
+    /// <summary>A brick base and a zinc-clad top storey set back behind a glazed terrace.</summary>
+    SetbackModern,
+
+    /// <summary>Render under a deep-eaved hipped pantile roof, with shutters and balconettes.</summary>
+    PantileHipped,
+
+    /// <summary>A detached store glazed between piers under flats, whose top storey of three stands back behind a roof terrace.</summary>
+    GlassBase,
+
+    /// <summary>A detached store under steep metal gables across the frontage, glass up each gable end.</summary>
+    GabledHall,
+
+    /// <summary>A detached store set back behind square piers, with the flats flush with the street above.</summary>
+    Colonnade,
+
+    /// <summary>A detached store under one low mono-pitch rising to the street over a clerestory.</summary>
+    MonoPitch,
+
+    /// <summary>A detached store under a deep canopy that turns both corners, ribbon windows over panels above.</summary>
+    Canopy,
+
+    /// <summary>A detached store under a folded-plate roof with glass in each fold's front.</summary>
+    FoldedPlate,
+
+    /// <summary>A detached brick block: a timber shopfront, sash windows and a corbelled cornice under a name panel.</summary>
+    CommercialBlock,
+}
+
+/// <summary>
+/// A workshop body. A run shares its form, pitch and walls, and each Building draws its own doors,
+/// their paint and its signs.
+/// </summary>
+/// <param name="PitchDegrees">The range a run's pitch is drawn from, or <c>null</c> for a form without a pitched roof.</param>
+public sealed record WorkshopBody(WorkshopForm Form, Bounds? PitchDegrees);
+
+/// <summary>The period roofs and plans a workshop Building can take.</summary>
+public enum WorkshopForm : byte
+{
+    /// <summary>The block body's sheet-panel shed under a flat parapet, drawn from its bay rules.</summary>
+    PanelShed,
+
+    /// <summary>A hipped brick yard house beside a boarded cart shed on posts, under pantiles.</summary>
+    BuildersYard,
+
+    /// <summary>A low side gable with a glazed clerestory monitor along the ridge, between brick piers.</summary>
+    Monitor,
+
+    /// <summary>A Belfast-truss bow roof behind a stepped rendered parapet and name panel.</summary>
+    InterwarGarage,
+
+    /// <summary>Brown brick under a flat parapet with roller doors and a high strip window.</summary>
+    ParapetRoller,
+
+    /// <summary>A low-pitch gable front in profiled sheet over a block dado, with sectional doors and a trade counter.</summary>
+    PortalShed,
+}
 
 /// <summary>A tower body's authored layout.</summary>
 public sealed record TowerBody(TowerVariant Variant);
@@ -232,19 +419,83 @@ public sealed record MidriseBody(
     bool Galleries = true);
 
 /// <summary>A house body's form. Every proportion, material and paint is drawn per Building.</summary>
-public sealed record HouseBody(HouseVariant Variant);
+/// <param name="Wide">
+/// The form stands among the wide house forms, which share one place in the draw and rank their forms
+/// on each run of detached houses so neighboring runs differ in form.
+/// </param>
+public sealed record HouseBody(HouseVariant Variant, bool Wide = false);
 
-/// <summary>The three house forms a body can build.</summary>
+/// <summary>The house forms a body can build.</summary>
 public enum HouseVariant
 {
-    /// <summary>A row of side-gabled houses under one ridge along the street.</summary>
+    /// <summary>A row of side-gabled houses under one ridge along the street, or one house on a narrow Lot.</summary>
     Terrace,
 
-    /// <summary>A row of houses, each with its own ridge running back from the street.</summary>
+    /// <summary>A row of houses, each with its own ridge running back from the street, or one on a narrow Lot.</summary>
     FrontGables,
 
     /// <summary>A hipped block set back behind gabled bays that stand forward to the Lot line.</summary>
     Villa,
+
+    /// <summary>One house under a roof that slopes on all four sides.</summary>
+    Hipped,
+
+    /// <summary>One front-gabled house whose gable peaks are clipped by small hips.</summary>
+    HalfHip,
+
+    /// <summary>One side-gabled house with a smaller street gable over one side.</summary>
+    CrossGable,
+
+    /// <summary>One house whose rear roof slope runs down to a storey lower than its front.</summary>
+    Saltbox,
+
+    /// <summary>One house with a storey fewer of wall and its top floor inside a gambrel roof.</summary>
+    Gambrel,
+
+    /// <summary>One house whose street face steps back beside a full-height gabled wing.</summary>
+    LPlan,
+
+    /// <summary>One house with a single-storey range behind it under a lean-to roof.</summary>
+    RearOutshot,
+
+    /// <summary>One house with a single-storey wing standing into its side garden.</summary>
+    SideWing,
+
+    /// <summary>A row of steep front gables without eaves, every other house set back from the street.</summary>
+    StaggeredGables,
+
+    /// <summary>A flat-roofed row whose top storey stands back behind a roof terrace at three storeys.</summary>
+    FlatSetback,
+
+    /// <summary>A row with a mono-pitch to each house, all rising the same way, a clerestory in each step.</summary>
+    Sawtooth,
+
+    /// <summary>Front-gabled pavilions joined by flat-roofed links set back from the street.</summary>
+    Pavilions,
+
+    /// <summary>A shallow side gable over narrow houses between brick cross walls, panels under ribbon windows.</summary>
+    Span,
+
+    /// <summary>A row with an inverted roof to each house, falling to a valley on its center line.</summary>
+    Butterfly,
+
+    /// <summary>One low mono-pitch over the row rising toward the street, a clerestory band under its high edge.</summary>
+    Monopitch,
+
+    /// <summary>A low hipped roof with deep eaves over the row, the upper storey hung with tiles or boards.</summary>
+    LowHip,
+
+    /// <summary>The flat set-back row over a double-pile front, flat-roofed outriggers behind.</summary>
+    DeepFlat,
+
+    /// <summary>The staggered gables over a double-pile front, flat-roofed outriggers behind.</summary>
+    DeepGables,
+
+    /// <summary>The sawtooth row over a double-pile front, flat-roofed outriggers behind.</summary>
+    DeepSawtooth,
+
+    /// <summary>The span row over a double-pile front, flat-roofed outriggers behind.</summary>
+    DeepSpan,
 }
 
 /// <summary>What a mid-rise body's upper street storeys open with.</summary>
@@ -255,7 +506,7 @@ public enum StreetOpenings
     Windows,
 }
 
-/// <summary>The two mid-rise types a body can build.</summary>
+/// <summary>The mid-rise types a body can build.</summary>
 public enum MidriseVariant
 {
     /// <summary>A brick perimeter block with a set-back attic storey.</summary>
@@ -263,6 +514,24 @@ public enum MidriseVariant
 
     /// <summary>A precast panel slab with galleries on the yard side and a recessed ground storey.</summary>
     PanelSlab,
+
+    /// <summary>A contemporary brick block with deep reveals, street loggias and a standing-seam attic.</summary>
+    BrickLoggia,
+
+    /// <summary>A contemporary timber-clad block with tall windows, box frames and a metal attic.</summary>
+    TimberFrame,
+
+    /// <summary>A contemporary white rendered block with mixed window widths, corner loggias and slab balconies.</summary>
+    WhiteRender,
+
+    /// <summary>A contemporary brick block under steep standing-seam gables with no eaves.</summary>
+    GableFront,
+
+    /// <summary>A mid-century block with horizontal window bands, a recessed glazed ground storey and a thin fascia.</summary>
+    Ribbon,
+
+    /// <summary>A mid-century brick crosswall block with panel infill between piers and a deep fascia.</summary>
+    Crosswall,
 }
 
 /// <summary>The four tower layouts a body can build.</summary>

@@ -166,6 +166,7 @@ public sealed class DerivedRebuildAuditTests
             Run(PaintedGround()),
             Run(Borough.Tests.Rules.ExpiryTests.Spoiling()),
             Run(Borough.Tests.Rules.ServiceImportTests.Contracted()),
+            Run(Borough.Tests.Utilities.UtilityBillingTests.Billed()),
         ];
 
         string[] all = audits[0].Derived;
@@ -296,7 +297,10 @@ public sealed class DerivedRebuildAuditTests
         //
         // 54 -> 57: business.contract_head, business.contract_tail and service_contract.buyer_next,
         // each firm's list of service contracts (adr/0179). The serviced world exercises all three.
-        Assert.Equal(57, all.Length);
+        //
+        // 57 -> 59 adds building.utility_bill_head and utility_bill.next (10/20/2026).
+        // UtilityBillingTests.Billed populates the per-Building Utility billing lists.
+        Assert.Equal(59, all.Length);
         Assert.Single(ScratchColumns(Stepped(0)));
     }
 

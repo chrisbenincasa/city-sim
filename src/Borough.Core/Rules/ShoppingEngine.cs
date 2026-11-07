@@ -19,6 +19,11 @@ public sealed class ShoppingEngine
     private readonly WalkScratch _walk = new();
     private ulong[] _order = [];
     private int[] _active = [];
+
+    // Per good: a summed-area table of the Cells holding a Building with a tenant that stocks it,
+    // and the Tick it was built on plus one.
+    private int[][] _sellers = [];
+    private ulong[] _sellersBuilt = [];
     private ShoppingReading _reading;
     public ShoppingWork? Work { get; set; }
     public ShoppingReading Last => _reading;
@@ -205,7 +210,7 @@ public sealed class ShoppingEngine
         Cells radius = EmploymentEngine.Radius(_world.Rules.Trips.CommuteBudget, _world.Rules.Roads.WalkSpeed);
         CellRect box = CellRect.At(CellGrid.ToCells(_world.Lots.East[lot]), CellGrid.ToCells(_world.Lots.North[lot])).Dilate(radius).Clamp();
         int buildings = _world.BuildingsInCells.CountIn(box, Work?.Selection);
-        if (buildings == 0) { return; }
+        if (buildings == 0 || !AnySeller(box, State.Good[row], tick)) { return; }
         ShoppingWork? work = Work;
         if (work is not null) { work.DiscoveryCalls++; }
         int added = 0;
@@ -248,6 +253,44 @@ public sealed class ShoppingEngine
             }
         }
         if (added == 0 && work is not null) { work.DiscoveryWithoutAddition++; }
+    }
+
+    // Every draw over a box with no stocking tenant fails, and draws change no state, so skipping
+    // them leaves the world as it was. A Building is filed under its Lot's address Cell, as
+    // BuildingResidency files it, so this box matches the one the draws sample.
+    private bool AnySeller(CellRect box, ResourceId good, Ticks tick)
+    {
+        const int Stride = CellGrid.WorldCells + 1;
+        if (_sellersBuilt.Length <= good.Raw)
+        {
+            Array.Resize(ref _sellers, good.Raw + 1);
+            Array.Resize(ref _sellersBuilt, good.Raw + 1);
+        }
+        int[] table = _sellers[good.Raw] ??= new int[Stride * Stride];
+        if (_sellersBuilt[good.Raw] != tick.Raw + 1)
+        {
+            _sellersBuilt[good.Raw] = tick.Raw + 1;
+            Array.Clear(table);
+            for (int business = 0; business < _world.Businesses.Rows.SlotCount; business++)
+            {
+                if (StockBin(business, good) < 0
+                    || !_world.Buildings.Rows.TryResolve(_world.Businesses.Building[business], out int building)
+                    || !_world.Lots.Rows.TryResolve(_world.Buildings.Lot[building], out int lot)) { continue; }
+                Cells east = CellGrid.ToCells(_world.Lots.East[lot]), north = CellGrid.ToCells(_world.Lots.North[lot]);
+                if (!CellGrid.Contains(east, north)) { continue; }
+                table[(north.Raw + 1) * Stride + east.Raw + 1]++;
+            }
+            for (int n = 1; n < Stride; n++)
+            {
+                for (int e = 1; e < Stride; e++)
+                {
+                    table[n * Stride + e] += table[(n - 1) * Stride + e] + table[n * Stride + e - 1]
+                        - table[(n - 1) * Stride + e - 1];
+                }
+            }
+        }
+        int e0 = box.East.Raw, e1 = box.EastEnd.Raw, n0 = box.North.Raw, n1 = box.NorthEnd.Raw;
+        return table[n1 * Stride + e1] - table[n0 * Stride + e1] - table[n1 * Stride + e0] + table[n0 * Stride + e0] > 0;
     }
 
     private int Tenant(int building, int ordinal)

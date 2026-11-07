@@ -29,6 +29,13 @@ namespace Borough.Tests.Utilities;
 /// reads <c>Delivered</c> and computes what the output has to be. Moving a rate in the fixture then
 /// moves the expectation with it instead of breaking the test.
 /// </para>
+/// <para>
+/// <b>Each consumer is read through what it owns, because a tariffed draw needs an owner.</b> The
+/// dwelling's light sits in per-Household Bins and is summed over them, and the works' Rule makes no
+/// Good at all — the city contract that funds it equals its bill, so its till never moves and what it
+/// was charged for Power is the only thing its Day leaves behind. Both scale with the fired count, so
+/// a brownout shows in either.
+/// </para>
 /// </remarks>
 public sealed class PowerDeliveryTests
 {
@@ -38,7 +45,6 @@ public sealed class PowerDeliveryTests
     private static readonly ResourceId Power = new(1);
 
     private static readonly ResourceId Lumens = new(2);
-    private static readonly ResourceId Widget = new(3);
 
     // Kinds are one-based: zero is the kind no Ruleset declares.
     private const byte Dwelling = 1;
@@ -53,12 +59,15 @@ public sealed class PowerDeliveryTests
     /// <summary>Households put in the one dwelling that draws power, and so its occupancy.</summary>
     private const int Occupants = 2;
 
-    /// <summary>The fixture's greedy Rule takes its <c>max</c> whenever the Bin has room.</summary>
-    private const int FabricateMax = 4;
+    /// <summary>The fixture's greedy Rule takes its <c>max</c> whenever the treasury can fund it.</summary>
+    private const int MachineryMax = 4;
+
+    /// <summary>Power one application of the works' Rule draws, and so the units it is billed for.</summary>
+    private const int MachineryPower = 4;
 
     /// <summary>The fixture's Rule periods, in Ticks.</summary>
     private const int LightingRate = 32;
-    private const int FabricateRate = 8;
+    private const int MachineryRate = 8;
 
     private static Ruleset Rules()
     {
@@ -352,8 +361,59 @@ public sealed class PowerDeliveryTests
     private static void AfterSettling(Simulation simulation, int day) =>
         StepTo(simulation, (((long)day + 1) * Ticks.PerDay) + 1);
 
-    private static long Level(World world, int buildingSlot, ResourceId resource) =>
-        world.Bins.LevelAt(world.FindBin(buildingSlot, resource));
+    /// <summary>
+    /// The light the dwelling's Households hold between them. The Bin belongs to the occupant, so
+    /// there is one per Household rather than one per Building.
+    /// </summary>
+    private static long Lit(World world, int buildingSlot)
+    {
+        long held = 0;
+
+        foreach (int instance in world.BuildingRules.Walk(buildingSlot))
+        {
+            held += world.Bins.LevelAt(world.FindLocalBin(instance, Lumens));
+        }
+
+        return held;
+    }
+
+    /// <summary>
+    /// What a Building has paid for Power so far today, or zero on a Day it has not been billed on.
+    /// </summary>
+    /// <remarks>
+    /// The stored totals are rolled lazily on a billing write, so the Day they belong to is read
+    /// rather than assumed. A reader that trusted the column would hand back yesterday's figure on a
+    /// Day that has billed nothing.
+    /// </remarks>
+    private static long BilledToday(World world, int buildingSlot)
+    {
+        int row = world.UtilityBills.Find(
+            world.Buildings, buildingSlot, world.Rules.ResourceKey(Power));
+
+        if (row == Rows.NoSlot)
+        {
+            return 0;
+        }
+
+        UtilityPayments payments = world.UtilityBills.Payments[row];
+
+        return payments.Day == BusinessAccounts.DayOf(world.Tick) ? payments.Paid : 0;
+    }
+
+    /// <summary>What a Building paid for Power on the Day before <paramref name="day"/>.</summary>
+    private static long BilledBefore(World world, int buildingSlot, int day) =>
+        world.UtilityBills.PriorOn(
+            world.Buildings, buildingSlot, world.Rules.ResourceKey(Power), (ushort)day).Paid;
+
+    /// <summary>The fixture's price per unit of Power received, which the works pays in full.</summary>
+    private static long Tariff(World world)
+    {
+        int policy = world.Rules.TariffOf(Power);
+
+        Assert.InRange(policy, 0, world.Rules.Policies.Length - 1);
+
+        return world.Policies.AmountOf(policy, world.Rules.Policies[policy]);
+    }
 
     /// <summary>What one firing applies when <paramref name="count"/> applications are wanted.</summary>
     private static long Applied(int count, Ratio delivered) =>
@@ -407,11 +467,9 @@ public sealed class PowerDeliveryTests
         Assert.True(world.UtilityFlows.Received[burning] > 0, "nothing crossed the boundary");
         Assert.True(Delivered(world, city.Burning) > Ratio.Zero);
 
-        long before = Level(world, city.Factory, Widget);
-
         AfterSettling(city.Simulation, day: 1);
 
-        Assert.True(Level(world, city.Factory, Widget) > before, "the far works made nothing");
+        Assert.True(BilledBefore(world, city.Factory, day: 2) > 0, "the far works drew nothing");
         city.Simulation.CheckEndOfRun();
     }
 
@@ -476,22 +534,24 @@ public sealed class PowerDeliveryTests
         Assert.True(delivered < Ratio.One, "the fixture is not short of power");
 
         long lighting = Applied(Occupants, delivered);
-        long fabricate = Applied(FabricateMax, delivered);
+        long machinery = Applied(MachineryMax, delivered);
 
         Assert.True(lighting > 0, $"the dwelling applies nothing at {delivered.Raw}/65536");
-        Assert.True(fabricate > 0, $"the works applies nothing at {delivered.Raw}/65536");
+        Assert.True(machinery > 0, $"the works applies nothing at {delivered.Raw}/65536");
         Assert.True(lighting < Occupants, "the dwelling is not degraded");
-        Assert.True(fabricate < FabricateMax, "the works is not degraded");
+        Assert.True(machinery < MachineryMax, "the works is not degraded");
 
-        long lumens = Level(world, city.Home, Lumens);
-        long widgets = Level(world, city.Factory, Widget);
+        long lumens = Lit(world, city.Home);
+        long billed = BilledToday(world, city.Factory);
 
         StepTo(city.Simulation, (long)world.Tick.Raw + LightingRate);
 
-        Assert.Equal(lumens + lighting, Level(world, city.Home, Lumens));
+        // Each Household runs its own Instance and each Instance applies the Building's occupancy,
+        // so the dwelling's light is the square of what one premises Instance would have made.
+        Assert.Equal(lumens + (Occupants * lighting), Lit(world, city.Home));
         Assert.Equal(
-            widgets + (fabricate * (LightingRate / FabricateRate)),
-            Level(world, city.Factory, Widget));
+            billed + (machinery * MachineryPower * Tariff(world) * (LightingRate / MachineryRate)),
+            BilledToday(world, city.Factory));
 
         // Neither consumer is stopped. A delivered Utility never blocks, so a shortage shows as a
         // smaller output and never as a complaint.
@@ -516,9 +576,17 @@ public sealed class PowerDeliveryTests
     /// laying it again brings the delivery back. Both edits go through the player's own door.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>The outage and the recovery belong in one test.</b> A world that was never short proves
     /// nothing about restoring one, and a fraction that returns to the number it left says more
     /// than a fraction that is merely above zero.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The fraction to return to is read from the SECOND Day.</b> The Wheel arms each Rule from
+    /// the Tick its Building went up, so the opening Day holds one firing of the works fewer than
+    /// every Day after it and asks for 16 units less. Reading the first Day's fraction and demanding
+    /// it back would compare a part Day with a whole one.
+    /// </para>
     /// </remarks>
     [Fact]
     public void Removing_and_relaying_the_joining_road_starves_and_then_restores_the_far_district()
@@ -526,7 +594,7 @@ public sealed class PowerDeliveryTests
         City city = Build();
         World world = city.World;
 
-        AfterSettling(city.Simulation, day: 0);
+        AfterSettling(city.Simulation, day: 1);
 
         Ratio joined = Delivered(world, city.Burning);
 
@@ -540,7 +608,7 @@ public sealed class PowerDeliveryTests
         Issue(city.Simulation, Command.Demolish(
             new Tiles(east.Raw - 1), Tiles.Zero, DemolishTarget.Street));
 
-        AfterSettling(city.Simulation, day: 1);
+        AfterSettling(city.Simulation, day: 2);
 
         int burning = Flow(world, city.Burning);
 
@@ -548,29 +616,28 @@ public sealed class PowerDeliveryTests
         Assert.Equal(0, world.UtilityFlows.Received[burning]);
         Assert.Equal(Ratio.Zero, Delivered(world, city.Burning));
 
-        long dark = Level(world, city.Home, Lumens);
-        long idle = Level(world, city.Factory, Widget);
+        long dark = Lit(world, city.Home);
 
-        AfterSettling(city.Simulation, day: 2);
+        AfterSettling(city.Simulation, day: 3);
 
         // A whole Day with no power. The consumers apply nothing and neither one stops, because a
         // delivered Utility never blocks.
-        Assert.Equal(dark, Level(world, city.Home, Lumens));
-        Assert.Equal(idle, Level(world, city.Factory, Widget));
+        Assert.Equal(dark, Lit(world, city.Home));
+        Assert.Equal(0, BilledBefore(world, city.Factory, day: 4));
         AssertNotStopped(world, city.Home);
         AssertNotStopped(world, city.Factory);
 
         Issue(city.Simulation, Command.Street(west, Tiles.Zero, east, Tiles.Zero, SubTiles.Zero));
 
-        AfterSettling(city.Simulation, day: 3);
+        AfterSettling(city.Simulation, day: 4);
 
         Assert.Equal(joined, Delivered(world, city.Burning));
         Assert.True(world.UtilityFlows.Received[Flow(world, city.Burning)] > 0);
 
-        AfterSettling(city.Simulation, day: 4);
+        AfterSettling(city.Simulation, day: 5);
 
-        Assert.True(Level(world, city.Home, Lumens) > dark, "the dwelling stayed dark");
-        Assert.True(Level(world, city.Factory, Widget) > idle, "the works stayed idle");
+        Assert.True(Lit(world, city.Home) > dark, "the dwelling stayed dark");
+        Assert.True(BilledBefore(world, city.Factory, day: 6) > 0, "the works stayed idle");
         city.Simulation.CheckEndOfRun();
     }
 
@@ -624,14 +691,14 @@ public sealed class PowerDeliveryTests
 
         Assert.True(Delivered(world, city.Burning) < Ratio.One, "the east is not short");
 
-        long lumens = Level(world, city.Home, Lumens);
-        long widgets = Level(world, city.Factory, Widget);
+        long lumens = Lit(world, city.Home);
+        long billed = BilledToday(world, city.Factory);
         long opened = (long)world.Tick.Raw;
 
         StepTo(city.Simulation, opened + LightingRate);
 
-        long shortLumens = Level(world, city.Home, Lumens) - lumens;
-        long shortWidgets = Level(world, city.Factory, Widget) - widgets;
+        long shortLumens = Lit(world, city.Home) - lumens;
+        long shortBill = BilledToday(world, city.Factory) - billed;
 
         // The east peak's ninth Building, armed from the Tick it is raised on.
         Raise(world, Cells - 1, Tall, Plant, world.Tick);
@@ -641,18 +708,18 @@ public sealed class PowerDeliveryTests
         Assert.Equal(city.Burning, DistrictOf(world, city.Home));
         Assert.Equal(Ratio.One, Delivered(world, city.Burning));
 
-        lumens = Level(world, city.Home, Lumens);
-        widgets = Level(world, city.Factory, Widget);
+        lumens = Lit(world, city.Home);
+        billed = BilledToday(world, city.Factory);
         opened = (long)world.Tick.Raw;
 
         StepTo(city.Simulation, opened + LightingRate);
 
-        Assert.Equal(Occupants, Level(world, city.Home, Lumens) - lumens);
+        Assert.Equal(Occupants * Occupants, Lit(world, city.Home) - lumens);
         Assert.Equal(
-            FabricateMax * (LightingRate / FabricateRate),
-            Level(world, city.Factory, Widget) - widgets);
-        Assert.True(Level(world, city.Home, Lumens) - lumens > shortLumens);
-        Assert.True(Level(world, city.Factory, Widget) - widgets > shortWidgets);
+            MachineryMax * MachineryPower * Tariff(world) * (LightingRate / MachineryRate),
+            BilledToday(world, city.Factory) - billed);
+        Assert.True(Lit(world, city.Home) - lumens > shortLumens);
+        Assert.True(BilledToday(world, city.Factory) - billed > shortBill);
 
         AssertNotStopped(world, city.Home);
         AssertNotStopped(world, city.Factory);
@@ -829,7 +896,7 @@ public sealed class PowerDeliveryTests
 
         // Far enough into the Day for the plant to have fed the network since the last settle, so
         // there is history to resurrect.
-        StepTo(city.Simulation, (long)world.Tick.Raw + (4 * FabricateRate));
+        StepTo(city.Simulation, (long)world.Tick.Raw + (4 * MachineryRate));
 
         Assert.True(
             world.UtilityFlows.Produced[Flow(world, city.Making)] > 0, "the plant fed nothing");
@@ -870,14 +937,15 @@ public sealed class PowerDeliveryTests
 
     /// <summary>
     /// <c>powered.toml</c> with Power's delivery taken out — no <c>link_per_crossing</c>, no plant
-    /// Rule and no <c>pool</c> term.
+    /// Rule, no <c>pool</c> term and no tariff.
     /// </summary>
     /// <remarks>
-    /// <b>The <c>pool</c> terms have to go with the key, and so does the import.</b> A pool term
-    /// naming a Utility that states no <c>link_per_crossing</c> is refused at load, and so are an
-    /// <c>import_per_connection</c> and a <c>[[hinterland]]</c> price on an undelivered one — so a
-    /// file that kept any of them would not be a legal reload and the hole this covers would be
-    /// unreachable.
+    /// <b>The <c>pool</c> terms, the tariff and the import have to go with the key.</b> A pool term
+    /// naming a Utility that states no <c>link_per_crossing</c> is refused at load, and so are a
+    /// tariff, an <c>import_per_connection</c> and a <c>[[hinterland]]</c> price on an undelivered
+    /// one — so a file that kept any of them would not be a legal reload and the hole this covers
+    /// would be unreachable. The works' whole Rule goes rather than its pool term, because a Business
+    /// Rule exists here to be billed and there is nothing left to bill it for.
     /// </remarks>
     private static Ruleset Undelivered()
     {
@@ -886,11 +954,14 @@ public sealed class PowerDeliveryTests
 
         int generate = toml.IndexOf("[[rule]]\nname    = \"generate\"", StringComparison.Ordinal);
         int lighting = toml.IndexOf("[[rule]]\nname    = \"lighting\"", StringComparison.Ordinal);
+        int machinery = toml.IndexOf("[[rule]]\nname    = \"machinery\"", StringComparison.Ordinal);
+        int funding = toml.IndexOf("[[policy]]\nname = \"plant_funding\"", StringComparison.Ordinal);
 
         Assert.InRange(generate, 0, lighting);
+        Assert.InRange(machinery, lighting, funding);
 
         RulesetLoadResult loaded = RulesetLoader.Parse(
-            (toml[..generate] + toml[lighting..])
+            (toml[..generate] + toml[lighting..machinery] + toml[funding..])
                 .Replace("storage = 0", "", StringComparison.Ordinal)
                 .Replace("link_per_crossing = 2560", "", StringComparison.Ordinal)
                 .Replace("loss_per_road_tile = 1", "", StringComparison.Ordinal)
@@ -900,7 +971,7 @@ public sealed class PowerDeliveryTests
                     "",
                     StringComparison.Ordinal)
                 .Replace(
-                    "inputs  = [ { scope = \"pool\", resource = \"power\", amount = 4 } ]",
+                    "inputs  = [ { scope = \"pool\", resource = \"power\", amount = 2 } ]",
                     "inputs  = []",
                     StringComparison.Ordinal),
             "unpowered.toml");
@@ -960,9 +1031,10 @@ public sealed class PowerDeliveryTests
     }
 
     /// <summary>
-    /// The route worker count does not change the settle. <b>Nobody commutes in this world</b> —
-    /// <c>powered.toml</c> declares no trade and no job — so this holds the claim for the networks
-    /// rather than exercising the parallel loop, which is <c>RouteWorkerTests</c>' job.
+    /// The route worker count does not change the settle. <b>Nobody commutes in this world</b> — no
+    /// Citizen is ever created in it, so the trades <c>powered.toml</c> declares hold no posts — and
+    /// this holds the claim for the networks rather than exercising the parallel loop, which is
+    /// <c>RouteWorkerTests</c>' job.
     /// </summary>
     [Fact]
     public void The_thread_count_does_not_change_the_state()

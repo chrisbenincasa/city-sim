@@ -13,7 +13,8 @@ public partial class Main
     private World _ownedWorld = null!;
     private Simulation _ownedSimulation = null!;
     private ulong _presentedTick;
-    private int _routeWorkers = 1;
+    // Two cores stay free for the render thread and the rest of the desktop.
+    private int _routeWorkers = Math.Clamp(System.Environment.ProcessorCount - 2, 1, 8);
     private int _batchTicks = 1;
     private bool _threaded = true;
 

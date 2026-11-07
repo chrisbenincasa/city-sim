@@ -122,12 +122,14 @@ public readonly record struct RuleFlow(long Sum, int Peak)
 /// than netted, for <c>MoneyFlowCounter.FromTreasury</c>'s reason: a net cannot distinguish a city
 /// that taxed nothing and paid nothing from one that taxed heavily and paid it all back.
 /// </param>
+/// <param name="Tariff">Utility tariffs paid to the treasury at firing.</param>
 public readonly record struct RuleActivity(
     RuleFlow Due,
     RuleFlow Evaluations,
     RuleFlow ChainRungs,
     MoneyFlow ToTreasury = default,
-    MoneyFlow FromTreasury = default);
+    MoneyFlow FromTreasury = default,
+    MoneyFlow Tariff = default);
 
 /// <summary>
 /// Bin Rule evaluation and application: Phase 2 decides, Phase 3 applies, and nothing is partial.
@@ -272,6 +274,7 @@ public sealed class RuleEngine
     // (adr/0037). Fire posts them as DEMAND, which is a term fact the netted deltas never see --
     // a delivered Utility touches no Bin at all.
     private int[] _drawnNetwork = new int[2];
+    private ResourceId[] _drawnUtility = new ResourceId[2];
     private long[] _drawnAmount = new long[2];
     private int _drawnCount;
 
@@ -325,6 +328,8 @@ public sealed class RuleEngine
     // The same shape in Money's width, and PolicyEngine's fields exactly. Accumulated in Fire --
     // where the deposit and the withdrawal actually happen -- and never in Check, because a Rule that
     // is evaluated and then blocked has moved nothing and must appear in no flow.
+    private long _tickTariff;
+    private MoneyFlow _tariffFlow;
     private long _tickToTreasury;
     private long _tickFromTreasury;
 
@@ -367,13 +372,14 @@ public sealed class RuleEngine
     public RuleActivity Drain()
     {
         var activity = new RuleActivity(
-            _dueFlow, _evaluationFlow, _rungFlow, _toTreasuryFlow, _fromTreasuryFlow);
+            _dueFlow, _evaluationFlow, _rungFlow, _toTreasuryFlow, _fromTreasuryFlow, _tariffFlow);
 
         _dueFlow = default;
         _evaluationFlow = default;
         _rungFlow = default;
         _toTreasuryFlow = default;
         _fromTreasuryFlow = default;
+        _tariffFlow = default;
 
         return activity;
     }
@@ -530,6 +536,9 @@ public sealed class RuleEngine
         _rungFlow = _rungFlow.Fold(_tickRungs);
         _toTreasuryFlow = _toTreasuryFlow.Fold(_tickToTreasury);
         _fromTreasuryFlow = _fromTreasuryFlow.Fold(_tickFromTreasury);
+
+        _tariffFlow = _tariffFlow.Fold(_tickTariff);
+        _tickTariff = 0;
 
         _tickDue = 0;
         _tickEvaluations = 0;
@@ -895,8 +904,10 @@ public sealed class RuleEngine
 
         Grow(ref _drawnNetwork, _drawnCount + 1);
         Grow(ref _drawnAmount, _drawnCount + 1);
+        Grow(ref _drawnUtility, _drawnCount + 1);
 
         _drawnNetwork[_drawnCount] = network;
+        _drawnUtility[_drawnCount] = term.Bin.Resource;
         _drawnAmount[_drawnCount] = term.Amount;
         _drawnCount++;
 
@@ -1850,6 +1861,7 @@ public sealed class RuleEngine
         for (int i = 0; i < _drawnCount; i++)
         {
             _world.UtilityFlows.Demand(_drawnNetwork[i], _drawnAmount[i], _drawnFull);
+            BillUtility(instance, _drawnUtility[i], _drawnAmount[i], verdict.Applications, tick);
         }
 
         for (int i = 0; i < _fedCount; i++)
@@ -1865,6 +1877,36 @@ public sealed class RuleEngine
         }
 
         _world.Wheel.Arm(instance, tick, definition.Rate);
+    }
+
+    private void BillUtility(int instance, ResourceId utility, long amount, long applications, Ticks tick)
+    {
+        int tariff = _world.Rules.TariffOf(utility);
+        if (tariff < 0 || applications == 0) { return; }
+
+        PolicyDefinition policy = _world.Rules.Policies[tariff];
+        long price = long.Max(0, _world.Policies.AmountOf(tariff, policy));
+        long units = (long)Int128.Min(long.MaxValue, (Int128)amount * applications);
+        long bill = (long)Int128.Min(long.MaxValue, (Int128)units * price);
+        int business = _world.Businesses.Rows.TryResolve(_world.RuleInstances.Business[instance], out int firm)
+            ? firm : Rows.NoSlot;
+        Handle<Bin> purse = _world.Households.Rows.TryResolve(_world.RuleInstances.Household[instance], out int household)
+            ? _world.Households.Balance[household]
+            : _world.Businesses.Balance[business];
+        int payer = _world.Bins.Rows.Resolve(purse);
+        long paid = long.Min(bill, _world.Bins.LevelAt(payer));
+        if (paid > 0)
+        {
+            _world.Withdraw(purse, paid, tick);
+            int treasury = _world.FindTreasuryBin(policy.Resource);
+            _world.Deposit(_world.Bins.Rows.At(treasury), paid, tick);
+            BusinessAccounts.Consume(_world, business, paid, tick);
+            _tickTariff = checked(_tickTariff + paid);
+        }
+
+        int building = _world.Buildings.Rows.Resolve(_world.RuleInstances.Building[instance]);
+        _world.UtilityBills.Record(_world.Buildings, building, _world.Rules.ResourceKey(utility),
+            BusinessAccounts.DayOf(tick), paid, bill - paid);
     }
 
     /// <summary>
@@ -2360,7 +2402,7 @@ public sealed class RuleEngine
     /// </remarks>
     private static long PoolDraw(World world, int instance, in Term term, RuleId rule, int binSlot)
     {
-        // A delivered Utility draws no Bin and pays nothing. Check serves it short instead of
+        // A delivered Utility draws no stock Bin. Check serves it short instead of
         // stopping on it, so there is no Bin a waiter could sleep on and no requirement to price.
         if (world.Rules.IsDeliveredUtility(term.Bin.Resource))
         {

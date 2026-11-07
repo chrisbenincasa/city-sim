@@ -580,13 +580,17 @@ public static class RulesetKeyNotes
             "Which Resource moves, naming a [[resource]]. The treasury holds conserved Resources "
             + "only, so a global end means money.",
         ["[[policy]] transfer amount"] =
-            "How much moves per application.",
+            "How much moves per application. For a tariff, money per Utility unit received; "
+            + "zero switches billing off.",
         ["[[policy]] tool"] =
-            "Which of the things a Policy does: transfer, charge, relief or subsidy. A charge takes "
+            "Which of the things a Policy does: transfer, charge, relief, subsidy or tariff. A tariff charges per delivered Utility unit received. A charge takes "
             + "money from a liable payer to the treasury; a relief takes a share off a Business's "
             + "profit tax bill and moves no money anywhere; a subsidy pays out of the treasury "
             + "against a daily funding bound. Absent means transfer -- the unconditional movement a "
             + "Policy was before the catalogue, and what every Policy written without this key is.",
+        ["[[policy]] utility"] =
+            "The delivered Utility a tariff bills. Only a tariff states this key. Each Utility has "
+            + "at most one tariff, paid per unit received by the drawing Household or Business.",
         ["[[policy]] trade"] =
             "Which [[business]] this Policy is aimed at, naming a declared trade. Absent means every "
             + "member of the swept population. It narrows a business sweep, so it is refused beside "
@@ -1142,6 +1146,12 @@ public static class RulesetKeyNotes
             + "overlaps at this depth, it is dropped. Omitted or 0 means an overlapping plot is "
             + "dropped. Otherwise it is more than twice setback_tiles and at most half the block. "
             + "It affects only Lots carved after it changes.",
+
+        ["[lots] block_pattern"] =
+            "How a block outside every density band is divided into Lots: \"detached\" leaves "
+            + "ground between the back fences, \"perimeter\" fills the block from all four Streets, "
+            + "and \"back_to_back\" fills it from two. Omitting it means \"detached\". It affects "
+            + "only blocks carved after it changes.",
 
         ["[lots] pattern_spread"] =
             "How many rungs either side of its band's own rung a block's pattern may be drawn, so a "

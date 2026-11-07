@@ -177,8 +177,12 @@ public readonly record struct WasteEvidence(
 /// <param name="Asked">What its consumers asked of it yesterday, uncapped.</param>
 /// <param name="Imported">Gross units imported for this District yesterday, including road loss.</param>
 /// <param name="ImportPaid">What the treasury paid for those imported units yesterday.</param>
+/// <param name="HasTariff">Whether this Utility has a tariff, including a zero price.</param>
+/// <param name="Paid">What this Building paid for this Utility yesterday.</param>
+/// <param name="Unpaid">What was waived for this Building and Utility yesterday.</param>
 public readonly record struct UtilityEvidence(
-    ResourceId Utility, Ratio Delivered, long Received, long Asked, long Imported, Money ImportPaid);
+    ResourceId Utility, Ratio Delivered, long Received, long Asked, long Imported, Money ImportPaid,
+    bool HasTariff = false, long Paid = 0, long Unpaid = 0);
 
 /// <summary>What is stopping a Building, or serving it short.</summary>
 /// <param name="Brownout">

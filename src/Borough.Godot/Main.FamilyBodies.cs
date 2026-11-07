@@ -31,7 +31,7 @@ public partial class Main
     [
         "wall-end", "wall", "trim", "roof-new", "roof", "membrane", "glass", "door", "frame", "metal",
         "plinth", "storefront", "sign", "awning", "solar", "spandrel", "reveal", "paving", "planter",
-        "tree",
+        "tree", "band", "accent", "canopy", "lobby", "sedum", "plant",
     ];
 
     private static readonly string[] RoofParts = ["roof-new", "roof", "membrane"];
@@ -79,8 +79,8 @@ public partial class Main
     /// <summary>Where a body probed for side neighbours, and the Buildings it found there; 0 is none.</summary>
     private readonly record struct BodyNeighbours(int Slot, Vector3 LeftProbe, Vector3 RightProbe, ulong LeftId, ulong RightId);
 
-    /// <summary>A generated body, and the linear mean colours its far box is painted with.</summary>
-    private sealed record BodyShape(ArrayMesh Mesh, Color Wall, Color Roof, FamilyBody Body);
+    /// <summary>A generated body, the linear mean colours its far box is painted with, and its street doors.</summary>
+    private sealed record BodyShape(ArrayMesh Mesh, Color Wall, Color Roof, FamilyBody Body, IReadOnlyList<FamilyDoor> Doors);
 
     private readonly record struct PlacedBody(
         ulong Id,
@@ -96,18 +96,19 @@ public partial class Main
     /// meshes.
     /// </summary>
     private readonly record struct BodyKey(
-        string Family, int Frontage, int Depth, int Storeys, AttachedSides Attached, int Paint, int House,
-        int PodiumStoreys, int ShaftFrontage, int ShaftDepth, bool Ring, FamilyBodyDetail Detail);
+        string Family, int Frontage, int Depth, int Storeys, AttachedSides Attached, int Paint, int House, int Pitch,
+        int PodiumStoreys, int ShaftFrontage, int ShaftDepth, bool Ring, TerracePlace Terrace, bool Corner, FamilyBodyDetail Detail);
 
     /// <summary>Everything a Building's body is placed from, read from the World.</summary>
     private readonly record struct BodyRequest(
         Massing One, AppearanceFamily Family, FamilyBody Body, float Frontage, float Depth, int Storeys,
-        AttachedSides Attached, int Paint, int House, float Turn, BodyNeighbours Neighbours, TowerSite? Site, Vector3 Origin, bool Ring)
+        AttachedSides Attached, int Paint, int House, int Pitch, float Turn, BodyNeighbours Neighbours, TowerSite? Site, Vector3 Origin, bool Ring,
+        TerracePlace Terrace, bool Corner)
     {
         public BodyKey Key(FamilyBodyDetail detail) => new(Family.Id, Mathf.RoundToInt(Frontage * 100f),
-            Mathf.RoundToInt(Depth * 100f), Storeys, Attached, Paint, House, Site?.PodiumStoreys ?? 0,
+            Mathf.RoundToInt(Depth * 100f), Storeys, Attached, Paint, House, Pitch, Site?.PodiumStoreys ?? 0,
             Mathf.RoundToInt((Site?.ShaftFrontage ?? 0f) * 100f),
-            Mathf.RoundToInt((Site?.ShaftDepth ?? 0f) * 100f), Ring, detail);
+            Mathf.RoundToInt((Site?.ShaftDepth ?? 0f) * 100f), Ring, Terrace, Corner, detail);
     }
 
     /// <summary><c>ui family-bodies on|off [NEAR]</c>; NEAR is the body band's reach in metres.</summary>
@@ -279,9 +280,21 @@ public partial class Main
 
         int storeys = site?.Storeys ?? Mathf.Max(1, Mathf.RoundToInt(size.Y / StoreyMetres));
         AttachedSides attached = Attached(slot, origin, turn, frontage, out BodyNeighbours neighbours);
-        int paint = FamilyPicker.Paint(family, _world.Key, one.Id);
-        int house = body.House is null ? 0 : FamilyPicker.House(_world.Key, one.Id);
-        return new BodyRequest(one, family, body, frontage, depth, storeys, attached, paint, house, turn, neighbours, site, origin, ring);
+        if (Preset() is not { } preset || !BuildingFacts.TryOf(_world, _names, slot, out BuildingFacts facts)) return null;
+        int paint = FamilyPicker.Paint(family, preset, _world.Key, facts);
+        (int house, int pitch) = body.House is null ? (0, 0) : FamilyPicker.House(preset, _world.Key, facts);
+        Terrace? run = FamilyPicker.FormRunOf(family, preset, _world.Key, facts);
+        TerracePlace terrace = run is { } span
+            ? new TerracePlace(FamilyPicker.TerracePitch(family, _world.Key, span), span.Index, span.Houses)
+            : default;
+        if (body.Shop is not null || Dressed(body))
+        {
+            house = FamilyPicker.House(_world.Key, facts.Id);
+            pitch = run is { } parade ? FamilyPicker.RunSeed(_world.Key, parade) : house;
+        }
+
+        return new BodyRequest(one, family, body, frontage, depth, storeys, attached, paint, house, pitch, turn, neighbours, site, origin, ring,
+            terrace, body.Shop is not null && facts.Corner);
     }
 
     private void PlaceBody(BodyRequest request)
@@ -310,7 +323,13 @@ public partial class Main
                 + $"\tattached {request.Attached}\tpaint {request.Paint}"
                 + $"\ttile {Mathf.RoundToInt(one.Body.Origin.X / MetresPerTile)} {Mathf.RoundToInt(-one.Body.Origin.Z / MetresPerTile)}"
                 + (request.Site is { } t ? $"\tpodium {t.PodiumStoreys}\tshaft {t.ShaftFrontage}x{t.ShaftDepth} m" : "")
+                + $"\tfront {Mathf.RoundToInt(Mathf.Sin(request.Turn))} {Mathf.RoundToInt(-Mathf.Cos(request.Turn))}"
                 + (request.Ring ? "\tring" : "")
+                + (request.Body.Terrace is { } form ? $"\tterrace {form.Form} {request.Terrace.PitchDegrees}° house {request.Terrace.Index + 1} of {request.Terrace.Houses}" : "")
+                + (request.Body.Shop is { } shop ? $"\tshop {FamilyBodyBuilder.Drawn(shop, request.Storeys)} {request.Terrace.PitchDegrees}° lot {request.Terrace.Index + 1} of {request.Terrace.Houses}{(request.Corner ? " corner" : "")}" : "")
+                + (request.Body.Workshop is { } works ? $"\tworkshop {works.Form} {request.Terrace.PitchDegrees}° lot {request.Terrace.Index + 1} of {request.Terrace.Houses}" : "")
+                + (request.Body.House is { Wide: true } home ? $"\thouse {home.Variant} {FamilyBodyBuilder.HousePitchDegrees(home.Variant, request.Pitch, request.Frontage, request.Depth, request.Storeys)}° draw {request.House}" : "")
+                + (request.Body.Apartment is { } block ? $"\tapartment {block.Form} {request.Terrace.PitchDegrees}° lot {request.Terrace.Index + 1} of {request.Terrace.Houses}" : "")
                 + (one.Abandoned ? "\tabandoned" : ""));
         }
     }
@@ -416,7 +435,6 @@ public partial class Main
         layer.Multimesh.NearOnly = !far;
         if (fades) _fadingBodyLayers.Add(layer);
         BodyResidency(layer);
-        layer.InstanceParameters["body_ink"] = Colors.White;
         layer.MaterialOverride = BodyWash(layer);
         if (abandoned && _washing == Wash.None) layer.MaterialOverlay = DerelictBody(layer);
         AddChild(layer);
@@ -481,6 +499,7 @@ public partial class Main
             // By the remembered id as well as by the slot's, so a body outlives neither.
             RemoveFamilyBody(id);
             PlaceFamilyBody(slot);
+            PlaceFrontYard(slot);
         }
     }
 
@@ -572,7 +591,7 @@ public partial class Main
                 if (!_familyBodyMeshes.ContainsKey(key) && seen.Add(key)) missing.Add(request);
             }
 
-            var surfaces = new List<BodySurface>[missing.Count];
+            var surfaces = new (List<BodySurface>, IReadOnlyList<FamilyDoor>)[missing.Count];
             System.Threading.Tasks.Parallel.For(0, missing.Count,
                 i => surfaces[i] = BodySurfaces(missing[i], detail));
             for (int i = 0; i < missing.Count; i++) BodyMesh(missing[i], detail, surfaces[i]);
@@ -583,7 +602,7 @@ public partial class Main
     private readonly record struct BodySurface(string Part, Godot.Collections.Array Arrays, int VertexCount);
 
     /// <summary>A body's surfaces with tangents and no colour. Touches no scene or rendering server, so any thread may call it.</summary>
-    private static List<BodySurface> BodySurfaces(BodyRequest request, FamilyBodyDetail detail)
+    private static (List<BodySurface> Surfaces, IReadOnlyList<FamilyDoor> Doors) BodySurfaces(BodyRequest request, FamilyBodyDetail detail)
     {
         var surfaces = new List<BodySurface>();
         FamilyBodyMesh built = request switch
@@ -593,8 +612,12 @@ public partial class Main
             { Body.Midrise: not null } => FamilyBodyBuilder.BuildMidrise(request.Body, request.Frontage, request.Depth,
                 request.Storeys, request.Ring, request.Attached, detail),
             { Body.House: not null } => FamilyBodyBuilder.BuildHouse(request.Body, request.Frontage, request.Depth,
-                request.Storeys, request.House),
-            _ => FamilyBodyBuilder.Build(request.Body, request.Frontage, request.Depth, request.Storeys, request.Attached),
+                request.Storeys, request.House, request.Pitch),
+            { Body.Shop: not null } => FamilyBodyBuilder.BuildShop(request.Body, request.Frontage, request.Depth, request.Storeys,
+                request.Attached, request.Corner, request.House, request.Pitch, request.Terrace),
+            { Body.Workshop: { Form: not WorkshopForm.PanelShed } } => FamilyBodyBuilder.BuildWorkshop(request.Body, request.Frontage,
+                request.Depth, request.Storeys, request.Attached, request.House, request.Pitch, request.Terrace),
+            _ => FamilyBodyBuilder.Build(request.Body, request.Frontage, request.Depth, request.Storeys, request.Attached, request.Terrace),
         };
         foreach ((string part, ShellMesh source) in built.Parts)
         {
@@ -617,7 +640,7 @@ public partial class Main
             arrays[(int)Mesh.ArrayType.Normal] = normals;
             arrays[(int)Mesh.ArrayType.TexUV] = uvs;
             arrays[(int)Mesh.ArrayType.TexUV2] = uv2s;
-            if (request.Body.House is not null)
+            if (request.Body.House is not null || request.Body.Shop is not null || Dressed(request.Body))
             {
                 var colors = new Color[source.VertexCount];
                 for (int i = 0; i < colors.Length; i++)
@@ -636,13 +659,17 @@ public partial class Main
             surfaces.Add(new BodySurface(part, tool.CommitToArrays(), source.VertexCount));
         }
 
-        return surfaces;
+        return (surfaces, request.Ring ? [] : built.Doors);
     }
 
-    private BodyShape BodyMesh(BodyRequest request, FamilyBodyDetail detail, List<BodySurface>? surfaces = null)
+
+    private BodyShape BodyMesh(BodyRequest request, FamilyBodyDetail detail,
+        (List<BodySurface> Surfaces, IReadOnlyList<FamilyDoor> Doors)? built = null)
     {
         BodyKey key = request.Key(detail);
         if (_familyBodyMeshes.TryGetValue(key, out BodyShape? cached)) return cached;
+
+        (List<BodySurface> surfaces, IReadOnlyList<FamilyDoor> doors) = built ?? BodySurfaces(request, detail);
 
         (AppearanceFamily family, FamilyBody body, int paint) = (request.Family, request.Body, request.Paint);
         Dictionary<string, Material> library = BodyLibrary(body.Library);
@@ -658,7 +685,7 @@ public partial class Main
             ? null
             : new FarWindowFactoryInput(family.Id, farFacade.Variant, farPaints!, farFacade.Cells);
         var reads = new Dictionary<string, Color>();
-        foreach ((string part, Godot.Collections.Array arrays, int vertexCount) in surfaces ?? BodySurfaces(request, detail))
+        foreach ((string part, Godot.Collections.Array arrays, int vertexCount) in surfaces)
         {
             if (part == "far-facade" && farInput is not null)
             {
@@ -681,7 +708,7 @@ public partial class Main
                 continue;
             }
 
-            if (body.House is not null)
+            if (body.House is not null || body.Shop is not null || Dressed(body))
             {
                 HouseSurface(mesh, part, arrays, library, family.Id, reads);
                 continue;
@@ -723,10 +750,13 @@ public partial class Main
         Color fallback = MeanColour(null);
         Color wall = WallParts.Where(reads.ContainsKey).Select(part => reads[part]).DefaultIfEmpty(fallback).First();
         Color roof = RoofParts.Where(reads.ContainsKey).Select(part => reads[part]).DefaultIfEmpty(fallback).First();
-        var shape = new BodyShape(mesh, wall, roof, body);
+        var shape = new BodyShape(mesh, wall, roof, body, doors);
         _familyBodyMeshes[key] = shape;
         return shape;
     }
+
+    /// <summary>Whether a body draws its own dressed surfaces, as a workshop form other than the panel shed does.</summary>
+    private static bool Dressed(FamilyBody body) => body.Workshop is { Form: not WorkshopForm.PanelShed };
 
     /// <summary>
     /// A house surface. Its part is <c>part@texture</c> for a library texture or a bare part for the
@@ -781,7 +811,7 @@ public partial class Main
     private Dictionary<string, Color> FarPaintColors(FamilyBody body,
         Dictionary<string, Material> library, IReadOnlyDictionary<string, Paint>? scheme)
     {
-        string[] parts = ["wall", "wall-end", "trim", "glass", "frame", "spandrel"];
+        string[] parts = ["wall", "wall-end", "trim", "glass", "frame", "spandrel", "panel", "attic"];
         var colors = new Dictionary<string, Color>();
         foreach (string part in parts)
         {

@@ -727,10 +727,9 @@ public partial class Main
         // is not unique down the column. See _footwayIds.
         ("footway", _footways, true, _footwayIds),
 
-        // ⚠ TWO KINDS OF ROW IN ONE LAYER, told apart by the `y` column and not by the name: a band
-        // sits at 0.15 m and a DROPPED kerb at 0.07 m. See Kerbs(). The id is the Segment's, as the
-        // footway's is, and for the same reason -- a drop's own id would be a Lot's.
+        // The id is the Segment's, as the footway's is.
         ("kerb", _kerbs, true, _kerbIds),
+        ("marking", _markings, true, _markingIds),
         ("cell", _cells, false, null),
         ("plot", _plots, true, _plotIds),
         ("carpark", _carParks, false, _carParkIds),
@@ -755,6 +754,7 @@ public partial class Main
         .. PrecinctLayers(),
         .. MarketHallLayers(),
         .. GardenLayers(),
+        .. FrontYardLayers(),
         ("zone", _zones, true, null),
         ("cursor", _cursor, true, null),
         ("building", _buildings, true, _buildingIds),
@@ -838,5 +838,5 @@ public partial class Main
     /// own remark says. ⚠ <b>A separator line rather than a blank one</b>, so a caller greps for
     /// <c>hover</c> and knows which panel a line came from.
     /// </remarks>
-    private string Captioned() => $"{_readout.Text}\nhover —\n{_hover.Text}\ndebug —\n{Pointing()}\ninspector —\n{_inspectionCaption}\n{InformationGeometry()}";
+    private string Captioned() => $"{_readout.Text}\nhover —\n{_hover.Text}\ndebug —\n{Pointing()}\ninspector —\n{_inspectionCaption}{NeedsCaption()}\n{InformationGeometry()}";
 }

@@ -188,7 +188,7 @@ public sealed class MidriseBodyTests
 
     [Theory]
     [InlineData("shape = \"midrise\"", "'variant' is required")]
-    [InlineData("shape = \"midrise\"\nvariant = \"point\"", "'variant' must be \"mansion\" or \"panel-slab\"")]
+    [InlineData("shape = \"midrise\"\nvariant = \"point\"", "'variant' must be \"mansion\", \"panel-slab\", \"brick-loggia\", \"timber-frame\", \"white-render\", \"gable-front\", \"ribbon\" or \"crosswall\"")]
     [InlineData("shape = \"midrise\"\nvariant = \"mansion\"\nbay_metres = 4", "'bay_metres' is only valid for a block body.")]
     [InlineData("shape = \"tower\"\nvariant = \"mansion\"", "'variant' must be \"point\", \"stepped-point\", \"l\" or \"h\"")]
     public void The_reader_refuses_a_malformed_midrise(string body, string message)

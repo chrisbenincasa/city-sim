@@ -1,0 +1,21 @@
+tick 604
+gridded.toml   Tick 604   Day 0   Monday   12:04
+Citizens 10,000   Buildings 840   vacant Lots 168   travelling 0
+speed paused   mode look   [ ] speed, space pause, w write log, g roads, c cells, tab tune, ctrl-z undo
+click acts   right-drag or two-finger scroll pans   edge of screen pans   pinch or -/= zooms   q/e turns   r/f tilts   l lens   o overlay
+hover —
+dwelling · 6 Households · 1 Business · Waiting for repairs
+debug —
+Tile (450, 351)    Cell (14, 10)
+dwelling — 6 of 7 occupied, 19 Tiles off
+    shop
+Lot 504, future uses 0x0001 across the whole site
+ground: rock
+pollution 0    land value 0    sealing 32
+inspector —
+closed
+ui theme=dark debug=False visible=False scroll=0
+inspector (3410, 104), (406, 177) min=(125, 177)
+body (3410, 104), (0, 0) min=(0, 0)
+scroll (3410, 104), (0, 0) min=(0, 0)
+hover (40, 2075), (962, 49) debug (24, 264), (840, 36) console (24, 1999), (994, 137)

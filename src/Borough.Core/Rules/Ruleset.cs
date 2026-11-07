@@ -1796,7 +1796,8 @@ public readonly record struct PolicyDefinition(
     int Amount,
     long Ceiling = 0,
     PolicyTool Tool = PolicyTool.Transfer,
-    byte Trade = TradeKind.Any);
+    byte Trade = TradeKind.Any,
+    ResourceId Utility = default);
 
 /// <summary>
 /// One <c>[[hinterland]]</c> table — <b>the economy behind one map edge</b> (<c>adr/0088</c>,
@@ -3222,6 +3223,9 @@ public readonly record struct LotRuleset(
 
     /// <summary>Days between the city's offers of the built Lots it holds. Null means the city never sells.</summary>
     public int? CitySaleIntervalDays { get; init; }
+
+    /// <summary>The pattern a block takes when no density band covers it — <c>block_pattern</c>.</summary>
+    public Space.BlockPattern UnbandedPattern { get; init; }
 
     /// <summary>Either authored key enables paid construction, including an explicit zero.</summary>
     public bool LandSales => ConstructionChargePerFloorTile.HasValue || BuyerReservePerMember.HasValue;
@@ -4960,6 +4964,20 @@ public sealed class Ruleset
     /// (<see cref="ImportPrice"/>), and the loader refuses one without the other.
     /// </remarks>
     public int[] ResourceImports { get; init; } = [];
+
+    /// <summary>The tariff Policy for a Utility, or -1 when it is unbilled.</summary>
+    public int TariffOf(ResourceId resource)
+    {
+        for (int i = 0; i < Policies.Length; i++)
+        {
+            if (Policies[i].Tool == PolicyTool.Tariff && Policies[i].Utility == resource)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
 
     public bool IsDeliveredUtility(ResourceId resource) => resource.Raw >= 1 && resource.Raw <= ResourceLinks.Length && ResourceLinks[resource.Raw - 1] > 0;
     public int StorageOf(ResourceId resource) => resource.Raw >= 1 && resource.Raw <= ResourceStorage.Length ? ResourceStorage[resource.Raw - 1] : 0;

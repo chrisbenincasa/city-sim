@@ -32,18 +32,16 @@
 # carrying each edge as well -- SyntheticCity.CarveEdgeBlock. Both changes are needed and neither is
 # this file's: they are the generator's, and this file is what makes them fire.
 #
-# 🔴 EVERY GATE IS ROUTABLE AND THE FAR TWO ARE STILL BEYOND THE COMMUTE BUDGET. MEASURED, at 1,000
-# Citizens, gate to nearest dwelling BY CAR, against a ceiling of 49 minutes:
+# 🔴 EVERY GATE IS ROUTABLE AND THE FAR ONE IS STILL BEYOND THE COMMUTE BUDGET. MEASURED on the
+# 256-Cell map, at 1,000 Citizens, gate to nearest dwelling BY CAR, against a ceiling of 35 minutes:
 #
-#     west        0 minutes     inside the city
-#     south       0 minutes     inside the city
-#     east       62 minutes     routable, over the ceiling
-#     north      73 minutes     routable, over the ceiling
+#     west       30.1 minutes   inside the ceiling
+#     south      30.2 minutes   inside the ceiling
+#     north      31.7 minutes   inside the ceiling
+#     east       41.3 minutes   routable, over the ceiling
 #
-# With `arterial_count = 0` the far two read 78 and 80. So sixteen Arterials buy 16 minutes on one
-# edge and 7 on the other, and NEITHER REACHES THE CEILING -- a pure-Arterial run of 64,896 m is 43
-# minutes and no route is pure. DO NOT READ `arterial_count` AS WHAT PUTS THE FAR EDGE IN REACH. It
-# does not, and no road speed this build has would.
+# The ceiling is 35 rather than minimal.toml's 50 because a city built outward from the middle of a
+# 32.8 km map reaches every edge inside 50 minutes, and the sieve would then refuse nothing.
 #
 # THAT DISTANCE IS adr/0089 WORKING RATHER THAN FAILING. The map is sized by how many Commute Budgets
 # fit across it, so a map several budgets wide puts its far edge outside one BY CONSTRUCTION. A far
@@ -59,13 +57,13 @@
 # keeps sixteen anyway, and plans/0002 §D1 states the rule it keeps them under: a demonstration is
 # allowed to build what a city's generator must not. This is the second such file, and it is one for
 # the same shape of reason -- it exists to show that the far edge is a different economy at a price,
-# and the price is denominated in road. ⚠ WHAT IT BUYS IS MEASURED ABOVE AND IT IS SMALLER THAN IT
-# LOOKS: 16 minutes on one edge and 7 on the other, neither of them decisive.
+# and the price is denominated in road. ⚠ On the 512-Cell map sixteen Arterials bought 16 minutes on
+# one edge and 7 on the other, neither of them decisive.
 #
 # ⚠ THERE IS NO `[traffic]` TABLE, SO ROADS NEVER SLOW DOWN HERE. That is deliberate: the four
 # figures above are FREE-FLOW, which is the denomination the Commute Budget is stated in (adr/0095),
 # and congestion would move them for a reason this file is not about. adr/0088's "the price of the far
-# edge is paid in your own traffic" is FREIGHT, and freight is milestone 12. ⚠ DO NOT READ 62 AND 73
+# edge is paid in your own traffic" is FREIGHT, and freight is milestone 12. ⚠ DO NOT READ THESE
 # MINUTES AS WHAT A DRIVE COSTS IN A BUSY CITY.
 #
 # WHY THE BODY CARRIES NO EXPLANATORY COMMENTS. Everything below the header is minimal.toml's, and its
@@ -251,8 +249,8 @@ shed_keeps = 24
 [trips]
 crossing_seconds = 30
 commute_fast_minutes = 20
-commute_moderate_minutes = 40
-commute_budget_minutes = 50
+commute_moderate_minutes = 30
+commute_budget_minutes = 35
 
 [jobs]
 interval      = 32

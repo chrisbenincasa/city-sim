@@ -270,6 +270,7 @@ public sealed partial class World
 
         // One row per delivered Utility per District, which is a subset of the line above's product.
         UtilityFlows = new Space.UtilityFlowTable(8, DistrictPools);
+        UtilityBills = new UtilityBillTable(Buildings);
 
         // Water is sized from the MAP and never from the population, which is the one capacity hint
         // in this constructor that has nothing to do with how many Citizens there are: a coastline is
@@ -520,6 +521,7 @@ public sealed partial class World
             // table's reason -- a Day's production is history, and nothing records which Ticks a
             // plant's Rule fired on, so a reload could not recompute what the network carried.
             UtilityFlows.Rows,
+            UtilityBills.Rows,
         ];
 
         // The same list minus the tables no Tick phase can write, for the Decide guard alone. See
@@ -921,6 +923,9 @@ public sealed partial class World
     /// </remarks>
     public BuildingResidency BuildingsInCells { get; } = new();
 
+    /// <summary>Which Lots stand near a box of Tiles, for the subdivider's free-ground test.</summary>
+    public LotResidency LotsInCells { get; } = new();
+
     /// <summary>Which Cells are in the Hazard Region, and how deep a flood stands on each.</summary>
     /// <remarks>
     /// <b><c>(derived AND rebuilt)</c> from <see cref="Flood"/>'s own saved coordinates</b>, on
@@ -972,6 +977,9 @@ public sealed partial class World
     /// the fraction it delivers today.
     /// </summary>
     public Space.UtilityFlowTable UtilityFlows { get; }
+
+    /// <summary>Per-Building daily Utility payment evidence.</summary>
+    public UtilityBillTable UtilityBills { get; }
 
     /// <summary>
     /// Where a purchase looks — a District's market row for a Good, and the sellers standing in it.
@@ -5217,6 +5225,7 @@ public sealed partial class World
         // clears its own arrays and CellNext rather than being cleared with the block at the top,
         // because its head and tail are not columns and the block above is a list of columns.
         BuildingsInCells.Rebuild(Buildings, Lots);
+        LotsInCells.Rebuild(Lots);
 
         // The Hazard Region's index, from the Flood rows' own saved coordinates. A load does not
         // re-run the generator (FloodCellTable's own remark on why it is Saved), so this is the one
@@ -5239,6 +5248,7 @@ public sealed partial class World
         // The Pool-to-network index, from the flow rows' own saved handles. The flow columns are all
         // saved, so there is nothing here a rebuild could recompute wrongly -- only the address.
         RebuildUtilityFlows();
+        UtilityBills.Rebuild(Buildings);
 
         // Not rebuilt here, invalidated. It reads Businesses, Buildings, Lots and the Cell index --
         // the last of which is the line above -- and the Rule Instance threading below has not run
@@ -6774,6 +6784,27 @@ public sealed partial class World
         // the same terms a Good does -- the Resource declares `link_per_crossing`, so it flows along
         // the District adjacency graph and every District is a node of it.
         FitUtilityFlows();
+        for (int row = 0; row < UtilityBills.Rows.SlotCount; row++)
+        {
+            if (!UtilityBills.Rows.IsLive(row)) { continue; }
+            bool keep = false;
+            for (int resource = 1; resource <= Rules.ResourceCount; resource++)
+            {
+                var utility = new ResourceId((ushort)resource);
+                if (Rules.IsDeliveredUtility(utility) && Rules.ResourceKey(utility) == UtilityBills.UtilityKey[row])
+                {
+                    keep = true;
+                    break;
+                }
+            }
+
+            if (!keep || !Buildings.Rows.TryResolve(UtilityBills.Building[row], out _))
+            {
+                UtilityBills.Rows.Free(UtilityBills.Rows.At(row));
+            }
+        }
+
+        UtilityBills.Rebuild(Buildings);
     }
 
     /// <summary>
@@ -9538,6 +9569,7 @@ public sealed partial class World
         }
 
         Changes?.Building(slot);
+        UtilityBills.Retire(Buildings, slot);
         Buildings.Rows.Free(building);
     }
 

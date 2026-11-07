@@ -1,0 +1,24 @@
+tick 601
+pictured.toml   Tick 601   Day 0   Monday   12:02
+Citizens 5,000   Buildings 1,860   vacant Lots 0   travelling 0   no flood
+Health: sick 60 · waiting 167 · appointments 0 · beds 0/0 · awaiting admission 0
+Deaths while awaiting admission 0 (last 28 Days) · missed work 0 Ticks · lost earnings 0
+speed paused   mode look   [ ] speed, space pause, w write log, g roads, c cells, tab tune, ctrl-z undo
+click acts   right-drag or two-finger scroll pans   edge of screen pans   pinch or -/= zooms   q/e turns   r/f tilts   l lens   o overlay
+hover —
+Open ground · floodplain — click to inspect
+debug —
+Tile (12,750, 4,971)    Cell (398, 155)
+dwelling — 1 of 1 occupied, 11 Tiles off
+Lot 971, future uses 0x0001 across the whole site
+ground: floodplain
+AT FLOOD RISK — 306 below the flood line
+pollution 5,869,796    land value -9,686,016    sealing 192
+District 2
+inspector —
+closed
+ui theme=dark debug=False visible=False scroll=0
+inspector (3410, 104), (406, 177) min=(125, 177)
+body (3410, 104), (0, 0) min=(0, 0)
+scroll (3410, 104), (0, 0) min=(0, 0)
+hover (40, 2084), (962, 40) debug (24, 264), (840, 36) console (24, 2008), (994, 128)

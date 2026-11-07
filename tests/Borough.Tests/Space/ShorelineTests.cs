@@ -52,7 +52,12 @@ public sealed class ShorelineTests
     }
 
     /// <summary>The first shore Cell of the largest body, and a Tile one Cell inland of it.</summary>
-    private static (int Body, Cells East, Cells North) Largest(World world)
+    /// <param name="world">The generated world.</param>
+    /// <param name="clearWest">
+    /// When positive, the Tile this far west of the shore Cell must have no other Cell of the body
+    /// within the shoreline window, so a probe there reads only distance from this shore.
+    /// </param>
+    private static (int Body, Cells East, Cells North) Largest(World world, int clearWest = 0)
     {
         int best = Rows.NoSlot;
         int most = 0;
@@ -81,7 +86,9 @@ public sealed class ShorelineTests
             Cells north = world.WaterCells.North[cell];
 
             // Inland to the west, and on the map, so the probe Tile below is real ground.
-            if (east.Raw > 1 && !world.WaterInCells.IsWet(new Cells(east.Raw - 1), north))
+            if (east.Raw > 1
+                && !world.WaterInCells.IsWet(new Cells(east.Raw - 1), north)
+                && (clearWest <= 0 || ClearOf(world, best, CellGrid.ToTiles(east).Raw - clearWest, north)))
             {
                 return (best, east, north);
             }
@@ -89,6 +96,56 @@ public sealed class ShorelineTests
 
         throw new InvalidOperationException("the largest body has no shore Cell with land to its west.");
     }
+
+    /// <summary>Whether every Cell of the body is beyond the shoreline range of a probe Tile.</summary>
+    /// <remarks>
+    /// Chebyshev distance to the Cell's box, which never exceeds the true distance, so a Cell this
+    /// passes is out of range by any metric the term could use.
+    /// </remarks>
+    private static bool ClearOf(World world, int body, int probeEast, Cells north)
+    {
+        if (probeEast < 0)
+        {
+            return false;
+        }
+
+        int range = DesirabilityWeights.Default.ShorelineSource.Range.Raw;
+        int window = IntegerMath.CeilDiv(range, CellGrid.TilesPerCell) + 1;
+        Cells probe = CellGrid.ToCells(new Tiles(probeEast));
+        int probeNorth = CellGrid.ToTiles(north).Raw + (CellGrid.TilesPerCell / 2);
+
+        for (int across = -window; across <= window; across++)
+        {
+            for (int up = -window; up <= window; up++)
+            {
+                var east = new Cells(probe.Raw + across);
+                var at = new Cells(north.Raw + up);
+                int slot = world.WaterInCells.Slot(east, at);
+
+                if (slot == WaterResidency.NotResident
+                    || !world.Water.Rows.TryResolve(world.WaterCells.Body[slot], out int owner)
+                    || owner != body)
+                {
+                    continue;
+                }
+
+                int west = CellGrid.ToTiles(east).Raw;
+                int south = CellGrid.ToTiles(at).Raw;
+                int dx = Gap(probeEast, west, west + CellGrid.TilesPerCell - 1);
+                int dy = Gap(probeNorth, south, south + CellGrid.TilesPerCell - 1);
+
+                if ((dx > dy ? dx : dy) <= range)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private static int Gap(int at, int low, int high) =>
+        at < low ? low - at : at > high ? at - high : 0;
 
     private static long Fill(World world, int body, long want)
     {
@@ -171,8 +228,10 @@ public sealed class ShorelineTests
     [Fact]
     public void It_falls_off_with_distance_and_stops_at_the_range()
     {
+        int range = DesirabilityWeights.Default.ShorelineSource.Range.Raw;
+        int beyond = range + CellGrid.TilesPerCell + 1;
         World world = Generated(Key);
-        (int body, Cells east, Cells north) = Largest(world);
+        (int body, Cells east, Cells north) = Largest(world, beyond);
 
         Fill(world, body, long.MaxValue);
 
@@ -182,9 +241,7 @@ public sealed class ShorelineTests
         Assert.True(near > far, $"near {near} was not above far {far}");
         Assert.True(far > 0, "32 Tiles is inside the 400 m range and read zero");
 
-        int range = DesirabilityWeights.Default.ShorelineSource.Range.Raw;
-
-        Assert.Equal(0, FoulingInland(world, east, north, range + CellGrid.TilesPerCell + 1));
+        Assert.Equal(0, FoulingInland(world, east, north, beyond));
     }
 
     /// <summary>

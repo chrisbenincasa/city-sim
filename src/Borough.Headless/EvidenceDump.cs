@@ -769,15 +769,17 @@ internal static class EvidenceDump
         }
 
         output.WriteLine();
-        output.WriteLine("  utility         delivered  served yesterday  asked yesterday");
-        output.WriteLine("  --------------  ---------  ----------------  ---------------");
+        output.WriteLine("  utility         delivered  served yesterday  asked yesterday  paid yesterday  unpaid yesterday");
+        output.WriteLine("  --------------  ---------  ----------------  ---------------  --------------  ----------------");
 
         foreach (UtilityEvidence drawn in evidence.Utilities.Span)
         {
             output.WriteLine(string.Create(
                 CultureInfo.InvariantCulture,
                 $"  {Name(names.Resource(drawn.Utility)),-14}  "
-                + $"{Percent(drawn.Delivered),8}%  {drawn.Received,16}  {drawn.Asked,15}"));
+                + $"{Percent(drawn.Delivered),8}%  {drawn.Received,16}  {drawn.Asked,15}  "
+                + $"{(drawn.HasTariff ? drawn.Paid.ToString(CultureInfo.InvariantCulture) : "unbilled"),14}  "
+                + $"{(drawn.HasTariff ? drawn.Unpaid.ToString(CultureInfo.InvariantCulture) : "unbilled"),16}"));
 
             if (drawn.Imported != 0 || drawn.ImportPaid.Raw != 0)
             {
@@ -789,9 +791,12 @@ internal static class EvidenceDump
         }
 
         output.WriteLine(
-            "⚠ `delivered` governs the WHOLE of the current Day and the other two columns are "
+            "⚠ `delivered` governs the WHOLE of the current Day and the served and asked columns are "
             + "YESTERDAY's. One settle a Day fixes the fraction every firing runs at, from what the "
             + "District's plants made, what its road length lost and what crossed its boundaries.");
+
+        output.WriteLine(
+            "Paid and unpaid are this Building's money totals yesterday; unbilled means no tariff.");
 
         output.WriteLine(
             "⚠ A Utility below 100% stops nothing. The Rules drawing it apply "

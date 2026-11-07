@@ -1,0 +1,18 @@
+# Rowhouse forms in terraces: rowhouses.toml, 1000 Citizens, --start-at 600, default test-street preset.
+601 pause
+601 ui family-bodies on
+601 focus 48 12 120
+601 tilt 22
+601 shoot plans/evidence/appearance-families/terraces-rowhouses-street.png
+601 speed 5
+602 pause
+602 focus 40 14 55
+602 tilt 18
+602 shoot plans/evidence/appearance-families/terraces-rowhouses-near.png
+602 speed 5
+603 pause
+603 focus 48 24 200
+603 tilt 50
+603 shoot plans/evidence/appearance-families/terraces-rowhouses-block.png
+603 speed 5
+605 quit

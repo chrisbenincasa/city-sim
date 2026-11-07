@@ -157,11 +157,16 @@ public sealed class BuildingTable
         CutOffSince = _rows.Saved<Ticks>("cut_off_since", Touch.Cold);
         AbandonedCause = _rows.Saved<byte>("abandoned_cause", Touch.Cold);
 
+        UtilityBillHead = _rows.Derived<int>("utility_bill_head", Touch.Cold);
+
         _rows.Seal();
     }
 
     /// <summary>The slot allocator, the generation counters and the column list.</summary>
     public Rows<Building> Rows => _rows;
+
+    /// <summary>Head of the flat Utility billing rows, encoded plus one.</summary>
+    public Column<int> UtilityBillHead { get; }
 
     /// <summary>The Lot this Building stands on.</summary>
     public HandleColumn<Lot> Lot { get; }

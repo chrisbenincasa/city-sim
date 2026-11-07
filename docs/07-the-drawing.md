@@ -108,6 +108,7 @@ Decided by the player on 2026-08-31, 09-01 and 10-17, and recorded rather than a
 | **Light follows the clock** | A lit city at night is wanted, and the windows are lit from **occupancy** |
 | **Not diagrammatic** | *This needs to look "city like", not just shallow, drab nothingness* — pillar 1.1 |
 | **Variation, never repetition** | *Uniformity would be the death of the game, visually* — §2.1 |
+| **Contemporary first, with some mid-century** | Decided 10/27/2026. Old forms are expected in a city but must not dominate the design language — §2.2 |
 
 ### 2.1 Variation is the look
 
@@ -129,9 +130,11 @@ section says variety is required.
 | Building | Proportions, materials and the set of details | Roof pitch, module width, roof tile, wall material, window spacing |
 | House within a Building | Paint, door side, bay windows, door canopy | Each house in a terrace painted on its own |
 
-- More detail is better by default. Lintels, glazing bars, string courses, door canopies, gutters,
-  downpipes, dormers and front boundaries all belong on a house. Cut a detail only when it costs
-  legibility at the default camera or measured frame time.
+- More detail is better by default, and the detail suits the form's period (§2.2). A traditional
+  house carries lintels, glazing bars, string courses and dormers. A contemporary one carries deep
+  reveals, cladding joints, recessed entrances and balcony rails. Gutters, downpipes and front
+  boundaries belong on every house. Cut a detail only when it costs legibility at the default camera
+  or measured frame time.
 - Variation stays inside a kind's identity. A house varies as a house, and a school still reads as
   a school.
 - Coherence comes from a shared material palette and module. Families in one district draw from the
@@ -146,6 +149,50 @@ section says variety is required.
 - Look for the repeat at the default camera. Two identical neighbours mean the ranges are too narrow.
 - Every visual choice goes to the player as rendered options first. An agent proposes forms, ranges,
   materials and details with samples, and does not choose among them alone.
+
+### 2.2 Contemporary first
+
+The game is set in one modern era (`00-vision.md`), and the player founds every city from empty
+Ground. Most of what the city draws therefore reads as built in the present. Mid-century forms add
+range, and traditional forms appear as character. Decided with the user on 10/27/2026, after the
+shipped families drifted toward traditional forms.
+
+**Periods**
+
+| Period | Built | Markers |
+|---|---|---|
+| Contemporary | 2000 on | Flat roofs and parapets, plain steep gables with no eaves or bargeboards, standing-seam metal, timber or fiber-cement cladding, full-height glazing, deep reveals, recessed balconies, set-back top storeys |
+| Mid-century | 1945–1980 | Low pitches, mono-pitch and butterfly roofs, thin fascias, horizontal window bands, tile hanging, panels, canopies, carports, staggered plans |
+| Traditional | before 1945 | Pitched roofs with eaves and bargeboards, sashes with glazing bars, bays, dormers, chimneys, mansards, ornament |
+
+**Principles**
+
+- Every form names its period. A family's options page labels each candidate's period and shows the
+  mix its band would draw.
+- Provisional target, as a share of the Buildings that draw a family body on a shipped Ruleset:
+  contemporary at least half, mid-century about a quarter, traditional at most a fifth.
+- Each size band offers contemporary forms first. A band needs at least one contemporary and one
+  mid-century form among its four or more (§2.1 and the variety bar).
+- Traditional forms carry low weights, so they read as exceptions on a street rather than its rule.
+- A period is a look and not a date. It is not tied to a Building's raised Day or the preset's era.
+- A form drawn from a historic type is fine where it is reinterpreted with the contemporary markers.
+  A gabled row with no eaves, flush windows and a metal roof is contemporary.
+
+**Where it stands**
+
+Shares of the Buildings that draw a family body, at 10,000 Citizens, 600 Ticks and seed 1, with a
+founding run replayed to Day 45 by `FoundingPeriodProbe`:
+
+| City | Contemporary | Mid-century | Traditional | Most traditional Buildings |
+|---|---|---|---|---|
+| Founding run | 65% | 32% | 3% | mansion blocks |
+| `gridded.toml` | 66% | 17% | 17% | wide houses, apartments |
+| `pictured.toml` | 52% | 29% | 19% | narrow houses |
+| `base/ruleset.toml` | 50% | 23% | 27% | mansion blocks |
+| `traded.toml` | 35% | 21% | 44% | rowhouses, narrow houses |
+| `platted.toml` | 28% | 23% | 49% | mansion blocks, apartments |
+
+Bringing the rest to this mix is the board row "Period mix in the shipped families".
 
 ---
 
@@ -167,6 +214,13 @@ C# massing as the authoring workflow. Existing zoning, parcel and simulation geo
    Street access and parking capacity must agree with what is drawn. Everything drawn is authored
    in Blender, including ground uses such as car parks, stalls and parking decks. The simulation
    supplies positions and counts, and Godot places the authored modules there.
+   A low-rise house may draw up to about 20% more or less floor than its Building holds, so a
+   house can vary its plan: an L-plan, a rear outshot, a side wing into its garden, or a row of
+   houses on a deep Lot that stops short of the back behind a double-pile front. A low-rise
+   apartment Building has the same allowance, so a mansard, a set-back top storey, a forecourt or
+   bay fronts may draw less floor than the Building holds. A shop house has it too, so a mansard
+   or set-back top storey over its flats may draw less floor. Street access and parking still
+   agree with the simulation.
 5. Use the rudimentary roster for gameplay debugging; iterate on detailed visual design in a
    separate session. A blockout is a foundation, not finished art.
 
@@ -188,6 +242,12 @@ Building's whole footprint. A hollow footprint is built as the simulation's ring
 reference site that uses it before the builder follows. Each family's swatches export separately, as
 `assets/midrise-families/mansion.glb` and `slab.glb`, because the shell matches a material to a
 part by its name prefix.
+
+The perimeter forms follow the same rule. `scripts/art/perimeter-forms.py` is the reference for the
+four contemporary forms (`brick-loggia`, `timber-frame`, `white-render`, `gable-front`) and the two
+mid-century forms (`ribbon`, `crosswall`). Its `export` job writes `art/perimeter-forms/bodies.json`
+and `assets/midrise-families/perimeter.glb`, and `PerimeterBodyTests` holds the builder to each
+reference site's corners per part, bounds and far cells.
 
 **Surface textures come from the library in `src/Borough.Godot/assets/city/library/`.** It sits
 inside the Godot project so the shell can load it. `textures.toml` lists each CC0 texture with its
@@ -258,6 +318,24 @@ That is affordable in the near band around the camera and not city-wide, so the 
   godot --headless --path src/Borough.Godot --script ../../tests/Borough.Tests/Appearance/BodyKitGuard.gd
   ```
 
+### 3.4 The city at distance
+
+- `DistanceLook()` in `Main.Sky.cs` ramps the light and grade on the orbit's eye distance.
+  Between 450 m and 2,000 m, sky ambient falls to 0.6×, the sun rises to 1.25×, contrast rises to
+  1.15 and saturation falls to 0.9. Between 250 m and 900 m, occlusion widens from 2.2 m to 12 m
+  and strengthens from 1.6 to 2.4.
+- `project.godot` fades occlusion out between 1,440 m and 2,400 m from the camera. Godot's default
+  of 50–300 m drew no occlusion at the opening camera.
+- At 12:30 the sun stands about 54° up, so cast shadows are short. Shadow range does not limit the
+  far view.
+- Pavement, kerb and paint draw only on served Segments. A Segment is served when a zoned or built
+  Lot fronts it. A foot path is served when both of its Nodes meet a served Segment, and an
+  unserved one draws in asphalt. A Street laid across empty country keeps its carriageway, so it
+  stays visible without a pale grid.
+- Zoning, unzoning, and a Building appearing or going repave when the served set changes.
+- Measured on the gridded save: built-area local contrast +23% at 2 km and +24% at 3 km; contrast
+  on the empty street ring −57% and −55%.
+
 ---
 
 ## 4. Reference games, and what each one is cited for
@@ -319,7 +397,7 @@ ends up with assets for a system nobody built.
 | **The overlays** | ✅ **DRAWN as of [`plans/0049`](../plans/0049-visuals.md) row 7** — pollution, land value and Sealing, on the `o` key and the `overlay` drive verb. §3.1's *takes over rather than tints* as written: the city goes to an unlit silhouette and the ground carries the ramp. ⚠ **What is still missing is the REGION half** — `01 §5` wants an overlay to follow the camera and tint **Settlements** when the Cells are too small to see, and it tints Cells at every zoom |
 | **Zone** | A Lot carries one and only vacant Lots show anything |
 | **Kind identity** | `serves` and `[[business]]` both exist; a school, a shop and a house are one box. ⚠ **A Building is no longer ALWAYS one box** — [`plans/0053`](../plans/0053-the-block.md) step 4 draws a footprint the daylight bound hollows as **four wings round a courtyard**, off `BuildingPlan.Hollow`, which is the same call the capacity subtracts. ***That is form derived from the ground and not identity***: the ring says the plot is big, never that the building is a school |
-| **The street** | ✅ **DRAWN, [`plans/0049`](../plans/0049-visuals.md) row 8, all four steps.** The three `RoadKind`s draw apart; a Segment carrying feet *and* cars draws a **footway** either side, off the mode mask rather than the kind, so an Arterial gets none and **Severance is on the ground**; the footway carries a **kerb** band, **dropped** wherever a Lot's Address meets it; and each strip stops at the **junction** on a mitre against whatever actually meets the Segment there, so it runs through where nothing crosses, turns the corner, and dead-ends flush against an Arterial. ⚠ **A dropped kerb is the first time an ADDRESS has been drawn at all** — `FrontageOffset` plus `Side`, which is `CONTEXT.md` → Address's own *a distance along a street plus an odd or even side*. ⚠ **A crossing is a whole Street kept for feet and not a stripe over a road**, so it has been drawn since step 1 and there was never anything to invent — row 8's **F62**, closing **F58** and **F51**. ⚠ **The head of a dead end is a CAP and not a mitre**, so it is a second shape — a bar across the end closing the kerb's U inside the pavement's, at the **12** Street stubs `severance.toml`'s Arterials cut off and the **0** on `pictured.toml` |
+| **The street** | ✅ **DRAWN, [`plans/0049`](../plans/0049-visuals.md) row 8, all four steps.** The three `RoadKind`s draw apart; a Segment carrying feet *and* cars draws a **footway** either side, off the mode mask rather than the kind, so an Arterial gets none and **Severance is on the ground**; the footway carries a **kerb** band, unbroken along the Segment; every carriageway carrying cars is painted with a yellow center line, dashed on a Street and double on an Arterial, white edge lines, and a white stop bar across each lane entering a junction; and each strip stops at the **junction** on a mitre against whatever actually meets the Segment there, so it runs through where nothing crosses, turns the corner, and dead-ends flush against an Arterial. Pavement, kerb and paint draw only on a Segment a zoned or built Lot fronts (§3.4). ⚠ **A crossing is a whole Street kept for feet and not a stripe over a road**, so it has been drawn since step 1 and there was never anything to invent — row 8's **F62**, closing **F58** and **F51**. ⚠ **The head of a dead end is a CAP and not a mitre**, so it is a second shape — a bar across the end closing the kerb's U inside the pavement's, at the **12** Street stubs `severance.toml`'s Arterials cut off and the **0** on `pictured.toml` |
 | **Travellers** | Mode is drawn: a walker is a figure with torso, head and legs, and a driver is a car (`Main.Assets.cs` `WalkerMesh`, `CarMesh`), on separate layers. Nothing yet draws the Fidelity tier |
 | **Car Park** | Capacity is a Building's floor over `[capacity] floor_tiles_per_parking_space` ([`plans/0053`](../plans/0053-the-block.md) step 3) and nothing is drawn. ⚠ **This row said *declared per kind* until then**, which was the retired `[[building]] parking` |
 | **District** | `DistrictTable` has rows and no boundary is drawn |

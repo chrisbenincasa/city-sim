@@ -13,6 +13,8 @@ public partial class Main
     private long _fullBuildingPasses, _buildingEdits, _movementQueries, _movementIndexVisits;
     private long _frameCount;
     private double _frameMilliseconds, _frameMaximum;
+    private long _regates;
+    private double _regateMilliseconds, _regateMaximum;
     private readonly bool _verifyRendering = System.Environment.GetEnvironmentVariable("BOROUGH_RENDER_VERIFY") is not null;
 
     private void UpdateBuildings()
@@ -31,6 +33,7 @@ public partial class Main
             else RefreshFamilyBodies(changes.Buildings);
             PlanGardens();
             _drawnBuildings = Massings(Buildings());
+            PlaceFrontYards();
             _vacantLots = Fill(_plots, Plots(), _plotIds);
             Fill(_zones, ZonedBlocks());
             FillCarParks();
@@ -50,6 +53,7 @@ public partial class Main
         {
             bool geometry = false;
             bool fronts = false;
+            bool turnover = false;
             var changedIds = new HashSet<ulong>();
             var placed = new List<int>();
             foreach (int slot in changes.Buildings)
@@ -58,13 +62,18 @@ public partial class Main
                 _bodyEdits.Clear(); _roofEdits.Clear(); _hipEdits.Clear(); _pairedRoofEdits.Clear(); _parapetEdits.Clear(); _yardEdits.Clear();
                 bool live = _world.Buildings.Rows.IsLive(slot);
                 ulong id = live ? _world.Buildings.Rows.IdAt(slot) : 0;
+                turnover |= _renderedBuildings.TryGetValue(slot, out var seen) ? seen.Id != id : live;
                 if (_renderedBuildings.Remove(slot, out var old))
                 {
                     if (old.Drawn) _drawnBuildings--;
 
                     // A bodied Building writes no massing box, so a gone one is news only here.
                     // A body under the same id is left standing for PlaceFamilyBody to compare with.
-                    if (old.Id != id) geometry |= ReplaceBuilding(old.Id) | RemoveFamilyBody(old.Id);
+                    if (old.Id != id)
+                    {
+                        geometry |= ReplaceBuilding(old.Id) | RemoveFamilyBody(old.Id);
+                        RemoveFrontYard(old.Id);
+                    }
                     changedIds.Add(old.Id);
                 }
                 if (!live) continue;
@@ -89,6 +98,7 @@ public partial class Main
                     roof?.Add(new(one.Roof, bodied ? FarPaint(one, shape!.Roof, RoofPaint(one)) : RoofPaint(one), RoofWall(one), bodied));
                 }
                 geometry |= ReplaceBuilding(id);
+                PlaceFrontYard(slot);
                 bool drawn = bodied || modules || _bodyEdits.Count != 0;
                 _renderedBuildings[slot] = (id, drawn);
                 if (drawn) _drawnBuildings++;
@@ -115,7 +125,9 @@ public partial class Main
             {
                 FillCarParks();
             }
+            if (turnover) RepaveIfServiceChanged();
         }
+        if (changes.Full) RepaveIfServiceChanged();
         changes.Clear();
         if (_verifyRendering) VerifyBuildingDrawing();
     }
@@ -175,6 +187,7 @@ public partial class Main
         text.Append($"render_probe\t{_renderProbe}\n");
         text.Append(CultureInfo.InvariantCulture, $"render_work\t{_fullBuildingPasses}\t{_buildingEdits}\t{_movementIndexVisits}\t{_movementQueries}\n");
         text.Append(CultureInfo.InvariantCulture, $"render_frames\t{_frameCount}\t{_frameMilliseconds:F3}\t{_frameMaximum:F3}\n");
+        text.Append(CultureInfo.InvariantCulture, $"render_regate\t{_regates}\t{_regateMilliseconds:F3}\t{_regateMaximum:F3}\n");
         Godot.Rid viewport = GetViewport().GetViewportRid();
         text.Append(CultureInfo.InvariantCulture, $"render_times\t{Godot.RenderingServer.ViewportGetMeasuredRenderTimeCpu(viewport):F3}\t{Godot.RenderingServer.ViewportGetMeasuredRenderTimeGpu(viewport):F3}\n");
         long Info(Godot.RenderingServer.ViewportRenderInfoType pass, Godot.RenderingServer.ViewportRenderInfo what) =>

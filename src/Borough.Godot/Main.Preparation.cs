@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using Borough.Core;
 using Borough.Core.Determinism;
 using Borough.Core.Input;
@@ -13,6 +14,7 @@ namespace Borough.Shell;
 public partial class Main
 {
     private CityPreparation? _preparation;
+    private Task? _loadCheck;
     private Action<Simulation>? _prepared;
     private CanvasLayer? _loadingHud;
     private Label? _loadingText;
@@ -30,7 +32,11 @@ public partial class Main
     private void PrepareSavedCity(string path, ulong? until, Action<Simulation, CityPreparation> completed)
     {
         var preparation = new CityPreparation(path, until, _routeWorkers);
-        ShowPreparation(until ?? 0, simulation => completed(simulation, preparation));
+        ShowPreparation(until ?? 0, simulation =>
+        {
+            _loadCheck = preparation.Checked;
+            completed(simulation, preparation);
+        });
         _preparation = preparation;
     }
 
@@ -64,6 +70,30 @@ public partial class Main
         cancel.AddThemeFontSizeOverride("font_size", 20);
         cancel.Pressed += CancelPreparation;
         column.AddChild(cancel);
+    }
+
+    /// <summary>
+    /// True once a loaded city's invariant check has passed. A failed check stops the shell.
+    /// </summary>
+    private bool LoadChecked(bool wait = false)
+    {
+        if (_loadCheck is null) return true;
+        if (!wait && !_loadCheck.IsCompleted) return false;
+        Task check = _loadCheck;
+        _loadCheck = null;
+        try
+        {
+            check.GetAwaiter().GetResult();
+
+            return true;
+        }
+        catch (Exception error)
+        {
+            GD.PrintErr(error.ToString());
+            Stop(1);
+
+            return false;
+        }
     }
 
     private void CancelPreparation()

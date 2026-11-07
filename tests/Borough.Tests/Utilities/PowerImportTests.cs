@@ -2,6 +2,7 @@ using Borough.Core;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Input;
+using Borough.Core.Instruments;
 using Borough.Core.Persistence;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
@@ -82,7 +83,6 @@ public sealed class PowerImportTests
         emigrant_balance_max = 0
         prices = [
             { resource = "lumens", price = 500 },
-            { resource = "widget", price = 500 },
             { resource = "power",  price = 5 },
         ]
         """;
@@ -145,11 +145,11 @@ public sealed class PowerImportTests
     /// <remarks>
     /// <b>On the south edge, which is the edge that prices Power</b>, so a gate here is skipped for
     /// want of a District and not for want of a price. The ridge occupies the first 256 Tiles and
-    /// its two Districts cover only the Cells it built, so 8,192 is an empty Cell with no road
+    /// its two Districts cover only the Cells it built, so 4,096 is an empty Cell with no road
     /// frontage — a Cell the next watershed would make a third District of, which is why the gate
     /// is raised after that has run and the premise is asserted rather than assumed.
     /// </remarks>
-    private const int Stranded = 8_192;
+    private const int Stranded = 4_096;
 
     private sealed class City
     {
@@ -651,9 +651,13 @@ public sealed class PowerImportTests
 
         Assert.Equal(0, Imported(world, city.Burning));
         Assert.Equal(0, Paid(world, city.Burning));
-        Assert.Equal(purse, Purse(world));
+        // The treasury still moves: it funds the plant, pays the works' contract and collects the
+        // tariff. None of that leaves the city, so the money supply holds.
+        TreasuryFlows flows = city.Simulation.DrainTreasuryFlows();
+
+        Assert.Equal(0, flows.UtilityImport);
+        Assert.Equal(purse + flows.Income - flows.Expenditure, Purse(world));
         Assert.Equal(issued, Issued(world));
-        Assert.Equal(0, city.Simulation.DrainTreasuryFlows().UtilityImport);
 
         // The brownout slice 1 demonstrates, unchanged by a pass that found no door to buy at.
         Assert.True(Delivered(world, city.Burning) > Ratio.Zero);

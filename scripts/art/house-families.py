@@ -133,9 +133,9 @@ def draw(seed, W, D, storeys, form=None):
         s['door'] = flat(r.choice(DOORS))
         s['dormers'] = r.choice(['none', 'some'])
     else:
-        s['pitch'] = r.uniform(25, 40) if s['form'] == 'terrace' else r.uniform(38, 52)
+        s['pitch'] = r.uniform(22, 40) if s['form'] == 'terrace' else r.uniform(30, 45)
         target = r.uniform(6.0, 8.5)
-        n = max(2, round(W / target))
+        n = 1 if W < 12 else max(2, round(W / target))
         pattern = r.choice(['same', 'pairs'])
         bay_odds = r.choice([0, .3, .7])
         s['mods'] = [{'w': W / n, 'wall': wall(), 'door': flat(r.choice(DOORS)),

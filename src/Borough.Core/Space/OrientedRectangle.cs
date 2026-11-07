@@ -72,7 +72,7 @@ public readonly record struct OrientedRectangle(
 
     private void Project(int east, int north, out long low, out long high)
     {
-        // WorldCells * TilesPerCell = 16384 = 2^14. Q16 corners are at most 2^30;
+        // WorldTiles is at most 2^14, so Q16 corners are at most 2^30;
         // axis components are at most 2^16. Each dot is at most 2^47 and each
         // extent contribution at most 2^47, so the unrounded projection sum fits below 2^49.
         long corner = (long)EastQ16 * east + (long)NorthQ16 * north;

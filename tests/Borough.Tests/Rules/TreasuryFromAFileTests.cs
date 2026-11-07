@@ -127,9 +127,10 @@ public sealed class TreasuryFromAFileTests
     /// because a player with no money has no fiscal decision to make. <c>granted.toml</c> overrides it
     /// because an opening grant is paid out of the treasury and an empty one refuses every grant.
     /// The base package overrides it because a founded city pays for its school from the opening
-    /// balance. <c>powered.toml</c> overrides it because the treasury is what pays for an imported
-    /// Utility and an empty one imports nothing. This fails when another Ruleset acquires the key,
-    /// which is the moment to ask whether the default still holds.
+    /// balance. <c>powered.toml</c> overrides it because the treasury pays for an imported Utility and
+    /// collects the Power tariff, and nothing else in that file issues money, so an empty treasury
+    /// imports nothing and leaves every balance in it empty for ever. This fails when another Ruleset
+    /// acquires the key, which is the moment to ask whether the default still holds.
     /// </remarks>
     [Fact]
     public void Only_the_funded_granted_and_powered_worlds_and_the_base_package_open_with_money()

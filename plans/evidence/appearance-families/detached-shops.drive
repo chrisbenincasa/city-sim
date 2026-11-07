@@ -1,0 +1,44 @@
+# founding.borough replayed to Day 45 and saved with headless --save-city, then loaded with
+# --load, --start-at 92800 (midday) and --appearance appearance/test-street. All 21 shopfronts draw a
+# detached store: glass bases at east 96-116, colonnades at north 24, folded plates and a
+# mono-pitch at north 32-40, commercial blocks at north 56-88 and canopies at east 64.
+92801 pause
+92801 ui family-bodies on 600
+92801 speed 5
+92802 pause
+92802 focus 72 48 300
+92802 tilt 50
+92802 speed 5
+92803 pause
+92803 focus 72 48 300
+92803 tilt 50
+92803 shoot plans/evidence/appearance-families/detached-shops-game.png
+92803 speed 5
+92804 pause
+92804 focus 104 12 110
+92804 tilt 30
+92804 speed 5
+92805 pause
+92805 focus 104 12 110
+92805 tilt 30
+92805 shoot plans/evidence/appearance-families/detached-shops-glass-colonnade.png
+92805 speed 5
+92806 pause
+92806 focus 46 38 110
+92806 tilt 30
+92806 speed 5
+92807 pause
+92807 focus 46 38 110
+92807 tilt 30
+92807 shoot plans/evidence/appearance-families/detached-shops-folded-mono.png
+92807 speed 5
+92808 pause
+92808 focus 64 70 120
+92808 tilt 30
+92808 speed 5
+92809 pause
+92809 focus 64 70 120
+92809 tilt 30
+92809 shoot plans/evidence/appearance-families/detached-shops-block-canopy.png
+92809 speed 5
+92810 quit

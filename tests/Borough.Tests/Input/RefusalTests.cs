@@ -243,8 +243,8 @@ public sealed class RefusalTests
                 {
                     // Off the generated city: one straight Street and one curve to meet.
                     (World world, Simulation simulation) = City(Schooled);
-                    world.LayStreet(9_000, 9_000, 9_100, 9_000, 0);
-                    world.LayStreet(9_000, 9_500, 9_100, 9_500, 10 * Fixed.One);
+                    world.LayStreet(5_000, 5_000, 5_100, 5_000, 0);
+                    world.LayStreet(5_000, 5_500, 5_100, 5_500, 10 * Fixed.One);
 
                     return (simulation, Case(refusal, simulation, world));
                 }
@@ -385,7 +385,7 @@ public sealed class RefusalTests
         Refusal.ZoneNoParcel => new Command(CommandKind.ZoneParcel, new Tiles(9000), new Tiles(9000), 1),
         Refusal.ZoneInvalidBounds => new Command(CommandKind.Zone, new Tiles(-1), Tiles.Zero, 1),
         Refusal.ZoneRecordLimit => new Command(CommandKind.Zone, new Tiles(16), new Tiles(2), 2),
-        Refusal.ZoneNoStreet => new Command(CommandKind.Zone, new Tiles(9_000), new Tiles(9_000), 1),
+        Refusal.ZoneNoStreet => new Command(CommandKind.Zone, new Tiles(5_000), new Tiles(5_000), 1),
         Refusal.None => new Command(CommandKind.Zone, new Tiles(16), new Tiles(16), 1),
 
         Refusal.VerbNotApplied => new Command(CommandKind.None, default, default),
@@ -440,16 +440,16 @@ public sealed class RefusalTests
         Refusal.DemolishUnknownTarget => new Command(CommandKind.Demolish, new Tiles(9_000), new Tiles(9_000), zone: 2),
 
         Refusal.StreetOffMap => Street(-5, 1_000, 1_000, 1_000),
-        Refusal.StreetNotAnArc => Street(9_000, 9_000, 9_000, 9_000),
-        Refusal.StreetTooTight => Street(9_000, 9_100, 9_020, 9_100, sagittaTiles: 4),
+        Refusal.StreetNotAnArc => Street(5_000, 5_000, 5_000, 5_000),
+        Refusal.StreetTooTight => Street(5_000, 5_100, 5_020, 5_100, sagittaTiles: 4),
 
         // Splits the straight Street five Tiles from its end.
-        Refusal.StreetTooShort => Street(9_005, 8_950, 9_005, 9_050),
+        Refusal.StreetTooShort => Street(5_005, 4_950, 5_005, 5_050),
 
-        Refusal.StreetTooShallow => Street(9_000, 8_990, 9_100, 9_008),
+        Refusal.StreetTooShallow => Street(5_000, 4_990, 5_100, 5_008),
 
         // Passes beside the curve's end Node, so the split there cannot keep the curve in place.
-        Refusal.StreetMovesRoad => Street(9_003, 9_400, 9_000, 9_600),
+        Refusal.StreetMovesRoad => Street(5_003, 5_400, 5_000, 5_600),
 
         Refusal.StreetTreasuryCannotPay => StreetVerbTests.Through(world).Street,
 

@@ -269,7 +269,7 @@ public sealed class UtilityRulesetLoadTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void A_delivered_pool_term_loads_without_a_money_resource(bool input)
+    public void An_unbilled_utility_needs_no_money_resource(bool input)
     {
         Ruleset ruleset = Accepted(DeliveredUtility + Districts + RuleWithTerm(input, "pool"));
         var rule = new RuleId(1);

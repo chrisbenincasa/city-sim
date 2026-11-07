@@ -202,5 +202,5 @@ outflow_per_exit_per_day = 100
 runoff_per_sealed_cell_per_day = 50
 
 [[lattice]]
-origin_east_tiles  = 8192
-origin_north_tiles = 8192
+origin_east_tiles  = 4096
+origin_north_tiles = 4096

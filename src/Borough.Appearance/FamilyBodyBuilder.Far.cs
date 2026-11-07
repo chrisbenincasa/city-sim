@@ -24,6 +24,7 @@ public static partial class FamilyBodyBuilder
             {
                 MidriseVariant.Mansion => MansionFarFacade(midrise),
                 MidriseVariant.PanelSlab => SlabFarFacade(midrise),
+                _ when IsPerimeter(midrise.Variant) => PerimeterFarFacade(midrise),
                 _ => throw new ArgumentOutOfRangeException(nameof(body)),
             };
         }
@@ -46,6 +47,30 @@ public static partial class FamilyBodyBuilder
                 look.AtticWindow.W, look.AtticWindow.H, look.AtticWindow.Sill),
             new(4, "mansion-end", "wall", look.Bay,
                 look.Window.W, look.Window.H, look.Window.Sill),
+        ]);
+    }
+
+    /// <summary>A perimeter form's cells. They take the mansion block's ids, and each window stands for the form's typical opening.</summary>
+    private static FamilyBodyFarFacade PerimeterFarFacade(MidriseBody body)
+    {
+        PerimeterLook look = PerimeterLookOf(body);
+        (string name, string wall, (float W, float H, float Sill) window, (float W, float H, float Sill) ground) = look.Form switch
+        {
+            MidriseVariant.WhiteRender => ("white-render", "wall", (1.5f, look.WindowHeight, look.Sill), (look.Bay - .7f, 2.4f, .6f)),
+            MidriseVariant.Ribbon => ("ribbon", "spandrel", (look.Bay - .1f, look.Ribbon.High - look.Ribbon.Low, look.Ribbon.Low), (look.Bay - .3f, 2.7f, .3f)),
+            MidriseVariant.Crosswall => ("crosswall", "panel", look.Window, (look.Bay - .7f, 2.4f, .6f)),
+            MidriseVariant.BrickLoggia => ("brick-loggia", "wall", look.Window, (look.Bay - .7f, 2.4f, .6f)),
+            MidriseVariant.TimberFrame => ("timber-frame", "wall", look.Window, (look.Bay - .7f, 2.4f, .6f)),
+            _ => ("gable-front", "wall", look.Window, (look.Bay - .7f, 2.4f, .6f)),
+        };
+        float attic = MathF.Min(2.6f, look.Bay - .5f);
+        return new FamilyBodyFarFacade(name,
+        [
+            new(0, $"{name}-party", "wall", look.Bay, 0f, 0f, 0f),
+            new(1, $"{name}-ground", "wall-end", look.Bay, ground.W, ground.H, ground.Sill),
+            new(2, $"{name}-typical", wall, look.Bay, window.W, window.H, window.Sill),
+            new(MansionAtticFarCell, $"{name}-attic", "attic", look.Bay, attic, 2.6f, .2f),
+            new(4, $"{name}-end", wall, look.Bay, window.W, window.H, window.Sill),
         ]);
     }
 

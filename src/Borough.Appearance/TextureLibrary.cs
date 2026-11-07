@@ -35,8 +35,8 @@ public sealed record TextureLibrary(
 
     /// <summary>
     /// The preset with each dressed part tiling at its texture's size, unless the body lists that part
-    /// in <c>tile_metres</c>. A house body also files every texture it can draw under the texture's
-    /// own name. A texture the library lacks refuses the preset.
+    /// in <c>tile_metres</c>. A house, shop or workshop body also files every texture it can draw under
+    /// the texture's own name. A texture the library lacks refuses the preset.
     /// </summary>
     public StylePresetResult Dress(StylePreset preset)
     {
@@ -44,7 +44,12 @@ public sealed record TextureLibrary(
         var errors = new List<AppearanceDiagnostic>();
         AppearanceFamily[] families = [.. preset.Families.Select(family =>
         {
-            if (family.Body is not { } body || (body.Materials.Count == 0 && body.House is null)) return family;
+            if (family.Body is not { } body) return family;
+            string[] drawn = body.House is not null ? FamilyBodyBuilder.HouseTextures
+                : body.Shop is not null ? FamilyBodyBuilder.ShopTextures
+                : body.Workshop is { Form: not WorkshopForm.PanelShed } ? FamilyBodyBuilder.WorkshopTextures
+                : [];
+            if (body.Materials.Count == 0 && drawn.Length == 0) return family;
             var tiles = new Dictionary<string, (float Along, float Up)>(body.TileMetres, StringComparer.Ordinal);
             foreach (string part in FamilyBodyBuilder.PartNames)
             {
@@ -60,12 +65,12 @@ public sealed record TextureLibrary(
                 }
             }
 
-            foreach (string texture in body.House is null ? [] : FamilyBodyBuilder.HouseTextures)
+            foreach (string texture in drawn)
             {
                 if (!TileMetres.TryGetValue(texture, out (float, float) size))
                 {
                     errors.Add(new AppearanceDiagnostic(family.File, family.Line,
-                        $"family '{family.Id}' is a house, which draws '{texture}', and the texture library does not hold it."));
+                        $"family '{family.Id}' draws '{texture}', and the texture library does not hold it."));
                 }
                 else
                 {

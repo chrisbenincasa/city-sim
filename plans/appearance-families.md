@@ -37,6 +37,235 @@ draw family geometry. A debug wash shows which family each Building would draw.
 - The wash is driven and photographed: `plans/evidence/appearance-families/family-wash.drive`
   and its two captures, taken on `zeus` on 2026-09-24.
 
+## Variety
+
+A family is done when a street of it looks varied, not when its bodies draw. Decided with the user
+on October 24, 2026, after narrow houses shipped in two forms and read as repeated.
+
+- A form is a roof shape plus a plan. Pitch, paint and materials vary within a form and do not count.
+- Each size band a family covers draws at least four forms.
+- Neighbors share a form only inside a run. Outside runs, a driven street of 14 Buildings in one
+  band shows no two neighbors with the same form and pitch within 5 degrees.
+- The coverage report counts fallback Buildings by kind and exact Lot shape, so a gap shows its size.
+- Pitch stops at 45 degrees, 48 for the half-hip, until a form needs a steeper roof.
+
+Narrow detached houses meet this bar with ten forms (`FamilyBodyBuilder.Detached.cs`,
+`scripts/art/house-forms.py`). The other shipped families have not been checked against it.
+
+Driven on `pictured.toml` at 5,000 Citizens, Tick 600, around Tile 12783 4975, every dwelling drew
+a house body and none fell back to a box. Side gable, front gable, hipped, half-hip, cross gable,
+saltbox, gambrel and the three plans all appear on the 8 m detached Lots, in mixed order along each
+street. The captures do not measure the 14-Building bar, because the draw list does not name a
+body's form. `forms-h2-*.png` from `forms-h2.drive`.
+
+Detached houses also stand in runs, decided with the user on October 24, 2026. A preset's `runs`
+weights what a run shares, and `run_houses` gives its length in Lots. Each face draws one length
+per era, and a run is that many parcels of the face, so a house's run depends only on its own
+facts. Three kinds of run mix:
+
+| Run | Shares | test-street weight |
+|---|---|---|
+| alone | nothing | 3 |
+| matched | family and roof pitch | 5 |
+| copies | family, proportions, materials and paint | 2 |
+
+On `pictured.toml` at 5,000 Citizens and Tick 600, 495 house bodies stand alone, 951 in matched runs
+and 358 in copies. 734 of 1,476 neighboring house pairs on one face share a family, where the
+family weights alone would give about one in eight. `runs-h3-*.png` from `runs-h3.drive` show the
+same blocks as `forms-h2`.
+
+Rowhouses meet the bar with six forms, chosen by the user on October 24, 2026 from Blender renders:
+side gable, parapet, mansard, front gable, paired gable and bay front. Each form is a family
+(`rowhouses`, `rowhouses-<form>`) whose body names it with `terrace` and draws its pitch from
+`pitch_degrees` (`FamilyBodyBuilder.Terrace.cs`, `scripts/art/rowhouse-forms.py`). Paired gable
+admits frontages up to 11 m, so the 12 m band draws five forms.
+
+Every form keeps Painted Bricks 088 walls and the shared paints. Pitched forms keep Clay Roof Tiles
+02. The mansard roofs in Roofing Tiles 003 slate. The parapet deck is a `membrane` part in Clean
+Asphalt, and its coping and cornice keep the trim paint. The user chose these on October 25, 2026
+from Blender renders over flat paint, bitumen, asphalt and cast-stone alternatives.
+
+Attached houses stand in terraces. The preset's `terrace_houses = [3, 6]` gives a terrace's length
+in Lots, drawn once per face and era. A terrace shares its family and pitch, each house draws its
+own paint, and odd houses lay their bays from the right. An even terrace takes its first-ranked
+family and an odd one passes over its two neighbors' picks, so neighboring terraces never share a
+form where their Lots admit the same families.
+
+| Ruleset, 600 Ticks | Forms by band | Neighbor pairs across terraces with one form and pitch within 5° |
+|---|---|---|
+| `rowhouses.toml`, 10,000 Citizens | 8 m: 6 | 0 of 134 |
+| `traded.toml`, 10,000 Citizens | 4 m: 6, 8 m: 6, 12 m: 5 | 0 of 68 |
+| `traded.toml`, 3,000 Citizens | 4 m: 6, 8 m: 6, 12 m: 5 | 1 of 17 |
+
+The headless `--appearance` report prints these counts. Its one match joins a 12 m house to an 8 m
+house, outside the bar's single band. The two Lots report different parcel frontages, so the face
+splits into terraces differently for each.
+
+Driven on `rowhouses.toml` at 1,000 Citizens, Tick 600, Tile row 18 from Tile 34 to 62 is a street
+of 14 houses: four mansards, three front gables at 39°, five paired gables at 28° and two
+mansards, with one empty Lot. `terraces-rowhouses-*.png` from `terraces-rowhouses.drive`.
+`traded.toml` raises no rowhouses at 1,000 Citizens. At 5,000 they stand singly or in short runs
+among other kinds, so it has no 14-house street to drive. `terraces-traded.png` from
+`terraces-traded.drive` shows lone houses closing on both sides.
+
+Apartments meet the bar with eight forms in each band, chosen by the user on October 25, 2026 from
+Blender renders: parapet, hipped, side gable, mansard, centre gable, bay front, forecourt and
+set-back top. Each form is a family (`<base>-<form>` for the six shipped apartment families) whose
+body names it with `apartment` (`FamilyBodyBuilder.Apartment.cs`, `scripts/art/apartment-forms.py`).
+The hipped, side gable and centre gable forms draw their pitch from `pitch_degrees` and roof in Clay
+Roof Tiles 02. The mansard roofs in Roofing Tiles 003. Walls and paints are unchanged. A hipped
+roof over a detached Building deeper than it is wide turns its ridge back from the street. Mansard,
+set-back top, centre gable, bay front and forecourt draw up to about 15% less floor than the
+Building holds, inside the low-rise allowance in `docs/07-the-drawing.md`.
+
+Apartments stand in runs. The preset's `apartment_lots = [1, 3]` gives a run's length in Lots,
+drawn once per face. A run ignores era, because era splits put matching forms side by side. The
+apartment families share one place in the ordinary draw, weighted by their total over the number
+of forms the Lot admits, so the eight forms take no more Lots than the shipped families did. Once a
+Lot draws an apartment, its run ranks only apartment forms and passes over its neighbors' forms.
+
+| Ruleset, 600 Ticks | Forms by band | Neighbor pairs across runs with one form and pitch within 5° |
+|---|---|---|
+| `apartments.toml`, 10,000 Citizens | 20–28 m: 8, 28–36 m: 8 | 0 of 170 |
+| `apartments.toml`, 3,000 Citizens | 20–28 m: 8, 28–36 m: 5 | 0 of 40 |
+| `platted.toml`, 10,000 Citizens | detached 16–64 m: 7 | 0 |
+
+`apartments.toml` is a fixture Ruleset of 24 by 16 m perimeter Lots at three storeys. At 1,000
+Citizens it raises too few walk-ups to show their band. On `gridded`, `coastal`, `granted`,
+`minimal` and `traded` at 10,000 Citizens, the 20–28 m band draws six to eight forms, and no
+neighbors across runs share a form.
+
+Driven on `apartments.toml` at 10,000 Citizens, Tick 600, Tile row 355 from Tile 228 to 310 is a
+street of 14 apartments: centre gable, hipped 28°, forecourt, bay front, mansard, three centre
+gables at 32°, two side gables at 30°, bay front, set-back top, bay front and hipped 31°.
+`forms-apartments-*.png` from `forms-apartments.drive` show the ten east of Tile 256 from the
+front. Runs stop at a cross street, so the Buildings either side of one can match. Row 221 has two
+such pairs at its five crossings.
+
+Shop houses meet the bar with nine forms, chosen by the user on October 26, 2026 from Blender
+renders: Victorian gable, gabled oriel, turret corner, pantile hipped, mansard, main street,
+interwar curve, sixties canopy and set-back modern. Each form is a family (`shop-house-<form>`)
+whose body names it with `shop` (`FamilyBodyBuilder.Shop.cs`, `scripts/art/shop-forms.py`). The
+four pitched forms draw their pitch from `pitch_degrees`. A mansard or set-back form of one storey
+draws as main street.
+
+- A parade is a run. The preset's `shop_lots = [2, 4]` gives its length in Lots. It shares form,
+  pitch, walls, trim and the flats' doors.
+- Each shop unit, about 6 m of frontage, draws its own shopfront style, paint, awning and hanging
+  sign. Timber, aluminium, glass, iron and deco fronts mix within one parade.
+- A free side on a block corner turns a shop window onto the side street and takes the form's
+  corner: a splay, a ground-storey splay with a column or corbel, a rounded corner, or a turret.
+- A pitched roof covers the front 10 m. A deeper Building has a flat rear range behind it.
+
+| Ruleset, 600 Ticks | Forms by band | Neighbor pairs across parades with one form and pitch within 5° |
+|---|---|---|
+| `traded.toml`, 10,000 Citizens | 4 m: 5, 8 m: 9, 12 m: 9, 16 m: 5, 20 m: 3 | 0 of 6 |
+
+On that run, 18 of 24 neighboring shop pairs stand in one parade. Box fallbacks among shopfront
+Buildings fell from 104 to 34. The rest are PadSite and SalesYard Lots and two 120 m HighStreetBlock
+Lots.
+
+Driven on `traded.toml` at 10,000 Citizens from Tick 600, the street-level captures around Tile
+11690 to 11740 show each shop in a Building drawing a different front:
+`shops-gabled-oriel.png`, `shops-mansard.png`, `shops-main-street.png` and `shops-row.png` from
+`shops.drive`. `shops-blender-forms.jpg` is the nine Blender renders.
+
+The shell has not drawn a corner shop yet. `BuildingFacts.Corner` is false for all 58 shop
+Buildings on that run, and 41 of them touch no neighbor, so parades stand as detached Buildings
+([#243](https://github.com/chrisbenincasa/city-sim/issues/243)). Corner cuts and turrets are checked
+only by `ShopBodyTests` and the Blender renders.
+
+Each form is written twice, in Python for Blender and in C#, and no test checks that the two agree.
+The C# is the reference and the script's docstring says so.
+
+Workshops have six forms. The user chose five dressed forms on October 26, 2026 from Blender renders
+of nine: builder's yard, monitor roof, interwar garage, parapet roller-door and steel portal shed.
+The panel-shed block body is the sixth. Each dressed form is a family (`workshop-<form>`) whose body
+names it with `shape = "workshop"` (`FamilyBodyBuilder.Workshop.cs`, `scripts/art/workshop-forms.py`).
+The panel shed's block body carries `workshop = "panel-shed"`, so it joins the same group in the
+draw. The builder's yard, monitor and portal shed draw their pitch from `pitch_degrees`, which a
+workshop may set as low as 5 degrees.
+
+- A run shares form, pitch, walls, roof and trim. The preset's `workshop_lots = [2, 4]` gives its
+  length in Lots.
+- Each Building draws its own door paint, sign paint and layout: which side the yard house stands,
+  how many roller or sectional doors, where the vehicle door and works chimney go.
+- The builder's yard leaves its cart shed open 2.4 m deep on the ground storey. That is about 5% of
+  a two-storey Building's floor, inside the drawing's 20%.
+
+No shipped Ruleset raises a workshop Lot. The family admits only shopfront and officeblock Lots of
+two storeys, 28 to 36 m frontage and 12 to 20 m depth, and a 600-Tick run of every Ruleset at
+10,000 Citizens drew none. The figures below come from a fixture copy of the test-street preset
+whose six workshop families also take dwelling Lots of two or three storeys, 12 to 36 m frontage
+and 8 to 24 m depth.
+
+| Run, 600 Ticks | Forms by band | Neighbor pairs across runs with one form and pitch within 5° |
+|---|---|---|
+| `traded.toml`, 10,000 Citizens, fixture preset | 12 m: 6, 16 m: 6, 20 m: 6 (all three storeys) | 0 of 9 |
+
+On that run, 7 of 16 neighboring workshop pairs stand in one run. Dwelling box fallbacks fell from
+266 to 125 and shopfront box fallbacks stayed at 31. On the shipped preset every existing pick is
+unchanged, because the new families come last in the file and the picker ranks families by their
+place in it.
+
+Driven on the fixture at 10,000 Citizens from Tick 600, `workshop-parapet-roller.png` and
+`workshop-interwar-garage.png` from `workshops.drive` show the two flat-roofed forms from the street.
+The monitor, portal shed and builder's yard have no street capture yet. Each attempt put the camera
+inside a neighboring Building or framed a different one. `workshop-blender-forms.jpg` is the five
+Blender renders.
+
+Workshop runs stand detached as shop parades do. Of 190 workshop bodies the shell drew on the
+fixture, 135 touch no neighbor ([#243](https://github.com/chrisbenincasa/city-sim/issues/243)).
+
+Wide houses meet the bar with fifteen forms. The user chose the contemporary and mid-century forms
+on October 27, 2026 from Blender renders, and capped span at two storeys. Each form is a family
+(`house-<form>`) whose house body names it with `variant`.
+
+| Period | Street forms, 8–28 m deep | Deep forms, 32–36 m deep | Weight |
+|---|---|---|---|
+| Contemporary | staggered gables, flat setback, sawtooth, pavilions | deep flat, deep gables, deep sawtooth | 5 |
+| Mid-century | span, butterfly, monopitch, low hip | deep span | 2 |
+| Traditional | terrace, front gables, villa (24 m and up, 12–28 m deep) | none | 2 |
+
+- `FamilyBodyBuilder.Wide.cs` is the reference; `scripts/art/wide-house-forms.py` drew the options.
+- Contemporary roofs are painted `standing-seam`, baked in Blender by `scripts/art/standing-seam.py`
+  because no CC0 library has one. Their panels are painted `standing-seam` or `concrete-tile-facade`,
+  and mid-century colored panels are painted `white-planks-clean`. The user chose these from
+  rendered options on October 28, 2026.
+- Every pitched roof carries ridge and hip caps, verges and eaves gutters. Metal roofs draw them in
+  the roof's paint. Tiled roofs cap in tile. Their trim is white, charcoal or bronze, drawn per
+  house with white at half the weight. The user chose the mix from rendered options on October 29,
+  2026.
+- Pitch ranges are fixed per form in the builder and stop at 45 degrees.
+- A deep form stands its street form on a double-pile front with flat-roofed outriggers behind, and
+  draws about 80% of the floor its Lot holds, inside the low-rise allowance.
+- The wide families share one place in the draw, as apartments do. The terrace, front-gables and
+  villa families join it with `wide = true`, which only those three variants accept.
+- A wide house ranks its form on its run of detached houses. Neighboring runs of one era pass over
+  each other's forms, and every house in a run takes the run's form. A house in an alone run still
+  draws its own pitch and paint.
+- Narrow detached houses admit 8–11 m frontage and never compete with the wide families, so their
+  picks are unchanged.
+
+| Ruleset, 10,000 Citizens, 600 Ticks | Forms by band | Neighbor pairs across runs with one form and pitch within 5° |
+|---|---|---|
+| `base/ruleset.toml` | 12–20 m: 10, 24–36 m: 11, 40–84 m: 11 | 0 of 117 |
+| `gridded.toml` | 12–20 m: 10, 24–36 m: 11, 40–84 m: 11, deep: 4 | 0 of 320 |
+| `platted.toml` | 12–20 m: 4, 24–36 m: 4, 40–84 m: 8 | 0 of 7 |
+
+The headless report keys a run by era as well as cell, so neighbors raised in different eras count
+as across runs. None of them clash either. Dwelling box fallbacks fell from 926 to 658 on the base
+game and from 204 to 9 on `gridded`. `traded.toml` raises no wide houses.
+
+Driven on `gridded.toml` at 10,000 Citizens, seed 1, from Tick 600, `wide-house-street.png` shows
+staggered gables, flat setback, pavilions and span rows at Tile row 284, and `wide-house-deep.png`
+shows deep flat, deep sawtooth and deep span rows at Tile row 389, from `wide-houses.drive`. Every
+roof seen from above shows its face; `WideHouseBodyTests` asserts the same from vertical rays.
+Both frames show standing-seam roofs and seam or concrete-tile panels on contemporary rows. Close
+shots at 45 m show ridge caps, verges and seams clearly. At 110 m the seams are one or two pixels
+apart and do not resolve.
+Wide houses stand detached by design, so #243 does not apply to them.
+
 ## What the demonstration showed
 
 - 33 of 50 dwellings fall back to `box`. The test street covers only a few size bands, so this
@@ -194,3 +423,5 @@ Limits of this slice:
 - A wash change still refills every Building's massing on the main thread, which hitches for about
   0.35 s at 1M Citizens. The Age wash does so on every update.
 - Author the rest of the families. The coverage report says which size bands and kinds need them.
+- Check the shipped families against the variety bar, starting with rowhouses and walkups. The
+  detached roof forms can also serve the wider house families.

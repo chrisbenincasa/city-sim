@@ -1,5 +1,5 @@
 {
-  "what_this_is": "The CC0 texture library for Building bodies.",
+  "what_this_is": "The texture library for Building bodies: CC0 photographs and textures baked for Borough.",
   "authority": "scripts/art/materials.py",
   "paint_mean_linear_luminance": 0.7,
   "textures": {
@@ -462,6 +462,44 @@
         }
       }
     },
+    "clean-asphalt": {
+      "asset": "Clean Asphalt",
+      "publisher": "Poly Haven",
+      "id": "clean_asphalt",
+      "license": "CC0-1.0",
+      "slots": [
+        "R03"
+      ],
+      "tile_metres": [
+        2.1,
+        2.1
+      ],
+      "measured": "Poly Haven states 2.1 x 2.1 m",
+      "paint": false,
+      "detile_cycles": 4.0,
+      "albedo_linear_mean_luminance": 0.0613,
+      "files": {
+        "albedo": {
+          "file": "src/Borough.Godot/assets/city/library/clean-asphalt-albedo.jpg",
+          "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/clean_asphalt/clean_asphalt_diff_1k.jpg",
+          "source_sha256": "ddf9224e9cfa3eb2998d9097e4cd34bd3630c85e0e6798e5a0a000415a684083",
+          "transform": "flattened below 4.0 cycles per tile",
+          "sha256": "34317e664b072cf6b99ce687aa38707afe80d5badaf7c226a6109064fd9f84db"
+        },
+        "normal": {
+          "file": "src/Borough.Godot/assets/city/library/clean-asphalt-normal.jpg",
+          "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/clean_asphalt/clean_asphalt_nor_gl_1k.jpg",
+          "source_sha256": "99cdf6b6f0b8a319d206e1d561bf2a5d9933d8d33e1d685f8e25388101d21310",
+          "sha256": "b509b5c97c96818bb29fd4b2532537140b176b1326914a556682614641ea4de4"
+        },
+        "roughness": {
+          "file": "src/Borough.Godot/assets/city/library/clean-asphalt-roughness.jpg",
+          "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/clean_asphalt/clean_asphalt_rough_1k.jpg",
+          "source_sha256": "2280be133c104eb04370b625ebcc7f6709d2173b43ae2cd15a0074c26f492bf9",
+          "sha256": "0a559e820131f3f2afec37596525c85f0a693b0e045000f2befef96be460c2e6"
+        }
+      }
+    },
     "concrete-034": {
       "asset": "Concrete 034",
       "publisher": "ambientCG",
@@ -535,6 +573,44 @@
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_panels/concrete_panels_rough_1k.jpg",
           "source_sha256": "256ddcddfdf011be8ba397a3ccc92fd98ba452f57fab44e5db6d1aefb5d9286f",
           "sha256": "d22179eadfa596ef989fa002b2a683474f0418df25f3609f6b4358d96ec95c5b"
+        }
+      }
+    },
+    "concrete-tile-facade": {
+      "asset": "Concrete Tile Facade",
+      "publisher": "Poly Haven",
+      "id": "concrete_tile_facade",
+      "license": "CC0-1.0",
+      "slots": [
+        "W04"
+      ],
+      "tile_metres": [
+        2.09,
+        2.09
+      ],
+      "measured": "Poly Haven states 2.09 x 2.09 m",
+      "paint": true,
+      "detile_cycles": 4.0,
+      "albedo_linear_mean_luminance": 0.6934,
+      "files": {
+        "albedo": {
+          "file": "src/Borough.Godot/assets/city/library/concrete-tile-facade-albedo.jpg",
+          "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_tile_facade/concrete_tile_facade_diff_1k.jpg",
+          "source_sha256": "5ee9dbcaf3351b3d8193a5bd9e024adb484a078a60acf90eb240f7aaae1b53cd",
+          "transform": "flattened below 4.0 cycles per tile, greyscale at linear mean luminance 0.7",
+          "sha256": "32530831fdb05afebbd9ac5d9fb7fbadc4816b3b5384e1e7e5c83c7b0fd3bd49"
+        },
+        "normal": {
+          "file": "src/Borough.Godot/assets/city/library/concrete-tile-facade-normal.jpg",
+          "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_tile_facade/concrete_tile_facade_nor_gl_1k.jpg",
+          "source_sha256": "a11ac18036dac0a5a548552a3d859ddec778d4f1eb82e051b5169379125fd987",
+          "sha256": "57fb0b6127d3f407a890e153be19994de4788a52f2eba934141e481297182a29"
+        },
+        "roughness": {
+          "file": "src/Borough.Godot/assets/city/library/concrete-tile-facade-roughness.jpg",
+          "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_tile_facade/concrete_tile_facade_rough_1k.jpg",
+          "source_sha256": "4b59a6267c5301b61ad9c4498a9a09eaced6d448f1e503164f8b9cbf2408a62e",
+          "sha256": "83876c5ee87e5bff716f53e708367b948b490d1bdf1c30d0a93198a2b76c1f69"
         }
       }
     },
@@ -1224,6 +1300,44 @@
         }
       }
     },
+    "roofing-tiles-003": {
+      "asset": "Roofing Tiles 003",
+      "publisher": "ambientCG",
+      "id": "RoofingTiles003",
+      "license": "CC0-1.0",
+      "slots": [
+        "R08"
+      ],
+      "tile_metres": [
+        2.4,
+        2.4
+      ],
+      "measured": "Assumed. 8 slates across at 300 mm",
+      "paint": false,
+      "detile_cycles": 4.0,
+      "albedo_linear_mean_luminance": 0.0392,
+      "files": {
+        "albedo": {
+          "file": "src/Borough.Godot/assets/city/library/roofing-tiles-003-albedo.jpg",
+          "from": "https://ambientcg.com/get?file=RoofingTiles003_1K-JPG.zip#RoofingTiles003_1K-JPG_Color.jpg",
+          "source_sha256": "b984977aa581fa1d8484279f23870b1508914cc954f541e347ae88d4a1af82bc",
+          "transform": "flattened below 4.0 cycles per tile",
+          "sha256": "87d3519478fe9537441070f50d8d5b43c5634fe3926bd9fd91fe2796857f6b86"
+        },
+        "normal": {
+          "file": "src/Borough.Godot/assets/city/library/roofing-tiles-003-normal.jpg",
+          "from": "https://ambientcg.com/get?file=RoofingTiles003_1K-JPG.zip#RoofingTiles003_1K-JPG_NormalGL.jpg",
+          "source_sha256": "7d5d5912fb04003ebc46d1d1d7f5c802f5774be0a155d40e3c60c2c21e6b2835",
+          "sha256": "73bd1fd22098a1b2d8744b0eae05da762721b3c9eec9edb7e384922e0decfe41"
+        },
+        "roughness": {
+          "file": "src/Borough.Godot/assets/city/library/roofing-tiles-003-roughness.jpg",
+          "from": "https://ambientcg.com/get?file=RoofingTiles003_1K-JPG.zip#RoofingTiles003_1K-JPG_Roughness.jpg",
+          "source_sha256": "6d4e66713ba800157b029139988068830a705f1686418332526c4c9bff448aaa",
+          "sha256": "51be295bbb9f7d07acf759b8dda68db35c97469ab0d74badec35e408e278bf89"
+        }
+      }
+    },
     "roofing-tiles-007": {
       "asset": "Roofing Tiles 007",
       "publisher": "ambientCG",
@@ -1415,6 +1529,45 @@
         }
       }
     },
+    "standing-seam": {
+      "asset": "Standing Seam",
+      "publisher": "Borough",
+      "id": "standing-seam",
+      "license": "Authored for Borough",
+      "slots": [
+        "R02",
+        "W11"
+      ],
+      "tile_metres": [
+        4.8768,
+        4.8768
+      ],
+      "measured": "scripts/art/standing-seam.py models twelve 406.4 mm pans to a tile",
+      "paint": true,
+      "detile_cycles": 4.0,
+      "albedo_linear_mean_luminance": 0.7,
+      "files": {
+        "albedo": {
+          "file": "src/Borough.Godot/assets/city/library/standing-seam-albedo.jpg",
+          "from": "art/materials/standing-seam-albedo.png",
+          "source_sha256": "556f6eb754b81809a30a38c28125a69331059a2a0500560dc852e967080b1eb5",
+          "transform": "flattened below 4.0 cycles per tile, greyscale at linear mean luminance 0.7",
+          "sha256": "2596715cd2d71d2d915553377fc53467557b40a514da808fc92719fb685d0521"
+        },
+        "normal": {
+          "file": "src/Borough.Godot/assets/city/library/standing-seam-normal.jpg",
+          "from": "art/materials/standing-seam-normal.png",
+          "source_sha256": "09ca8935d8fab94e564ef8847a961daf68b0887abc3546e24d7697d45e38aa8a",
+          "sha256": "e0b94085cbc6afa7a0c5ed1dbf0223bd7092c138a32dc8d4ae6848a742c4a89a"
+        },
+        "roughness": {
+          "file": "src/Borough.Godot/assets/city/library/standing-seam-roughness.jpg",
+          "from": "art/materials/standing-seam-roughness.png",
+          "source_sha256": "999db039e07196507e2d748c0305f3e5b2c5ecb764b4ace6fd4515e1918a2feb",
+          "sha256": "5815439c0a28b98f4ea5175f6c06f62921a61b597149c2cc10742414220a1a2a"
+        }
+      }
+    },
     "stone-wall": {
       "asset": "Stone Wall",
       "publisher": "Poly Haven",
@@ -1450,6 +1603,44 @@
           "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stone_wall/stone_wall_rough_1k.jpg",
           "source_sha256": "8c06e7c67d0d9701966732cc90c4e356b5bd5656aa35bf82650576e78322cbdd",
           "sha256": "857b5e73598886b027c711d84cdf227a64769374f46c57b72bcb012a6367a954"
+        }
+      }
+    },
+    "white-planks-clean": {
+      "asset": "White Planks Clean",
+      "publisher": "Poly Haven",
+      "id": "white_planks_clean",
+      "license": "CC0-1.0",
+      "slots": [
+        "W02"
+      ],
+      "tile_metres": [
+        1.8,
+        1.8
+      ],
+      "measured": "Poly Haven states 1.8 x 1.8 m",
+      "paint": true,
+      "detile_cycles": 4.0,
+      "albedo_linear_mean_luminance": 0.7,
+      "files": {
+        "albedo": {
+          "file": "src/Borough.Godot/assets/city/library/white-planks-clean-albedo.jpg",
+          "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/white_planks_clean/white_planks_clean_diff_1k.jpg",
+          "source_sha256": "1be65e3940b59a4e7eb902f47da5d00ddb2b427b5ef18e7959fd82f17a3afb2c",
+          "transform": "flattened below 4.0 cycles per tile, greyscale at linear mean luminance 0.7",
+          "sha256": "74ff1086264ab1da6ac5a938901a5aba0a209352c3e8efea0031bdf348bb5e8d"
+        },
+        "normal": {
+          "file": "src/Borough.Godot/assets/city/library/white-planks-clean-normal.jpg",
+          "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/white_planks_clean/white_planks_clean_nor_gl_1k.jpg",
+          "source_sha256": "8d9ceef61dbc4bd567ba1b10691c890caf74cddb9861b576f194533b7089ff7e",
+          "sha256": "50c76889999532c33470a70eab6bea8e3b58e8b0b6f72e582ae422e5e9ad51d9"
+        },
+        "roughness": {
+          "file": "src/Borough.Godot/assets/city/library/white-planks-clean-roughness.jpg",
+          "from": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/white_planks_clean/white_planks_clean_rough_1k.jpg",
+          "source_sha256": "a707c6ffc7cfa8f354e0e62e351009e1ced71a6150738d39eb20faa814ac39f1",
+          "sha256": "4df492763350927bd02b3e4da751304895bfff3fad6fd2078a82a9ce9fe48258"
         }
       }
     },

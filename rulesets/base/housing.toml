@@ -92,6 +92,7 @@ revisit_ticks = 2048
 
 [[zone_rule]]
 id            = "trade"
+label         = "Commerce"
 kind          = "shopfront"
 zone          = 1
 interval      = 32

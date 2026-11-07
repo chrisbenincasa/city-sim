@@ -1,0 +1,55 @@
+# Utilities slice 5 — a Power bill, a tariff raised, and a brownout that bills nothing.
+#
+#   godot --path src/Borough.Godot -- --load plans/evidence/utilities-slice-5/ridge.borough \
+#     --drive plans/evidence/utilities-slice-5/billing.drive
+#
+# The saved city opens on Day 2, fully delivered. Building 37 is the occupied dwelling in the east
+# District; its Households run its lighting Rule and pay the Power tariff (Policy 0, power_tariff,
+# 1 money per unit in powered.toml). Tiles are in ridge.geometry.txt.
+#
+# ⚠ ONE `shoot` PER TICK. The picture is taken on the next frame, so a second `shoot` on the same
+# Tick throws the first away.
+4097 pause
+4097 overlay utilities
+4097 ui building 37
+4097 ui section utilities on
+4097 tilt 45
+4097 focus 225 3 90
+4097 shoot plans/evidence/utilities-slice-5/01-day1-bill.png
+4097 speed 8
+
+# The player raises the tariff from 1 to 4 per unit. It bills from the next firing.
+4099 pause
+4099 ui govern 0 4
+4099 shoot plans/evidence/utilities-slice-5/02-tariff-raised.png
+4099 speed 8
+
+# The crossing Street goes. Day 2 was settled whole at Tick 4,096, so Day 2 runs lit and is billed
+# at 4; Day 3, settled at Tick 6,144, runs at nothing delivered.
+4101 pause
+4101 tilt 40
+4101 focus 128 2 560
+4101 hold street
+4101 click 191 0 shift
+4101 shoot plans/evidence/utilities-slice-5/03-street-removed.png
+4101 speed 8
+
+# Day 3. The panel reports Day 2's bill at the raised tariff.
+6150 pause
+6150 hold look
+6150 ui building 37
+6150 tilt 45
+6150 focus 225 3 90
+6150 shoot plans/evidence/utilities-slice-5/04-day2-bill-raised.png
+6150 speed 8
+6152 pause
+6152 ui budget on
+6152 shoot plans/evidence/utilities-slice-5/05-budget.png
+6152 speed 8
+
+# Day 4. Day 3 ran browned out, so it billed what the dwelling received.
+8200 pause
+8200 ui budget off
+8200 ui building 37
+8200 shoot plans/evidence/utilities-slice-5/06-day3-brownout-bill.png
+8200 quit

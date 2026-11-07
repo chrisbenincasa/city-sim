@@ -103,7 +103,7 @@ public sealed class FamilyBodyTests
             (-9f, AttachedSides.Right), (-3f, AttachedSides.Left | AttachedSides.Right),
             (3f, AttachedSides.Left | AttachedSides.Right), (9f, AttachedSides.Left),
         ];
-        Vector3[] all = [.. row.SelectMany(h => Positions(FamilyBodyBuilder.Build(body, 6f, 12f, 2, h.Sides)).Select(p => p + new Vector3(h.Offset, 0f, 0f)))];
+        Vector3[] all = [.. row.SelectMany(h => Positions(FamilyBodyBuilder.Build(body, 6f, 12f, 2, h.Sides, new TerracePlace(18, 0, 1))).Select(p => p + new Vector3(h.Offset, 0f, 0f)))];
 
         Assert.Equal(-12.2f, all.Min(p => p.X), 3);
         Assert.Equal(12.2f, all.Max(p => p.X), 3);

@@ -59,7 +59,19 @@ internal static class AppearanceDump
 
         var picks = new SortedDictionary<(string Kind, string Family), int>();
         var fallbacks = new SortedDictionary<string, (int Buildings, int Fallback, int Missing)>(StringComparer.Ordinal);
-        var unclaimed = new SortedDictionary<(BlockPattern Pattern, int Storeys), (int Buildings, int Frontage0, int Frontage1, int Depth0, int Depth1)>();
+        var unclaimed = new SortedDictionary<(string Kind, BlockPattern Pattern, int Storeys, int Frontage, int Depth), int>();
+        var shares = new SortedDictionary<RunShare, int>();
+        var street = new List<(ulong Face, StreetSide Side, int Offset, string Family)>();
+        var bands = new SortedDictionary<(int Frontage, string Family), int>();
+        var terraces = new List<(ulong Face, StreetSide Side, int Offset, string Family, ulong Cell, int Pitch)>();
+        var blocks = new SortedDictionary<(string Band, string Form), int>();
+        var runs = new List<(ulong Face, StreetSide Side, int Offset, string Form, ulong Cell, int Pitch, int Parcel)>();
+        var shopBlocks = new SortedDictionary<(string Band, string Form), int>();
+        var parades = new List<(ulong Face, StreetSide Side, int Offset, string Form, ulong Cell, int Pitch, int Parcel)>();
+        var workshopBlocks = new SortedDictionary<(string Band, string Form), int>();
+        var workshopRuns = new List<(ulong Face, StreetSide Side, int Offset, string Form, ulong Cell, int Pitch, int Parcel)>();
+        var wideBlocks = new SortedDictionary<(string Band, string Form), int>();
+        var wideRuns = new List<(ulong Face, StreetSide Side, int Offset, string Form, ulong Cell, int Pitch, int Parcel)>();
         for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
         {
             if (!BuildingFacts.TryOf(world, names, slot, out BuildingFacts facts)) continue;
@@ -70,12 +82,66 @@ internal static class AppearanceDump
             fallbacks[facts.Kind] = (buildings + 1,
                 fallback + (pick.Choice == FamilyChoice.Fallback ? 1 : 0),
                 missing + (pick.Choice == FamilyChoice.Missing ? 1 : 0));
+            if (pick.Choice == FamilyChoice.Eligible && pick.Family?.Body?.House is not null && facts.Face != 0)
+            {
+                RunShare share = FamilyPicker.RunOf(preset, key, facts).Share;
+                shares[share] = shares.GetValueOrDefault(share) + 1;
+                street.Add((facts.Face, facts.Side, facts.Offset, family));
+            }
+
+            if (pick.Choice == FamilyChoice.Eligible && pick.Family is { Body.Terrace: not null } terraced
+                && FamilyPicker.TerraceOf(preset, key, facts) is { } terrace)
+            {
+                bands[(facts.FrontageMetres, family)] = bands.GetValueOrDefault((facts.FrontageMetres, family)) + 1;
+                terraces.Add((facts.Face, facts.Side, facts.Offset, family, terrace.Cell, FamilyPicker.TerracePitch(terraced, key, terrace)));
+            }
+
+            if (pick.Choice == FamilyChoice.Eligible && pick.Family is { Body.Apartment: { } block } flats
+                && FamilyPicker.ApartmentRunOf(preset, key, facts) is { } run)
+            {
+                string band = string.Create(CultureInfo.InvariantCulture,
+                    $"{flats.FrontageMetres?.Low}-{flats.FrontageMetres?.High} m, {flats.Storeys?.Low}-{flats.Storeys?.High} storeys");
+                string form = block.Form.ToString();
+                blocks[(band, form)] = blocks.GetValueOrDefault((band, form)) + 1;
+                runs.Add((facts.Face, facts.Side, facts.Offset, form, run.Cell, FamilyPicker.TerracePitch(flats, key, run), facts.Offset / facts.ParcelFrontage));
+            }
+
+            if (pick.Choice == FamilyChoice.Eligible && pick.Family is { Body.Shop: { } shop } shops
+                && FamilyPicker.ShopRunOf(preset, key, facts) is { } parade)
+            {
+                string band = string.Create(CultureInfo.InvariantCulture, $"{facts.FrontageMetres} m, {facts.Storeys} storeys");
+                string form = FamilyBodyBuilder.Drawn(shop, facts.Storeys).ToString();
+                shopBlocks[(band, form)] = shopBlocks.GetValueOrDefault((band, form)) + 1;
+                parades.Add((facts.Face, facts.Side, facts.Offset, form, parade.Cell, FamilyPicker.TerracePitch(shops, key, parade), facts.Offset / facts.ParcelFrontage));
+            }
+
+            if (pick.Choice == FamilyChoice.Eligible && pick.Family is { Body.Workshop: { } works } workshops
+                && FamilyPicker.WorkshopRunOf(preset, key, facts) is { } yard)
+            {
+                string band = string.Create(CultureInfo.InvariantCulture, $"{facts.FrontageMetres} m, {facts.Storeys} storeys");
+                string form = works.Form.ToString();
+                workshopBlocks[(band, form)] = workshopBlocks.GetValueOrDefault((band, form)) + 1;
+                workshopRuns.Add((facts.Face, facts.Side, facts.Offset, form, yard.Cell, FamilyPicker.TerracePitch(workshops, key, yard), facts.Offset / facts.ParcelFrontage));
+            }
+
+            if (pick.Choice == FamilyChoice.Eligible && pick.Family is { Body.House: { Wide: true } home }
+                && FamilyPicker.WideHouseRunOf(preset, key, facts) is { } houses)
+            {
+                string band = facts.DepthMetres >= 32 ? "deep 32-36 m"
+                    : facts.FrontageMetres < 24 ? "12-20 m"
+                    : facts.FrontageMetres < 40 ? "24-36 m"
+                    : "40-84 m";
+                string form = home.Variant.ToString();
+                wideBlocks[(band, form)] = wideBlocks.GetValueOrDefault((band, form)) + 1;
+                int pitch = FamilyBodyBuilder.HousePitchDegrees(home.Variant, FamilyPicker.House(preset, key, facts).Pitch,
+                    facts.FrontageMetres, facts.DepthMetres, facts.Storeys);
+                ulong era = (ulong)(facts.RaisedDay / preset.EraDays);
+                wideRuns.Add((facts.Face, facts.Side, facts.Offset, form, (era << 40) | houses.Cell, pitch, facts.Offset / facts.ParcelFrontage));
+            }
+
             if (pick.Choice == FamilyChoice.Eligible) continue;
-            (BlockPattern, int) shape = (facts.Pattern, facts.Storeys);
-            unclaimed[shape] = unclaimed.TryGetValue(shape, out var seen)
-                ? (seen.Buildings + 1, Math.Min(seen.Frontage0, facts.FrontageMetres), Math.Max(seen.Frontage1, facts.FrontageMetres),
-                    Math.Min(seen.Depth0, facts.DepthMetres), Math.Max(seen.Depth1, facts.DepthMetres))
-                : (1, facts.FrontageMetres, facts.FrontageMetres, facts.DepthMetres, facts.DepthMetres);
+            var shape = (facts.Kind, facts.Pattern, facts.Storeys, facts.FrontageMetres, facts.DepthMetres);
+            unclaimed[shape] = unclaimed.GetValueOrDefault(shape) + 1;
         }
 
         output.WriteLine();
@@ -96,14 +162,105 @@ internal static class AppearanceDump
         }
 
         output.WriteLine();
-        output.WriteLine("## Fallback and missing use by block pattern and storeys");
-        output.WriteLine("  pattern               storeys  buildings  frontage m  depth m");
-        foreach (((BlockPattern pattern, int storeys), var shape) in unclaimed)
+        output.WriteLine("## Fallback and missing use by kind and lot shape");
+        output.WriteLine("  kind                  pattern               storeys  frontage m  depth m  buildings");
+        foreach (((string kind, BlockPattern pattern, int storeys, int frontage, int depth), int count) in unclaimed)
         {
             output.WriteLine(string.Create(CultureInfo.InvariantCulture,
-                $"  {pattern,-20}  {storeys,7}  {shape.Buildings,9}  {$"{shape.Frontage0}-{shape.Frontage1}",10}  {$"{shape.Depth0}-{shape.Depth1}",7}"));
+                $"  {kind,-20}  {pattern,-20}  {storeys,7}  {frontage,10}  {depth,7}  {count,9}"));
         }
 
+        output.WriteLine();
+        output.WriteLine("## House bodies by run");
+        output.WriteLine("  run        buildings");
+        foreach ((RunShare share, int count) in shares)
+        {
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  {share,-9}  {count,9}"));
+        }
+
+        street.Sort();
+        int pairs = 0, same = 0;
+        for (int i = 1; i < street.Count; i++)
+        {
+            if (street[i].Face != street[i - 1].Face || street[i].Side != street[i - 1].Side) continue;
+            pairs++;
+            if (street[i].Family == street[i - 1].Family) same++;
+        }
+
+        output.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"  {same} of {pairs} neighboring house pairs on one face share a family."));
+
+        output.WriteLine();
+        output.WriteLine("## Attached houses by frontage and form");
+        output.WriteLine("  frontage m  family                    buildings");
+        foreach (((int frontage, string family), int count) in bands)
+        {
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  {frontage,10}  {family,-24}  {count,9}"));
+        }
+
+        // A form is a family here, and the bar lets neighbors share one only inside a terrace.
+        terraces.Sort();
+        int neighbors = 0, inside = 0, alike = 0;
+        for (int i = 1; i < terraces.Count; i++)
+        {
+            var (a, b) = (terraces[i - 1], terraces[i]);
+            if (a.Face != b.Face || a.Side != b.Side) continue;
+            neighbors++;
+            if (a.Cell == b.Cell) inside++;
+            else if (a.Family == b.Family && Math.Abs(a.Pitch - b.Pitch) <= 5) alike++;
+        }
+
+        output.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"  {neighbors} neighboring attached pairs on one face: {inside} inside a terrace, {alike} across terraces with one form and a pitch within 5 degrees."));
+
+        // Corridor and two-unit apartments share forms, so a form here is the body's, not the family.
+        // Apartments with a house between them are not neighbors.
+        Forms(output, "Apartments", "apartment", "run", blocks, runs);
+        Forms(output, "Shops", "shop", "parade", shopBlocks, parades);
+        Forms(output, "Workshops", "workshop", "run", workshopBlocks, workshopRuns);
+
+        // A run of detached houses is cut per era, so neighbors raised in different eras rank their forms apart.
+        Forms(output, "Wide houses", "wide house", "run", wideBlocks, wideRuns);
+        int eras = 0;
+        for (int i = 1; i < wideRuns.Count; i++)
+        {
+            var (a, b) = (wideRuns[i - 1], wideRuns[i]);
+            if (a.Face != b.Face || a.Side != b.Side || b.Parcel - a.Parcel != 1 || a.Cell >> 40 == b.Cell >> 40) continue;
+            if (a.Form == b.Form && Math.Abs(a.Pitch - b.Pitch) <= 5) eras++;
+        }
+
+        output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  {eras} of those alike pairs stand in runs of different eras."));
         return 0;
+    }
+
+    private static void Forms(TextWriter output, string title, string noun, string run, SortedDictionary<(string Band, string Form), int> blocks,
+        List<(ulong Face, StreetSide Side, int Offset, string Form, ulong Cell, int Pitch, int Parcel)> runs)
+    {
+        output.WriteLine();
+        output.WriteLine($"## {title} by band and form");
+        output.WriteLine("  band                        form           buildings");
+        foreach (((string band, string form), int count) in blocks)
+        {
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  {band,-26}  {form,-13}  {count,9}"));
+        }
+
+        foreach (IGrouping<string, (string Band, string Form)> band in blocks.Keys.GroupBy(k => k.Band, StringComparer.Ordinal))
+        {
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  {band.Key}: {band.Count()} forms."));
+        }
+
+        runs.Sort();
+        int pairs = 0, inside = 0, alike = 0;
+        for (int i = 1; i < runs.Count; i++)
+        {
+            var (a, b) = (runs[i - 1], runs[i]);
+            if (a.Face != b.Face || a.Side != b.Side || b.Parcel - a.Parcel != 1) continue;
+            pairs++;
+            if (a.Cell == b.Cell) inside++;
+            else if (a.Form == b.Form && Math.Abs(a.Pitch - b.Pitch) <= 5) alike++;
+        }
+
+        output.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"  {pairs} neighboring {noun} pairs on one face: {inside} inside a {run}, {alike} across {run}s with one form and a pitch within 5 degrees."));
     }
 }

@@ -133,6 +133,12 @@ public partial class Main
 
             System.Numerics.Vector2 front = LotGeometry.Front(_world, lot);
             bool alongA = front.Y != 0;
+            FrontSetback setback = SetbackOf(slot);
+            east -= front.X * setback.Recess * .5f;
+            north -= front.Y * setback.Recess * .5f;
+            if (alongA) southNorth -= setback.Recess;
+            else eastWest -= setback.Recess;
+
             float along = alongA ? eastWest : southNorth;
             float deep = alongA ? southNorth : eastWest;
 
@@ -806,18 +812,36 @@ public partial class Main
         int painted = 0;
 
         ids?.Clear();
+        into.BuildFrom();
 
-        foreach ((ulong id, Transform3D where, Color what) in places)
+        if (places is List<(ulong Id, Transform3D Where, Color What)> list)
         {
-            into.Multimesh.Identity(painted, id);
-            ids?.Add(id);
-            into.Multimesh.SetInstanceTransform(painted, where);
-            into.Multimesh.SetInstanceColor(painted++, what);
+            foreach (ref readonly var place in System.Runtime.InteropServices.CollectionsMarshal.AsSpan(list))
+            {
+                if (!into.Reaches(place.Where)) continue;
+                Paint(into, ids, painted++, place.Id, place.Where, place.What);
+            }
+        }
+        else
+        {
+            foreach ((ulong id, Transform3D where, Color what) in places)
+            {
+                if (!into.Reaches(where)) continue;
+                Paint(into, ids, painted++, id, where, what);
+            }
         }
 
         into.Multimesh.VisibleInstanceCount = painted;
 
         return painted;
+    }
+
+    private static void Paint(InstanceLayer into, List<ulong>? ids, int index, ulong id, in Transform3D where, Color what)
+    {
+        into.Multimesh.Identity(index, id);
+        ids?.Add(id);
+        into.Multimesh.SetInstanceTransform(index, where);
+        into.Multimesh.SetInstanceColor(index, what);
     }
 
     /// <inheritdoc cref="Fill(InstanceLayer, System.Collections.Generic.IEnumerable{ValueTuple{Transform3D, Color}})"/>
@@ -830,9 +854,11 @@ public partial class Main
         int count = 0;
 
         ids?.Clear();
+        into.BuildFrom();
 
         foreach ((ulong id, Transform3D place) in places)
         {
+            if (!into.Reaches(place)) continue;
             into.Multimesh.Identity(count, id);
             ids?.Add(id);
             into.Multimesh.SetInstanceTransform(count++, place);

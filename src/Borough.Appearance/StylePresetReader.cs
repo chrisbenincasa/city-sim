@@ -88,7 +88,7 @@ public static class StylePresetReader
     private static readonly string[] LowRiseBodyKeys =
     [
         "bay_metres", .. Rows, "openings", "gable_degrees", "chimney", "steps", "pilasters", "party_line", "shopfront",
-        "panels", "rooflights", "receiving_canopy", "plant", "vents", "roof_hatch", "parapet_metres",
+        "panels", "rooflights", "receiving_canopy", "plant", "vents", "roof_hatch", "parapet_metres", "terrace", "apartment", "workshop", "pitch_degrees",
     ];
 
     internal static IReadOnlyList<string> BlockOnlyBodyKeys => LowRiseBodyKeys;
@@ -117,7 +117,7 @@ public static class StylePresetReader
         ArgumentNullException.ThrowIfNull(sources);
         var errors = new List<AppearanceDiagnostic>();
         var families = new List<AppearanceFamily>();
-        (string Name, int EraDays, BlockPattern[] Attached)? preset = null;
+        (string Name, int EraDays, BlockPattern[] Attached, HouseRuns? Runs, Bounds? Terraces, Bounds? ApartmentRuns, Bounds? ShopRuns, Bounds? WorkshopRuns)? preset = null;
         string? presetAt = null;
 
         foreach ((string file, string text) in sources)
@@ -220,7 +220,7 @@ public static class StylePresetReader
         CheckFamilies(families, errors);
         return errors.Count > 0 || preset is not { } found
             ? new StylePresetResult(null, errors)
-            : new StylePresetResult(new StylePreset(found.Name, found.EraDays, found.Attached, [.. families]), errors);
+            : new StylePresetResult(new StylePreset(found.Name, found.EraDays, found.Attached, [.. families], found.Runs, found.Terraces, found.ApartmentRuns, found.ShopRuns, found.WorkshopRuns), errors);
     }
 
     /// <summary>
@@ -301,14 +301,73 @@ public static class StylePresetReader
 
         public void Refuse(int line, string message) => errors.Add(new AppearanceDiagnostic(file, line, message));
 
-        public (string, int, BlockPattern[])? Preset()
+        public (string, int, BlockPattern[], HouseRuns?, Bounds?, Bounds?, Bounds?, Bounds?)? Preset()
         {
             int before = errors.Count;
-            Collect(["name", "era_days", "attached"]);
+            Collect(["name", "era_days", "attached", "runs", "run_houses", "terrace_houses", "apartment_lots", "shop_lots", "workshop_lots"]);
             string? name = Text("name", required: true);
             long? era = Integer("era_days", required: true, least: 1);
             BlockPattern[] attached = Names("attached", PatternNames) ?? [];
-            return errors.Count > before || name is null || era is null ? null : (name, (int)era, attached);
+            HouseRuns? runs = Runs();
+            Bounds? terraces = Range("terrace_houses");
+            if (terraces is { Low: < 1 }) Refuse(LineOf(_keys["terrace_houses"]), "'terrace_houses' must be [low, high], with low at least 1.");
+            if (terraces is not null && attached.Length == 0) Refuse(LineOf(_keys["terrace_houses"]), "'terrace_houses' needs 'attached' patterns to split into terraces.");
+            Bounds? apartments = Range("apartment_lots");
+            if (apartments is { Low: < 1 }) Refuse(LineOf(_keys["apartment_lots"]), "'apartment_lots' must be [low, high], with low at least 1.");
+            Bounds? shops = Range("shop_lots");
+            if (shops is { Low: < 1 }) Refuse(LineOf(_keys["shop_lots"]), "'shop_lots' must be [low, high], with low at least 1.");
+            Bounds? workshops = Range("workshop_lots");
+            if (workshops is { Low: < 1 }) Refuse(LineOf(_keys["workshop_lots"]), "'workshop_lots' must be [low, high], with low at least 1.");
+            return errors.Count > before || name is null || era is null ? null : (name, (int)era, attached, runs, terraces, apartments, shops, workshops);
+        }
+
+        private HouseRuns? Runs()
+        {
+            Bounds? houses = Range("run_houses");
+            switch (Value("runs", required: false))
+            {
+                case null:
+                    if (houses is not null) Refuse(LineOf(_keys["run_houses"]), "'run_houses' needs 'runs'.");
+                    return null;
+                case InlineTableSyntax table:
+                    var weights = new Dictionary<string, long>(StringComparer.Ordinal);
+                    foreach (KeyValueSyntax pair in table.Items.Select(i => i.KeyValue).OfType<KeyValueSyntax>())
+                    {
+                        string share = NameOf(pair.Key);
+                        if (share is not ("alone" or "matched" or "copies"))
+                        {
+                            Refuse(LineOf(pair), $"'runs.{share}' is not a run. Expected alone, matched or copies.");
+                        }
+                        else if (pair.Value is IntegerValueSyntax { Value: >= 0 } weight)
+                        {
+                            weights[share] = weight.Value;
+                        }
+                        else
+                        {
+                            Refuse(LineOf(pair), $"'runs.{share}' must be a whole number of at least 0.");
+                        }
+                    }
+
+                    long alone = weights.GetValueOrDefault("alone");
+                    long matched = weights.GetValueOrDefault("matched");
+                    long copies = weights.GetValueOrDefault("copies");
+                    if (alone + matched + copies <= 0)
+                    {
+                        Refuse(LineOf(_keys["runs"]), "'runs' must give at least one run a weight above 0.");
+                        return null;
+                    }
+
+                    if (houses is not { Low: >= 1 } span)
+                    {
+                        Refuse(LineOf(_keys["runs"]), "'runs' needs 'run_houses' = [low, high], with low at least 1.");
+                        return null;
+                    }
+
+                    return new HouseRuns((int)alone, (int)matched, (int)copies, span);
+                default:
+                    Refuse(LineOf(_keys["runs"]), "'runs' must be an inline table of alone, matched and copies weights.");
+                    return null;
+            }
         }
 
         public AppearanceFamily? Family()
@@ -356,7 +415,7 @@ public static class StylePresetReader
         public FamilyBody? Body()
         {
             int before = errors.Count;
-            Collect(["library", "shape", "variant", "tile_metres", "materials", "bay_metres", "parapet_metres", "pilasters", "plant", "roof_hatch", "vents", "openings", "gable_degrees", "chimney", "steps", "party_line", "shopfront", "panels", "rooflights", "receiving_canopy", .. MidriseBodyKeys, .. Rows]);
+            Collect(["library", "shape", "variant", "tile_metres", "materials", "bay_metres", "parapet_metres", "pilasters", "plant", "roof_hatch", "vents", "openings", "gable_degrees", "chimney", "steps", "party_line", "shopfront", "panels", "rooflights", "receiving_canopy", "terrace", "apartment", "workshop", "pitch_degrees", "wide", .. MidriseBodyKeys, .. Rows]);
             string? library = Text("library", required: true);
             Dictionary<string, (float, float)> tiles = Tiles("tile_metres");
             Dictionary<string, string> materials = Materials("materials");
@@ -366,14 +425,18 @@ public static class StylePresetReader
             bool midriseShape = shape == "midrise";
             bool blockShape = shape == "block";
             bool houseShape = shape == "house";
-            if (!towerShape && !midriseShape && !blockShape && !houseShape && authoredShape is not null)
+            bool shopShape = shape == "shop";
+            bool workshopShape = shape == "workshop";
+            if (!towerShape && !midriseShape && !blockShape && !houseShape && !shopShape && !workshopShape && authoredShape is not null)
             {
-                Refuse(LineOf(_keys["shape"]), "'shape' must be \"block\", \"house\", \"midrise\" or \"tower\".");
+                Refuse(LineOf(_keys["shape"]), "'shape' must be \"block\", \"house\", \"shop\", \"workshop\", \"midrise\" or \"tower\".");
             }
 
             TowerBody? tower = null;
             MidriseBody? midrise = null;
             HouseBody? house = null;
+            ShopBody? shop = null;
+            WorkshopBody? workshop = null;
             if (towerShape)
             {
                 string? variant = Text("variant", required: true);
@@ -401,11 +464,17 @@ public static class StylePresetReader
                 {
                     "mansion" => MidriseVariant.Mansion,
                     "panel-slab" => MidriseVariant.PanelSlab,
+                    "brick-loggia" => MidriseVariant.BrickLoggia,
+                    "timber-frame" => MidriseVariant.TimberFrame,
+                    "white-render" => MidriseVariant.WhiteRender,
+                    "gable-front" => MidriseVariant.GableFront,
+                    "ribbon" => MidriseVariant.Ribbon,
+                    "crosswall" => MidriseVariant.Crosswall,
                     _ => null,
                 };
                 if (variant is not null && parsed is null)
                 {
-                    Refuse(LineOf(_keys["variant"]), "'variant' must be \"mansion\" or \"panel-slab\".");
+                    Refuse(LineOf(_keys["variant"]), "'variant' must be \"mansion\", \"panel-slab\", \"brick-loggia\", \"timber-frame\", \"white-render\", \"gable-front\", \"ribbon\" or \"crosswall\".");
                 }
                 else if (parsed is { } found)
                 {
@@ -420,20 +489,62 @@ public static class StylePresetReader
                     "terrace" => HouseVariant.Terrace,
                     "front-gables" => HouseVariant.FrontGables,
                     "villa" => HouseVariant.Villa,
+                    "hipped" => HouseVariant.Hipped,
+                    "half-hip" => HouseVariant.HalfHip,
+                    "cross-gable" => HouseVariant.CrossGable,
+                    "saltbox" => HouseVariant.Saltbox,
+                    "gambrel" => HouseVariant.Gambrel,
+                    "l-plan" => HouseVariant.LPlan,
+                    "rear-outshot" => HouseVariant.RearOutshot,
+                    "side-wing" => HouseVariant.SideWing,
+                    "staggered-gables" => HouseVariant.StaggeredGables,
+                    "flat-setback" => HouseVariant.FlatSetback,
+                    "sawtooth" => HouseVariant.Sawtooth,
+                    "pavilions" => HouseVariant.Pavilions,
+                    "span" => HouseVariant.Span,
+                    "butterfly" => HouseVariant.Butterfly,
+                    "monopitch" => HouseVariant.Monopitch,
+                    "low-hip" => HouseVariant.LowHip,
+                    "deep-flat" => HouseVariant.DeepFlat,
+                    "deep-gables" => HouseVariant.DeepGables,
+                    "deep-sawtooth" => HouseVariant.DeepSawtooth,
+                    "deep-span" => HouseVariant.DeepSpan,
                     _ => null,
                 };
+                bool? wide = Boolean("wide");
                 if (variant is not null && parsed is null)
                 {
-                    Refuse(LineOf(_keys["variant"]), "'variant' must be \"terrace\", \"front-gables\" or \"villa\".");
+                    Refuse(LineOf(_keys["variant"]), "'variant' must be \"terrace\", \"front-gables\", \"villa\", \"hipped\", \"half-hip\", \"cross-gable\", \"saltbox\", \"gambrel\", \"l-plan\", \"rear-outshot\", \"side-wing\", \"staggered-gables\", \"flat-setback\", \"sawtooth\", \"pavilions\", \"span\", \"butterfly\", \"monopitch\", \"low-hip\", \"deep-flat\", \"deep-gables\", \"deep-sawtooth\" or \"deep-span\".");
                 }
                 else if (parsed is { } found)
                 {
-                    house = new HouseBody(found);
+                    bool old = found is HouseVariant.Terrace or HouseVariant.FrontGables or HouseVariant.Villa;
+                    if (wide is not null && !old)
+                    {
+                        Refuse(LineOf(_keys["wide"]), FamilyBodyBuilder.IsWideForm(found)
+                            ? "a wide house form is always wide: drop 'wide'."
+                            : "'wide' is only valid on a \"terrace\", \"front-gables\" or \"villa\" house.");
+                    }
+
+                    house = new HouseBody(found, FamilyBodyBuilder.IsWideForm(found) || (old && wide == true));
                 }
+            }
+            else if (shopShape)
+            {
+                shop = Shop();
+            }
+            else if (workshopShape)
+            {
+                workshop = Workshop();
             }
             else if (_keys.TryGetValue("variant", out KeyValueSyntax? strayVariant))
             {
-                Refuse(LineOf(strayVariant), "'variant' is only valid when 'shape' is \"tower\", \"midrise\" or \"house\".");
+                Refuse(LineOf(strayVariant), "'variant' is only valid when 'shape' is \"tower\", \"midrise\", \"house\", \"shop\" or \"workshop\".");
+            }
+
+            if (!houseShape && _keys.TryGetValue("wide", out KeyValueSyntax? strayWide))
+            {
+                Refuse(LineOf(strayWide), "'wide' is only valid for a house body.");
             }
 
             if (!midriseShape)
@@ -447,10 +558,11 @@ public static class StylePresetReader
                 }
             }
 
-            if (towerShape || midriseShape || houseShape)
+            if (towerShape || midriseShape || houseShape || shopShape || workshopShape)
             {
                 foreach (string key in LowRiseBodyKeys)
                 {
+                    if ((shopShape || workshopShape) && key == "pitch_degrees") continue;
                     if (_keys.TryGetValue(key, out KeyValueSyntax? refused))
                     {
                         Refuse(LineOf(refused), $"'{key}' is only valid for a block body.");
@@ -474,6 +586,8 @@ public static class StylePresetReader
             bool rooflights = false;
             bool receiving = false;
             BayRow[] rows = [BayRow.Blank, BayRow.Blank, BayRow.Blank, BayRow.Blank, BayRow.Blank, BayRow.Blank];
+            TerraceBody? terrace = null;
+            ApartmentBody? apartment = null;
             if (blockShape)
             {
                 bay = Metres("bay_metres", required: true, least: 1f) ?? 0f;
@@ -492,15 +606,223 @@ public static class StylePresetReader
                 rooflights = Boolean("rooflights") ?? false;
                 receiving = Boolean("receiving_canopy") ?? false;
                 if (gable > 0f && parapet > 0f) Refuse(LineOf(_keys["gable_degrees"]), "a gable roof takes no parapet: give 'gable_degrees' or 'parapet_metres', not both.");
-                if (chimney && gable == 0f) Refuse(LineOf(_keys["chimney"]), "a chimney stands on a gable roof: 'chimney' needs 'gable_degrees'.");
+                terrace = Terrace();
+                apartment = terrace is null ? Apartment() : null;
+                if (terrace is not null && _keys.TryGetValue("apartment", out KeyValueSyntax? both)) Refuse(LineOf(both), "a body takes 'terrace' or 'apartment', not both.");
+                workshop = PanelShed();
+                if (chimney && gable == 0f && terrace is null) Refuse(LineOf(_keys["chimney"]), "a chimney stands on a gable roof: 'chimney' needs 'gable_degrees'.");
+
+                // The far box takes its cap from these, so a terrace or apartment form gives them its own roof's.
+                if ((terrace?.PitchDegrees ?? apartment?.PitchDegrees) is { } pitch) gable = (pitch.Low + pitch.High) / 2f;
+                else if (terrace?.Form == TerraceForm.Parapet) parapet = FamilyBodyBuilder.TerraceParapetMetres;
                 rows = [.. Rows.Select(Row)];
             }
 
-            return errors.Count > before || library is null || !blockShape && tower is null && midrise is null && house is null
+            return errors.Count > before || library is null || !blockShape && tower is null && midrise is null && house is null && shop is null && workshop is null
                 ? null
                 : new FamilyBody(library, tiles, materials, bay, parapet, pilasters, (int)plant,
                     new WallRule(rows[0], rows[1]), new WallRule(rows[2], rows[3]), new WallRule(rows[4], rows[5]),
-                    hatch, (int)vents, openings, gable, chimney, steps, partyLine, shopfront, panels, rooflights, receiving, tower, midrise, house);
+                    hatch, (int)vents, openings, gable, chimney, steps, partyLine, shopfront, panels, rooflights, receiving, tower, midrise, house, terrace, apartment, shop, workshop);
+        }
+
+        private TerraceBody? Terrace()
+        {
+            string? name = Text("terrace", required: false);
+            if (name is null)
+            {
+                if (_keys.TryGetValue("pitch_degrees", out KeyValueSyntax? alone) && !_keys.ContainsKey("apartment"))
+                {
+                    Refuse(LineOf(alone), "'pitch_degrees' needs 'terrace' or 'apartment'.");
+                }
+
+                return null;
+            }
+
+            Bounds? pitch = Range("pitch_degrees");
+            TerraceForm? form = name switch
+            {
+                "side-gable" => TerraceForm.SideGable,
+                "parapet" => TerraceForm.Parapet,
+                "mansard" => TerraceForm.Mansard,
+                "front-gable" => TerraceForm.FrontGable,
+                "paired-gable" => TerraceForm.PairedGable,
+                "bay-front" => TerraceForm.BayFront,
+                _ => null,
+            };
+            if (form is not { } found)
+            {
+                Refuse(LineOf(_keys["terrace"]), "'terrace' must be \"side-gable\", \"parapet\", \"mansard\", \"front-gable\", \"paired-gable\" or \"bay-front\".");
+                return null;
+            }
+
+            foreach (string own in (ReadOnlySpan<string>)["gable_degrees", "parapet_metres"])
+            {
+                if (_keys.TryGetValue(own, out KeyValueSyntax? refused)) Refuse(LineOf(refused), $"a terrace form draws its own roof, so it takes no '{own}'.");
+            }
+
+            bool pitched = found is not (TerraceForm.Parapet or TerraceForm.Mansard);
+            if (pitched && pitch is not { Low: >= 18, High: <= 45 })
+            {
+                Refuse(LineOf(_keys["terrace"]), "a pitched terrace form needs 'pitch_degrees' = [low, high] within 18 to 45 degrees.");
+                return null;
+            }
+
+            if (!pitched && pitch is not null)
+            {
+                Refuse(LineOf(_keys["pitch_degrees"]), $"a {name} roof has no pitch, so it takes no 'pitch_degrees'.");
+                return null;
+            }
+
+            return new TerraceBody(found, pitch);
+        }
+
+        private ShopBody? Shop()
+        {
+            string? name = Text("variant", required: true);
+            ShopForm? form = name switch
+            {
+                "victorian-gable" => ShopForm.VictorianGable,
+                "gabled-oriel" => ShopForm.GabledOriel,
+                "turret-corner" => ShopForm.TurretCorner,
+                "main-street" => ShopForm.MainStreet,
+                "mansard" => ShopForm.Mansard,
+                "interwar-curve" => ShopForm.InterwarCurve,
+                "sixties-canopy" => ShopForm.SixtiesCanopy,
+                "setback-modern" => ShopForm.SetbackModern,
+                "pantile-hipped" => ShopForm.PantileHipped,
+                "glass-base" => ShopForm.GlassBase,
+                "gabled-hall" => ShopForm.GabledHall,
+                "colonnade" => ShopForm.Colonnade,
+                "mono-pitch" => ShopForm.MonoPitch,
+                "canopy" => ShopForm.Canopy,
+                "folded-plate" => ShopForm.FoldedPlate,
+                "commercial-block" => ShopForm.CommercialBlock,
+                _ => null,
+            };
+            if (name is null) return null;
+            if (form is not { } found)
+            {
+                Refuse(LineOf(_keys["variant"]), "a shop 'variant' must be \"victorian-gable\", \"gabled-oriel\", \"turret-corner\", \"main-street\", \"mansard\", \"interwar-curve\", \"sixties-canopy\", \"setback-modern\", \"pantile-hipped\", \"glass-base\", \"gabled-hall\", \"colonnade\", \"mono-pitch\", \"canopy\", \"folded-plate\" or \"commercial-block\".");
+                return null;
+            }
+
+            bool pitched = FamilyBodyBuilder.ShopPitched(found);
+            Bounds? pitch = Range("pitch_degrees");
+            int least = FamilyBodyBuilder.IsDetachedShop(found) ? 5 : 18;
+            if (pitched && (pitch is not { } given || given.Low < least || given.High > 45))
+            {
+                Refuse(LineOf(_keys["variant"]), $"a pitched shop form needs 'pitch_degrees' = [low, high] within {least} to 45 degrees.");
+                return null;
+            }
+
+            if (!pitched && pitch is not null)
+            {
+                Refuse(LineOf(_keys["pitch_degrees"]), $"a shop {name} has no pitch, so it takes no 'pitch_degrees'.");
+                return null;
+            }
+
+            return new ShopBody(found, pitch);
+        }
+
+        /// <summary>A block body tagged as the panel shed among the workshop forms.</summary>
+        private WorkshopBody? PanelShed()
+        {
+            string? name = Text("workshop", required: false);
+            if (name is null) return null;
+            if (name != "panel-shed")
+            {
+                Refuse(LineOf(_keys["workshop"]), "a block body's 'workshop' must be \"panel-shed\"; the other workshop forms are 'shape = \"workshop\"'.");
+                return null;
+            }
+
+            if (_keys.ContainsKey("terrace") || _keys.ContainsKey("apartment"))
+            {
+                Refuse(LineOf(_keys["workshop"]), "a body takes one of 'terrace', 'apartment' and 'workshop'.");
+                return null;
+            }
+
+            return new WorkshopBody(WorkshopForm.PanelShed, null);
+        }
+
+        private WorkshopBody? Workshop()
+        {
+            string? name = Text("variant", required: true);
+            WorkshopForm? form = name switch
+            {
+                "builders-yard" => WorkshopForm.BuildersYard,
+                "monitor" => WorkshopForm.Monitor,
+                "interwar-garage" => WorkshopForm.InterwarGarage,
+                "parapet-roller" => WorkshopForm.ParapetRoller,
+                "portal-shed" => WorkshopForm.PortalShed,
+                _ => null,
+            };
+            if (name is null) return null;
+            if (form is not { } found)
+            {
+                Refuse(LineOf(_keys["variant"]), "a workshop 'variant' must be \"builders-yard\", \"monitor\", \"interwar-garage\", \"parapet-roller\" or \"portal-shed\".");
+                return null;
+            }
+
+            bool pitched = FamilyBodyBuilder.WorkshopPitched(found);
+            Bounds? pitch = Range("pitch_degrees");
+            if (pitched && pitch is not { Low: >= 5, High: <= 45 })
+            {
+                Refuse(LineOf(_keys["variant"]), "a pitched workshop form needs 'pitch_degrees' = [low, high] within 5 to 45 degrees.");
+                return null;
+            }
+
+            if (!pitched && pitch is not null)
+            {
+                Refuse(LineOf(_keys["pitch_degrees"]), $"a workshop {name} has no pitch, so it takes no 'pitch_degrees'.");
+                return null;
+            }
+
+            return new WorkshopBody(found, pitch);
+        }
+
+        private ApartmentBody? Apartment()
+        {
+            string? name = Text("apartment", required: false);
+            if (name is null) return null;
+            ApartmentForm? form = name switch
+            {
+                "parapet" => ApartmentForm.Parapet,
+                "hipped" => ApartmentForm.Hipped,
+                "side-gable" => ApartmentForm.SideGable,
+                "mansard" => ApartmentForm.Mansard,
+                "centre-gable" => ApartmentForm.CentreGable,
+                "bay-front" => ApartmentForm.BayFront,
+                "forecourt" => ApartmentForm.Forecourt,
+                "setback" => ApartmentForm.Setback,
+                _ => null,
+            };
+            if (form is not { } found)
+            {
+                Refuse(LineOf(_keys["apartment"]), "'apartment' must be \"parapet\", \"hipped\", \"side-gable\", \"mansard\", \"centre-gable\", \"bay-front\", \"forecourt\" or \"setback\".");
+                return null;
+            }
+
+            bool pitched = found is ApartmentForm.Hipped or ApartmentForm.SideGable or ApartmentForm.CentreGable;
+            string[] own = pitched || found == ApartmentForm.Mansard ? ["gable_degrees", "parapet_metres"] : ["gable_degrees"];
+            foreach (string key in own)
+            {
+                if (_keys.TryGetValue(key, out KeyValueSyntax? refused)) Refuse(LineOf(refused), $"an apartment {name} draws its own roof, so it takes no '{key}'.");
+            }
+
+            Bounds? pitch = Range("pitch_degrees");
+            if (pitched && pitch is not { Low: >= 18, High: <= 45 })
+            {
+                Refuse(LineOf(_keys["apartment"]), "a pitched apartment form needs 'pitch_degrees' = [low, high] within 18 to 45 degrees.");
+                return null;
+            }
+
+            if (!pitched && pitch is not null)
+            {
+                Refuse(LineOf(_keys["pitch_degrees"]), $"an apartment {name} has no pitch, so it takes no 'pitch_degrees'.");
+                return null;
+            }
+
+            return new ApartmentBody(found, pitch);
         }
 
         private MidriseBody Midrise(MidriseVariant variant)
@@ -524,6 +846,17 @@ public static class StylePresetReader
                 if (owner != variant && _keys.TryGetValue(key, out KeyValueSyntax? refused))
                 {
                     Refuse(LineOf(refused), $"'{key}' is only valid for a {(owner == MidriseVariant.Mansion ? "mansion" : "panel-slab")} body.");
+                }
+            }
+
+            if (FamilyBodyBuilder.IsPerimeter(variant))
+            {
+                foreach (string key in (string[])["street_openings", "shops"])
+                {
+                    if (_keys.TryGetValue(key, out KeyValueSyntax? refused))
+                    {
+                        Refuse(LineOf(refused), $"'{key}' is only valid for a mansion or panel-slab body.");
+                    }
                 }
             }
 

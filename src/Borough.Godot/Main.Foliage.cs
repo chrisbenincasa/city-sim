@@ -41,13 +41,14 @@ public partial class Main
     private static Vector2I FoliageBlock(Vector2 point) =>
         new(Mathf.FloorToInt(point.X / CellMetres), Mathf.FloorToInt(point.Y / CellMetres));
 
-    private void IndexFoliageBuildings()
+    private void IndexFoliageBuildings(Rect2 window)
     {
         _foliageBlocks.Clear();
         foreach (Rect2 footprint in _foliageBuildings)
         {
             // PROVISIONAL clearance includes the largest crown, not just its trunk.
             Rect2 bounds = footprint.Grow(8f);
+            if (!bounds.Intersects(window, includeBorders: true)) continue;
             Vector2I first = FoliageBlock(bounds.Position);
             Vector2I last = FoliageBlock(bounds.End);
             for (int y = first.Y; y <= last.Y; y++)

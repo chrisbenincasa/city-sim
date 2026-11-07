@@ -8,12 +8,30 @@ public enum FamilyBodyDetail : byte
     Far,
 }
 
-/// <summary>A generated body: one mesh per material part, in the order parts were first used.</summary>
+/// <summary>
+/// A ground-floor door in a street-facing wall. <paramref name="Across"/> runs right along the frontage
+/// as seen from the street, and <paramref name="Forward"/> runs toward the street to the wall's face.
+/// Both are metres from the footprint centre. <paramref name="Width"/> is the opening's width and
+/// <paramref name="Sill"/> its height above the ground, in metres.
+/// </summary>
+public readonly record struct FamilyDoor(float Across, float Forward, float Width, float Sill);
+
+/// <summary>A generated body: one mesh per material part, in the order parts were first used, and its street doors.</summary>
 public sealed class FamilyBodyMesh
 {
     private readonly List<(string Part, ShellMesh Mesh)> _parts = [];
+    private readonly List<FamilyDoor> _doors = [];
 
     public IReadOnlyList<(string Part, ShellMesh Mesh)> Parts => _parts;
+
+    /// <summary>The street doors, west to east along the frontage.</summary>
+    public IReadOnlyList<FamilyDoor> Doors => _doors;
+
+    internal void AddDoor(FamilyDoor door)
+    {
+        int at = _doors.FindIndex(d => d.Across > door.Across);
+        _doors.Insert(at < 0 ? _doors.Count : at, door);
+    }
 
     internal ShellMesh Part(string name)
     {
@@ -44,23 +62,34 @@ public static partial class FamilyBodyBuilder
     private const float Reveal = .18f;
     private const float PlinthHeight = .3f;
 
+    // Higher sills are upper-floor balcony and terrace doors.
+    private const float StreetDoorSill = 1.5f;
+
     /// <summary>The material parts a body is built from.</summary>
     public static readonly string[] PartNames =
     [
         "wall", "wall-end", "trim", "roof", "membrane", "glass", "door", "frame", "metal", "plinth",
-        "spandrel", "reveal", "paving", "planter", "tree",
+        "spandrel", "reveal", "paving", "planter", "tree", "attic", "panel", "band", "accent", "canopy",
+        "lobby", "sedum", "plant", "solar",
     ];
 
     private static readonly int[][] BoxFaces = [[0, 3, 2, 1], [4, 5, 6, 7], [0, 1, 5, 4], [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7]];
 
     /// <param name="attached">Side walls shared with a neighbour. They are blank, and a gable stops at them or hips down to a crosswise one.</param>
+    /// <param name="place">Where a terrace body's house stands in its terrace, and the pitch the terrace shares.</param>
     public static FamilyBodyMesh Build(FamilyBody body, float frontage, float depth, int storeys,
-        AttachedSides attached = AttachedSides.None)
+        AttachedSides attached = AttachedSides.None, TerracePlace place = default)
     {
         ArgumentNullException.ThrowIfNull(body);
         if (body.Tower is not null) throw new ArgumentException("A tower body must be built with BuildTower().", nameof(body));
         if (body.Midrise is not null) throw new ArgumentException("A mid-rise body must be built with BuildMidrise().", nameof(body));
         if (body.House is not null) throw new ArgumentException("A house body must be built with BuildHouse().", nameof(body));
+        if (body.Terrace is { } terrace) return BuildTerrace(body, terrace, frontage, depth, storeys, attached, place);
+        if (body.Apartment is { } apartment && Drawn(apartment, storeys) != ApartmentForm.Parapet)
+        {
+            return BuildApartment(body, apartment, frontage, depth, storeys, attached, place);
+        }
+
         var mesh = new FamilyBodyMesh();
         var writer = new Writer(mesh, body);
         float height = storeys * Storey;
@@ -84,7 +113,7 @@ public static partial class FamilyBodyBuilder
         float plinthLeft = attached.HasFlag(AttachedSides.Left) ? -x : -x - .05f;
         float plinthRight = attached.HasFlag(AttachedSides.Right) ? x : x + .05f;
         writer.Box(new Vector3(plinthLeft, -y - .05f, 0), new Vector3(plinthRight, y + .05f, PlinthHeight), "plinth");
-        if (body.GableDegrees > 0f) Gable(writer, body, frontage, depth, height, attached);
+        if (body.GableDegrees > 0f) Gable(writer, body, frontage, depth, height, attached, body.GableDegrees);
         else if (body.ParapetMetres > 0f) Parapet(writer, frontage, depth, height, body.ParapetMetres);
         else writer.Box(new Vector3(-x, -y, height - .2f), new Vector3(x, y, height), "membrane");
 
@@ -117,29 +146,13 @@ public static partial class FamilyBodyBuilder
             writer.Box(new Vector3(at - 2f, -1.5f, height + .35f), new Vector3(at + 2f, 1.5f, height + 1.5f), "metal");
         }
 
-        if (body.RoofHatch && street.Stairs.Count == 0) writer.Box(new Vector3(-1f, 1f, height), new Vector3(1f, 2.2f, height + .5f), "metal");
-        if (body.RoofHatch)
-        {
-            foreach (float stair in street.Stairs)
-            {
-                writer.Box(new Vector3(stair - 1f, -y + 2.5f, height), new Vector3(stair + 1f, -y + 3.7f, height + .5f), "metal");
-            }
-        }
-
-        for (int vent = 0; vent < body.Vents; vent++)
-        {
-            float at = -x + (frontage * (vent + 1) / (body.Vents + 1));
-            writer.Box(new Vector3(at - .4f, 3f, height), new Vector3(at + .4f, 3.8f, height + .9f), "metal");
-        }
-
+        RoofKit(writer, body, x, -y, y, height, street);
         if (body.PartyLine)
         {
             foreach (Face face in (ReadOnlySpan<Face>)[front, back])
             {
                 writer.Slab(face, x - .15f, x + .15f, PlinthHeight, height, -.12f, 0f, "wall-end");
             }
-
-            writer.Box(new Vector3(-.15f, -y + .25f, height), new Vector3(.15f, y - .25f, height + body.ParapetMetres), "wall-end");
         }
 
         if (body.Panels)
@@ -194,13 +207,56 @@ public static partial class FamilyBodyBuilder
     /// <summary>The whole bays a wall holds, each as near the family's bay width as the wall allows.</summary>
     public static int Bays(float length, float bayMetres) => Math.Max(1, (int)MathF.Round(length / bayMetres));
 
-    private static void Facade(Writer writer, FamilyBody body, Face face, float width, float height, int storeys,
-        WallRule rule, bool isStreet, Found found)
+    /// <summary>
+    /// The roof hatches, vents and party-line upstand of a flat roof whose street parapet stands at
+    /// <paramref name="front"/>. A hatch stands over each street stair, or one behind the middle where
+    /// the street wall has none.
+    /// </summary>
+    private static void RoofKit(Writer writer, FamilyBody body, float x, float front, float y, float height, Found street)
     {
+        float frontage = 2f * x;
+        if (body.RoofHatch && street.Stairs.Count == 0) writer.Box(new Vector3(-1f, 1f, height), new Vector3(1f, 2.2f, height + .5f), "metal");
+        if (body.RoofHatch)
+        {
+            foreach (float stair in street.Stairs)
+            {
+                writer.Box(new Vector3(stair - 1f, front + 2.5f, height), new Vector3(stair + 1f, front + 3.7f, height + .5f), "metal");
+            }
+        }
+
+        for (int vent = 0; vent < body.Vents; vent++)
+        {
+            float at = -x + (frontage * (vent + 1) / (body.Vents + 1));
+            writer.Box(new Vector3(at - .4f, 3f, height), new Vector3(at + .4f, 3.8f, height + .9f), "metal");
+        }
+
+        if (body.PartyLine)
+        {
+            writer.Box(new Vector3(-.15f, front + .25f, height), new Vector3(.15f, y - .25f, height + body.ParapetMetres), "wall-end");
+        }
+    }
+
+    /// <param name="mirror">The wall's bays are laid from its right-hand end.</param>
+    /// <param name="from">Where along the wall a stretch of it starts. A stretch lays the whole wall's bays and draws those inside it.</param>
+    /// <param name="to">Where the stretch ends, or a negative number for the wall's end.</param>
+    private static void Facade(Writer writer, FamilyBody body, Face face, float width, float height, int storeys,
+        WallRule rule, bool isStreet, Found found, bool mirror = false, float from = 0f, float to = -1f)
+    {
+        float end = to < 0f ? width : to;
+
+        // An opening within 0.2 m of a corner the stretch turns is left out.
+        float low = from > 0f ? from + .2f : 0f, high = end < width ? end - .2f : width;
+        bool Here(float u0, float u1) => u0 > low && u1 < high;
         int bays = Bays(width, body.BayMetres);
         float bay = width / bays;
         BayKind[] ground = rule.Ground.Over(bays);
         BayKind[] above = rule.Upper.Over(bays);
+        if (mirror)
+        {
+            Array.Reverse(ground);
+            Array.Reverse(above);
+        }
+
         var openings = new List<Opening>();
         for (int storey = 0; storey < storeys; storey++)
         {
@@ -213,12 +269,14 @@ public static partial class FamilyBodyBuilder
                     while (last + 1 < bays && row[last + 1] == BayKind.Hall) last++;
                     float centre = (b + last + 1) * bay / 2f;
                     openings.Add(new Opening(centre - 1.2f, .3f, 2.4f, 2.5f, OpeningKind.Door));
-                    if (isStreet) writer.Slab(face, centre - 1.8f, centre + 1.8f, 2.9f, 3.05f, -1.2f, 0f, "trim");
+                    if (isStreet && Here(centre - 1.2f, centre + 1.2f)) writer.Slab(face, centre - 1.8f, centre + 1.8f, 2.9f, 3.05f, -1.2f, 0f, "trim");
                     b = last;
                     continue;
                 }
 
+                int count = openings.Count;
                 Openings(openings, body.Openings, row[b], b * bay, bay, storey * Storey, storey == 0, height);
+                if (openings.Count > count && !Here(openings[^1].U, openings[^1].U + openings[^1].W)) continue;
                 if (storey == 1 && row[b] == BayKind.Stair) found.Stairs.Add(face.AlongX((b + .5f) * bay));
                 if (storey > 0 && row[b] == BayKind.Balcony) Balcony(writer, face, openings[^1], storey * Storey);
                 if (storey != 0) continue;
@@ -240,8 +298,8 @@ public static partial class FamilyBodyBuilder
         }
 
         if (body.Shopfront) Shopfront(writer, face, ground, bay, isStreet);
-        openings.RemoveAll(o => !(o.U > 0f && o.U + o.W < width && o.V > 0f && o.V + o.H < height));
-        writer.Facade(face, width, height, openings);
+        openings.RemoveAll(o => !(Here(o.U, o.U + o.W) && o.V > 0f && o.V + o.H < height));
+        writer.Facade(face, width, height, openings, from: from, to: end);
     }
 
     /// <summary>A slab, a rail and two sides before a door, 1.4 m deep and 0.3 m wider than it each side.</summary>
@@ -326,11 +384,13 @@ public static partial class FamilyBodyBuilder
     /// free end and stops at a shared one, where a party-wall upstand covers the joint. The upstand is
     /// half the wall's thickness, so two neighbours make one whole.
     /// </summary>
-    private static void Gable(Writer writer, FamilyBody body, float width, float depth, float height, AttachedSides attached)
+    /// <param name="centre">How far behind the footprint's centre the roofed block's centre stands.</param>
+    private static void Gable(Writer writer, FamilyBody body, float width, float depth, float height, AttachedSides attached,
+        float degrees, float centre = 0f)
     {
         const float Eaves = .4f, Thick = .2f, Upstand = .15f;
-        float slope = MathF.Tan(body.GableDegrees * MathF.PI / 180f);
-        float x = width / 2f, y = depth / 2f, eave = y + Eaves;
+        float slope = MathF.Tan(degrees * MathF.PI / 180f);
+        float x = width / 2f, y = depth / 2f, eave = y + Eaves, c = centre;
         bool left = attached.HasFlag(AttachedSides.Left), right = attached.HasFlag(AttachedSides.Right);
         bool hipLeft = attached.HasFlag(AttachedSides.LeftCrosswise), hipRight = attached.HasFlag(AttachedSides.RightCrosswise);
         float x0 = hipLeft ? -x - Eaves : left ? -x : -x - (Eaves / 2f);
@@ -339,43 +399,43 @@ public static partial class FamilyBodyBuilder
         if (r0 > r1) r0 = r1 = (r0 + r1) / 2f;
 
         float low = height - (Eaves * slope), top = height + (y * slope);
-        Vector3 a = new(x0, -eave, low), b = new(x1, -eave, low), c = new(x1, eave, low), d = new(x0, eave, low);
-        Vector3 p = new(r0, 0f, top), q = new(r1, 0f, top), up = new(0f, 0f, Thick);
+        Vector3 a = new(x0, c - eave, low), b = new(x1, c - eave, low), e = new(x1, c + eave, low), d = new(x0, c + eave, low);
+        Vector3 p = new(r0, c, top), q = new(r1, c, top), up = new(0f, 0f, Thick);
         Sheet([a, b, q, p]);
-        Sheet([c, d, p, q]);
+        Sheet([e, d, p, q]);
         if (hipLeft) Sheet([d, a, p]);
         else
         {
             writer.Polygon("roof", [a, a + up, p + up, p]);
             writer.Polygon("roof", [p, p + up, d + up, d]);
-            writer.Polygon("wall", [new(-x, 0f, top), new(-x, y, height), new(-x, -y, height)]);
+            writer.Polygon("wall", [new(-x, c, top), new(-x, c + y, height), new(-x, c - y, height)]);
         }
 
-        if (hipRight) Sheet([b, c, q]);
+        if (hipRight) Sheet([b, e, q]);
         else
         {
             writer.Polygon("roof", [q, q + up, b + up, b]);
-            writer.Polygon("roof", [c, c + up, q + up, q]);
-            writer.Polygon("wall", [new(x, -y, height), new(x, y, height), new(x, 0f, top)]);
+            writer.Polygon("roof", [e, e + up, q + up, q]);
+            writer.Polygon("wall", [new(x, c - y, height), new(x, c + y, height), new(x, c, top)]);
         }
 
         writer.Polygon("roof", [a, b, b + up, a + up]);
-        writer.Polygon("roof", [c, d, d + up, c + up]);
+        writer.Polygon("roof", [e, d, d + up, e + up]);
         if (hipLeft) writer.Polygon("roof", [d, a, a + up, d + up]);
-        if (hipRight) writer.Polygon("roof", [b, c, c + up, b + up]);
+        if (hipRight) writer.Polygon("roof", [b, e, e + up, b + up]);
 
         float edge = y + Upstand;
         Vector2[] profile =
         [
-            new(-edge, height - .3f), new(edge, height - .3f), new(edge, Surface(edge) + .25f),
-            new(0f, Surface(0f) + .25f), new(-edge, Surface(edge) + .25f),
+            new(c - edge, height - .3f), new(c + edge, height - .3f), new(c + edge, Surface(edge) + .25f),
+            new(c, Surface(0f) + .25f), new(c - edge, Surface(edge) + .25f),
         ];
         if (left && !hipLeft) writer.Prism(profile, -x, -x + Upstand, "wall");
         if (right && !hipRight) writer.Prism(profile, x - Upstand, x, "wall");
         if (body.Chimney && !(hipLeft && hipRight))
         {
             float stack = hipRight ? -x + 1f : x - 1.6f;
-            writer.Box(new Vector3(stack, .8f, Surface(1.4f) - .6f), new Vector3(stack + .6f, 1.4f, Surface(0f) + .9f), "wall-end");
+            writer.Box(new Vector3(stack, c + .8f, Surface(1.4f) - .6f), new Vector3(stack + .6f, c + 1.4f, Surface(0f) + .9f), "wall-end");
         }
 
         float Surface(float distance) => top + Thick - (MathF.Abs(distance) * slope);
@@ -445,10 +505,13 @@ public static partial class FamilyBodyBuilder
         private static readonly Vector4 Unpainted = new(1f, 1f, 1f, 0f);
         private readonly Dictionary<string, Vector4> _paints = new(StringComparer.Ordinal);
 
+        /// <summary>Dressed names that stand in for bare part names, so shared helpers draw in a body's own look.</summary>
+        public Dictionary<string, string>? Look { get; init; }
+
         public void Facade(Face face, float width, float height, List<Opening> openings,
-            string wall = "wall", string trim = "trim", string door = "door", string frame = "frame")
+            string wall = "wall", string trim = "trim", string door = "door", string frame = "frame", float from = 0f, float to = -1f)
         {
-            var us = new SortedSet<float> { 0f, width };
+            var us = new SortedSet<float> { from, to < 0f ? width : to };
             var vs = new SortedSet<float> { 0f, height };
             foreach (Opening o in openings)
             {
@@ -476,8 +539,17 @@ public static partial class FamilyBodyBuilder
             }
         }
 
+        /// <summary>Records a door whose sill is near the ground in a wall facing the street.</summary>
+        public void StreetDoor(Face face, float u0, float u1, float sill, float depth = 0f)
+        {
+            if (face.Outward.Y > -.99f || sill > StreetDoorSill) return;
+            Vector3 middle = face.Point((u0 + u1) / 2f, 0f, depth);
+            mesh.AddDoor(new FamilyDoor(middle.X, -middle.Y, MathF.Abs(u1 - u0), sill));
+        }
+
         private void Recess(Face face, Opening o, string trim, string door, string frame)
         {
+            if (o.Kind == OpeningKind.Door) StreetDoor(face, o.U, o.U + o.W, o.V);
             bool solid = o.Kind is OpeningKind.Door or OpeningKind.Roller;
             float depth = Reveal + (solid ? .05f : 0f);
             (float, float)[] corners = [(o.U, o.V), (o.U + o.W, o.V), (o.U + o.W, o.V + o.H), (o.U, o.V + o.H)];
@@ -531,6 +603,18 @@ public static partial class FamilyBodyBuilder
             [
                 new(low.X, low.Y, low.Z), new(high.X, low.Y, low.Z), new(high.X, high.Y, low.Z), new(low.X, high.Y, low.Z),
                 new(low.X, low.Y, high.Z), new(high.X, low.Y, high.Z), new(high.X, high.Y, high.Z), new(low.X, high.Y, high.Z),
+            ];
+            Solid(corners, part);
+        }
+
+        /// <summary>A box from <paramref name="a"/> to <paramref name="b"/> whose cross-section spans ±<paramref name="u"/> and ±<paramref name="v"/>.</summary>
+        public void Beam(Vector3 a, Vector3 b, Vector3 u, Vector3 v, string part)
+        {
+            if (Vector3.Dot(Vector3.Cross(u, v), b - a) < 0f) v = -v;
+            Span<Vector3> corners =
+            [
+                a - u - v, a + u - v, a + u + v, a - u + v,
+                b - u - v, b + u - v, b + u + v, b - u + v,
             ];
             Solid(corners, part);
         }
@@ -610,6 +694,7 @@ public static partial class FamilyBodyBuilder
         /// <summary>A convex polygon in the script's frame, anticlockwise seen from outside.</summary>
         public void Polygon(string part, ReadOnlySpan<Vector3> points)
         {
+            if (Look is not null && Look.TryGetValue(part, out string? dressed)) part = dressed;
             Vector3 cross = Vector3.Cross(points[1] - points[0], points[^1] - points[0]);
             if (cross.LengthSquared() < 1e-10f) return;
             Vector3 n = Vector3.Normalize(cross);

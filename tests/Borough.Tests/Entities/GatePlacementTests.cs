@@ -137,10 +137,10 @@ public sealed class GatePlacementTests
     /// city than any Trip may travel — east 62 minutes and north 73 against a ceiling of 49, where
     /// west and south are 0</i>. Every one of those numbers was a property of a city sitting in the
     /// <b>origin corner</b> of a 65.5 km map, which is where the generator's reading-order walk left
-    /// it. It builds outward from the middle now, so the same world measures <b>west 39.7, south
-    /// 39.7, north 48.9 and east 52.9 minutes</b> — ***a spread straddling the ceiling instead of two
-    /// zeroes and two impossibilities***, and <c>bordered.toml</c>'s four Hinterlands are four live
-    /// markets where two of them used to be unreachable by construction.
+    /// it. It builds outward from the middle now, and on the 256-Cell map the same world measures
+    /// <b>west 30.1, south 30.2, north 31.7 and east 41.3 minutes</b> against <c>bordered.toml</c>'s
+    /// 35-minute ceiling. A 50-minute ceiling admits every edge of a 32.8 km map, so the fixture
+    /// states the lower one.
     /// </para>
     /// <para>
     /// ⚠ <b>So the assertion is written against the SIEVE and no longer against the compass.</b> A

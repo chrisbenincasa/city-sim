@@ -171,7 +171,7 @@ public partial class Main
     {
         Vector3 eye = _camera.GlobalPosition;
         float inner = Mathf.Max(0f, _bodyNearMetres - FarFadeRingMetres);
-        foreach (InstanceBuffer.Entry instance in batch.Instances)
+        foreach (InstanceBuffer.Instance instance in batch.Instances)
         {
             if (eye.DistanceSquaredTo(instance.Transform.Origin) > inner * inner) return true;
         }
@@ -192,7 +192,7 @@ public partial class Main
     private bool NearBatchNeeded(InstanceBuffer.Batch batch)
     {
         Vector3 eye = _camera.GlobalPosition;
-        foreach (InstanceBuffer.Entry instance in batch.Instances)
+        foreach (InstanceBuffer.Instance instance in batch.Instances)
         {
             if (eye.DistanceSquaredTo(instance.Transform.Origin) <= _bodyNearMetres * _bodyNearMetres) return true;
         }
@@ -221,8 +221,16 @@ public partial class Main
 
         // ArmWash builds both of these before any layer is asked, and sets them from the overlay
         // style alone, so a copy carries settings that do not change after it is taken.
-        if ((BuildingWash ? _categorical : _muted) is not { } source) return null;
+        if ((BuildingWash ? _categoricalBody : _mutedBody) is not { } source) return null;
         return Faded(source, layer);
+    }
+
+    private static ShaderMaterial BodyCopy(ShaderMaterial wash)
+    {
+        var copy = (ShaderMaterial)wash.Duplicate();
+        copy.ResourceName = $"{wash.ResourceName}-body";
+        copy.SetShaderParameter("body", true);
+        return copy;
     }
 
     /// <summary>The abandonment overlay a body layer wears, on its own side of the fade.</summary>
