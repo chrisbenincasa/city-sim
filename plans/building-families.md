@@ -22,8 +22,8 @@ plan, and neighbors across runs never share a form and pitch within 5 degrees.
 | Detached shops | `detached-shop-*` | 2–3 storeys, 16–60 m, 12–28 m deep | 7 | Meets the bar; one store per Building | 1 / 2 / 4 | main, #253 |
 | Workshops | `workshop`, `workshop-*` | 2 storeys, 28–36 m | 6 | Meets the bar on a fixture preset only | 2 / 2 / 2 | #245 |
 | Wide houses | `house-terrace`, `house-front-gables`, `house-villa`, twelve `house-<form>` | 1–3 storeys, 12–84 m, 8–36 m deep | 10–11 per band, 4 deep | Meets the bar | 3 / 5 / 7 | main, #247 |
-| Perimeter forms | `perimeter-*` | 3–8 storeys, from 16 m | 6 | Not checked | 0 / 2 / 4 | main, #255 |
-| Prewar apartments | `prewar-apartments`, `prewar-apartments-balconies`, `prewar-apartments-shops` | 4–11 storeys | 3 families | Not checked | 3 / 0 / 0 | main |
+| Perimeter forms | `perimeter-*` | Perimeter and back-to-back, 3–11 storeys, from 16 m; `gable-front` to 6 | 6 | Meets the bar on forms; 5% of neighbor pairs repeat (#272) | 0 / 2 / 4 | main, #255, `midrise-periods` |
+| Prewar apartments | `prewar-apartments`, `prewar-apartments-balconies`, `prewar-apartments-shops` | 4–11 storeys | 3 families | Shares its bands with the perimeter forms at weight 1 to their 3; narrow 4-storey `base` lattice Lots draw only these 3 | 3 / 0 / 0 | main, `midrise-periods` |
 | Mansions | eleven `house-mansion-<style>` | 2–3 storeys, 28–84 m, 16–36 m deep | 11 styles, 9 plans | Not checked | 7 / 1 / 3 | #262 |
 | Towers | `tower-point`, `tower-stepped-point`, `tower-l`, `tower-h` | any | 4 families | Not checked | 0 / 4 / 0 | main |
 | Panel slabs | `panel-slab`, `panel-slab-plain`, `panel-slab-balconies` | 12–24 storeys | 3 families | Not checked | 0 / 3 / 0 | main |
@@ -107,12 +107,10 @@ detached shops.
 1. Add school and port bodies, the last two boxes in a founding run.
 2. Add contemporary and mid-century rowhouse forms. Six traditional rowhouse families draw 353 of
    `traded`'s Buildings.
-3. Add contemporary and mid-century mid-rise apartment forms. Three traditional prewar apartment
-   families draw 114 of `base`'s Buildings.
-4. Add pad-site stores, the largest shopfront gap on `traded` and `pictured`.
-5. Draw the single-family mansion grounds in a shipped run. Every mansion holds several Households
+3. Add pad-site stores, the largest shopfront gap on `traded` and `pictured`.
+4. Draw the single-family mansion grounds in a shipped run. Every mansion holds several Households
    today; the board row "Single-family mansions" owns the Lot that holds one.
-6. Check mansion variety against the bar. A mansion run shares a style, so neighbors repeat a
+5. Check mansion variety against the bar. A mansion run shares a style, so neighbors repeat a
    style while their plans differ.
-7. Set mansions further back from the Street. A 14 m least house depth reads at the right size,
+6. Set mansions further back from the Street. A 14 m least house depth reads at the right size,
    but the houses still stand fairly close to the frontage.

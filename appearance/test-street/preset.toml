@@ -2122,16 +2122,16 @@ wall-end = "e4ddcc"
 trim = "24324a"
 
 # The perimeter forms, from scripts/art/perimeter-forms.py: four contemporary and two mid-century
-# blocks for Perimeter Lots from 3 storeys up. Each weighs three to the prewar apartment families' one, so the
-# band draws mostly present-day forms (docs/07-the-drawing.md, Contemporary first). A frontage of at
-# least 16 m keeps them off the rowhouse Lots.
+# blocks for Perimeter and back-to-back Lots of 3 to 11 storeys. Each weighs three to the prewar
+# apartment families' one, so the band draws mostly present-day forms (docs/07-the-drawing.md,
+# Contemporary first). A frontage of at least 16 m keeps them off the rowhouse Lots.
 
 [[family]]
 id = "perimeter-brick-loggia"
 kinds = ["dwelling", "shopfront"]
-patterns = ["perimeter"]
+patterns = ["perimeter", "back-to-back"]
 weight = 3
-storeys = [3, 8]
+storeys = [3, 11]
 frontage_metres = [16, 400]
 
 # Contemporary. Dark brick with deep window reveals, recessed street loggias, a stone band over the
@@ -2166,9 +2166,9 @@ attic = "5b5f62"
 [[family]]
 id = "perimeter-timber-frame"
 kinds = ["dwelling", "shopfront"]
-patterns = ["perimeter"]
+patterns = ["perimeter", "back-to-back"]
 weight = 3
-storeys = [3, 8]
+storeys = [3, 11]
 frontage_metres = [16, 400]
 
 # Contemporary. Vertical timber over a concrete ground storey, tall French windows with rails, box
@@ -2203,9 +2203,9 @@ attic = "3c4043"
 [[family]]
 id = "perimeter-white-render"
 kinds = ["dwelling", "shopfront"]
-patterns = ["perimeter"]
+patterns = ["perimeter", "back-to-back"]
 weight = 3
-storeys = [3, 8]
+storeys = [3, 11]
 frontage_metres = [16, 400]
 
 # Contemporary. Pale render with a rhythm of mixed window widths, corner loggias, cantilevered slab
@@ -2240,7 +2240,7 @@ reveal = "c9c5bc"
 [[family]]
 id = "perimeter-gable-front"
 kinds = ["dwelling", "shopfront"]
-patterns = ["perimeter"]
+patterns = ["perimeter", "back-to-back"]
 weight = 3
 storeys = [3, 6]
 frontage_metres = [16, 400]
@@ -2277,9 +2277,9 @@ reveal = "7d6e62"
 [[family]]
 id = "perimeter-ribbon"
 kinds = ["dwelling", "shopfront"]
-patterns = ["perimeter"]
+patterns = ["perimeter", "back-to-back"]
 weight = 3
-storeys = [3, 8]
+storeys = [3, 11]
 frontage_metres = [16, 400]
 
 # Mid-century. Continuous window bands between colored spandrels, a glazed ground storey set back
@@ -2317,9 +2317,9 @@ spandrel = "b4472f"
 [[family]]
 id = "perimeter-crosswall"
 kinds = ["dwelling", "shopfront"]
-patterns = ["perimeter"]
+patterns = ["perimeter", "back-to-back"]
 weight = 3
-storeys = [3, 8]
+storeys = [3, 11]
 frontage_metres = [16, 400]
 
 # Mid-century. Projecting brick crosswalls every two bays with painted panel infill and wide windows

@@ -50,6 +50,7 @@ public static class FamilyPicker
     private const ulong ShopSpace = FaceSpace | (1UL << 59);
     private const ulong WorkshopSpace = FaceSpace | (1UL << 58);
     private const ulong WideSpace = FaceSpace | (1UL << 57);
+    private const ulong MidriseSpace = FaceSpace | (1UL << 56);
     private const int RunFaceShift = 20;
 
     /// <remarks>
@@ -144,9 +145,10 @@ public static class FamilyPicker
         Shop,
         Workshop,
         WideHouse,
+        Midrise,
     }
 
-    private const int Groups = 4;
+    private const int Groups = 5;
 
     private static FormGroup? GroupOf(AppearanceFamily family) => family.Body switch
     {
@@ -154,9 +156,14 @@ public static class FamilyPicker
         { Shop: not null } => FormGroup.Shop,
         { Workshop: not null } => FormGroup.Workshop,
         { House.Wide: true } => FormGroup.WideHouse,
+        { Midrise: not null } => FormGroup.Midrise,
         _ => null,
     };
 
+    /// <remarks>
+    /// Each mid-rise family is its own form, and all of them share form 0 here so the group keeps its
+    /// families' whole weight in the draw.
+    /// </remarks>
     private static int FormOf(AppearanceFamily family) => family.Body switch
     {
         { Apartment: { } a } => (int)a.Form,
@@ -287,6 +294,13 @@ public static class FamilyPicker
     public static Terrace? WideHouseRunOf(StylePreset preset, WorldKey world, in BuildingFacts facts) =>
         GroupRunOf(FormGroup.WideHouse, preset, world, facts);
 
+    /// <summary>
+    /// The run of one mid-rise Building a Building ranks its family on, or <c>null</c> where it stands
+    /// on no block face. A mid-rise Building differs in family from its neighbors on the face.
+    /// </summary>
+    public static Terrace? MidriseRunOf(StylePreset preset, WorldKey world, in BuildingFacts facts) =>
+        GroupRunOf(FormGroup.Midrise, preset, world, facts);
+
     private static Terrace? GroupRunOf(FormGroup group, StylePreset preset, WorldKey world, in BuildingFacts facts)
     {
         ArgumentNullException.ThrowIfNull(preset);
@@ -295,6 +309,13 @@ public static class FamilyPicker
             if (RunSpan(preset, world, facts) is not { } run) return null;
             int place = facts.Offset / facts.ParcelFrontage % run.Houses;
             return new Terrace(WideSpace | (facts.Face << RunFaceShift) | run.Cell, run.Era, run.Cell, place, run.Houses);
+        }
+
+        if (group == FormGroup.Midrise)
+        {
+            if (facts.Face == 0 || facts.ParcelFrontage <= 0) return null;
+            ulong place = (ulong)(facts.Offset / facts.ParcelFrontage);
+            return new Terrace(MidriseSpace | (facts.Face << RunFaceShift) | place, new Ticks((ulong)facts.Side), place, 0, 1);
         }
 
         Bounds? lengths = group switch

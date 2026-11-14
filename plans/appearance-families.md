@@ -266,6 +266,18 @@ shots at 45 m show ridge caps, verges and seams clearly. At 110 m the seams are 
 apart and do not resolve.
 Wide houses stand detached by design, so #243 does not apply to them.
 
+Mid-rise families form one group in the draw: the prewar apartment families, the perimeter forms
+and the panel slabs. Each family is its own form, and the group keeps its families' whole weight,
+so its share of a Lot is unchanged. A mid-rise Building is a run of one, and an odd place on its
+face passes over both neighbors' families. A place is the Building's offset over its own parcel
+width, so mixed parcel widths can skip or share a place and let neighbors repeat (#272).
+
+| Ruleset, Tick 1 | Back-to-back forms by band | Neighbor pairs sharing a family, before → after |
+|---|---|---|
+| `base/ruleset.toml` | none | 89 → 6 of 209 |
+| `traded.toml` | 4–6 storeys: 8 | 61 → 8 of 64 |
+| `platted.toml` | 7–8: 7, 9–11: 7 | 27 → 2 of 35 |
+
 ## What the demonstration showed
 
 - 33 of 50 dwellings fall back to `box`. The test street covers only a few size bands, so this
