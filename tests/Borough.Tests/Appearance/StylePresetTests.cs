@@ -363,6 +363,48 @@ public class StylePresetTests
 
         """);
 
+    private static StylePreset MidrisePreset() => Preset(string.Concat(
+        new[] { ("prewar-apartments", 1), ("ribbon", 3), ("crosswall", 3), ("white-render", 3), ("brick-loggia", 3) }.Select(f => $"""
+        [[family]]
+        id = "{f.Item1}"
+        kinds = ["dwelling"]
+        weight = {f.Item2}
+        [family.body]
+        library = "l"
+        shape = "midrise"
+        variant = "{f.Item1}"
+
+        """)));
+
+    [Fact]
+    public void Midrise_Buildings_differ_in_family_from_their_neighbors_and_keep_their_weights()
+    {
+        StylePreset preset = MidrisePreset();
+        var drawn = new Dictionary<string, int>(StringComparer.Ordinal);
+        for (ulong face = 1; face <= 200; face++)
+        {
+            string[] families = [.. Enumerable.Range(0, 12).Select(i =>
+            {
+                BuildingFacts facts = Facts((face * 100) + (ulong)i, storeys: 6, frontage: 40, depth: 56, pattern: BlockPattern.BackToBack,
+                    face: face, offset: 10 * i, parcel: 10);
+                Assert.Equal(1, FamilyPicker.MidriseRunOf(preset, World, facts)!.Value.Houses);
+                return FamilyPicker.Pick(preset, World, facts).Family!.Id;
+            })];
+
+            for (int i = 0; i < families.Length; i++)
+            {
+                drawn[families[i]] = drawn.GetValueOrDefault(families[i]) + 1;
+                if (i > 0) Assert.NotEqual(families[i - 1], families[i]);
+            }
+        }
+
+        Assert.Equal(5, drawn.Count);
+        foreach (string heavier in (string[])["ribbon", "crosswall", "white-render", "brick-loggia"])
+        {
+            Assert.True(drawn[heavier] > 2 * drawn["prewar-apartments"], heavier);
+        }
+    }
+
     [Fact]
     public void Workshops_stand_in_runs_that_share_a_form_and_pitch_and_differ_from_their_neighbors()
     {

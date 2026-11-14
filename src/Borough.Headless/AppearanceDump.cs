@@ -72,6 +72,8 @@ internal static class AppearanceDump
         var workshopRuns = new List<(ulong Face, StreetSide Side, int Offset, string Form, ulong Cell, int Pitch, int Parcel)>();
         var wideBlocks = new SortedDictionary<(string Band, string Form), int>();
         var wideRuns = new List<(ulong Face, StreetSide Side, int Offset, string Form, ulong Cell, int Pitch, int Parcel)>();
+        var midriseBlocks = new SortedDictionary<(string Band, string Form), int>();
+        var midriseRuns = new List<(ulong Face, StreetSide Side, int Offset, string Form, ulong Cell, int Pitch, int Parcel)>();
         var mansions = new SortedDictionary<(string Style, MansionGrounds Grounds), int>();
         for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
         {
@@ -143,6 +145,15 @@ internal static class AppearanceDump
                     MansionGrounds grounds = facts.Units > 1 ? MansionGrounds.Apartments : MansionGrounds.OneHousehold;
                     mansions[(form, grounds)] = mansions.GetValueOrDefault((form, grounds)) + 1;
                 }
+            }
+
+            if (pick.Choice == FamilyChoice.Eligible && pick.Family is { Body.Midrise: not null } midrise)
+            {
+                string storeys = facts.Storeys switch { <= 3 => "3", <= 6 => "4-6", <= 8 => "7-8", <= 11 => "9-11", _ => "12+" };
+                string band = string.Create(CultureInfo.InvariantCulture, $"{facts.Pattern}, {storeys} storeys");
+                midriseBlocks[(band, midrise.Id)] = midriseBlocks.GetValueOrDefault((band, midrise.Id)) + 1;
+                ulong cell = FamilyPicker.MidriseRunOf(preset, key, facts)?.Entity ?? facts.Id;
+                midriseRuns.Add((facts.Face, facts.Side, facts.Offset, midrise.Id, cell, 0, 0));
             }
 
             if (pick.Choice == FamilyChoice.Eligible) continue;
@@ -236,6 +247,17 @@ internal static class AppearanceDump
         }
 
         output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  {eras} of those alike pairs stand in runs of different eras."));
+
+        // Mid-rise Buildings on a face are neighbors in Offset order whatever their parcel widths.
+        midriseRuns.Sort();
+        for (int i = 0, place = 0; i < midriseRuns.Count; i++)
+        {
+            bool sameFace = i > 0 && midriseRuns[i].Face == midriseRuns[i - 1].Face && midriseRuns[i].Side == midriseRuns[i - 1].Side;
+            place = sameFace ? place + 1 : 0;
+            midriseRuns[i] = midriseRuns[i] with { Parcel = place };
+        }
+
+        Forms(output, "Mid-rise apartments", "mid-rise", "run", midriseBlocks, midriseRuns);
 
         // One Unit draws a single household's garage and drive; several draw side doors and a parking court.
         output.WriteLine();
